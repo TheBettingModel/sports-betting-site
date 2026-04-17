@@ -4,7 +4,7 @@ function ResultsPage() {
   const [results, setResults] = useState([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/results")
+    fetch(`${import.meta.env.VITE_API_URL}/results`)
       .then((response) => response.json())
       .then((data) => setResults(data.results))
       .catch((error) => console.error("Error fetching results:", error));

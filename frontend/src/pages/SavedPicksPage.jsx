@@ -38,7 +38,7 @@ function SavedPicksPage() {
   };
 
   const fetchSavedPicks = () => {
-    fetch("http://127.0.0.1:8000/saved-picks")
+    fetch(`${import.meta.env.VITE_API_URL}/saved-picks`)
       .then((response) => response.json())
       .then((data) => setPicks(data.saved_picks || []))
       .catch((error) => console.error("Error fetching saved picks:", error));
@@ -49,7 +49,7 @@ function SavedPicksPage() {
   }, []);
 
   const handleDelete = async (pickId) => {
-    await fetch(`http://127.0.0.1:8000/delete-pick/${pickId}`, {
+    await fetch(`${import.meta.env.VITE_API_URL}/saved-picks`), {
       method: "DELETE"
     });
 
@@ -174,3 +174,4 @@ function SavedPicksPage() {
 }
 
 export default SavedPicksPage;
+

@@ -5,7 +5,7 @@ function PlayOfTheDayPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/play-of-the-day")
+    fetch(`${import.meta.env.VITE_API_URL}/play-of-the-day`)
       .then((response) => response.json())
       .then((data) => {
         if (data.play_of_the_day) {
