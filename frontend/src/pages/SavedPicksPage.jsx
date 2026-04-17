@@ -49,22 +49,20 @@ function SavedPicksPage() {
   }, []);
 
   const handleDelete = async (pickId) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/saved-picks`), {
-      method: "DELETE"
+    await fetch(`${import.meta.env.VITE_API_URL}/delete-pick/${pickId}`, {
+      method: "DELETE",
     });
-
     fetchSavedPicks();
   };
 
   const handleUpdateResult = async (pickId, result) => {
-    await fetch(`http://127.0.0.1:8000/update-result/${pickId}`, {
+    await fetch(`${import.meta.env.VITE_API_URL}/update-result/${pickId}`, {
       method: "PUT",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ result })
+      body: JSON.stringify({ result }),
     });
-
     fetchSavedPicks();
   };
 
@@ -91,17 +89,17 @@ function SavedPicksPage() {
       <div className="summary-bar">
         <div className="summary-card">
           <h3>Wins</h3>
-          <p>{picks.filter((pick) => pick.result === "Win").length}</p>
+          <p>{picks.filter((p) => p.result === "Win").length}</p>
         </div>
 
         <div className="summary-card">
           <h3>Losses</h3>
-          <p>{picks.filter((pick) => pick.result === "Loss").length}</p>
+          <p>{picks.filter((p) => p.result === "Loss").length}</p>
         </div>
 
         <div className="summary-card">
           <h3>Pushes</h3>
-          <p>{picks.filter((pick) => pick.result === "Push").length}</p>
+          <p>{picks.filter((p) => p.result === "Push").length}</p>
         </div>
 
         <div className="summary-card">
@@ -148,15 +146,9 @@ function SavedPicksPage() {
               <p><strong>Result:</strong> {pick.result}</p>
 
               <div className="result-buttons">
-                <button onClick={() => handleUpdateResult(pick.id, "Win")}>
-                  Win
-                </button>
-                <button onClick={() => handleUpdateResult(pick.id, "Loss")}>
-                  Loss
-                </button>
-                <button onClick={() => handleUpdateResult(pick.id, "Push")}>
-                  Push
-                </button>
+                <button onClick={() => handleUpdateResult(pick.id, "Win")}>Win</button>
+                <button onClick={() => handleUpdateResult(pick.id, "Loss")}>Loss</button>
+                <button onClick={() => handleUpdateResult(pick.id, "Push")}>Push</button>
               </div>
 
               <button
@@ -174,4 +166,3 @@ function SavedPicksPage() {
 }
 
 export default SavedPicksPage;
-

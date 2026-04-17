@@ -67,7 +67,7 @@ function AddPickPage() {
     e.preventDefault();
 
     try {
-      const response = await const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
