@@ -2,20 +2,33 @@ import { useEffect, useState } from "react";
 
 function ResultsPage() {
   const [results, setResults] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/results`)
       .then((response) => response.json())
-      .then((data) => setResults(data.results))
-      .catch((error) => console.error("Error fetching results:", error));
+      .then((data) => {
+        setResults(data.results || []);
+      })
+      .catch(() => {
+        setError("Failed to load results");
+      });
   }, []);
+
+  if (error) {
+    return (
+      <div className="app">
+        <h1>{error}</h1>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
       <h1>Results</h1>
 
       {results.length === 0 ? (
-        <p>Loading results...</p>
+        <p>No results available.</p>
       ) : (
         <div className="picks-grid">
           {results.map((result, index) => (
