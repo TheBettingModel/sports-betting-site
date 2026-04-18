@@ -1,9 +1,21 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database import Base, engine, SessionLocal
 from models import Pick
+
+@app.get("/test-api-key")
+def test_api_key():
+    api_key = os.getenv("ODDS_API_KEY")
+
+    if api_key:
+        return {"status": "API key loaded"}
+    else:
+        return {"status": "API key NOT found"}
 
 app = FastAPI()
 
