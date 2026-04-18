@@ -22,3 +22,7 @@ def picks_today():
 @app.get("/saved-picks")
 def saved_picks():
     return {"saved_picks": []}
+
+@app.get("/saved-picks")
+def saved_picks():
+    return {"saved_picks": []}
