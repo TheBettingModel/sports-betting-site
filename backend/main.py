@@ -1,4 +1,5 @@
 import os
+import requests
 from dotenv import load_dotenv
 
 from fastapi import FastAPI, Request
@@ -8,12 +9,12 @@ from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import Pick
 
-# Load environment variables
 load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS
+Base.metadata.create_all(bind=engine)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,9 +22,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
 
 
 @app.get("/")
@@ -39,6 +37,34 @@ def test_api_key():
         return {"status": "API key loaded"}
     else:
         return {"status": "API key NOT found"}
+
+
+@app.get("/get-nba-odds")
+def get_nba_odds():
+    api_key = os.getenv("ODDS_API_KEY")
+
+    if not api_key:
+        return {"error": "ODDS_API_KEY not found"}
+
+    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+
+    params = {
+        "apiKey": api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american"
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return {
+            "error": "Failed to fetch odds",
+            "status_code": response.status_code,
+            "details": response.text
+        }
+
+    return response.json()
 
 
 @app.get("/picks/today")
@@ -152,7 +178,13 @@ def get_results():
                 "game": pick.game,
                 "pick": pick.pick,
                 "result": pick.result,
-                "units_won": pick.units if pick.result == "Win" else f"-{pick.units.split()[0]}" if pick.result == "Loss" else "0"
+                "units_won": (
+                    pick.units
+                    if pick.result == "Win"
+                    else f"-{pick.units.split()[0]}"
+                    if pick.result == "Loss"
+                    else "0"
+                )
             }
             for pick in picks
         ]
