@@ -8,22 +8,12 @@ from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import Pick
 
+# Load environment variables
 load_dotenv()
 
 app = FastAPI()
-@app.get("/test-api-key")
-def test_api_key():
-    api_key = os.getenv("ODDS_API_KEY")
 
-    if api_key:
-        return {"status": "API key loaded"}
-    else:
-        return {"status": "API key NOT found"}
-
-app = FastAPI()
-
-Base.metadata.create_all(bind=engine)
-
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,10 +22,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
 
 @app.get("/")
 def home():
     return {"message": "The sports betting website API is functioning normally!"}
+
+
+@app.get("/test-api-key")
+def test_api_key():
+    api_key = os.getenv("ODDS_API_KEY")
+
+    if api_key:
+        return {"status": "API key loaded"}
+    else:
+        return {"status": "API key NOT found"}
 
 
 @app.get("/picks/today")
