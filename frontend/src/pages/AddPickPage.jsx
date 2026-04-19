@@ -6,12 +6,16 @@ function AddPickPage() {
   const prefilled = location.state || {};
 
 const [game, setGame] = useState(prefilled.game || "");
-const [pick, setPick] = useState("");
+
+const [pick, setPick] = useState(prefilled.pick || "");
 const [market, setMarket] = useState(prefilled.market || "");
 const [sportsbook, setSportsbook] = useState(prefilled.sportsbook || "");
-  const [units, setUnits] = useState("");
+...
+const [americanOdds, setAmericanOdds] = useState(prefilled.odds || "");
+
   const [modelProbability, setModelProbability] = useState("");
   const [americanOdds, setAmericanOdds] = useState("");
+
   const [message, setMessage] = useState("");
 
   const calculateImpliedProbability = () => {
