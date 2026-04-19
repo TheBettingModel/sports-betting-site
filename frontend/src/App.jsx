@@ -4,6 +4,7 @@ import ResultsPage from "./pages/ResultsPage";
 import SavedPicksPage from "./pages/SavedPicksPage";
 import AddPickPage from "./pages/AddPickPage";
 import PlayOfTheDayPage from "./pages/PlayOfTheDayPage";
+import LiveOddsPage from "./pages/LiveOddsPage";
 import "./App.css";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Link to="/saved-picks">Saved Picks</Link>
           <Link to="/add-pick">Add Pick</Link>
           <Link to="/play-of-the-day">Play of the Day</Link>
+          <Link to="/live-odds">Live Odds</Link>
         </div>
       </nav>
 
@@ -26,6 +28,7 @@ function App() {
         <Route path="/saved-picks" element={<SavedPicksPage />} />
         <Route path="/add-pick" element={<AddPickPage />} />
         <Route path="/play-of-the-day" element={<PlayOfTheDayPage />} />
+        <Route path="/live-odds" element={<LiveOddsPage />} />
       </Routes>
     </div>
   );
