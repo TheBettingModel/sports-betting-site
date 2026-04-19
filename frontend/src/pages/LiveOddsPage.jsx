@@ -42,58 +42,68 @@ function LiveOddsPage() {
         <p>Loading odds...</p>
       ) : (
         <div className="picks-grid">
-          {games.map((game, index) => {
-            const bookmaker = game.bookmakers?.[0];
-            const moneyline = getMarket(bookmaker, "h2h");
-            const spreads = getMarket(bookmaker, "spreads");
-            const totals = getMarket(bookmaker, "totals");
+          {games.map((game, index) => (
+            <div className="pick-card" key={index}>
+              <h3>
+                {game.away_team} vs {game.home_team}
+              </h3>
 
-            return (
-              <div className="pick-card" key={index}>
-                <h3>
-                  {game.away_team} vs {game.home_team}
-                </h3>
+              <p><strong>Game Time:</strong> {formatDate(game.commence_time)}</p>
 
-                <p><strong>Game Time:</strong> {formatDate(game.commence_time)}</p>
-                <p><strong>Sportsbook:</strong> {bookmaker?.title || "N/A"}</p>
+              <hr />
 
-                <hr />
+              {game.bookmakers && game.bookmakers.length > 0 ? (
+                game.bookmakers.slice(0, 3).map((bookmaker, bookIndex) => {
+                  const moneyline = getMarket(bookmaker, "h2h");
+                  const spreads = getMarket(bookmaker, "spreads");
+                  const totals = getMarket(bookmaker, "totals");
 
-                <h4>Moneyline</h4>
-                {moneyline ? (
-                  moneyline.outcomes.map((outcome, i) => (
-                    <p key={`ml-${i}`}>
-                      {outcome.name}: {outcome.price}
-                    </p>
-                  ))
-                ) : (
-                  <p>No moneyline data</p>
-                )}
+                  return (
+                    <div key={bookIndex} style={{ marginBottom: "20px" }}>
+                      <h4>{bookmaker.title}</h4>
 
-                <h4>Spread</h4>
-                {spreads ? (
-                  spreads.outcomes.map((outcome, i) => (
-                    <p key={`spread-${i}`}>
-                      {outcome.name}: {outcome.point} ({outcome.price})
-                    </p>
-                  ))
-                ) : (
-                  <p>No spread data</p>
-                )}
+                      <p><strong>Moneyline</strong></p>
+                      {moneyline ? (
+                        moneyline.outcomes.map((outcome, i) => (
+                          <p key={`ml-${bookIndex}-${i}`}>
+                            {outcome.name}: {outcome.price}
+                          </p>
+                        ))
+                      ) : (
+                        <p>No moneyline data</p>
+                      )}
 
-                <h4>Total</h4>
-                {totals ? (
-                  totals.outcomes.map((outcome, i) => (
-                    <p key={`total-${i}`}>
-                      {outcome.name}: {outcome.point} ({outcome.price})
-                    </p>
-                  ))
-                ) : (
-                  <p>No total data</p>
-                )}
-              </div>
-            );
-          })}
+                      <p><strong>Spread</strong></p>
+                      {spreads ? (
+                        spreads.outcomes.map((outcome, i) => (
+                          <p key={`spread-${bookIndex}-${i}`}>
+                            {outcome.name}: {outcome.point} ({outcome.price})
+                          </p>
+                        ))
+                      ) : (
+                        <p>No spread data</p>
+                      )}
+
+                      <p><strong>Total</strong></p>
+                      {totals ? (
+                        totals.outcomes.map((outcome, i) => (
+                          <p key={`total-${bookIndex}-${i}`}>
+                            {outcome.name}: {outcome.point} ({outcome.price})
+                          </p>
+                        ))
+                      ) : (
+                        <p>No total data</p>
+                      )}
+
+                      {bookIndex < game.bookmakers.slice(0, 3).length - 1 && <hr />}
+                    </div>
+                  );
+                })
+              ) : (
+                <p>No sportsbook data available</p>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
