@@ -211,3 +211,18 @@ h2 {
   border: none;
   border-top: 1px solid #e5e7eb;
 }
+.save-game-button {
+  margin-top: 12px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.save-game-button:hover {
+  background: #15803d;
+}

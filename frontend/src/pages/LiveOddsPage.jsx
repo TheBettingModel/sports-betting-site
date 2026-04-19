@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function LiveOddsPage() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/get-nba-odds`)
@@ -30,6 +32,19 @@ function LiveOddsPage() {
   const getMarket = (bookmaker, key) => {
     if (!bookmaker || !bookmaker.markets) return null;
     return bookmaker.markets.find((market) => market.key === key);
+  };
+
+  const handleSaveGame = (game, bookmaker) => {
+    const matchup = `${game.away_team} vs ${game.home_team}`;
+    const sportsbook = bookmaker?.title || "";
+
+    navigate("/add-pick", {
+      state: {
+        game: matchup,
+        sportsbook: sportsbook,
+        market: "Moneyline"
+      }
+    });
   };
 
   return (
@@ -94,6 +109,13 @@ function LiveOddsPage() {
                       ) : (
                         <p>No total data</p>
                       )}
+
+                      <button
+                        className="save-game-button"
+                        onClick={() => handleSaveGame(game, bookmaker)}
+                      >
+                        Save This Game
+                      </button>
 
                       {bookIndex < game.bookmakers.slice(0, 3).length - 1 && <hr />}
                     </div>

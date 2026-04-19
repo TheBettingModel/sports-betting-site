@@ -1,10 +1,14 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 function AddPickPage() {
-  const [game, setGame] = useState("");
-  const [pick, setPick] = useState("");
-  const [market, setMarket] = useState("");
-  const [sportsbook, setSportsbook] = useState("");
+  const location = useLocation();
+  const prefilled = location.state || {};
+
+const [game, setGame] = useState(prefilled.game || "");
+const [pick, setPick] = useState("");
+const [market, setMarket] = useState(prefilled.market || "");
+const [sportsbook, setSportsbook] = useState(prefilled.sportsbook || "");
   const [units, setUnits] = useState("");
   const [modelProbability, setModelProbability] = useState("");
   const [americanOdds, setAmericanOdds] = useState("");
