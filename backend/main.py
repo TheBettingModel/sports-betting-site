@@ -13,6 +13,17 @@ load_dotenv()
 
 app = FastAPI()
 
+Base.metadata.create_all(bind=engine)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 def american_odds_to_implied_probability(odds):
     odds_value = float(odds)
 
@@ -37,7 +48,7 @@ def calculate_confidence(edge_value):
 
 
 def starter_model_probability(implied_probability, is_home_team, is_favorite):
-    adjustment = 0
+    adjustment = 0.0
 
     if is_home_team:
         adjustment += 1.5
@@ -51,16 +62,6 @@ def starter_model_probability(implied_probability, is_home_team, is_favorite):
         model_probability = 95.0
 
     return round(model_probability, 1)
-
-Base.metadata.create_all(bind=engine)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.get("/")
@@ -104,6 +105,131 @@ def get_nba_odds():
         }
 
     return response.json()
+
+
+@app.get("/model/nba/today")
+def model_nba_today():
+    api_key = os.getenv("ODDS_API_KEY")
+
+    if not api_key:
+        return {"error": "ODDS_API_KEY not found"}
+
+    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+
+    params = {
+        "apiKey": api_key,
+        "regions": "us",
+        "markets": "h2h,spreads",
+        "oddsFormat": "american"
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return {
+            "error": "Failed to fetch odds",
+            "status_code": response.status_code,
+            "details": response.text
+        }
+
+    odds_data = response.json()
+    model_games = []
+
+    for game in odds_data:
+        if not game.get("bookmakers"):
+            continue
+
+        bookmaker = game["bookmakers"][0]
+        if not bookmaker.get("markets"):
+            continue
+
+        moneyline_market = None
+        spread_market = None
+
+        for market in bookmaker["markets"]:
+            if market["key"] == "h2h":
+                moneyline_market = market
+            elif market["key"] == "spreads":
+                spread_market = market
+
+        if moneyline_market:
+            for outcome in moneyline_market["outcomes"]:
+                implied_probability = american_odds_to_implied_probability(outcome["price"])
+                is_home_team = outcome["name"] == game["home_team"]
+                is_favorite = outcome["price"] < 0
+
+                model_probability = starter_model_probability(
+                    implied_probability=implied_probability,
+                    is_home_team=is_home_team,
+                    is_favorite=is_favorite
+                )
+
+                edge = round(model_probability - implied_probability, 1)
+                confidence = calculate_confidence(edge)
+
+                model_games.append({
+                    "game": f'{game["away_team"]} vs {game["home_team"]}',
+                    "commence_time": game["commence_time"],
+                    "sportsbook": bookmaker["title"],
+                    "market": "Moneyline",
+                    "pick": outcome["name"],
+                    "odds": outcome["price"],
+                    "implied_probability": f"{implied_probability}%",
+                    "model_probability": f"{model_probability}%",
+                    "edge": f"{edge}%",
+                    "confidence": confidence,
+                    "recommendation": "Play" if edge >= 3 else "Lean" if edge >= 1 else "Pass"
+                })
+
+        if spread_market:
+            for outcome in spread_market["outcomes"]:
+                implied_probability = american_odds_to_implied_probability(outcome["price"])
+                is_home_team = outcome["name"] == game["home_team"]
+                point = outcome.get("point", 0)
+
+                adjustment = 0.0
+
+                if is_home_team:
+                    adjustment += 1.0
+
+                if point > 0:
+                    adjustment += 1.0
+
+                model_probability = round(implied_probability + adjustment, 1)
+
+                if model_probability > 95:
+                    model_probability = 95.0
+
+                edge = round(model_probability - implied_probability, 1)
+                confidence = calculate_confidence(edge)
+
+                point_text = f"+{point}" if point > 0 else str(point)
+
+                model_games.append({
+                    "game": f'{game["away_team"]} vs {game["home_team"]}',
+                    "commence_time": game["commence_time"],
+                    "sportsbook": bookmaker["title"],
+                    "market": "Spread",
+                    "pick": f'{outcome["name"]} {point_text}',
+                    "odds": outcome["price"],
+                    "implied_probability": f"{implied_probability}%",
+                    "model_probability": f"{model_probability}%",
+                    "edge": f"{edge}%",
+                    "confidence": confidence,
+                    "recommendation": "Play" if edge >= 3 else "Lean" if edge >= 1 else "Pass"
+                })
+
+    model_games = sorted(
+        model_games,
+        key=lambda x: float(x["edge"].replace("%", "")),
+        reverse=True
+    )
+
+    return {
+        "sport": "NBA",
+        "model_version": "v1-moneyline-spread",
+        "games": model_games
+    }
 
 
 @app.get("/picks/today")
@@ -361,88 +487,3 @@ async def update_result(pick_id: int, request: Request):
     db.close()
 
     return {"message": "Result updated successfully"}
-
-@app.get("/model/nba/today")
-def model_nba_today():
-    api_key = os.getenv("ODDS_API_KEY")
-
-    if not api_key:
-        return {"error": "ODDS_API_KEY not found"}
-
-    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
-
-    params = {
-        "apiKey": api_key,
-        "regions": "us",
-        "markets": "h2h",
-        "oddsFormat": "american"
-    }
-
-    response = requests.get(url, params=params)
-
-    if response.status_code != 200:
-        return {
-            "error": "Failed to fetch odds",
-            "status_code": response.status_code,
-            "details": response.text
-        }
-
-    odds_data = response.json()
-    model_games = []
-
-    for game in odds_data:
-        if not game.get("bookmakers"):
-            continue
-
-        bookmaker = game["bookmakers"][0]
-        if not bookmaker.get("markets"):
-            continue
-
-        moneyline_market = None
-        for market in bookmaker["markets"]:
-            if market["key"] == "h2h":
-                moneyline_market = market
-                break
-
-        if not moneyline_market:
-            continue
-
-        for outcome in moneyline_market["outcomes"]:
-            implied_probability = american_odds_to_implied_probability(outcome["price"])
-            is_home_team = outcome["name"] == game["home_team"]
-            is_favorite = outcome["price"] < 0
-
-            model_probability = starter_model_probability(
-                implied_probability=implied_probability,
-                is_home_team=is_home_team,
-                is_favorite=is_favorite
-            )
-
-            edge = round(model_probability - implied_probability, 1)
-            confidence = calculate_confidence(edge)
-
-            model_games.append({
-                "game": f'{game["away_team"]} vs {game["home_team"]}',
-                "commence_time": game["commence_time"],
-                "sportsbook": bookmaker["title"],
-                "market": "Moneyline",
-                "pick": outcome["name"],
-                "odds": outcome["price"],
-                "implied_probability": f"{implied_probability}%",
-                "model_probability": f"{model_probability}%",
-                "edge": f"{edge}%",
-                "confidence": confidence,
-                "recommendation": "Play" if edge >= 3 else "Lean" if edge >= 1 else "Pass"
-            })
-
-    model_games = sorted(
-        model_games,
-        key=lambda x: float(x["edge"].replace("%", "")),
-        reverse=True
-    )
-
-    return {
-        "sport": "NBA",
-        "model_version": "v1-starter",
-        "games": model_games
-    }
