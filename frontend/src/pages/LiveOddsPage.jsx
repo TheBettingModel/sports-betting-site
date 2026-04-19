@@ -51,6 +51,17 @@ function LiveOddsPage() {
     return (implied * 100).toFixed(1);
   };
 
+  const calculateConfidence = (edgeString) => {
+    const edgeValue = parseFloat(edgeString);
+
+    if (isNaN(edgeValue)) return "D";
+    if (edgeValue >= 7) return "A";
+    if (edgeValue >= 5) return "B+";
+    if (edgeValue >= 3) return "B";
+    if (edgeValue >= 1) return "C";
+    return "D";
+  };
+
   const goToAddPick = ({ game, sportsbook, market, pick, odds }) => {
     navigate("/add-pick", {
       state: {
@@ -64,7 +75,16 @@ function LiveOddsPage() {
   };
 
   const saveDirectly = async ({ game, sportsbook, market, pick, odds }) => {
-    const impliedProbability = calculateImpliedProbability(odds);
+    const impliedProbability = parseFloat(calculateImpliedProbability(odds));
+
+    if (isNaN(impliedProbability)) {
+      setMessage("Could not calculate implied probability");
+      return;
+    }
+
+    const modelProbability = (impliedProbability + 3).toFixed(1);
+    const edge = (modelProbability - impliedProbability).toFixed(1);
+    const confidence = calculateConfidence(`${edge}%`);
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
@@ -78,18 +98,20 @@ function LiveOddsPage() {
           market,
           sportsbook,
           odds: String(odds),
-          confidence: "D",
+          confidence,
           units: "1 Unit",
-          model_probability: "0%",
-          implied_probability: `${impliedProbability}%`,
-          edge: "0%"
+          model_probability: `${modelProbability}%`,
+          implied_probability: `${impliedProbability.toFixed(1)}%`,
+          edge: `${edge}%`
         })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(`Saved: ${pick} (${odds})`);
+        setMessage(
+          `Saved: ${pick} (${odds}) | Model ${modelProbability}% | Edge ${edge}% | ${confidence}`
+        );
       } else {
         setMessage(data.message || "Failed to save pick");
       }
