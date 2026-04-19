@@ -34,19 +34,6 @@ function LiveOddsPage() {
     return bookmaker.markets.find((market) => market.key === key);
   };
 
-  const handleSaveGame = (game, bookmaker) => {
-    const matchup = `${game.away_team} vs ${game.home_team}`;
-    const sportsbook = bookmaker?.title || "";
-
-    navigate("/add-pick", {
-      state: {
-        game: matchup,
-        sportsbook: sportsbook,
-        market: "Moneyline"
-      }
-    });
-  };
-
   return (
     <div className="app">
       <h1>Today’s NBA Games</h1>
@@ -77,45 +64,63 @@ function LiveOddsPage() {
                     <div key={bookIndex} style={{ marginBottom: "20px" }}>
                       <h4>{bookmaker.title}</h4>
 
+                      {/* MONEYLINE */}
                       <p><strong>Moneyline</strong></p>
                       {moneyline ? (
                         moneyline.outcomes.map((outcome, i) => (
-                          <p key={`ml-${bookIndex}-${i}`}>
-                            {outcome.name}: {outcome.price}
-                          </p>
+                          <div key={`ml-${bookIndex}-${i}`} style={{ marginBottom: "8px" }}>
+                            <p>
+                              {outcome.name}: {outcome.price}
+                            </p>
+                            <button
+                              className="save-game-button"
+                              onClick={() =>
+                                navigate("/add-pick", {
+                                  state: {
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Moneyline",
+                                    pick: outcome.name,
+                                    odds: String(outcome.price)
+                                  }
+                                })
+                              }
+                            >
+                              Use This Odds
+                            </button>
+                          </div>
                         ))
                       ) : (
                         <p>No moneyline data</p>
                       )}
 
+                      {/* SPREAD */}
                       <p><strong>Spread</strong></p>
                       {spreads ? (
                         spreads.outcomes.map((outcome, i) => (
-                          <p key={`spread-${bookIndex}-${i}`}>
-                            {outcome.name}: {outcome.point} ({outcome.price})
-                          </p>
+                          <div key={`spread-${bookIndex}-${i}`} style={{ marginBottom: "8px" }}>
+                            <p>
+                              {outcome.name}: {outcome.point} ({outcome.price})
+                            </p>
+                          </div>
                         ))
                       ) : (
                         <p>No spread data</p>
                       )}
 
+                      {/* TOTAL */}
                       <p><strong>Total</strong></p>
                       {totals ? (
                         totals.outcomes.map((outcome, i) => (
-                          <p key={`total-${bookIndex}-${i}`}>
-                            {outcome.name}: {outcome.point} ({outcome.price})
-                          </p>
+                          <div key={`total-${bookIndex}-${i}`} style={{ marginBottom: "8px" }}>
+                            <p>
+                              {outcome.name}: {outcome.point} ({outcome.price})
+                            </p>
+                          </div>
                         ))
                       ) : (
                         <p>No total data</p>
                       )}
-
-                      <button
-                        className="save-game-button"
-                        onClick={() => handleSaveGame(game, bookmaker)}
-                      >
-                        Save This Game
-                      </button>
 
                       {bookIndex < game.bookmakers.slice(0, 3).length - 1 && <hr />}
                     </div>
