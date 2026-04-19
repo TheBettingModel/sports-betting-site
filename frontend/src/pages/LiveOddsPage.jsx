@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 function LiveOddsPage() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,6 +35,22 @@ function LiveOddsPage() {
     return bookmaker.markets.find((market) => market.key === key);
   };
 
+  const calculateImpliedProbability = (odds) => {
+    const oddsValue = parseFloat(odds);
+
+    if (isNaN(oddsValue) || oddsValue === 0) return "";
+
+    let implied = 0;
+
+    if (oddsValue > 0) {
+      implied = 100 / (oddsValue + 100);
+    } else {
+      implied = Math.abs(oddsValue) / (Math.abs(oddsValue) + 100);
+    }
+
+    return (implied * 100).toFixed(1);
+  };
+
   const goToAddPick = ({ game, sportsbook, market, pick, odds }) => {
     navigate("/add-pick", {
       state: {
@@ -46,9 +63,46 @@ function LiveOddsPage() {
     });
   };
 
+  const saveDirectly = async ({ game, sportsbook, market, pick, odds }) => {
+    const impliedProbability = calculateImpliedProbability(odds);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          game,
+          pick,
+          market,
+          sportsbook,
+          odds: String(odds),
+          confidence: "D",
+          units: "1 Unit",
+          model_probability: "0%",
+          implied_probability: `${impliedProbability}%`,
+          edge: "0%"
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`Saved: ${pick} (${odds})`);
+      } else {
+        setMessage(data.message || "Failed to save pick");
+      }
+    } catch (error) {
+      setMessage("Error saving pick");
+    }
+  };
+
   return (
     <div className="app">
       <h1>Today’s NBA Games</h1>
+
+      {message && <p>{message}</p>}
 
       {error ? (
         <p>{error}</p>
@@ -79,24 +133,38 @@ function LiveOddsPage() {
                       <p><strong>Moneyline</strong></p>
                       {moneyline ? (
                         moneyline.outcomes.map((outcome, i) => (
-                          <div key={`ml-${bookIndex}-${i}`} style={{ marginBottom: "8px" }}>
-                            <p>
-                              {outcome.name}: {outcome.price}
-                            </p>
-                            <button
-                              className="save-game-button"
-                              onClick={() =>
-                                goToAddPick({
-                                  game: `${game.away_team} vs ${game.home_team}`,
-                                  sportsbook: bookmaker.title,
-                                  market: "Moneyline",
-                                  pick: outcome.name,
-                                  odds: outcome.price,
-                                })
-                              }
-                            >
-                              Use This Moneyline
-                            </button>
+                          <div key={`ml-${bookIndex}-${i}`} style={{ marginBottom: "12px" }}>
+                            <p>{outcome.name}: {outcome.price}</p>
+                            <div className="result-buttons">
+                              <button
+                                className="save-game-button"
+                                onClick={() =>
+                                  goToAddPick({
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Moneyline",
+                                    pick: outcome.name,
+                                    odds: outcome.price,
+                                  })
+                                }
+                              >
+                                Prefill
+                              </button>
+                              <button
+                                className="save-game-button"
+                                onClick={() =>
+                                  saveDirectly({
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Moneyline",
+                                    pick: outcome.name,
+                                    odds: outcome.price,
+                                  })
+                                }
+                              >
+                                Save Now
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -106,24 +174,38 @@ function LiveOddsPage() {
                       <p><strong>Spread</strong></p>
                       {spreads ? (
                         spreads.outcomes.map((outcome, i) => (
-                          <div key={`spread-${bookIndex}-${i}`} style={{ marginBottom: "8px" }}>
-                            <p>
-                              {outcome.name}: {outcome.point} ({outcome.price})
-                            </p>
-                            <button
-                              className="save-game-button"
-                              onClick={() =>
-                                goToAddPick({
-                                  game: `${game.away_team} vs ${game.home_team}`,
-                                  sportsbook: bookmaker.title,
-                                  market: "Spread",
-                                  pick: `${outcome.name} ${outcome.point > 0 ? "+" : ""}${outcome.point}`,
-                                  odds: outcome.price,
-                                })
-                              }
-                            >
-                              Use This Spread
-                            </button>
+                          <div key={`spread-${bookIndex}-${i}`} style={{ marginBottom: "12px" }}>
+                            <p>{outcome.name}: {outcome.point} ({outcome.price})</p>
+                            <div className="result-buttons">
+                              <button
+                                className="save-game-button"
+                                onClick={() =>
+                                  goToAddPick({
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Spread",
+                                    pick: `${outcome.name} ${outcome.point > 0 ? "+" : ""}${outcome.point}`,
+                                    odds: outcome.price,
+                                  })
+                                }
+                              >
+                                Prefill
+                              </button>
+                              <button
+                                className="save-game-button"
+                                onClick={() =>
+                                  saveDirectly({
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Spread",
+                                    pick: `${outcome.name} ${outcome.point > 0 ? "+" : ""}${outcome.point}`,
+                                    odds: outcome.price,
+                                  })
+                                }
+                              >
+                                Save Now
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -133,24 +215,38 @@ function LiveOddsPage() {
                       <p><strong>Total</strong></p>
                       {totals ? (
                         totals.outcomes.map((outcome, i) => (
-                          <div key={`total-${bookIndex}-${i}`} style={{ marginBottom: "8px" }}>
-                            <p>
-                              {outcome.name}: {outcome.point} ({outcome.price})
-                            </p>
-                            <button
-                              className="save-game-button"
-                              onClick={() =>
-                                goToAddPick({
-                                  game: `${game.away_team} vs ${game.home_team}`,
-                                  sportsbook: bookmaker.title,
-                                  market: "Total",
-                                  pick: `${outcome.name} ${outcome.point}`,
-                                  odds: outcome.price,
-                                })
-                              }
-                            >
-                              Use This Total
-                            </button>
+                          <div key={`total-${bookIndex}-${i}`} style={{ marginBottom: "12px" }}>
+                            <p>{outcome.name}: {outcome.point} ({outcome.price})</p>
+                            <div className="result-buttons">
+                              <button
+                                className="save-game-button"
+                                onClick={() =>
+                                  goToAddPick({
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Total",
+                                    pick: `${outcome.name} ${outcome.point}`,
+                                    odds: outcome.price,
+                                  })
+                                }
+                              >
+                                Prefill
+                              </button>
+                              <button
+                                className="save-game-button"
+                                onClick={() =>
+                                  saveDirectly({
+                                    game: `${game.away_team} vs ${game.home_team}`,
+                                    sportsbook: bookmaker.title,
+                                    market: "Total",
+                                    pick: `${outcome.name} ${outcome.point}`,
+                                    odds: outcome.price,
+                                  })
+                                }
+                              >
+                                Save Now
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
