@@ -95,7 +95,7 @@ function LiveOddsPage() {
                                 })
                               }
                             >
-                              Use This Odds
+                              Use This Moneyline
                             </button>
                           </div>
                         ))
@@ -110,6 +110,20 @@ function LiveOddsPage() {
                             <p>
                               {outcome.name}: {outcome.point} ({outcome.price})
                             </p>
+                            <button
+                              className="save-game-button"
+                              onClick={() =>
+                                goToAddPick({
+                                  game: `${game.away_team} vs ${game.home_team}`,
+                                  sportsbook: bookmaker.title,
+                                  market: "Spread",
+                                  pick: `${outcome.name} ${outcome.point > 0 ? "+" : ""}${outcome.point}`,
+                                  odds: outcome.price,
+                                })
+                              }
+                            >
+                              Use This Spread
+                            </button>
                           </div>
                         ))
                       ) : (
@@ -123,6 +137,20 @@ function LiveOddsPage() {
                             <p>
                               {outcome.name}: {outcome.point} ({outcome.price})
                             </p>
+                            <button
+                              className="save-game-button"
+                              onClick={() =>
+                                goToAddPick({
+                                  game: `${game.away_team} vs ${game.home_team}`,
+                                  sportsbook: bookmaker.title,
+                                  market: "Total",
+                                  pick: `${outcome.name} ${outcome.point}`,
+                                  odds: outcome.price,
+                                })
+                              }
+                            >
+                              Use This Total
+                            </button>
                           </div>
                         ))
                       ) : (
