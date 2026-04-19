@@ -199,3 +199,15 @@ h2 {
 .result-buttons button:hover {
   background: #1d4ed8;
 }
+.pick-card h4 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.pick-card hr {
+  margin: 16px 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}

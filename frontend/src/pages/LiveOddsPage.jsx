@@ -19,9 +19,22 @@ function LiveOddsPage() {
       });
   }, []);
 
+  const formatDate = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getMarket = (bookmaker, key) => {
+    if (!bookmaker || !bookmaker.markets) return null;
+    return bookmaker.markets.find((market) => market.key === key);
+  };
+
   return (
     <div className="app">
-      <h1>Live NBA Odds</h1>
+      <h1>Today’s NBA Games</h1>
 
       {error ? (
         <p>{error}</p>
@@ -29,31 +42,58 @@ function LiveOddsPage() {
         <p>Loading odds...</p>
       ) : (
         <div className="picks-grid">
-          {games.map((game, index) => (
-            <div className="pick-card" key={index}>
-              <h3>{game.away_team} vs {game.home_team}</h3>
-              <p><strong>Commence Time:</strong> {game.commence_time}</p>
+          {games.map((game, index) => {
+            const bookmaker = game.bookmakers?.[0];
+            const moneyline = getMarket(bookmaker, "h2h");
+            const spreads = getMarket(bookmaker, "spreads");
+            const totals = getMarket(bookmaker, "totals");
 
-              {game.bookmakers && game.bookmakers.length > 0 ? (
-                <div>
-                  <p><strong>Sportsbook:</strong> {game.bookmakers[0].title}</p>
+            return (
+              <div className="pick-card" key={index}>
+                <h3>
+                  {game.away_team} vs {game.home_team}
+                </h3>
 
-                  {game.bookmakers[0].markets.map((market, marketIndex) => (
-                    <div key={marketIndex}>
-                      <p><strong>Market:</strong> {market.key}</p>
-                      {market.outcomes.map((outcome, outcomeIndex) => (
-                        <p key={outcomeIndex}>
-                          {outcome.name}: {outcome.price}
-                        </p>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No sportsbook data available</p>
-              )}
-            </div>
-          ))}
+                <p><strong>Game Time:</strong> {formatDate(game.commence_time)}</p>
+                <p><strong>Sportsbook:</strong> {bookmaker?.title || "N/A"}</p>
+
+                <hr />
+
+                <h4>Moneyline</h4>
+                {moneyline ? (
+                  moneyline.outcomes.map((outcome, i) => (
+                    <p key={`ml-${i}`}>
+                      {outcome.name}: {outcome.price}
+                    </p>
+                  ))
+                ) : (
+                  <p>No moneyline data</p>
+                )}
+
+                <h4>Spread</h4>
+                {spreads ? (
+                  spreads.outcomes.map((outcome, i) => (
+                    <p key={`spread-${i}`}>
+                      {outcome.name}: {outcome.point} ({outcome.price})
+                    </p>
+                  ))
+                ) : (
+                  <p>No spread data</p>
+                )}
+
+                <h4>Total</h4>
+                {totals ? (
+                  totals.outcomes.map((outcome, i) => (
+                    <p key={`total-${i}`}>
+                      {outcome.name}: {outcome.point} ({outcome.price})
+                    </p>
+                  ))
+                ) : (
+                  <p>No total data</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
