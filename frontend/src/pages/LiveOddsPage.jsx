@@ -34,6 +34,18 @@ function LiveOddsPage() {
     return bookmaker.markets.find((market) => market.key === key);
   };
 
+  const goToAddPick = ({ game, sportsbook, market, pick, odds }) => {
+    navigate("/add-pick", {
+      state: {
+        game,
+        sportsbook,
+        market,
+        pick,
+        odds: String(odds),
+      },
+    });
+  };
+
   return (
     <div className="app">
       <h1>Today’s NBA Games</h1>
@@ -64,7 +76,6 @@ function LiveOddsPage() {
                     <div key={bookIndex} style={{ marginBottom: "20px" }}>
                       <h4>{bookmaker.title}</h4>
 
-                      {/* MONEYLINE */}
                       <p><strong>Moneyline</strong></p>
                       {moneyline ? (
                         moneyline.outcomes.map((outcome, i) => (
@@ -75,14 +86,12 @@ function LiveOddsPage() {
                             <button
                               className="save-game-button"
                               onClick={() =>
-                                navigate("/add-pick", {
-                                  state: {
-                                    game: `${game.away_team} vs ${game.home_team}`,
-                                    sportsbook: bookmaker.title,
-                                    market: "Moneyline",
-                                    pick: outcome.name,
-                                    odds: String(outcome.price)
-                                  }
+                                goToAddPick({
+                                  game: `${game.away_team} vs ${game.home_team}`,
+                                  sportsbook: bookmaker.title,
+                                  market: "Moneyline",
+                                  pick: outcome.name,
+                                  odds: outcome.price,
                                 })
                               }
                             >
@@ -94,7 +103,6 @@ function LiveOddsPage() {
                         <p>No moneyline data</p>
                       )}
 
-                      {/* SPREAD */}
                       <p><strong>Spread</strong></p>
                       {spreads ? (
                         spreads.outcomes.map((outcome, i) => (
@@ -108,7 +116,6 @@ function LiveOddsPage() {
                         <p>No spread data</p>
                       )}
 
-                      {/* TOTAL */}
                       <p><strong>Total</strong></p>
                       {totals ? (
                         totals.outcomes.map((outcome, i) => (

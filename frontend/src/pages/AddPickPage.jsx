@@ -5,25 +5,19 @@ function AddPickPage() {
   const location = useLocation();
   const prefilled = location.state || {};
 
-const [game, setGame] = useState(prefilled.game || "");
-
-const [pick, setPick] = useState(prefilled.pick || "");
-const [market, setMarket] = useState(prefilled.market || "");
-const [sportsbook, setSportsbook] = useState(prefilled.sportsbook || "");
-...
-const [americanOdds, setAmericanOdds] = useState(prefilled.odds || "");
-
+  const [game, setGame] = useState(prefilled.game || "");
+  const [pick, setPick] = useState(prefilled.pick || "");
+  const [market, setMarket] = useState(prefilled.market || "");
+  const [sportsbook, setSportsbook] = useState(prefilled.sportsbook || "");
+  const [units, setUnits] = useState("");
   const [modelProbability, setModelProbability] = useState("");
-  const [americanOdds, setAmericanOdds] = useState("");
-
+  const [americanOdds, setAmericanOdds] = useState(prefilled.odds || "");
   const [message, setMessage] = useState("");
 
   const calculateImpliedProbability = () => {
     const odds = parseFloat(americanOdds);
 
-    if (isNaN(odds) || odds === 0) {
-      return "";
-    }
+    if (isNaN(odds) || odds === 0) return "";
 
     let implied = 0;
 
@@ -40,29 +34,20 @@ const [americanOdds, setAmericanOdds] = useState(prefilled.odds || "");
     const model = parseFloat(modelProbability);
     const implied = parseFloat(calculateImpliedProbability());
 
-    if (isNaN(model) || isNaN(implied)) {
-      return null;
-    }
+    if (isNaN(model) || isNaN(implied)) return null;
 
     return model - implied;
   };
 
   const calculateEdge = () => {
     const edgeValue = getEdgeValue();
-
-    if (edgeValue === null) {
-      return "";
-    }
-
+    if (edgeValue === null) return "";
     return `${edgeValue.toFixed(1)}%`;
   };
 
   const calculateConfidence = () => {
     const edgeValue = getEdgeValue();
-
-    if (edgeValue === null) {
-      return "";
-    }
+    if (edgeValue === null) return "";
 
     if (edgeValue >= 7) return "A";
     if (edgeValue >= 5) return "B+";
