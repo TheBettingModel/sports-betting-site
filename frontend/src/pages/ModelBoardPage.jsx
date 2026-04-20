@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 function ModelBoardPage() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [filter, setFilter] = useState("Play");
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/model/nba/today`)
@@ -26,6 +27,11 @@ function ModelBoardPage() {
     if (confidence === "C") return "grade-c";
     return "grade-d";
   };
+
+  const filteredGames = useMemo(() => {
+    if (filter === "All") return games;
+    return games.filter((game) => game.recommendation === filter);
+  }, [games, filter]);
 
   const saveToPicks = async (game) => {
     try {
@@ -64,15 +70,22 @@ function ModelBoardPage() {
     <div className="app">
       <h1>NBA Model Board</h1>
 
+      <div className="result-buttons" style={{ marginBottom: "20px" }}>
+        <button onClick={() => setFilter("Play")}>Plays</button>
+        <button onClick={() => setFilter("Lean")}>Leans</button>
+        <button onClick={() => setFilter("Pass")}>Passes</button>
+        <button onClick={() => setFilter("All")}>All</button>
+      </div>
+
       {message && <p>{message}</p>}
 
       {error ? (
         <p>{error}</p>
-      ) : games.length === 0 ? (
-        <p>Loading model board...</p>
+      ) : filteredGames.length === 0 ? (
+        <p>No {filter.toLowerCase()} available.</p>
       ) : (
         <div className="picks-grid">
-          {games.map((game, index) => (
+          {filteredGames.map((game, index) => (
             <div className="pick-card" key={index}>
               <h3>{game.game}</h3>
               <p><strong>Pick:</strong> {game.pick}</p>
