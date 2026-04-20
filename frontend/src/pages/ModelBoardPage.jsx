@@ -4,7 +4,7 @@ function ModelBoardPage() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [filter, setFilter] = useState("Play");
+  const [filter, setFilter] = useState("All");
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/model/nba/today`)
