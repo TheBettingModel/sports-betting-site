@@ -216,8 +216,10 @@ def model_nba_today():
                     "model_probability": f"{model_probability}%",
                     "edge": f"{edge}%",
                     "confidence": confidence,
-                    "recommendation": "Play" if edge >= 2 else "Lean" if edge >= 0.5 else "Pass"
-                    
+                  "recommendation": "Play" if edge >= 2 else "Lean" if edge >= 0.5 else "Pass"
+                  
+
+
                 })
 
     model_games = sorted(
