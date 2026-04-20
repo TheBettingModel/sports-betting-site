@@ -33,6 +33,19 @@ function ModelBoardPage() {
     return games.filter((game) => game.recommendation === filter);
   }, [games, filter]);
 
+  const topPlayKeys = useMemo(() => {
+    const playsOnly = games.filter((game) => game.recommendation === "Play");
+    const topThree = playsOnly.slice(0, 3);
+
+    return new Set(
+      topThree.map((game) => `${game.game}-${game.pick}-${game.market}`)
+    );
+  }, [games]);
+
+  const isTopPlay = (game) => {
+    return topPlayKeys.has(`${game.game}-${game.pick}-${game.market}`);
+  };
+
   const saveToPicks = async (game) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
@@ -86,7 +99,12 @@ function ModelBoardPage() {
       ) : (
         <div className="picks-grid">
           {filteredGames.map((game, index) => (
-            <div className="pick-card" key={index}>
+            <div
+              className={`pick-card ${isTopPlay(game) ? "top-play-card" : ""}`}
+              key={index}
+            >
+              {isTopPlay(game) && <div className="top-play-badge">Top Play</div>}
+
               <h3>{game.game}</h3>
               <p><strong>Pick:</strong> {game.pick}</p>
               <p><strong>Market:</strong> {game.market}</p>
