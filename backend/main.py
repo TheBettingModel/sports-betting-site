@@ -30,7 +30,7 @@ ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 def american_to_implied_probability(odds):
     try:
         odds = float(odds)
-    except Exception:
+    except:
         return 0.0
 
     if odds > 0:
@@ -58,7 +58,7 @@ def get_nba_odds():
     response = requests.get(ODDS_BASE_URL, params=params)
 
     if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Odds API error")
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
     return response.json()
 
@@ -68,8 +68,7 @@ def get_nba_odds():
 def get_picks():
     db: Session = SessionLocal()
     try:
-        picks = db.query(Pick).order_by(Pick.id.desc()).all()
-        return picks
+        return db.query(Pick).order_by(Pick.id.desc()).all()
     finally:
         db.close()
 
@@ -79,56 +78,27 @@ def save_pick(data: dict):
     db: Session = SessionLocal()
 
     try:
-        game = data.get("game")
-        pick = data.get("pick")
-        market = data.get("market")
-        sportsbook = data.get("sportsbook")
-        odds = data.get("odds")
-        confidence = data.get("confidence")
         units = data.get("units") or data.get("stake")
-        model_probability = data.get("model_probability")
-        implied_probability = data.get("implied_probability")
-        edge = data.get("edge")
-        result = data.get("result", "Pending")
-
-        existing_pick = db.query(Pick).filter(
-            Pick.game == str(game or ""),
-            Pick.pick == str(pick or ""),
-            Pick.market == str(market or ""),
-            Pick.sportsbook == str(sportsbook or ""),
-            Pick.odds == str(odds or "")
-        ).first()
-
-        if existing_pick:
-            return {
-                "message": "Duplicate pick already exists",
-                "duplicate": True,
-                "pick_id": existing_pick.id
-            }
 
         new_pick = Pick(
-            game=str(game or ""),
-            pick=str(pick or ""),
-            market=str(market or ""),
-            sportsbook=str(sportsbook or ""),
-            odds=str(odds or ""),
-            confidence=str(confidence or ""),
+            game=str(data.get("game", "")),
+            pick=str(data.get("pick", "")),
+            market=str(data.get("market", "")),
+            sportsbook=str(data.get("sportsbook", "")),
+            odds=str(data.get("odds", "")),
+            confidence=str(data.get("confidence", "")),
             units=str(units or ""),
-            model_probability=str(model_probability or ""),
-            implied_probability=str(implied_probability or ""),
-            edge=str(edge or ""),
-            result=str(result or "Pending")
+            model_probability=str(data.get("model_probability", "")),
+            implied_probability=str(data.get("implied_probability", "")),
+            edge=str(data.get("edge", "")),
+            result=str(data.get("result", "Pending"))
         )
 
         db.add(new_pick)
         db.commit()
         db.refresh(new_pick)
 
-        return {
-            "message": "Pick saved",
-            "duplicate": False,
-            "pick": new_pick.id
-        }
+        return {"message": "Pick saved", "pick": new_pick.id}
 
     except Exception as e:
         db.rollback()
@@ -144,10 +114,7 @@ def get_results():
     try:
         picks = db.query(Pick).all()
 
-        graded = [
-            p for p in picks
-            if p.result not in ["Pending", None, ""]
-        ]
+        graded = [p for p in picks if p.result not in ["Pending", None, ""]]
 
         return {
             "results": [
@@ -173,7 +140,6 @@ def get_play_of_the_day():
     db: Session = SessionLocal()
     try:
         picks = db.query(Pick).all()
-
         pending = [p for p in picks if p.result == "Pending"]
 
         if not pending:
@@ -181,8 +147,8 @@ def get_play_of_the_day():
 
         def edge_val(p):
             try:
-                return float(str(p.edge).replace("%", ""))
-            except Exception:
+                return float(p.edge)
+            except:
                 return 0.0
 
         best = sorted(pending, key=edge_val, reverse=True)[0]
@@ -202,12 +168,7 @@ def update_result(pick_id: int, data: dict):
         if not pick:
             raise HTTPException(status_code=404, detail="Pick not found")
 
-        result = data.get("result")
-
-        if result not in ["Win", "Loss", "Push"]:
-            raise HTTPException(status_code=400, detail="Invalid result")
-
-        pick.result = result
+        pick.result = data.get("result")
         db.commit()
         db.refresh(pick)
 
@@ -250,7 +211,7 @@ def model_nba_today():
     response = requests.get(ODDS_BASE_URL, params=params)
 
     if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Odds API error")
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
     games = response.json()
     plays = []
@@ -262,7 +223,7 @@ def model_nba_today():
             sportsbook = bookmaker.get("title")
 
             for market in bookmaker.get("markets", []):
-                market_key = market.get("key")
+                key = market.get("key")
 
                 for outcome in market.get("outcomes", []):
                     odds = outcome.get("price")
@@ -271,68 +232,26 @@ def model_nba_today():
 
                     implied = american_to_implied_probability(odds)
                     model_prob = implied
-                    market_name = market_key
-                    pick_name = outcome.get("name")
 
-                    if market_key == "h2h":
-                        if implied >= 80:
-                            model_prob = implied + 0.3
-                        elif implied >= 70:
-                            model_prob = implied + 0.8
-                        elif implied >= 60:
-                            model_prob = implied + 1.4
-                        elif implied >= 50:
-                            model_prob = implied + 2.2
-                        elif implied >= 40:
-                            model_prob = implied + 2.8
-                        elif implied >= 30:
-                            model_prob = implied + 1.6
-                        else:
-                            model_prob = implied + 0.8
-
+                    if key == "h2h":
+                        model_prob = implied + (3 if implied < 50 else 1.5)
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
 
-                    elif market_key == "spreads":
+                    elif key == "spreads":
                         point = outcome.get("point")
                         if point is None:
                             continue
-
-                        abs_spread = abs(float(point))
-
-                        if abs_spread <= 2.5:
-                            model_prob = implied + 3.0
-                        elif abs_spread <= 5.5:
-                            model_prob = implied + 2.2
-                        elif abs_spread <= 8.5:
-                            model_prob = implied + 1.5
-                        elif abs_spread <= 11.5:
-                            model_prob = implied + 1.0
-                        else:
-                            model_prob = implied + 0.5
-
+                        model_prob = implied + 2
                         market_name = "Spread"
-                        pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
+                        pick_name = f"{outcome.get('name')} {point}"
 
-                    elif market_key == "totals":
+                    elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
-
-                        if point is None or side is None:
+                        if point is None:
                             continue
-
-                        baseline_total = 228
-                        diff = float(point) - baseline_total
-
-                        if side == "Over":
-                            model_prob = 50 - (diff * 0.35)
-                        elif side == "Under":
-                            model_prob = 50 + (diff * 0.35)
-                        else:
-                            model_prob = 50
-
-                        model_prob = max(44, min(56, model_prob))
-
+                        model_prob = 50
                         market_name = "Total"
                         pick_name = f"{side} {point}"
 
@@ -341,36 +260,18 @@ def model_nba_today():
 
                     edge = round(model_prob - implied, 2)
 
-                    if edge >= 3:
-                        rec = "Play"
-                    elif edge >= 1:
-                        rec = "Lean"
-                    else:
-                        rec = "Pass"
-
-                    confidence = min(95, max(50, round(52 + (edge * 4), 1)))
-
-                    if edge >= 4:
-                        units = 2
-                    elif edge >= 2:
-                        units = 1.5
-                    else:
-                        units = 1
-
                     plays.append({
                         "game": game_name,
                         "sportsbook": sportsbook,
                         "market": market_name,
                         "pick": pick_name,
                         "odds": odds,
-                        "implied_probability": round(implied, 2),
-                        "model_probability": round(model_prob, 2),
+                        "implied_probability": implied,
+                        "model_probability": model_prob,
                         "edge": edge,
-                        "confidence": confidence,
-                        "recommendation": rec,
-                        "units": units
+                        "confidence": round(model_prob, 1),
+                        "recommendation": "Play" if edge >= 2 else "Lean",
+                        "units": 1
                     })
-
-    plays.sort(key=lambda x: x["edge"], reverse=True)
 
     return {"plays": plays}
