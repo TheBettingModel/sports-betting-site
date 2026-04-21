@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 
 function SavedPicksPage() {
   const [picks, setPicks] = useState([]);
+  const [message, setMessage] = useState("");
 
   const calculateNetUnits = () => {
     return picks.reduce((total, pick) => {
-      const unitValue = parseFloat(pick.units);
+      const unitValue = parseFloat(String(pick.units).replace(" Units", "").replace(" Unit", ""));
       const oddsValue = parseFloat(pick.odds);
 
       if (isNaN(unitValue) || isNaN(oddsValue)) return total;
@@ -29,7 +30,6 @@ function SavedPicksPage() {
   const calculateWinRate = () => {
     const wins = picks.filter((p) => p.result === "Win").length;
     const losses = picks.filter((p) => p.result === "Loss").length;
-
     const total = wins + losses;
 
     if (total === 0) return "0%";
@@ -40,8 +40,17 @@ function SavedPicksPage() {
   const fetchSavedPicks = () => {
     fetch(`${import.meta.env.VITE_API_URL}/saved-picks`)
       .then((response) => response.json())
-      .then((data) => setPicks(data.saved_picks || []))
-      .catch((error) => console.error("Error fetching saved picks:", error));
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPicks(data);
+        } else {
+          setPicks([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching saved picks:", error);
+        setMessage("Failed to load saved picks");
+      });
   };
 
   useEffect(() => {
@@ -49,21 +58,41 @@ function SavedPicksPage() {
   }, []);
 
   const handleDelete = async (pickId) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/delete-pick/${pickId}`, {
-      method: "DELETE",
-    });
-    fetchSavedPicks();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/delete-pick/${pickId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        setMessage("Delete route is not available yet");
+        return;
+      }
+
+      fetchSavedPicks();
+    } catch (error) {
+      setMessage("Error deleting pick");
+    }
   };
 
   const handleUpdateResult = async (pickId, result) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/update-result/${pickId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ result }),
-    });
-    fetchSavedPicks();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/update-result/${pickId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ result }),
+      });
+
+      if (!response.ok) {
+        setMessage("Update result route is not available yet");
+        return;
+      }
+
+      fetchSavedPicks();
+    } catch (error) {
+      setMessage("Error updating result");
+    }
   };
 
   const getConfidenceClass = (confidence) => {
@@ -74,7 +103,7 @@ function SavedPicksPage() {
   };
 
   const getEdgeClass = (edge) => {
-    const edgeValue = parseFloat(edge);
+    const edgeValue = parseFloat(String(edge).replace("%", ""));
 
     if (edgeValue >= 7) return "edge-high";
     if (edgeValue >= 5) return "edge-medium";
@@ -85,6 +114,8 @@ function SavedPicksPage() {
   return (
     <div className="app">
       <h1>Saved Picks</h1>
+
+      {message && <p>{message}</p>}
 
       <div className="summary-bar">
         <div className="summary-card">
