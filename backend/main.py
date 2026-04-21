@@ -1,20 +1,22 @@
-import os
-import requests
-from dotenv import load_dotenv
-
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
+from datetime import datetime
+import os
+import requests
 
-from database import Base, engine, SessionLocal
-from models import Pick
+from database import SessionLocal, engine
+from models import Base, Pick
 
 load_dotenv()
 
 app = FastAPI()
 
+# Create database tables
 Base.metadata.create_all(bind=engine)
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,480 +25,347 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ODDS_API_KEY = os.getenv("ODDS_API_KEY")
+ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 
-def american_odds_to_implied_probability(odds):
-    odds_value = float(odds)
 
-    if odds_value > 0:
-        implied = 100 / (odds_value + 100)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def american_to_implied_probability(odds):
+    if odds is None:
+        return 0.0
+
+    if odds > 0:
+        return round((100 / (odds + 100)) * 100, 2)
     else:
-        implied = abs(odds_value) / (abs(odds_value) + 100)
-
-    return round(implied * 100, 1)
+        return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
 
 
-def calculate_confidence(edge_value):
-    if edge_value >= 7:
-        return "A"
-    if edge_value >= 5:
-        return "B+"
-    if edge_value >= 3:
-        return "B"
-    if edge_value >= 1:
-        return "C"
-    return "D"
+def get_unit_size(edge):
+    if edge >= 4.0:
+        return 2
+    elif edge >= 2.0:
+        return 1.5
+    elif edge >= 0.5:
+        return 1
+    return 0
 
 
-def starter_model_probability(implied_probability, is_home_team, is_favorite):
-    adjustment = 0.0
+def calculate_model_data(market, pick, odds):
+    implied_probability = american_to_implied_probability(odds)
+    model_probability = implied_probability
+    edge = 0.0
+    confidence = 50.0
 
-    if is_home_team:
-        adjustment += 1.5
+    if market == "Moneyline":
+        # Simple starter logic
+        if implied_probability < 50:
+            model_probability = implied_probability + 3.0
+        else:
+            model_probability = implied_probability + 1.5
 
-    if is_favorite:
-        adjustment += 1.0
+    elif market == "Spread":
+        # Simple starter logic
+        model_probability = implied_probability + 2.0
 
-    model_probability = implied_probability + adjustment
+    elif market == "Total":
+        # Simple starter totals logic
+        # pick examples: "Over 228.5" or "Under 228.5"
+        try:
+            parts = str(pick).split()
+            side = parts[0]
+            total_points = float(parts[1])
 
-    if model_probability > 95:
-        model_probability = 95.0
+            if total_points <= 218:
+                if side == "Over":
+                    model_probability = 53.0
+                elif side == "Under":
+                    model_probability = 47.0
+            elif total_points >= 234:
+                if side == "Under":
+                    model_probability = 53.0
+                elif side == "Over":
+                    model_probability = 47.0
+            else:
+                model_probability = 50.0
+        except:
+            model_probability = implied_probability
 
-    return round(model_probability, 1)
+    edge = round(model_probability - implied_probability, 2)
+    confidence = min(95, max(50, round(model_probability + (edge * 2), 1)))
+
+    return {
+        "implied_probability": round(implied_probability, 2),
+        "model_probability": round(model_probability, 2),
+        "edge": round(edge, 2),
+        "confidence": confidence,
+    }
 
 
 @app.get("/")
-def home():
-    return {"message": "The sports betting website API is functioning normally!"}
+def root():
+    return {"message": "Sports betting backend is running"}
 
 
 @app.get("/test-api-key")
 def test_api_key():
-    api_key = os.getenv("ODDS_API_KEY")
+    if not ODDS_API_KEY:
+        raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
 
-    if api_key:
-        return {"status": "API key loaded"}
-    else:
-        return {"status": "API key NOT found"}
+    params = {
+        "apiKey": ODDS_API_KEY,
+        "regions": "us",
+        "markets": "h2h",
+        "oddsFormat": "american",
+    }
+
+    response = requests.get(ODDS_BASE_URL, params=params)
+
+    return {
+        "status_code": response.status_code,
+        "response_text": response.text[:500]
+    }
 
 
 @app.get("/get-nba-odds")
 def get_nba_odds():
-    api_key = os.getenv("ODDS_API_KEY")
-
-    if not api_key:
-        return {"error": "ODDS_API_KEY not found"}
-
-    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+    if not ODDS_API_KEY:
+        raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
 
     params = {
-        "apiKey": api_key,
+        "apiKey": ODDS_API_KEY,
         "regions": "us",
         "markets": "h2h,spreads,totals",
-        "oddsFormat": "american"
+        "oddsFormat": "american",
+        "bookmakers": "draftkings,fanduel,betmgm,caesars"
     }
 
-    response = requests.get(url, params=params)
+    response = requests.get(ODDS_BASE_URL, params=params)
 
     if response.status_code != 200:
-        return {
-            "error": "Failed to fetch odds",
-            "status_code": response.status_code,
-            "details": response.text
-        }
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
     return response.json()
 
 
-@app.get("/model/nba/today")
-def model_nba_today():
-    api_key = os.getenv("ODDS_API_KEY")
-
-    if not api_key:
-        return {"error": "ODDS_API_KEY not found"}
-
-    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
-
-    params = {
-        "apiKey": api_key,
-        "regions": "us",
-        "markets": "h2h,spreads",
-        "oddsFormat": "american"
-    }
-
-    response = requests.get(url, params=params)
-
-    if response.status_code != 200:
-        return {
-            "error": "Failed to fetch odds",
-            "status_code": response.status_code,
-            "details": response.text
-        }
-
-    odds_data = response.json()
-    model_games = []
-
-    for game in odds_data:
-        if not game.get("bookmakers"):
-            continue
-
-        bookmaker = game["bookmakers"][0]
-        if not bookmaker.get("markets"):
-            continue
-
-        moneyline_market = None
-        spread_market = None
-
-        for market in bookmaker["markets"]:
-            if market["key"] == "h2h":
-                moneyline_market = market
-            elif market["key"] == "spreads":
-                spread_market = market
-
-        if moneyline_market:
-            for outcome in moneyline_market["outcomes"]:
-                implied_probability = american_odds_to_implied_probability(outcome["price"])
-                is_home_team = outcome["name"] == game["home_team"]
-                is_favorite = outcome["price"] < 0
-
-                model_probability = starter_model_probability(
-                    implied_probability=implied_probability,
-                    is_home_team=is_home_team,
-                    is_favorite=is_favorite
-                )
-
-                edge = round(model_probability - implied_probability, 1)
-                confidence = calculate_confidence(edge)
-
-                model_games.append({
-                    "game": f'{game["away_team"]} vs {game["home_team"]}',
-                    "commence_time": game["commence_time"],
-                    "sportsbook": bookmaker["title"],
-                    "market": "Moneyline",
-                    "pick": outcome["name"],
-                    "odds": outcome["price"],
-                    "implied_probability": f"{implied_probability}%",
-                    "model_probability": f"{model_probability}%",
-                    "edge": f"{edge}%",
-                    "confidence": confidence,
-                    "recommendation": "Play" if edge >= 3 else "Lean" if edge >= 1 else "Pass"
-                })
-
-        if spread_market:
-            for outcome in spread_market["outcomes"]:
-                implied_probability = american_odds_to_implied_probability(outcome["price"])
-                is_home_team = outcome["name"] == game["home_team"]
-                point = outcome.get("point", 0)
-
-                adjustment = 0.0
-
-                if is_home_team:
-                    adjustment += 1.0
-
-                if point > 0:
-                    adjustment += 1.0
-
-                model_probability = round(implied_probability + adjustment, 1)
-
-                if model_probability > 95:
-                    model_probability = 95.0
-
-                edge = round(model_probability - implied_probability, 1)
-                confidence = calculate_confidence(edge)
-
-                point_text = f"+{point}" if point > 0 else str(point)
-
-                model_games.append({
-                    "game": f'{game["away_team"]} vs {game["home_team"]}',
-                    "commence_time": game["commence_time"],
-                    "sportsbook": bookmaker["title"],
-                    "market": "Spread",
-                    "pick": f'{outcome["name"]} {point_text}',
-                    "odds": outcome["price"],
-                    "implied_probability": f"{implied_probability}%",
-                    "model_probability": f"{model_probability}%",
-                    "edge": f"{edge}%",
-                    "confidence": confidence,
-                  "recommendation": "Play" if edge >= 2 else "Lean" if edge >= 0.5 else "Pass"
-                  
-                })
-
-    model_games = sorted(
-        model_games,
-        key=lambda x: float(x["edge"].replace("%", "")),
-        reverse=True
-    )
-
-    return {
-        "sport": "NBA",
-        "model_version": "v1-moneyline-spread",
-        "games": model_games
-    }
-
-
-@app.get("/picks/today")
-def get_picks_today():
+@app.get("/picks")
+def get_picks():
     db: Session = SessionLocal()
-    picks = db.query(Pick).all()
-    db.close()
-
-    if not picks:
-        return {
-            "record": "0-0",
-            "units": "0.00",
-            "play_of_the_day": None,
-            "other_picks": []
-        }
-
-    def edge_to_number(edge_value):
-        if not edge_value:
-            return 0
-        return float(str(edge_value).replace("%", "").strip())
-
-    sorted_picks = sorted(
-        picks,
-        key=lambda pick: edge_to_number(pick.edge),
-        reverse=True
-    )
-
-    best_pick = sorted_picks[0]
-    other_picks = sorted_picks[1:]
-
-    def units_to_float(unit_value):
-        try:
-            return float(str(unit_value).split()[0])
-        except Exception:
-            return 0.0
-
-    net_units = 0.0
-    wins = 0
-    losses = 0
-
-    for pick in picks:
-        unit_value = units_to_float(pick.units)
-        try:
-            odds_value = float(str(pick.odds))
-        except Exception:
-            odds_value = 0.0
-
-        if pick.result == "Win":
-            wins += 1
-            if odds_value > 0:
-                net_units += unit_value * (odds_value / 100)
-            elif odds_value < 0:
-                net_units += unit_value * (100 / abs(odds_value))
-            else:
-                net_units += unit_value
-        elif pick.result == "Loss":
-            losses += 1
-            net_units -= unit_value
-
-    return {
-        "record": f"{wins}-{losses}",
-        "units": f"{net_units:.2f}",
-        "play_of_the_day": {
-            "id": best_pick.id,
-            "game": best_pick.game,
-            "pick": best_pick.pick,
-            "market": best_pick.market,
-            "sportsbook": best_pick.sportsbook,
-            "odds": best_pick.odds,
-            "confidence": best_pick.confidence,
-            "units": best_pick.units,
-            "model_probability": best_pick.model_probability,
-            "implied_probability": best_pick.implied_probability,
-            "edge": best_pick.edge,
-            "result": best_pick.result,
-            "time": "TBD",
-            "reason": "Highest edge among saved picks."
-        },
-        "other_picks": [
-            {
-                "id": pick.id,
-                "game": pick.game,
-                "pick": pick.pick,
-                "market": pick.market,
-                "sportsbook": pick.sportsbook,
-                "odds": pick.odds,
-                "confidence": pick.confidence,
-                "units": pick.units,
-                "model_probability": pick.model_probability,
-                "implied_probability": pick.implied_probability,
-                "edge": pick.edge,
-                "result": pick.result,
-                "time": "TBD",
-                "reason": "Model-ranked saved pick."
-            }
-            for pick in other_picks
-        ]
-    }
-
-
-@app.get("/results")
-def get_results():
-    db: Session = SessionLocal()
-    picks = db.query(Pick).filter(Pick.result.in_(["Win", "Loss", "Push"])).all()
-    db.close()
-
-    return {
-        "results": [
-            {
-                "date": "Live",
-                "game": pick.game,
-                "pick": pick.pick,
-                "result": pick.result,
-                "units_won": (
-                    pick.units
-                    if pick.result == "Win"
-                    else f"-{pick.units.split()[0]}"
-                    if pick.result == "Loss"
-                    else "0"
-                )
-            }
-            for pick in picks
-        ]
-    }
+    try:
+        picks = db.query(Pick).order_by(Pick.id.desc()).all()
+        return picks
+    finally:
+        db.close()
 
 
 @app.post("/save-pick")
-async def save_pick(request: Request):
-    data = await request.json()
+def save_pick(pick_data: dict):
     db: Session = SessionLocal()
 
-    existing_pick = db.query(Pick).filter(
-        Pick.game == data["game"],
-        Pick.pick == data["pick"],
-        Pick.market == data["market"],
-        Pick.sportsbook == data["sportsbook"],
-        Pick.odds == str(data["odds"])
-    ).first()
+    try:
+        game = pick_data.get("game")
+        pick = pick_data.get("pick")
+        market = pick_data.get("market")
+        sportsbook = pick_data.get("sportsbook")
+        odds = pick_data.get("odds")
 
-    if existing_pick:
-        db.close()
-        return {"message": "Pick already exists"}
+        existing_pick = db.query(Pick).filter(
+            Pick.game == game,
+            Pick.pick == pick,
+            Pick.market == market,
+            Pick.sportsbook == sportsbook,
+            Pick.odds == odds
+        ).first()
 
-    new_pick = Pick(
-        game=data["game"],
-        pick=data["pick"],
-        market=data["market"],
-        sportsbook=data["sportsbook"],
-        odds=str(data["odds"]),
-        confidence=data["confidence"],
-        units=data["units"],
-        model_probability=data["model_probability"],
-        implied_probability=data["implied_probability"],
-        edge=data["edge"]
-    )
-
-    db.add(new_pick)
-    db.commit()
-    db.refresh(new_pick)
-    db.close()
-
-    return {"message": "Pick saved successfully"}
-
-
-@app.get("/saved-picks")
-def get_saved_picks():
-    db: Session = SessionLocal()
-    picks = db.query(Pick).all()
-    db.close()
-
-    def edge_to_number(edge_value):
-        if not edge_value:
-            return 0
-        return float(str(edge_value).replace("%", "").strip())
-
-    sorted_picks = sorted(
-        picks,
-        key=lambda pick: edge_to_number(pick.edge),
-        reverse=True
-    )
-
-    return {
-        "saved_picks": [
-            {
-                "id": pick.id,
-                "game": pick.game,
-                "pick": pick.pick,
-                "market": pick.market,
-                "sportsbook": pick.sportsbook,
-                "odds": pick.odds,
-                "confidence": pick.confidence,
-                "units": pick.units,
-                "model_probability": pick.model_probability,
-                "implied_probability": pick.implied_probability,
-                "edge": pick.edge,
-                "result": pick.result
+        if existing_pick:
+            return {
+                "message": "Duplicate pick already exists",
+                "duplicate": True,
+                "pick_id": existing_pick.id
             }
-            for pick in sorted_picks
-        ]
+
+        new_pick = Pick(
+            game=game,
+            market=market,
+            pick=pick,
+            odds=odds,
+            sportsbook=sportsbook,
+            stake=pick_data.get("stake"),
+            result=pick_data.get("result", "Pending"),
+            commence_time=pick_data.get("commence_time"),
+            implied_probability=pick_data.get("implied_probability"),
+            model_probability=pick_data.get("model_probability"),
+            edge=pick_data.get("edge"),
+            confidence=pick_data.get("confidence"),
+            recommendation=pick_data.get("recommendation"),
+            notes=pick_data.get("notes")
+        )
+
+        db.add(new_pick)
+        db.commit()
+        db.refresh(new_pick)
+
+        return {
+            "message": "Pick saved successfully",
+            "duplicate": False,
+            "pick": new_pick
+        }
+
+    finally:
+        db.close()
+
+
+@app.get("/model/nba/today")
+def model_nba_today():
+    if not ODDS_API_KEY:
+        raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
+
+    params = {
+        "apiKey": ODDS_API_KEY,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "bookmakers": "draftkings,fanduel,betmgm,caesars"
     }
 
+    response = requests.get(ODDS_BASE_URL, params=params)
 
-@app.get("/play-of-the-day")
-def get_play_of_the_day():
-    db: Session = SessionLocal()
-    picks = db.query(Pick).all()
-    db.close()
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
-    if not picks:
-        return {"message": "No saved picks available"}
+    games = response.json()
+    plays = []
 
-    def edge_to_number(edge_value):
-        if not edge_value:
-            return 0
-        return float(str(edge_value).replace("%", "").strip())
+    for game in games:
+        home_team = game.get("home_team")
+        away_team = game.get("away_team")
+        game_name = f"{away_team} vs {home_team}"
 
-    best_pick = max(picks, key=lambda pick: edge_to_number(pick.edge))
+        for bookmaker in game.get("bookmakers", []):
+            sportsbook = bookmaker.get("title")
+
+            for market in bookmaker.get("markets", []):
+                market_key = market.get("key")
+                outcomes = market.get("outcomes", [])
+
+                # MONEYLINE
+                if market_key == "h2h":
+                    for outcome in outcomes:
+                        team_name = outcome.get("name")
+                        odds = outcome.get("price")
+
+                        if team_name is None or odds is None:
+                            continue
+
+                        model_data = calculate_model_data("Moneyline", team_name, odds)
+                        edge = model_data["edge"]
+
+                        if edge >= 2:
+                            recommendation = "Play"
+                        elif edge >= 0.5:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        plays.append({
+                            "game": game_name,
+                            "commence_time": game.get("commence_time"),
+                            "sportsbook": sportsbook,
+                            "market": "Moneyline",
+                            "pick": team_name,
+                            "odds": odds,
+                            "implied_probability": model_data["implied_probability"],
+                            "model_probability": model_data["model_probability"],
+                            "edge": model_data["edge"],
+                            "confidence": model_data["confidence"],
+                            "recommendation": recommendation,
+                            "units": get_unit_size(edge)
+                        })
+
+                # SPREADS
+                elif market_key == "spreads":
+                    for outcome in outcomes:
+                        team_name = outcome.get("name")
+                        odds = outcome.get("price")
+                        point = outcome.get("point")
+
+                        if team_name is None or odds is None or point is None:
+                            continue
+
+                        spread_pick = f"{team_name} {point:+}"
+
+                        model_data = calculate_model_data("Spread", spread_pick, odds)
+                        edge = model_data["edge"]
+
+                        if edge >= 2:
+                            recommendation = "Play"
+                        elif edge >= 0.5:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        plays.append({
+                            "game": game_name,
+                            "commence_time": game.get("commence_time"),
+                            "sportsbook": sportsbook,
+                            "market": "Spread",
+                            "pick": spread_pick,
+                            "odds": odds,
+                            "implied_probability": model_data["implied_probability"],
+                            "model_probability": model_data["model_probability"],
+                            "edge": model_data["edge"],
+                            "confidence": model_data["confidence"],
+                            "recommendation": recommendation,
+                            "units": get_unit_size(edge)
+                        })
+
+                # TOTALS
+                elif market_key == "totals":
+                    for outcome in outcomes:
+                        side = outcome.get("name")   # Over or Under
+                        odds = outcome.get("price")
+                        total_points = outcome.get("point")
+
+                        if side is None or odds is None or total_points is None:
+                            continue
+
+                        total_pick = f"{side} {total_points}"
+
+                        model_data = calculate_model_data("Total", total_pick, odds)
+                        edge = model_data["edge"]
+
+                        if edge >= 2:
+                            recommendation = "Play"
+                        elif edge >= 0.5:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        plays.append({
+                            "game": game_name,
+                            "commence_time": game.get("commence_time"),
+                            "sportsbook": sportsbook,
+                            "market": "Total",
+                            "pick": total_pick,
+                            "odds": odds,
+                            "implied_probability": model_data["implied_probability"],
+                            "model_probability": model_data["model_probability"],
+                            "edge": model_data["edge"],
+                            "confidence": model_data["confidence"],
+                            "recommendation": recommendation,
+                            "units": get_unit_size(edge)
+                        })
+
+    plays.sort(key=lambda x: x["edge"], reverse=True)
 
     return {
-        "play_of_the_day": {
-            "id": best_pick.id,
-            "game": best_pick.game,
-            "pick": best_pick.pick,
-            "market": best_pick.market,
-            "sportsbook": best_pick.sportsbook,
-            "odds": best_pick.odds,
-            "confidence": best_pick.confidence,
-            "units": best_pick.units,
-            "model_probability": best_pick.model_probability,
-            "implied_probability": best_pick.implied_probability,
-            "edge": best_pick.edge,
-            "result": best_pick.result
-        }
+        "date": datetime.utcnow().isoformat(),
+        "total_plays": len(plays),
+        "plays": plays
     }
-
-
-@app.delete("/delete-pick/{pick_id}")
-def delete_pick(pick_id: int):
-    db: Session = SessionLocal()
-    pick = db.query(Pick).filter(Pick.id == pick_id).first()
-
-    if not pick:
-        db.close()
-        return {"message": "Pick not found"}
-
-    db.delete(pick)
-    db.commit()
-    db.close()
-
-    return {"message": "Pick deleted successfully"}
-
-
-@app.put("/update-result/{pick_id}")
-async def update_result(pick_id: int, request: Request):
-    data = await request.json()
-    db: Session = SessionLocal()
-
-    pick = db.query(Pick).filter(Pick.id == pick_id).first()
-
-    if not pick:
-        db.close()
-        return {"message": "Pick not found"}
-
-    pick.result = data["result"]
-    db.commit()
-    db.refresh(pick)
-    db.close()
-
-    return {"message": "Result updated successfully"}

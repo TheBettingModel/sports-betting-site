@@ -10,8 +10,8 @@ function ModelBoardPage() {
     fetch(`${import.meta.env.VITE_API_URL}/model/nba/today`)
       .then((response) => response.json())
       .then((data) => {
-        if (data.games) {
-          setGames(data.games);
+        if (data.plays) {
+          setGames(data.plays);
         } else {
           setError("Failed to load model board");
         }
@@ -20,13 +20,6 @@ function ModelBoardPage() {
         setError("Failed to load model board");
       });
   }, []);
-
-  const getConfidenceClass = (confidence) => {
-    if (confidence === "A") return "grade-a";
-    if (confidence === "B+" || confidence === "B") return "grade-b";
-    if (confidence === "C") return "grade-c";
-    return "grade-d";
-  };
 
   const filteredGames = useMemo(() => {
     if (filter === "All") return games;
@@ -76,7 +69,9 @@ function ModelBoardPage() {
         units: recommendedUnits,
         model_probability: game.model_probability,
         implied_probability: game.implied_probability,
-        edge: game.edge
+        edge: game.edge,
+        recommendation: game.recommendation,
+        commence_time: game.commence_time
       })
     });
 
@@ -84,6 +79,10 @@ function ModelBoardPage() {
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to save pick");
+    }
+
+    if (data.duplicate) {
+      throw new Error("Duplicate pick already exists");
     }
 
     return data;
@@ -95,15 +94,24 @@ function ModelBoardPage() {
       return;
     }
 
-    try {
-      for (const game of playGames) {
-        await saveToPicks(game);
-      }
+    let savedCount = 0;
+    let duplicateCount = 0;
 
-      setMessage(`Saved ${playGames.length} plays to Saved Picks.`);
-    } catch (error) {
-      setMessage(error.message || "Error saving all plays");
+    for (const game of playGames) {
+      try {
+        await saveToPicks(game);
+        savedCount += 1;
+      } catch (error) {
+        if (error.message === "Duplicate pick already exists") {
+          duplicateCount += 1;
+        }
+      }
     }
+
+    setMessage(
+      `Saved ${savedCount} plays.` +
+        (duplicateCount > 0 ? ` ${duplicateCount} duplicates skipped.` : "")
+    );
   };
 
   const handleSaveOne = async (game) => {
@@ -152,16 +160,11 @@ function ModelBoardPage() {
               <p><strong>Market:</strong> {game.market}</p>
               <p><strong>Sportsbook:</strong> {game.sportsbook}</p>
               <p><strong>Odds:</strong> {game.odds}</p>
-              <p><strong>Implied Probability:</strong> {game.implied_probability}</p>
-              <p><strong>Model Probability:</strong> {game.model_probability}</p>
-              <p><strong>Edge:</strong> {game.edge}</p>
+              <p><strong>Implied Probability:</strong> {game.implied_probability}%</p>
+              <p><strong>Model Probability:</strong> {game.model_probability}%</p>
+              <p><strong>Edge:</strong> {game.edge}%</p>
               <p><strong>Recommended Units:</strong> {getRecommendedUnits(game.edge)}</p>
-              <p>
-                <strong>Confidence:</strong>{" "}
-                <span className={getConfidenceClass(game.confidence)}>
-                  {game.confidence}
-                </span>
-              </p>
+              <p><strong>Confidence:</strong> {game.confidence}%</p>
               <p><strong>Recommendation:</strong> {game.recommendation}</p>
 
               <button

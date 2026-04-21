@@ -32,7 +32,14 @@ function LiveOddsPage() {
 
   const getMarket = (bookmaker, key) => {
     if (!bookmaker || !bookmaker.markets) return null;
-    return bookmaker.markets.find((market) => market.key === key);
+
+    const market = bookmaker.markets.find((market) => market.key === key);
+
+    if (!market || !market.outcomes || market.outcomes.length === 0) {
+      return null;
+    }
+
+    return market;
   };
 
   const calculateImpliedProbability = (odds) => {
@@ -51,15 +58,11 @@ function LiveOddsPage() {
     return (implied * 100).toFixed(1);
   };
 
-  const calculateConfidence = (edgeString) => {
-    const edgeValue = parseFloat(edgeString);
+  const calculateConfidence = (edgeValue) => {
+    const edge = parseFloat(edgeValue);
 
-    if (isNaN(edgeValue)) return "D";
-    if (edgeValue >= 7) return "A";
-    if (edgeValue >= 5) return "B+";
-    if (edgeValue >= 3) return "B";
-    if (edgeValue >= 1) return "C";
-    return "D";
+    if (isNaN(edge)) return 50;
+    return Math.min(95, Math.max(50, Number((52 + edge * 2).toFixed(1))));
   };
 
   const goToAddPick = ({ game, sportsbook, market, pick, odds }) => {
@@ -82,9 +85,18 @@ function LiveOddsPage() {
       return;
     }
 
-    const modelProbability = (impliedProbability + 3).toFixed(1);
-    const edge = (modelProbability - impliedProbability).toFixed(1);
-    const confidence = calculateConfidence(`${edge}%`);
+    let modelProbability = impliedProbability + 3;
+
+    if (market === "Spread") {
+      modelProbability = impliedProbability + 2;
+    }
+
+    if (market === "Total") {
+      modelProbability = 50;
+    }
+
+    const edge = Number((modelProbability - impliedProbability).toFixed(1));
+    const confidence = calculateConfidence(edge);
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
@@ -100,18 +112,23 @@ function LiveOddsPage() {
           odds: String(odds),
           confidence,
           units: "1 Unit",
-          model_probability: `${modelProbability}%`,
-          implied_probability: `${impliedProbability.toFixed(1)}%`,
-          edge: `${edge}%`
+          model_probability: Number(modelProbability.toFixed(1)),
+          implied_probability: Number(impliedProbability.toFixed(1)),
+          edge,
+          recommendation: edge >= 2 ? "Play" : edge >= 0.5 ? "Lean" : "Pass"
         })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(
-          `Saved: ${pick} (${odds}) | Model ${modelProbability}% | Edge ${edge}% | ${confidence}`
-        );
+        if (data.duplicate) {
+          setMessage(`Duplicate skipped: ${pick} (${odds})`);
+        } else {
+          setMessage(
+            `Saved: ${pick} (${odds}) | Model ${modelProbability.toFixed(1)}% | Edge ${edge}% | Confidence ${confidence}%`
+          );
+        }
       } else {
         setMessage(data.message || "Failed to save pick");
       }
@@ -143,7 +160,7 @@ function LiveOddsPage() {
               <hr />
 
               {game.bookmakers && game.bookmakers.length > 0 ? (
-                game.bookmakers.slice(0, 3).map((bookmaker, bookIndex) => {
+                game.bookmakers.map((bookmaker, bookIndex) => {
                   const moneyline = getMarket(bookmaker, "h2h");
                   const spreads = getMarket(bookmaker, "spreads");
                   const totals = getMarket(bookmaker, "totals");
@@ -190,7 +207,7 @@ function LiveOddsPage() {
                           </div>
                         ))
                       ) : (
-                        <p>No moneyline data</p>
+                        <p>No moneyline data from this sportsbook</p>
                       )}
 
                       <p><strong>Spread</strong></p>
@@ -231,7 +248,7 @@ function LiveOddsPage() {
                           </div>
                         ))
                       ) : (
-                        <p>No spread data</p>
+                        <p>No spread data from this sportsbook</p>
                       )}
 
                       <p><strong>Total</strong></p>
@@ -272,10 +289,10 @@ function LiveOddsPage() {
                           </div>
                         ))
                       ) : (
-                        <p>No total data</p>
+                        <p>No total data from this sportsbook</p>
                       )}
 
-                      {bookIndex < game.bookmakers.slice(0, 3).length - 1 && <hr />}
+                      {bookIndex < game.bookmakers.length - 1 && <hr />}
                     </div>
                   );
                 })
