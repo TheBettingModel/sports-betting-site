@@ -46,7 +46,18 @@ function ModelBoardPage() {
     return topPlayKeys.has(`${game.game}-${game.pick}-${game.market}`);
   };
 
+  const getRecommendedUnits = (edge) => {
+    const edgeValue = parseFloat(String(edge).replace("%", ""));
+
+    if (isNaN(edgeValue)) return "1 Unit";
+    if (edgeValue >= 4) return "2 Units";
+    if (edgeValue >= 2) return "1.5 Units";
+    return "1 Unit";
+  };
+
   const saveToPicks = async (game) => {
+    const recommendedUnits = getRecommendedUnits(game.edge);
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
         method: "POST",
@@ -60,7 +71,7 @@ function ModelBoardPage() {
           sportsbook: game.sportsbook,
           odds: String(game.odds),
           confidence: game.confidence,
-          units: "1 Unit",
+          units: recommendedUnits,
           model_probability: game.model_probability,
           implied_probability: game.implied_probability,
           edge: game.edge
@@ -70,7 +81,7 @@ function ModelBoardPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge}`);
+        setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge} | ${recommendedUnits}`);
       } else {
         setMessage(data.message || "Failed to save pick");
       }
@@ -113,6 +124,7 @@ function ModelBoardPage() {
               <p><strong>Implied Probability:</strong> {game.implied_probability}</p>
               <p><strong>Model Probability:</strong> {game.model_probability}</p>
               <p><strong>Edge:</strong> {game.edge}</p>
+              <p><strong>Recommended Units:</strong> {getRecommendedUnits(game.edge)}</p>
               <p>
                 <strong>Confidence:</strong>{" "}
                 <span className={getConfidenceClass(game.confidence)}>
