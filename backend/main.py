@@ -207,3 +207,65 @@ def delete_pick(pick_id: int):
     finally:
         db.close()
         
+@app.get("/model/nba/today")
+def model_nba_today():
+    if not ODDS_API_KEY:
+        raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
+
+    params = {
+        "apiKey": ODDS_API_KEY,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+    }
+
+    response = requests.get(ODDS_BASE_URL, params=params)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="Odds API error")
+
+    games = response.json()
+    plays = []
+
+    for game in games:
+        game_name = f"{game['away_team']} vs {game['home_team']}"
+
+        for bookmaker in game.get("bookmakers", []):
+            sportsbook = bookmaker.get("title")
+
+            for market in bookmaker.get("markets", []):
+                market_key = market.get("key")
+
+                for outcome in market.get("outcomes", []):
+                    odds = outcome.get("price")
+                    if odds is None:
+                        continue
+
+                    implied = american_to_implied_probability(odds)
+
+                    # Simple starter model logic
+                    model_prob = implied + 2
+                    edge = round(model_prob - implied, 2)
+
+                    if edge >= 2:
+                        rec = "Play"
+                    elif edge >= 0.5:
+                        rec = "Lean"
+                    else:
+                        rec = "Pass"
+
+                    plays.append({
+                        "game": game_name,
+                        "sportsbook": sportsbook,
+                        "market": market_key,
+                        "pick": outcome.get("name"),
+                        "odds": odds,
+                        "implied_probability": implied,
+                        "model_probability": model_prob,
+                        "edge": edge,
+                        "confidence": "C",
+                        "recommendation": rec,
+                        "units": 1
+                    })
+
+    return {"plays": plays}
