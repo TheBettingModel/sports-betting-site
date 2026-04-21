@@ -22,14 +22,34 @@ function ModelBoardPage() {
       });
   }, []);
 
+  const dedupedGames = useMemo(() => {
+    const bestByPick = {};
+
+    for (const game of games) {
+      const key = `${game.game}__${game.market}__${game.pick}`;
+      const currentEdge = parseFloat(game.edge) || 0;
+      const existingEdge = parseFloat(bestByPick[key]?.edge) || 0;
+
+      if (!bestByPick[key] || currentEdge > existingEdge) {
+        bestByPick[key] = game;
+      }
+    }
+
+    return Object.values(bestByPick).sort((a, b) => {
+      const edgeA = parseFloat(a.edge) || 0;
+      const edgeB = parseFloat(b.edge) || 0;
+      return edgeB - edgeA;
+    });
+  }, [games]);
+
   const filteredGames = useMemo(() => {
-    if (filter === "All") return games;
-    return games.filter((game) => game.recommendation === filter);
-  }, [games, filter]);
+    if (filter === "All") return dedupedGames;
+    return dedupedGames.filter((game) => game.recommendation === filter);
+  }, [dedupedGames, filter]);
 
   const playGames = useMemo(() => {
-    return games.filter((game) => game.recommendation === "Play");
-  }, [games]);
+    return dedupedGames.filter((game) => game.recommendation === "Play");
+  }, [dedupedGames]);
 
   const topPlayKeys = useMemo(() => {
     const topThree = playGames.slice(0, 3);
@@ -62,14 +82,11 @@ function ModelBoardPage() {
       sportsbook: game.sportsbook,
       odds: String(game.odds),
       confidence: game.confidence,
-      stake: recommendedUnits,
+      units: recommendedUnits,
       model_probability: game.model_probability,
       implied_probability: game.implied_probability,
       edge: game.edge,
-      recommendation: game.recommendation,
-      commence_time: game.commence_time,
-      result: "Pending",
-      notes: ""
+      result: "Pending"
     };
 
     const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
