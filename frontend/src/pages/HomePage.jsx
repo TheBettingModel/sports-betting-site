@@ -1,14 +1,42 @@
 import { useEffect, useState } from "react";
 
 function HomePage() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState({
+    record: "0-0",
+    units: "0",
+    play_of_the_day: null,
+    other_picks: []
+  });
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/picks/today`)
+    fetch(`${import.meta.env.VITE_API_URL}/picks`)
       .then((res) => res.json())
-      .then((data) => {
-        setData(data);
+      .then((picks) => {
+        if (!Array.isArray(picks)) {
+          setError("Failed to load data");
+          return;
+        }
+
+        const pendingPicks = picks.filter(
+          (pick) => pick.result === "Pending" || !pick.result
+        );
+
+        const sortedPicks = [...pendingPicks].sort((a, b) => {
+          const aEdge = parseFloat(a.edge || 0);
+          const bEdge = parseFloat(b.edge || 0);
+          return bEdge - aEdge;
+        });
+
+        const playOfTheDay = sortedPicks.length > 0 ? sortedPicks[0] : null;
+        const otherPicks = sortedPicks.slice(1);
+
+        setData({
+          record: "0-0",
+          units: "0",
+          play_of_the_day: playOfTheDay,
+          other_picks: otherPicks
+        });
       })
       .catch(() => {
         setError("Failed to load data");
@@ -16,11 +44,11 @@ function HomePage() {
   }, []);
 
   if (error) {
-    return <div className="app"><h1>{error}</h1></div>;
-  }
-
-  if (!data) {
-    return <div className="app"><h1>Loading...</h1></div>;
+    return (
+      <div className="app">
+        <h1>{error}</h1>
+      </div>
+    );
   }
 
   return (
@@ -45,8 +73,11 @@ function HomePage() {
         <div className="pod-card">
           <h3>{data.play_of_the_day.game}</h3>
           <p><strong>Pick:</strong> {data.play_of_the_day.pick}</p>
+          <p><strong>Market:</strong> {data.play_of_the_day.market}</p>
+          <p><strong>Sportsbook:</strong> {data.play_of_the_day.sportsbook}</p>
           <p><strong>Confidence:</strong> {data.play_of_the_day.confidence}</p>
           <p><strong>Units:</strong> {data.play_of_the_day.units}</p>
+          <p><strong>Edge:</strong> {data.play_of_the_day.edge}</p>
         </div>
       ) : (
         <p>No play available</p>
@@ -60,8 +91,11 @@ function HomePage() {
             <div className="pick-card" key={index}>
               <h3>{pick.game}</h3>
               <p><strong>Pick:</strong> {pick.pick}</p>
+              <p><strong>Market:</strong> {pick.market}</p>
+              <p><strong>Sportsbook:</strong> {pick.sportsbook}</p>
               <p><strong>Confidence:</strong> {pick.confidence}</p>
               <p><strong>Units:</strong> {pick.units}</p>
+              <p><strong>Edge:</strong> {pick.edge}</p>
             </div>
           ))}
         </div>
