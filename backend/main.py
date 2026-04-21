@@ -8,6 +8,11 @@ import requests
 from database import SessionLocal, engine
 from models import Base, Pick
 
+ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+LAST_GOOD_NBA_ODDS = []
+LAST_GOOD_MODEL_PLAYS = []
+
+
 load_dotenv()
 
 app = FastAPI()
@@ -45,7 +50,11 @@ def root():
 
 @app.get("/get-nba-odds")
 def get_nba_odds():
+    global LAST_GOOD_NBA_ODDS
+
     if not ODDS_API_KEY:
+        if LAST_GOOD_NBA_ODDS:
+            return LAST_GOOD_NBA_ODDS
         raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
 
     params = {
@@ -57,10 +66,16 @@ def get_nba_odds():
 
     response = requests.get(ODDS_BASE_URL, params=params)
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+    if response.status_code == 200:
+        data = response.json()
+        LAST_GOOD_NBA_ODDS = data
+        return data
 
-    return response.json()
+    if LAST_GOOD_NBA_ODDS:
+        return LAST_GOOD_NBA_ODDS
+
+    raise HTTPException(status_code=response.status_code, detail=response.text)
+
 
 
 @app.get("/picks")
@@ -198,7 +213,11 @@ def delete_pick(pick_id: int):
 
 @app.get("/model/nba/today")
 def model_nba_today():
+    global LAST_GOOD_MODEL_PLAYS
+
     if not ODDS_API_KEY:
+        if LAST_GOOD_MODEL_PLAYS:
+            return {"plays": LAST_GOOD_MODEL_PLAYS}
         raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
 
     params = {
@@ -211,6 +230,8 @@ def model_nba_today():
     response = requests.get(ODDS_BASE_URL, params=params)
 
     if response.status_code != 200:
+        if LAST_GOOD_MODEL_PLAYS:
+            return {"plays": LAST_GOOD_MODEL_PLAYS}
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
     games = response.json()
@@ -232,9 +253,25 @@ def model_nba_today():
 
                     implied = american_to_implied_probability(odds)
                     model_prob = implied
+                    market_name = key
+                    pick_name = outcome.get("name")
 
                     if key == "h2h":
-                        model_prob = implied + (3 if implied < 50 else 1.5)
+                        if implied >= 80:
+                            model_prob = implied + 0.3
+                        elif implied >= 70:
+                            model_prob = implied + 0.8
+                        elif implied >= 60:
+                            model_prob = implied + 1.4
+                        elif implied >= 50:
+                            model_prob = implied + 2.2
+                        elif implied >= 40:
+                            model_prob = implied + 2.8
+                        elif implied >= 30:
+                            model_prob = implied + 1.6
+                        else:
+                            model_prob = implied + 0.8
+
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
 
@@ -242,16 +279,42 @@ def model_nba_today():
                         point = outcome.get("point")
                         if point is None:
                             continue
-                        model_prob = implied + 2
+
+                        abs_spread = abs(float(point))
+
+                        if abs_spread <= 2.5:
+                            model_prob = implied + 3.0
+                        elif abs_spread <= 5.5:
+                            model_prob = implied + 2.2
+                        elif abs_spread <= 8.5:
+                            model_prob = implied + 1.5
+                        elif abs_spread <= 11.5:
+                            model_prob = implied + 1.0
+                        else:
+                            model_prob = implied + 0.5
+
                         market_name = "Spread"
-                        pick_name = f"{outcome.get('name')} {point}"
+                        pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
 
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
-                        if point is None:
+
+                        if point is None or side is None:
                             continue
-                        model_prob = 50
+
+                        baseline_total = 228
+                        diff = float(point) - baseline_total
+
+                        if side == "Over":
+                            model_prob = 50 - (diff * 0.35)
+                        elif side == "Under":
+                            model_prob = 50 + (diff * 0.35)
+                        else:
+                            model_prob = 50
+
+                        model_prob = max(44, min(56, model_prob))
+
                         market_name = "Total"
                         pick_name = f"{side} {point}"
 
@@ -260,18 +323,37 @@ def model_nba_today():
 
                     edge = round(model_prob - implied, 2)
 
+                    if edge >= 3:
+                        rec = "Play"
+                    elif edge >= 1:
+                        rec = "Lean"
+                    else:
+                        rec = "Pass"
+
+                    confidence = min(95, max(50, round(52 + (edge * 4), 1)))
+
+                    if edge >= 4:
+                        units = 2
+                    elif edge >= 2:
+                        units = 1.5
+                    else:
+                        units = 1
+
                     plays.append({
                         "game": game_name,
                         "sportsbook": sportsbook,
                         "market": market_name,
                         "pick": pick_name,
                         "odds": odds,
-                        "implied_probability": implied,
-                        "model_probability": model_prob,
+                        "implied_probability": round(implied, 2),
+                        "model_probability": round(model_prob, 2),
                         "edge": edge,
-                        "confidence": round(model_prob, 1),
-                        "recommendation": "Play" if edge >= 2 else "Lean",
-                        "units": 1
+                        "confidence": confidence,
+                        "recommendation": rec,
+                        "units": units
                     })
+
+    plays.sort(key=lambda x: x["edge"], reverse=True)
+    LAST_GOOD_MODEL_PLAYS = plays
 
     return {"plays": plays}
