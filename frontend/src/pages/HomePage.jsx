@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 function HomePage() {
   const [data, setData] = useState({
     record: "0-0",
-    units: "0",
+    units: "0.00",
     play_of_the_day: null,
     other_picks: []
   });
@@ -28,12 +28,38 @@ function HomePage() {
           return bEdge - aEdge;
         });
 
+        const wins = picks.filter((pick) => pick.result === "Win").length;
+        const losses = picks.filter((pick) => pick.result === "Loss").length;
+
+        const netUnits = picks.reduce((total, pick) => {
+          const unitValue = parseFloat(
+            String(pick.units || "").replace(" Units", "").replace(" Unit", "")
+          );
+          const oddsValue = parseFloat(pick.odds);
+
+          if (isNaN(unitValue) || isNaN(oddsValue)) return total;
+
+          if (pick.result === "Win") {
+            if (oddsValue > 0) {
+              return total + unitValue * (oddsValue / 100);
+            } else {
+              return total + unitValue * (100 / Math.abs(oddsValue));
+            }
+          }
+
+          if (pick.result === "Loss") {
+            return total - unitValue;
+          }
+
+          return total;
+        }, 0);
+
         const playOfTheDay = sortedPicks.length > 0 ? sortedPicks[0] : null;
         const otherPicks = sortedPicks.slice(1);
 
         setData({
-          record: "0-0",
-          units: "0",
+          record: `${wins}-${losses}`,
+          units: netUnits.toFixed(2),
           play_of_the_day: playOfTheDay,
           other_picks: otherPicks
         });
