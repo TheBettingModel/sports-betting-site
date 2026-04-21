@@ -128,7 +128,7 @@ def save_pick(data: dict):
 
     finally:
         db.close()
-        
+
 
 
 @app.get("/results")
@@ -261,9 +261,61 @@ def model_nba_today():
                         continue
 
                     implied = american_to_implied_probability(odds)
+                    model_prob = implied
 
-                    # Simple starter model logic
-                    model_prob = implied + 2
+                    # MONEYLINE
+                    if market_key == "h2h":
+                        if implied >= 70:
+                            model_prob = implied + 0.8
+                        elif implied >= 60:
+                            model_prob = implied + 1.2
+                        elif implied >= 50:
+                            model_prob = implied + 1.8
+                        elif implied >= 40:
+                            model_prob = implied + 2.2
+                        else:
+                            model_prob = implied + 1.0
+
+                        market_name = "Moneyline"
+                        pick_name = outcome.get("name")
+
+                    # SPREAD
+                    elif market_key == "spreads":
+                        point = outcome.get("point")
+                        if point is None:
+                            continue
+
+                        model_prob = implied + 2.0
+                        market_name = "Spread"
+                        pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
+
+                    # TOTALS
+                    elif market_key == "totals":
+                        point = outcome.get("point")
+                        side = outcome.get("name")
+
+                        if point is None or side is None:
+                            continue
+
+                        baseline_total = 228
+                        diff = point - baseline_total
+                        adjustment = diff * 0.25
+
+                        if side == "Over":
+                            model_prob = 50 - adjustment
+                        elif side == "Under":
+                            model_prob = 50 + adjustment
+                        else:
+                            model_prob = 50
+
+                        model_prob = max(45, min(55, model_prob))
+
+                        market_name = "Total"
+                        pick_name = f"{side} {point}"
+
+                    else:
+                        continue
+
                     edge = round(model_prob - implied, 2)
 
                     if edge >= 2:
@@ -273,18 +325,31 @@ def model_nba_today():
                     else:
                         rec = "Pass"
 
+                    confidence = min(95, max(50, round(model_prob + (edge * 2), 1)))
+
+                    if edge >= 4:
+                        units = 2
+                    elif edge >= 2:
+                        units = 1.5
+                    elif edge >= 0.5:
+                        units = 1
+                    else:
+                        units = 1
+
                     plays.append({
                         "game": game_name,
                         "sportsbook": sportsbook,
-                        "market": market_key,
-                        "pick": outcome.get("name"),
+                        "market": market_name,
+                        "pick": pick_name,
                         "odds": odds,
-                        "implied_probability": implied,
-                        "model_probability": model_prob,
+                        "implied_probability": round(implied, 2),
+                        "model_probability": round(model_prob, 2),
                         "edge": edge,
-                        "confidence": "C",
+                        "confidence": confidence,
                         "recommendation": rec,
-                        "units": 1
+                        "units": units
                     })
+
+    plays.sort(key=lambda x: x["edge"], reverse=True)
 
     return {"plays": plays}
