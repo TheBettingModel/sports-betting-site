@@ -35,7 +35,10 @@ def american_to_implied_probability(odds):
     if odds is None:
         return 0.0
 
-    odds = float(odds)
+    try:
+        odds = float(odds)
+    except (TypeError, ValueError):
+        return 0.0
 
     if odds > 0:
         return round((100 / (odds + 100)) * 100, 2)
@@ -56,7 +59,6 @@ def get_unit_size(edge):
 def calculate_model_data(market, pick, odds):
     implied_probability = american_to_implied_probability(odds)
     model_probability = implied_probability
-    edge = 0.0
     confidence = 50.0
 
     if market == "Moneyline":
@@ -191,7 +193,7 @@ def save_pick(pick_data: dict):
             pick=pick,
             odds=str(odds),
             sportsbook=sportsbook,
-            stake=pick_data.get("stake"),
+            units=pick_data.get("units") or pick_data.get("stake"),
             result=pick_data.get("result", "Pending"),
             commence_time=pick_data.get("commence_time"),
             implied_probability=pick_data.get("implied_probability"),
@@ -216,7 +218,7 @@ def save_pick(pick_data: dict):
                 "pick": new_pick.pick,
                 "odds": new_pick.odds,
                 "sportsbook": new_pick.sportsbook,
-                "stake": new_pick.stake,
+                "units": new_pick.units,
                 "result": new_pick.result,
                 "commence_time": new_pick.commence_time,
                 "implied_probability": new_pick.implied_probability,
