@@ -9,7 +9,29 @@ function ModelBoardPage() {
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/model/nba/today`)
-      .then((response) => response.json())
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok) {
+          const detail =
+            typeof data.detail === "string"
+              ? data.detail
+              : JSON.stringify(data.detail || "");
+
+          if (
+            detail.includes("OUT_OF_USAGE_CREDITS") ||
+            detail.includes("Usage quota has been reached")
+          ) {
+            throw new Error(
+              "Model Board is temporarily unavailable because the Odds API usage quota has been reached."
+            );
+          }
+
+          throw new Error("Failed to load model board");
+        }
+
+        return data;
+      })
       .then((data) => {
         if (data.plays) {
           setGames(data.plays);
@@ -17,8 +39,8 @@ function ModelBoardPage() {
           setError("Failed to load model board");
         }
       })
-      .catch(() => {
-        setError("Failed to load model board");
+      .catch((err) => {
+        setError(err.message || "Failed to load model board");
       });
   }, []);
 
@@ -133,7 +155,7 @@ function ModelBoardPage() {
         } else {
           savedCount += 1;
         }
-      } catch (error) {
+      } catch {
         failedCount += 1;
       }
     }
