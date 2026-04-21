@@ -156,7 +156,7 @@ def get_picks():
         return picks
     finally:
         db.close()
-        
+
 
 
 @app.post("/save-pick")
@@ -419,5 +419,30 @@ def get_play_of_the_day():
                 "result": best_pick.result
             }
         }
+    finally:
+        db.close()
+
+@app.get("/results")
+def get_results():
+    db: Session = SessionLocal()
+    try:
+        picks = db.query(Pick).order_by(Pick.id.desc()).all()
+
+        graded_picks = [
+            pick for pick in picks
+            if pick.result and pick.result not in ["Pending", ""]
+        ]
+
+        results = []
+        for pick in graded_picks:
+            results.append({
+                "game": pick.game,
+                "date": "N/A",
+                "pick": pick.pick,
+                "result": pick.result,
+                "units_won": pick.units
+            })
+
+        return {"results": results}
     finally:
         db.close()
