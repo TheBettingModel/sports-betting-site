@@ -5,6 +5,7 @@ function ModelBoardPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [filter, setFilter] = useState("All");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/model/nba/today`)
@@ -54,35 +55,40 @@ function ModelBoardPage() {
   const saveToPicks = async (game) => {
     const recommendedUnits = getRecommendedUnits(game.edge);
 
+    const payload = {
+      game: game.game,
+      pick: game.pick,
+      market: game.market,
+      sportsbook: game.sportsbook,
+      odds: String(game.odds),
+      confidence: game.confidence,
+      stake: recommendedUnits,
+      model_probability: game.model_probability,
+      implied_probability: game.implied_probability,
+      edge: game.edge,
+      recommendation: game.recommendation,
+      commence_time: game.commence_time,
+      result: "Pending",
+      notes: ""
+    };
+
     const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        game: game.game,
-        pick: game.pick,
-        market: game.market,
-        sportsbook: game.sportsbook,
-        odds: String(game.odds),
-        confidence: game.confidence,
-        units: recommendedUnits,
-        model_probability: game.model_probability,
-        implied_probability: game.implied_probability,
-        edge: game.edge,
-        recommendation: game.recommendation,
-        commence_time: game.commence_time
-      })
+      body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to save pick");
+    let data = {};
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("Backend did not return valid JSON");
     }
 
-    if (data.duplicate) {
-      throw new Error("Duplicate pick already exists");
+    if (!response.ok) {
+      throw new Error(data.detail || data.message || "Failed to save pick");
     }
 
     return data;
@@ -94,30 +100,46 @@ function ModelBoardPage() {
       return;
     }
 
+    setSaving(true);
+    setMessage("Saving plays...");
+
     let savedCount = 0;
     let duplicateCount = 0;
+    let failedCount = 0;
 
     for (const game of playGames) {
       try {
-        await saveToPicks(game);
-        savedCount += 1;
-      } catch (error) {
-        if (error.message === "Duplicate pick already exists") {
+        const data = await saveToPicks(game);
+
+        if (data.duplicate) {
           duplicateCount += 1;
+        } else {
+          savedCount += 1;
         }
+      } catch (error) {
+        failedCount += 1;
       }
     }
 
+    setSaving(false);
     setMessage(
-      `Saved ${savedCount} plays.` +
-        (duplicateCount > 0 ? ` ${duplicateCount} duplicates skipped.` : "")
+      `Saved ${savedCount} plays` +
+        (duplicateCount > 0 ? ` | ${duplicateCount} duplicates skipped` : "") +
+        (failedCount > 0 ? ` | ${failedCount} failed` : "")
     );
   };
 
   const handleSaveOne = async (game) => {
+    setMessage(`Saving ${game.pick}...`);
+
     try {
-      await saveToPicks(game);
-      setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge}`);
+      const data = await saveToPicks(game);
+
+      if (data.duplicate) {
+        setMessage(`Duplicate skipped: ${game.pick}`);
+      } else {
+        setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge}%`);
+      }
     } catch (error) {
       setMessage(error.message || "Error saving pick");
     }
@@ -135,8 +157,12 @@ function ModelBoardPage() {
       </div>
 
       <div style={{ marginBottom: "20px" }}>
-        <button className="save-game-button" onClick={handleSaveAllPlays}>
-          Save All Plays
+        <button
+          className="save-game-button"
+          onClick={handleSaveAllPlays}
+          disabled={saving}
+        >
+          {saving ? "Saving..." : "Save All Plays"}
         </button>
       </div>
 

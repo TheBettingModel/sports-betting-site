@@ -111,29 +111,37 @@ function LiveOddsPage() {
           sportsbook,
           odds: String(odds),
           confidence,
-          units: "1 Unit",
+          stake: "1 Unit",
           model_probability: Number(modelProbability.toFixed(1)),
           implied_probability: Number(impliedProbability.toFixed(1)),
           edge,
-          recommendation: edge >= 2 ? "Play" : edge >= 0.5 ? "Lean" : "Pass"
+          recommendation: edge >= 2 ? "Play" : edge >= 0.5 ? "Lean" : "Pass",
+          result: "Pending",
+          notes: ""
         })
       });
 
-      const data = await response.json();
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Backend did not return valid JSON");
+      }
 
-      if (response.ok) {
-        if (data.duplicate) {
-          setMessage(`Duplicate skipped: ${pick} (${odds})`);
-        } else {
-          setMessage(
-            `Saved: ${pick} (${odds}) | Model ${modelProbability.toFixed(1)}% | Edge ${edge}% | Confidence ${confidence}%`
-          );
-        }
+      if (!response.ok) {
+        setMessage(data.detail || data.message || "Failed to save pick");
+        return;
+      }
+
+      if (data.duplicate) {
+        setMessage(`Duplicate skipped: ${pick} (${odds})`);
       } else {
-        setMessage(data.message || "Failed to save pick");
+        setMessage(
+          `Saved: ${pick} (${odds}) | Model ${modelProbability.toFixed(1)}% | Edge ${edge}% | Confidence ${confidence}%`
+        );
       }
     } catch (error) {
-      setMessage("Error saving pick");
+      setMessage(error.message || "Error saving pick");
     }
   };
 
