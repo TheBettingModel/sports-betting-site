@@ -281,9 +281,24 @@ def model_nba_today():
 
                     # SPREAD
                     elif market_key == "spreads":
-                        point = outcome.get("point")
-                        if point is None:
-                            continue
+    point = outcome.get("point")
+    if point is None:
+        continue
+
+    abs_spread = abs(point)
+
+    if abs_spread <= 3:
+        model_prob = implied + 2.5
+    elif abs_spread <= 6:
+        model_prob = implied + 2.0
+    elif abs_spread <= 10:
+        model_prob = implied + 1.5
+    else:
+        model_prob = implied + 1.0
+
+    market_name = "Spread"
+    pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
+    
 
                         model_prob = implied + 2.0
                         market_name = "Spread"
