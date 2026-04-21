@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
-from datetime import datetime
 import os
 import requests
 
@@ -15,7 +14,6 @@ app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
-# CORS (VERY IMPORTANT FOR VERCEL)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"https://.*\.vercel\.app",
@@ -29,25 +27,16 @@ ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 
 
-# ------------------------
-# Helpers
-# ------------------------
-
 def american_to_implied_probability(odds):
     try:
         odds = float(odds)
-    except:
-        return 0
+    except Exception:
+        return 0.0
 
     if odds > 0:
         return round((100 / (odds + 100)) * 100, 2)
-    else:
-        return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
+    return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
 
-
-# ------------------------
-# Routes
-# ------------------------
 
 @app.get("/")
 def root():
@@ -56,6 +45,9 @@ def root():
 
 @app.get("/get-nba-odds")
 def get_nba_odds():
+    if not ODDS_API_KEY:
+        raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
+
     params = {
         "apiKey": ODDS_API_KEY,
         "regions": "us",
@@ -99,6 +91,21 @@ def save_pick(data: dict):
         edge = data.get("edge")
         result = data.get("result", "Pending")
 
+        existing_pick = db.query(Pick).filter(
+            Pick.game == str(game or ""),
+            Pick.pick == str(pick or ""),
+            Pick.market == str(market or ""),
+            Pick.sportsbook == str(sportsbook or ""),
+            Pick.odds == str(odds or "")
+        ).first()
+
+        if existing_pick:
+            return {
+                "message": "Duplicate pick already exists",
+                "duplicate": True,
+                "pick_id": existing_pick.id
+            }
+
         new_pick = Pick(
             game=str(game or ""),
             pick=str(pick or ""),
@@ -119,6 +126,7 @@ def save_pick(data: dict):
 
         return {
             "message": "Pick saved",
+            "duplicate": False,
             "pick": new_pick.id
         }
 
@@ -128,7 +136,6 @@ def save_pick(data: dict):
 
     finally:
         db.close()
-
 
 
 @app.get("/results")
@@ -161,7 +168,6 @@ def get_results():
         db.close()
 
 
-
 @app.get("/play-of-the-day")
 def get_play_of_the_day():
     db: Session = SessionLocal()
@@ -176,8 +182,8 @@ def get_play_of_the_day():
         def edge_val(p):
             try:
                 return float(str(p.edge).replace("%", ""))
-            except:
-                return 0
+            except Exception:
+                return 0.0
 
         best = sorted(pending, key=edge_val, reverse=True)[0]
 
@@ -186,10 +192,6 @@ def get_play_of_the_day():
     finally:
         db.close()
 
-
-# ------------------------
-# ACTION ROUTES
-# ------------------------
 
 @app.put("/update-result/{pick_id}")
 def update_result(pick_id: int, data: dict):
@@ -200,8 +202,14 @@ def update_result(pick_id: int, data: dict):
         if not pick:
             raise HTTPException(status_code=404, detail="Pick not found")
 
-        pick.result = data.get("result")
+        result = data.get("result")
+
+        if result not in ["Win", "Loss", "Push"]:
+            raise HTTPException(status_code=400, detail="Invalid result")
+
+        pick.result = result
         db.commit()
+        db.refresh(pick)
 
         return {"message": "Updated"}
 
@@ -225,7 +233,8 @@ def delete_pick(pick_id: int):
 
     finally:
         db.close()
-        
+
+
 @app.get("/model/nba/today")
 def model_nba_today():
     if not ODDS_API_KEY:
@@ -262,49 +271,49 @@ def model_nba_today():
 
                     implied = american_to_implied_probability(odds)
                     model_prob = implied
+                    market_name = market_key
+                    pick_name = outcome.get("name")
 
-                    # MONEYLINE
                     if market_key == "h2h":
-                        if implied >= 70:
+                        if implied >= 80:
+                            model_prob = implied + 0.3
+                        elif implied >= 70:
                             model_prob = implied + 0.8
                         elif implied >= 60:
-                            model_prob = implied + 1.2
+                            model_prob = implied + 1.4
                         elif implied >= 50:
-                            model_prob = implied + 1.8
-                        elif implied >= 40:
                             model_prob = implied + 2.2
+                        elif implied >= 40:
+                            model_prob = implied + 2.8
+                        elif implied >= 30:
+                            model_prob = implied + 1.6
                         else:
-                            model_prob = implied + 1.0
+                            model_prob = implied + 0.8
 
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
 
-                    # SPREAD
                     elif market_key == "spreads":
-    point = outcome.get("point")
-    if point is None:
-        continue
+                        point = outcome.get("point")
+                        if point is None:
+                            continue
 
-    abs_spread = abs(point)
+                        abs_spread = abs(float(point))
 
-    if abs_spread <= 3:
-        model_prob = implied + 2.5
-    elif abs_spread <= 6:
-        model_prob = implied + 2.0
-    elif abs_spread <= 10:
-        model_prob = implied + 1.5
-    else:
-        model_prob = implied + 1.0
+                        if abs_spread <= 2.5:
+                            model_prob = implied + 3.0
+                        elif abs_spread <= 5.5:
+                            model_prob = implied + 2.2
+                        elif abs_spread <= 8.5:
+                            model_prob = implied + 1.5
+                        elif abs_spread <= 11.5:
+                            model_prob = implied + 1.0
+                        else:
+                            model_prob = implied + 0.5
 
-    market_name = "Spread"
-    pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
-    
-
-                        model_prob = implied + 2.0
                         market_name = "Spread"
                         pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
 
-                    # TOTALS
                     elif market_key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
@@ -313,17 +322,16 @@ def model_nba_today():
                             continue
 
                         baseline_total = 228
-                        diff = point - baseline_total
-                        adjustment = diff * 0.25
+                        diff = float(point) - baseline_total
 
                         if side == "Over":
-                            model_prob = 50 - adjustment
+                            model_prob = 50 - (diff * 0.35)
                         elif side == "Under":
-                            model_prob = 50 + adjustment
+                            model_prob = 50 + (diff * 0.35)
                         else:
                             model_prob = 50
 
-                        model_prob = max(45, min(55, model_prob))
+                        model_prob = max(44, min(56, model_prob))
 
                         market_name = "Total"
                         pick_name = f"{side} {point}"
@@ -333,21 +341,19 @@ def model_nba_today():
 
                     edge = round(model_prob - implied, 2)
 
-                    if edge >= 2:
+                    if edge >= 3:
                         rec = "Play"
-                    elif edge >= 0.5:
+                    elif edge >= 1:
                         rec = "Lean"
                     else:
                         rec = "Pass"
 
-                    confidence = min(95, max(50, round(model_prob + (edge * 2), 1)))
+                    confidence = min(95, max(50, round(52 + (edge * 4), 1)))
 
                     if edge >= 4:
                         units = 2
                     elif edge >= 2:
                         units = 1.5
-                    elif edge >= 0.5:
-                        units = 1
                     else:
                         units = 1
 
