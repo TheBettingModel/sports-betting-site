@@ -19,12 +19,12 @@ function HomePage() {
         }
 
         const pendingPicks = picks.filter(
-          (pick) => pick.result === "Pending" || !pick.result
+          (pick) => String(pick.result || "").trim() === "Pending"
         );
 
         const sortedPicks = [...pendingPicks].sort((a, b) => {
-          const aEdge = parseFloat(a.edge || 0);
-          const bEdge = parseFloat(b.edge || 0);
+          const aEdge = parseFloat(String(a.edge || "").replace("%", "")) || 0;
+          const bEdge = parseFloat(String(b.edge || "").replace("%", "")) || 0;
           return bEdge - aEdge;
         });
 
@@ -85,7 +85,7 @@ function HomePage() {
 
       <h2>Other Picks</h2>
 
-      {data.other_picks && data.other_picks.length > 0 ? (
+      {data.other_picks.length > 0 ? (
         <div className="picks-grid">
           {data.other_picks.map((pick, index) => (
             <div className="pick-card" key={index}>
