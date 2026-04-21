@@ -218,8 +218,6 @@ def model_nba_today():
                     "confidence": confidence,
                   "recommendation": "Play" if edge >= 2 else "Lean" if edge >= 0.5 else "Pass"
                   
-
-
                 })
 
     model_games = sorted(
@@ -364,12 +362,24 @@ async def save_pick(request: Request):
     data = await request.json()
     db: Session = SessionLocal()
 
+    existing_pick = db.query(Pick).filter(
+        Pick.game == data["game"],
+        Pick.pick == data["pick"],
+        Pick.market == data["market"],
+        Pick.sportsbook == data["sportsbook"],
+        Pick.odds == str(data["odds"])
+    ).first()
+
+    if existing_pick:
+        db.close()
+        return {"message": "Pick already exists"}
+
     new_pick = Pick(
         game=data["game"],
         pick=data["pick"],
         market=data["market"],
         sportsbook=data["sportsbook"],
-        odds=data["odds"],
+        odds=str(data["odds"]),
         confidence=data["confidence"],
         units=data["units"],
         model_probability=data["model_probability"],
