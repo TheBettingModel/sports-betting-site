@@ -1,21 +1,3 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-# CORS FIX (allows Vercel + local dev)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_origins=[
-        "http://localhost:5173"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -31,12 +13,11 @@ load_dotenv()
 
 app = FastAPI()
 
-# Create database tables
 Base.metadata.create_all(bind=engine)
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_origins=[
         "http://localhost:5173",
         "https://sports-betting-site-xi.vercel.app"
@@ -50,17 +31,11 @@ ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 def american_to_implied_probability(odds):
     if odds is None:
         return 0.0
+
+    odds = float(odds)
 
     if odds > 0:
         return round((100 / (odds + 100)) * 100, 2)
@@ -85,37 +60,33 @@ def calculate_model_data(market, pick, odds):
     confidence = 50.0
 
     if market == "Moneyline":
-        # Simple starter logic
         if implied_probability < 50:
             model_probability = implied_probability + 3.0
         else:
             model_probability = implied_probability + 1.5
 
     elif market == "Spread":
-        # Simple starter logic
         model_probability = implied_probability + 2.0
 
     elif market == "Total":
-        # Simple starter totals logic
-        # pick examples: "Over 228.5" or "Under 228.5"
         try:
             parts = str(pick).split()
             side = parts[0]
             total_points = float(parts[1])
 
-            if total_points <= 218:
-                if side == "Over":
-                    model_probability = 53.0
-                elif side == "Under":
-                    model_probability = 47.0
-            elif total_points >= 234:
-                if side == "Under":
-                    model_probability = 53.0
-                elif side == "Over":
-                    model_probability = 47.0
+            baseline_total = 228
+            diff = total_points - baseline_total
+            adjustment = diff * 0.25
+
+            if side == "Over":
+                model_probability = 50 - adjustment
+            elif side == "Under":
+                model_probability = 50 + adjustment
             else:
-                model_probability = 50.0
-        except:
+                model_probability = 50
+
+            model_probability = max(45, min(55, model_probability))
+        except Exception:
             model_probability = implied_probability
 
     edge = round(model_probability - implied_probability, 2)
@@ -196,12 +167,15 @@ def save_pick(pick_data: dict):
         sportsbook = pick_data.get("sportsbook")
         odds = pick_data.get("odds")
 
+        if not game or not pick or not market or not sportsbook or odds is None:
+            raise HTTPException(status_code=400, detail="Missing required pick fields")
+
         existing_pick = db.query(Pick).filter(
             Pick.game == game,
             Pick.pick == pick,
             Pick.market == market,
             Pick.sportsbook == sportsbook,
-            Pick.odds == odds
+            Pick.odds == str(odds)
         ).first()
 
         if existing_pick:
@@ -215,7 +189,7 @@ def save_pick(pick_data: dict):
             game=game,
             market=market,
             pick=pick,
-            odds=odds,
+            odds=str(odds),
             sportsbook=sportsbook,
             stake=pick_data.get("stake"),
             result=pick_data.get("result", "Pending"),
@@ -235,9 +209,30 @@ def save_pick(pick_data: dict):
         return {
             "message": "Pick saved successfully",
             "duplicate": False,
-            "pick": new_pick
+            "pick": {
+                "id": new_pick.id,
+                "game": new_pick.game,
+                "market": new_pick.market,
+                "pick": new_pick.pick,
+                "odds": new_pick.odds,
+                "sportsbook": new_pick.sportsbook,
+                "stake": new_pick.stake,
+                "result": new_pick.result,
+                "commence_time": new_pick.commence_time,
+                "implied_probability": new_pick.implied_probability,
+                "model_probability": new_pick.model_probability,
+                "edge": new_pick.edge,
+                "confidence": new_pick.confidence,
+                "recommendation": new_pick.recommendation,
+                "notes": new_pick.notes
+            }
         }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Save pick error: {str(e)}")
     finally:
         db.close()
 
@@ -275,7 +270,6 @@ def model_nba_today():
                 market_key = market.get("key")
                 outcomes = market.get("outcomes", [])
 
-                # MONEYLINE
                 if market_key == "h2h":
                     for outcome in outcomes:
                         team_name = outcome.get("name")
@@ -309,7 +303,6 @@ def model_nba_today():
                             "units": get_unit_size(edge)
                         })
 
-                # SPREADS
                 elif market_key == "spreads":
                     for outcome in outcomes:
                         team_name = outcome.get("name")
@@ -346,10 +339,9 @@ def model_nba_today():
                             "units": get_unit_size(edge)
                         })
 
-                # TOTALS
                 elif market_key == "totals":
                     for outcome in outcomes:
-                        side = outcome.get("name")   # Over or Under
+                        side = outcome.get("name")
                         odds = outcome.get("price")
                         total_points = outcome.get("point")
 
