@@ -130,8 +130,10 @@ def get_results():
             "results": [
                 {
                     "game": p.game,
-                    "date": "N/A",
                     "pick": p.pick,
+                    "market": p.market,
+                    "sportsbook": p.sportsbook,
+                    "odds": p.odds,
                     "result": p.result,
                     "units_won": p.units
                 }
@@ -141,6 +143,7 @@ def get_results():
 
     finally:
         db.close()
+        
 
 
 @app.get("/play-of-the-day")
