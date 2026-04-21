@@ -87,25 +87,40 @@ def save_pick(data: dict):
     db: Session = SessionLocal()
 
     try:
+        game = data.get("game")
+        pick = data.get("pick")
+        market = data.get("market")
+        sportsbook = data.get("sportsbook")
+        odds = data.get("odds")
+        confidence = data.get("confidence")
+        units = data.get("units") or data.get("stake")
+        model_probability = data.get("model_probability")
+        implied_probability = data.get("implied_probability")
+        edge = data.get("edge")
+        result = data.get("result", "Pending")
+
         new_pick = Pick(
-            game=data.get("game"),
-            pick=data.get("pick"),
-            market=data.get("market"),
-            sportsbook=data.get("sportsbook"),
-            odds=str(data.get("odds")),
-            confidence=str(data.get("confidence")),
-            units=str(data.get("units")),
-            model_probability=str(data.get("model_probability")),
-            implied_probability=str(data.get("implied_probability")),
-            edge=str(data.get("edge")),
-            result="Pending"
+            game=str(game or ""),
+            pick=str(pick or ""),
+            market=str(market or ""),
+            sportsbook=str(sportsbook or ""),
+            odds=str(odds or ""),
+            confidence=str(confidence or ""),
+            units=str(units or ""),
+            model_probability=str(model_probability or ""),
+            implied_probability=str(implied_probability or ""),
+            edge=str(edge or ""),
+            result=str(result or "Pending")
         )
 
         db.add(new_pick)
         db.commit()
         db.refresh(new_pick)
 
-        return {"message": "Pick saved", "pick": new_pick.id}
+        return {
+            "message": "Pick saved",
+            "pick": new_pick.id
+        }
 
     except Exception as e:
         db.rollback()
@@ -113,6 +128,7 @@ def save_pick(data: dict):
 
     finally:
         db.close()
+        
 
 
 @app.get("/results")
@@ -143,7 +159,7 @@ def get_results():
 
     finally:
         db.close()
-        
+
 
 
 @app.get("/play-of-the-day")
