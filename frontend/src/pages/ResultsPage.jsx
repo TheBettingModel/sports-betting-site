@@ -15,6 +15,13 @@ function ResultsPage() {
       });
   }, []);
 
+  const getResultClass = (result) => {
+    if (result === "Win") return "edge-high";
+    if (result === "Loss") return "edge-very-low";
+    if (result === "Push") return "edge-medium";
+    return "";
+  };
+
   if (error) {
     return (
       <div className="app">
@@ -34,9 +41,13 @@ function ResultsPage() {
           {results.map((result, index) => (
             <div className="pick-card" key={index}>
               <h3>{result.game}</h3>
-              <p><strong>Date:</strong> {result.date}</p>
               <p><strong>Pick:</strong> {result.pick}</p>
-              <p><strong>Result:</strong> {result.result}</p>
+              <p>
+                <strong>Result:</strong>{" "}
+                <span className={getResultClass(result.result)}>
+                  {result.result}
+                </span>
+              </p>
               <p><strong>Units:</strong> {result.units_won}</p>
             </div>
           ))}
