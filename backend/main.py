@@ -59,7 +59,6 @@ def get_unit_size(edge):
 def calculate_model_data(market, pick, odds):
     implied_probability = american_to_implied_probability(odds)
     model_probability = implied_probability
-    confidence = 50.0
 
     if market == "Moneyline":
         if implied_probability < 50:
@@ -189,18 +188,16 @@ def save_pick(pick_data: dict):
 
         new_pick = Pick(
             game=game,
-            market=market,
             pick=pick,
-            odds=str(odds),
+            market=market,
             sportsbook=sportsbook,
-            units=pick_data.get("units") or pick_data.get("stake"),
-            result=pick_data.get("result", "Pending"),
-            implied_probability=pick_data.get("implied_probability"),
-            model_probability=pick_data.get("model_probability"),
-            edge=pick_data.get("edge"),
-            confidence=pick_data.get("confidence"),
-            recommendation=pick_data.get("recommendation"),
-            notes=pick_data.get("notes")
+            odds=str(odds),
+            confidence=str(pick_data.get("confidence", "")),
+            units=str(pick_data.get("units") or pick_data.get("stake") or ""),
+            model_probability=str(pick_data.get("model_probability", "")),
+            implied_probability=str(pick_data.get("implied_probability", "")),
+            edge=str(pick_data.get("edge", "")),
+            result=str(pick_data.get("result", "Pending"))
         )
 
         db.add(new_pick)
@@ -213,18 +210,16 @@ def save_pick(pick_data: dict):
             "pick": {
                 "id": new_pick.id,
                 "game": new_pick.game,
-                "market": new_pick.market,
                 "pick": new_pick.pick,
-                "odds": new_pick.odds,
+                "market": new_pick.market,
                 "sportsbook": new_pick.sportsbook,
-                "units": new_pick.units,
-                "result": new_pick.result,
-                "implied_probability": new_pick.implied_probability,
-                "model_probability": new_pick.model_probability,
-                "edge": new_pick.edge,
+                "odds": new_pick.odds,
                 "confidence": new_pick.confidence,
-                "recommendation": new_pick.recommendation,
-                "notes": new_pick.notes
+                "units": new_pick.units,
+                "model_probability": new_pick.model_probability,
+                "implied_probability": new_pick.implied_probability,
+                "edge": new_pick.edge,
+                "result": new_pick.result
             }
         }
 
@@ -383,6 +378,7 @@ def model_nba_today():
         "plays": plays
     }
 
+
 @app.get("/play-of-the-day")
 def get_play_of_the_day():
     db: Session = SessionLocal()
@@ -399,8 +395,8 @@ def get_play_of_the_day():
 
         def edge_value(pick):
             try:
-                return float(pick.edge)
-            except:
+                return float(str(pick.edge).replace("%", ""))
+            except Exception:
                 return 0.0
 
         best_pick = sorted(pending_picks, key=edge_value, reverse=True)[0]
@@ -418,11 +414,9 @@ def get_play_of_the_day():
                 "model_probability": best_pick.model_probability,
                 "implied_probability": best_pick.implied_probability,
                 "edge": best_pick.edge,
-                "result": best_pick.result,
-                "recommendation": best_pick.recommendation,
-                "notes": best_pick.notes
+                "result": best_pick.result
             }
         }
     finally:
         db.close()
-
+        
