@@ -9,7 +9,19 @@ function LiveOddsPage() {
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/get-nba-odds`)
-      .then((response) => response.json())
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok) {
+          const detail = typeof data.detail === "string" ? data.detail : "";
+          if (detail.includes("OUT_OF_USAGE_CREDITS")) {
+            throw new Error("Live odds are temporarily unavailable because the Odds API usage quota has been reached.");
+          }
+          throw new Error("Failed to load odds");
+        }
+
+        return data;
+      })
       .then((data) => {
         if (Array.isArray(data)) {
           setGames(data);
@@ -17,8 +29,8 @@ function LiveOddsPage() {
           setError("Failed to load odds");
         }
       })
-      .catch(() => {
-        setError("Failed to load odds");
+      .catch((err) => {
+        setError(err.message || "Failed to load odds");
       });
   }, []);
 
@@ -111,13 +123,12 @@ function LiveOddsPage() {
           sportsbook,
           odds: String(odds),
           confidence,
-          stake: "1 Unit",
+          units: "1 Unit",
           model_probability: Number(modelProbability.toFixed(1)),
           implied_probability: Number(impliedProbability.toFixed(1)),
           edge,
           recommendation: edge >= 2 ? "Play" : edge >= 0.5 ? "Lean" : "Pass",
-          result: "Pending",
-          notes: ""
+          result: "Pending"
         })
       });
 
