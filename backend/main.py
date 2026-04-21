@@ -484,3 +484,43 @@ def update_result(pick_id: int, data: dict):
         return {"message": "Result updated successfully"}
     finally:
         db.close()
+
+        @app.delete("/delete-pick/{pick_id}")
+def delete_pick(pick_id: int):
+    db: Session = SessionLocal()
+    try:
+        pick = db.query(Pick).filter(Pick.id == pick_id).first()
+
+        if not pick:
+            raise HTTPException(status_code=404, detail="Pick not found")
+
+        db.delete(pick)
+        db.commit()
+
+        return {"message": "Pick deleted successfully"}
+    finally:
+        db.close()
+
+
+@app.put("/update-result/{pick_id}")
+def update_result(pick_id: int, data: dict):
+    db: Session = SessionLocal()
+    try:
+        pick = db.query(Pick).filter(Pick.id == pick_id).first()
+
+        if not pick:
+            raise HTTPException(status_code=404, detail="Pick not found")
+
+        result = data.get("result")
+
+        if result not in ["Win", "Loss", "Push"]:
+            raise HTTPException(status_code=400, detail="Invalid result")
+
+        pick.result = result
+        db.commit()
+        db.refresh(pick)
+
+        return {"message": "Result updated successfully"}
+    finally:
+        db.close()
+        
