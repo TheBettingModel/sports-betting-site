@@ -33,14 +33,17 @@ function ModelBoardPage() {
     return games.filter((game) => game.recommendation === filter);
   }, [games, filter]);
 
+  const playGames = useMemo(() => {
+    return games.filter((game) => game.recommendation === "Play");
+  }, [games]);
+
   const topPlayKeys = useMemo(() => {
-    const playsOnly = games.filter((game) => game.recommendation === "Play");
-    const topThree = playsOnly.slice(0, 3);
+    const topThree = playGames.slice(0, 3);
 
     return new Set(
       topThree.map((game) => `${game.game}-${game.pick}-${game.market}`)
     );
-  }, [games]);
+  }, [playGames]);
 
   const isTopPlay = (game) => {
     return topPlayKeys.has(`${game.game}-${game.pick}-${game.market}`);
@@ -58,35 +61,57 @@ function ModelBoardPage() {
   const saveToPicks = async (game) => {
     const recommendedUnits = getRecommendedUnits(game.edge);
 
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        game: game.game,
+        pick: game.pick,
+        market: game.market,
+        sportsbook: game.sportsbook,
+        odds: String(game.odds),
+        confidence: game.confidence,
+        units: recommendedUnits,
+        model_probability: game.model_probability,
+        implied_probability: game.implied_probability,
+        edge: game.edge
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to save pick");
+    }
+
+    return data;
+  };
+
+  const handleSaveAllPlays = async () => {
+    if (playGames.length === 0) {
+      setMessage("No plays available to save.");
+      return;
+    }
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          game: game.game,
-          pick: game.pick,
-          market: game.market,
-          sportsbook: game.sportsbook,
-          odds: String(game.odds),
-          confidence: game.confidence,
-          units: recommendedUnits,
-          model_probability: game.model_probability,
-          implied_probability: game.implied_probability,
-          edge: game.edge
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge} | ${recommendedUnits}`);
-      } else {
-        setMessage(data.message || "Failed to save pick");
+      for (const game of playGames) {
+        await saveToPicks(game);
       }
+
+      setMessage(`Saved ${playGames.length} plays to Saved Picks.`);
     } catch (error) {
-      setMessage("Error saving pick");
+      setMessage(error.message || "Error saving all plays");
+    }
+  };
+
+  const handleSaveOne = async (game) => {
+    try {
+      await saveToPicks(game);
+      setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge}`);
+    } catch (error) {
+      setMessage(error.message || "Error saving pick");
     }
   };
 
@@ -99,6 +124,12 @@ function ModelBoardPage() {
         <button onClick={() => setFilter("Lean")}>Leans</button>
         <button onClick={() => setFilter("Pass")}>Passes</button>
         <button onClick={() => setFilter("All")}>All</button>
+      </div>
+
+      <div style={{ marginBottom: "20px" }}>
+        <button className="save-game-button" onClick={handleSaveAllPlays}>
+          Save All Plays
+        </button>
       </div>
 
       {message && <p>{message}</p>}
@@ -135,7 +166,7 @@ function ModelBoardPage() {
 
               <button
                 className="save-game-button"
-                onClick={() => saveToPicks(game)}
+                onClick={() => handleSaveOne(game)}
               >
                 Save to Picks
               </button>
