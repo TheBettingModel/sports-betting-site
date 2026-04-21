@@ -42,13 +42,16 @@ function ResultsPage() {
             <div className="pick-card" key={index}>
               <h3>{result.game}</h3>
               <p><strong>Pick:</strong> {result.pick}</p>
+              <p><strong>Market:</strong> {result.market || "N/A"}</p>
+              <p><strong>Sportsbook:</strong> {result.sportsbook || "N/A"}</p>
+              <p><strong>Odds:</strong> {result.odds || "N/A"}</p>
+              <p><strong>Units:</strong> {result.units_won}</p>
               <p>
                 <strong>Result:</strong>{" "}
                 <span className={getResultClass(result.result)}>
                   {result.result}
                 </span>
               </p>
-              <p><strong>Units:</strong> {result.units_won}</p>
             </div>
           ))}
         </div>
