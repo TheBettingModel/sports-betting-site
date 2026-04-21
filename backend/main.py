@@ -148,6 +148,7 @@ def get_nba_odds():
 
 
 @app.get("/picks")
+@app.get("/saved-picks")
 def get_picks():
     db: Session = SessionLocal()
     try:
@@ -155,6 +156,7 @@ def get_picks():
         return picks
     finally:
         db.close()
+        
 
 
 @app.post("/save-pick")
@@ -419,4 +421,3 @@ def get_play_of_the_day():
         }
     finally:
         db.close()
-        
