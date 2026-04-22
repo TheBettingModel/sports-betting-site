@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Text
 from database import Base
 
 class Pick(Base):
@@ -16,4 +16,12 @@ class Pick(Base):
     implied_probability = Column(String)
     edge = Column(String)
     result = Column(String, default="Pending")
+
+
+class CacheEntry(Base):
+    __tablename__ = "cache_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cache_key = Column(String, unique=True, index=True)
+    payload = Column(Text)
     
