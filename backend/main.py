@@ -31,7 +31,7 @@ ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 def american_to_implied_probability(odds):
     try:
         odds = float(odds)
-    except:
+    except Exception:
         return 0.0
 
     if odds > 0:
@@ -46,7 +46,7 @@ def get_cache(cache_key: str):
         if not entry or not entry.payload:
             return None
         return json.loads(entry.payload)
-    except:
+    except Exception:
         return None
     finally:
         db.close()
@@ -217,7 +217,7 @@ def get_play_of_the_day():
         def edge_val(p):
             try:
                 return float(str(p.edge).replace("%", ""))
-            except:
+            except Exception:
                 return 0.0
 
         best = sorted(pending, key=edge_val, reverse=True)[0]
@@ -268,6 +268,7 @@ def delete_pick(pick_id: int):
 
     finally:
         db.close()
+
 
 @app.get("/model/nba/today")
 def model_nba_today():
