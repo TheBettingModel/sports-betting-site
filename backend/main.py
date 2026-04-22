@@ -116,7 +116,6 @@ def get_picks():
 @app.post("/save-pick")
 def save_pick(data: dict):
     db: Session = SessionLocal()
-
     try:
         game = data.get("game")
         pick = data.get("pick")
@@ -172,7 +171,6 @@ def save_pick(data: dict):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
     finally:
         db.close()
 
@@ -182,7 +180,6 @@ def get_results():
     db: Session = SessionLocal()
     try:
         picks = db.query(Pick).all()
-
         graded = [p for p in picks if p.result not in ["Pending", None, ""]]
 
         return {
@@ -199,7 +196,6 @@ def get_results():
                 for p in graded
             ]
         }
-
     finally:
         db.close()
 
@@ -221,9 +217,7 @@ def get_play_of_the_day():
                 return 0.0
 
         best = sorted(pending, key=edge_val, reverse=True)[0]
-
         return {"play_of_the_day": best}
-
     finally:
         db.close()
 
@@ -238,7 +232,6 @@ def update_result(pick_id: int, data: dict):
             raise HTTPException(status_code=404, detail="Pick not found")
 
         result = data.get("result")
-
         if result not in ["Win", "Loss", "Push"]:
             raise HTTPException(status_code=400, detail="Invalid result")
 
@@ -247,7 +240,6 @@ def update_result(pick_id: int, data: dict):
         db.refresh(pick)
 
         return {"message": "Updated"}
-
     finally:
         db.close()
 
@@ -265,7 +257,6 @@ def delete_pick(pick_id: int):
         db.commit()
 
         return {"message": "Deleted"}
-
     finally:
         db.close()
 
@@ -366,7 +357,6 @@ def model_nba_today():
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
-
                         if point is None or side is None:
                             continue
 
