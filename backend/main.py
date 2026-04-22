@@ -269,7 +269,6 @@ def delete_pick(pick_id: int):
     finally:
         db.close()
 
-
 @app.get("/model/nba/today")
 def model_nba_today():
     if not ODDS_API_KEY:
@@ -336,7 +335,7 @@ def model_nba_today():
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
 
-                                        elif key == "spreads":
+                    elif key == "spreads":
                         point = outcome.get("point")
                         if point is None:
                             continue
@@ -362,6 +361,7 @@ def model_nba_today():
 
                         market_name = "Spread"
                         pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
+
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
@@ -369,17 +369,25 @@ def model_nba_today():
                         if point is None or side is None:
                             continue
 
+                        total = float(point)
                         baseline_total = 228
-                        diff = float(point) - baseline_total
+                        diff = total - baseline_total
+
+                        if abs(diff) <= 3:
+                            adjustment = diff * 0.20
+                        elif abs(diff) <= 7:
+                            adjustment = diff * 0.30
+                        else:
+                            adjustment = diff * 0.40
 
                         if side == "Over":
-                            model_prob = 50 - (diff * 0.35)
+                            model_prob = 50 - adjustment
                         elif side == "Under":
-                            model_prob = 50 + (diff * 0.35)
+                            model_prob = 50 + adjustment
                         else:
                             model_prob = 50
 
-                        model_prob = max(44, min(56, model_prob))
+                        model_prob = max(43, min(57, model_prob))
 
                         market_name = "Total"
                         pick_name = f"{side} {point}"
@@ -419,7 +427,7 @@ def model_nba_today():
                         "units": units
                     })
 
-      best_by_pick = {}
+    best_by_pick = {}
 
     for play in plays:
         key = f"{play['game']}__{play['market']}__{play['pick']}"
@@ -435,5 +443,3 @@ def model_nba_today():
     set_cache("nba_model_board", deduped_plays)
 
     return {"plays": deduped_plays}
-
-    return {"plays": plays}
