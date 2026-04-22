@@ -336,27 +336,32 @@ def model_nba_today():
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
 
-                    elif key == "spreads":
+                                        elif key == "spreads":
                         point = outcome.get("point")
                         if point is None:
                             continue
 
-                        abs_spread = abs(float(point))
+                        spread = float(point)
+                        abs_spread = abs(spread)
 
                         if abs_spread <= 2.5:
-                            model_prob = implied + 3.0
+                            base_adjustment = 2.8
                         elif abs_spread <= 5.5:
-                            model_prob = implied + 2.2
+                            base_adjustment = 2.1
                         elif abs_spread <= 8.5:
-                            model_prob = implied + 1.5
+                            base_adjustment = 1.4
                         elif abs_spread <= 11.5:
-                            model_prob = implied + 1.0
+                            base_adjustment = 0.9
                         else:
-                            model_prob = implied + 0.5
+                            base_adjustment = 0.4
+
+                        if spread > 0:
+                            model_prob = implied + base_adjustment + 0.4
+                        else:
+                            model_prob = implied + base_adjustment
 
                         market_name = "Spread"
                         pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
-
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
