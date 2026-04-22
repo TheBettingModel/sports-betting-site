@@ -4,14 +4,10 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 import os
 import requests
+import json
 
 from database import SessionLocal, engine
-from models import Base, Pick
-
-ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
-LAST_GOOD_NBA_ODDS = []
-LAST_GOOD_MODEL_PLAYS = []
-
+from models import Base, Pick, CacheEntry
 
 load_dotenv()
 
@@ -43,6 +39,36 @@ def american_to_implied_probability(odds):
     return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
 
 
+def get_cache(cache_key: str):
+    db: Session = SessionLocal()
+    try:
+        entry = db.query(CacheEntry).filter(CacheEntry.cache_key == cache_key).first()
+        if not entry or not entry.payload:
+            return None
+        return json.loads(entry.payload)
+    except:
+        return None
+    finally:
+        db.close()
+
+
+def set_cache(cache_key: str, payload):
+    db: Session = SessionLocal()
+    try:
+        entry = db.query(CacheEntry).filter(CacheEntry.cache_key == cache_key).first()
+        payload_json = json.dumps(payload)
+
+        if entry:
+            entry.payload = payload_json
+        else:
+            entry = CacheEntry(cache_key=cache_key, payload=payload_json)
+            db.add(entry)
+
+        db.commit()
+    finally:
+        db.close()
+
+
 @app.get("/")
 def root():
     return {"message": "Backend running"}
@@ -50,11 +76,10 @@ def root():
 
 @app.get("/get-nba-odds")
 def get_nba_odds():
-    global LAST_GOOD_NBA_ODDS
-
     if not ODDS_API_KEY:
-        if LAST_GOOD_NBA_ODDS:
-            return LAST_GOOD_NBA_ODDS
+        cached = get_cache("nba_odds")
+        if cached:
+            return cached
         raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
 
     params = {
@@ -68,14 +93,14 @@ def get_nba_odds():
 
     if response.status_code == 200:
         data = response.json()
-        LAST_GOOD_NBA_ODDS = data
+        set_cache("nba_odds", data)
         return data
 
-    if LAST_GOOD_NBA_ODDS:
-        return LAST_GOOD_NBA_ODDS
+    cached = get_cache("nba_odds")
+    if cached:
+        return cached
 
     raise HTTPException(status_code=response.status_code, detail=response.text)
-
 
 
 @app.get("/picks")
@@ -93,27 +118,56 @@ def save_pick(data: dict):
     db: Session = SessionLocal()
 
     try:
+        game = data.get("game")
+        pick = data.get("pick")
+        market = data.get("market")
+        sportsbook = data.get("sportsbook")
+        odds = data.get("odds")
+        confidence = data.get("confidence")
         units = data.get("units") or data.get("stake")
+        model_probability = data.get("model_probability")
+        implied_probability = data.get("implied_probability")
+        edge = data.get("edge")
+        result = data.get("result", "Pending")
+
+        existing_pick = db.query(Pick).filter(
+            Pick.game == str(game or ""),
+            Pick.pick == str(pick or ""),
+            Pick.market == str(market or ""),
+            Pick.sportsbook == str(sportsbook or ""),
+            Pick.odds == str(odds or "")
+        ).first()
+
+        if existing_pick:
+            return {
+                "message": "Duplicate pick already exists",
+                "duplicate": True,
+                "pick_id": existing_pick.id
+            }
 
         new_pick = Pick(
-            game=str(data.get("game", "")),
-            pick=str(data.get("pick", "")),
-            market=str(data.get("market", "")),
-            sportsbook=str(data.get("sportsbook", "")),
-            odds=str(data.get("odds", "")),
-            confidence=str(data.get("confidence", "")),
+            game=str(game or ""),
+            pick=str(pick or ""),
+            market=str(market or ""),
+            sportsbook=str(sportsbook or ""),
+            odds=str(odds or ""),
+            confidence=str(confidence or ""),
             units=str(units or ""),
-            model_probability=str(data.get("model_probability", "")),
-            implied_probability=str(data.get("implied_probability", "")),
-            edge=str(data.get("edge", "")),
-            result=str(data.get("result", "Pending"))
+            model_probability=str(model_probability or ""),
+            implied_probability=str(implied_probability or ""),
+            edge=str(edge or ""),
+            result=str(result or "Pending")
         )
 
         db.add(new_pick)
         db.commit()
         db.refresh(new_pick)
 
-        return {"message": "Pick saved", "pick": new_pick.id}
+        return {
+            "message": "Pick saved",
+            "duplicate": False,
+            "pick": new_pick.id
+        }
 
     except Exception as e:
         db.rollback()
@@ -162,7 +216,7 @@ def get_play_of_the_day():
 
         def edge_val(p):
             try:
-                return float(p.edge)
+                return float(str(p.edge).replace("%", ""))
             except:
                 return 0.0
 
@@ -183,7 +237,12 @@ def update_result(pick_id: int, data: dict):
         if not pick:
             raise HTTPException(status_code=404, detail="Pick not found")
 
-        pick.result = data.get("result")
+        result = data.get("result")
+
+        if result not in ["Win", "Loss", "Push"]:
+            raise HTTPException(status_code=400, detail="Invalid result")
+
+        pick.result = result
         db.commit()
         db.refresh(pick)
 
@@ -213,11 +272,10 @@ def delete_pick(pick_id: int):
 
 @app.get("/model/nba/today")
 def model_nba_today():
-    global LAST_GOOD_MODEL_PLAYS
-
     if not ODDS_API_KEY:
-        if LAST_GOOD_MODEL_PLAYS:
-            return {"plays": LAST_GOOD_MODEL_PLAYS}
+        cached = get_cache("nba_model_board")
+        if cached:
+            return {"plays": cached}
         raise HTTPException(status_code=500, detail="ODDS_API_KEY is missing")
 
     params = {
@@ -230,8 +288,9 @@ def model_nba_today():
     response = requests.get(ODDS_BASE_URL, params=params)
 
     if response.status_code != 200:
-        if LAST_GOOD_MODEL_PLAYS:
-            return {"plays": LAST_GOOD_MODEL_PLAYS}
+        cached = get_cache("nba_model_board")
+        if cached:
+            return {"plays": cached}
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
     games = response.json()
@@ -354,6 +413,6 @@ def model_nba_today():
                     })
 
     plays.sort(key=lambda x: x["edge"], reverse=True)
-    LAST_GOOD_MODEL_PLAYS = plays
+    set_cache("nba_model_board", plays)
 
     return {"plays": plays}
