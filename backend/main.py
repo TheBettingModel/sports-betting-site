@@ -317,19 +317,21 @@ def model_nba_today():
 
                     if key == "h2h":
                         if implied >= 80:
-                            model_prob = implied + 0.3
+                            model_prob = implied - 0.5
                         elif implied >= 70:
-                            model_prob = implied + 0.8
+                            model_prob = implied + 0.2
                         elif implied >= 60:
-                            model_prob = implied + 1.4
-                        elif implied >= 50:
-                            model_prob = implied + 2.2
+                            model_prob = implied + 1.0
+                        elif implied >= 52:
+                            model_prob = implied + 1.8
+                        elif implied >= 48:
+                            model_prob = implied + 2.5
                         elif implied >= 40:
-                            model_prob = implied + 2.8
+                            model_prob = implied + 2.0
                         elif implied >= 30:
-                            model_prob = implied + 1.6
+                            model_prob = implied + 1.0
                         else:
-                            model_prob = implied + 0.8
+                            model_prob = implied + 0.2
 
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
