@@ -430,12 +430,12 @@ def model_nba_today():
     best_by_pick = {}
 
     for play in plays:
-        key = f"{play['game']}__{play['market']}__{play['pick']}"
+        dedupe_key = f"{play['game']}__{play['market']}__{play['pick']}"
         current_edge = float(play["edge"])
-        existing_edge = float(best_by_pick[key]["edge"]) if key in best_by_pick else -999
+        existing_edge = float(best_by_pick[dedupe_key]["edge"]) if dedupe_key in best_by_pick else -999
 
-        if key not in best_by_pick or current_edge > existing_edge:
-            best_by_pick[key] = play
+        if dedupe_key not in best_by_pick or current_edge > existing_edge:
+            best_by_pick[dedupe_key] = play
 
     deduped_plays = list(best_by_pick.values())
     deduped_plays.sort(key=lambda x: x["edge"], reverse=True)
