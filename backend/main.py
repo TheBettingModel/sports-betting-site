@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 import os
-import requests
 import json
+import requests
 
 from database import SessionLocal, engine
 from models import Base, Pick, CacheEntry
@@ -27,6 +27,8 @@ app.add_middleware(
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 
+# Manual injury adjustments
+# Negative = downgrade team
 NBA_INJURY_ADJUSTMENTS = {
     "Los Angeles Lakers": -2.0,
     "Boston Celtics": 0.0,
@@ -35,34 +37,7 @@ NBA_INJURY_ADJUSTMENTS = {
     "Milwaukee Bucks": 0.0,
 }
 
-
-def american_to_implied_probability(odds):
-    try:
-        odds = float(odds)
-    except Exception:
-        return 0.0
-
-    if odds > 0:
-        return round((100 / (odds + 100)) * 100, 2)
-    return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
-
-
-def get_injury_adjustment(team_name):
-    return NBA_INJURY_ADJUSTMENTS.get(team_name, 0.0)
-def get_team_rating(team_name):
-    return NBA_TEAM_RATINGS.get(team_name, 75)
-
-def get_opponent_team(game, team_name):
-    away = game.get("away_team")
-    home = game.get("home_team")
-
-    if team_name == away:
-        return home
-    if team_name == home:
-        return away
-
-    return None
-
+# Manual team strength ratings
 NBA_TEAM_RATINGS = {
     "Boston Celtics": 92,
     "Denver Nuggets": 90,
@@ -93,8 +68,41 @@ NBA_TEAM_RATINGS = {
     "Detroit Pistons": 69,
     "Utah Jazz": 71,
     "Portland Trail Blazers": 70,
-    "San Antonio Spurs": 75
+    "San Antonio Spurs": 75,
 }
+
+
+def american_to_implied_probability(odds):
+    try:
+        odds = float(odds)
+    except Exception:
+        return 0.0
+
+    if odds > 0:
+        return round((100 / (odds + 100)) * 100, 2)
+
+    return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
+
+
+def get_injury_adjustment(team_name):
+    return NBA_INJURY_ADJUSTMENTS.get(team_name, 0.0)
+
+
+def get_team_rating(team_name):
+    return NBA_TEAM_RATINGS.get(team_name, 75)
+
+
+def get_opponent_team(game, team_name):
+    away = game.get("away_team")
+    home = game.get("home_team")
+
+    if team_name == away:
+        return home
+    if team_name == home:
+        return away
+
+    return None
+
 
 def get_cache(cache_key: str):
     db: Session = SessionLocal()
@@ -375,26 +383,26 @@ def model_nba_today():
                             model_prob = implied + 0.5
                             reason = "Large underdog with limited pricing value"
 
-                       team_name = outcome.get("name")
-opponent_name = get_opponent_team(game, team_name)
+                        team_name = outcome.get("name")
+                        opponent_name = get_opponent_team(game, team_name)
 
-team_rating = get_team_rating(team_name)
-opponent_rating = get_team_rating(opponent_name)
-rating_gap = team_rating - opponent_rating
-rating_adjustment = rating_gap * 0.10
+                        team_rating = get_team_rating(team_name)
+                        opponent_rating = get_team_rating(opponent_name)
+                        rating_gap = team_rating - opponent_rating
+                        rating_adjustment = rating_gap * 0.10
 
-injury_adjustment = get_injury_adjustment(team_name)
+                        injury_adjustment = get_injury_adjustment(team_name)
 
-model_prob = model_prob + rating_adjustment + injury_adjustment
+                        model_prob = model_prob + rating_adjustment + injury_adjustment
 
-if abs(rating_adjustment) > 0:
-    reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
+                        if abs(rating_adjustment) > 0:
+                            reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
 
-if injury_adjustment != 0:
-    injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
+                        if injury_adjustment != 0:
+                            injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
                         market_name = "Moneyline"
-                        pick_name = outcome.get("name")
+                        pick_name = team_name
 
                     elif key == "spreads":
                         point = outcome.get("point")
@@ -418,34 +426,35 @@ if injury_adjustment != 0:
                             reason = "Big spread is harder to trust for a cover"
 
                         model_prob = implied + base + (0.4 if spread > 0 else 0)
+
                         if spread > 0:
                             reason += " Underdog points add extra protection."
 
-team_name = outcome.get("name")
-opponent_name = get_opponent_team(game, team_name)
+                        team_name = outcome.get("name")
+                        opponent_name = get_opponent_team(game, team_name)
 
-team_rating = get_team_rating(team_name)
-opponent_rating = get_team_rating(opponent_name)
-rating_gap = team_rating - opponent_rating
-rating_adjustment = rating_gap * 0.08
+                        team_rating = get_team_rating(team_name)
+                        opponent_rating = get_team_rating(opponent_name)
+                        rating_gap = team_rating - opponent_rating
+                        rating_adjustment = rating_gap * 0.08
 
-injury_adjustment = get_injury_adjustment(team_name)
+                        injury_adjustment = get_injury_adjustment(team_name)
 
-model_prob = model_prob + rating_adjustment + injury_adjustment
+                        model_prob = model_prob + rating_adjustment + injury_adjustment
 
-if abs(rating_adjustment) > 0:
-    reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
+                        if abs(rating_adjustment) > 0:
+                            reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
 
-if injury_adjustment != 0:
-    injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
-    
+                        if injury_adjustment != 0:
+                            injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
                         market_name = "Spread"
-                        pick_name = f"{outcome.get('name')} {spread:+}"
+                        pick_name = f"{team_name} {spread:+}"
 
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
+
                         if point is None or side is None:
                             continue
 
@@ -462,13 +471,14 @@ if injury_adjustment != 0:
                             adjustment = diff * 0.40
                             reason = "Extreme total creates stronger pricing opportunity"
 
-                        model_prob = 50 - adjustment if side == "Over" else 50 + adjustment
-                        model_prob = max(43, min(57, model_prob))
-
                         if side == "Over":
+                            model_prob = 50 - adjustment
                             reason += " Over gets stronger when the posted total is lower."
                         else:
+                            model_prob = 50 + adjustment
                             reason += " Under gets stronger when the posted total is higher."
+
+                        model_prob = max(43, min(57, model_prob))
 
                         market_name = "Total"
                         pick_name = f"{side} {point}"
@@ -514,42 +524,14 @@ if injury_adjustment != 0:
                     })
 
     best = {}
-    grouped = {}
-
-    for p in plays:
-        dedupe_key = f"{p['game']}__{p['market']}__{p['pick']}"
-        if dedupe_key not in best or p["edge"] > best[dedupe_key]["edge"]:
-            best[dedupe_key] = p
-
-    for p in best.values():
-        group_key = f"{p['game']}__{p['market']}__{p['pick']}"
-        if group_key not in grouped:
-            grouped[group_key] = []
-        grouped[group_key].append(p)
+    for play in plays:
+        dedupe_key = f"{play['game']}__{play['market']}__{play['pick']}"
+        if dedupe_key not in best or play["edge"] > best[dedupe_key]["edge"]:
+            best[dedupe_key] = play
 
     final = []
-    for _, group in grouped.items():
-        best_play = max(group, key=lambda x: x["edge"])
-
-        odds_values = []
-        for g in group:
-            try:
-                odds_values.append(float(g["odds"]))
-            except Exception:
-                continue
-
-        if len(odds_values) >= 2:
-            line_range = max(odds_values) - min(odds_values)
-        else:
-            line_range = 0
-
-        movement_bonus = min(1.5, abs(line_range) * 0.02)
-        best_play["edge"] = round(best_play["edge"] + movement_bonus, 2)
-
-        if movement_bonus > 0:
-            best_play["reason"] = f"{best_play['reason']} Market disagreement bonus added."
-
-        final.append(best_play)
+    for play in best.values():
+        final.append(play)
 
     final.sort(key=lambda x: x["edge"], reverse=True)
 
