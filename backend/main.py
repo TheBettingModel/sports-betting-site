@@ -70,6 +70,7 @@ NBA_TEAM_RATINGS = {
     "Portland Trail Blazers": 70,
     "San Antonio Spurs": 75,
 }
+HOME_COURT_ADVANTAGE = 1.5
 
 
 def american_to_implied_probability(odds):
@@ -95,6 +96,13 @@ def get_team_rating(team_name):
 def get_opponent_team(game, team_name):
     away = game.get("away_team")
     home = game.get("home_team")
+
+    def get_home_court_adjustment(game, team_name):
+    if team_name == game.get("home_team"):
+        return HOME_COURT_ADVANTAGE
+    if team_name == game.get("away_team"):
+        return -HOME_COURT_ADVANTAGE
+    return 0.0
 
     if team_name == away:
         return home
@@ -391,12 +399,16 @@ def model_nba_today():
                         rating_gap = team_rating - opponent_rating
                         rating_adjustment = rating_gap * 0.10
 
+                        home_court_adjustment = get_home_court_adjustment(game, team_name)
                         injury_adjustment = get_injury_adjustment(team_name)
 
-                        model_prob = model_prob + rating_adjustment + injury_adjustment
+                        model_prob = model_prob + rating_adjustment + home_court_adjustment + injury_adjustment
 
                         if abs(rating_adjustment) > 0:
                             reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
+
+                        if home_court_adjustment != 0:
+                        reason += f" Home court adjustment ({home_court_adjustment:+.1f})."   
 
                         if injury_adjustment != 0:
                             injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
@@ -438,12 +450,16 @@ def model_nba_today():
                         rating_gap = team_rating - opponent_rating
                         rating_adjustment = rating_gap * 0.08
 
+                        home_court_adjustment = get_home_court_adjustment(game, team_name) * 0.6
                         injury_adjustment = get_injury_adjustment(team_name)
 
-                        model_prob = model_prob + rating_adjustment + injury_adjustment
+                        model_prob = model_prob + rating_adjustment + home_court_adjustment + injury_adjustment
 
                         if abs(rating_adjustment) > 0:
                             reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
+
+                        if home_court_adjustment != 0:
+                         reason += f" Home court adjustment ({home_court_adjustment:+.1f})."    
 
                         if injury_adjustment != 0:
                             injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
