@@ -31,7 +31,7 @@ ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 def american_to_implied_probability(odds):
     try:
         odds = float(odds)
-    except Exception:
+    except:
         return 0.0
 
     if odds > 0:
@@ -46,7 +46,7 @@ def get_cache(cache_key: str):
         if not entry or not entry.payload:
             return None
         return json.loads(entry.payload)
-    except Exception:
+    except:
         return None
     finally:
         db.close()
@@ -103,9 +103,8 @@ def get_nba_odds():
     raise HTTPException(status_code=response.status_code, detail=response.text)
 
 
-@app.get("/picks")
 @app.get("/saved-picks")
-def get_picks():
+def get_saved_picks():
     db: Session = SessionLocal()
     try:
         return db.query(Pick).order_by(Pick.id.desc()).all()
@@ -116,108 +115,39 @@ def get_picks():
 @app.post("/save-pick")
 def save_pick(data: dict):
     db: Session = SessionLocal()
-    try:
-        game = data.get("game")
-        pick = data.get("pick")
-        market = data.get("market")
-        sportsbook = data.get("sportsbook")
-        odds = data.get("odds")
-        confidence = data.get("confidence")
-        units = data.get("units") or data.get("stake")
-        model_probability = data.get("model_probability")
-        implied_probability = data.get("implied_probability")
-        edge = data.get("edge")
-        result = data.get("result", "Pending")
 
-        existing_pick = db.query(Pick).filter(
-            Pick.game == str(game or ""),
-            Pick.pick == str(pick or ""),
-            Pick.market == str(market or ""),
-            Pick.sportsbook == str(sportsbook or ""),
-            Pick.odds == str(odds or "")
+    try:
+        existing = db.query(Pick).filter(
+            Pick.game == str(data.get("game", "")),
+            Pick.pick == str(data.get("pick", "")),
+            Pick.market == str(data.get("market", "")),
+            Pick.sportsbook == str(data.get("sportsbook", "")),
+            Pick.odds == str(data.get("odds", ""))
         ).first()
 
-        if existing_pick:
-            return {
-                "message": "Duplicate pick already exists",
-                "duplicate": True,
-                "pick_id": existing_pick.id
-            }
+        if existing:
+            return {"duplicate": True, "pick": existing.id}
 
         new_pick = Pick(
-            game=str(game or ""),
-            pick=str(pick or ""),
-            market=str(market or ""),
-            sportsbook=str(sportsbook or ""),
-            odds=str(odds or ""),
-            confidence=str(confidence or ""),
-            units=str(units or ""),
-            model_probability=str(model_probability or ""),
-            implied_probability=str(implied_probability or ""),
-            edge=str(edge or ""),
-            result=str(result or "Pending")
+            game=str(data.get("game", "")),
+            pick=str(data.get("pick", "")),
+            market=str(data.get("market", "")),
+            sportsbook=str(data.get("sportsbook", "")),
+            odds=str(data.get("odds", "")),
+            confidence=str(data.get("confidence", "")),
+            units=str(data.get("units", "")),
+            model_probability=str(data.get("model_probability", "")),
+            implied_probability=str(data.get("implied_probability", "")),
+            edge=str(data.get("edge", "")),
+            result="Pending"
         )
 
         db.add(new_pick)
         db.commit()
         db.refresh(new_pick)
 
-        return {
-            "message": "Pick saved",
-            "duplicate": False,
-            "pick": new_pick.id
-        }
+        return {"duplicate": False, "pick": new_pick.id}
 
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        db.close()
-
-
-@app.get("/results")
-def get_results():
-    db: Session = SessionLocal()
-    try:
-        picks = db.query(Pick).all()
-        graded = [p for p in picks if p.result not in ["Pending", None, ""]]
-
-        return {
-            "results": [
-                {
-                    "game": p.game,
-                    "pick": p.pick,
-                    "market": p.market,
-                    "sportsbook": p.sportsbook,
-                    "odds": p.odds,
-                    "result": p.result,
-                    "units_won": p.units
-                }
-                for p in graded
-            ]
-        }
-    finally:
-        db.close()
-
-
-@app.get("/play-of-the-day")
-def get_play_of_the_day():
-    db: Session = SessionLocal()
-    try:
-        picks = db.query(Pick).all()
-        pending = [p for p in picks if p.result == "Pending"]
-
-        if not pending:
-            return {"message": "No play of the day found"}
-
-        def edge_val(p):
-            try:
-                return float(str(p.edge).replace("%", ""))
-            except Exception:
-                return 0.0
-
-        best = sorted(pending, key=edge_val, reverse=True)[0]
-        return {"play_of_the_day": best}
     finally:
         db.close()
 
@@ -227,18 +157,11 @@ def update_result(pick_id: int, data: dict):
     db: Session = SessionLocal()
     try:
         pick = db.query(Pick).filter(Pick.id == pick_id).first()
-
         if not pick:
             raise HTTPException(status_code=404, detail="Pick not found")
 
-        result = data.get("result")
-        if result not in ["Win", "Loss", "Push"]:
-            raise HTTPException(status_code=400, detail="Invalid result")
-
-        pick.result = result
+        pick.result = data.get("result")
         db.commit()
-        db.refresh(pick)
-
         return {"message": "Updated"}
     finally:
         db.close()
@@ -249,13 +172,11 @@ def delete_pick(pick_id: int):
     db: Session = SessionLocal()
     try:
         pick = db.query(Pick).filter(Pick.id == pick_id).first()
-
         if not pick:
             raise HTTPException(status_code=404, detail="Pick not found")
 
         db.delete(pick)
         db.commit()
-
         return {"message": "Deleted"}
     finally:
         db.close()
@@ -306,6 +227,7 @@ def model_nba_today():
                     market_name = key
                     pick_name = outcome.get("name")
 
+                    # MONEYLINE
                     if key == "h2h":
                         if implied >= 80:
                             model_prob = implied - 0.5
@@ -319,14 +241,12 @@ def model_nba_today():
                             model_prob = implied + 2.5
                         elif implied >= 40:
                             model_prob = implied + 2.0
-                        elif implied >= 30:
-                            model_prob = implied + 1.0
                         else:
-                            model_prob = implied + 0.2
+                            model_prob = implied + 0.5
 
                         market_name = "Moneyline"
-                        pick_name = outcome.get("name")
 
+                    # SPREAD
                     elif key == "spreads":
                         point = outcome.get("point")
                         if point is None:
@@ -335,49 +255,32 @@ def model_nba_today():
                         spread = float(point)
                         abs_spread = abs(spread)
 
-                        if abs_spread <= 2.5:
-                            base_adjustment = 2.8
-                        elif abs_spread <= 5.5:
-                            base_adjustment = 2.1
-                        elif abs_spread <= 8.5:
-                            base_adjustment = 1.4
-                        elif abs_spread <= 11.5:
-                            base_adjustment = 0.9
+                        if abs_spread <= 3:
+                            base = 2.8
+                        elif abs_spread <= 6:
+                            base = 2.0
+                        elif abs_spread <= 9:
+                            base = 1.3
                         else:
-                            base_adjustment = 0.4
+                            base = 0.7
 
-                        if spread > 0:
-                            model_prob = implied + base_adjustment + 0.4
-                        else:
-                            model_prob = implied + base_adjustment
-
+                        model_prob = implied + base + (0.4 if spread > 0 else 0)
                         market_name = "Spread"
-                        pick_name = f"{outcome.get('name')} {'+' if point > 0 else ''}{point}"
+                        pick_name = f"{outcome.get('name')} {spread:+}"
 
+                    # TOTALS
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
-                        if point is None or side is None:
+                        if point is None:
                             continue
 
                         total = float(point)
-                        baseline_total = 228
-                        diff = total - baseline_total
+                        diff = total - 228
 
-                        if abs(diff) <= 3:
-                            adjustment = diff * 0.20
-                        elif abs(diff) <= 7:
-                            adjustment = diff * 0.30
-                        else:
-                            adjustment = diff * 0.40
+                        adjustment = diff * (0.25 if abs(diff) <= 5 else 0.4)
 
-                        if side == "Over":
-                            model_prob = 50 - adjustment
-                        elif side == "Under":
-                            model_prob = 50 + adjustment
-                        else:
-                            model_prob = 50
-
+                        model_prob = 50 - adjustment if side == "Over" else 50 + adjustment
                         model_prob = max(43, min(57, model_prob))
 
                         market_name = "Total"
@@ -386,7 +289,10 @@ def model_nba_today():
                     else:
                         continue
 
-                     if edge >= 4:
+                    edge = round(model_prob - implied, 2)
+
+                    # TIGHTER LOGIC
+                    if edge >= 4:
                         rec = "Play"
                     elif edge >= 2:
                         rec = "Lean"
@@ -406,41 +312,29 @@ def model_nba_today():
                     else:
                         confidence = 58
 
-
-                    if edge >= 4:
-                        units = 2
-                    elif edge >= 2:
-                        units = 1.5
-                    else:
-                        units = 1
-
                     plays.append({
                         "game": game_name,
                         "sportsbook": sportsbook,
                         "market": market_name,
                         "pick": pick_name,
                         "odds": odds,
-                        "implied_probability": round(implied, 2),
+                        "implied_probability": implied,
                         "model_probability": round(model_prob, 2),
                         "edge": edge,
                         "confidence": confidence,
                         "recommendation": rec,
-                        "units": units
+                        "units": 1
                     })
 
-    best_by_pick = {}
+    # DEDUPE
+    best = {}
+    for p in plays:
+        key = f"{p['game']}__{p['market']}__{p['pick']}"
+        if key not in best or p["edge"] > best[key]["edge"]:
+            best[key] = p
 
-    for play in plays:
-        dedupe_key = f"{play['game']}__{play['market']}__{play['pick']}"
-        current_edge = float(play["edge"])
-        existing_edge = float(best_by_pick[dedupe_key]["edge"]) if dedupe_key in best_by_pick else -999
+    final = sorted(best.values(), key=lambda x: x["edge"], reverse=True)
 
-        if dedupe_key not in best_by_pick or current_edge > existing_edge:
-            best_by_pick[dedupe_key] = play
+    set_cache("nba_model_board", final)
 
-    deduped_plays = list(best_by_pick.values())
-    deduped_plays.sort(key=lambda x: x["edge"], reverse=True)
-
-    set_cache("nba_model_board", deduped_plays)
-
-    return {"plays": deduped_plays}
+    return {"plays": final}
