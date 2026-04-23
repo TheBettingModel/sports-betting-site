@@ -326,15 +326,38 @@ def model_nba_today():
                         "units": 1
                     })
 
-    # DEDUPE
-    best = {}
-    for p in plays:
-        key = f"{p['game']}__{p['market']}__{p['pick']}"
-        if key not in best or p["edge"] > best[key]["edge"]:
-            best[key] = p
+grouped = {}
 
-    final = sorted(best.values(), key=lambda x: x["edge"], reverse=True)
+for p in plays:
+    key = f"{p['game']}__{p['market']}__{p['pick']}"
 
-    set_cache("nba_model_board", final)
+    if key not in grouped:
+        grouped[key] = []
 
-    return {"plays": final}
+    grouped[key].append(p)
+
+final = []
+
+for key, group in grouped.items():
+    best_play = max(group, key=lambda x: x["edge"])
+
+    odds_values = []
+    for g in group:
+        try:
+            odds_values.append(float(g["odds"]))
+        except:
+            continue
+
+    if len(odds_values) >= 2:
+        line_range = max(odds_values) - min(odds_values)
+    else:
+        line_range = 0
+
+    # small bonus for disagreement between books
+    movement_bonus = min(1.5, abs(line_range) * 0.02)
+
+    best_play["edge"] = round(best_play["edge"] + movement_bonus, 2)
+
+    final.append(best_play)
+
+final.sort(key=lambda x: x["edge"], reverse=True)
