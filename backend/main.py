@@ -70,6 +70,7 @@ NBA_TEAM_RATINGS = {
     "Portland Trail Blazers": 70,
     "San Antonio Spurs": 75,
 }
+
 HOME_COURT_ADVANTAGE = 1.5
 
 
@@ -97,19 +98,40 @@ def get_opponent_team(game, team_name):
     away = game.get("away_team")
     home = game.get("home_team")
 
-    def get_home_court_adjustment(game, team_name):
-    if team_name == game.get("home_team"):
-        return HOME_COURT_ADVANTAGE
-    if team_name == game.get("away_team"):
-        return -HOME_COURT_ADVANTAGE
-    return 0.0
-
     if team_name == away:
         return home
     if team_name == home:
         return away
 
     return None
+
+
+def get_home_court_adjustment(game, team_name):
+    if team_name == game.get("home_team"):
+        return HOME_COURT_ADVANTAGE
+    if team_name == game.get("away_team"):
+        return -HOME_COURT_ADVANTAGE
+    return 0.0
+
+
+def get_price_adjustment(odds):
+    try:
+        odds = float(odds)
+    except Exception:
+        return 0.0
+
+    if odds >= 120:
+        return 0.6
+    elif odds >= 100:
+        return 0.4
+    elif odds >= -110:
+        return 0.2
+    elif odds >= -130:
+        return 0.0
+    elif odds >= -160:
+        return -0.3
+    else:
+        return -0.6
 
 
 def get_cache(cache_key: str):
@@ -371,25 +393,25 @@ def model_nba_today():
                     if key == "h2h":
                         if implied >= 80:
                             model_prob = implied - 0.5
-                            reason = "Heavy favorite looks more efficiently priced"
+                            reason = "Heavy favorite looks more efficiently priced."
                         elif implied >= 70:
                             model_prob = implied + 0.2
-                            reason = "Strong favorite with limited extra value"
+                            reason = "Strong favorite with limited extra value."
                         elif implied >= 60:
                             model_prob = implied + 1.0
-                            reason = "Moderate favorite with small pricing edge"
+                            reason = "Moderate favorite with small pricing edge."
                         elif implied >= 52:
                             model_prob = implied + 1.8
-                            reason = "Favorite in a competitive range with some value"
+                            reason = "Favorite in a competitive range with some value."
                         elif implied >= 48:
                             model_prob = implied + 2.5
-                            reason = "Near coin-flip moneyline spot with pricing value"
+                            reason = "Near coin-flip moneyline spot with pricing value."
                         elif implied >= 40:
                             model_prob = implied + 2.0
-                            reason = "Live underdog range with upset potential"
+                            reason = "Live underdog range with upset potential."
                         else:
                             model_prob = implied + 0.5
-                            reason = "Large underdog with limited pricing value"
+                            reason = "Large underdog with limited pricing value."
 
                         team_name = outcome.get("name")
                         opponent_name = get_opponent_team(game, team_name)
@@ -401,15 +423,22 @@ def model_nba_today():
 
                         home_court_adjustment = get_home_court_adjustment(game, team_name)
                         injury_adjustment = get_injury_adjustment(team_name)
+                        price_adjustment = get_price_adjustment(odds)
 
-                        model_prob = model_prob + rating_adjustment + home_court_adjustment + injury_adjustment
+                        model_prob = (
+                            model_prob
+                            + rating_adjustment
+                            + home_court_adjustment
+                            + injury_adjustment
+                            + price_adjustment
+                        )
 
                         if abs(rating_adjustment) > 0:
                             reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
-
                         if home_court_adjustment != 0:
-                        reason += f" Home court adjustment ({home_court_adjustment:+.1f})."   
-
+                            reason += f" Home court adjustment ({home_court_adjustment:+.1f})."
+                        if price_adjustment != 0:
+                            reason += f" Price adjustment ({price_adjustment:+.1f})."
                         if injury_adjustment != 0:
                             injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
@@ -426,16 +455,16 @@ def model_nba_today():
 
                         if abs_spread <= 3:
                             base = 2.8
-                            reason = "Short spread creates stronger cover value"
+                            reason = "Short spread creates stronger cover value."
                         elif abs_spread <= 6:
                             base = 2.0
-                            reason = "Mid-range spread offers moderate cover value"
+                            reason = "Mid-range spread offers moderate cover value."
                         elif abs_spread <= 9:
                             base = 1.3
-                            reason = "Larger spread lowers confidence in margin"
+                            reason = "Larger spread lowers confidence in margin."
                         else:
                             base = 0.7
-                            reason = "Big spread is harder to trust for a cover"
+                            reason = "Big spread is harder to trust for a cover."
 
                         model_prob = implied + base + (0.4 if spread > 0 else 0)
 
@@ -452,15 +481,22 @@ def model_nba_today():
 
                         home_court_adjustment = get_home_court_adjustment(game, team_name) * 0.6
                         injury_adjustment = get_injury_adjustment(team_name)
+                        price_adjustment = get_price_adjustment(odds)
 
-                        model_prob = model_prob + rating_adjustment + home_court_adjustment + injury_adjustment
+                        model_prob = (
+                            model_prob
+                            + rating_adjustment
+                            + home_court_adjustment
+                            + injury_adjustment
+                            + price_adjustment
+                        )
 
                         if abs(rating_adjustment) > 0:
                             reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
-
                         if home_court_adjustment != 0:
-                         reason += f" Home court adjustment ({home_court_adjustment:+.1f})."    
-
+                            reason += f" Home court adjustment ({home_court_adjustment:+.1f})."
+                        if price_adjustment != 0:
+                            reason += f" Price adjustment ({price_adjustment:+.1f})."
                         if injury_adjustment != 0:
                             injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
@@ -479,15 +515,15 @@ def model_nba_today():
 
                         if abs(diff) <= 3:
                             adjustment = diff * 0.20
-                            reason = "Total is near baseline, so edge stays smaller"
+                            reason = "Total is near baseline, so edge stays smaller."
                         elif abs(diff) <= 7:
                             adjustment = diff * 0.30
-                            reason = "Total is off baseline enough to create moderate value"
+                            reason = "Total is off baseline enough to create moderate value."
                         else:
                             adjustment = diff * 0.40
-                            reason = "Extreme total creates stronger pricing opportunity"
+                            reason = "Extreme total creates stronger pricing opportunity."
 
-                                                if side == "Over":
+                        if side == "Over":
                             model_prob = 50 - adjustment
                             reason += " Over gets stronger when the posted total is lower."
                         else:
@@ -505,6 +541,12 @@ def model_nba_today():
 
                         if home_total_adjustment != 0:
                             reason += f" Home team total adjustment ({home_total_adjustment:+.1f})."
+
+                        price_adjustment = get_price_adjustment(odds) * 0.5
+                        model_prob = model_prob + price_adjustment
+
+                        if price_adjustment != 0:
+                            reason += f" Price adjustment ({price_adjustment:+.1f})."
 
                         model_prob = max(43, min(57, model_prob))
 
@@ -557,10 +599,7 @@ def model_nba_today():
         if dedupe_key not in best or play["edge"] > best[dedupe_key]["edge"]:
             best[dedupe_key] = play
 
-    final = []
-    for play in best.values():
-        final.append(play)
-
+    final = list(best.values())
     final.sort(key=lambda x: x["edge"], reverse=True)
 
     set_cache("nba_model_board", final)
