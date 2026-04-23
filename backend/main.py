@@ -386,16 +386,26 @@ def model_nba_today():
                     else:
                         continue
 
-                    edge = round(model_prob - implied, 2)
-
-                    if edge >= 3:
+                     if edge >= 4:
                         rec = "Play"
-                    elif edge >= 1:
+                    elif edge >= 2:
                         rec = "Lean"
                     else:
                         rec = "Pass"
 
-                    confidence = min(95, max(50, round(52 + (edge * 4), 1)))
+                    if edge >= 5:
+                        confidence = 90
+                    elif edge >= 4:
+                        confidence = 84
+                    elif edge >= 3:
+                        confidence = 78
+                    elif edge >= 2:
+                        confidence = 72
+                    elif edge >= 1:
+                        confidence = 64
+                    else:
+                        confidence = 58
+
 
                     if edge >= 4:
                         units = 2
