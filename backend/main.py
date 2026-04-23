@@ -27,9 +27,6 @@ app.add_middleware(
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 
-# Manual injury adjustments
-# Negative number = downgrade that team
-# Update these manually whenever needed
 NBA_INJURY_ADJUSTMENTS = {
     "Los Angeles Lakers": -2.0,
     "Boston Celtics": 0.0,
@@ -307,31 +304,40 @@ def model_nba_today():
                     model_prob = implied
                     market_name = key
                     pick_name = outcome.get("name")
+                    reason = "Base model assessment"
+                    injury_note = ""
 
-                    # MONEYLINE
                     if key == "h2h":
                         if implied >= 80:
                             model_prob = implied - 0.5
+                            reason = "Heavy favorite looks more efficiently priced"
                         elif implied >= 70:
                             model_prob = implied + 0.2
+                            reason = "Strong favorite with limited extra value"
                         elif implied >= 60:
                             model_prob = implied + 1.0
+                            reason = "Moderate favorite with small pricing edge"
                         elif implied >= 52:
                             model_prob = implied + 1.8
+                            reason = "Favorite in a competitive range with some value"
                         elif implied >= 48:
                             model_prob = implied + 2.5
+                            reason = "Near coin-flip moneyline spot with pricing value"
                         elif implied >= 40:
                             model_prob = implied + 2.0
+                            reason = "Live underdog range with upset potential"
                         else:
                             model_prob = implied + 0.5
+                            reason = "Large underdog with limited pricing value"
 
                         injury_adjustment = get_injury_adjustment(outcome.get("name"))
                         model_prob = model_prob + injury_adjustment
+                        if injury_adjustment != 0:
+                            injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
 
-                    # SPREAD
                     elif key == "spreads":
                         point = outcome.get("point")
                         if point is None:
@@ -342,22 +348,29 @@ def model_nba_today():
 
                         if abs_spread <= 3:
                             base = 2.8
+                            reason = "Short spread creates stronger cover value"
                         elif abs_spread <= 6:
                             base = 2.0
+                            reason = "Mid-range spread offers moderate cover value"
                         elif abs_spread <= 9:
                             base = 1.3
+                            reason = "Larger spread lowers confidence in margin"
                         else:
                             base = 0.7
+                            reason = "Big spread is harder to trust for a cover"
 
                         model_prob = implied + base + (0.4 if spread > 0 else 0)
+                        if spread > 0:
+                            reason += " Underdog points add extra protection."
 
                         injury_adjustment = get_injury_adjustment(outcome.get("name"))
                         model_prob = model_prob + injury_adjustment
+                        if injury_adjustment != 0:
+                            injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
                         market_name = "Spread"
                         pick_name = f"{outcome.get('name')} {spread:+}"
 
-                    # TOTALS
                     elif key == "totals":
                         point = outcome.get("point")
                         side = outcome.get("name")
@@ -369,13 +382,21 @@ def model_nba_today():
 
                         if abs(diff) <= 3:
                             adjustment = diff * 0.20
+                            reason = "Total is near baseline, so edge stays smaller"
                         elif abs(diff) <= 7:
                             adjustment = diff * 0.30
+                            reason = "Total is off baseline enough to create moderate value"
                         else:
                             adjustment = diff * 0.40
+                            reason = "Extreme total creates stronger pricing opportunity"
 
                         model_prob = 50 - adjustment if side == "Over" else 50 + adjustment
                         model_prob = max(43, min(57, model_prob))
+
+                        if side == "Over":
+                            reason += " Over gets stronger when the posted total is lower."
+                        else:
+                            reason += " Under gets stronger when the posted total is higher."
 
                         market_name = "Total"
                         pick_name = f"{side} {point}"
@@ -416,18 +437,18 @@ def model_nba_today():
                         "edge": edge,
                         "confidence": confidence,
                         "recommendation": rec,
-                        "units": 1
+                        "units": 1,
+                        "reason": f"{reason}{injury_note}".strip()
                     })
 
-    # DEDUPE: keep best version of each play
     best = {}
+    grouped = {}
+
     for p in plays:
         dedupe_key = f"{p['game']}__{p['market']}__{p['pick']}"
         if dedupe_key not in best or p["edge"] > best[dedupe_key]["edge"]:
             best[dedupe_key] = p
 
-    # LINE MOVEMENT / BOOK DISAGREEMENT BONUS
-    grouped = {}
     for p in best.values():
         group_key = f"{p['game']}__{p['market']}__{p['pick']}"
         if group_key not in grouped:
@@ -452,6 +473,9 @@ def model_nba_today():
 
         movement_bonus = min(1.5, abs(line_range) * 0.02)
         best_play["edge"] = round(best_play["edge"] + movement_bonus, 2)
+
+        if movement_bonus > 0:
+            best_play["reason"] = f"{best_play['reason']} Market disagreement bonus added."
 
         final.append(best_play)
 
