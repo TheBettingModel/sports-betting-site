@@ -49,7 +49,41 @@ def american_to_implied_probability(odds):
 
 def get_injury_adjustment(team_name):
     return NBA_INJURY_ADJUSTMENTS.get(team_name, 0.0)
+def get_team_rating(team_name):
+    return NBA_TEAM_RATINGS.get(team_name, 75)
 
+NBA_TEAM_RATINGS = {
+    "Boston Celtics": 92,
+    "Denver Nuggets": 90,
+    "Milwaukee Bucks": 88,
+    "Philadelphia 76ers": 84,
+    "Los Angeles Lakers": 82,
+    "Phoenix Suns": 84,
+    "Golden State Warriors": 83,
+    "Miami Heat": 81,
+    "New York Knicks": 85,
+    "Cleveland Cavaliers": 86,
+    "Dallas Mavericks": 85,
+    "Minnesota Timberwolves": 87,
+    "Oklahoma City Thunder": 89,
+    "Sacramento Kings": 83,
+    "Indiana Pacers": 82,
+    "Orlando Magic": 81,
+    "New Orleans Pelicans": 82,
+    "Los Angeles Clippers": 86,
+    "Memphis Grizzlies": 79,
+    "Houston Rockets": 80,
+    "Atlanta Hawks": 78,
+    "Chicago Bulls": 76,
+    "Brooklyn Nets": 74,
+    "Toronto Raptors": 72,
+    "Charlotte Hornets": 70,
+    "Washington Wizards": 68,
+    "Detroit Pistons": 69,
+    "Utah Jazz": 71,
+    "Portland Trail Blazers": 70,
+    "San Antonio Spurs": 75
+}
 
 def get_cache(cache_key: str):
     db: Session = SessionLocal()
