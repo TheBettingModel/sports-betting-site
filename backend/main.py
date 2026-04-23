@@ -487,12 +487,24 @@ def model_nba_today():
                             adjustment = diff * 0.40
                             reason = "Extreme total creates stronger pricing opportunity"
 
-                        if side == "Over":
+                                                if side == "Over":
                             model_prob = 50 - adjustment
                             reason += " Over gets stronger when the posted total is lower."
                         else:
                             model_prob = 50 + adjustment
                             reason += " Under gets stronger when the posted total is higher."
+
+                        home_team = game.get("home_team")
+                        home_team_rating = get_team_rating(home_team)
+                        home_total_adjustment = (home_team_rating - 75) * 0.03
+
+                        if side == "Over":
+                            model_prob = model_prob + home_total_adjustment
+                        else:
+                            model_prob = model_prob - home_total_adjustment
+
+                        if home_total_adjustment != 0:
+                            reason += f" Home team total adjustment ({home_total_adjustment:+.1f})."
 
                         model_prob = max(43, min(57, model_prob))
 
