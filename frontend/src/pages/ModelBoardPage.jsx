@@ -231,6 +231,11 @@ function ModelBoardPage() {
               <p><strong>Recommended Units:</strong> {getRecommendedUnits(game.edge)}</p>
               <p><strong>Confidence:</strong> {game.confidence}%</p>
               <p><strong>Recommendation:</strong> {game.recommendation}</p>
+              {game.reason && (
+                <p>
+                  <strong>Why:</strong> {game.reason}
+                </p>
+              )}
 
               <button
                 className="save-game-button"
