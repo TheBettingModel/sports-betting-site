@@ -52,6 +52,17 @@ def get_injury_adjustment(team_name):
 def get_team_rating(team_name):
     return NBA_TEAM_RATINGS.get(team_name, 75)
 
+def get_opponent_team(game, team_name):
+    away = game.get("away_team")
+    home = game.get("home_team")
+
+    if team_name == away:
+        return home
+    if team_name == home:
+        return away
+
+    return None
+
 NBA_TEAM_RATINGS = {
     "Boston Celtics": 92,
     "Denver Nuggets": 90,
@@ -364,10 +375,23 @@ def model_nba_today():
                             model_prob = implied + 0.5
                             reason = "Large underdog with limited pricing value"
 
-                        injury_adjustment = get_injury_adjustment(outcome.get("name"))
-                        model_prob = model_prob + injury_adjustment
-                        if injury_adjustment != 0:
-                            injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
+                       team_name = outcome.get("name")
+opponent_name = get_opponent_team(game, team_name)
+
+team_rating = get_team_rating(team_name)
+opponent_rating = get_team_rating(opponent_name)
+rating_gap = team_rating - opponent_rating
+rating_adjustment = rating_gap * 0.10
+
+injury_adjustment = get_injury_adjustment(team_name)
+
+model_prob = model_prob + rating_adjustment + injury_adjustment
+
+if abs(rating_adjustment) > 0:
+    reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
+
+if injury_adjustment != 0:
+    injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
 
                         market_name = "Moneyline"
                         pick_name = outcome.get("name")
@@ -397,10 +421,24 @@ def model_nba_today():
                         if spread > 0:
                             reason += " Underdog points add extra protection."
 
-                        injury_adjustment = get_injury_adjustment(outcome.get("name"))
-                        model_prob = model_prob + injury_adjustment
-                        if injury_adjustment != 0:
-                            injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
+team_name = outcome.get("name")
+opponent_name = get_opponent_team(game, team_name)
+
+team_rating = get_team_rating(team_name)
+opponent_rating = get_team_rating(opponent_name)
+rating_gap = team_rating - opponent_rating
+rating_adjustment = rating_gap * 0.08
+
+injury_adjustment = get_injury_adjustment(team_name)
+
+model_prob = model_prob + rating_adjustment + injury_adjustment
+
+if abs(rating_adjustment) > 0:
+    reason += f" Team rating gap adjustment ({rating_adjustment:+.1f})."
+
+if injury_adjustment != 0:
+    injury_note = f" Injury adjustment applied ({injury_adjustment:+})."
+    
 
                         market_name = "Spread"
                         pick_name = f"{outcome.get('name')} {spread:+}"
