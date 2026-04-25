@@ -605,3 +605,63 @@ def model_nba_today():
     set_cache("nba_model_board", final)
 
     return {"plays": final}
+
+@app.get("/model/performance")
+def model_performance():
+    db: Session = SessionLocal()
+    try:
+        picks = db.query(Pick).all()
+
+        graded = [
+            p for p in picks
+            if p.result in ["Win", "Loss"] and p.model_probability not in [None, ""]
+        ]
+
+        if not graded:
+            return {"message": "No graded picks yet"}
+
+        buckets = {
+            "50-55": [],
+            "55-60": [],
+            "60-65": [],
+            "65-70": [],
+            "70+": []
+        }
+
+        for p in graded:
+            try:
+                prob = float(p.model_probability)
+            except:
+                continue
+
+            if prob < 55:
+                buckets["50-55"].append(p)
+            elif prob < 60:
+                buckets["55-60"].append(p)
+            elif prob < 65:
+                buckets["60-65"].append(p)
+            elif prob < 70:
+                buckets["65-70"].append(p)
+            else:
+                buckets["70+"].append(p)
+
+        results = {}
+
+        for key, group in buckets.items():
+            if len(group) == 0:
+                continue
+
+            wins = sum(1 for p in group if p.result == "Win")
+            total = len(group)
+            win_rate = round((wins / total) * 100, 2)
+
+            results[key] = {
+                "plays": total,
+                "win_rate": win_rate
+            }
+
+        return results
+
+    finally:
+        db.close()
+        
