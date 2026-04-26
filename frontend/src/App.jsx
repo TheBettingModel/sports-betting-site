@@ -1,3 +1,4 @@
+import ModelPerformancePage from "./pages/ModelPerformancePage";
 import { Routes, Route, Link } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import ResultsPage from "./pages/ResultsPage";
@@ -21,6 +22,7 @@ function App() {
           <Link to="/play-of-the-day">Play of the Day</Link>
           <Link to="/live-odds">Live Odds</Link>
           <Link to="/model-board">Model Board</Link>
+          <Link to="/model-performance">Model Performance</Link>
         </div>
       </nav>
 
@@ -32,6 +34,7 @@ function App() {
         <Route path="/play-of-the-day" element={<PlayOfTheDayPage />} />
         <Route path="/live-odds" element={<LiveOddsPage />} />
         <Route path="/model-board" element={<ModelBoardPage />} />
+        <Route path="/model-performance" element={<ModelPerformancePage />} />
       </Routes>
     </div>
   );
