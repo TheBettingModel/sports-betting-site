@@ -27,8 +27,6 @@ app.add_middleware(
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 
-# Manual injury adjustments
-# Negative = downgrade team
 NBA_INJURY_ADJUSTMENTS = {
     "Los Angeles Lakers": -2.0,
     "Boston Celtics": 0.0,
@@ -37,7 +35,6 @@ NBA_INJURY_ADJUSTMENTS = {
     "Milwaukee Bucks": 0.0,
 }
 
-# Manual team strength ratings
 NBA_TEAM_RATINGS = {
     "Boston Celtics": 92,
     "Denver Nuggets": 90,
@@ -84,6 +81,22 @@ def american_to_implied_probability(odds):
         return round((100 / (odds + 100)) * 100, 2)
 
     return round((abs(odds) / (abs(odds) + 100)) * 100, 2)
+
+
+def calibrate_model_probability(prob):
+    try:
+        prob = float(prob)
+    except Exception:
+        return prob
+
+    if prob >= 65:
+        return prob - 2.0
+    elif prob >= 60:
+        return prob - 1.5
+    elif prob >= 55:
+        return prob - 1.0
+    else:
+        return prob
 
 
 def get_injury_adjustment(team_name):
@@ -343,6 +356,66 @@ def get_play_of_the_day():
         db.close()
 
 
+@app.get("/model/performance")
+def model_performance():
+    db: Session = SessionLocal()
+    try:
+        picks = db.query(Pick).all()
+
+        graded = [
+            p for p in picks
+            if p.result in ["Win", "Loss"] and p.model_probability not in [None, ""]
+        ]
+
+        if not graded:
+            return {"message": "No graded picks yet"}
+
+        buckets = {
+            "50-55": [],
+            "55-60": [],
+            "60-65": [],
+            "65-70": [],
+            "70+": []
+        }
+
+        for p in graded:
+            try:
+                prob = float(p.model_probability)
+            except Exception:
+                continue
+
+            if prob < 55:
+                buckets["50-55"].append(p)
+            elif prob < 60:
+                buckets["55-60"].append(p)
+            elif prob < 65:
+                buckets["60-65"].append(p)
+            elif prob < 70:
+                buckets["65-70"].append(p)
+            else:
+                buckets["70+"].append(p)
+
+        results = {}
+
+        for key, group in buckets.items():
+            if len(group) == 0:
+                continue
+
+            wins = sum(1 for p in group if p.result == "Win")
+            total = len(group)
+            win_rate = round((wins / total) * 100, 2)
+
+            results[key] = {
+                "plays": total,
+                "win_rate": win_rate
+            }
+
+        return results
+
+    finally:
+        db.close()
+
+
 @app.get("/model/nba/today")
 def model_nba_today():
     if not ODDS_API_KEY:
@@ -387,7 +460,7 @@ def model_nba_today():
                     model_prob = implied
                     market_name = key
                     pick_name = outcome.get("name")
-                    reason = "Base model assessment"
+                    reason = "Base model assessment."
                     injury_note = ""
 
                     if key == "h2h":
@@ -556,6 +629,12 @@ def model_nba_today():
                     else:
                         continue
 
+                    uncalibrated_model_prob = model_prob
+                    model_prob = calibrate_model_probability(model_prob)
+
+                    if round(uncalibrated_model_prob, 2) != round(model_prob, 2):
+                        reason += " Calibration applied based on historical performance."
+
                     edge = round(model_prob - implied, 2)
 
                     if edge >= 4:
@@ -605,63 +684,3 @@ def model_nba_today():
     set_cache("nba_model_board", final)
 
     return {"plays": final}
-
-@app.get("/model/performance")
-def model_performance():
-    db: Session = SessionLocal()
-    try:
-        picks = db.query(Pick).all()
-
-        graded = [
-            p for p in picks
-            if p.result in ["Win", "Loss"] and p.model_probability not in [None, ""]
-        ]
-
-        if not graded:
-            return {"message": "No graded picks yet"}
-
-        buckets = {
-            "50-55": [],
-            "55-60": [],
-            "60-65": [],
-            "65-70": [],
-            "70+": []
-        }
-
-        for p in graded:
-            try:
-                prob = float(p.model_probability)
-            except:
-                continue
-
-            if prob < 55:
-                buckets["50-55"].append(p)
-            elif prob < 60:
-                buckets["55-60"].append(p)
-            elif prob < 65:
-                buckets["60-65"].append(p)
-            elif prob < 70:
-                buckets["65-70"].append(p)
-            else:
-                buckets["70+"].append(p)
-
-        results = {}
-
-        for key, group in buckets.items():
-            if len(group) == 0:
-                continue
-
-            wins = sum(1 for p in group if p.result == "Win")
-            total = len(group)
-            win_rate = round((wins / total) * 100, 2)
-
-            results[key] = {
-                "plays": total,
-                "win_rate": win_rate
-            }
-
-        return results
-
-    finally:
-        db.close()
-        
