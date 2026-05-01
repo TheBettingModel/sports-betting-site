@@ -70,12 +70,10 @@ NBA_TEAM_RATINGS = {
 }
 
 
-# ---------------- HELPERS ---------------- #
-
 def american_to_implied_probability(odds):
     try:
         odds = float(odds)
-    except:
+    except Exception:
         return 0.0
 
     if odds > 0:
@@ -87,24 +85,24 @@ def american_to_implied_probability(odds):
 def calibrate_model_probability(prob):
     try:
         prob = float(prob)
-    except:
+    except Exception:
         return prob
 
     if prob >= 65:
         return prob - 2.0
-    elif prob >= 60:
+    if prob >= 60:
         return prob - 1.5
-    elif prob >= 55:
+    if prob >= 55:
         return prob - 1.0
-    else:
-        return prob
+
+    return prob
 
 
 def get_dynamic_units(edge, confidence, recommendation):
     try:
         edge = float(edge)
         confidence = float(confidence)
-    except:
+    except Exception:
         return 0.5
 
     if recommendation == "Pass":
@@ -112,14 +110,14 @@ def get_dynamic_units(edge, confidence, recommendation):
 
     if edge >= 8 and confidence >= 90:
         return 3
-    elif edge >= 6 and confidence >= 85:
+    if edge >= 6 and confidence >= 85:
         return 2
-    elif edge >= 4 and confidence >= 75:
+    if edge >= 4 and confidence >= 75:
         return 1.5
-    elif edge >= 2 and confidence >= 60:
+    if edge >= 2 and confidence >= 60:
         return 1
-    else:
-        return 0.5
+
+    return 0.5
 
 
 def get_injury_adjustment(team):
@@ -131,47 +129,53 @@ def get_team_rating(team):
 
 
 def get_opponent_team(game, team):
-    if team == game.get("home_team"):
-        return game.get("away_team")
-    return game.get("home_team")
+    away = game.get("away_team")
+    home = game.get("home_team")
+
+    if team == home:
+        return away
+    if team == away:
+        return home
+
+    return None
 
 
 def get_home_court_adjustment(game, team):
     if team == game.get("home_team"):
         return HOME_COURT_ADVANTAGE
-    elif team == game.get("away_team"):
+    if team == game.get("away_team"):
         return -HOME_COURT_ADVANTAGE
-    return 0
+    return 0.0
 
 
 def get_price_adjustment(odds):
     try:
         odds = float(odds)
-    except:
-        return 0
+    except Exception:
+        return 0.0
 
     if odds >= 120:
         return 0.6
-    elif odds >= 100:
+    if odds >= 100:
         return 0.4
-    elif odds >= -110:
+    if odds >= -110:
         return 0.2
-    elif odds >= -130:
-        return 0
-    elif odds >= -160:
+    if odds >= -130:
+        return 0.0
+    if odds >= -160:
         return -0.3
-    else:
-        return -0.6
+
+    return -0.6
 
 
 def get_cache(key):
     db = SessionLocal()
     try:
         entry = db.query(CacheEntry).filter(CacheEntry.cache_key == key).first()
-        if not entry:
+        if not entry or not entry.payload:
             return None
         return json.loads(entry.payload)
-    except:
+    except Exception:
         return None
     finally:
         db.close()
@@ -180,24 +184,19 @@ def get_cache(key):
 def set_cache(key, payload):
     db = SessionLocal()
     try:
+        payload_json = json.dumps(payload)
         entry = db.query(CacheEntry).filter(CacheEntry.cache_key == key).first()
 
         if entry:
-            entry.payload = json.dumps(payload)
+            entry.payload = payload_json
         else:
-            db.add(
-                CacheEntry(
-                    cache_key=key,
-                    payload=json.dumps(payload)
-                )
-            )
+            entry = CacheEntry(cache_key=key, payload=payload_json)
+            db.add(entry)
 
         db.commit()
     finally:
         db.close()
 
-
-# ---------------- ROUTES ---------------- #
 
 @app.get("/")
 def root():
@@ -216,7 +215,7 @@ def get_nba_odds():
         "apiKey": ODDS_API_KEY,
         "regions": "us",
         "markets": "h2h,spreads,totals",
-        "oddsFormat": "american"
+        "oddsFormat": "american",
     }
 
     response = requests.get(ODDS_BASE_URL, params=params)
@@ -246,30 +245,30 @@ def get_saved_picks():
 @app.post("/save-pick")
 def save_pick(data: dict):
     db = SessionLocal()
-
     try:
         existing = db.query(Pick).filter(
-            Pick.game == str(data.get("game")),
-            Pick.pick == str(data.get("pick")),
-            Pick.market == str(data.get("market")),
-            Pick.odds == str(data.get("odds"))
+            Pick.game == str(data.get("game", "")),
+            Pick.pick == str(data.get("pick", "")),
+            Pick.market == str(data.get("market", "")),
+            Pick.sportsbook == str(data.get("sportsbook", "")),
+            Pick.odds == str(data.get("odds", "")),
         ).first()
 
         if existing:
             return {"duplicate": True, "pick": existing.id}
 
         new_pick = Pick(
-            game=str(data.get("game")),
-            pick=str(data.get("pick")),
-            market=str(data.get("market")),
-            sportsbook=str(data.get("sportsbook")),
-            odds=str(data.get("odds")),
-            confidence=str(data.get("confidence")),
-            units=str(data.get("units")),
-            model_probability=str(data.get("model_probability")),
-            implied_probability=str(data.get("implied_probability")),
-            edge=str(data.get("edge")),
-            result="Pending"
+            game=str(data.get("game", "")),
+            pick=str(data.get("pick", "")),
+            market=str(data.get("market", "")),
+            sportsbook=str(data.get("sportsbook", "")),
+            odds=str(data.get("odds", "")),
+            confidence=str(data.get("confidence", "")),
+            units=str(data.get("units") or data.get("stake") or ""),
+            model_probability=str(data.get("model_probability", "")),
+            implied_probability=str(data.get("implied_probability", "")),
+            edge=str(data.get("edge", "")),
+            result=str(data.get("result", "Pending")),
         )
 
         db.add(new_pick)
@@ -278,6 +277,9 @@ def save_pick(data: dict):
 
         return {"duplicate": False, "pick": new_pick.id}
 
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
 
@@ -285,14 +287,18 @@ def save_pick(data: dict):
 @app.put("/update-result/{pick_id}")
 def update_result(pick_id: int, data: dict):
     db = SessionLocal()
-
     try:
         pick = db.query(Pick).filter(Pick.id == pick_id).first()
 
         if not pick:
             raise HTTPException(status_code=404, detail="Pick not found")
 
-        pick.result = data.get("result")
+        result = data.get("result")
+
+        if result not in ["Win", "Loss", "Push"]:
+            raise HTTPException(status_code=400, detail="Invalid result")
+
+        pick.result = result
         db.commit()
 
         return {"message": "Updated"}
@@ -304,7 +310,6 @@ def update_result(pick_id: int, data: dict):
 @app.delete("/delete-pick/{pick_id}")
 def delete_pick(pick_id: int):
     db = SessionLocal()
-
     try:
         pick = db.query(Pick).filter(Pick.id == pick_id).first()
 
@@ -320,16 +325,64 @@ def delete_pick(pick_id: int):
         db.close()
 
 
+@app.get("/results")
+def get_results():
+    db = SessionLocal()
+    try:
+        picks = db.query(Pick).all()
+        graded = [p for p in picks if p.result not in ["Pending", None, ""]]
+
+        return {
+            "results": [
+                {
+                    "game": p.game,
+                    "pick": p.pick,
+                    "market": p.market,
+                    "sportsbook": p.sportsbook,
+                    "odds": p.odds,
+                    "result": p.result,
+                    "units_won": p.units,
+                }
+                for p in graded
+            ]
+        }
+
+    finally:
+        db.close()
+
+
+@app.get("/play-of-the-day")
+def get_play_of_the_day():
+    db = SessionLocal()
+    try:
+        picks = db.query(Pick).all()
+        pending = [p for p in picks if p.result == "Pending"]
+
+        if not pending:
+            return {"message": "No play of the day found"}
+
+        def edge_val(p):
+            try:
+                return float(str(p.edge).replace("%", ""))
+            except Exception:
+                return 0.0
+
+        best = sorted(pending, key=edge_val, reverse=True)[0]
+        return {"play_of_the_day": best}
+
+    finally:
+        db.close()
+
+
 @app.get("/model/performance")
 def model_performance():
     db = SessionLocal()
-
     try:
         picks = db.query(Pick).all()
 
         graded = [
             p for p in picks
-            if p.result in ["Win", "Loss"] and p.model_probability
+            if p.result in ["Win", "Loss"] and p.model_probability not in [None, ""]
         ]
 
         if not graded:
@@ -340,13 +393,13 @@ def model_performance():
             "55-60": [],
             "60-65": [],
             "65-70": [],
-            "70+": []
+            "70+": [],
         }
 
         for p in graded:
             try:
                 prob = float(p.model_probability)
-            except:
+            except Exception:
                 continue
 
             if prob < 55:
@@ -362,16 +415,16 @@ def model_performance():
 
         results = {}
 
-        for bucket, picks in buckets.items():
-            if not picks:
+        for bucket, bucket_picks in buckets.items():
+            if not bucket_picks:
                 continue
 
-            wins = len([p for p in picks if p.result == "Win"])
-            total = len(picks)
+            wins = len([p for p in bucket_picks if p.result == "Win"])
+            total = len(bucket_picks)
 
             results[bucket] = {
                 "plays": total,
-                "win_rate": round((wins / total) * 100, 2)
+                "win_rate": round((wins / total) * 100, 2),
             }
 
         return results
@@ -392,7 +445,7 @@ def model_nba_today():
         "apiKey": ODDS_API_KEY,
         "regions": "us",
         "markets": "h2h,spreads,totals",
-        "oddsFormat": "american"
+        "oddsFormat": "american",
     }
 
     response = requests.get(ODDS_BASE_URL, params=params)
@@ -407,10 +460,10 @@ def model_nba_today():
     plays = []
 
     for game in games:
-        game_name = f"{game['away_team']} vs {game['home_team']}"
+        game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
 
         for bookmaker in game.get("bookmakers", []):
-            sportsbook = bookmaker.get("title")
+            sportsbook = bookmaker.get("title", "")
 
             for market in bookmaker.get("markets", []):
                 market_key = market.get("key")
@@ -422,35 +475,148 @@ def model_nba_today():
 
                     implied = american_to_implied_probability(odds)
                     model_prob = implied
-                    pick_name = outcome.get("name")
+                    pick_name = outcome.get("name", "")
+                    market_name = market_key
                     reason = ""
 
-                    team_name = outcome.get("name")
-                    opponent = get_opponent_team(game, team_name)
+                    if market_key in ["h2h", "spreads"]:
+                        team_name = outcome.get("name")
+                        opponent = get_opponent_team(game, team_name)
 
-                    rating_gap = (
-                        get_team_rating(team_name)
-                        - get_team_rating(opponent)
-                    )
+                        rating_gap = get_team_rating(team_name) - get_team_rating(opponent)
+                        rating_adj = rating_gap * (0.10 if market_key == "h2h" else 0.08)
 
-                    rating_adj = rating_gap * 0.1
-                    home_adj = get_home_court_adjustment(game, team_name)
-                    injury_adj = get_injury_adjustment(team_name)
-                    price_adj = get_price_adjustment(odds)
+                        home_adj = get_home_court_adjustment(game, team_name)
+                        if market_key == "spreads":
+                            home_adj = home_adj * 0.6
 
-                    model_prob += rating_adj
-                    model_prob += home_adj
-                    model_prob += injury_adj
-                    model_prob += price_adj
+                        injury_adj = get_injury_adjustment(team_name)
+                        price_adj = get_price_adjustment(odds)
 
-                    reason += f"Team rating adjustment ({round(rating_adj,1)}). "
-                    reason += f"Home court ({round(home_adj,1)}). "
-                    reason += f"Price adjustment ({round(price_adj,1)}). "
+                        if market_key == "h2h":
+                            if implied >= 80:
+                                base_adj = -0.5
+                                reason = "Heavy favorite looks more efficiently priced. "
+                            elif implied >= 70:
+                                base_adj = 0.2
+                                reason = "Strong favorite with limited extra value. "
+                            elif implied >= 60:
+                                base_adj = 1.0
+                                reason = "Moderate favorite with small pricing edge. "
+                            elif implied >= 52:
+                                base_adj = 1.8
+                                reason = "Favorite in a competitive range with some value. "
+                            elif implied >= 48:
+                                base_adj = 2.5
+                                reason = "Near coin-flip moneyline spot with pricing value. "
+                            elif implied >= 40:
+                                base_adj = 2.0
+                                reason = "Live underdog range with upset potential. "
+                            else:
+                                base_adj = 0.5
+                                reason = "Large underdog with limited pricing value. "
+
+                            market_name = "Moneyline"
+                            pick_name = team_name
+
+                        else:
+                            point = outcome.get("point")
+                            if point is None:
+                                continue
+
+                            spread = float(point)
+                            abs_spread = abs(spread)
+
+                            if abs_spread <= 3:
+                                base_adj = 2.8
+                                reason = "Short spread creates stronger cover value. "
+                            elif abs_spread <= 6:
+                                base_adj = 2.0
+                                reason = "Mid-range spread offers moderate cover value. "
+                            elif abs_spread <= 9:
+                                base_adj = 1.3
+                                reason = "Larger spread lowers confidence in margin. "
+                            else:
+                                base_adj = 0.7
+                                reason = "Big spread is harder to trust for a cover. "
+
+                            if spread > 0:
+                                base_adj += 0.4
+                                reason += "Underdog points add extra protection. "
+
+                            market_name = "Spread"
+                            pick_name = f"{team_name} {spread:+}"
+
+                        model_prob = (
+                            implied
+                            + base_adj
+                            + rating_adj
+                            + home_adj
+                            + injury_adj
+                            + price_adj
+                        )
+
+                        reason += f"Team rating adjustment ({round(rating_adj, 1)}). "
+                        reason += f"Home court ({round(home_adj, 1)}). "
+                        reason += f"Price adjustment ({round(price_adj, 1)}). "
+
+                        if injury_adj != 0:
+                            reason += f"Injury adjustment ({round(injury_adj, 1)}). "
+
+                    elif market_key == "totals":
+                        point = outcome.get("point")
+                        side = outcome.get("name")
+
+                        if point is None or side is None:
+                            continue
+
+                        total = float(point)
+                        diff = total - 228
+
+                        if abs(diff) <= 3:
+                            total_adj = diff * 0.20
+                            reason = "Total is near baseline, so edge stays smaller. "
+                        elif abs(diff) <= 7:
+                            total_adj = diff * 0.30
+                            reason = "Total is off baseline enough to create moderate value. "
+                        else:
+                            total_adj = diff * 0.40
+                            reason = "Extreme total creates stronger pricing opportunity. "
+
+                        if side == "Over":
+                            model_prob = 50 - total_adj
+                            reason += "Over gets stronger when posted total is lower. "
+                        else:
+                            model_prob = 50 + total_adj
+                            reason += "Under gets stronger when posted total is higher. "
+
+                        home_team = game.get("home_team")
+                        home_team_rating = get_team_rating(home_team)
+                        home_total_adj = (home_team_rating - 75) * 0.03
+
+                        if side == "Over":
+                            model_prob += home_total_adj
+                        else:
+                            model_prob -= home_total_adj
+
+                        price_adj = get_price_adjustment(odds) * 0.5
+                        model_prob += price_adj
+
+                        model_prob = max(43, min(57, model_prob))
+
+                        market_name = "Total"
+                        pick_name = f"{side} {point}"
+
+                        reason += f"Home team total adjustment ({round(home_total_adj, 1)}). "
+                        reason += f"Price adjustment ({round(price_adj, 1)}). "
+
+                    else:
+                        continue
 
                     original_prob = model_prob
                     model_prob = calibrate_model_probability(model_prob)
 
-                    if original_prob != model_prob:
+                    if round(original_prob, 2) != round(model_prob, 2):
                         reason += "Calibration applied. "
 
                     edge = round(model_prob - implied, 2)
@@ -473,41 +639,42 @@ def model_nba_today():
                     else:
                         confidence = 60
 
-                    unit_size = get_dynamic_units(
-                        edge,
-                        confidence,
-                        recommendation
-                    )
-
+                    unit_size = get_dynamic_units(edge, confidence, recommendation)
                     reason += f"Recommended unit size: {unit_size}u."
 
-                    plays.append({
-                        "game": game_name,
-                        "sportsbook": sportsbook,
-                        "market": market_key,
-                        "pick": pick_name,
-                        "odds": odds,
-                        "implied_probability": implied,
-                        "model_probability": round(model_prob, 2),
-                        "edge": edge,
-                        "confidence": confidence,
-                        "recommendation": recommendation,
-                        "units": unit_size,
-                        "reason": reason
-                    })
+                    plays.append(
+                        {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_name,
+                            "odds": odds,
+                            "implied_probability": implied,
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": unit_size,
+                            "reason": reason.strip(),
+                        }
+                    )
 
     best = {}
 
-best = {}
+    for play in plays:
+        key = f"{play['game']}__{play['market']}"
 
-for play in plays:
-    key = f"{play['game']}__{play['market']}__{play['pick']}"
-
-    if key not in best or play["edge"] > best[key]["edge"]:
-        best[key] = play
+        if key not in best or play["edge"] > best[key]["edge"]:
+            best[key] = play
 
     final = list(best.values())
-    final.sort(key=lambda x: x["edge"], reverse=True)
+    final.sort(
+        key=lambda x: (
+            x["recommendation"] == "Play",
+            x["edge"],
+        ),
+        reverse=True,
+    )
 
     set_cache("nba_model", final)
 
