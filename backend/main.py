@@ -498,11 +498,13 @@ def model_nba_today():
 
     best = {}
 
-    for play in plays:
-        key = f"{play['game']}__{play['market']}__{play['pick']}"
+best = {}
 
-        if key not in best or play["edge"] > best[key]["edge"]:
-            best[key] = play
+for play in plays:
+    key = f"{play['game']}__{play['market']}__{play['pick']}"
+
+    if key not in best or play["edge"] > best[key]["edge"]:
+        best[key] = play
 
     final = list(best.values())
     final.sort(key=lambda x: x["edge"], reverse=True)
