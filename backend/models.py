@@ -17,6 +17,12 @@ class Pick(Base):
     edge = Column(String)
     result = Column(String, default="Pending")
 
+    # CLV tracking
+    closing_line = Column(String, default="")
+    closing_odds = Column(String, default="")
+    clv_result = Column(String, default="")
+    clv_value = Column(String, default="")
+
 
 class CacheEntry(Base):
     __tablename__ = "cache_entries"
