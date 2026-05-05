@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from dotenv import load_dotenv
 import os
 import json
@@ -16,31 +17,25 @@ Base.metadata.create_all(bind=engine)
 
 def add_missing_clv_columns():
     db = SessionLocal()
-    try:
-        db.execute("ALTER TABLE picks ADD COLUMN closing_line VARCHAR DEFAULT ''")
-        db.commit()
-    except Exception:
-        db.rollback()
 
-    try:
-        db.execute("ALTER TABLE picks ADD COLUMN closing_odds VARCHAR DEFAULT ''")
-        db.commit()
-    except Exception:
-        db.rollback()
+    columns = [
+        "closing_line",
+        "closing_odds",
+        "clv_result",
+        "clv_value",
+    ]
 
-    try:
-        db.execute("ALTER TABLE picks ADD COLUMN clv_result VARCHAR DEFAULT ''")
-        db.commit()
-    except Exception:
-        db.rollback()
-
-    try:
-        db.execute("ALTER TABLE picks ADD COLUMN clv_value VARCHAR DEFAULT ''")
-        db.commit()
-    except Exception:
-        db.rollback()
+    for column in columns:
+        try:
+            db.execute(text(f"ALTER TABLE picks ADD COLUMN {column} VARCHAR DEFAULT ''"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
     db.close()
+
+
+add_missing_clv_columns()
 
 
 add_missing_clv_columns()
