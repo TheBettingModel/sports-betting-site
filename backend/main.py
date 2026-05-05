@@ -14,6 +14,37 @@ load_dotenv()
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
+def add_missing_clv_columns():
+    db = SessionLocal()
+    try:
+        db.execute("ALTER TABLE picks ADD COLUMN closing_line VARCHAR DEFAULT ''")
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    try:
+        db.execute("ALTER TABLE picks ADD COLUMN closing_odds VARCHAR DEFAULT ''")
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    try:
+        db.execute("ALTER TABLE picks ADD COLUMN clv_result VARCHAR DEFAULT ''")
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    try:
+        db.execute("ALTER TABLE picks ADD COLUMN clv_value VARCHAR DEFAULT ''")
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    db.close()
+
+
+add_missing_clv_columns()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"https://.*\.vercel\.app",
