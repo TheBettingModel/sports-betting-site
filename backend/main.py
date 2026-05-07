@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from sqlalchemy import text
 from dotenv import load_dotenv
 import os
@@ -14,6 +13,7 @@ load_dotenv()
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
+
 
 def add_missing_clv_columns():
     db = SessionLocal()
@@ -37,9 +37,6 @@ def add_missing_clv_columns():
 
 add_missing_clv_columns()
 
-
-add_missing_clv_columns()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"https://.*\.vercel\.app",
@@ -51,6 +48,7 @@ app.add_middleware(
 
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+MLB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 
 HOME_COURT_ADVANTAGE = 1.5
 
@@ -870,20 +868,22 @@ def model_mlb_today():
                     unit_size = get_dynamic_units(edge, confidence, recommendation)
                     reason += f"Recommended unit size: {unit_size}u."
 
-                    plays.append({
-                        "game": game_name,
-                        "sportsbook": sportsbook,
-                        "market": market_name,
-                        "pick": pick_name,
-                        "odds": odds,
-                        "implied_probability": implied,
-                        "model_probability": round(model_prob, 2),
-                        "edge": edge,
-                        "confidence": confidence,
-                        "recommendation": recommendation,
-                        "units": unit_size,
-                        "reason": reason.strip(),
-                    })
+                    plays.append(
+                        {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_name,
+                            "odds": odds,
+                            "implied_probability": implied,
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": unit_size,
+                            "reason": reason.strip(),
+                        }
+                    )
 
     best = {}
 
