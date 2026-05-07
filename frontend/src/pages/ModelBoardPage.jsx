@@ -186,7 +186,7 @@ function ModelBoardPage() {
 
   return (
     <div className="app">
-      <h1>NBA Model Board</h1>
+      <h1>NBA Model</h1>
 
       <div className="result-buttons" style={{ marginBottom: "20px" }}>
         <button onClick={() => setFilter("Play")}>Plays</button>
