@@ -48,8 +48,6 @@ function MLBModelBoardPage() {
 
   return (
     <div>
-      <h1>MLB Model Board</h1>
-
       {plays.map((play, index) => (
         <div
           key={index}
