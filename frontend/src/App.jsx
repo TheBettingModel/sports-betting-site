@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 import ResultsPage from "./pages/ResultsPage";
@@ -12,7 +12,7 @@ import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 
 function App() {
   return (
-    <BrowserRouter>
+    <div>
       <nav style={navStyle}>
         <div style={titleStyle}>Sports Betting Analysis</div>
 
@@ -42,7 +42,7 @@ function App() {
           <Route path="/mlb-model" element={<MLBModelBoardPage />} />
         </Routes>
       </main>
-    </BrowserRouter>
+    </div>
   );
 }
 
