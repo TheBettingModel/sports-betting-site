@@ -9,6 +9,11 @@ import LiveOddsPage from "./pages/LiveOddsPage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import "./App.css";
 
+import MLBModelBoardPage from "./pages/MLBModelBoardPage";
+<Route path="/mlb-model" element={<MLBModelBoardPage />} />
+
+
+
 function App() {
   return (
     <div>
@@ -25,6 +30,17 @@ function App() {
           <Link to="/model-performance">Model Performance</Link>
         </div>
       </nav>
+      
+<Link to="/mlb-model">MLB Model</Link>
+<nav>
+  <Link to="/">Home</Link>
+  <Link to="/saved-picks">Saved Picks</Link>
+  <Link to="/results">Results</Link>
+  <Link to="/live-odds">Live Odds</Link>
+  <Link to="/model-board">Model Board</Link>
+  <Link to="/mlb-model">MLB Model</Link>
+</nav>
+
 
       <Routes>
         <Route path="/" element={<HomePage />} />
