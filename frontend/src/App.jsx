@@ -23,7 +23,7 @@ function App() {
           <Link style={linkStyle} to="/add-pick">Add Pick</Link>
           <Link style={linkStyle} to="/play-of-the-day">Play of the Day</Link>
           <Link style={linkStyle} to="/live-odds">Live Odds</Link>
-          <Link style={linkStyle} to="/model-board">Model Board</Link>
+          <Link style={linkStyle} to="/model-board">NBA Model</Link>
           <Link style={linkStyle} to="/model-performance">Model Performance</Link>
           <Link style={linkStyle} to="/mlb-model">MLB Model</Link>
         </div>
