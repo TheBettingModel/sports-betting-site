@@ -705,3 +705,203 @@ def model_nba_today():
     set_cache("nba_model", final)
 
     return {"plays": final}
+
+
+@app.get("/model/mlb/today")
+def model_mlb_today():
+    if not ODDS_API_KEY:
+        cached = get_cache("mlb_model")
+        if cached:
+            return {"plays": cached}
+        raise HTTPException(status_code=500, detail="Missing API key")
+
+    params = {
+        "apiKey": ODDS_API_KEY,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+    }
+
+    response = requests.get(MLB_ODDS_BASE_URL, params=params)
+
+    if response.status_code != 200:
+        cached = get_cache("mlb_model")
+        if cached:
+            return {"plays": cached}
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+
+    games = response.json()
+    plays = []
+
+    for game in games:
+        game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
+
+        for bookmaker in game.get("bookmakers", []):
+            sportsbook = bookmaker.get("title", "")
+
+            for market in bookmaker.get("markets", []):
+                market_key = market.get("key")
+
+                for outcome in market.get("outcomes", []):
+                    odds = outcome.get("price")
+                    if odds is None:
+                        continue
+
+                    implied = american_to_implied_probability(odds)
+                    model_prob = implied
+                    pick_name = outcome.get("name", "")
+                    market_name = market_key
+                    reason = ""
+
+                    if market_key == "h2h":
+                        if implied >= 70:
+                            base_adj = -0.3
+                            reason = "Heavy MLB favorite is priced more efficiently. "
+                        elif implied >= 58:
+                            base_adj = 0.8
+                            reason = "Moderate MLB favorite with small pricing value. "
+                        elif implied >= 48:
+                            base_adj = 1.6
+                            reason = "Competitive moneyline range creates value opportunity. "
+                        elif implied >= 40:
+                            base_adj = 1.2
+                            reason = "Underdog range with upset potential. "
+                        else:
+                            base_adj = 0.3
+                            reason = "Large underdog with limited value. "
+
+                        price_adj = get_price_adjustment(odds)
+                        model_prob = implied + base_adj + price_adj
+
+                        reason += f"Price adjustment ({round(price_adj, 1)}). "
+                        market_name = "Moneyline"
+                        pick_name = outcome.get("name", "")
+
+                    elif market_key == "spreads":
+                        point = outcome.get("point")
+                        if point is None:
+                            continue
+
+                        runline = float(point)
+
+                        if abs(runline) <= 1.5:
+                            base_adj = 1.5
+                            reason = "Standard MLB run line with moderate value. "
+                        else:
+                            base_adj = 0.6
+                            reason = "Alternate run line carries more volatility. "
+
+                        if runline > 0:
+                            base_adj += 0.5
+                            reason += "Taking runs adds protection. "
+
+                        price_adj = get_price_adjustment(odds)
+                        model_prob = implied + base_adj + price_adj
+
+                        reason += f"Price adjustment ({round(price_adj, 1)}). "
+                        market_name = "Run Line"
+                        pick_name = f"{outcome.get('name')} {runline:+}"
+
+                    elif market_key == "totals":
+                        point = outcome.get("point")
+                        side = outcome.get("name")
+
+                        if point is None or side is None:
+                            continue
+
+                        total = float(point)
+                        baseline_total = 8.5
+                        diff = total - baseline_total
+
+                        if abs(diff) <= 0.5:
+                            total_adj = diff * 0.5
+                            reason = "Total is near MLB baseline, so edge stays smaller. "
+                        elif abs(diff) <= 1.5:
+                            total_adj = diff * 0.8
+                            reason = "Total is away from baseline enough to create value. "
+                        else:
+                            total_adj = diff * 1.0
+                            reason = "Extreme MLB total creates stronger pricing opportunity. "
+
+                        if side == "Over":
+                            model_prob = 50 - total_adj
+                            reason += "Over improves when total is lower. "
+                        else:
+                            model_prob = 50 + total_adj
+                            reason += "Under improves when total is higher. "
+
+                        price_adj = get_price_adjustment(odds) * 0.5
+                        model_prob += price_adj
+                        model_prob = max(43, min(57, model_prob))
+
+                        reason += f"Price adjustment ({round(price_adj, 1)}). "
+                        market_name = "Total"
+                        pick_name = f"{side} {point}"
+
+                    else:
+                        continue
+
+                    original_prob = model_prob
+                    model_prob = calibrate_model_probability(model_prob)
+
+                    if round(original_prob, 2) != round(model_prob, 2):
+                        reason += "Calibration applied. "
+
+                    edge = round(model_prob - implied, 2)
+
+                    if edge >= 4:
+                        recommendation = "Play"
+                    elif edge >= 2:
+                        recommendation = "Lean"
+                    else:
+                        recommendation = "Pass"
+
+                    if edge >= 5:
+                        confidence = 90
+                    elif edge >= 4:
+                        confidence = 84
+                    elif edge >= 3:
+                        confidence = 78
+                    elif edge >= 2:
+                        confidence = 72
+                    else:
+                        confidence = 60
+
+                    unit_size = get_dynamic_units(edge, confidence, recommendation)
+                    reason += f"Recommended unit size: {unit_size}u."
+
+                    plays.append({
+                        "game": game_name,
+                        "sportsbook": sportsbook,
+                        "market": market_name,
+                        "pick": pick_name,
+                        "odds": odds,
+                        "implied_probability": implied,
+                        "model_probability": round(model_prob, 2),
+                        "edge": edge,
+                        "confidence": confidence,
+                        "recommendation": recommendation,
+                        "units": unit_size,
+                        "reason": reason.strip(),
+                    })
+
+    best = {}
+
+    for play in plays:
+        key = f"{play['game']}__{play['market']}"
+
+        if key not in best or play["edge"] > best[key]["edge"]:
+            best[key] = play
+
+    final = list(best.values())
+    final.sort(
+        key=lambda x: (
+            x["recommendation"] == "Play",
+            x["edge"],
+        ),
+        reverse=True,
+    )
+
+    set_cache("mlb_model", final)
+
+    return {"plays": final}
