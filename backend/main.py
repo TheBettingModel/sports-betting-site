@@ -92,6 +92,51 @@ NBA_TEAM_RATINGS = {
     "Portland Trail Blazers": 70,
     "San Antonio Spurs": 75,
 }
+MLB_STARTING_PITCHERS = {
+    # Example format:
+    # "New York Yankees": {
+    #     "pitcher": "TBD",
+    #     "era": 0.00,
+    #     "whip": 0.00,
+    #     "rating": 75,
+    # },
+
+    "New York Yankees": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Boston Red Sox": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Toronto Blue Jays": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Baltimore Orioles": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Tampa Bay Rays": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+
+    "Cleveland Guardians": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Detroit Tigers": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Kansas City Royals": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Minnesota Twins": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Chicago White Sox": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+
+    "Houston Astros": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Los Angeles Angels": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Oakland Athletics": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Seattle Mariners": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Texas Rangers": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+
+    "Atlanta Braves": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Miami Marlins": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "New York Mets": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Philadelphia Phillies": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Washington Nationals": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+
+    "Chicago Cubs": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Cincinnati Reds": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Milwaukee Brewers": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Pittsburgh Pirates": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "St. Louis Cardinals": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+
+    "Arizona Diamondbacks": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Colorado Rockies": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "Los Angeles Dodgers": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "San Diego Padres": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+    "San Francisco Giants": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+}
 
 
 def american_to_implied_probability(odds):
@@ -191,6 +236,25 @@ def get_price_adjustment(odds):
 
     return -0.6
 
+def get_mlb_pitcher_data(team):
+    return MLB_STARTING_PITCHERS.get(
+        team,
+        {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75}
+    )
+
+
+def get_mlb_pitcher_adjustment(game, team):
+    opponent = get_opponent_team(game, team)
+
+    team_pitcher = get_mlb_pitcher_data(team)
+    opponent_pitcher = get_mlb_pitcher_data(opponent)
+
+    team_rating = float(team_pitcher.get("rating", 75))
+    opponent_rating = float(opponent_pitcher.get("rating", 75))
+
+    rating_gap = team_rating - opponent_rating
+
+    return round(rating_gap * 0.08, 2)
 
 def get_cache(key):
     db = SessionLocal()
@@ -768,12 +832,17 @@ def model_mlb_today():
                             base_adj = 0.3
                             reason = "Large underdog with limited value. "
 
-                        price_adj = get_price_adjustment(odds)
-                        model_prob = implied + base_adj + price_adj
+                            pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
+                            price_adj = get_price_adjustment(odds)
+                            model_prob = implied + base_adj + price_adj + pitcher_adj
 
-                        reason += f"Price adjustment ({round(price_adj, 1)}). "
-                        market_name = "Moneyline"
-                        pick_name = outcome.get("name", "")
+                            team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
+                            reason += f"Starting pitcher: {team_pitcher.get('pitcher')} "
+                            reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
+                            reason += f"Pitcher adjustment ({pitcher_adj}). "
+                            reason += f"Price adjustment ({round(price_adj, 1)}). "
+                            market_name = "Moneyline"
+                            pick_name = outcome.get("name", "")
 
                     elif market_key == "spreads":
                         point = outcome.get("point")
@@ -793,9 +862,14 @@ def model_mlb_today():
                             base_adj += 0.5
                             reason += "Taking runs adds protection. "
 
+                        pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
                         price_adj = get_price_adjustment(odds)
-                        model_prob = implied + base_adj + price_adj
+                        model_prob = implied + base_adj + price_adj + pitcher_adj
 
+                        team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
+                        reason += f"Starting pitcher: {team_pitcher.get('pitcher')} "
+                        reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
+                        reason += f"Pitcher adjustment ({pitcher_adj}). "
                         reason += f"Price adjustment ({round(price_adj, 1)}). "
                         market_name = "Run Line"
                         pick_name = f"{outcome.get('name')} {runline:+}"
@@ -881,6 +955,10 @@ def model_mlb_today():
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
+                            "starting_pitcher": get_mlb_pitcher_data(outcome.get("name")).get("pitcher"),
+                            "pitcher_era": get_mlb_pitcher_data(outcome.get("name")).get("era"),
+                            "pitcher_whip": get_mlb_pitcher_data(outcome.get("name")).get("whip"),
+                            "pitcher_rating": get_mlb_pitcher_data(outcome.get("name")).get("rating"),
                             "reason": reason.strip(),
                         }
                     )
