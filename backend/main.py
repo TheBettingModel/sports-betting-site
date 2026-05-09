@@ -955,13 +955,14 @@ def model_mlb_today():
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
+                            "model_version": "mlb_pitcher_v1",
                             "starting_pitcher": get_mlb_pitcher_data(outcome.get("name")).get("pitcher"),
                             "pitcher_era": get_mlb_pitcher_data(outcome.get("name")).get("era"),
                             "pitcher_whip": get_mlb_pitcher_data(outcome.get("name")).get("whip"),
                             "pitcher_rating": get_mlb_pitcher_data(outcome.get("name")).get("rating"),
                             "reason": reason.strip(),
-                                                )
-
+                        }
+                    )
     best = {}
 
     for play in plays:
