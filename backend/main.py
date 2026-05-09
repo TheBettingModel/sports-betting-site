@@ -960,8 +960,7 @@ def model_mlb_today():
                             "pitcher_whip": get_mlb_pitcher_data(outcome.get("name")).get("whip"),
                             "pitcher_rating": get_mlb_pitcher_data(outcome.get("name")).get("rating"),
                             "reason": reason.strip(),
-                        }
-                    )
+                                                )
 
     best = {}
 
