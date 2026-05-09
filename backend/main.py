@@ -979,6 +979,5 @@ def model_mlb_today():
         reverse=True,
     )
 
-    set_cache("mlb_model", final)
-
+# set_cache("mlb_model", final)
     return {"plays": final}
