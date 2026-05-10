@@ -975,6 +975,10 @@ def model_mlb_today():
                             continue
 
                         total = float(point)
+
+                        if total < 7 or total > 11:
+                            continue
+
                         baseline_total = 8.5
                         diff = total - baseline_total
 
