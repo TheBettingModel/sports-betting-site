@@ -964,7 +964,6 @@ def model_mlb_today():
                         reason += f"(Fatigue {team_bullpen.get('fatigue')}, ERA {team_bullpen.get('bullpen_era')}). "
                         reason += f"Bullpen adjustment ({bullpen_adj}). "
                         reason += f"Price adjustment ({round(price_adj, 1)}). "
-                        reason += f"Bullpen total adjustment ({bullpen_total_adj}). "
                         market_name = "Run Line"
                         pick_name = f"{outcome.get('name')} {runline:+}"
 
