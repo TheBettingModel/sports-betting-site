@@ -99,7 +99,7 @@ MLB_STARTING_PITCHERS = {
     #     "era": 0.00,
     #     "whip": 0.00,
     #     "rating": 75,
-    # },
+    # }
 
     "New York Yankees": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
     "Boston Red Sox": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
@@ -136,6 +136,45 @@ MLB_STARTING_PITCHERS = {
     "Los Angeles Dodgers": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
     "San Diego Padres": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
     "San Francisco Giants": {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75},
+}
+
+MLB_BULLPEN_FATIGUE = {
+    "New York Yankees": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Boston Red Sox": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Toronto Blue Jays": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Baltimore Orioles": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Tampa Bay Rays": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+
+    "Cleveland Guardians": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Detroit Tigers": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Kansas City Royals": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Minnesota Twins": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Chicago White Sox": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+
+    "Houston Astros": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Los Angeles Angels": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Oakland Athletics": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Athletics": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Seattle Mariners": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Texas Rangers": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+
+    "Atlanta Braves": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Miami Marlins": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "New York Mets": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Philadelphia Phillies": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Washington Nationals": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+
+    "Chicago Cubs": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Cincinnati Reds": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Milwaukee Brewers": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Pittsburgh Pirates": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "St. Louis Cardinals": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+
+    "Arizona Diamondbacks": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Colorado Rockies": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "Los Angeles Dodgers": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "San Diego Padres": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
+    "San Francisco Giants": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
 }
 
 
@@ -255,6 +294,49 @@ def get_mlb_pitcher_adjustment(game, team):
     rating_gap = team_rating - opponent_rating
 
     return round(rating_gap * 0.08, 2)
+
+def get_mlb_bullpen_data(team):
+    return MLB_BULLPEN_FATIGUE.get(
+        team,
+        {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"}
+    )
+
+
+def get_mlb_bullpen_adjustment(game, team):
+    opponent = get_opponent_team(game, team)
+
+    team_bullpen = get_mlb_bullpen_data(team)
+    opponent_bullpen = get_mlb_bullpen_data(opponent)
+
+    team_fatigue = float(team_bullpen.get("fatigue", 0))
+    opponent_fatigue = float(opponent_bullpen.get("fatigue", 0))
+
+    team_era = float(team_bullpen.get("bullpen_era", 0))
+    opponent_era = float(opponent_bullpen.get("bullpen_era", 0))
+
+    fatigue_edge = opponent_fatigue - team_fatigue
+    era_edge = opponent_era - team_era
+
+    return round((fatigue_edge * 0.25) + (era_edge * 0.15), 2)
+
+
+def get_mlb_total_bullpen_adjustment(game):
+    away_team = game.get("away_team")
+    home_team = game.get("home_team")
+
+    away_bullpen = get_mlb_bullpen_data(away_team)
+    home_bullpen = get_mlb_bullpen_data(home_team)
+
+    away_fatigue = float(away_bullpen.get("fatigue", 0))
+    home_fatigue = float(home_bullpen.get("fatigue", 0))
+
+    away_era = float(away_bullpen.get("bullpen_era", 0))
+    home_era = float(home_bullpen.get("bullpen_era", 0))
+
+    fatigue_total = away_fatigue + home_fatigue
+    era_total = away_era + home_era
+
+    return round((fatigue_total * 0.15) + ((era_total - 8.00) * 0.10), 2)
 
 def get_cache(key):
     db = SessionLocal()
@@ -833,14 +915,20 @@ def model_mlb_today():
                             reason = "Large underdog with limited value. "
 
                             pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
+                            bullpen_adj = get_mlb_bullpen_adjustment(game, outcome.get("name"))
                             price_adj = get_price_adjustment(odds)
-                            model_prob = implied + base_adj + price_adj + pitcher_adj
+                            model_prob = implied + base_adj + price_adj + pitcher_adj + bullpen_adj
 
                             team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
                             reason += f"Starting pitcher: {team_pitcher.get('pitcher')} "
                             reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
                             reason += f"Pitcher adjustment ({pitcher_adj}). "
+                            team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
+                            reason += f"Bullpen status: {team_bullpen.get('status')} "
+                            reason += f"(Fatigue {team_bullpen.get('fatigue')}, ERA {team_bullpen.get('bullpen_era')}). "
+                            reason += f"Bullpen adjustment ({bullpen_adj}). "
                             reason += f"Price adjustment ({round(price_adj, 1)}). "
+
                             market_name = "Moneyline"
                             pick_name = outcome.get("name", "")
 
@@ -863,14 +951,20 @@ def model_mlb_today():
                             reason += "Taking runs adds protection. "
 
                         pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
+                        bullpen_adj = get_mlb_bullpen_adjustment(game, outcome.get("name"))
                         price_adj = get_price_adjustment(odds)
-                        model_prob = implied + base_adj + price_adj + pitcher_adj
+                        model_prob = implied + base_adj + price_adj + pitcher_adj + bullpen_adj
 
                         team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
                         reason += f"Starting pitcher: {team_pitcher.get('pitcher')} "
                         reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
                         reason += f"Pitcher adjustment ({pitcher_adj}). "
+                        team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
+                        reason += f"Bullpen status: {team_bullpen.get('status')} "
+                        reason += f"(Fatigue {team_bullpen.get('fatigue')}, ERA {team_bullpen.get('bullpen_era')}). "
+                        reason += f"Bullpen adjustment ({bullpen_adj}). "
                         reason += f"Price adjustment ({round(price_adj, 1)}). "
+                        reason += f"Bullpen total adjustment ({bullpen_total_adj}). "
                         market_name = "Run Line"
                         pick_name = f"{outcome.get('name')} {runline:+}"
 
@@ -902,9 +996,16 @@ def model_mlb_today():
                             model_prob = 50 + total_adj
                             reason += "Under improves when total is higher. "
 
-                        price_adj = get_price_adjustment(odds) * 0.5
-                        model_prob += price_adj
-                        model_prob = max(43, min(57, model_prob))
+                            price_adj = get_price_adjustment(odds) * 0.5
+                            bullpen_total_adj = get_mlb_total_bullpen_adjustment(game)
+
+                            if side == "Over":
+                                model_prob += bullpen_total_adj
+                            else:
+                                model_prob -= bullpen_total_adj
+
+                            model_prob += price_adj
+                            model_prob = max(43, min(57, model_prob))
 
                         reason += f"Price adjustment ({round(price_adj, 1)}). "
                         market_name = "Total"
@@ -955,11 +1056,14 @@ def model_mlb_today():
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
-                            "model_version": "mlb_pitcher_v1",
+                            "model_version": "mlb_pitcher_bullpen_v1",
                             "starting_pitcher": get_mlb_pitcher_data(outcome.get("name")).get("pitcher"),
                             "pitcher_era": get_mlb_pitcher_data(outcome.get("name")).get("era"),
                             "pitcher_whip": get_mlb_pitcher_data(outcome.get("name")).get("whip"),
                             "pitcher_rating": get_mlb_pitcher_data(outcome.get("name")).get("rating"),
+                            "bullpen_fatigue": get_mlb_bullpen_data(outcome.get("name")).get("fatigue"),
+                            "bullpen_era": get_mlb_bullpen_data(outcome.get("name")).get("bullpen_era"),
+                            "bullpen_status": get_mlb_bullpen_data(outcome.get("name")).get("status"),
                             "reason": reason.strip(),
                         }
                     )
