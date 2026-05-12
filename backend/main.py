@@ -1088,9 +1088,25 @@ def model_mlb_today():
                         model_prob = max(1, min(99, model_prob))
                         edge = round(model_prob - implied, 2)
 
-                        confidence = calculate_confidence(edge)
-                        recommendation = get_recommendation(edge)
-                        unit_size = recommend_units(edge)
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        unit_size = get_dynamic_units(edge, confidence, recommendation)
 
                         plays.append({
                             "game": game_name,
