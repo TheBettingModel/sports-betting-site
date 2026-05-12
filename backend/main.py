@@ -906,165 +906,166 @@ def model_nba_today():
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
-    if not ODDS_API_KEY:
-        cached = get_cache("mlb_model")
-        if cached:
-            return {"plays": cached}
-        raise HTTPException(status_code=500, detail="Missing API key")
+    cached = get_cache("mlb_model")
+    if cached:
+        return {"plays": cached}
+
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {"plays": []}
+
+    url = f"https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 
     params = {
-        "apiKey": ODDS_API_KEY,
+        "apiKey": odds_api_key,
         "regions": "us",
         "markets": "h2h,spreads,totals",
-        "oddsFormat": "american",
+        "oddsFormat": "american"
     }
 
-    response = requests.get(MLB_ODDS_BASE_URL, params=params)
+    try:
+        response = requests.get(url, params=params, timeout=10)
 
-    if response.status_code != 200:
-        cached = get_cache("mlb_model")
-        if cached:
-            return {"plays": cached}
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+        if response.status_code != 200:
+            return {"plays": []}
 
-    games = response.json()
-    plays = []
+        games = response.json()
+        plays = []
 
-probable_pitchers = get_mlb_probable_pitchers()
+        probable_pitchers = get_mlb_probable_pitchers()
 
-for game in games:
-        game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
+        for game in games:
+            game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
 
-        for bookmaker in game.get("bookmakers", []):
-            sportsbook = bookmaker.get("title", "")
+            for bookmaker in game.get("bookmakers", []):
+                sportsbook = bookmaker.get("title")
 
-            for market in bookmaker.get("markets", []):
-                market_key = market.get("key")
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
 
-                for outcome in market.get("outcomes", []):
-                    odds = outcome.get("price")
-                    if odds is None:
-                        continue
+                    for outcome in market.get("outcomes", []):
+                        odds = outcome.get("price")
 
-                    implied = american_to_implied_probability(odds)
-                    model_prob = implied
-                    pick_name = outcome.get("name", "")
-                    market_name = market_key
-                    reason = ""
+                        if odds is None:
+                            continue
 
-                    if market_key == "h2h":
-                        if implied >= 70:
-                            base_adj = -0.3
-                            reason = "Heavy MLB favorite is priced more efficiently. "
-                        elif implied >= 58:
-                            base_adj = 0.8
-                            reason = "Moderate MLB favorite with small pricing value. "
-                        elif implied >= 48:
-                            base_adj = 1.6
-                            reason = "Competitive moneyline range creates value opportunity. "
-                        elif implied >= 40:
-                            base_adj = 1.2
-                            reason = "Underdog range with upset potential. "
-                        else:
+                        implied = american_to_implied_probability(odds)
+
+                        market_name = ""
+                        pick_name = ""
+                        reason = ""
+                        model_prob = implied
+
+                        # MONEYLINE
+                        if market_key == "h2h":
                             base_adj = 0.3
-                            reason = "Large underdog with limited value. "
+
+                            if odds >= 120:
+                                base_adj = 0.6
+                                reason = "Underdog range with upset potential. "
+                            elif odds <= -180:
+                                base_adj = -0.8
+                                reason = "Heavy MLB favorite is priced more efficiently. "
+                            else:
+                                reason = "Competitive moneyline range creates value opportunity. "
 
                             pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
                             bullpen_adj = get_mlb_bullpen_adjustment(game, outcome.get("name"))
                             price_adj = get_price_adjustment(odds)
-                            model_prob = implied + base_adj + price_adj + pitcher_adj + bullpen_adj
+
+                            model_prob = implied + base_adj + pitcher_adj + bullpen_adj + price_adj
 
                             team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
+
                             starter_name = probable_pitchers.get(
-                             outcome.get("name"),
-                            team_pitcher.get("pitcher")
+                                outcome.get("name"),
+                                team_pitcher.get("pitcher")
                             )
 
-                            reason += f"Starting pitcher: {starter_name} "
-                            reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
+                            reason += f"Starting pitcher: {starter_name}. "
                             reason += f"Pitcher adjustment ({pitcher_adj}). "
+
                             team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
-                            reason += f"Bullpen status: {team_bullpen.get('status')} "
-                            reason += f"(Fatigue {team_bullpen.get('fatigue')}, ERA {team_bullpen.get('bullpen_era')}). "
+                            reason += f"Bullpen status: {team_bullpen.get('status')}. "
                             reason += f"Bullpen adjustment ({bullpen_adj}). "
-                            reason += f"Price adjustment ({round(price_adj, 1)}). "
+                            reason += f"Price adjustment ({round(price_adj,1)}). "
 
                             market_name = "Moneyline"
-                            pick_name = outcome.get("name", "")
+                            pick_name = outcome.get("name")
 
-                    elif market_key == "spreads":
-                        point = outcome.get("point")
-                        if point is None:
-                            continue
+                        # RUN LINE
+                        elif market_key == "spreads":
+                            point = outcome.get("point")
 
-                        runline = float(point)
+                            if point is None:
+                                continue
 
-                        if abs(runline) <= 1.5:
+                            runline = float(point)
+
+                            if abs(runline) > 2.5:
+                                continue
+
                             base_adj = 1.5
                             reason = "Standard MLB run line with moderate value. "
-                        else:
-                            base_adj = 0.6
-                            reason = "Alternate run line carries more volatility. "
 
-                        if runline > 0:
-                            base_adj += 0.5
-                            reason += "Taking runs adds protection. "
+                            if runline > 0:
+                                base_adj += 0.5
+                                reason += "Taking runs adds protection. "
 
-                        pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
-                        bullpen_adj = get_mlb_bullpen_adjustment(game, outcome.get("name"))
-                        price_adj = get_price_adjustment(odds)
-                        model_prob = implied + base_adj + price_adj + pitcher_adj + bullpen_adj
+                            pitcher_adj = get_mlb_pitcher_adjustment(game, outcome.get("name"))
+                            bullpen_adj = get_mlb_bullpen_adjustment(game, outcome.get("name"))
+                            price_adj = get_price_adjustment(odds)
 
-                        team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
-                        starter_name = probable_pitchers.get(
-                         outcome.get("name"),
-                         team_pitcher.get("pitcher")
-                        )
+                            model_prob = implied + base_adj + pitcher_adj + bullpen_adj + price_adj
 
-                        reason += f"Starting pitcher: {starter_name} "
-                        reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
-                        reason += f"Pitcher adjustment ({pitcher_adj}). "
-                        team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
-                        reason += f"Bullpen status: {team_bullpen.get('status')} "
-                        reason += f"(Fatigue {team_bullpen.get('fatigue')}, ERA {team_bullpen.get('bullpen_era')}). "
-                        reason += f"Bullpen adjustment ({bullpen_adj}). "
-                        reason += f"Price adjustment ({round(price_adj, 1)}). "
-                        market_name = "Run Line"
-                        pick_name = f"{outcome.get('name')} {runline:+}"
+                            team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
 
-                    elif market_key == "totals":
-                        point = outcome.get("point")
-                        side = outcome.get("name")
+                            starter_name = probable_pitchers.get(
+                                outcome.get("name"),
+                                team_pitcher.get("pitcher")
+                            )
 
-                        if point is None or side is None:
-                            continue
+                            reason += f"Starting pitcher: {starter_name}. "
+                            reason += f"Pitcher adjustment ({pitcher_adj}). "
 
-                        total = float(point)
+                            team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
+                            reason += f"Bullpen status: {team_bullpen.get('status')}. "
+                            reason += f"Bullpen adjustment ({bullpen_adj}). "
+                            reason += f"Price adjustment ({round(price_adj,1)}). "
 
-                        if total < 7 or total > 11:
-                            continue
+                            market_name = "Run Line"
+                            pick_name = f"{outcome.get('name')} {runline:+}"
 
-                        baseline_total = 8.5
-                        diff = total - baseline_total
+                        # TOTALS
+                        elif market_key == "totals":
+                            point = outcome.get("point")
+                            side = outcome.get("name")
 
-                        if abs(diff) <= 0.5:
-                            total_adj = diff * 0.5
-                            reason = "Total is near MLB baseline, so edge stays smaller. "
-                        elif abs(diff) <= 1.5:
-                            total_adj = diff * 0.8
-                            reason = "Total is away from baseline enough to create value. "
-                        else:
-                            total_adj = diff * 1.0
-                            reason = "Extreme MLB total creates stronger pricing opportunity. "
+                            if point is None:
+                                continue
 
-                        if side == "Over":
-                            model_prob = 50 - total_adj
-                            reason += "Over improves when total is lower. "
-                        else:
-                            model_prob = 50 + total_adj
-                            reason += "Under improves when total is higher. "
+                            total = float(point)
 
-                            price_adj = get_price_adjustment(odds) * 0.5
+                            # Remove weird alt totals
+                            if total < 7 or total > 11:
+                                continue
+
+                            baseline_total = 8.5
+                            diff = total - baseline_total
+
+                            if abs(diff) <= 0.5:
+                                total_adj = diff * 0.5
+                                reason = "Total is near MLB baseline. "
+                            else:
+                                total_adj = diff * 0.8
+                                reason = "Total moved away from baseline. "
+
+                            if side == "Over":
+                                model_prob += abs(total_adj)
+                            else:
+                                model_prob -= abs(total_adj)
+
                             bullpen_total_adj = get_mlb_total_bullpen_adjustment(game)
 
                             if side == "Over":
@@ -1072,89 +1073,79 @@ for game in games:
                             else:
                                 model_prob -= bullpen_total_adj
 
+                            price_adj = get_price_adjustment(odds) * 0.5
                             model_prob += price_adj
-                            model_prob = max(43, min(57, model_prob))
 
-                        reason += f"Price adjustment ({round(price_adj, 1)}). "
-                        market_name = "Total"
-                        pick_name = f"{side} {point}"
+                            reason += f"Bullpen total adjustment ({bullpen_total_adj}). "
+                            reason += f"Price adjustment ({round(price_adj,1)}). "
 
-                    else:
-                        continue
+                            market_name = "Total"
+                            pick_name = f"{side} {total}"
 
-                    original_prob = model_prob
-                    model_prob = calibrate_model_probability(model_prob)
+                        else:
+                            continue
 
-                    if round(original_prob, 2) != round(model_prob, 2):
-                        reason += "Calibration applied. "
+                        model_prob = max(1, min(99, model_prob))
+                        edge = round(model_prob - implied, 2)
 
-                    edge = round(model_prob - implied, 2)
+                        confidence = calculate_confidence(edge)
+                        recommendation = get_recommendation(edge)
+                        unit_size = recommend_units(edge)
 
-                    if edge >= 4:
-                        recommendation = "Play"
-                    elif edge >= 2:
-                        recommendation = "Lean"
-                    else:
-                        recommendation = "Pass"
-
-                    if edge >= 5:
-                        confidence = 90
-                    elif edge >= 4:
-                        confidence = 84
-                    elif edge >= 3:
-                        confidence = 78
-                    elif edge >= 2:
-                        confidence = 72
-                    else:
-                        confidence = 60
-
-                    unit_size = get_dynamic_units(edge, confidence, recommendation)
-                    reason += f"Recommended unit size: {unit_size}u."
-
-                    plays.append(
-                        {
+                        plays.append({
                             "game": game_name,
                             "sportsbook": sportsbook,
                             "market": market_name,
                             "pick": pick_name,
                             "odds": odds,
-                            "implied_probability": implied,
+                            "implied_probability": round(implied, 2),
                             "model_probability": round(model_prob, 2),
                             "edge": edge,
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
                             "model_version": "mlb_auto_starters_v1",
+
                             "starting_pitcher": probable_pitchers.get(
-                             outcome.get("name"),
-                            get_mlb_pitcher_data(outcome.get("name")).get("pitcher")
+                                outcome.get("name"),
+                                get_mlb_pitcher_data(outcome.get("name")).get("pitcher")
                             ),
-                            "pitcher_era": get_mlb_pitcher_data(outcome.get("name")).get("era"),
-                            "pitcher_whip": get_mlb_pitcher_data(outcome.get("name")).get("whip"),
-                            "pitcher_rating": get_mlb_pitcher_data(outcome.get("name")).get("rating"),
-                            "bullpen_fatigue": get_mlb_bullpen_data(outcome.get("name")).get("fatigue"),
-                            "bullpen_era": get_mlb_bullpen_data(outcome.get("name")).get("bullpen_era"),
-                            "bullpen_status": get_mlb_bullpen_data(outcome.get("name")).get("status"),
-                            "reason": reason.strip(),
-                        }
-                    )
-    best = {}
 
-    for play in plays:
-        key = f"{play['game']}__{play['market']}"
+                            "pitcher_era": get_mlb_pitcher_data(
+                                outcome.get("name")
+                            ).get("era"),
 
-        if key not in best or play["edge"] > best[key]["edge"]:
-            best[key] = play
+                            "pitcher_whip": get_mlb_pitcher_data(
+                                outcome.get("name")
+                            ).get("whip"),
 
-    final = list(best.values())
-    final.sort(
-        key=lambda x: (
-            x["recommendation"] == "Play",
-            x["edge"],
-        ),
-        reverse=True,
-    )
+                            "pitcher_rating": get_mlb_pitcher_data(
+                                outcome.get("name")
+                            ).get("rating"),
 
-# set_cache("mlb_model", final)
-    return {"plays": final}
+                            "bullpen_fatigue": get_mlb_bullpen_data(
+                                outcome.get("name")
+                            ).get("fatigue"),
 
+                            "bullpen_era": get_mlb_bullpen_data(
+                                outcome.get("name")
+                            ).get("bullpen_era"),
+
+                            "bullpen_status": get_mlb_bullpen_data(
+                                outcome.get("name")
+                            ).get("status"),
+
+                            "reason": reason.strip()
+                        })
+
+        final = sorted(
+            plays,
+            key=lambda x: x["edge"],
+            reverse=True
+        )[:40]
+
+        return {"plays": final}
+
+    except Exception as e:
+        print("MLB model error:", str(e))
+        return {"plays": []}
