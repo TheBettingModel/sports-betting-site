@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
+from datetime import date
+
 
 from database import SessionLocal, engine
 from models import Base, Pick, CacheEntry
@@ -337,6 +339,57 @@ def get_mlb_total_bullpen_adjustment(game):
     era_total = away_era + home_era
 
     return round((fatigue_total * 0.15) + ((era_total - 8.00) * 0.10), 2)
+
+
+def get_mlb_probable_pitchers():
+    today = date.today().isoformat()
+
+    url = "https://statsapi.mlb.com/api/v1/schedule"
+    params = {
+        "sportId": 1,
+        "date": today,
+        "hydrate": "probablePitcher",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {}
+
+        data = response.json()
+        pitcher_map = {}
+
+        for day in data.get("dates", []):
+            for game in day.get("games", []):
+                teams = game.get("teams", {})
+
+                away_team = teams.get("away", {}).get("team", {}).get("name")
+                home_team = teams.get("home", {}).get("team", {}).get("name")
+
+                away_pitcher = (
+                    teams.get("away", {})
+                    .get("probablePitcher", {})
+                    .get("fullName", "TBD")
+                )
+
+                home_pitcher = (
+                    teams.get("home", {})
+                    .get("probablePitcher", {})
+                    .get("fullName", "TBD")
+                )
+
+                if away_team:
+                    pitcher_map[away_team] = away_pitcher
+
+                if home_team:
+                    pitcher_map[home_team] = home_pitcher
+
+        return pitcher_map
+
+    except Exception:
+        return {}
+
 
 def get_cache(key):
     db = SessionLocal()
@@ -877,7 +930,9 @@ def model_mlb_today():
     games = response.json()
     plays = []
 
-    for game in games:
+probable_pitchers = get_mlb_probable_pitchers()
+
+for game in games:
         game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
 
         for bookmaker in game.get("bookmakers", []):
@@ -920,7 +975,12 @@ def model_mlb_today():
                             model_prob = implied + base_adj + price_adj + pitcher_adj + bullpen_adj
 
                             team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
-                            reason += f"Starting pitcher: {team_pitcher.get('pitcher')} "
+                            starter_name = probable_pitchers.get(
+                             outcome.get("name"),
+                            team_pitcher.get("pitcher")
+                            )
+
+                            reason += f"Starting pitcher: {starter_name} "
                             reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
                             reason += f"Pitcher adjustment ({pitcher_adj}). "
                             team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
@@ -956,7 +1016,12 @@ def model_mlb_today():
                         model_prob = implied + base_adj + price_adj + pitcher_adj + bullpen_adj
 
                         team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
-                        reason += f"Starting pitcher: {team_pitcher.get('pitcher')} "
+                        starter_name = probable_pitchers.get(
+                         outcome.get("name"),
+                         team_pitcher.get("pitcher")
+                        )
+
+                        reason += f"Starting pitcher: {starter_name} "
                         reason += f"(ERA {team_pitcher.get('era')}, WHIP {team_pitcher.get('whip')}). "
                         reason += f"Pitcher adjustment ({pitcher_adj}). "
                         team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
@@ -1059,8 +1124,11 @@ def model_mlb_today():
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
-                            "model_version": "mlb_pitcher_bullpen_v1",
-                            "starting_pitcher": get_mlb_pitcher_data(outcome.get("name")).get("pitcher"),
+                            "model_version": "mlb_auto_starters_v1",
+                            "starting_pitcher": probable_pitchers.get(
+                             outcome.get("name"),
+                            get_mlb_pitcher_data(outcome.get("name")).get("pitcher")
+                            ),
                             "pitcher_era": get_mlb_pitcher_data(outcome.get("name")).get("era"),
                             "pitcher_whip": get_mlb_pitcher_data(outcome.get("name")).get("whip"),
                             "pitcher_rating": get_mlb_pitcher_data(outcome.get("name")).get("rating"),
@@ -1089,3 +1157,4 @@ def model_mlb_today():
 
 # set_cache("mlb_model", final)
     return {"plays": final}
+
