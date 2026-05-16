@@ -341,6 +341,79 @@ def get_mlb_total_bullpen_adjustment(game):
     return round((fatigue_total * 0.15) + ((era_total - 8.00) * 0.10), 2)
 
 
+def calculate_pitcher_rating(era, whip):
+    try:
+        era = float(era)
+        whip = float(whip)
+    except Exception:
+        return 75
+
+    rating = 75
+
+    # ERA adjustment
+    if era <= 2.50:
+        rating += 12
+    elif era <= 3.25:
+        rating += 8
+    elif era <= 4.00:
+        rating += 4
+    elif era <= 4.75:
+        rating -= 2
+    elif era <= 5.50:
+        rating -= 6
+    else:
+        rating -= 10
+
+    # WHIP adjustment
+    if whip <= 1.00:
+        rating += 10
+    elif whip <= 1.15:
+        rating += 6
+    elif whip <= 1.30:
+        rating += 2
+    elif whip <= 1.45:
+        rating -= 3
+    else:
+        rating -= 7
+
+    return max(50, min(95, rating))
+
+
+def get_pitcher_season_stats(player_id):
+    url = f"https://statsapi.mlb.com/api/v1/people/{player_id}/stats"
+    params = {
+        "stats": "season",
+        "group": "pitching",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {"era": 0.00, "whip": 0.00, "rating": 75}
+
+        data = response.json()
+        splits = data.get("stats", [{}])[0].get("splits", [])
+
+        if not splits:
+            return {"era": 0.00, "whip": 0.00, "rating": 75}
+
+        stat = splits[0].get("stat", {})
+
+        era = float(stat.get("era", 0.00))
+        whip = float(stat.get("whip", 0.00))
+        rating = calculate_pitcher_rating(era, whip)
+
+        return {
+            "era": era,
+            "whip": whip,
+            "rating": rating,
+        }
+
+    except Exception:
+        return {"era": 0.00, "whip": 0.00, "rating": 75}
+
+
 def get_mlb_probable_pitchers():
     today = date.today().isoformat()
 
@@ -367,29 +440,48 @@ def get_mlb_probable_pitchers():
                 away_team = teams.get("away", {}).get("team", {}).get("name")
                 home_team = teams.get("home", {}).get("team", {}).get("name")
 
-                away_pitcher = (
-                    teams.get("away", {})
-                    .get("probablePitcher", {})
-                    .get("fullName", "TBD")
+                away_pitcher_obj = teams.get("away", {}).get("probablePitcher", {})
+                home_pitcher_obj = teams.get("home", {}).get("probablePitcher", {})
+
+                away_pitcher_name = away_pitcher_obj.get("fullName", "TBD")
+                home_pitcher_name = home_pitcher_obj.get("fullName", "TBD")
+
+                away_pitcher_id = away_pitcher_obj.get("id")
+                home_pitcher_id = home_pitcher_obj.get("id")
+
+                away_stats = (
+                    get_pitcher_season_stats(away_pitcher_id)
+                    if away_pitcher_id
+                    else {"era": 0.00, "whip": 0.00, "rating": 75}
                 )
 
-                home_pitcher = (
-                    teams.get("home", {})
-                    .get("probablePitcher", {})
-                    .get("fullName", "TBD")
+                home_stats = (
+                    get_pitcher_season_stats(home_pitcher_id)
+                    if home_pitcher_id
+                    else {"era": 0.00, "whip": 0.00, "rating": 75}
                 )
 
                 if away_team:
-                    pitcher_map[away_team] = away_pitcher
+                    pitcher_map[away_team] = {
+                        "pitcher": away_pitcher_name,
+                        "era": away_stats.get("era", 0.00),
+                        "whip": away_stats.get("whip", 0.00),
+                        "rating": away_stats.get("rating", 75),
+                    }
 
                 if home_team:
-                    pitcher_map[home_team] = home_pitcher
+                    pitcher_map[home_team] = {
+                        "pitcher": home_pitcher_name,
+                        "era": home_stats.get("era", 0.00),
+                        "whip": home_stats.get("whip", 0.00),
+                        "rating": home_stats.get("rating", 75),
+                    }
 
         return pitcher_map
 
     except Exception:
         return {}
-
+    
 
 def get_cache(key):
     db = SessionLocal()
@@ -1108,60 +1200,63 @@ def model_mlb_today():
 
                         unit_size = get_dynamic_units(edge, confidence, recommendation)
 
-                        plays.append({
-                            "game": game_name,
-                            "sportsbook": sportsbook,
-                            "market": market_name,
-                            "pick": pick_name,
-                            "odds": odds,
-                            "implied_probability": round(implied, 2),
-                            "model_probability": round(model_prob, 2),
-                            "edge": edge,
-                            "confidence": confidence,
-                            "recommendation": recommendation,
-                            "units": unit_size,
-                            "model_version": "mlb_auto_starters_v1",
+                       plays.append({
+    "game": game_name,
+    "sportsbook": sportsbook,
+    "market": market_name,
+    "pick": pick_name,
+    "odds": odds,
+    "implied_probability": round(implied, 2),
+    "model_probability": round(model_prob, 2),
+    "edge": edge,
+    "confidence": confidence,
+    "recommendation": recommendation,
+    "units": unit_size,
+    "model_version": "mlb_auto_starters_v2",
 
-                            "starting_pitcher": probable_pitchers.get(
-                                outcome.get("name"),
-                                get_mlb_pitcher_data(outcome.get("name")).get("pitcher")
-                            ),
+    "starting_pitcher": probable_pitchers.get(
+        outcome.get("name"),
+        get_mlb_pitcher_data(outcome.get("name"))
+    ).get("pitcher"),
 
-                            "pitcher_era": get_mlb_pitcher_data(
-                                outcome.get("name")
-                            ).get("era"),
+    "pitcher_era": probable_pitchers.get(
+        outcome.get("name"),
+        get_mlb_pitcher_data(outcome.get("name"))
+    ).get("era"),
 
-                            "pitcher_whip": get_mlb_pitcher_data(
-                                outcome.get("name")
-                            ).get("whip"),
+    "pitcher_whip": probable_pitchers.get(
+        outcome.get("name"),
+        get_mlb_pitcher_data(outcome.get("name"))
+    ).get("whip"),
 
-                            "pitcher_rating": get_mlb_pitcher_data(
-                                outcome.get("name")
-                            ).get("rating"),
+    "pitcher_rating": probable_pitchers.get(
+        outcome.get("name"),
+        get_mlb_pitcher_data(outcome.get("name"))
+    ).get("rating"),
 
-                            "bullpen_fatigue": get_mlb_bullpen_data(
-                                outcome.get("name")
-                            ).get("fatigue"),
+    "bullpen_fatigue": get_mlb_bullpen_data(
+        outcome.get("name")
+    ).get("fatigue"),
 
-                            "bullpen_era": get_mlb_bullpen_data(
-                                outcome.get("name")
-                            ).get("bullpen_era"),
+    "bullpen_era": get_mlb_bullpen_data(
+        outcome.get("name")
+    ).get("bullpen_era"),
 
-                            "bullpen_status": get_mlb_bullpen_data(
-                                outcome.get("name")
-                            ).get("status"),
+    "bullpen_status": get_mlb_bullpen_data(
+        outcome.get("name")
+    ).get("status"),
 
-                            "reason": reason.strip()
-                        })
+    "reason": reason.strip()
+})
 
-        final = sorted(
-            plays,
-            key=lambda x: x["edge"],
-            reverse=True
-        )[:40]
+final = sorted(
+    plays,
+    key=lambda x: x["edge"],
+    reverse=True
+)[:40]
 
-        return {"plays": final}
+return {"plays": final}
 
-    except Exception as e:
-        print("MLB model error:", str(e))
-        return {"plays": []}
+except Exception as e:
+    print("MLB model error:", str(e))
+    return {"plays": []}
