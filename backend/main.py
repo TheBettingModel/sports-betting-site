@@ -1200,54 +1200,7 @@ def model_mlb_today():
 
                         unit_size = get_dynamic_units(edge, confidence, recommendation)
 
-                        plays.append({
-                            "game": game_name,
-                            "sportsbook": sportsbook,
-                            "market": market_name,
-                            "pick": pick_name,
-                            "odds": odds,
-                            "implied_probability": round(implied, 2),
-                            "model_probability": round(model_prob, 2),
-                            "edge": edge,
-                            "confidence": confidence,
-                            "recommendation": recommendation,
-                            "units": unit_size,
-                            "model_version": "mlb_auto_starters_v2",
 
-                            "starting_pitcher": probable_pitchers.get(
-                                outcome.get("name"),
-                                get_mlb_pitcher_data(outcome.get("name"))
-                            ).get("pitcher"),
-
-                            "pitcher_era": probable_pitchers.get(
-                                outcome.get("name"),
-                                get_mlb_pitcher_data(outcome.get("name"))
-                            ).get("era"),
-
-                            "pitcher_whip": probable_pitchers.get(
-                                outcome.get("name"),
-                                get_mlb_pitcher_data(outcome.get("name"))
-                            ).get("whip"),
-
-                            "pitcher_rating": probable_pitchers.get(
-                                outcome.get("name"),
-                                get_mlb_pitcher_data(outcome.get("name"))
-                            ).get("rating"),
-
-                            "bullpen_fatigue": get_mlb_bullpen_data(
-                                outcome.get("name")
-                            ).get("fatigue"),
-
-                            "bullpen_era": get_mlb_bullpen_data(
-                                outcome.get("name")
-                            ).get("bullpen_era"),
-
-                            "bullpen_status": get_mlb_bullpen_data(
-                                outcome.get("name")
-                            ).get("status"),
-
-                            "reason": reason.strip()
-                        })
 
                         plays.append({
                             "game": game_name,
