@@ -390,33 +390,48 @@ def get_pitcher_season_stats(player_id):
         response = requests.get(url, params=params, timeout=10)
 
         if response.status_code != 200:
-            return {"era": 0.00, "whip": 0.00, "rating": 75}
+            return {
+                "era": 0.00,
+                "whip": 0.00,
+                "rating": 75
+            }
 
         data = response.json()
         splits = data.get("stats", [{}])[0].get("splits", [])
 
         if not splits:
-            return {"era": 0.00, "whip": 0.00, "rating": 75}
+            return {
+                "era": 0.00,
+                "whip": 0.00,
+                "rating": 75
+            }
 
         stat = splits[0].get("stat", {})
 
-try:
-    era = float(stat.get("era", 0.00))
-except Exception:
-    era = 0.00
+        try:
+            era = float(stat.get("era", 0.00))
+        except:
+            era = 0.00
 
-try:
-    whip = float(stat.get("whip", 0.00))
-except Exception:
-    whip = 0.00
+        try:
+            whip = float(stat.get("whip", 0.00))
+        except:
+            whip = 0.00
+
         rating = calculate_pitcher_rating(era, whip)
 
         return {
             "era": era,
             "whip": whip,
-            "rating": rating,
+            "rating": rating
         }
 
+    except Exception:
+        return {
+            "era": 0.00,
+            "whip": 0.00,
+            "rating": 75
+        }
     except Exception:
         return {"era": 0.00, "whip": 0.00, "rating": 75}
 
