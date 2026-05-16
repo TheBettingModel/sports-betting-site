@@ -400,8 +400,15 @@ def get_pitcher_season_stats(player_id):
 
         stat = splits[0].get("stat", {})
 
-        era = float(stat.get("era", 0.00))
-        whip = float(stat.get("whip", 0.00))
+try:
+    era = float(stat.get("era", 0.00))
+except Exception:
+    era = 0.00
+
+try:
+    whip = float(stat.get("whip", 0.00))
+except Exception:
+    whip = 0.00
         rating = calculate_pitcher_rating(era, whip)
 
         return {
