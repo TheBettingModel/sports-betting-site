@@ -1092,10 +1092,12 @@ def model_mlb_today():
 
                             team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
 
-                            starter_name = probable_pitchers.get(
+                            starter_data = probable_pitchers.get(
                                 outcome.get("name"),
-                                team_pitcher.get("pitcher")
+                                team_pitcher
                             )
+
+                            starter_name = starter_data.get("pitcher")
 
                             reason += f"Starting pitcher: {starter_name}. "
                             reason += f"Pitcher adjustment ({pitcher_adj}). "
@@ -1135,12 +1137,16 @@ def model_mlb_today():
 
                             team_pitcher = get_mlb_pitcher_data(outcome.get("name"))
 
-                            starter_name = probable_pitchers.get(
+                            starter_data = probable_pitchers.get(
                                 outcome.get("name"),
-                                team_pitcher.get("pitcher")
+                                team_pitcher
+                            )
+
+                            starter_name = starter_data.get("pitcher")
                             )
 
                             reason += f"Starting pitcher: {starter_name}. "
+                            reason += f"(ERA {starter_data.get('era')}, WHIP {starter_data.get('whip')}, Rating {starter_data.get('rating')}). "
                             reason += f"Pitcher adjustment ({pitcher_adj}). "
 
                             team_bullpen = get_mlb_bullpen_data(outcome.get("name"))
