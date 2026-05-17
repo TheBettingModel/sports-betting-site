@@ -504,6 +504,42 @@ def get_mlb_probable_pitchers():
     except Exception:
         return {}
     
+def get_pitcher_rating_differential(game, team_name, probable_pitchers):
+    away_team = game.get("away_team")
+    home_team = game.get("home_team")
+
+    if team_name == away_team:
+        opponent = home_team
+    elif team_name == home_team:
+        opponent = away_team
+    else:
+        opponent = None
+
+    team_pitcher = probable_pitchers.get(
+        team_name,
+        {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75}
+    )
+
+    opponent_pitcher = probable_pitchers.get(
+        opponent,
+        {"pitcher": "TBD", "era": 0.00, "whip": 0.00, "rating": 75}
+    )
+
+    team_rating = float(team_pitcher.get("rating", 75))
+    opponent_rating = float(opponent_pitcher.get("rating", 75))
+
+    rating_diff = team_rating - opponent_rating
+
+    # Convert rating gap into probability edge
+    pitcher_diff_adj = round(rating_diff * 0.08, 2)
+
+    return {
+        "opponent": opponent,
+        "team_rating": team_rating,
+        "opponent_rating": opponent_rating,
+        "rating_diff": rating_diff,
+        "pitcher_diff_adj": pitcher_diff_adj,
+    }
 
 def get_cache(key):
     db = SessionLocal()
@@ -1088,14 +1124,16 @@ def model_mlb_today():
                         bullpen_era = bullpen_data.get("bullpen_era")
                         bullpen_status = bullpen_data.get("status")
 
-                        edge_boost = 0
+                        pitcher_diff = get_pitcher_rating_differential(
+                            game,
+                            team_name,
+                            probable_pitchers
+                        )
 
-                        if pitcher_rating >= 90:
-                            edge_boost += 1.2
-                        elif pitcher_rating >= 80:
-                            edge_boost += 0.8
-                        elif pitcher_rating <= 65:
-                            edge_boost -= 0.8
+                        edge_boost = pitcher_diff.get("pitcher_diff_adj", 0)
+
+                        if bullpen_fatigue >= 3:
+                            edge_boost -= 0.5
 
                         if bullpen_fatigue >= 3:
                             edge_boost -= 0.5
@@ -1170,7 +1208,8 @@ def model_mlb_today():
                             f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
                             f"Bullpen: {bullpen_status}. "
                             f"Bullpen fatigue: {bullpen_fatigue}. "
-                            f"Pitcher edge adjustment ({edge_boost})."
+                            f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
+                            f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')})."
                         )
 
                         plays.append({
@@ -1192,6 +1231,11 @@ def model_mlb_today():
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
 
+                            "opponent": pitcher_diff.get("opponent"),
+                            "opponent_pitcher_rating": pitcher_diff.get("opponent_rating"),
+                            "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
+                            "pitcher_diff_adjustment": pitcher_diff.get("pitcher_diff_adj"),
+
                             "bullpen_fatigue": bullpen_fatigue,
                             "bullpen_era": bullpen_era,
                             "bullpen_status": bullpen_status,
@@ -1210,3 +1254,4 @@ def model_mlb_today():
     except Exception as e:
         print("MLB MODEL ERROR:", str(e))
         return {"plays": []}
+    
