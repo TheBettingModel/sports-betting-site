@@ -1167,25 +1167,37 @@ def model_nba_today():
             best[key] = play
 
     final = list(best.values())
-    final.sort(
-        key=lambda x: (
-            x["recommendation"] == "Play",
-            x["edge"],
-        ),
-        reverse=True,
-    )
 
-    set_cache("nba_model", final)
+        best_by_game = {}
 
-    return {"plays": final}
+        for play in plays:
+            game = play.get("game")
 
+            if game not in best_by_game:
+                best_by_game[game] = play
+            else:
+                current_best = best_by_game[game]
+
+                if play.get("edge", 0) > current_best.get("edge", 0):
+                    best_by_game[game] = play
+
+        final = list(best_by_game.values())
+
+        final = sorted(
+            final,
+            key=lambda x: x["edge"],
+            reverse=True
+        )
+
+        set_cache("nba_model", final)
+        return {"plays": final}
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
-    #cached = get_cache("mlb_model")
+    cached = get_cache("mlb_model")
 
-    #if cached:
-        #return {"plays": cached}
+    if cached:
+        return {"plays": cached}
 
     odds_api_key = os.getenv("ODDS_API_KEY")
 
@@ -1403,7 +1415,7 @@ def model_mlb_today():
             key=lambda x: x["edge"],
             reverse=True
         )
-
+        set_cache("mlb_model", final)
         return {"plays": final}
 
     except Exception as e:
