@@ -1015,238 +1015,253 @@ def model_nba_today():
         "oddsFormat": "american",
     }
 
-    response = requests.get(ODDS_BASE_URL, params=params)
+    try:
+        response = requests.get(ODDS_BASE_URL, params=params, timeout=10)
 
-    if response.status_code != 200:
-        if cached:
-            return {"plays": cached, "cached": True, "error": response.text}
-        return {"plays": [], "error": response.text}
+        if response.status_code != 200:
+            if cached:
+                return {"plays": cached, "cached": True, "error": response.text}
+            return {"plays": [], "error": response.text}
 
-    if response.status_code != 200:
-        cached = get_cache("nba_model")
-        if cached:
-            return {"plays": cached}
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+        games = response.json()
+        plays = []
 
-    games = response.json()
-    plays = []
+        for game in games:
+            game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
 
-    for game in games:
-        game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
+            for bookmaker in game.get("bookmakers", []):
+                sportsbook = bookmaker.get("title", "")
 
-        for bookmaker in game.get("bookmakers", []):
-            sportsbook = bookmaker.get("title", "")
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
 
-            for market in bookmaker.get("markets", []):
-                market_key = market.get("key")
+                    for outcome in market.get("outcomes", []):
+                        odds = outcome.get("price")
 
-                for outcome in market.get("outcomes", []):
-                    odds = outcome.get("price")
-                    if odds is None:
-                        continue
-
-                    implied = american_to_implied_probability(odds)
-                    model_prob = implied
-                    pick_name = outcome.get("name", "")
-                    market_name = market_key
-                    reason = ""
-
-                    if market_key in ["h2h", "spreads"]:
-                        team_name = outcome.get("name")
-                        opponent = get_opponent_team(game, team_name)
-
-                        rating_gap = get_team_rating(team_name) - get_team_rating(opponent)
-                        rating_adj = rating_gap * (0.10 if market_key == "h2h" else 0.08)
-
-                        home_adj = get_home_court_adjustment(game, team_name)
-                        if market_key == "spreads":
-                            home_adj = home_adj * 0.6
-
-                        injury_adj = get_injury_adjustment(team_name)
-                        price_adj = get_price_adjustment(odds)
-
-                        if market_key == "h2h":
-                            if implied >= 80:
-                                base_adj = -0.5
-                                reason = "Heavy favorite looks more efficiently priced. "
-                            elif implied >= 70:
-                                base_adj = 0.2
-                                reason = "Strong favorite with limited extra value. "
-                            elif implied >= 60:
-                                base_adj = 1.0
-                                reason = "Moderate favorite with small pricing edge. "
-                            elif implied >= 52:
-                                base_adj = 1.8
-                                reason = "Favorite in a competitive range with some value. "
-                            elif implied >= 48:
-                                base_adj = 2.5
-                                reason = "Near coin-flip moneyline spot with pricing value. "
-                            elif implied >= 40:
-                                base_adj = 2.0
-                                reason = "Live underdog range with upset potential. "
-                            else:
-                                base_adj = 0.5
-                                reason = "Large underdog with limited pricing value. "
-
-                            market_name = "Moneyline"
-                            pick_name = team_name
-
-                        else:
-                            point = outcome.get("point")
-                            if point is None:
-                                continue
-
-                            spread = float(point)
-                            abs_spread = abs(spread)
-
-                            if abs_spread <= 3:
-                                base_adj = 2.8
-                                reason = "Short spread creates stronger cover value. "
-                            elif abs_spread <= 6:
-                                base_adj = 2.0
-                                reason = "Mid-range spread offers moderate cover value. "
-                            elif abs_spread <= 9:
-                                base_adj = 1.3
-                                reason = "Larger spread lowers confidence in margin. "
-                            else:
-                                base_adj = 0.7
-                                reason = "Big spread is harder to trust for a cover. "
-
-                            if spread > 0:
-                                base_adj += 0.4
-                                reason += "Underdog points add extra protection. "
-
-                            market_name = "Spread"
-                            pick_name = f"{team_name} {spread:+}"
-
-                        model_prob = (
-                            implied
-                            + base_adj
-                            + rating_adj
-                            + home_adj
-                            + injury_adj
-                            + price_adj
-                        )
-
-                        reason += f"Team rating adjustment ({round(rating_adj, 1)}). "
-                        reason += f"Home court ({round(home_adj, 1)}). "
-                        reason += f"Price adjustment ({round(price_adj, 1)}). "
-
-                        if injury_adj != 0:
-                            reason += f"Injury adjustment ({round(injury_adj, 1)}). "
-
-                    elif market_key == "totals":
-                        point = outcome.get("point")
-                        side = outcome.get("name")
-
-                        if point is None or side is None:
+                        if odds is None:
                             continue
 
-                        total = float(point)
-                        diff = total - 228
+                        implied = american_to_implied_probability(odds)
+                        model_prob = implied
+                        pick_name = outcome.get("name", "")
+                        market_name = market_key
+                        reason = ""
+                        playoff_adj = 0
+                        playoff_data = {"playoff_reasons": []}
 
-                        if abs(diff) <= 3:
-                            total_adj = diff * 0.20
-                            reason = "Total is near baseline, so edge stays smaller. "
-                        elif abs(diff) <= 7:
-                            total_adj = diff * 0.30
-                            reason = "Total is off baseline enough to create moderate value. "
+                        if market_key in ["h2h", "spreads"]:
+                            team_name = outcome.get("name")
+                            opponent = get_opponent_team(game, team_name)
+
+                            rating_gap = get_team_rating(team_name) - get_team_rating(opponent)
+                            rating_adj = rating_gap * (0.10 if market_key == "h2h" else 0.08)
+
+                            home_adj = get_home_court_adjustment(game, team_name)
+
+                            if market_key == "spreads":
+                                home_adj = home_adj * 0.6
+
+                            injury_adj = get_injury_adjustment(team_name)
+                            price_adj = get_price_adjustment(odds)
+
+                            if market_key == "h2h":
+                                if implied >= 80:
+                                    base_adj = -0.5
+                                    reason = "Heavy favorite looks more efficiently priced. "
+                                elif implied >= 70:
+                                    base_adj = 0.2
+                                    reason = "Strong favorite with limited extra value. "
+                                elif implied >= 60:
+                                    base_adj = 1.0
+                                    reason = "Moderate favorite with small pricing edge. "
+                                elif implied >= 52:
+                                    base_adj = 1.8
+                                    reason = "Favorite in a competitive range with some value. "
+                                elif implied >= 48:
+                                    base_adj = 2.5
+                                    reason = "Near coin-flip moneyline spot with pricing value. "
+                                elif implied >= 40:
+                                    base_adj = 2.0
+                                    reason = "Live underdog range with upset potential. "
+                                else:
+                                    base_adj = 0.5
+                                    reason = "Large underdog with limited pricing value. "
+
+                                market_name = "Moneyline"
+                                pick_name = team_name
+                                spread_for_playoff = None
+
+                            else:
+                                point = outcome.get("point")
+
+                                if point is None:
+                                    continue
+
+                                spread = float(point)
+                                abs_spread = abs(spread)
+
+                                if abs_spread <= 3:
+                                    base_adj = 2.8
+                                    reason = "Short spread creates stronger cover value. "
+                                elif abs_spread <= 6:
+                                    base_adj = 2.0
+                                    reason = "Mid-range spread offers moderate cover value. "
+                                elif abs_spread <= 9:
+                                    base_adj = 1.3
+                                    reason = "Larger spread lowers confidence in margin. "
+                                else:
+                                    base_adj = 0.7
+                                    reason = "Big spread is harder to trust for a cover. "
+
+                                if spread > 0:
+                                    base_adj += 0.4
+                                    reason += "Underdog points add extra protection. "
+
+                                market_name = "Spread"
+                                pick_name = f"{team_name} {spread:+}"
+                                spread_for_playoff = spread
+
+                            model_prob = (
+                                implied
+                                + base_adj
+                                + rating_adj
+                                + home_adj
+                                + injury_adj
+                                + price_adj
+                            )
+
+                            playoff_data = get_nba_playoff_adjustment(
+                                game,
+                                team_name,
+                                spread_for_playoff,
+                                None
+                            )
+
+                            playoff_adj = playoff_data.get("playoff_adjustment", 0)
+                            model_prob += playoff_adj
+
+                            reason += f"Team rating adjustment ({round(rating_adj, 1)}). "
+                            reason += f"Home court ({round(home_adj, 1)}). "
+                            reason += f"Price adjustment ({round(price_adj, 1)}). "
+                            reason += f"Playoff adjustment ({round(playoff_adj, 1)}). "
+
+                            if injury_adj != 0:
+                                reason += f"Injury adjustment ({round(injury_adj, 1)}). "
+
+                        elif market_key == "totals":
+                            point = outcome.get("point")
+                            side = outcome.get("name")
+
+                            if point is None or side is None:
+                                continue
+
+                            total = float(point)
+                            diff = total - 228
+
+                            if abs(diff) <= 3:
+                                total_adj = diff * 0.20
+                                reason = "Total is near baseline, so edge stays smaller. "
+                            elif abs(diff) <= 7:
+                                total_adj = diff * 0.30
+                                reason = "Total is off baseline enough to create moderate value. "
+                            else:
+                                total_adj = diff * 0.40
+                                reason = "Extreme total creates stronger pricing opportunity. "
+
+                            if side == "Over":
+                                model_prob = 50 - total_adj
+                                reason += "Over gets stronger when posted total is lower. "
+                            else:
+                                model_prob = 50 + total_adj
+                                reason += "Under gets stronger when posted total is higher. "
+
+                            home_team = game.get("home_team")
+                            home_team_rating = get_team_rating(home_team)
+                            home_total_adj = (home_team_rating - 75) * 0.03
+
+                            if side == "Over":
+                                model_prob += home_total_adj
+                            else:
+                                model_prob -= home_total_adj
+
+                            price_adj = get_price_adjustment(odds) * 0.5
+                            model_prob += price_adj
+
+                            playoff_data = get_nba_playoff_adjustment(
+                                game,
+                                side,
+                                None,
+                                total
+                            )
+
+                            playoff_adj = playoff_data.get("playoff_adjustment", 0)
+                            model_prob += playoff_adj
+
+                            model_prob = max(43, min(57, model_prob))
+
+                            market_name = "Total"
+                            pick_name = f"{side} {point}"
+
+                            reason += f"Home team total adjustment ({round(home_total_adj, 1)}). "
+                            reason += f"Price adjustment ({round(price_adj, 1)}). "
+                            reason += f"Playoff adjustment ({round(playoff_adj, 1)}). "
+
                         else:
-                            total_adj = diff * 0.40
-                            reason = "Extreme total creates stronger pricing opportunity. "
+                            continue
 
-                        if side == "Over":
-                            model_prob = 50 - total_adj
-                            reason += "Over gets stronger when posted total is lower. "
+                        original_prob = model_prob
+                        model_prob = calibrate_model_probability(model_prob)
+
+                        if round(original_prob, 2) != round(model_prob, 2):
+                            reason += "Calibration applied. "
+
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
                         else:
-                            model_prob = 50 + total_adj
-                            reason += "Under gets stronger when posted total is higher. "
+                            recommendation = "Pass"
 
-                        home_team = game.get("home_team")
-                        home_team_rating = get_team_rating(home_team)
-                        home_total_adj = (home_team_rating - 75) * 0.03
-
-                        if side == "Over":
-                            model_prob += home_total_adj
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
                         else:
-                            model_prob -= home_total_adj
+                            confidence = 60
 
-                        price_adj = get_price_adjustment(odds) * 0.5
-                        model_prob += price_adj
+                        unit_size = get_dynamic_units(
+                            edge,
+                            confidence,
+                            recommendation
+                        )
 
-                        model_prob = max(43, min(57, model_prob))
-
-                        market_name = "Total"
-                        pick_name = f"{side} {point}"
-
-                        reason += f"Home team total adjustment ({round(home_total_adj, 1)}). "
-                        reason += f"Price adjustment ({round(price_adj, 1)}). "
-
-                    else:
-                        continue
-
-                    original_prob = model_prob
-                    model_prob = calibrate_model_probability(model_prob)
-
-                    if round(original_prob, 2) != round(model_prob, 2):
-                        reason += "Calibration applied. "
-
-                    edge = round(model_prob - implied, 2)
-
-                    if edge >= 4:
-                        recommendation = "Play"
-                    elif edge >= 2:
-                        recommendation = "Lean"
-                    else:
-                        recommendation = "Pass"
-
-                    if edge >= 5:
-                        confidence = 90
-                    elif edge >= 4:
-                        confidence = 84
-                    elif edge >= 3:
-                        confidence = 78
-                    elif edge >= 2:
-                        confidence = 72
-                    else:
-                        confidence = 60
-
-                    unit_size = get_dynamic_units(edge, confidence, recommendation)
-                    reason += f"Recommended unit size: {unit_size}u."
-
-                    plays.append(
-                        {
+                        plays.append({
                             "game": game_name,
                             "sportsbook": sportsbook,
                             "market": market_name,
                             "pick": pick_name,
                             "odds": odds,
-                            "implied_probability": implied,
+                            "implied_probability": round(implied, 2),
                             "model_probability": round(model_prob, 2),
                             "edge": edge,
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
-                            "reason": reason.strip(),
                             "playoff_mode": True,
                             "playoff_adjustment": playoff_adj,
                             "playoff_reasons": playoff_data.get("playoff_reasons", []),
-                        }
-                    )
+                            "reason": reason.strip()
+                        })
 
-    best = {}
+        best_by_game = {}
 
-    for play in plays:
-        key = f"{play['game']}__{play['market']}"
-
-        if key not in best or play["edge"] > best[key]["edge"]:
-            best[key] = play
-
-    final = list(best.values())
-
-    best_by_game = {}
-
-    for play in plays:
+        for play in plays:
             game = play.get("game")
 
             if game not in best_by_game:
@@ -1257,16 +1272,22 @@ def model_nba_today():
                 if play.get("edge", 0) > current_best.get("edge", 0):
                     best_by_game[game] = play
 
-    final = list(best_by_game.values())
+        final = list(best_by_game.values())
 
-    final = sorted(
+        final = sorted(
             final,
             key=lambda x: x["edge"],
             reverse=True
         )
 
-    set_cache("nba_model", final)
-    return {"plays": final}
+        set_cache("nba_model", final)
+
+        return {"plays": final}
+
+    except Exception as e:
+        if cached:
+            return {"plays": cached, "cached": True, "error": str(e)}
+        return {"plays": [], "error": str(e)}
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
