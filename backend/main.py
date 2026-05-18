@@ -984,6 +984,7 @@ def model_performance():
 
 @app.get("/model/nba/today")
 def model_nba_today():
+    cached = get_cache("nba_model")
     if not ODDS_API_KEY:
         cached = get_cache("nba_model")
         if cached:
@@ -1270,13 +1271,14 @@ def model_mlb_today():
         response = requests.get(url, params=params, timeout=10)
 
         if response.status_code != 200:
+            if cached:
+                return {"plays": cached, "cached": True}
             return {"plays": [], "error": response.text}
-        
+
         games = response.json()
         probable_pitchers = get_mlb_probable_pitchers()
         auto_bullpen_data = get_auto_bullpen_data()
         plays = []
-
 
         for game in games:
             game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
@@ -1312,9 +1314,9 @@ def model_mlb_today():
                         pitcher_rating = starter_data.get("rating")
 
                         bullpen_data = auto_bullpen_data.get(
-                        team_name,
-                        get_mlb_bullpen_data(team_name)
-                        )                       
+                            team_name,
+                            get_mlb_bullpen_data(team_name)
+                        )
 
                         bullpen_fatigue = bullpen_data.get("fatigue")
                         bullpen_era = bullpen_data.get("bullpen_era")
@@ -1327,16 +1329,16 @@ def model_mlb_today():
                         )
 
                         market_adj = get_mlb_market_adjustment(
-                        market_key,
-                        odds,
-                        outcome.get("point"),
-                        outcome.get("name")
+                            market_key,
+                            odds,
+                            outcome.get("point"),
+                            outcome.get("name")
                         )
 
-                        edge_boost = pitcher_diff.get("pitcher_diff_adj", 0) + market_adj
-
-                        if bullpen_fatigue >= 3:
-                            edge_boost -= 0.5
+                        edge_boost = (
+                            pitcher_diff.get("pitcher_diff_adj", 0)
+                            + market_adj
+                        )
 
                         if bullpen_fatigue >= 3:
                             edge_boost -= 0.5
@@ -1378,19 +1380,6 @@ def model_mlb_today():
                             continue
 
                         model_prob = implied + edge_boost
-
-                        playoff_data = get_nba_playoff_adjustment(
-                            game,
-                            outcome.get("name"),
-                            outcome.get("point"),
-                            None
-                        )
-
-                        playoff_adj = playoff_data.get("playoff_adjustment", 0)
-
-                        model_prob += playoff_adj
-                        playoff_data = get_nba_playoff_adjustment
-
                         model_prob = max(1, min(99, model_prob))
 
                         edge = round(model_prob - implied, 2)
@@ -1427,7 +1416,7 @@ def model_mlb_today():
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Market adjustment ({round(market_adj, 2)})."
-)
+                        )
 
                         plays.append({
                             "game": game_name,
@@ -1442,22 +1431,18 @@ def model_mlb_today():
                             "recommendation": recommendation,
                             "units": unit_size,
                             "model_version": "mlb_v3_pitcher_edge",
-
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
-
                             "opponent": pitcher_diff.get("opponent"),
                             "opponent_pitcher_rating": pitcher_diff.get("opponent_rating"),
                             "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
                             "pitcher_diff_adjustment": pitcher_diff.get("pitcher_diff_adj"),
                             "market_adjustment": round(market_adj, 2),
-
                             "bullpen_fatigue": bullpen_fatigue,
                             "bullpen_era": bullpen_era,
                             "bullpen_status": bullpen_status,
-
                             "reason": reason
                         })
 
@@ -1481,8 +1466,19 @@ def model_mlb_today():
             key=lambda x: x["edge"],
             reverse=True
         )
+
         set_cache("mlb_model", final)
         return {"plays": final}
-
+    
     except Exception as e:
-        return {"plays": [], "error": str(e)}
+        if cached:
+            return {
+                "plays": cached,
+                "cached": True,
+                "error": str(e)
+            }
+
+        return {
+            "plays": [],
+            "error": str(e)
+        }
