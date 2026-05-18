@@ -602,8 +602,8 @@ def get_auto_bullpen_status(fatigue_score):
 
 def get_auto_bullpen_data():
     today = date.today()
-    start_date = (today - timedelta(days=4)).isoformat()
-    end_date = (today - timedelta(days=1)).isoformat()
+    start_date = (today - timedelta(days=7)).isoformat()
+    end_date = today.isoformat()
 
     url = "https://statsapi.mlb.com/api/v1/schedule"
     params = {
