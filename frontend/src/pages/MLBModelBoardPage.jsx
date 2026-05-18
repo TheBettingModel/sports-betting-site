@@ -24,9 +24,9 @@ function MLBModelBoardPage() {
       const response = await fetch(`${API_URL}/save-pick`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(play),
+        body: JSON.stringify(play)
       });
 
       const data = await response.json();
@@ -61,18 +61,18 @@ function MLBModelBoardPage() {
           <div
             key={index}
             style={{
-              border: "1px solid white",
-              borderRadius: "8px",
+              border: "1px solid #374151",
+              borderRadius: "10px",
               padding: "20px",
               marginBottom: "20px",
-              backgroundColor: "#111827",
+              backgroundColor: "#111827"
             }}
           >
-            <h3>{play.game}</h3>
+            <h2>{play.game}</h2>
 
-            <p>
-              <strong>Pick:</strong> {play.pick}
-            </p>
+            <h3>
+              {play.recommendation}: {play.pick}
+            </h3>
 
             <p>
               <strong>Market:</strong> {play.market}
@@ -85,6 +85,14 @@ function MLBModelBoardPage() {
             <p>
               <strong>Odds:</strong> {play.odds}
             </p>
+
+            <p>
+              <strong>Units:</strong> {play.units}u
+            </p>
+
+            <hr />
+
+            <h3>Model Edge</h3>
 
             <p>
               <strong>Implied Probability:</strong>{" "}
@@ -105,16 +113,80 @@ function MLBModelBoardPage() {
             </p>
 
             <p>
-              <strong>Units:</strong> {play.units}u
+              <strong>Market Adjustment:</strong>{" "}
+              {play.market_adjustment ?? "N/A"}
+            </p>
+
+            <hr />
+
+            <h3>Starting Pitcher</h3>
+
+            <p>
+              <strong>Pitcher:</strong>{" "}
+              {play.starting_pitcher || "TBD"}
             </p>
 
             <p>
-              <strong>Recommendation:</strong>{" "}
-              {play.recommendation}
+              <strong>ERA:</strong> {play.pitcher_era}
             </p>
 
             <p>
-              <strong>Reason:</strong> {play.reason}
+              <strong>WHIP:</strong> {play.pitcher_whip}
+            </p>
+
+            <p>
+              <strong>Pitcher Rating:</strong>{" "}
+              {play.pitcher_rating}
+            </p>
+
+            <p>
+              <strong>Opponent:</strong>{" "}
+              {play.opponent || "N/A"}
+            </p>
+
+            <p>
+              <strong>Opponent Pitcher Rating:</strong>{" "}
+              {play.opponent_pitcher_rating ?? "N/A"}
+            </p>
+
+            <p>
+              <strong>Pitcher Rating Differential:</strong>{" "}
+              {play.pitcher_rating_diff ?? "N/A"}
+            </p>
+
+            <p>
+              <strong>Pitcher Diff Adjustment:</strong>{" "}
+              {play.pitcher_diff_adjustment ?? "N/A"}
+            </p>
+
+            <hr />
+
+            <h3>Bullpen</h3>
+
+            <p>
+              <strong>Bullpen Status:</strong>{" "}
+              {play.bullpen_status}
+            </p>
+
+            <p>
+              <strong>Bullpen Fatigue:</strong>{" "}
+              {play.bullpen_fatigue}
+            </p>
+
+            <p>
+              <strong>Bullpen ERA:</strong>{" "}
+              {play.bullpen_era}
+            </p>
+
+            <hr />
+
+            <h3>Reason</h3>
+
+            <p>{play.reason}</p>
+
+            <p>
+              <strong>Model Version:</strong>{" "}
+              {play.model_version}
             </p>
 
             <button
@@ -125,8 +197,9 @@ function MLBModelBoardPage() {
                 backgroundColor: "#22c55e",
                 color: "white",
                 border: "none",
-                borderRadius: "5px",
+                borderRadius: "6px",
                 cursor: "pointer",
+                fontWeight: "bold"
               }}
             >
               Save Pick
@@ -139,3 +212,4 @@ function MLBModelBoardPage() {
 }
 
 export default MLBModelBoardPage;
+
