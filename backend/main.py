@@ -1182,15 +1182,15 @@ def model_nba_today():
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
-    cached = get_cache("mlb_model")
+    #cached = get_cache("mlb_model")
 
-    if cached:
-        return {"plays": cached}
+    #if cached:
+        #return {"plays": cached}
 
     odds_api_key = os.getenv("ODDS_API_KEY")
 
     if not odds_api_key:
-        return {"plays": []}
+        return {"plays": [], "error": "Missing ODDS_API_KEY"}
 
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 
@@ -1205,7 +1205,7 @@ def model_mlb_today():
         response = requests.get(url, params=params, timeout=10)
 
         if response.status_code != 200:
-            return {"plays": []}
+            return {"plays": [], "error": response.text}
         
         games = response.json()
         probable_pitchers = get_mlb_probable_pitchers()
@@ -1407,6 +1407,4 @@ def model_mlb_today():
         return {"plays": final}
 
     except Exception as e:
-        print("MLB MODEL ERROR:", str(e))
-        return {"plays": []}
-    
+        return {"plays": [], "error": str(e)}
