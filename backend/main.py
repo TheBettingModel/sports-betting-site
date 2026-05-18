@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
-from datetime import date
+from datetime import date, timedelta
 
 
 from database import SessionLocal, engine
@@ -590,6 +590,82 @@ def get_mlb_market_adjustment(market_key, odds, point=None, side=None):
 
     return 0
 
+def get_auto_bullpen_status(fatigue_score):
+    if fatigue_score >= 5:
+        return "Very Tired"
+    if fatigue_score >= 3:
+        return "Tired"
+    if fatigue_score <= -1:
+        return "Fresh"
+    return "Normal"
+
+
+def get_auto_bullpen_data():
+    today = date.today()
+    start_date = (today - timedelta(days=4)).isoformat()
+    end_date = (today - timedelta(days=1)).isoformat()
+
+    url = "https://statsapi.mlb.com/api/v1/schedule"
+    params = {
+        "sportId": 1,
+        "startDate": start_date,
+        "endDate": end_date,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {}
+
+        data = response.json()
+        bullpen_map = {}
+
+        for day in data.get("dates", []):
+            for game in day.get("games", []):
+                teams = game.get("teams", {})
+
+                away_team = teams.get("away", {}).get("team", {}).get("name")
+                home_team = teams.get("home", {}).get("team", {}).get("name")
+
+                away_score = teams.get("away", {}).get("score", 0) or 0
+                home_score = teams.get("home", {}).get("score", 0) or 0
+
+                score_diff = abs(away_score - home_score)
+
+                for team_name, runs_allowed in [
+                    (away_team, home_score),
+                    (home_team, away_score),
+                ]:
+                    if not team_name:
+                        continue
+
+                    if team_name not in bullpen_map:
+                        bullpen_map[team_name] = {
+                            "fatigue": 0,
+                            "bullpen_era": 0.00,
+                            "status": "Normal",
+                        }
+
+                    # Recent games add baseline usage
+                    bullpen_map[team_name]["fatigue"] += 1
+
+                    # High runs allowed often means bullpen stress
+                    if runs_allowed >= 6:
+                        bullpen_map[team_name]["fatigue"] += 1
+
+                    # Close games often mean leverage relievers used
+                    if score_diff <= 2:
+                        bullpen_map[team_name]["fatigue"] += 1
+
+        for team_name, data in bullpen_map.items():
+            fatigue = data.get("fatigue", 0)
+            data["status"] = get_auto_bullpen_status(fatigue)
+
+        return bullpen_map
+
+    except Exception:
+        return {}
 
 def get_cache(key):
     db = SessionLocal()
@@ -1130,10 +1206,12 @@ def model_mlb_today():
 
         if response.status_code != 200:
             return {"plays": []}
-
+        
         games = response.json()
         probable_pitchers = get_mlb_probable_pitchers()
+        auto_bullpen_data = get_auto_bullpen_data()
         plays = []
+
 
         for game in games:
             game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
@@ -1168,7 +1246,10 @@ def model_mlb_today():
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
 
-                        bullpen_data = get_mlb_bullpen_data(team_name)
+                        bullpen_data = auto_bullpen_data.get(
+                        team_name,
+                        get_mlb_bullpen_data(team_name)
+                        )                       
 
                         bullpen_fatigue = bullpen_data.get("fatigue")
                         bullpen_era = bullpen_data.get("bullpen_era")
@@ -1328,5 +1409,4 @@ def model_mlb_today():
     except Exception as e:
         print("MLB MODEL ERROR:", str(e))
         return {"plays": []}
-    
     
