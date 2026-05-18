@@ -754,11 +754,21 @@ def root():
 
 @app.get("/get-nba-odds")
 def get_nba_odds():
+
+    cached = get_cache("nba_odds")
+
     if not ODDS_API_KEY:
-        cached = get_cache("nba_odds")
         if cached:
-            return cached
-        raise HTTPException(status_code=500, detail="Missing API key")
+            return {
+                "plays": cached,
+                "cached": True,
+                "error": "Missing API key"
+            }
+
+        return {
+            "plays": [],
+            "error": "Missing API key"
+        }
 
     params = {
         "apiKey": ODDS_API_KEY,
@@ -774,11 +784,18 @@ def get_nba_odds():
         set_cache("nba_odds", data)
         return data
 
-    cached = get_cache("nba_odds")
     if cached:
-        return cached
+        return {
+            "plays": cached,
+            "cached": True,
+            "error": response.text
+        }
 
-    raise HTTPException(status_code=response.status_code, detail=response.text)
+    return {
+        "plays": [],
+        "error": response.text
+    }
+
 
 
 @app.get("/saved-picks")
@@ -985,11 +1002,11 @@ def model_performance():
 @app.get("/model/nba/today")
 def model_nba_today():
     cached = get_cache("nba_model")
+
     if not ODDS_API_KEY:
-        cached = get_cache("nba_model")
         if cached:
-            return {"plays": cached}
-        raise HTTPException(status_code=500, detail="Missing API key")
+            return {"plays": cached, "cached": True, "error": "Missing API key"}
+        return {"plays": [], "error": "Missing API key"}
 
     params = {
         "apiKey": ODDS_API_KEY,
@@ -999,6 +1016,11 @@ def model_nba_today():
     }
 
     response = requests.get(ODDS_BASE_URL, params=params)
+
+    if response.status_code != 200:
+        if cached:
+            return {"plays": cached, "cached": True, "error": response.text}
+        return {"plays": [], "error": response.text}
 
     if response.status_code != 200:
         cached = get_cache("nba_model")
@@ -1482,3 +1504,4 @@ def model_mlb_today():
             "plays": [],
             "error": str(e)
         }
+    
