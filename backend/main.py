@@ -1302,15 +1302,30 @@ def model_mlb_today():
                             "reason": reason
                         })
 
-        final = sorted(
-            plays,
-            key=lambda x: x["edge"],
-            reverse=True
-        )[:40]
+                        best_by_game = {}
 
-        return {"plays": final}
+                        for play in plays:
+                            game = play.get("game")
 
-    except Exception as e:
-        print("MLB MODEL ERROR:", str(e))
-        return {"plays": []}
+                            if game not in best_by_game:
+                                best_by_game[game] = play
+                            else:
+                                current_best = best_by_game[game]
+
+                                if play.get("edge", 0) > current_best.get("edge", 0):
+                                    best_by_game[game] = play
+
+                        final = list(best_by_game.values())
+
+                        final = sorted(
+                            final,
+                            key=lambda x: x["edge"],
+                            reverse=True
+                        )
+
+                        return {"plays": final}
+
+                    except Exception as e:
+                    print("MLB MODEL ERROR:", str(e))
+                    return {"plays": []}
     
