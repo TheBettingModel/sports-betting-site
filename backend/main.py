@@ -541,6 +541,56 @@ def get_pitcher_rating_differential(game, team_name, probable_pitchers):
         "pitcher_diff_adj": pitcher_diff_adj,
     }
 
+def get_mlb_market_adjustment(market_key, odds, point=None, side=None):
+    price_adj = get_price_adjustment(odds)
+
+    if market_key == "h2h":
+        implied = american_to_implied_probability(odds)
+
+        if implied >= 70:
+            return -0.8 + price_adj
+        elif implied >= 58:
+            return 0.4 + price_adj
+        elif implied >= 48:
+            return 0.9 + price_adj
+        elif implied >= 40:
+            return 0.7 + price_adj
+        else:
+            return 0.2 + price_adj
+
+    if market_key == "spreads":
+        if point is None:
+            return 0
+
+        runline = float(point)
+        adj = 0.8 + price_adj
+
+        if runline > 0:
+            adj += 0.5
+
+        if abs(runline) > 1.5:
+            adj -= 0.4
+
+        return adj
+
+    if market_key == "totals":
+        if point is None or side is None:
+            return 0
+
+        total = float(point)
+        baseline = 8.5
+        diff = total - baseline
+
+        if side == "Over":
+            total_adj = -diff * 0.35
+        else:
+            total_adj = diff * 0.35
+
+        return total_adj + (price_adj * 0.5)
+
+    return 0
+
+
 def get_cache(key):
     db = SessionLocal()
     try:
@@ -1130,7 +1180,14 @@ def model_mlb_today():
                             probable_pitchers
                         )
 
-                        edge_boost = pitcher_diff.get("pitcher_diff_adj", 0)
+                        market_adj = get_mlb_market_adjustment(
+                        market_key,
+                        odds,
+                        outcome.get("point"),
+                        outcome.get("name")
+                        )
+
+                        edge_boost = pitcher_diff.get("pitcher_diff_adj", 0) + market_adj
 
                         if bullpen_fatigue >= 3:
                             edge_boost -= 0.5
@@ -1209,8 +1266,9 @@ def model_mlb_today():
                             f"Bullpen: {bullpen_status}. "
                             f"Bullpen fatigue: {bullpen_fatigue}. "
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
-                            f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')})."
-                        )
+                            f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
+                            f"Market adjustment ({round(market_adj, 2)})."
+)
 
                         plays.append({
                             "game": game_name,
@@ -1235,6 +1293,7 @@ def model_mlb_today():
                             "opponent_pitcher_rating": pitcher_diff.get("opponent_rating"),
                             "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
                             "pitcher_diff_adjustment": pitcher_diff.get("pitcher_diff_adj"),
+                            "market_adjustment": round(market_adj, 2),
 
                             "bullpen_fatigue": bullpen_fatigue,
                             "bullpen_era": bullpen_era,
