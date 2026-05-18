@@ -1168,9 +1168,9 @@ def model_nba_today():
 
     final = list(best.values())
 
-        best_by_game = {}
+    best_by_game = {}
 
-        for play in plays:
+    for play in plays:
             game = play.get("game")
 
             if game not in best_by_game:
@@ -1181,16 +1181,16 @@ def model_nba_today():
                 if play.get("edge", 0) > current_best.get("edge", 0):
                     best_by_game[game] = play
 
-        final = list(best_by_game.values())
+    final = list(best_by_game.values())
 
-        final = sorted(
+    final = sorted(
             final,
             key=lambda x: x["edge"],
             reverse=True
         )
 
-        set_cache("nba_model", final)
-        return {"plays": final}
+    set_cache("nba_model", final)
+    return {"plays": final}
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
