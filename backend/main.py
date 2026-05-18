@@ -179,6 +179,56 @@ MLB_BULLPEN_FATIGUE = {
     "San Francisco Giants": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
 }
 
+def get_nba_playoff_adjustment(game, team_name, spread=None, total=None):
+    adjustment = 0
+    reasons = []
+
+    home_team = game.get("home_team")
+    away_team = game.get("away_team")
+
+    is_home = team_name == home_team
+
+    # Playoff home court matters more
+    if is_home:
+        adjustment += 0.8
+        reasons.append("Playoff home-court boost")
+
+    # Underdogs become more valuable in tighter playoff games
+    if spread is not None:
+        try:
+            spread_value = float(spread)
+
+            if spread_value > 0 and spread_value <= 7.5:
+                adjustment += 0.7
+                reasons.append("Playable playoff underdog range")
+
+            if spread_value < 0 and abs(spread_value) >= 10:
+                adjustment -= 0.6
+                reasons.append("Large playoff favorite risk")
+
+        except Exception:
+            pass
+
+    # Playoff totals tend to tighten
+    if total is not None:
+        try:
+            total_value = float(total)
+
+            if total_value >= 220:
+                adjustment -= 0.4
+                reasons.append("High playoff total caution")
+
+            if total_value <= 210:
+                adjustment += 0.3
+                reasons.append("Lower playoff total environment")
+
+        except Exception:
+            pass
+
+    return {
+        "playoff_adjustment": round(adjustment, 2),
+        "playoff_reasons": reasons,
+    }
 
 def american_to_implied_probability(odds):
     try:
@@ -1155,6 +1205,9 @@ def model_nba_today():
                             "recommendation": recommendation,
                             "units": unit_size,
                             "reason": reason.strip(),
+                            "playoff_mode": True,
+                            "playoff_adjustment": playoff_adj,
+                            "playoff_reasons": playoff_data.get("playoff_reasons", []),
                         }
                     )
 
@@ -1325,6 +1378,19 @@ def model_mlb_today():
                             continue
 
                         model_prob = implied + edge_boost
+
+                        playoff_data = get_nba_playoff_adjustment(
+                            game,
+                            outcome.get("name"),
+                            outcome.get("point"),
+                            None
+                        )
+
+                        playoff_adj = playoff_data.get("playoff_adjustment", 0)
+
+                        model_prob += playoff_adj
+                        playoff_data = get_nba_playoff_adjustment
+
                         model_prob = max(1, min(99, model_prob))
 
                         edge = round(model_prob - implied, 2)
