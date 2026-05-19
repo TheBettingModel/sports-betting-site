@@ -161,7 +161,7 @@ function MLBModelBoardPage() {
 
             <hr />
 
-            <hr />
+            <hr /><button
 
             <h3>Weather / Ballpark</h3>
 
@@ -218,21 +218,7 @@ function MLBModelBoardPage() {
               {play.model_version}
             </p>
 
-            <button
-              onClick={() => savePick(play)}
-              style={{
-                marginTop: "10px",
-                padding: "10px 15px",
-                backgroundColor: "#22c55e",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-            >
-              Save Pick
-            </button>
+
           </div>
         ))
       )}

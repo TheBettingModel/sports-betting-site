@@ -196,13 +196,7 @@ function ModelBoardPage() {
       </div>
 
       <div style={{ marginBottom: "20px" }}>
-        <button
-          className="save-game-button"
-          onClick={handleSaveAllPlays}
-          disabled={saving}
-        >
-          {saving ? "Saving..." : "Save All Plays"}
-        </button>
+
       </div>
 
       {message && <p>{message}</p>}
