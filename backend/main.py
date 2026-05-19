@@ -178,6 +178,194 @@ MLB_BULLPEN_FATIGUE = {
     "San Diego Padres": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
     "San Francisco Giants": {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"},
 }
+MLB_BALLPARK_WEATHER = {
+    "Arizona Diamondbacks": {
+        "park": "Chase Field",
+        "run_factor": 1.02,
+        "hr_factor": 1.05,
+        "weather_risk": "Dome/Roof"
+    },
+    "Atlanta Braves": {
+        "park": "Truist Park",
+        "run_factor": 1.03,
+        "hr_factor": 1.04,
+        "weather_risk": "Warm weather boost"
+    },
+    "Baltimore Orioles": {
+        "park": "Camden Yards",
+        "run_factor": 0.98,
+        "hr_factor": 0.95,
+        "weather_risk": "Moderate"
+    },
+    "Boston Red Sox": {
+        "park": "Fenway Park",
+        "run_factor": 1.05,
+        "hr_factor": 0.98,
+        "weather_risk": "High doubles/run environment"
+    },
+    "Chicago Cubs": {
+        "park": "Wrigley Field",
+        "run_factor": 1.00,
+        "hr_factor": 1.00,
+        "weather_risk": "Wind sensitive"
+    },
+    "Chicago White Sox": {
+        "park": "Rate Field",
+        "run_factor": 1.04,
+        "hr_factor": 1.08,
+        "weather_risk": "Power friendly"
+    },
+    "Cincinnati Reds": {
+        "park": "Great American Ball Park",
+        "run_factor": 1.06,
+        "hr_factor": 1.14,
+        "weather_risk": "HR friendly"
+    },
+    "Cleveland Guardians": {
+        "park": "Progressive Field",
+        "run_factor": 0.99,
+        "hr_factor": 0.97,
+        "weather_risk": "Cool weather risk"
+    },
+    "Colorado Rockies": {
+        "park": "Coors Field",
+        "run_factor": 1.18,
+        "hr_factor": 1.12,
+        "weather_risk": "Altitude boost"
+    },
+    "Detroit Tigers": {
+        "park": "Comerica Park",
+        "run_factor": 0.97,
+        "hr_factor": 0.92,
+        "weather_risk": "Large park"
+    },
+    "Houston Astros": {
+        "park": "Daikin Park",
+        "run_factor": 1.01,
+        "hr_factor": 1.03,
+        "weather_risk": "Dome/Roof"
+    },
+    "Kansas City Royals": {
+        "park": "Kauffman Stadium",
+        "run_factor": 1.01,
+        "hr_factor": 0.91,
+        "weather_risk": "Large gap park"
+    },
+    "Los Angeles Angels": {
+        "park": "Angel Stadium",
+        "run_factor": 0.98,
+        "hr_factor": 0.96,
+        "weather_risk": "Mild weather"
+    },
+    "Los Angeles Dodgers": {
+        "park": "Dodger Stadium",
+        "run_factor": 0.99,
+        "hr_factor": 1.02,
+        "weather_risk": "Mild weather"
+    },
+    "Miami Marlins": {
+        "park": "loanDepot park",
+        "run_factor": 0.96,
+        "hr_factor": 0.94,
+        "weather_risk": "Dome/Roof"
+    },
+    "Milwaukee Brewers": {
+        "park": "American Family Field",
+        "run_factor": 1.02,
+        "hr_factor": 1.06,
+        "weather_risk": "Dome/Roof"
+    },
+    "Minnesota Twins": {
+        "park": "Target Field",
+        "run_factor": 0.99,
+        "hr_factor": 1.00,
+        "weather_risk": "Cool weather risk"
+    },
+    "New York Mets": {
+        "park": "Citi Field",
+        "run_factor": 0.97,
+        "hr_factor": 0.95,
+        "weather_risk": "Pitcher friendly"
+    },
+    "New York Yankees": {
+        "park": "Yankee Stadium",
+        "run_factor": 1.02,
+        "hr_factor": 1.12,
+        "weather_risk": "Short porch HR boost"
+    },
+    "Athletics": {
+        "park": "Sutter Health Park",
+        "run_factor": 1.00,
+        "hr_factor": 1.00,
+        "weather_risk": "Neutral"
+    },
+    "Oakland Athletics": {
+        "park": "Sutter Health Park",
+        "run_factor": 1.00,
+        "hr_factor": 1.00,
+        "weather_risk": "Neutral"
+    },
+    "Philadelphia Phillies": {
+        "park": "Citizens Bank Park",
+        "run_factor": 1.04,
+        "hr_factor": 1.09,
+        "weather_risk": "Power friendly"
+    },
+    "Pittsburgh Pirates": {
+        "park": "PNC Park",
+        "run_factor": 0.98,
+        "hr_factor": 0.93,
+        "weather_risk": "Pitcher friendly"
+    },
+    "San Diego Padres": {
+        "park": "Petco Park",
+        "run_factor": 0.96,
+        "hr_factor": 0.94,
+        "weather_risk": "Marine layer"
+    },
+    "San Francisco Giants": {
+        "park": "Oracle Park",
+        "run_factor": 0.95,
+        "hr_factor": 0.86,
+        "weather_risk": "Marine layer / pitcher friendly"
+    },
+    "Seattle Mariners": {
+        "park": "T-Mobile Park",
+        "run_factor": 0.97,
+        "hr_factor": 0.94,
+        "weather_risk": "Roof / pitcher friendly"
+    },
+    "St. Louis Cardinals": {
+        "park": "Busch Stadium",
+        "run_factor": 0.99,
+        "hr_factor": 0.96,
+        "weather_risk": "Neutral pitcher lean"
+    },
+    "Tampa Bay Rays": {
+        "park": "Tropicana Field",
+        "run_factor": 0.97,
+        "hr_factor": 0.96,
+        "weather_risk": "Dome"
+    },
+    "Texas Rangers": {
+        "park": "Globe Life Field",
+        "run_factor": 1.01,
+        "hr_factor": 1.04,
+        "weather_risk": "Dome/Roof"
+    },
+    "Toronto Blue Jays": {
+        "park": "Rogers Centre",
+        "run_factor": 1.02,
+        "hr_factor": 1.07,
+        "weather_risk": "Dome/Roof"
+    },
+    "Washington Nationals": {
+        "park": "Nationals Park",
+        "run_factor": 1.00,
+        "hr_factor": 1.02,
+        "weather_risk": "Warm weather boost"
+    },
+}
 
 def get_nba_playoff_adjustment(game, team_name, spread=None, total=None):
     adjustment = 0
@@ -639,6 +827,43 @@ def get_mlb_market_adjustment(market_key, odds, point=None, side=None):
         return total_adj + (price_adj * 0.5)
 
     return 0
+
+def get_mlb_weather_adjustment(game, market_key, side=None):
+    home_team = game.get("home_team")
+
+    park_data = MLB_BALLPARK_WEATHER.get(
+        home_team,
+        {
+            "park": "Unknown",
+            "run_factor": 1.00,
+            "hr_factor": 1.00,
+            "weather_risk": "Neutral",
+        }
+    )
+
+    run_factor = float(park_data.get("run_factor", 1.00))
+    hr_factor = float(park_data.get("hr_factor", 1.00))
+
+    run_adj = (run_factor - 1.00) * 20
+    hr_adj = (hr_factor - 1.00) * 10
+
+    total_weather_adj = round(run_adj + hr_adj, 2)
+
+    if market_key == "totals":
+        if side == "Over":
+            adjustment = total_weather_adj
+        else:
+            adjustment = -total_weather_adj
+    else:
+        adjustment = round(total_weather_adj * 0.25, 2)
+
+    return {
+        "park": park_data.get("park"),
+        "run_factor": run_factor,
+        "hr_factor": hr_factor,
+        "weather_risk": park_data.get("weather_risk"),
+        "weather_adjustment": round(adjustment, 2),
+    }
 
 def get_auto_bullpen_status(fatigue_score):
     if fatigue_score >= 5:
@@ -1378,9 +1603,18 @@ def model_mlb_today():
                             outcome.get("name")
                         )
 
+                        weather_data = get_mlb_weather_adjustment(
+                            game,
+                            market_key,
+                            outcome.get("name")
+                        )
+
+                        weather_adj = weather_data.get("weather_adjustment", 0)
+
                         edge_boost = (
                             pitcher_diff.get("pitcher_diff_adj", 0)
                             + market_adj
+                            + weather_adj
                         )
 
                         if bullpen_fatigue >= 3:
@@ -1459,6 +1693,8 @@ def model_mlb_today():
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Market adjustment ({round(market_adj, 2)})."
+                            f"Weather/Park adjustment ({weather_adj}). "
+                            f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}."
                         )
 
                         plays.append({
@@ -1483,6 +1719,11 @@ def model_mlb_today():
                             "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
                             "pitcher_diff_adjustment": pitcher_diff.get("pitcher_diff_adj"),
                             "market_adjustment": round(market_adj, 2),
+                            "weather_adjustment": weather_adj,
+                            "ballpark": weather_data.get("park"),
+                            "run_factor": weather_data.get("run_factor"),
+                            "hr_factor": weather_data.get("hr_factor"),
+                            "weather_risk": weather_data.get("weather_risk"),
                             "bullpen_fatigue": bullpen_fatigue,
                             "bullpen_era": bullpen_era,
                             "bullpen_status": bullpen_status,
