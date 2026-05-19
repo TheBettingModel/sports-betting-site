@@ -1,133 +1,103 @@
-import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 function HomePage() {
-  const [data, setData] = useState({
-    record: "0-0",
-    units: "0.00",
-    play_of_the_day: null,
-    other_picks: []
-  });
-  const [error, setError] = useState("");
+  const cardStyle = {
+    backgroundColor: "#111827",
+    border: "1px solid #374151",
+    borderRadius: "14px",
+    padding: "24px",
+    marginBottom: "20px",
+  };
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/picks`)
-      .then((res) => res.json())
-      .then((picks) => {
-        if (!Array.isArray(picks)) {
-          setError("Failed to load data");
-          return;
-        }
-
-        const pendingPicks = picks.filter(
-          (pick) => String(pick.result || "").trim() === "Pending"
-        );
-
-        const sortedPicks = [...pendingPicks].sort((a, b) => {
-          const aEdge = parseFloat(String(a.edge || "").replace("%", "")) || 0;
-          const bEdge = parseFloat(String(b.edge || "").replace("%", "")) || 0;
-          return bEdge - aEdge;
-        });
-
-        const wins = picks.filter((pick) => pick.result === "Win").length;
-        const losses = picks.filter((pick) => pick.result === "Loss").length;
-
-        const netUnits = picks.reduce((total, pick) => {
-          const unitValue = parseFloat(
-            String(pick.units || "").replace(" Units", "").replace(" Unit", "")
-          );
-          const oddsValue = parseFloat(pick.odds);
-
-          if (isNaN(unitValue) || isNaN(oddsValue)) return total;
-
-          if (pick.result === "Win") {
-            if (oddsValue > 0) {
-              return total + unitValue * (oddsValue / 100);
-            } else {
-              return total + unitValue * (100 / Math.abs(oddsValue));
-            }
-          }
-
-          if (pick.result === "Loss") {
-            return total - unitValue;
-          }
-
-          return total;
-        }, 0);
-
-        const playOfTheDay = sortedPicks.length > 0 ? sortedPicks[0] : null;
-        const otherPicks = sortedPicks.slice(1);
-
-        setData({
-          record: `${wins}-${losses}`,
-          units: netUnits.toFixed(2),
-          play_of_the_day: playOfTheDay,
-          other_picks: otherPicks
-        });
-      })
-      .catch(() => {
-        setError("Failed to load data");
-      });
-  }, []);
-
-  if (error) {
-    return (
-      <div className="app">
-        <h1>{error}</h1>
-      </div>
-    );
-  }
+  const buttonStyle = {
+    display: "inline-block",
+    marginTop: "12px",
+    padding: "12px 18px",
+    backgroundColor: "#e10600",
+    color: "white",
+    textDecoration: "none",
+    borderRadius: "8px",
+    fontWeight: "bold",
+  };
 
   return (
-    <div className="app">
-      <h1>Today’s Picks</h1>
+    <div style={{ padding: "40px", color: "white" }}>
+      <section style={{ maxWidth: "900px", marginBottom: "40px" }}>
+        <h1 style={{ fontSize: "42px", marginBottom: "12px" }}>
+          The Betting Model
+        </h1>
 
-      <div className="summary-bar">
-        <div className="summary-card">
-          <h3>Record</h3>
-          <p>{data.record}</p>
+        <p style={{ fontSize: "20px", color: "#d1d5db", lineHeight: "1.6" }}>
+          A sports betting intelligence platform built to identify value across
+          major markets using live odds, market pricing, player data, pitching
+          matchups, weather, confidence scores, and model-driven edge detection.
+        </p>
+
+        <p style={{ color: "#9ca3af", lineHeight: "1.6" }}>
+          Our goal is simple: provide sharper insight, cleaner betting context,
+          and transparent model reasoning before the market moves.
+        </p>
+      </section>
+
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gap: "20px",
+          maxWidth: "1100px",
+        }}
+      >
+        <div style={cardStyle}>
+          <h2>Live Odds</h2>
+          <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
+            Track current sportsbook odds across key markets and compare where
+            prices are moving.
+          </p>
+          <Link style={buttonStyle} to="/live-odds">
+            View Live Odds
+          </Link>
         </div>
 
-        <div className="summary-card">
-          <h3>Units</h3>
-          <p>{data.units}</p>
+        <div style={cardStyle}>
+          <h2>NBA Model</h2>
+          <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
+            View NBA model projections with pricing logic, confidence scoring,
+            playoff adjustments, and best available model plays.
+          </p>
+          <Link style={buttonStyle} to="/model-board">
+            View NBA Model
+          </Link>
         </div>
-      </div>
 
-      <h2>Play of the Day</h2>
-
-      {data.play_of_the_day ? (
-        <div className="pod-card">
-          <h3>{data.play_of_the_day.game}</h3>
-          <p><strong>Pick:</strong> {data.play_of_the_day.pick}</p>
-          <p><strong>Market:</strong> {data.play_of_the_day.market}</p>
-          <p><strong>Sportsbook:</strong> {data.play_of_the_day.sportsbook}</p>
-          <p><strong>Confidence:</strong> {data.play_of_the_day.confidence}</p>
-          <p><strong>Units:</strong> {data.play_of_the_day.units}</p>
-          <p><strong>Edge:</strong> {data.play_of_the_day.edge}</p>
+        <div style={cardStyle}>
+          <h2>MLB Model</h2>
+          <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
+            View MLB model insights powered by pitcher ratings, bullpen fatigue,
+            ballpark factors, weather environment, and market edge.
+          </p>
+          <Link style={buttonStyle} to="/mlb-model">
+            View MLB Model
+          </Link>
         </div>
-      ) : (
-        <p>No play available</p>
-      )}
+      </section>
 
-      <h2>Other Picks</h2>
-
-      {data.other_picks.length > 0 ? (
-        <div className="picks-grid">
-          {data.other_picks.map((pick, index) => (
-            <div className="pick-card" key={index}>
-              <h3>{pick.game}</h3>
-              <p><strong>Pick:</strong> {pick.pick}</p>
-              <p><strong>Market:</strong> {pick.market}</p>
-              <p><strong>Sportsbook:</strong> {pick.sportsbook}</p>
-              <p><strong>Confidence:</strong> {pick.confidence}</p>
-              <p><strong>Units:</strong> {pick.units}</p>
-              <p><strong>Edge:</strong> {pick.edge}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p>No other picks</p>
-      )}
+      <section
+        style={{
+          marginTop: "40px",
+          maxWidth: "900px",
+          padding: "20px",
+          borderTop: "1px solid #374151",
+          color: "#9ca3af",
+          fontSize: "14px",
+          lineHeight: "1.6",
+        }}
+      >
+        <p>
+          The Betting Model is built for research, education, and sports betting
+          analysis. No model can guarantee results. Always bet responsibly and
+          within your limits.
+        </p>
+      </section>
     </div>
   );
 }
