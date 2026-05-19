@@ -1,10 +1,4 @@
-# frontend/src/App.jsx
-
-```jsx
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-
-import HomePage from "./pages/HomePage";
-import LiveOddsPage from "./pages/LiveOddsPage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 
@@ -81,13 +75,3 @@ function App() {
 }
 
 export default App;
-```
-
-After saving:
-
-```bash
-cd ~/Desktop/sports-betting-site
-git add frontend/src/App.jsx
-git commit -m "Simplify public navigation"
-git push
-```
