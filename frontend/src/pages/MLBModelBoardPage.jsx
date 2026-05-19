@@ -161,6 +161,35 @@ function MLBModelBoardPage() {
 
             <hr />
 
+            <hr />
+
+            <h3>Weather / Ballpark</h3>
+
+            <p>
+              <strong>Ballpark:</strong>{" "}
+              {play.ballpark || "N/A"}
+            </p>
+
+            <p>
+              <strong>Weather Risk:</strong>{" "}
+              {play.weather_risk || "N/A"}
+            </p>
+
+            <p>
+              <strong>Run Factor:</strong>{" "}
+              {play.run_factor ?? "N/A"}
+            </p>
+
+            <p>
+              <strong>HR Factor:</strong>{" "}
+              {play.hr_factor ?? "N/A"}
+            </p>
+
+            <p>
+              <strong>Weather Adjustment:</strong>{" "}
+              {play.weather_adjustment ?? "N/A"}
+            </p>
+
             <h3>Bullpen</h3>
 
             <p>
