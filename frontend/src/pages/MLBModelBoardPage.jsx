@@ -161,7 +161,7 @@ function MLBModelBoardPage() {
 
             <hr />
 
-            <hr /><button
+            <hr />
 
             <h3>Weather / Ballpark</h3>
 
