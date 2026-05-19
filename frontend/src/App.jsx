@@ -1,4 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+
+import HomePage from "./pages/HomePage";
+import LiveOddsPage from "./pages/LiveOddsPage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 
