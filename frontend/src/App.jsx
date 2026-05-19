@@ -1,77 +1,93 @@
-import { Routes, Route, Link } from "react-router-dom";
+# frontend/src/App.jsx
+
+```jsx
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
-import ResultsPage from "./pages/ResultsPage";
-import SavedPicksPage from "./pages/SavedPicksPage";
-import AddPickPage from "./pages/AddPickPage";
-import PlayOfTheDayPage from "./pages/PlayOfTheDayPage";
 import LiveOddsPage from "./pages/LiveOddsPage";
 import ModelBoardPage from "./pages/ModelBoardPage";
-import ModelPerformancePage from "./pages/ModelPerformancePage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 
 function App() {
+  const linkStyle = {
+    color: "white",
+    textDecoration: "none",
+    fontWeight: "bold",
+    fontSize: "16px",
+  };
+
   return (
-    <div>
-      <nav style={navStyle}>
-        <div style={titleStyle}>Sports Betting Analysis</div>
+    <Router>
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "#0b0b0b",
+          color: "white",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        <nav
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "20px",
+            borderBottom: "1px solid #222",
+            backgroundColor: "#111",
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              color: "#e10600",
+            }}
+          >
+            The Betting Model
+          </h2>
 
-        <div style={linksStyle}>
-          <Link style={linkStyle} to="/">Home</Link>
-          <Link style={linkStyle} to="/results">Results</Link>
-          <Link style={linkStyle} to="/saved-picks">Saved Picks</Link>
-          <Link style={linkStyle} to="/add-pick">Add Pick</Link>
-          <Link style={linkStyle} to="/play-of-the-day">Play of the Day</Link>
-          <Link style={linkStyle} to="/live-odds">Live Odds</Link>
-          <Link style={linkStyle} to="/model-board">NBA Model</Link>
-          <Link style={linkStyle} to="/model-performance">Model Performance</Link>
-          <Link style={linkStyle} to="/mlb-model">MLB Model</Link>
-        </div>
-      </nav>
+          <div
+            style={{
+              display: "flex",
+              gap: "20px",
+            }}
+          >
+            <Link style={linkStyle} to="/">
+              Home
+            </Link>
 
-      <main style={{ padding: "20px" }}>
+            <Link style={linkStyle} to="/live-odds">
+              Live Odds
+            </Link>
+
+            <Link style={linkStyle} to="/model-board">
+              NBA Model
+            </Link>
+
+            <Link style={linkStyle} to="/mlb-model">
+              MLB Model
+            </Link>
+          </div>
+        </nav>
+
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="/saved-picks" element={<SavedPicksPage />} />
-          <Route path="/add-pick" element={<AddPickPage />} />
-          <Route path="/play-of-the-day" element={<PlayOfTheDayPage />} />
           <Route path="/live-odds" element={<LiveOddsPage />} />
           <Route path="/model-board" element={<ModelBoardPage />} />
-          <Route path="/model-performance" element={<ModelPerformancePage />} />
           <Route path="/mlb-model" element={<MLBModelBoardPage />} />
         </Routes>
-      </main>
-    </div>
+      </div>
+    </Router>
   );
 }
 
-const navStyle = {
-  backgroundColor: "#111827",
-  padding: "16px 32px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  flexWrap: "wrap",
-  gap: "16px",
-};
-
-const titleStyle = {
-  color: "white",
-  fontSize: "24px",
-  fontWeight: "bold",
-};
-
-const linksStyle = {
-  display: "flex",
-  gap: "16px",
-  flexWrap: "wrap",
-};
-
-const linkStyle = {
-  color: "white",
-  textDecoration: "none",
-  fontWeight: "bold",
-};
-
 export default App;
+```
+
+After saving:
+
+```bash
+cd ~/Desktop/sports-betting-site
+git add frontend/src/App.jsx
+git commit -m "Simplify public navigation"
+git push
+```
