@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 import LiveOddsPage from "./pages/LiveOddsPage";
@@ -14,7 +14,6 @@ function App() {
   };
 
   return (
-    <Router>
       <div
         style={{
           minHeight: "100vh",
@@ -73,7 +72,6 @@ function App() {
           <Route path="/mlb-model" element={<MLBModelBoardPage />} />
         </Routes>
       </div>
-    </Router>
   );
 }
 
