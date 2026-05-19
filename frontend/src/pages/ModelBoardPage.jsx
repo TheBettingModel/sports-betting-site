@@ -208,35 +208,86 @@ function ModelBoardPage() {
       ) : (
         <div className="picks-grid">
           {filteredGames.map((game, index) => (
-            <div
-              className={`pick-card ${isTopPlay(game) ? "top-play-card" : ""}`}
-              key={index}
-            >
-              {isTopPlay(game) && <div className="top-play-badge">Top Play</div>}
 
-              <h3>{game.game}</h3>
+          <div
+            key={index}
+            style={{
+              backgroundColor: "#111827",
+              border: isTopPlay(game)
+                ? "2px solid #e10600"
+                : "1px solid #374151",
+              borderRadius: "14px",
+              padding: "20px",
+              marginBottom: "20px",
+              color: "white",
+              boxShadow: isTopPlay(game)
+                ? "0 0 15px rgba(225, 6, 0, 0.35)"
+                : "none",
+            }}
+          >
+
+              {isTopPlay(game) && (
+                <div
+                  style={{
+                    backgroundColor: "#e10600",
+                    color: "white",
+                    padding: "6px 10px",
+                    borderRadius: "8px",
+                    display: "inline-block",
+                    marginBottom: "12px",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                  }}
+                >
+                  Top Play
+                </div>
+              )}
+
+              <h3 style={{ marginBottom: "12px" }}>
+                {game.game}
+              </h3>
+
               <p><strong>Pick:</strong> {game.pick}</p>
+
               <p><strong>Market:</strong> {game.market}</p>
+
               <p><strong>Sportsbook:</strong> {game.sportsbook}</p>
+
               <p><strong>Odds:</strong> {game.odds}</p>
-              <p><strong>Implied Probability:</strong> {game.implied_probability}%</p>
-              <p><strong>Model Probability:</strong> {game.model_probability}%</p>
+
+              <p>
+                <strong>Implied Probability:</strong>{" "}
+                {game.implied_probability}%
+              </p>
+
+              <p>
+                <strong>Model Probability:</strong>{" "}
+                {game.model_probability}%
+              </p>
+
               <p><strong>Edge:</strong> {game.edge}%</p>
-              <p><strong>Recommended Units:</strong> {getRecommendedUnits(game.edge)}</p>
-              <p><strong>Confidence:</strong> {game.confidence}%</p>
-              <p><strong>Recommendation:</strong> {game.recommendation}</p>
+
+              <p>
+                <strong>Recommended Units:</strong>{" "}
+                {getRecommendedUnits(game.edge)}
+              </p>
+
+              <p>
+                <strong>Confidence:</strong>{" "}
+                {game.confidence}%
+              </p>
+
+              <p>
+                <strong>Recommendation:</strong>{" "}
+                {game.recommendation}
+              </p>
+
               {game.reason && (
-                <p>
+                <p style={{ lineHeight: "1.6", color: "#d1d5db" }}>
                   <strong>Why:</strong> {game.reason}
                 </p>
               )}
 
-              <button
-                className="save-game-button"
-                onClick={() => handleSaveOne(game)}
-              >
-                Save to Picks
-              </button>
             </div>
           ))}
         </div>
