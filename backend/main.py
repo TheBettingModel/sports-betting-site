@@ -998,7 +998,7 @@ def get_nba_odds():
     params = {
         "apiKey": ODDS_API_KEY,
         "regions": "us",
-        "markets": "h2h,spreads,totals",
+        "markets": "h2h,spreads,totals,alternate_spreads,alternate_totals",
         "oddsFormat": "american",
     }
 
@@ -1627,7 +1627,7 @@ def model_mlb_today():
                             market_name = "Moneyline"
                             pick_name = team_name
 
-                        elif market_key == "spreads":
+                        elif market_key in ["spreads", "alternate_spreads"]:
                             point = outcome.get("point")
 
                             if point is None:
@@ -1639,7 +1639,7 @@ def model_mlb_today():
                             market_name = "Run Line"
                             pick_name = f"{team_name} {point:+}"
 
-                        elif market_key == "totals":
+                        elif market_key in ["totals", "alternate_totals"]:
                             point = outcome.get("point")
 
                             if point is None:
