@@ -47,16 +47,7 @@ function HomePage() {
           maxWidth: "1100px",
         }}
       >
-        <div style={cardStyle}>
-          <h2>Live Odds</h2>
-          <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
-            Track current sportsbook odds across key markets and compare where
-            prices are moving.
-          </p>
-          <Link style={buttonStyle} to="/live-odds">
-            View Live Odds
-          </Link>
-        </div>
+      
 
         <div style={cardStyle}>
           <h2>NBA Model</h2>
