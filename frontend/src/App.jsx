@@ -51,9 +51,7 @@ function App() {
               Home
             </Link>
 
-            <Link style={linkStyle} to="/live-odds">
-              Live Odds
-            </Link>
+
 
             <Link style={linkStyle} to="/model-board">
               NBA Model
