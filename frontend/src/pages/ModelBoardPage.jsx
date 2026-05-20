@@ -3,83 +3,62 @@ import { useEffect, useMemo, useState } from "react";
 function ModelBoardPage() {
   const [games, setGames] = useState([]);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [filter, setFilter] = useState("All");
-  const [saving, setSaving] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const badgeStyle = {
+    backgroundColor: "#1f2937",
+    border: "1px solid #374151",
+    color: "white",
+    padding: "8px 10px",
+    borderRadius: "999px",
+    fontSize: "14px",
+    fontWeight: "bold",
+  };
+
+  const miniStatStyle = {
+    backgroundColor: "#111827",
+    border: "1px solid #374151",
+    borderRadius: "10px",
+    padding: "12px",
+  };
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/model/nba/today`)
-      .then(async (response) => {
-        const data = await response.json();
-
-        if (!response.ok) {
-          const detail =
-            typeof data.detail === "string"
-              ? data.detail
-              : JSON.stringify(data.detail || "");
-
-          if (
-            detail.includes("OUT_OF_USAGE_CREDITS") ||
-            detail.includes("Usage quota has been reached")
-          ) {
-            throw new Error(
-              "Model Board is temporarily unavailable because the Odds API usage quota has been reached."
-            );
-          }
-
-          throw new Error("Failed to load model board");
-        }
-
-        return data;
-      })
+    fetch(`${API_URL}/model/nba/today`)
+      .then((res) => res.json())
       .then((data) => {
         if (data.plays) {
           setGames(data.plays);
         } else {
-          setError("Failed to load model board");
+          setError("Failed to load NBA model.");
         }
       })
-      .catch((err) => {
-        setError(err.message || "Failed to load model board");
+      .catch(() => {
+        setError("Failed to load NBA model.");
       });
-  }, []);
+  }, [API_URL]);
 
-  const dedupedGames = useMemo(() => {
-    const bestByPick = {};
-
-    for (const game of games) {
-      const key = `${game.game}__${game.market}__${game.pick}`;
-      const currentEdge = parseFloat(game.edge) || 0;
-      const existingEdge = parseFloat(bestByPick[key]?.edge) || 0;
-
-      if (!bestByPick[key] || currentEdge > existingEdge) {
-        bestByPick[key] = game;
-      }
-    }
-
-    return Object.values(bestByPick).sort((a, b) => {
-      const edgeA = parseFloat(a.edge) || 0;
-      const edgeB = parseFloat(b.edge) || 0;
-      return edgeB - edgeA;
+  const sortedGames = useMemo(() => {
+    return [...games].sort((a, b) => {
+      return (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0);
     });
   }, [games]);
 
   const filteredGames = useMemo(() => {
-    if (filter === "All") return dedupedGames;
-    return dedupedGames.filter((game) => game.recommendation === filter);
-  }, [dedupedGames, filter]);
-
-  const playGames = useMemo(() => {
-    return dedupedGames.filter((game) => game.recommendation === "Play");
-  }, [dedupedGames]);
+    if (filter === "All") return sortedGames;
+    return sortedGames.filter((game) => game.recommendation === filter);
+  }, [sortedGames, filter]);
 
   const topPlayKeys = useMemo(() => {
-    const topThree = playGames.slice(0, 3);
+    const topThree = sortedGames
+      .filter((game) => game.recommendation === "Play")
+      .slice(0, 3);
 
     return new Set(
       topThree.map((game) => `${game.game}-${game.pick}-${game.market}`)
     );
-  }, [playGames]);
+  }, [sortedGames]);
 
   const isTopPlay = (game) => {
     return topPlayKeys.has(`${game.game}-${game.pick}-${game.market}`);
@@ -94,138 +73,77 @@ function ModelBoardPage() {
     return "1 Unit";
   };
 
-  const saveToPicks = async (game) => {
-    const recommendedUnits = getRecommendedUnits(game.edge);
-
-    const payload = {
-      game: game.game,
-      pick: game.pick,
-      market: game.market,
-      sportsbook: game.sportsbook,
-      odds: String(game.odds),
-      confidence: game.confidence,
-      units: recommendedUnits,
-      model_probability: game.model_probability,
-      implied_probability: game.implied_probability,
-      edge: game.edge,
-      result: "Pending"
-    };
-
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/save-pick`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    let data = {};
-    try {
-      data = await response.json();
-    } catch {
-      throw new Error("Backend did not return valid JSON");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.detail || data.message || "Failed to save pick");
-    }
-
-    return data;
-  };
-
-  const handleSaveAllPlays = async () => {
-    if (playGames.length === 0) {
-      setMessage("No plays available to save.");
-      return;
-    }
-
-    setSaving(true);
-    setMessage("Saving plays...");
-
-    let savedCount = 0;
-    let duplicateCount = 0;
-    let failedCount = 0;
-
-    for (const game of playGames) {
-      try {
-        const data = await saveToPicks(game);
-
-        if (data.duplicate) {
-          duplicateCount += 1;
-        } else {
-          savedCount += 1;
-        }
-      } catch {
-        failedCount += 1;
-      }
-    }
-
-    setSaving(false);
-    setMessage(
-      `Saved ${savedCount} plays` +
-        (duplicateCount > 0 ? ` | ${duplicateCount} duplicates skipped` : "") +
-        (failedCount > 0 ? ` | ${failedCount} failed` : "")
-    );
-  };
-
-  const handleSaveOne = async (game) => {
-    setMessage(`Saving ${game.pick}...`);
-
-    try {
-      const data = await saveToPicks(game);
-
-      if (data.duplicate) {
-        setMessage(`Duplicate skipped: ${game.pick}`);
-      } else {
-        setMessage(`Saved: ${game.pick} | ${game.market} | ${game.edge}%`);
-      }
-    } catch (error) {
-      setMessage(error.message || "Error saving pick");
-    }
-  };
-
   return (
-    <div className="app">
-      <h1>NBA Model</h1>
+    <div
+      style={{
+        padding: "30px",
+        backgroundColor: "#0b0b0b",
+        minHeight: "100vh",
+        color: "white",
+      }}
+    >
+      <h1
+        style={{
+          marginBottom: "20px",
+          fontSize: "38px",
+        }}
+      >
+        NBA Model
+      </h1>
 
-      <div className="result-buttons" style={{ marginBottom: "20px" }}>
-        <button onClick={() => setFilter("Play")}>Plays</button>
-        <button onClick={() => setFilter("Lean")}>Leans</button>
-        <button onClick={() => setFilter("Pass")}>Passes</button>
-        <button onClick={() => setFilter("All")}>All</button>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "10px",
+          marginBottom: "30px",
+        }}
+      >
+        {["All", "Play", "Lean", "Pass"].map((item) => (
+          <button
+            key={item}
+            onClick={() => setFilter(item)}
+            style={{
+              backgroundColor: filter === item ? "#e10600" : "#1f2937",
+              color: "white",
+              border: "1px solid #374151",
+              borderRadius: "999px",
+              padding: "10px 14px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            {item === "All" ? "All" : `${item}s`}
+          </button>
+        ))}
       </div>
-
-      <div style={{ marginBottom: "20px" }}>
-
-      </div>
-
-      {message && <p>{message}</p>}
 
       {error ? (
         <p>{error}</p>
       ) : filteredGames.length === 0 ? (
         <p>No {filter.toLowerCase()} available.</p>
       ) : (
-        <div className="picks-grid">
+        <div
+          style={{
+            display: "grid",
+            gap: "24px",
+          }}
+        >
           {filteredGames.map((game, index) => (
-
-          <div
-            key={index}
-            style={{
-              backgroundColor: "#111827",
-              border: isTopPlay(game)
-                ? "2px solid #e10600"
-                : "1px solid #374151",
-              borderRadius: "14px",
-              padding: "20px",
-              marginBottom: "20px",
-              color: "white",
-              boxShadow: isTopPlay(game)
-                ? "0 0 15px rgba(225, 6, 0, 0.35)"
-                : "none",
-            }}
-          >
-
+            <div
+              key={index}
+              style={{
+                backgroundColor: "#111827",
+                border: isTopPlay(game)
+                  ? "2px solid #e10600"
+                  : "1px solid #374151",
+                borderRadius: "16px",
+                padding: "24px",
+                boxShadow: isTopPlay(game)
+                  ? "0 0 15px rgba(225, 6, 0, 0.35)"
+                  : "none",
+              }}
+            >
               {isTopPlay(game) && (
                 <div
                   style={{
@@ -234,7 +152,7 @@ function ModelBoardPage() {
                     padding: "6px 10px",
                     borderRadius: "8px",
                     display: "inline-block",
-                    marginBottom: "12px",
+                    marginBottom: "16px",
                     fontWeight: "bold",
                     fontSize: "14px",
                   }}
@@ -243,51 +161,180 @@ function ModelBoardPage() {
                 </div>
               )}
 
-              <h3 style={{ marginBottom: "12px" }}>
-                {game.game}
-              </h3>
+              <div style={{ marginBottom: "16px" }}>
+                <p
+                  style={{
+                    color: "#9ca3af",
+                    fontSize: "14px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {game.market} • {game.sportsbook}
+                </p>
 
-              <p><strong>Pick:</strong> {game.pick}</p>
+                <h2 style={{ marginBottom: "8px" }}>{game.game}</h2>
 
-              <p><strong>Market:</strong> {game.market}</p>
+                <h1
+                  style={{
+                    color: "#22c55e",
+                    marginBottom: "12px",
+                    fontSize: "30px",
+                  }}
+                >
+                  {game.pick}
+                </h1>
 
-              <p><strong>Sportsbook:</strong> {game.sportsbook}</p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                    marginBottom: "18px",
+                  }}
+                >
+                  <span style={badgeStyle}>Odds: {game.odds}</span>
 
-              <p><strong>Odds:</strong> {game.odds}</p>
+                  <span style={badgeStyle}>Edge: {game.edge}%</span>
+
+                  <span style={badgeStyle}>
+                    Confidence: {game.confidence}%
+                  </span>
+
+                  <span style={badgeStyle}>
+                    Units: {getRecommendedUnits(game.edge)}
+                  </span>
+
+                  <span
+                    style={{
+                      ...badgeStyle,
+                      backgroundColor:
+                        game.recommendation === "Play"
+                          ? "#166534"
+                          : game.recommendation === "Lean"
+                          ? "#854d0e"
+                          : "#374151",
+                    }}
+                  >
+                    {game.recommendation}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #334155",
+                  borderRadius: "10px",
+                  padding: "14px",
+                  marginBottom: "16px",
+                }}
+              >
+                <h3 style={{ marginTop: 0 }}>Why We Like It</h3>
+
+                <p
+                  style={{
+                    color: "#d1d5db",
+                    lineHeight: "1.7",
+                  }}
+                >
+                  {game.reason || "Model edge based on pricing, team rating, market value, and playoff environment."}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "12px",
+                  marginBottom: "16px",
+                }}
+              >
+                <div style={miniStatStyle}>
+                  <strong>Implied Probability</strong>
+                  <p>{game.implied_probability}%</p>
+                </div>
+
+                <div style={miniStatStyle}>
+                  <strong>Model Probability</strong>
+                  <p>{game.model_probability}%</p>
+                </div>
+
+                <div style={miniStatStyle}>
+                  <strong>Playoff Adjustment</strong>
+                  <p>{game.playoff_adjustment ?? "N/A"}</p>
+                </div>
+
+                <div style={miniStatStyle}>
+                  <strong>Recommendation</strong>
+                  <p>{game.recommendation}</p>
+                </div>
+              </div>
+
+              <hr
+                style={{
+                  borderColor: "#374151",
+                  margin: "20px 0",
+                }}
+              />
+
+              <h3>Model Details</h3>
 
               <p>
-                <strong>Implied Probability:</strong>{" "}
-                {game.implied_probability}%
+                <strong>Market:</strong> {game.market}
               </p>
 
               <p>
-                <strong>Model Probability:</strong>{" "}
-                {game.model_probability}%
+                <strong>Sportsbook:</strong> {game.sportsbook}
               </p>
 
-              <p><strong>Edge:</strong> {game.edge}%</p>
+              <p>
+                <strong>Pick:</strong> {game.pick}
+              </p>
+
+              <p>
+                <strong>Odds:</strong> {game.odds}
+              </p>
+
+              <p>
+                <strong>Edge:</strong> {game.edge}%
+              </p>
+
+              <p>
+                <strong>Confidence:</strong> {game.confidence}%
+              </p>
 
               <p>
                 <strong>Recommended Units:</strong>{" "}
                 {getRecommendedUnits(game.edge)}
               </p>
 
-              <p>
-                <strong>Confidence:</strong>{" "}
-                {game.confidence}%
-              </p>
+              {game.playoff_mode && (
+                <>
+                  <hr
+                    style={{
+                      borderColor: "#374151",
+                      margin: "20px 0",
+                    }}
+                  />
 
-              <p>
-                <strong>Recommendation:</strong>{" "}
-                {game.recommendation}
-              </p>
+                  <h3>Playoff Mode</h3>
 
-              {game.reason && (
-                <p style={{ lineHeight: "1.6", color: "#d1d5db" }}>
-                  <strong>Why:</strong> {game.reason}
-                </p>
+                  <p>
+                    <strong>Playoff Adjustment:</strong>{" "}
+                    {game.playoff_adjustment ?? "N/A"}
+                  </p>
+
+                  {game.playoff_reasons &&
+                    game.playoff_reasons.length > 0 && (
+                      <ul style={{ color: "#d1d5db", lineHeight: "1.6" }}>
+                        {game.playoff_reasons.map((reason, idx) => (
+                          <li key={idx}>{reason}</li>
+                        ))}
+                      </ul>
+                    )}
+                </>
               )}
-
             </div>
           ))}
         </div>
