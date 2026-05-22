@@ -1768,6 +1768,70 @@ def model_mlb_today():
         }
     
 @app.get("/model/mlb/f5/today")
+def get_mlb_events(odds_api_key):
+    url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/events"
+
+    params = {
+        "apiKey": odds_api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {
+                "success": False,
+                "error": response.text,
+                "data": [],
+            }
+
+        return {
+            "success": True,
+            "error": None,
+            "data": response.json(),
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": [],
+        }
+
+def get_mlb_event_odds(event_id, markets, odds_api_key):
+    url = f"https://api.the-odds-api.com/v4/sports/baseball_mlb/events/{event_id}/odds"
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": markets,
+        "oddsFormat": "american",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {
+                "success": False,
+                "error": response.text,
+                "data": None,
+            }
+
+        return {
+            "success": True,
+            "error": None,
+            "data": response.json(),
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "data": None,
+        }
+
+@app.get("/model/mlb/f5/today")
 def model_mlb_f5_today():
     cached = get_cache("mlb_f5_model")
 
@@ -1778,24 +1842,49 @@ def model_mlb_f5_today():
             return {"plays": cached, "cached": True, "error": "Missing API key"}
         return {"plays": [], "error": "Missing API key"}
 
-    url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
-
-    params = {
-        "apiKey": odds_api_key,
-        "regions": "us",
-        "markets": "h2h_3_way_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings",
-        "oddsFormat": "american",
-    }
+    f5_markets = (
+        "h2h_3_way_1st_5_innings,"
+        "spreads_1st_5_innings,"
+        "totals_1st_5_innings"
+    )
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        events_response = get_mlb_events(odds_api_key)
 
-        if response.status_code != 200:
+        if not events_response.get("success"):
             if cached:
-                return {"plays": cached, "cached": True, "error": response.text}
-            return {"plays": [], "error": response.text}
+                return {
+                    "plays": cached,
+                    "cached": True,
+                    "error": events_response.get("error"),
+                }
 
-        games = response.json()
+            return {
+                "plays": [],
+                "error": events_response.get("error"),
+            }
+
+        events = events_response.get("data", [])
+        games = []
+        for event in events:
+            event_id = event.get("id")
+
+            if not event_id:
+                continue
+
+            event_odds_response = get_mlb_event_odds(
+                event_id,
+                f5_markets,
+                odds_api_key
+            )
+
+            if not event_odds_response.get("success"):
+                continue
+
+            event_odds = event_odds_response.get("data")
+
+            if event_odds:
+                games.append(event_odds)
         probable_pitchers = get_mlb_probable_pitchers()
         plays = []
 
