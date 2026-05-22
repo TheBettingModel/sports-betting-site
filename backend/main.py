@@ -1783,7 +1783,7 @@ def model_mlb_f5_today():
     params = {
         "apiKey": odds_api_key,
         "regions": "us",
-        "markets": "h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings",
+        "markets": "h2h_3_way_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings",
         "oddsFormat": "american",
     }
 
@@ -1817,7 +1817,7 @@ def model_mlb_f5_today():
                         implied = american_to_implied_probability(odds)
                         team_name = outcome.get("name")
 
-                        if market_key == "h2h_1st_5_innings":
+                        if market_key == "h2h_3_way_1st_5_innings":
                             market_name = "F5 Moneyline"
                             pick_name = team_name
 
