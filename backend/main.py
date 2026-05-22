@@ -1767,7 +1767,7 @@ def model_mlb_today():
             "error": str(e)
         }
     
-@app.get("/model/mlb/f5/today")
+
 def get_mlb_events(odds_api_key):
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/events"
 
@@ -1831,7 +1831,6 @@ def get_mlb_event_odds(event_id, markets, odds_api_key):
             "data": None,
         }
 
-@app.get("/model/mlb/f5/today")
 def model_mlb_f5_today():
     cached = get_cache("mlb_f5_model")
 
