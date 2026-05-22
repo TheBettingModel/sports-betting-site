@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
@@ -30,7 +30,6 @@ function App() {
   };
 
   return (
-    <Router>
       <div
         style={{
           backgroundColor: "#0b0b0b",
@@ -77,7 +76,6 @@ function App() {
           />
         </Routes>
       </div>
-    </Router>
   );
 }
 
