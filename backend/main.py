@@ -1769,7 +1769,7 @@ def model_mlb_today():
     
 @app.get("/model/mlb/f5/today")
 def model_mlb_f5_today():
-        cached = get_cache("mlb_f5_model")
+    cached = get_cache("mlb_f5_model")
 
     odds_api_key = os.getenv("ODDS_API_KEY")
 
