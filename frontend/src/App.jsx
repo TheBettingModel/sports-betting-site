@@ -4,6 +4,7 @@ import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBF5ModelPage from "./pages/MLBF5ModelPage";
+import SharpMarketPage from "./pages/SharpMarketPage";
 
 function App() {
   const navStyle = {
@@ -30,52 +31,61 @@ function App() {
   };
 
   return (
-      <div
-        style={{
-          backgroundColor: "#0b0b0b",
-          minHeight: "100vh",
-          color: "white",
-        }}
-      >
-        <nav style={navStyle}>
-          <div style={logoStyle}>The Betting Model</div>
+    <div
+      style={{
+        backgroundColor: "#0b0b0b",
+        minHeight: "100vh",
+        color: "white",
+      }}
+    >
+      <nav style={navStyle}>
+        <div style={logoStyle}>The Betting Model</div>
 
-          <Link style={linkStyle} to="/">
-            Home
-          </Link>
+        <Link style={linkStyle} to="/">
+          Home
+        </Link>
 
-          <Link style={linkStyle} to="/model-board">
-            NBA Model
-          </Link>
+        <Link style={linkStyle} to="/model-board">
+          NBA Model
+        </Link>
 
-          <Link style={linkStyle} to="/mlb-model">
-            MLB Model
-          </Link>
+        <Link style={linkStyle} to="/mlb-model">
+          MLB Model
+        </Link>
 
-          <Link style={linkStyle} to="/mlb-f5">
-            MLB F5 Model
-          </Link>
-        </nav>
+        <Link style={linkStyle} to="/mlb-f5">
+          MLB F5 Model
+        </Link>
 
-        <Routes>
-          <Route path="/" element={<HomePage />} />
+        <Link style={linkStyle} to="/sharp-market">
+          Sharp Market
+        </Link>
+      </nav>
 
-          <Route
-            path="/model-board"
-            element={<ModelBoardPage />}
-          />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
 
-          <Route
-            path="/mlb-model"
-            element={<MLBModelBoardPage />}
-          />
+        <Route
+          path="/model-board"
+          element={<ModelBoardPage />}
+        />
 
-          <Route
-            path="/mlb-f5"
-            element={<MLBF5ModelPage />}
-          />
-        </Routes>
-      </div>
+        <Route
+          path="/mlb-model"
+          element={<MLBModelBoardPage />}
+        />
+
+        <Route
+          path="/mlb-f5"
+          element={<MLBF5ModelPage />}
+        />
+
+        <Route
+          path="/sharp-market"
+          element={<SharpMarketPage />}
+        />
+      </Routes>
+    </div>
   );
 }
 
