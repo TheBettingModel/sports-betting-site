@@ -4,6 +4,7 @@ import HomePage from "./pages/HomePage";
 import LiveOddsPage from "./pages/LiveOddsPage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
+import MLBF5ModelPage from "./pages/MLBF5ModelPage";
 
 function App() {
   const linkStyle = {
@@ -63,11 +64,17 @@ function App() {
           </div>
         </nav>
 
+        <Link style={linkStyle} to="/mlb-f5">
+          MLB F5
+        </Link>
+
+
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/live-odds" element={<LiveOddsPage />} />
           <Route path="/model-board" element={<ModelBoardPage />} />
           <Route path="/mlb-model" element={<MLBModelBoardPage />} />
+          <Route path="/mlb-f5" element={<MLBF5ModelPage />} />
         </Routes>
       </div>
   );
