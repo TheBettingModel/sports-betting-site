@@ -1767,3 +1767,209 @@ def model_mlb_today():
             "error": str(e)
         }
     
+    @app.get("/model/mlb/f5/today")
+    def model_mlb_f5_today():
+        cached = get_cache("mlb_f5_model")
+
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        if cached:
+            return {"plays": cached, "cached": True, "error": "Missing API key"}
+        return {"plays": [], "error": "Missing API key"}
+
+    url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings",
+        "oddsFormat": "american",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            if cached:
+                return {"plays": cached, "cached": True, "error": response.text}
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        probable_pitchers = get_mlb_probable_pitchers()
+        plays = []
+
+        for game in games:
+            game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
+
+            for bookmaker in game.get("bookmakers", []):
+                sportsbook = bookmaker.get("title")
+
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
+
+                    for outcome in market.get("outcomes", []):
+                        odds = outcome.get("price")
+
+                        if odds is None:
+                            continue
+
+                        implied = american_to_implied_probability(odds)
+                        team_name = outcome.get("name")
+
+                        if market_key == "h2h_1st_5_innings":
+                            market_name = "F5 Moneyline"
+                            pick_name = team_name
+
+                        elif market_key == "spreads_1st_5_innings":
+                            point = outcome.get("point")
+
+                            if point is None:
+                                continue
+
+                            market_name = "F5 Run Line"
+                            pick_name = f"{team_name} {float(point):+}"
+
+                        elif market_key == "totals_1st_5_innings":
+                            point = outcome.get("point")
+                            side = outcome.get("name")
+
+                            if point is None or side is None:
+                                continue
+
+                            market_name = "F5 Total"
+                            pick_name = f"{side} {point}"
+
+                        else:
+                            continue
+
+                        starter_data = probable_pitchers.get(
+                            team_name,
+                            {
+                                "pitcher": "TBD",
+                                "era": 0.00,
+                                "whip": 0.00,
+                                "rating": 75,
+                            },
+                        )
+
+                        pitcher_name = starter_data.get("pitcher")
+                        pitcher_era = starter_data.get("era")
+                        pitcher_whip = starter_data.get("whip")
+                        pitcher_rating = starter_data.get("rating")
+
+                        pitcher_diff = get_pitcher_rating_differential(
+                            game,
+                            team_name,
+                            probable_pitchers,
+                        )
+
+                        weather_data = get_mlb_weather_adjustment(
+                            game,
+                            "totals" if market_key == "totals_1st_5_innings" else "h2h",
+                            outcome.get("name"),
+                        )
+
+                        weather_adj = weather_data.get("weather_adjustment", 0)
+
+                        pitcher_adj = pitcher_diff.get("pitcher_diff_adj", 0) * 1.35
+                        price_adj = get_price_adjustment(odds)
+
+                        edge_boost = pitcher_adj + price_adj + (weather_adj * 0.5)
+
+                        model_prob = implied + edge_boost
+                        model_prob = max(1, min(99, model_prob))
+
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        unit_size = get_dynamic_units(
+                            edge,
+                            confidence,
+                            recommendation,
+                        )
+
+                        reason = (
+                            f"F5 market isolates starting pitching and removes bullpen variance. "
+                            f"Starting pitcher: {pitcher_name}. "
+                            f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
+                            f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
+                            f"F5 pitcher adjustment ({round(pitcher_adj, 2)}). "
+                            f"Price adjustment ({round(price_adj, 2)}). "
+                            f"Weather/Park adjustment ({round(weather_adj * 0.5, 2)})."
+                        )
+
+                        plays.append({
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_name,
+                            "odds": odds,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": unit_size,
+                            "model_version": "mlb_f5_v1",
+                            "starting_pitcher": pitcher_name,
+                            "pitcher_era": pitcher_era,
+                            "pitcher_whip": pitcher_whip,
+                            "pitcher_rating": pitcher_rating,
+                            "opponent": pitcher_diff.get("opponent"),
+                            "opponent_pitcher_rating": pitcher_diff.get("opponent_rating"),
+                            "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
+                            "pitcher_diff_adjustment": round(pitcher_adj, 2),
+                            "weather_adjustment": round(weather_adj * 0.5, 2),
+                            "ballpark": weather_data.get("park"),
+                            "weather_risk": weather_data.get("weather_risk"),
+                            "reason": reason,
+                        })
+
+        best_by_game = {}
+
+        for play in plays:
+            game = play.get("game")
+
+            if game not in best_by_game:
+                best_by_game[game] = play
+            else:
+                current_best = best_by_game[game]
+
+                if play.get("edge", 0) > current_best.get("edge", 0):
+                    best_by_game[game] = play
+
+        final = list(best_by_game.values())
+
+        final = sorted(
+            final,
+            key=lambda x: x["edge"],
+            reverse=True,
+        )
+
+        set_cache("mlb_f5_model", final)
+
+        return {"plays": final}
+
+    except Exception as e:
+        if cached:
+            return {"plays": cached, "cached": True, "error": str(e)}
+        return {"plays": [], "error": str(e)}
+    
