@@ -1831,6 +1831,7 @@ def get_mlb_event_odds(event_id, markets, odds_api_key):
             "data": None,
         }
 
+@app.get("/model/mlb/f5/today")
 def model_mlb_f5_today():
     cached = get_cache("mlb_f5_model")
 
@@ -1838,8 +1839,16 @@ def model_mlb_f5_today():
 
     if not odds_api_key:
         if cached:
-            return {"plays": cached, "cached": True, "error": "Missing API key"}
-        return {"plays": [], "error": "Missing API key"}
+            return {
+                "plays": cached,
+                "cached": True,
+                "error": "Missing API key"
+            }
+
+        return {
+            "plays": [],
+            "error": "Missing API key"
+        }
 
     f5_markets = (
         "h2h_3_way_1st_5_innings,"
@@ -1855,16 +1864,17 @@ def model_mlb_f5_today():
                 return {
                     "plays": cached,
                     "cached": True,
-                    "error": events_response.get("error"),
+                    "error": events_response.get("error")
                 }
 
             return {
                 "plays": [],
-                "error": events_response.get("error"),
+                "error": events_response.get("error")
             }
 
         events = events_response.get("data", [])
         games = []
+
         for event in events:
             event_id = event.get("id")
 
@@ -1884,11 +1894,15 @@ def model_mlb_f5_today():
 
             if event_odds:
                 games.append(event_odds)
+
         probable_pitchers = get_mlb_probable_pitchers()
         plays = []
 
         for game in games:
-            game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
+            game_name = (
+                f"{game.get('away_team')} vs "
+                f"{game.get('home_team')}"
+            )
 
             for bookmaker in game.get("bookmakers", []):
                 sportsbook = bookmaker.get("title")
@@ -1903,6 +1917,7 @@ def model_mlb_f5_today():
                             continue
 
                         implied = american_to_implied_probability(odds)
+
                         team_name = outcome.get("name")
 
                         if market_key == "h2h_3_way_1st_5_innings":
@@ -1920,13 +1935,12 @@ def model_mlb_f5_today():
 
                         elif market_key == "totals_1st_5_innings":
                             point = outcome.get("point")
-                            side = outcome.get("name")
 
-                            if point is None or side is None:
+                            if point is None:
                                 continue
 
                             market_name = "F5 Total"
-                            pick_name = f"{side} {point}"
+                            pick_name = f"{team_name} {point}"
 
                         else:
                             continue
@@ -1938,7 +1952,7 @@ def model_mlb_f5_today():
                                 "era": 0.00,
                                 "whip": 0.00,
                                 "rating": 75,
-                            },
+                            }
                         )
 
                         pitcher_name = starter_data.get("pitcher")
@@ -1954,16 +1968,31 @@ def model_mlb_f5_today():
 
                         weather_data = get_mlb_weather_adjustment(
                             game,
-                            "totals" if market_key == "totals_1st_5_innings" else "h2h",
+                            "totals"
+                            if market_key == "totals_1st_5_innings"
+                            else "h2h",
                             outcome.get("name"),
                         )
 
-                        weather_adj = weather_data.get("weather_adjustment", 0)
+                        weather_adj = weather_data.get(
+                            "weather_adjustment",
+                            0
+                        )
 
-                        pitcher_adj = pitcher_diff.get("pitcher_diff_adj", 0) * 1.35
+                        pitcher_adj = (
+                            pitcher_diff.get(
+                                "pitcher_diff_adj",
+                                0
+                            ) * 1.35
+                        )
+
                         price_adj = get_price_adjustment(odds)
 
-                        edge_boost = pitcher_adj + price_adj + (weather_adj * 0.5)
+                        edge_boost = (
+                            pitcher_adj
+                            + price_adj
+                            + (weather_adj * 0.5)
+                        )
 
                         model_prob = implied + edge_boost
                         model_prob = max(1, min(99, model_prob))
@@ -1995,13 +2024,20 @@ def model_mlb_f5_today():
                         )
 
                         reason = (
-                            f"F5 market isolates starting pitching and removes bullpen variance. "
+                            "F5 market isolates starting pitching "
+                            "and removes bullpen variance. "
                             f"Starting pitcher: {pitcher_name}. "
-                            f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
-                            f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
-                            f"F5 pitcher adjustment ({round(pitcher_adj, 2)}). "
-                            f"Price adjustment ({round(price_adj, 2)}). "
-                            f"Weather/Park adjustment ({round(weather_adj * 0.5, 2)})."
+                            f"(ERA {pitcher_era}, "
+                            f"WHIP {pitcher_whip}, "
+                            f"Rating {pitcher_rating}). "
+                            f"Pitcher rating differential: "
+                            f"{pitcher_diff.get('rating_diff')}. "
+                            f"F5 pitcher adjustment "
+                            f"({round(pitcher_adj, 2)}). "
+                            f"Price adjustment "
+                            f"({round(price_adj, 2)}). "
+                            f"Weather/Park adjustment "
+                            f"({round(weather_adj * 0.5, 2)})."
                         )
 
                         plays.append({
@@ -2022,12 +2058,24 @@ def model_mlb_f5_today():
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
                             "opponent": pitcher_diff.get("opponent"),
-                            "opponent_pitcher_rating": pitcher_diff.get("opponent_rating"),
-                            "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
-                            "pitcher_diff_adjustment": round(pitcher_adj, 2),
-                            "weather_adjustment": round(weather_adj * 0.5, 2),
+                            "opponent_pitcher_rating": pitcher_diff.get(
+                                "opponent_rating"
+                            ),
+                            "pitcher_rating_diff": pitcher_diff.get(
+                                "rating_diff"
+                            ),
+                            "pitcher_diff_adjustment": round(
+                                pitcher_adj,
+                                2
+                            ),
+                            "weather_adjustment": round(
+                                weather_adj * 0.5,
+                                2
+                            ),
                             "ballpark": weather_data.get("park"),
-                            "weather_risk": weather_data.get("weather_risk"),
+                            "weather_risk": weather_data.get(
+                                "weather_risk"
+                            ),
                             "reason": reason,
                         })
 
@@ -2038,10 +2086,14 @@ def model_mlb_f5_today():
 
             if game not in best_by_game:
                 best_by_game[game] = play
+
             else:
                 current_best = best_by_game[game]
 
-                if play.get("edge", 0) > current_best.get("edge", 0):
+                if (
+                    play.get("edge", 0)
+                    > current_best.get("edge", 0)
+                ):
                     best_by_game[game] = play
 
         final = list(best_by_game.values())
@@ -2058,5 +2110,13 @@ def model_mlb_f5_today():
 
     except Exception as e:
         if cached:
-            return {"plays": cached, "cached": True, "error": str(e)}
-        return {"plays": [], "error": str(e)}
+            return {
+                "plays": cached,
+                "cached": True,
+                "error": str(e)
+            }
+
+        return {
+            "plays": [],
+            "error": str(e)
+        }
