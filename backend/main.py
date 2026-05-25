@@ -2059,7 +2059,6 @@ def model_mlb_f5_today():
                             "F5 market isolates starting pitching "
                             "and removes bullpen variance. "
                             f"Starting pitcher: {pitcher_name}. "
-                            f"{'Projected starters: ' + away_starter_data.get('pitcher') + ' vs ' + home_starter_data.get('pitcher') + '. ' if market_name == 'Total' else ''}"
                             f"(ERA {pitcher_era}, "
                             f"WHIP {pitcher_whip}, "
                             f"Rating {pitcher_rating}). "
@@ -2090,15 +2089,6 @@ def model_mlb_f5_today():
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
-                            "away_starter": away_starter_data.get("pitcher"),
-                            "away_pitcher_era": away_starter_data.get("era"),
-                            "away_pitcher_whip": away_starter_data.get("whip"),
-                            "away_pitcher_rating": away_starter_data.get("rating"),
-
-                            "home_starter": home_starter_data.get("pitcher"),
-                            "home_pitcher_era": home_starter_data.get("era"),
-                            "home_pitcher_whip": home_starter_data.get("whip"),
-                            "home_pitcher_rating": home_starter_data.get("rating"),
                             "opponent": pitcher_diff.get("opponent"),
                             "opponent_pitcher_rating": pitcher_diff.get(
                                 "opponent_rating"
