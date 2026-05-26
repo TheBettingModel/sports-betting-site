@@ -1684,7 +1684,7 @@ def get_sharp_market_signal(edge, odds, recommendation):
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
-    cached = get_cache("mlb_model")
+    cached = get_cache("mlb_model_v2")
 
     if cached:
         return {"plays": cached}
@@ -1971,7 +1971,7 @@ def model_mlb_today():
             reverse=True
         )
 
-        set_cache("mlb_model", final)
+        set_cache("mlb_model_v2", final)
         return {"plays": final}
     
     except Exception as e:
