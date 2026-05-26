@@ -836,32 +836,27 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
     home_team = game.get("home_team")
 
     default_pitcher = {
-    "pitcher": "TBD",
-    "era": 0.00,
-    "whip": 0.00,
-    "rating": 75,
-}
-
-    default_pitcher = {
         "pitcher": "TBD",
         "era": 0.00,
         "whip": 0.00,
-        "rating": 75
-}
+        "rating": 75,
+    }
 
     away_pitcher = probable_pitchers.get(away_team) or default_pitcher
     home_pitcher = probable_pitchers.get(home_team) or default_pitcher
+
+    away_rating = away_pitcher.get("rating", 75)
+    home_rating = home_pitcher.get("rating", 75)
+
+    combined_pitcher_rating = (away_rating + home_rating) / 2
 
     weather_data = get_mlb_weather_adjustment(
         game,
         "totals",
         "Over"
-    )
+    ) or {}
 
-    weather_adj = weather_data.get(
-        "weather_adjustment",
-        0
-    )
+    weather_adj = weather_data.get("weather_adjustment", 0)
 
     nrfi_probability = 52
 
@@ -871,10 +866,10 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
         nrfi_probability += 4
     elif combined_pitcher_rating >= 80:
         nrfi_probability += 2
-    elif combined_pitcher_rating <= 70:
-        nrfi_probability -= 4
     elif combined_pitcher_rating <= 65:
         nrfi_probability -= 6
+    elif combined_pitcher_rating <= 70:
+        nrfi_probability -= 4
 
     if weather_adj >= 3:
         nrfi_probability -= 4
@@ -895,12 +890,12 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
         confidence = round(yrfi_probability, 2)
     else:
         recommendation = "Pass"
-        confidence = max(nrfi_probability, yrfi_probability)
+        confidence = round(max(nrfi_probability, yrfi_probability), 2)
 
     reason = (
         f"Projected starters: {away_pitcher.get('pitcher')} vs {home_pitcher.get('pitcher')}. "
         f"Combined pitcher rating: {round(combined_pitcher_rating, 1)}. "
-        f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}. "
+        f"Ballpark: {weather_data.get('park', 'Unknown')} - {weather_data.get('weather_risk', 'Neutral')}. "
         f"Weather/Park adjustment: {weather_adj}. "
         f"NRFI probability: {round(nrfi_probability, 2)}%. "
         f"YRFI probability: {round(yrfi_probability, 2)}%."
@@ -917,22 +912,12 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
         "away_pitcher_rating": away_rating,
         "home_pitcher_rating": home_rating,
         "combined_pitcher_rating": round(combined_pitcher_rating, 2),
-        "ballpark": weather_data.get("park"),
-        "weather_risk": weather_data.get("weather_risk"),
+        "ballpark": weather_data.get("park", "Unknown"),
+        "weather_risk": weather_data.get("weather_risk", "Neutral"),
         "weather_adjustment": weather_adj,
         "reason": reason,
         "model_version": "mlb_nrfi_yrfi_v1",
     }
-
-    park_data = MLB_BALLPARK_WEATHER.get(
-        home_team,
-        {
-            "park": "Unknown",
-            "run_factor": 1.00,
-            "hr_factor": 1.00,
-            "weather_risk": "Neutral",
-        }
-    )
 
 def get_auto_bullpen_status(fatigue_score):
     if fatigue_score >= 5:
