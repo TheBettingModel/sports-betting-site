@@ -6,6 +6,7 @@ import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBF5ModelPage from "./pages/MLBF5ModelPage";
 import SharpMarketPage from "./pages/SharpMarketPage";
 
+
 function App() {
   const navStyle = {
     backgroundColor: "#111827",
@@ -60,6 +61,10 @@ function App() {
         <Link style={linkStyle} to="/sharp-market">
           Sharp Market
         </Link>
+
+        <Link style={linkStyle} to="/mlb-nrfi">
+          MLB NRFI/YRFI
+        </Link>
       </nav>
 
       <Routes>
@@ -84,6 +89,7 @@ function App() {
           path="/sharp-market"
           element={<SharpMarketPage />}
         />
+        <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />  
       </Routes>
     </div>
   );
