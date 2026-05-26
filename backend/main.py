@@ -831,6 +831,104 @@ def get_mlb_market_adjustment(market_key, odds, point=None, side=None):
 def get_mlb_weather_adjustment(game, market_key, side=None):
     home_team = game.get("home_team")
 
+def get_nrfi_yrfi_projection(game, probable_pitchers):
+    away_team = game.get("away_team")
+    home_team = game.get("home_team")
+
+    away_pitcher = probable_pitchers.get(
+        away_team,
+        {
+            "pitcher": "TBD",
+            "era": 0.00,
+            "whip": 0.00,
+            "rating": 75,
+        }
+    )
+
+    home_pitcher = probable_pitchers.get(
+        home_team,
+        {
+            "pitcher": "TBD",
+            "era": 0.00,
+            "whip": 0.00,
+            "rating": 75,
+        }
+    )
+
+    away_rating = away_pitcher.get("rating", 75)
+    home_rating = home_pitcher.get("rating", 75)
+
+    combined_pitcher_rating = (away_rating + home_rating) / 2
+
+    weather_data = get_mlb_weather_adjustment(
+        game,
+        "totals",
+        "Over"
+    )
+
+    weather_adj = weather_data.get("weather_adjustment", 0)
+
+    nrfi_probability = 52
+
+    if combined_pitcher_rating >= 90:
+        nrfi_probability += 6
+    elif combined_pitcher_rating >= 85:
+        nrfi_probability += 4
+    elif combined_pitcher_rating >= 80:
+        nrfi_probability += 2
+    elif combined_pitcher_rating <= 70:
+        nrfi_probability -= 4
+    elif combined_pitcher_rating <= 65:
+        nrfi_probability -= 6
+
+    if weather_adj >= 3:
+        nrfi_probability -= 4
+    elif weather_adj >= 2:
+        nrfi_probability -= 2
+
+    if weather_adj <= -2:
+        nrfi_probability += 2
+
+    nrfi_probability = max(40, min(68, nrfi_probability))
+    yrfi_probability = 100 - nrfi_probability
+
+    if nrfi_probability >= 56:
+        recommendation = "NRFI"
+        confidence = round(nrfi_probability, 2)
+    elif yrfi_probability >= 52:
+        recommendation = "YRFI"
+        confidence = round(yrfi_probability, 2)
+    else:
+        recommendation = "Pass"
+        confidence = max(nrfi_probability, yrfi_probability)
+
+    reason = (
+        f"Projected starters: {away_pitcher.get('pitcher')} vs {home_pitcher.get('pitcher')}. "
+        f"Combined pitcher rating: {round(combined_pitcher_rating, 1)}. "
+        f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}. "
+        f"Weather/Park adjustment: {weather_adj}. "
+        f"NRFI probability: {round(nrfi_probability, 2)}%. "
+        f"YRFI probability: {round(yrfi_probability, 2)}%."
+    )
+
+    return {
+        "game": f"{away_team} vs {home_team}",
+        "recommendation": recommendation,
+        "confidence": confidence,
+        "nrfi_probability": round(nrfi_probability, 2),
+        "yrfi_probability": round(yrfi_probability, 2),
+        "away_starter": away_pitcher.get("pitcher"),
+        "home_starter": home_pitcher.get("pitcher"),
+        "away_pitcher_rating": away_rating,
+        "home_pitcher_rating": home_rating,
+        "combined_pitcher_rating": round(combined_pitcher_rating, 2),
+        "ballpark": weather_data.get("park"),
+        "weather_risk": weather_data.get("weather_risk"),
+        "weather_adjustment": weather_adj,
+        "reason": reason,
+        "model_version": "mlb_nrfi_yrfi_v1",
+    }
+
     park_data = MLB_BALLPARK_WEATHER.get(
         home_team,
         {
@@ -840,30 +938,6 @@ def get_mlb_weather_adjustment(game, market_key, side=None):
             "weather_risk": "Neutral",
         }
     )
-
-    run_factor = float(park_data.get("run_factor", 1.00))
-    hr_factor = float(park_data.get("hr_factor", 1.00))
-
-    run_adj = (run_factor - 1.00) * 20
-    hr_adj = (hr_factor - 1.00) * 10
-
-    total_weather_adj = round(run_adj + hr_adj, 2)
-
-    if market_key == "totals":
-        if side == "Over":
-            adjustment = total_weather_adj
-        else:
-            adjustment = -total_weather_adj
-    else:
-        adjustment = round(total_weather_adj * 0.25, 2)
-
-    return {
-        "park": park_data.get("park"),
-        "run_factor": run_factor,
-        "hr_factor": hr_factor,
-        "weather_risk": park_data.get("weather_risk"),
-        "weather_adjustment": round(adjustment, 2),
-    }
 
 def get_auto_bullpen_status(fatigue_score):
     if fatigue_score >= 5:
@@ -1799,7 +1873,6 @@ def model_mlb_today():
             "error": str(e)
         }
     
-
 def get_mlb_events(odds_api_key):
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/events"
 
@@ -2152,3 +2225,56 @@ def model_mlb_f5_today():
             "plays": [],
             "error": str(e)
         }
+
+@app.get("/model/mlb/nrfi/today")
+def model_mlb_nrfi_today():
+    cached = get_cache("mlb_nrfi_model")
+
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        if cached:
+            return {"plays": cached, "cached": True, "error": "Missing API key"}
+        return {"plays": [], "error": "Missing API key"}
+
+    url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h",
+        "oddsFormat": "american",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            if cached:
+                return {"plays": cached, "cached": True, "error": response.text}
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        probable_pitchers = get_mlb_probable_pitchers()
+
+        plays = []
+
+        for game in games:
+            projection = get_nrfi_yrfi_projection(game, probable_pitchers)
+            plays.append(projection)
+
+        final = sorted(
+            plays,
+            key=lambda x: x["confidence"],
+            reverse=True
+        )
+
+        set_cache("mlb_nrfi_model", final)
+
+        return {"plays": final}
+
+    except Exception as e:
+        if cached:
+            return {"plays": cached, "cached": True, "error": str(e)}
+        return {"plays": [], "error": str(e)}
+    
