@@ -4,8 +4,8 @@ import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBF5ModelPage from "./pages/MLBF5ModelPage";
+import MLBNRFIPage from "./pages/MLBNRFIPage";
 import SharpMarketPage from "./pages/SharpMarketPage";
-
 
 function App() {
   const navStyle = {
@@ -15,6 +15,7 @@ function App() {
     alignItems: "center",
     gap: "20px",
     borderBottom: "1px solid #374151",
+    flexWrap: "wrap",
   };
 
   const linkStyle = {
@@ -58,12 +59,12 @@ function App() {
           MLB F5 Model
         </Link>
 
-        <Link style={linkStyle} to="/sharp-market">
-          Sharp Market
-        </Link>
-
         <Link style={linkStyle} to="/mlb-nrfi">
           MLB NRFI/YRFI
+        </Link>
+
+        <Link style={linkStyle} to="/sharp-market">
+          Sharp Market
         </Link>
       </nav>
 
@@ -86,10 +87,14 @@ function App() {
         />
 
         <Route
+          path="/mlb-nrfi"
+          element={<MLBNRFIPage />}
+        />
+
+        <Route
           path="/sharp-market"
           element={<SharpMarketPage />}
         />
-        <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />  
       </Routes>
     </div>
   );
