@@ -2047,7 +2047,7 @@ def model_mlb_f5_today():
                         team_name = outcome.get("name")
 
                         if market_key == "h2h_3_way_1st_5_innings":
-                            market_name = "F5 Winner"
+                            market_name = "F5 Moneyline"
                             pick_name = team_name
 
                         elif market_key == "spreads_1st_5_innings":
