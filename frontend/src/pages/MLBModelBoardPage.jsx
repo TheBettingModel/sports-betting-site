@@ -23,7 +23,7 @@ function MLBModelBoardPage() {
 
   const sortedPlays = useMemo(() => {
     return [...plays].sort(
-      (a, b) => (b.edge || 0) - (a.edge || 0)
+      (a, b) => (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0)
     );
   }, [plays]);
 
@@ -52,10 +52,30 @@ function MLBModelBoardPage() {
     padding: "14px",
   };
 
+  const getSignalColor = (signal) => {
+    if (signal === "Sharp Play") return "#166534";
+    if (signal === "Value Watch") return "#854d0e";
+    if (signal === "Market Caution") return "#7f1d1d";
+    return "#374151";
+  };
+
+  const getStrengthColor = (strength) => {
+    if (strength === "Strong") return "#166534";
+    if (strength === "Moderate") return "#854d0e";
+    if (strength === "Weak") return "#7f1d1d";
+    return "#374151";
+  };
+
+  const getLineSignalColor = (signal) => {
+    if (signal === "Steam Toward Pick") return "#166534";
+    if (signal === "Price Drift") return "#7f1d1d";
+    return "#374151";
+  };
+
   const renderCard = (play, index, label) => {
     return (
       <div
-        key={`${play.game}-${play.pick}-${index}`}
+        key={`${play.game}-${play.pick}-${play.market}-${index}`}
         style={{
           backgroundColor: "#0f172a",
           border:
@@ -121,33 +141,15 @@ function MLBModelBoardPage() {
             marginBottom: "22px",
           }}
         >
-          <span style={badgeStyle}>
-            Odds: {play.odds}
-          </span>
-
-          <span style={badgeStyle}>
-            Edge: {play.edge}%
-          </span>
-
-          <span style={badgeStyle}>
-            Confidence: {play.confidence}%
-          </span>
-
-          <span style={badgeStyle}>
-            Units: {play.units}u
-          </span>
+          <span style={badgeStyle}>Odds: {play.odds}</span>
+          <span style={badgeStyle}>Edge: {play.edge}%</span>
+          <span style={badgeStyle}>Confidence: {play.confidence}%</span>
+          <span style={badgeStyle}>Units: {play.units}u</span>
 
           <span
             style={{
               ...badgeStyle,
-              backgroundColor:
-                play.sharp_signal === "Sharp Play"
-                  ? "#166534"
-                  : play.sharp_signal === "Value Watch"
-                  ? "#854d0e"
-                  : play.sharp_signal === "Market Caution"
-                  ? "#7f1d1d"
-                  : "#374151",
+              backgroundColor: getSignalColor(play.sharp_signal),
             }}
           >
             {play.sharp_signal || "No Signal"}
@@ -160,14 +162,7 @@ function MLBModelBoardPage() {
           <span
             style={{
               ...badgeStyle,
-              backgroundColor:
-                play.market_strength === "Strong"
-                  ? "#166534"
-                  : play.market_strength === "Moderate"
-                  ? "#854d0e"
-                  : play.market_strength === "Weak"
-                  ? "#7f1d1d"
-                  : "#374151",
+              backgroundColor: getStrengthColor(play.market_strength),
             }}
           >
             {play.market_strength || "Neutral"}
@@ -185,6 +180,23 @@ function MLBModelBoardPage() {
             }}
           >
             {play.recommendation}
+          </span>
+
+          <span style={badgeStyle}>
+            Open: {play.opening_odds ?? "N/A"}
+          </span>
+
+          <span style={badgeStyle}>
+            Current: {play.current_odds ?? play.odds}
+          </span>
+
+          <span
+            style={{
+              ...badgeStyle,
+              backgroundColor: getLineSignalColor(play.line_signal),
+            }}
+          >
+            {play.line_signal || "Stable Market"}
           </span>
         </div>
 
@@ -233,6 +245,16 @@ function MLBModelBoardPage() {
             <strong>Score:</strong>{" "}
             {play.sharp_score ?? "N/A"} —{" "}
             {play.sharp_reason || "No sharp analysis available."}
+          </p>
+
+          <p
+            style={{
+              color: "#d1d5db",
+              lineHeight: "1.8",
+            }}
+          >
+            <strong>Line Movement:</strong>{" "}
+            {play.line_movement ?? 0}
           </p>
         </div>
 
@@ -400,14 +422,15 @@ function MLBModelBoardPage() {
           lineHeight: "1.7",
         }}
       >
-        MLB betting intelligence dashboard powered
-        by pitcher ratings, bullpen fatigue,
-        weather, park factors, sharp market signals,
-        and model edge detection.
+        MLB betting intelligence dashboard powered by pitcher ratings,
+        bullpen fatigue, weather, park factors, sharp market signals,
+        line movement, and model edge detection.
       </p>
 
       {error ? (
         <p>{error}</p>
+      ) : sortedPlays.length === 0 ? (
+        <p>No MLB plays available.</p>
       ) : (
         <>
           <section style={{ marginBottom: "50px" }}>
@@ -420,11 +443,13 @@ function MLBModelBoardPage() {
               Top Moneyline Plays
             </h2>
 
-            {topMoneyline.map((play, index) =>
-              renderCard(
-                play,
-                index,
-                "Top Moneyline"
+            {topMoneyline.length === 0 ? (
+              <p style={{ color: "#9ca3af" }}>
+                No moneyline plays available.
+              </p>
+            ) : (
+              topMoneyline.map((play, index) =>
+                renderCard(play, index, "Top Moneyline")
               )
             )}
           </section>
@@ -439,8 +464,14 @@ function MLBModelBoardPage() {
               Top Totals
             </h2>
 
-            {topTotals.map((play, index) =>
-              renderCard(play, index, "Top Total")
+            {topTotals.length === 0 ? (
+              <p style={{ color: "#9ca3af" }}>
+                No totals available.
+              </p>
+            ) : (
+              topTotals.map((play, index) =>
+                renderCard(play, index, "Top Total")
+              )
             )}
           </section>
         </>
@@ -450,3 +481,4 @@ function MLBModelBoardPage() {
 }
 
 export default MLBModelBoardPage;
+
