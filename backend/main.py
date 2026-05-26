@@ -831,6 +831,40 @@ def get_mlb_market_adjustment(market_key, odds, point=None, side=None):
 def get_mlb_weather_adjustment(game, market_key, side=None):
     home_team = game.get("home_team")
 
+    park_data = MLB_BALLPARK_WEATHER.get(
+        home_team,
+        {
+            "park": "Unknown",
+            "run_factor": 1.00,
+            "hr_factor": 1.00,
+            "weather_risk": "Neutral",
+        }
+    )
+
+    run_factor = float(park_data.get("run_factor", 1.00))
+    hr_factor = float(park_data.get("hr_factor", 1.00))
+
+    run_adj = (run_factor - 1.00) * 20
+    hr_adj = (hr_factor - 1.00) * 10
+
+    total_weather_adj = round(run_adj + hr_adj, 2)
+
+    if market_key == "totals":
+        if side == "Over":
+            adjustment = total_weather_adj
+        else:
+            adjustment = -total_weather_adj
+    else:
+        adjustment = round(total_weather_adj * 0.25, 2)
+
+    return {
+        "park": park_data.get("park"),
+        "run_factor": run_factor,
+        "hr_factor": hr_factor,
+        "weather_risk": park_data.get("weather_risk"),
+        "weather_adjustment": round(adjustment, 2),
+    }
+
 def get_nrfi_yrfi_projection(game, probable_pitchers):
     away_team = game.get("away_team")
     home_team = game.get("home_team")
