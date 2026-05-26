@@ -1604,6 +1604,51 @@ def model_nba_today():
         if cached:
             return {"plays": cached, "cached": True, "error": str(e)}
         return {"plays": [], "error": str(e)}
+    
+def get_sharp_market_signal(edge, odds, recommendation):
+    try:
+        edge_value = float(edge)
+        odds_value = int(odds)
+    except Exception:
+        return {
+            "sharp_signal": "No Signal",
+            "sharp_score": 0,
+            "sharp_reason": "Unable to evaluate market signal."
+        }
+
+    sharp_score = 0
+    reasons = []
+
+    if edge_value >= 4:
+        sharp_score += 3
+        reasons.append("Strong model edge.")
+    elif edge_value >= 2:
+        sharp_score += 2
+        reasons.append("Playable model edge.")
+
+    if odds_value > 100:
+        sharp_score += 1
+        reasons.append("Plus-money price available.")
+
+    if recommendation == "Play":
+        sharp_score += 2
+        reasons.append("Model marks this as a Play.")
+    elif recommendation == "Lean":
+        sharp_score += 1
+        reasons.append("Model marks this as a Lean.")
+
+    if sharp_score >= 5:
+        sharp_signal = "Sharp Play"
+    elif sharp_score >= 3:
+        sharp_signal = "Value Watch"
+    else:
+        sharp_signal = "No Signal"
+
+    return {
+        "sharp_signal": sharp_signal,
+        "sharp_score": sharp_score,
+        "sharp_reason": " ".join(reasons)
+    }
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
@@ -1807,6 +1852,13 @@ def model_mlb_today():
                             recommendation
                         )
 
+                        sharp_data = get_sharp_market_signal(
+                            edge,
+                            odds,
+                            recommendation
+                        )
+
+
                         reason = (
                             f"Starting pitcher: {pitcher_name}. "
                             f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
@@ -1831,6 +1883,9 @@ def model_mlb_today():
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
+                            "sharp_signal": sharp_data.get("sharp_signal"),
+                            "sharp_score": sharp_data.get("sharp_score"),
+                            "sharp_reason": sharp_data.get("sharp_reason"),
                             "model_version": "mlb_v3_pitcher_edge",
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
