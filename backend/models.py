@@ -31,3 +31,22 @@ class CacheEntry(Base):
     cache_key = Column(String, unique=True, index=True)
     payload = Column(Text)
     
+class LineSnapshot(Base):
+    __tablename__ = "line_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    line_key = Column(String, unique=True, index=True)
+
+    game = Column(String, index=True)
+    market = Column(String, index=True)
+    pick = Column(String, index=True)
+    sportsbook = Column(String, index=True)
+
+    opening_odds = Column(Integer)
+    current_odds = Column(Integer)
+
+    created_at = Column(String)
+    updated_at = Column(String)    
+
+    

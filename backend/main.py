@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 
 from database import SessionLocal, engine
-from models import Base, Pick, CacheEntry
+from models import Pick, CacheEntry, LineSnapshot
 
 load_dotenv()
 
@@ -1749,6 +1749,57 @@ def get_clv_signal(opening_odds, current_odds):
         )
     }
 
+def get_or_create_line_snapshot(
+    line_key,
+    game,
+    market,
+    pick,
+    sportsbook,
+    current_odds
+):
+    db = SessionLocal()
+
+    try:
+        now = datetime.utcnow().isoformat()
+
+        snapshot = db.query(LineSnapshot).filter(
+            LineSnapshot.line_key == line_key
+        ).first()
+
+        if snapshot:
+            snapshot.current_odds = int(current_odds)
+            snapshot.updated_at = now
+            db.commit()
+
+            return {
+                "opening_odds": snapshot.opening_odds,
+                "current_odds": snapshot.current_odds,
+            }
+
+        snapshot = LineSnapshot(
+            line_key=line_key,
+            game=game,
+            market=market,
+            pick=pick,
+            sportsbook=sportsbook,
+            opening_odds=int(current_odds),
+            current_odds=int(current_odds),
+            created_at=now,
+            updated_at=now,
+        )
+
+        db.add(snapshot)
+        db.commit()
+
+        return {
+            "opening_odds": snapshot.opening_odds,
+            "current_odds": snapshot.current_odds,
+        }
+
+    finally:
+        db.close()
+
+
 @app.get("/model/mlb/today")
 def model_mlb_today():
     cached = get_cache("mlb_model_v2")
@@ -1971,20 +2022,26 @@ def model_mlb_today():
                             sportsbook
                         )
 
-                        opening_odds = get_cache(line_key)
+                        snapshot_data = get_or_create_line_snapshot(
+                            line_key,
+                            game_name,
+                            market_name,
+                            pick_name,
+                            sportsbook,
+                            odds
+                        )
 
-                        if opening_odds is None:
-                            set_cache(line_key, odds)
-                            opening_odds = odds
+                        opening_odds = snapshot_data.get("opening_odds")
+                        current_odds = snapshot_data.get("current_odds")
 
                         line_data = get_line_movement_signal(
                             opening_odds,
-                            odds
+                            current_odds
                         )
 
                         clv_data = get_clv_signal(
                             opening_odds,
-                            odds
+                            current_odds
                         )
 
                         reason = (
