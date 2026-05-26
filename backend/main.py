@@ -1750,6 +1750,10 @@ def model_mlb_today():
                             # Require stronger value for run lines so MLB board does not over-prioritize -1.5 plays
                             if market_key in ["spreads", "alternate_spreads"]:
                                 market_adj -= 1.25
+                            # Extra discipline on favorite -1.5 run lines
+                            
+                            if float(point) < 0:
+                                market_adj -= 1.25
 
                             market_name = "Run Line"
                             pick_name = f"{team_name} {point:+}"
@@ -2121,6 +2125,8 @@ def model_mlb_f5_today():
                         model_prob = max(1, min(99, model_prob))
 
                         edge = round(model_prob - implied, 2)
+                        if market_name == "Run Line" and edge < 4:
+                            continue
 
                         if edge >= 4:
                             recommendation = "Play"
