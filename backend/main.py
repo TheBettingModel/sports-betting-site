@@ -1980,11 +1980,7 @@ def model_mlb_f5_today():
             "error": "Missing API key"
         }
 
-    f5_markets = (
-        "h2h_3_way_1st_5_innings,"
-        "spreads_1st_5_innings,"
-        "totals_1st_5_innings"
-    )
+    f5_markets = "h2h_3_way_1st_5_innings"
 
     try:
         events_response = get_mlb_events(odds_api_key)
@@ -2051,7 +2047,7 @@ def model_mlb_f5_today():
                         team_name = outcome.get("name")
 
                         if market_key == "h2h_3_way_1st_5_innings":
-                            market_name = "F5 Moneyline"
+                            market_name = "F5 Winner"
                             pick_name = team_name
 
                         elif market_key == "spreads_1st_5_innings":
