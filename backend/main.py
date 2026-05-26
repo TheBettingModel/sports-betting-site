@@ -1613,22 +1613,43 @@ def get_sharp_market_signal(edge, odds, recommendation):
         return {
             "sharp_signal": "No Signal",
             "sharp_score": 0,
+            "price_profile": "Unknown",
+            "market_strength": "Unknown",
             "sharp_reason": "Unable to evaluate market signal."
         }
 
     sharp_score = 0
     reasons = []
 
-    if edge_value >= 4:
+    if odds_value <= -200:
+        price_profile = "Heavy Favorite"
+    elif odds_value < 0:
+        price_profile = "Favorite"
+    elif odds_value == 100:
+        price_profile = "Even Money"
+    else:
+        price_profile = "Plus Money"
+
+    if edge_value >= 5:
+        sharp_score += 4
+        reasons.append("Strong model edge above 5%.")
+    elif edge_value >= 4:
         sharp_score += 3
         reasons.append("Strong model edge.")
     elif edge_value >= 2:
         sharp_score += 2
         reasons.append("Playable model edge.")
+    elif edge_value < 0:
+        sharp_score -= 2
+        reasons.append("Negative model edge.")
 
     if odds_value > 100:
         sharp_score += 1
         reasons.append("Plus-money price available.")
+
+    if odds_value <= -200 and edge_value < 4:
+        sharp_score -= 1
+        reasons.append("Heavy favorite requires stronger edge.")
 
     if recommendation == "Play":
         sharp_score += 2
@@ -1636,17 +1657,28 @@ def get_sharp_market_signal(edge, odds, recommendation):
     elif recommendation == "Lean":
         sharp_score += 1
         reasons.append("Model marks this as a Lean.")
+    elif recommendation == "Pass":
+        sharp_score -= 1
+        reasons.append("Model marks this as a Pass.")
 
-    if sharp_score >= 5:
+    if sharp_score >= 6:
         sharp_signal = "Sharp Play"
-    elif sharp_score >= 3:
+        market_strength = "Strong"
+    elif sharp_score >= 4:
         sharp_signal = "Value Watch"
+        market_strength = "Moderate"
+    elif sharp_score <= 0:
+        sharp_signal = "Market Caution"
+        market_strength = "Weak"
     else:
         sharp_signal = "No Signal"
+        market_strength = "Neutral"
 
     return {
         "sharp_signal": sharp_signal,
         "sharp_score": sharp_score,
+        "price_profile": price_profile,
+        "market_strength": market_strength,
         "sharp_reason": " ".join(reasons)
     }
 
