@@ -852,7 +852,16 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
     away_pitcher = probable_pitchers.get(away_team) or default_pitcher
     home_pitcher = probable_pitchers.get(home_team) or default_pitcher
 
-    weather_adj = weather_data.get("weather_adjustment", 0)
+    weather_data = get_mlb_weather_adjustment(
+        game,
+        "totals",
+        "Over"
+    )
+
+    weather_adj = weather_data.get(
+        "weather_adjustment",
+        0
+    )
 
     nrfi_probability = 52
 
