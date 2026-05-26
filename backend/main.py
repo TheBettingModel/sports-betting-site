@@ -1682,6 +1682,36 @@ def get_sharp_market_signal(edge, odds, recommendation):
         "sharp_reason": " ".join(reasons)
     }
 
+def get_line_key(game, market, pick, sportsbook):
+    return f"{game}|{market}|{pick}|{sportsbook}"
+
+
+def american_odds_movement(opening_odds, current_odds):
+    try:
+        opening = int(opening_odds)
+        current = int(current_odds)
+        return current - opening
+    except Exception:
+        return 0
+
+
+def get_line_movement_signal(opening_odds, current_odds):
+    movement = american_odds_movement(opening_odds, current_odds)
+
+    if movement <= -20:
+        signal = "Steam Toward Pick"
+    elif movement >= 20:
+        signal = "Price Drift"
+    else:
+        signal = "Stable Market"
+
+    return {
+        "opening_odds": opening_odds,
+        "current_odds": current_odds,
+        "line_movement": movement,
+        "line_signal": signal,
+    }
+
 @app.get("/model/mlb/today")
 def model_mlb_today():
     cached = get_cache("mlb_model_v2")
@@ -1890,6 +1920,30 @@ def model_mlb_today():
                             recommendation
                         )
 
+                        line_key = get_line_key(
+                            game_name,
+                            market_name,
+                            pick_name,
+                            sportsbook
+                        )
+
+                        line_key = get_line_key(
+                            game_name,
+                            market_name,
+                            pick_name,
+                            sportsbook
+                        )
+
+                        opening_odds = get_cache(line_key)
+
+                        if opening_odds is None:
+                            set_cache(line_key, odds)
+                            opening_odds = odds
+
+                        line_data = get_line_movement_signal(
+                            opening_odds,
+                            odds
+                        )
 
                         reason = (
                             f"Starting pitcher: {pitcher_name}. "
@@ -1920,6 +1974,10 @@ def model_mlb_today():
                             "sharp_reason": sharp_data.get("sharp_reason"),
                             "price_profile": sharp_data.get("price_profile"),
                             "market_strength": sharp_data.get("market_strength"),
+                            "opening_odds": line_data.get("opening_odds"),
+                            "current_odds": line_data.get("current_odds"),
+                            "line_movement": line_data.get("line_movement"),
+                            "line_signal": line_data.get("line_signal"),
                             "model_version": "mlb_v3_pitcher_edge",
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
@@ -1929,7 +1987,6 @@ def model_mlb_today():
                             "away_pitcher_era": away_starter_data.get("era"),
                             "away_pitcher_whip": away_starter_data.get("whip"),
                             "away_pitcher_rating": away_starter_data.get("rating"),
-
                             "home_starter": home_starter_data.get("pitcher"),
                             "home_pitcher_era": home_starter_data.get("era"),
                             "home_pitcher_whip": home_starter_data.get("whip"),
