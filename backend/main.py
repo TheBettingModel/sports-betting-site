@@ -1530,6 +1530,9 @@ def model_nba_today():
 
                         edge = round(model_prob - implied, 2)
 
+                        if market_name == "Run Line" and edge < 4:
+                            continue
+
                         if edge >= 4:
                             recommendation = "Play"
                         elif edge >= 2:
@@ -2125,6 +2128,7 @@ def model_mlb_f5_today():
                         model_prob = max(1, min(99, model_prob))
 
                         edge = round(model_prob - implied, 2)
+
                         if market_name == "Run Line" and edge < 4:
                             continue
 
