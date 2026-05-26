@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 
 from database import Base, SessionLocal, engine
