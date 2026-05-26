@@ -1742,7 +1742,7 @@ def model_mlb_today():
                             pick_name = team_name
 
                         elif market_key in ["spreads", "alternate_spreads"]:
-                            point = outcome.get("point")
+                            continue
 
                             if point is None:
                                 continue
