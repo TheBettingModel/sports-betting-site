@@ -159,6 +159,46 @@ function MLBModelBoardPage() {
             }}
           >
             {play.sharp_signal || "No Signal"}
+            <span style={badgeStyle}>
+              Price: {play.price_profile || "N/A"}
+            </span>
+
+            <span
+              style={{
+                ...badgeStyle,
+                backgroundColor:
+                  play.market_strength === "Strong"
+                    ? "#166534"
+                    : play.market_strength === "Moderate"
+                    ? "#854d0e"
+                    : play.market_strength === "Weak"
+                    ? "#7f1d1d"
+                    : "#374151",
+              }}
+            >
+              Market: {play.market_strength || "N/A"}
+            </span>
+            
+              <span style={badgeStyle}>
+                Price: {play.price_profile || "N/A"}
+              </span>
+
+              <span
+                style={{
+                  ...badgeStyle,
+                  backgroundColor:
+                    play.market_strength === "Strong"
+                      ? "#166534"
+                      : play.market_strength === "Moderate"
+                      ? "#854d0e"
+                      : play.market_strength === "Weak"
+                      ? "#7f1d1d"
+                      : "#374151",
+                }}
+              >
+                Market: {play.market_strength || "N/A"}
+              </span>
+
           </span>
 
           <span
