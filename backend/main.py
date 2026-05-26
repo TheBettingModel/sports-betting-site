@@ -1712,6 +1712,43 @@ def get_line_movement_signal(opening_odds, current_odds):
         "line_signal": signal,
     }
 
+def get_clv_signal(opening_odds, current_odds):
+    movement = american_odds_movement(
+        opening_odds,
+        current_odds
+    )
+
+    if movement <= -20:
+        return {
+            "clv_status": "Positive CLV",
+            "clv_score": abs(movement),
+            "clv_reason": (
+                "Current market price has moved "
+                "toward the pick compared to the "
+                "opening snapshot."
+            )
+        }
+
+    if movement >= 20:
+        return {
+            "clv_status": "Negative CLV",
+            "clv_score": -abs(movement),
+            "clv_reason": (
+                "Current market price has drifted "
+                "away from the pick compared to the "
+                "opening snapshot."
+            )
+        }
+
+    return {
+        "clv_status": "Neutral CLV",
+        "clv_score": 0,
+        "clv_reason": (
+            "Market price has remained relatively "
+            "stable compared to the opening snapshot."
+        )
+    }
+
 @app.get("/model/mlb/today")
 def model_mlb_today():
     cached = get_cache("mlb_model_v2")
@@ -1945,6 +1982,11 @@ def model_mlb_today():
                             odds
                         )
 
+                        clv_data = get_clv_signal(
+                            opening_odds,
+                            odds
+                        )
+
                         reason = (
                             f"Starting pitcher: {pitcher_name}. "
                             f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
@@ -1978,6 +2020,9 @@ def model_mlb_today():
                             "current_odds": line_data.get("current_odds"),
                             "line_movement": line_data.get("line_movement"),
                             "line_signal": line_data.get("line_signal"),
+                            "clv_status": clv_data.get("clv_status"),
+                            "clv_score": clv_data.get("clv_score"),
+                            "clv_reason": clv_data.get("clv_reason"),
                             "model_version": "mlb_v3_pitcher_edge",
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
