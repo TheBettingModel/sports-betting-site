@@ -835,36 +835,22 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
     away_team = game.get("away_team")
     home_team = game.get("home_team")
 
-    away_pitcher = probable_pitchers.get(
-        away_team,
-        {
-            "pitcher": "TBD",
-            "era": 0.00,
-            "whip": 0.00,
-            "rating": 75,
-        }
-    )
+    default_pitcher = {
+    "pitcher": "TBD",
+    "era": 0.00,
+    "whip": 0.00,
+    "rating": 75,
+}
 
-    home_pitcher = probable_pitchers.get(
-        home_team,
-        {
-            "pitcher": "TBD",
-            "era": 0.00,
-            "whip": 0.00,
-            "rating": 75,
-        }
-    )
+    default_pitcher = {
+        "pitcher": "TBD",
+        "era": 0.00,
+        "whip": 0.00,
+        "rating": 75
+}
 
-    away_rating = away_pitcher.get("rating", 75)
-    home_rating = home_pitcher.get("rating", 75)
-
-    combined_pitcher_rating = (away_rating + home_rating) / 2
-
-    weather_data = get_mlb_weather_adjustment(
-        game,
-        "totals",
-        "Over"
-    )
+    away_pitcher = probable_pitchers.get(away_team) or default_pitcher
+    home_pitcher = probable_pitchers.get(home_team) or default_pitcher
 
     weather_adj = weather_data.get("weather_adjustment", 0)
 
