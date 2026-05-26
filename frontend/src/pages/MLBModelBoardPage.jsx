@@ -13,88 +13,71 @@ function MLBModelBoardPage() {
         if (data.plays) {
           setPlays(data.plays);
         } else {
-          setError("Failed to load MLB model.");
+          setError("Failed to load MLB Model");
         }
       })
       .catch(() => {
-        setError("Failed to load MLB model.");
+        setError("Failed to load MLB Model");
       });
   }, [API_URL]);
 
   const sortedPlays = useMemo(() => {
-    return [...plays].sort((a, b) => {
-      return (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0);
-    });
+    return [...plays].sort(
+      (a, b) => (b.edge || 0) - (a.edge || 0)
+    );
   }, [plays]);
 
-  const topOverall = useMemo(() => {
-    return sortedPlays.slice(0, 5);
-  }, [sortedPlays]);
+  const topMoneyline = sortedPlays.filter(
+    (play) => play.market === "Moneyline"
+  );
 
-  const topSides = useMemo(() => {
-    return sortedPlays
-      .filter((play) => play.market === "Moneyline")
-      .slice(0, 5);
-  }, [sortedPlays]);
-
-  const topTotals = useMemo(() => {
-    return sortedPlays
-      .filter((play) => play.market === "Total")
-      .slice(0, 5);
-  }, [sortedPlays]);
-
-  const topUnderdogs = useMemo(() => {
-    return sortedPlays
-      .filter((play) => Number(play.odds) > 0)
-      .slice(0, 5);
-  }, [sortedPlays]);
+  const topTotals = sortedPlays.filter(
+    (play) => play.market === "Total"
+  );
 
   const badgeStyle = {
     backgroundColor: "#1f2937",
     border: "1px solid #374151",
     color: "white",
-    padding: "8px 10px",
+    padding: "8px 12px",
     borderRadius: "999px",
-    fontSize: "14px",
-    fontWeight: "bold",
+    fontSize: "13px",
+    fontWeight: "600",
   };
 
-  const miniStatStyle = {
+  const statBoxStyle = {
     backgroundColor: "#111827",
     border: "1px solid #374151",
-    borderRadius: "10px",
-    padding: "12px",
+    borderRadius: "12px",
+    padding: "14px",
   };
 
-  const renderPlayCard = (play, index, label) => {
-    const isTop = index === 0;
-
+  const renderCard = (play, index, label) => {
     return (
       <div
         key={`${play.game}-${play.pick}-${index}`}
         style={{
-          backgroundColor: "#111827",
-          border: isTop
-            ? "2px solid #e10600"
-            : "1px solid #374151",
-          borderRadius: "16px",
-          padding: "24px",
-          boxShadow: isTop
-            ? "0 0 15px rgba(225, 6, 0, 0.35)"
-            : "none",
+          backgroundColor: "#0f172a",
+          border:
+            index === 0
+              ? "2px solid #dc2626"
+              : "1px solid #374151",
+          borderRadius: "18px",
+          padding: "26px",
+          marginBottom: "24px",
         }}
       >
-        {isTop && (
+        {index === 0 && (
           <div
             style={{
-              backgroundColor: "#e10600",
+              backgroundColor: "#dc2626",
               color: "white",
-              padding: "6px 10px",
-              borderRadius: "8px",
               display: "inline-block",
-              marginBottom: "16px",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              marginBottom: "18px",
               fontWeight: "bold",
-              fontSize: "14px",
+              fontSize: "13px",
             }}
           >
             {label}
@@ -104,31 +87,38 @@ function MLBModelBoardPage() {
         <p
           style={{
             color: "#9ca3af",
+            marginBottom: "8px",
             fontSize: "14px",
-            marginBottom: "6px",
           }}
         >
           {play.market} • {play.sportsbook}
         </p>
 
-        <h2>{play.game}</h2>
-
-        <h1
+        <h2
           style={{
-            color: "#22c55e",
-            fontSize: "30px",
-            marginBottom: "12px",
+            marginBottom: "10px",
+            fontSize: "40px",
           }}
         >
           {play.pick}
-        </h1>
+        </h2>
+
+        <h3
+          style={{
+            color: "#d1d5db",
+            marginBottom: "22px",
+            fontSize: "24px",
+          }}
+        >
+          {play.game}
+        </h3>
 
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             gap: "10px",
-            marginBottom: "18px",
+            marginBottom: "22px",
           }}
         >
           <span style={badgeStyle}>
@@ -155,50 +145,32 @@ function MLBModelBoardPage() {
                   ? "#166534"
                   : play.sharp_signal === "Value Watch"
                   ? "#854d0e"
+                  : play.sharp_signal === "Market Caution"
+                  ? "#7f1d1d"
                   : "#374151",
             }}
           >
             {play.sharp_signal || "No Signal"}
-            <span style={badgeStyle}>
-              Price: {play.price_profile || "N/A"}
-            </span>
+          </span>
 
-            <span
-              style={{
-                ...badgeStyle,
-                backgroundColor:
-                  play.market_strength === "Strong"
-                    ? "#166534"
-                    : play.market_strength === "Moderate"
-                    ? "#854d0e"
-                    : play.market_strength === "Weak"
-                    ? "#7f1d1d"
-                    : "#374151",
-              }}
-            >
-              Market: {play.market_strength || "N/A"}
-            </span>
-            
-              <span style={badgeStyle}>
-                Price: {play.price_profile || "N/A"}
-              </span>
+          <span style={badgeStyle}>
+            {play.price_profile || "N/A"}
+          </span>
 
-              <span
-                style={{
-                  ...badgeStyle,
-                  backgroundColor:
-                    play.market_strength === "Strong"
-                      ? "#166534"
-                      : play.market_strength === "Moderate"
-                      ? "#854d0e"
-                      : play.market_strength === "Weak"
-                      ? "#7f1d1d"
-                      : "#374151",
-                }}
-              >
-                Market: {play.market_strength || "N/A"}
-              </span>
-
+          <span
+            style={{
+              ...badgeStyle,
+              backgroundColor:
+                play.market_strength === "Strong"
+                  ? "#166534"
+                  : play.market_strength === "Moderate"
+                  ? "#854d0e"
+                  : play.market_strength === "Weak"
+                  ? "#7f1d1d"
+                  : "#374151",
+            }}
+          >
+            {play.market_strength || "Neutral"}
           </span>
 
           <span
@@ -218,11 +190,11 @@ function MLBModelBoardPage() {
 
         <div
           style={{
-            backgroundColor: "#0f172a",
-            border: "1px solid #334155",
-            borderRadius: "10px",
-            padding: "14px",
-            marginBottom: "16px",
+            backgroundColor: "#111827",
+            border: "1px solid #374151",
+            borderRadius: "14px",
+            padding: "18px",
+            marginBottom: "18px",
           }}
         >
           <h3 style={{ marginTop: 0 }}>
@@ -232,79 +204,77 @@ function MLBModelBoardPage() {
           <p
             style={{
               color: "#d1d5db",
-              lineHeight: "1.7",
+              lineHeight: "1.8",
             }}
           >
             {play.reason}
           </p>
         </div>
 
-        {play.sharp_reason && (
-          <div
+        <div
+          style={{
+            backgroundColor: "#111827",
+            border: "1px solid #374151",
+            borderRadius: "14px",
+            padding: "18px",
+            marginBottom: "18px",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>
+            Sharp Market Signal
+          </h3>
+
+          <p
             style={{
-              backgroundColor: "#111827",
-              border: "1px solid #374151",
-              borderRadius: "10px",
-              padding: "14px",
-              marginBottom: "16px",
+              color: "#d1d5db",
+              lineHeight: "1.8",
             }}
           >
-            <h3 style={{ marginTop: 0 }}>
-              Sharp Market Signal
-            </h3>
-
-            <p
-              style={{
-                color: "#d1d5db",
-                lineHeight: "1.7",
-              }}
-            >
-              <strong>Score:</strong>{" "}
-              {play.sharp_score ?? "N/A"} —{" "}
-              {play.sharp_reason}
-            </p>
-          </div>
-        )}
+            <strong>Score:</strong>{" "}
+            {play.sharp_score ?? "N/A"} —{" "}
+            {play.sharp_reason || "No sharp analysis available."}
+          </p>
+        </div>
 
         <div
           style={{
             display: "grid",
             gridTemplateColumns:
               "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "12px",
-            marginBottom: "16px",
+            gap: "14px",
+            marginBottom: "24px",
           }}
         >
-          <div style={miniStatStyle}>
+          <div style={statBoxStyle}>
             <strong>Implied Probability</strong>
             <p>{play.implied_probability}%</p>
           </div>
 
-          <div style={miniStatStyle}>
+          <div style={statBoxStyle}>
             <strong>Model Probability</strong>
             <p>{play.model_probability}%</p>
           </div>
 
-          <div style={miniStatStyle}>
+          <div style={statBoxStyle}>
             <strong>Market Adjustment</strong>
             <p>{play.market_adjustment ?? "N/A"}</p>
           </div>
 
-          <div style={miniStatStyle}>
+          <div style={statBoxStyle}>
             <strong>Weather Adjustment</strong>
             <p>{play.weather_adjustment ?? "N/A"}</p>
           </div>
         </div>
 
+        <hr
+          style={{
+            borderColor: "#374151",
+            margin: "24px 0",
+          }}
+        />
+
         {play.market === "Total" ? (
           <>
-            <hr
-              style={{
-                borderColor: "#374151",
-                margin: "20px 0",
-              }}
-            />
-
             <h3>Projected Starters</h3>
 
             <p>
@@ -313,7 +283,7 @@ function MLBModelBoardPage() {
             </p>
 
             <p>
-              <strong>Away Pitcher Rating:</strong>{" "}
+              <strong>Away Rating:</strong>{" "}
               {play.away_pitcher_rating ?? "N/A"}
             </p>
 
@@ -323,19 +293,12 @@ function MLBModelBoardPage() {
             </p>
 
             <p>
-              <strong>Home Pitcher Rating:</strong>{" "}
+              <strong>Home Rating:</strong>{" "}
               {play.home_pitcher_rating ?? "N/A"}
             </p>
           </>
         ) : (
           <>
-            <hr
-              style={{
-                borderColor: "#374151",
-                margin: "20px 0",
-              }}
-            />
-
             <h3>Pitching Matchup</h3>
 
             <p>
@@ -344,12 +307,12 @@ function MLBModelBoardPage() {
             </p>
 
             <p>
-              <strong>Pitcher ERA:</strong>{" "}
+              <strong>ERA:</strong>{" "}
               {play.pitcher_era ?? "N/A"}
             </p>
 
             <p>
-              <strong>Pitcher WHIP:</strong>{" "}
+              <strong>WHIP:</strong>{" "}
               {play.pitcher_whip ?? "N/A"}
             </p>
 
@@ -363,7 +326,7 @@ function MLBModelBoardPage() {
         <hr
           style={{
             borderColor: "#374151",
-            margin: "20px 0",
+            margin: "24px 0",
           }}
         />
 
@@ -392,78 +355,38 @@ function MLBModelBoardPage() {
         <hr
           style={{
             borderColor: "#374151",
-            margin: "20px 0",
+            margin: "24px 0",
           }}
         />
 
         <h3>Bullpen</h3>
 
         <p>
-          <strong>Bullpen Fatigue:</strong>{" "}
+          <strong>Fatigue:</strong>{" "}
           {play.bullpen_fatigue ?? "N/A"}
         </p>
 
         <p>
-          <strong>Bullpen Status:</strong>{" "}
+          <strong>Status:</strong>{" "}
           {play.bullpen_status || "N/A"}
         </p>
       </div>
     );
   };
 
-  const renderSection = (
-    title,
-    subtitle,
-    sectionPlays,
-    label
-  ) => {
-    return (
-      <section style={{ marginBottom: "40px" }}>
-        <h2
-          style={{
-            fontSize: "28px",
-            marginBottom: "6px",
-          }}
-        >
-          {title}
-        </h2>
-
-        <p
-          style={{
-            color: "#9ca3af",
-            marginBottom: "18px",
-          }}
-        >
-          {subtitle}
-        </p>
-
-        <div
-          style={{
-            display: "grid",
-            gap: "24px",
-          }}
-        >
-          {sectionPlays.map((play, index) =>
-            renderPlayCard(play, index, label)
-          )}
-        </div>
-      </section>
-    );
-  };
-
   return (
     <div
       style={{
-        padding: "30px",
-        backgroundColor: "#0b0b0b",
+        backgroundColor: "#020617",
         minHeight: "100vh",
         color: "white",
+        padding: "30px",
       }}
     >
       <h1
         style={{
+          fontSize: "42px",
           marginBottom: "10px",
-          fontSize: "38px",
         }}
       >
         MLB Model
@@ -472,50 +395,54 @@ function MLBModelBoardPage() {
       <p
         style={{
           color: "#9ca3af",
+          marginBottom: "35px",
           maxWidth: "900px",
-          lineHeight: "1.6",
-          marginBottom: "30px",
+          lineHeight: "1.7",
         }}
       >
-        Full-game MLB betting model powered by
-        pitching, bullpen fatigue, market pricing,
-        weather, ballpark factors, and sharp market
-        signals.
+        MLB betting intelligence dashboard powered
+        by pitcher ratings, bullpen fatigue,
+        weather, park factors, sharp market signals,
+        and model edge detection.
       </p>
 
       {error ? (
         <p>{error}</p>
-      ) : sortedPlays.length === 0 ? (
-        <p>No MLB plays available.</p>
       ) : (
         <>
-          {renderSection(
-            "Top Overall Plays",
-            "Highest-rated MLB plays by model edge.",
-            topOverall,
-            "Top Overall"
-          )}
+          <section style={{ marginBottom: "50px" }}>
+            <h2
+              style={{
+                marginBottom: "18px",
+                fontSize: "30px",
+              }}
+            >
+              Top Moneyline Plays
+            </h2>
 
-          {renderSection(
-            "Top Moneyline Plays",
-            "Best MLB moneyline positions.",
-            topSides,
-            "Top Moneyline"
-          )}
+            {topMoneyline.map((play, index) =>
+              renderCard(
+                play,
+                index,
+                "Top Moneyline"
+              )
+            )}
+          </section>
 
-          {renderSection(
-            "Top Totals",
-            "Best totals using weather and park context.",
-            topTotals,
-            "Top Total"
-          )}
+          <section>
+            <h2
+              style={{
+                marginBottom: "18px",
+                fontSize: "30px",
+              }}
+            >
+              Top Totals
+            </h2>
 
-          {renderSection(
-            "Top Underdogs",
-            "Best plus-money opportunities.",
-            topUnderdogs,
-            "Top Dog"
-          )}
+            {topTotals.map((play, index) =>
+              renderCard(play, index, "Top Total")
+            )}
+          </section>
         </>
       )}
     </div>
