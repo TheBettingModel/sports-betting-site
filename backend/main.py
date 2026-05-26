@@ -2215,14 +2215,32 @@ def model_mlb_f5_today():
 
             if game not in best_by_game:
                 best_by_game[game] = play
-
             else:
                 current_best = best_by_game[game]
 
+                current_edge = current_best.get("edge", 0)
+                new_edge = play.get("edge", 0)
+
+                current_market = current_best.get("market")
+                new_market = play.get("market")
+
+                # Prefer Moneyline if edge difference is small
                 if (
-                    play.get("edge", 0)
-                    > current_best.get("edge", 0)
+                    current_market == "Moneyline"
+                    and new_market == "Run Line"
+                    and new_edge < current_edge + 2
                 ):
+                    continue
+
+                if (
+                    new_market == "Moneyline"
+                    and current_market == "Run Line"
+                    and new_edge >= current_edge - 2
+                ):
+                    best_by_game[game] = play
+                    continue
+
+                if new_edge > current_edge:
                     best_by_game[game] = play
 
         final = list(best_by_game.values())
@@ -2238,6 +2256,7 @@ def model_mlb_f5_today():
         return {"plays": final}
 
     except Exception as e:
+
         if cached:
             return {
                 "plays": cached,
@@ -2245,7 +2264,7 @@ def model_mlb_f5_today():
                 "error": str(e)
             }
 
-        return {
+    return {
             "plays": [],
             "error": str(e)
         }
@@ -2299,7 +2318,14 @@ def model_mlb_nrfi_today():
 
     except Exception as e:
         if cached:
-            return {"plays": cached, "cached": True, "error": str(e)}
-        return {"plays": [], "error": str(e)}
-    
+            return {
+                "plays": cached,
+                "cached": True,
+                "error": str(e)
+            }
+
+        return {
+            "plays": [],
+            "error": str(e)
+        }
     
