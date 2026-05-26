@@ -1918,6 +1918,8 @@ def model_mlb_today():
                             "sharp_signal": sharp_data.get("sharp_signal"),
                             "sharp_score": sharp_data.get("sharp_score"),
                             "sharp_reason": sharp_data.get("sharp_reason"),
+                            "price_profile": sharp_data.get("price_profile"),
+                            "market_strength": sharp_data.get("market_strength"),
                             "model_version": "mlb_v3_pitcher_edge",
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
