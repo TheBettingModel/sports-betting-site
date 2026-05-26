@@ -8,7 +8,7 @@ import requests
 from datetime import date, timedelta
 
 
-from database import SessionLocal, engine
+from database import Base, SessionLocal, engine
 from models import Pick, CacheEntry, LineSnapshot
 
 load_dotenv()
