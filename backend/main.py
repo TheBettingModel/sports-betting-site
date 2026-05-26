@@ -1744,8 +1744,12 @@ def model_mlb_today():
                             if point is None:
                                 continue
 
-                            if abs(float(point)) > 2.5:
+                            if abs(float(point)) > 1.5:
                                 continue
+
+                            # Require stronger value for run lines so MLB board does not over-prioritize -1.5 plays
+                            if market_key in ["spreads", "alternate_spreads"]:
+                                market_adj -= 1.25
 
                             market_name = "Run Line"
                             pick_name = f"{team_name} {point:+}"
