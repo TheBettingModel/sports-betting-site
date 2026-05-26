@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-function MLBModelBoardPage() {
+  function MLBModelBoardPage() {
   const [plays, setPlays] = useState([]);
   const [error, setError] = useState("");
 
@@ -220,12 +220,12 @@ function MLBModelBoardPage() {
               >
                 <div style={miniStatStyle}>
                   <strong>Implied Probability</strong>
-                  <p>{play.implied_probability}%</p>
+                  <p>{play.implied_probability}</p>
                 </div>
 
                 <div style={miniStatStyle}>
                   <strong>Model Probability</strong>
-                  <p>{play.model_probability}%</p>
+                  <p>{play.model_probability}</p>
                 </div>
 
                 <div style={miniStatStyle}>
@@ -246,106 +246,64 @@ function MLBModelBoardPage() {
                 }}
               />
 
-              <h3>Pitching Matchup</h3>
+                         {play.market !== "Total" && (
+                <>
+                  <h3>Pitching Matchup</h3>
 
-              <p>
-                <strong>Starting Pitcher:</strong>{" "}
-                {play.starting_pitcher || "N/A"}
-              </p>
+                  <p>
+                    <strong>Starting Pitcher:</strong>{" "}
+                    {play.starting_pitcher || "N/A"}
+                  </p>
 
-              <p>
-                <strong>Pitcher ERA:</strong>{" "}
-                {play.pitcher_era ?? "N/A"}
-              </p>
+                  <p>
+                    <strong>Pitcher ERA:</strong>{" "}
+                    {play.pitcher_era ?? "N/A"}
+                  </p>
 
-              <p>
-                <strong>Pitcher WHIP:</strong>{" "}
-                {play.pitcher_whip ?? "N/A"}
-              </p>
+                  <p>
+                    <strong>Pitcher WHIP:</strong>{" "}
+                    {play.pitcher_whip ?? "N/A"}
+                  </p>
 
-              <p>
-                <strong>Pitcher Rating:</strong>{" "}
-                {play.pitcher_rating ?? "N/A"}
-              </p>
+                  <p>
+                    <strong>Pitcher Rating:</strong>{" "}
+                    {play.pitcher_rating ?? "N/A"}
+                  </p>
 
-              <p>
-                <strong>Opponent:</strong>{" "}
-                {play.opponent || "N/A"}
-              </p>
+                  <p>
+                    <strong>Opponent:</strong>{" "}
+                    {play.opponent || "N/A"}
+                  </p>
 
-              <p>
-                <strong>Opponent Pitcher Rating:</strong>{" "}
-                {play.opponent_pitcher_rating ?? "N/A"}
-              </p>
+                  <p>
+                    <strong>Opponent Pitcher Rating:</strong>{" "}
+                    {play.opponent_pitcher_rating ?? "N/A"}
+                  </p>
 
-              <p>
-                <strong>Pitcher Rating Differential:</strong>{" "}
-                {play.pitcher_rating_diff ?? "N/A"}
-              </p>
+                  <p>
+                    <strong>Pitcher Rating Differential:</strong>{" "}
+                    {play.pitcher_rating_diff ?? "N/A"}
+                  </p>
 
-              <p>
-                <strong>Pitcher Diff Adjustment:</strong>{" "}
-                {play.pitcher_diff_adjustment ?? "N/A"}
-              </p>
+                  <p>
+                    <strong>Pitcher Diff Adjustment:</strong>{" "}
+                    {play.pitcher_diff_adjustment ?? "N/A"}
+                  </p>
 
-              <hr
-                style={{
-                  borderColor: "#374151",
-                  margin: "20px 0",
-                }}
-              />
-
-              <h3>Weather / Ballpark</h3>
-
-              <p>
-                <strong>Ballpark:</strong>{" "}
-                {play.ballpark || "N/A"}
-              </p>
-
-              <p>
-                <strong>Weather Risk:</strong>{" "}
-                {play.weather_risk || "N/A"}
-              </p>
-
-              <p>
-                <strong>Run Factor:</strong>{" "}
-                {play.run_factor ?? "N/A"}
-              </p>
-
-              <p>
-                <strong>HR Factor:</strong>{" "}
-                {play.hr_factor ?? "N/A"}
-              </p>
-
-              <hr
-                style={{
-                  borderColor: "#374151",
-                  margin: "20px 0",
-                }}
-              />
-
-              <h3>Bullpen</h3>
-
-              <p>
-                <strong>Bullpen Fatigue:</strong>{" "}
-                {play.bullpen_fatigue ?? "N/A"}
-              </p>
-
-              <p>
-                <strong>Bullpen ERA:</strong>{" "}
-                {play.bullpen_era ?? "N/A"}
-              </p>
-
-              <p>
-                <strong>Bullpen Status:</strong>{" "}
-                {play.bullpen_status || "N/A"}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default MLBModelBoardPage;
+                                <hr
+                                  style={{
+                                    borderColor: "#374151",
+                                    margin: "20px 0",
+                                  }}
+                                />
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              
+              export default MLBModelBoardPage;
