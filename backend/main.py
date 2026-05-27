@@ -1541,6 +1541,19 @@ def model_nba_today():
                             recommendation = "Pass"
 
                         # Favorite price discipline filter
+                        # Weak sharp signal filter
+                        if (
+                            sharp_data.get("sharp_score", 0) <= 1
+                            and edge < 3
+                        ):
+                            sharp_data = get_sharp_market_signal(...)
+                            
+                            recommendation = "Pass"
+
+                            reason_filter += (
+                                " Filtered due to weak sharp signal "
+                                "and limited model edge."
+                            )
                         if (
                             market_name == "Moneyline"
                             and odds <= -170
