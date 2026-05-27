@@ -2059,6 +2059,9 @@ def model_mlb_today():
                             current_odds
                         )
 
+                        if "reason_filter" not in locals():
+                            reason_filter = ""
+
                         reason = (
                             f"Starting pitcher: {pitcher_name}. "
                             f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
