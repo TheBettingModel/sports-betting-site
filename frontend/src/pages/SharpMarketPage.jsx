@@ -25,6 +25,14 @@ function SharpMarketPage() {
     return plays.filter((play) => play.sharp_signal === "Sharp Play");
   }, [plays]);
 
+  const allMarketSignals = useMemo(() => {
+  return [...plays].sort(
+    (a, b) =>
+      (parseFloat(b.top_play_score) || 0) -
+      (parseFloat(a.top_play_score) || 0)
+  );
+}, [plays]);
+
   const valueWatch = useMemo(() => {
     return plays.filter((play) => play.sharp_signal === "Value Watch");
   }, [plays]);
@@ -145,6 +153,12 @@ function SharpMarketPage() {
         <p>{error}</p>
       ) : (
         <>
+          {renderSection(
+            "Top Market Signals",
+            "Highest-ranked plays by top play score, sharp score, CLV, and line movement.",
+            allMarketSignals
+          )}
+
           {renderSection(
             "Sharp Plays",
             "Strongest market signals based on model edge, price profile, and recommendation strength.",
