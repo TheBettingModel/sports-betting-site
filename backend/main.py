@@ -2133,6 +2133,8 @@ def model_mlb_today():
                         )
 
                         # CLV + sharp score combo filter
+                        reason_filter = ""
+
                         if (
                             clv_data.get("clv_status") == "Negative CLV"
                             and sharp_data.get("sharp_score", 0) <= 2
@@ -2140,13 +2142,10 @@ def model_mlb_today():
                         ):
                             recommendation = "Pass"
 
-                            reason_filter += (
-                                " Filtered due to negative CLV, "
-                                "weak sharp score, and limited edge."
+                            reason_filter = (
+                                "Market signals are weak due to negative CLV, "
+                                "limited sharp support, and low edge."
                             )
-
-                        if "reason_filter" not in locals():
-                            reason_filter = ""
 
                         reason = (
                             f"Starting pitcher: {pitcher_name}. "

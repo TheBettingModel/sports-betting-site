@@ -42,8 +42,16 @@ function MLBModelBoardPage() {
     fontWeight: "600",
   };
 
-  const statBoxStyle = {
+  const sectionStyle = {
     backgroundColor: "#111827",
+    border: "1px solid #374151",
+    borderRadius: "14px",
+    padding: "18px",
+    marginBottom: "18px",
+  };
+
+  const statBoxStyle = {
+    backgroundColor: "#0f172a",
     border: "1px solid #374151",
     borderRadius: "12px",
     padding: "14px",
@@ -75,6 +83,11 @@ function MLBModelBoardPage() {
     return "#374151";
   };
 
+  const formatPlus = (value) => {
+    if (value === undefined || value === null) return "N/A";
+    return Number(value) > 0 ? `+${value}` : value;
+  };
+
   const renderCard = (play, index, label, featured = false) => {
     return (
       <div
@@ -89,9 +102,7 @@ function MLBModelBoardPage() {
           borderRadius: "18px",
           padding: "26px",
           marginBottom: "24px",
-          boxShadow: featured
-            ? "0 0 22px rgba(34, 197, 94, 0.28)"
-            : "none",
+          boxShadow: featured ? "0 0 22px rgba(34, 197, 94, 0.28)" : "none",
         }}
       >
         <div
@@ -130,60 +141,104 @@ function MLBModelBoardPage() {
             {play.sharp_signal || "No Signal"}
           </span>
 
-          <span style={badgeStyle}>{play.price_profile || "N/A"}</span>
-
           <span style={{ ...badgeStyle, backgroundColor: getStrengthColor(play.market_strength) }}>
             {play.market_strength || "Neutral"}
+          </span>
+
+          <span style={{ ...badgeStyle, backgroundColor: getClvColor(play.clv_status) }}>
+            {play.clv_status || "Neutral CLV"}
+          </span>
+
+          <span style={{ ...badgeStyle, backgroundColor: "#1d4ed8" }}>
+            Best Book: {play.best_sportsbook || "N/A"}
+          </span>
+
+          <span style={{ ...badgeStyle, backgroundColor: "#065f46" }}>
+            Best Odds: {play.best_odds ?? "N/A"}
+          </span>
+
+          <span style={{ ...badgeStyle, backgroundColor: "#7c2d12" }}>
+            Worst Odds: {play.worst_odds ?? "N/A"}
+          </span>
+
+          <span style={{ ...badgeStyle, backgroundColor: "#312e81" }}>
+            Books: {play.book_count ?? 1}
           </span>
 
           <span
             style={{
               ...badgeStyle,
               backgroundColor:
-                play.recommendation === "Play"
+                (play.line_shop_value || 0) >= 20
                   ? "#166534"
-                  : play.recommendation === "Lean"
+                  : (play.line_shop_value || 0) >= 10
                   ? "#854d0e"
                   : "#374151",
             }}
           >
-            {play.recommendation}
-          </span>
-
-          <span style={badgeStyle}>Open: {play.opening_odds ?? "N/A"}</span>
-          <span style={badgeStyle}>Current: {play.current_odds ?? play.odds}</span>
-
-          <span style={{ ...badgeStyle, backgroundColor: getLineSignalColor(play.line_signal) }}>
-            {play.line_signal || "Stable Market"}
-          </span>
-
-          <span style={{ ...badgeStyle, backgroundColor: getClvColor(play.clv_status) }}>
-            {play.clv_status || "Neutral CLV"}
+            Line Value: {play.line_shop_value ?? 0}
           </span>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#111827",
-            border: "1px solid #374151",
-            borderRadius: "14px",
-            padding: "18px",
-            marginBottom: "18px",
-          }}
-        >
+        <div style={sectionStyle}>
           <h3 style={{ marginTop: 0 }}>Why We Like It</h3>
-          <p style={{ color: "#d1d5db", lineHeight: "1.8" }}>{play.reason}</p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "12px",
+              marginTop: "14px",
+            }}
+          >
+            <div style={statBoxStyle}>
+              <strong>Pitching Edge</strong>
+              <p>{formatPlus(play.pitcher_rating_diff)}</p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>Starting Pitcher</strong>
+              <p>{play.starting_pitcher || play.away_starter || "N/A"}</p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>Bullpen Status</strong>
+              <p>{play.bullpen_status || "N/A"}</p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>Market Signal</strong>
+              <p>{play.sharp_signal || "No Signal"}</p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>CLV Status</strong>
+              <p>{play.clv_status || "Neutral CLV"}</p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>Best Available Price</strong>
+              <p>
+                {play.best_sportsbook || "N/A"}{" "}
+                {play.best_odds !== undefined && play.best_odds !== null
+                  ? `(${play.best_odds})`
+                  : ""}
+              </p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>Line Shopping Edge</strong>
+              <p>{play.line_shop_value ?? 0} cents</p>
+            </div>
+
+            <div style={statBoxStyle}>
+              <strong>Ballpark</strong>
+              <p>{play.ballpark || "N/A"}</p>
+            </div>
+          </div>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#111827",
-            border: "1px solid #374151",
-            borderRadius: "14px",
-            padding: "18px",
-            marginBottom: "18px",
-          }}
-        >
+        <div style={sectionStyle}>
           <h3 style={{ marginTop: 0 }}>Sharp Market Signal</h3>
 
           <p style={{ color: "#d1d5db", lineHeight: "1.8" }}>
@@ -197,8 +252,7 @@ function MLBModelBoardPage() {
 
           <p style={{ color: "#d1d5db", lineHeight: "1.8" }}>
             <strong>CLV:</strong> {play.clv_status || "Neutral CLV"}{" "}
-            ({play.clv_score ?? 0}) —{" "}
-            {play.clv_reason || "No CLV analysis available."}
+            ({play.clv_score ?? 0}) — {play.clv_reason || "No CLV analysis available."}
           </p>
         </div>
 
@@ -280,9 +334,9 @@ function MLBModelBoardPage() {
       <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>MLB Model</h1>
 
       <p style={{ color: "#9ca3af", marginBottom: "35px", maxWidth: "900px", lineHeight: "1.7" }}>
-        MLB betting intelligence dashboard powered by pitcher ratings, bullpen
-        fatigue, weather, park factors, sharp market signals, line movement, CLV,
-        and model edge detection.
+        MLB betting intelligence dashboard powered by pitcher ratings, bullpen fatigue, weather,
+        park factors, sharp market signals, line movement, CLV, sportsbook comparison, and model
+        edge detection.
       </p>
 
       {error ? (
@@ -293,32 +347,23 @@ function MLBModelBoardPage() {
         <>
           {topPlay && (
             <section style={{ marginBottom: "55px" }}>
-              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>
-                Auto Top Play
-              </h2>
-
+              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>Auto Top Play</h2>
               {renderCard(topPlay, 0, "Auto Top Play", true)}
             </section>
           )}
 
           <section style={{ marginBottom: "50px" }}>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-              Top Moneyline Plays
-            </h2>
+            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>Top Moneyline Plays</h2>
 
             {topMoneyline.length === 0 ? (
               <p style={{ color: "#9ca3af" }}>No moneyline plays available.</p>
             ) : (
-              topMoneyline.map((play, index) =>
-                renderCard(play, index, "Top Moneyline")
-              )
+              topMoneyline.map((play, index) => renderCard(play, index, "Top Moneyline"))
             )}
           </section>
 
           <section>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-              Top Totals
-            </h2>
+            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>Top Totals</h2>
 
             {topTotals.length === 0 ? (
               <p style={{ color: "#9ca3af" }}>No totals available.</p>
