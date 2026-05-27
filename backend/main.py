@@ -1785,44 +1785,6 @@ def get_or_create_line_snapshot(
     sportsbook,
     current_odds
 ):
-    
-    def get_top_play_score(play):
-        score = 0
-
-        try:
-            score += float(play.get("edge", 0)) * 1.5
-        except Exception:
-            pass
-
-        try:
-            score += float(play.get("sharp_score", 0)) * 2
-        except Exception:
-            pass
-
-        if play.get("recommendation") == "Play":
-            score += 5
-        elif play.get("recommendation") == "Lean":
-            score += 2
-
-        if play.get("clv_status") == "Positive CLV":
-            score += 3
-        elif play.get("clv_status") == "Negative CLV":
-            score -= 3
-
-        if play.get("line_signal") == "Steam Toward Pick":
-            score += 2
-        elif play.get("line_signal") == "Price Drift":
-            score -= 2
-
-        if play.get("market_strength") == "Strong":
-            score += 3
-        elif play.get("market_strength") == "Moderate":
-            score += 1
-        elif play.get("market_strength") == "Weak":
-            score -= 2
-
-        return round(score, 2)
-
     db = SessionLocal()
 
     try:
@@ -1835,6 +1797,7 @@ def get_or_create_line_snapshot(
         if snapshot:
             snapshot.current_odds = int(current_odds)
             snapshot.updated_at = now
+
             db.commit()
 
             return {
@@ -1864,6 +1827,44 @@ def get_or_create_line_snapshot(
 
     finally:
         db.close()
+
+
+def get_top_play_score(play):
+    score = 0
+
+    try:
+        score += float(play.get("edge", 0)) * 1.5
+    except Exception:
+        pass
+
+    try:
+        score += float(play.get("sharp_score", 0)) * 2
+    except Exception:
+        pass
+
+    if play.get("recommendation") == "Play":
+        score += 5
+    elif play.get("recommendation") == "Lean":
+        score += 2
+
+    if play.get("clv_status") == "Positive CLV":
+        score += 3
+    elif play.get("clv_status") == "Negative CLV":
+        score -= 3
+
+    if play.get("line_signal") == "Steam Toward Pick":
+        score += 2
+    elif play.get("line_signal") == "Price Drift":
+        score -= 2
+
+    if play.get("market_strength") == "Strong":
+        score += 3
+    elif play.get("market_strength") == "Moderate":
+        score += 1
+    elif play.get("market_strength") == "Weak":
+        score -= 2
+
+    return round(score, 2)
 
 
 @app.get("/model/mlb/today")
@@ -1905,7 +1906,7 @@ def model_mlb_today():
 
             for bookmaker in game.get("bookmakers", []):
                 sportsbook = bookmaker.get("title")
-
+                
                 for market in bookmaker.get("markets", []):
                     market_key = market.get("key")
 
