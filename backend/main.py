@@ -1726,6 +1726,41 @@ def get_line_movement_signal(opening_odds, current_odds):
         "line_signal": signal,
     }
 
+def get_best_sportsbook_price(play, all_plays):
+    game = play.get("game")
+    market = play.get("market")
+    pick = play.get("pick")
+
+    matching = [
+        item for item in all_plays
+        if item.get("game") == game
+        and item.get("market") == market
+        and item.get("pick") == pick
+        and item.get("odds") is not None
+    ]
+
+    if not matching:
+        return {
+            "best_sportsbook": play.get("sportsbook"),
+            "best_odds": play.get("odds"),
+            "worst_odds": play.get("odds"),
+            "book_count": 1,
+            "line_shop_value": 0,
+        }
+
+    best = max(matching, key=lambda x: int(x.get("odds", -9999)))
+    worst = min(matching, key=lambda x: int(x.get("odds", 9999)))
+
+    line_shop_value = int(best.get("odds", 0)) - int(worst.get("odds", 0))
+
+    return {
+        "best_sportsbook": best.get("sportsbook"),
+        "best_odds": best.get("odds"),
+        "worst_odds": worst.get("odds"),
+        "book_count": len(matching),
+        "line_shop_value": line_shop_value,
+    }
+
 def get_clv_signal(opening_odds, current_odds):
     movement = american_odds_movement(
         opening_odds,
@@ -2192,18 +2227,26 @@ def model_mlb_today():
                 if play.get("edge", 0) > current_best.get("edge", 0):
                     best_by_game[game] = play
 
-        final = list(best_by_game.values())
+            final = list(best_by_game.values())
 
-        for play in final:
-            play["top_play_score"] = get_top_play_score(play)
+            for play in final:
+                price_data = get_best_sportsbook_price(play, plays)
 
-        final = sorted(
-            final,
-             key=lambda x: x.get("top_play_score", 0),
-            reverse=True
-        )
+                play["best_sportsbook"] = price_data["best_sportsbook"]
+                play["best_odds"] = price_data["best_odds"]
+                play["worst_odds"] = price_data["worst_odds"]
+                play["book_count"] = price_data["book_count"]
+                play["line_shop_value"] = price_data["line_shop_value"]
 
-        top_play = final[0] if final else None
+                play["top_play_score"] = get_top_play_score(play)
+
+            final = sorted(
+                final,
+                key=lambda x: x.get("top_play_score", 0),
+                reverse=True
+            )
+
+            top_play = final[0] if final else None
 
         final = sorted(
             final,
@@ -2599,6 +2642,7 @@ def model_mlb_f5_today():
         }
 
 @app.get("/model/mlb/nrfi/today")
+
 def model_mlb_nrfi_today():
     cached = get_cache("mlb_nrfi_model")
 
