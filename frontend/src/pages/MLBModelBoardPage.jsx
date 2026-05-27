@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 function MLBModelBoardPage() {
   const [plays, setPlays] = useState([]);
+  const [topPlay, setTopPlay] = useState(null);
   const [error, setError] = useState("");
 
   const API_URL = import.meta.env.VITE_API_URL;
@@ -10,15 +11,21 @@ function MLBModelBoardPage() {
     fetch(`${API_URL}/model/mlb/today`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.plays) setPlays(data.plays);
-        else setError("Failed to load MLB Model");
+        if (data.plays) {
+          setPlays(data.plays);
+          setTopPlay(data.top_play || null);
+        } else {
+          setError("Failed to load MLB Model");
+        }
       })
       .catch(() => setError("Failed to load MLB Model"));
   }, [API_URL]);
 
   const sortedPlays = useMemo(() => {
     return [...plays].sort(
-      (a, b) => (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0)
+      (a, b) =>
+        (parseFloat(b.top_play_score) || 0) -
+        (parseFloat(a.top_play_score) || 0)
     );
   }, [plays]);
 
@@ -68,34 +75,39 @@ function MLBModelBoardPage() {
     return "#374151";
   };
 
-  const renderCard = (play, index, label) => {
+  const renderCard = (play, index, label, featured = false) => {
     return (
       <div
         key={`${play.game}-${play.pick}-${play.market}-${index}`}
         style={{
-          backgroundColor: "#0f172a",
-          border: index === 0 ? "2px solid #dc2626" : "1px solid #374151",
+          backgroundColor: featured ? "#111827" : "#0f172a",
+          border: featured
+            ? "2px solid #22c55e"
+            : index === 0
+            ? "2px solid #dc2626"
+            : "1px solid #374151",
           borderRadius: "18px",
           padding: "26px",
           marginBottom: "24px",
+          boxShadow: featured
+            ? "0 0 22px rgba(34, 197, 94, 0.28)"
+            : "none",
         }}
       >
-        {index === 0 && (
-          <div
-            style={{
-              backgroundColor: "#dc2626",
-              color: "white",
-              display: "inline-block",
-              padding: "6px 12px",
-              borderRadius: "8px",
-              marginBottom: "18px",
-              fontWeight: "bold",
-              fontSize: "13px",
-            }}
-          >
-            {label}
-          </div>
-        )}
+        <div
+          style={{
+            backgroundColor: featured ? "#166534" : "#dc2626",
+            color: "white",
+            display: "inline-block",
+            padding: "6px 12px",
+            borderRadius: "8px",
+            marginBottom: "18px",
+            fontWeight: "bold",
+            fontSize: "13px",
+          }}
+        >
+          {label}
+        </div>
 
         <p style={{ color: "#9ca3af", marginBottom: "8px", fontSize: "14px" }}>
           {play.market} • {play.sportsbook}
@@ -112,6 +124,7 @@ function MLBModelBoardPage() {
           <span style={badgeStyle}>Edge: {play.edge}%</span>
           <span style={badgeStyle}>Confidence: {play.confidence}%</span>
           <span style={badgeStyle}>Units: {play.units}u</span>
+          <span style={badgeStyle}>Top Score: {play.top_play_score ?? "N/A"}</span>
 
           <span style={{ ...badgeStyle, backgroundColor: getSignalColor(play.sharp_signal) }}>
             {play.sharp_signal || "No Signal"}
@@ -278,6 +291,16 @@ function MLBModelBoardPage() {
         <p>No MLB plays available.</p>
       ) : (
         <>
+          {topPlay && (
+            <section style={{ marginBottom: "55px" }}>
+              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>
+                Auto Top Play
+              </h2>
+
+              {renderCard(topPlay, 0, "Auto Top Play", true)}
+            </section>
+          )}
+
           <section style={{ marginBottom: "50px" }}>
             <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
               Top Moneyline Plays
