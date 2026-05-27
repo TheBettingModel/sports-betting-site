@@ -1547,7 +1547,7 @@ def model_nba_today():
                             and edge < 3
                         ):
                             sharp_data = get_sharp_market_signal(...)
-                            
+
                             recommendation = "Pass"
 
                             reason_filter += (
@@ -2071,6 +2071,19 @@ def model_mlb_today():
                             opening_odds,
                             current_odds
                         )
+
+                        # CLV + sharp score combo filter
+                        if (
+                            clv_data.get("clv_status") == "Negative CLV"
+                            and sharp_data.get("sharp_score", 0) <= 2
+                            and edge < 4
+                        ):
+                            recommendation = "Pass"
+
+                            reason_filter += (
+                                " Filtered due to negative CLV, "
+                                "weak sharp score, and limited edge."
+                            )
 
                         if "reason_filter" not in locals():
                             reason_filter = ""
