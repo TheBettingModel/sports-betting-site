@@ -1540,6 +1540,21 @@ def model_nba_today():
                         else:
                             recommendation = "Pass"
 
+                        # Favorite price discipline filter
+                        if (
+                            market_name == "Moneyline"
+                            and odds <= -170
+                            and edge < 4
+                        ):
+                            recommendation = "Pass"
+
+                            reason_filter = (
+                                "Filtered due to expensive favorite "
+                                "without sufficient edge."
+                            )
+                        else:
+                            reason_filter = ""
+
                         if edge >= 5:
                             confidence = 90
                         elif edge >= 4:
@@ -2054,6 +2069,7 @@ def model_mlb_today():
                             f"Market adjustment ({round(market_adj, 2)})."
                             f"Weather/Park adjustment ({weather_adj}). "
                             f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}."
+                            f" {reason_filter}"
                         )
 
                         plays.append({
