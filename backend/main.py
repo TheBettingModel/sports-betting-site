@@ -778,11 +778,11 @@ def get_mlb_team_hitting_stats():
                     "hitting_rating": rating,
                 }
 
-        return team_map
+            return team_map
 
     except Exception as e:
-        print("MLB hitting stats error:", e)
-        return {}
+            print("MLB hitting stats error:", e)
+            return {}
 
 def get_pitcher_season_stats(player_id):
     url = f"https://statsapi.mlb.com/api/v1/people/{player_id}/stats"
