@@ -1727,6 +1727,23 @@ def get_line_movement_signal(opening_odds, current_odds):
     }
 
 def get_best_sportsbook_price(play, all_plays):
+    target_books = [
+        "FanDuel",
+        "DraftKings",
+        "Caesars",
+        "BetMGM",
+        "ESPN BET",
+        "ESPNBet",
+        "Fanatics",
+    ]
+
+    sharp_books = [
+        "DraftKings",
+        "FanDuel",
+        "Circa",
+        "Pinnacle",
+    ]
+
     game = play.get("game")
     market = play.get("market")
     pick = play.get("pick")
@@ -1737,6 +1754,7 @@ def get_best_sportsbook_price(play, all_plays):
         and item.get("market") == market
         and item.get("pick") == pick
         and item.get("odds") is not None
+        and item.get("sportsbook") in target_books
     ]
 
     if not matching:
@@ -1746,12 +1764,50 @@ def get_best_sportsbook_price(play, all_plays):
             "worst_odds": play.get("odds"),
             "book_count": 1,
             "line_shop_value": 0,
+            "line_disagreement": "Low",
+            "sharpest_sportsbook": play.get("sportsbook"),
+            "stale_line": False,
+            "sportsbook_note": "Only one usable sportsbook price found.",
         }
 
     best = max(matching, key=lambda x: int(x.get("odds", -9999)))
     worst = min(matching, key=lambda x: int(x.get("odds", 9999)))
 
-    line_shop_value = int(best.get("odds", 0)) - int(worst.get("odds", 0))
+    best_odds = int(best.get("odds", 0))
+    worst_odds = int(worst.get("odds", 0))
+    line_shop_value = best_odds - worst_odds
+
+    sharp_matches = [
+        item for item in matching
+        if item.get("sportsbook") in sharp_books
+    ]
+
+    if sharp_matches:
+        sharpest = max(sharp_matches, key=lambda x: int(x.get("odds", -9999)))
+    else:
+        sharpest = best
+
+    if line_shop_value >= 25:
+        line_disagreement = "High"
+    elif line_shop_value >= 10:
+        line_disagreement = "Moderate"
+    else:
+        line_disagreement = "Low"
+
+    stale_line = line_shop_value >= 20 and best.get("sportsbook") not in sharp_books
+
+    if stale_line:
+        sportsbook_note = (
+            "Possible stale line detected. Best price is meaningfully better "
+            "than the rest of the market."
+        )
+    elif line_shop_value >= 10:
+        sportsbook_note = (
+            "Line shopping value available. Best price offers a meaningful "
+            "edge over the worst listed book."
+        )
+    else:
+        sportsbook_note = "Market prices are mostly aligned across books."
 
     return {
         "best_sportsbook": best.get("sportsbook"),
@@ -1759,6 +1815,10 @@ def get_best_sportsbook_price(play, all_plays):
         "worst_odds": worst.get("odds"),
         "book_count": len(matching),
         "line_shop_value": line_shop_value,
+        "line_disagreement": line_disagreement,
+        "sharpest_sportsbook": sharpest.get("sportsbook"),
+        "stale_line": stale_line,
+        "sportsbook_note": sportsbook_note,
     }
 
 def get_clv_signal(opening_odds, current_odds):
@@ -2236,6 +2296,10 @@ def model_mlb_today():
                 play["worst_odds"] = price_data["worst_odds"]
                 play["book_count"] = price_data["book_count"]
                 play["line_shop_value"] = price_data["line_shop_value"]
+                play["line_disagreement"] = price_data["line_disagreement"]
+                play["sharpest_sportsbook"] = price_data["sharpest_sportsbook"]
+                play["stale_line"] = price_data["stale_line"]
+                play["sportsbook_note"] = price_data["sportsbook_note"]
 
                 play["top_play_score"] = get_top_play_score(play)
 
