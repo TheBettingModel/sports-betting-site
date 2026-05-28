@@ -1397,7 +1397,7 @@ def model_nba_today():
     params = {
         "apiKey": ODDS_API_KEY,
         "regions": "us",
-        "markets": "h2h,spreads,totals",
+        "markets": "h2h,spreads,totals,h2h_1st_qtr,spreads_1st_qtr,totals_1st_qtr",
         "oddsFormat": "american",
     }
 
