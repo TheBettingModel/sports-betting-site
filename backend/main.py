@@ -1662,20 +1662,22 @@ def model_nba_today():
                             "reason": reason.strip()
                         })
 
-        best_by_game = {}
+        best_by_game_market = {}
 
         for play in plays:
             game = play.get("game")
+            market = play.get("market")
+            key = f"{game}|{market}"
 
-            if game not in best_by_game:
-                best_by_game[game] = play
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
             else:
-                current_best = best_by_game[game]
+                current_best = best_by_game_market[key]
 
                 if play.get("edge", 0) > current_best.get("edge", 0):
-                    best_by_game[game] = play
+                    best_by_game_market[key] = play
 
-        final = list(best_by_game.values())
+        final = list(best_by_game_market.values())
 
         final = sorted(
             final,
