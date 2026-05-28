@@ -36,6 +36,63 @@ def add_missing_clv_columns():
 
     db.close()
 
+add_missing_clv_columns()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+ODDS_API_KEY = os.getenv("ODDS_API_KEY")
+ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
+MLB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
+
+HOME_COURT_ADVANTAGE = 1.5
+
+NBA_INJURY_ADJUSTMENTS = {
+    "Los Angeles Lakers": -2.0,
+    "Boston Celtics": 0.0,
+    "Philadelphia 76ers": 0.0,
+    "Denver Nuggets": 0.0,
+    "Milwaukee Bucks": 0.0,
+}
+
+NBA_TEAM_RATINGS = {
+    "Boston Celtics": 92,
+    "Denver Nuggets": 90,
+    "Milwaukee Bucks": 88,
+    "Philadelphia 76ers": 84,
+    "Los Angeles Lakers": 82,
+    "Phoenix Suns": 84,
+    "Golden State Warriors": 83,
+    "Miami Heat": 81,
+    "New York Knicks": 85,
+    "Cleveland Cavaliers": 86,
+    "Dallas Mavericks": 85,
+    "Minnesota Timberwolves": 87,
+    "Oklahoma City Thunder": 89,
+    "Sacramento Kings": 83,
+    "Indiana Pacers": 82,
+    "Orlando Magic": 81,
+    "New Orleans Pelicans": 82,
+    "Los Angeles Clippers": 86,
+    "Memphis Grizzlies": 79,
+    "Houston Rockets": 80,
+    "Atlanta Hawks": 78,
+    "Chicago Bulls": 76,
+    "Brooklyn Nets": 74,
+    "Toronto Raptors": 72,
+    "Charlotte Hornets": 70,
+    "Washington Wizards": 68,
+    "Detroit Pistons": 69,
+    "Utah Jazz": 71,
+    "Portland Trail Blazers": 70,
+    "San Antonio Spurs": 75,
+}
 
 add_missing_clv_columns()
 
