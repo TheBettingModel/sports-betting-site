@@ -2,6 +2,7 @@ import { Routes, Route, Link } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
+import NBATotalsPage from "./pages/NBATotalsPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
@@ -16,18 +17,36 @@ function App() {
 
         <Link style={linkStyle} to="/">Home</Link>
 
-        <div style={dropdownStyle} onMouseEnter={(e) => e.currentTarget.querySelector(".dropdown-menu").style.display = "block"} onMouseLeave={(e) => e.currentTarget.querySelector(".dropdown-menu").style.display = "none"}>
+        <div
+          style={dropdownStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.querySelector(".dropdown-menu").style.display = "block";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.querySelector(".dropdown-menu").style.display = "none";
+          }}
+        >
           <span style={linkStyle}>NBA ▾</span>
+
           <div className="dropdown-menu" style={dropdownMenuStyle}>
             <Link style={dropdownLinkStyle} to="/model-board">Full Game</Link>
             <Link style={dropdownLinkStyle} to="/model-board">1Q Bets</Link>
             <Link style={dropdownLinkStyle} to="/model-board">1H Bets</Link>
-            <Link style={dropdownLinkStyle} to="/model-board">Totals</Link>
+            <Link style={dropdownLinkStyle} to="/nba-totals">Totals</Link>
           </div>
         </div>
 
-        <div style={dropdownStyle} onMouseEnter={(e) => e.currentTarget.querySelector(".dropdown-menu").style.display = "block"} onMouseLeave={(e) => e.currentTarget.querySelector(".dropdown-menu").style.display = "none"}>
+        <div
+          style={dropdownStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.querySelector(".dropdown-menu").style.display = "block";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.querySelector(".dropdown-menu").style.display = "none";
+          }}
+        >
           <span style={linkStyle}>MLB ▾</span>
+
           <div className="dropdown-menu" style={dropdownMenuStyle}>
             <Link style={dropdownLinkStyle} to="/mlb-model">Full Game</Link>
             <Link style={dropdownLinkStyle} to="/mlb-f5">F5 Model</Link>
@@ -36,8 +55,17 @@ function App() {
           </div>
         </div>
 
-        <div style={dropdownStyle} onMouseEnter={(e) => e.currentTarget.querySelector(".dropdown-menu").style.display = "block"} onMouseLeave={(e) => e.currentTarget.querySelector(".dropdown-menu").style.display = "none"}>
+        <div
+          style={dropdownStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.querySelector(".dropdown-menu").style.display = "block";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.querySelector(".dropdown-menu").style.display = "none";
+          }}
+        >
           <span style={linkStyle}>Sharp Market ▾</span>
+
           <div className="dropdown-menu" style={dropdownMenuStyle}>
             <Link style={dropdownLinkStyle} to="/sharp-market">Sharp Board</Link>
             <Link style={dropdownLinkStyle} to="/sharp-market">Steam Moves</Link>
@@ -50,10 +78,13 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/model-board" element={<ModelBoardPage />} />
+        <Route path="/nba-totals" element={<NBATotalsPage />} />
+
         <Route path="/mlb-model" element={<MLBModelBoardPage />} />
         <Route path="/mlb-f5" element={<MLBF5Page />} />
         <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />
         <Route path="/mlb-totals" element={<MLBTotalsPage />} />
+
         <Route path="/sharp-market" element={<SharpMarketPage />} />
       </Routes>
     </div>
