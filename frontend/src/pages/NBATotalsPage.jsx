@@ -46,9 +46,16 @@ function NBATotalsPage() {
   }, [games]);
 
 const totalsGames = useMemo(() => {
-  return sortedGames.filter(
-    (game) => game.market === "Total"
-  );
+  return sortedGames.filter((game) => {
+    const market = String(game.market || "").toLowerCase();
+
+    return (
+      market === "total" ||
+      market === "totals" ||
+      market.includes("over") ||
+      market.includes("under")
+    );
+  });
 }, [sortedGames]);
 
 const filteredGames = useMemo(() => {
