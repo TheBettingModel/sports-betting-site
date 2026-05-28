@@ -1,3 +1,5 @@
+from typing_extensions import final
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -1684,7 +1686,8 @@ def model_nba_today():
             key=lambda x: x["edge"],
             reverse=True
         )
-
+        save_model_play_history("NBA", final)
+        
         set_cache("nba_model", final)
 
         return {"plays": final}

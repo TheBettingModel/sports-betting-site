@@ -31,7 +31,6 @@ function App() {
 
           <div className="dropdown-menu" style={dropdownMenuStyle}>
             <Link style={dropdownLinkStyle} to="/model-board">Full Game</Link>
-      
             <Link style={dropdownLinkStyle} to="/nba-totals">Totals</Link>
           </div>
         </div>
