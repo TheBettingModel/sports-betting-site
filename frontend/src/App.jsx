@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
-import MLBF5Page from "./pages/MLBF5Page";
+import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
 import SharpMarketPage from "./pages/SharpMarketPage";
 
@@ -196,3 +196,4 @@ const dropdownLinkStyle = {
 };
 
 export default App;
+
