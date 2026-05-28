@@ -9,7 +9,7 @@ from datetime import date, timedelta, datetime
 
 
 from database import Base, SessionLocal, engine
-from models import Pick, CacheEntry, LineSnapshot
+from models import Pick, CacheEntry, LineSnapshot, ModelPlayHistory
 
 load_dotenv()
 
@@ -2447,6 +2447,8 @@ def model_mlb_today():
             reverse=True
         )
     
+        save_model_play_history("MLB", final)
+
         return {
             "top_play": top_play,
             "plays": final
@@ -2895,103 +2897,199 @@ def model_mlb_nrfi_today():
             "error": str(e)
         }
     
-@app.get("/performance/dashboard")
-def performance_dashboard():
+def save_model_play_history(sport, plays):
     db = SessionLocal()
 
     try:
-        picks = db.query(Pick).filter(Pick.result != "Pending").all()
+        today = str(date.today())
 
-        total_bets = len(picks)
-        wins = len([p for p in picks if str(p.result).lower() == "win"])
-        losses = len([p for p in picks if str(p.result).lower() == "loss"])
+        for play in plays:
+            existing = db.query(ModelPlayHistory).filter(
+                ModelPlayHistory.date == today,
+                ModelPlayHistory.sport == sport,
+                ModelPlayHistory.game == str(play.get("game", "")),
+                ModelPlayHistory.pick == str(play.get("pick", "")),
+                ModelPlayHistory.market == str(play.get("market", "")),
+                ModelPlayHistory.sportsbook == str(play.get("sportsbook", "")),
+            ).first()
 
-        def safe_float(value):
+            if existing:
+                continue
+
+            history = ModelPlayHistory(
+                date=today,
+                sport=sport,
+                game=str(play.get("game", "")),
+                pick=str(play.get("pick", "")),
+                market=str(play.get("market", "")),
+                sportsbook=str(play.get("sportsbook", "")),
+                odds=str(play.get("odds", "")),
+                edge=str(play.get("edge", "")),
+                confidence=str(play.get("confidence", "")),
+                recommendation=str(play.get("recommendation", "")),
+                top_play_score=str(play.get("top_play_score", "")),
+                sharp_signal=str(play.get("sharp_signal", "")),
+                steam_strength=str(play.get("steam_strength", "")),
+                line_disagreement=str(play.get("line_disagreement", "")),
+                line_shop_value=str(play.get("line_shop_value", "")),
+                clv_status=str(play.get("clv_status", "")),
+                result="Pending",
+                units_result="",
+                closing_odds="",
+                model_version=str(play.get("model_version", "")),
+            )
+
+            db.add(history)
+
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        print("Model history save error:", e)
+
+    finally:
+        db.close()
+
+def get_mlb_final_scores(target_date):
+    url = "https://statsapi.mlb.com/api/v1/schedule"
+
+    params = {
+        "sportId": 1,
+        "date": target_date,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {}
+
+        data = response.json()
+        results = {}
+
+        for date_block in data.get("dates", []):
+            for game in date_block.get("games", []):
+                status = game.get("status", {}).get("detailedState", "")
+
+                if status != "Final":
+                    continue
+
+                away_team = game.get("teams", {}).get("away", {}).get("team", {}).get("name", "")
+                home_team = game.get("teams", {}).get("home", {}).get("team", {}).get("name", "")
+                away_score = game.get("teams", {}).get("away", {}).get("score", 0)
+                home_score = game.get("teams", {}).get("home", {}).get("score", 0)
+
+                game_key_1 = f"{away_team} vs {home_team}"
+                game_key_2 = f"{home_team} vs {away_team}"
+
+                winner = away_team if away_score > home_score else home_team
+                total_runs = away_score + home_score
+
+                results[game_key_1] = {
+                    "winner": winner,
+                    "away_score": away_score,
+                    "home_score": home_score,
+                    "total_runs": total_runs,
+                }
+
+                results[game_key_2] = results[game_key_1]
+
+        return results
+
+    except Exception as e:
+        print("MLB score fetch error:", e)
+        return {}
+    
+
+@app.post("/grade/mlb/history")
+def grade_mlb_history():
+    db = SessionLocal()
+
+    try:
+        pending = db.query(ModelPlayHistory).filter(
+            ModelPlayHistory.sport == "MLB",
+            ModelPlayHistory.result == "Pending",
+        ).all()
+
+        if not pending:
+            return {"message": "No pending MLB plays found."}
+
+        dates = list(set([p.date for p in pending]))
+
+        final_scores = {}
+
+        for d in dates:
+            scores = get_mlb_final_scores(d)
+            final_scores.update(scores)
+
+        graded_count = 0
+
+        for play in pending:
+            game_data = final_scores.get(play.game)
+
+            if not game_data:
+                continue
+
+            winner = game_data.get("winner")
+            total_runs = game_data.get("total_runs", 0)
+
+            result = "Pending"
+
+            if play.market == "Moneyline":
+                if play.pick == winner:
+                    result = "Win"
+                else:
+                    result = "Loss"
+
+            elif play.market == "Total":
+                try:
+                    pick_text = str(play.pick)
+
+                    if "Over" in pick_text:
+                        target = float(pick_text.replace("Over", "").strip())
+
+                        if total_runs > target:
+                            result = "Win"
+                        else:
+                            result = "Loss"
+
+                    elif "Under" in pick_text:
+                        target = float(pick_text.replace("Under", "").strip())
+
+                        if total_runs < target:
+                            result = "Win"
+                        else:
+                            result = "Loss"
+
+                except Exception:
+                    continue
+
+            play.result = result
+
             try:
-                return float(str(value).replace("%", "").replace("+", "").strip())
+                units = float(play.confidence) / 100
             except Exception:
-                return 0.0
+                units = 1
 
-        def units_result(pick):
-            units = safe_float(pick.units)
+            if result == "Win":
+                play.units_result = str(round(units, 2))
+            elif result == "Loss":
+                play.units_result = str(round(-units, 2))
 
-            if str(pick.result).lower() == "win":
-                return units
-            if str(pick.result).lower() == "loss":
-                return -units
-            return 0
+            graded_count += 1
 
-        total_units = round(sum(units_result(p) for p in picks), 2)
-        total_risked = round(sum(safe_float(p.units) for p in picks), 2)
-        roi = round((total_units / total_risked) * 100, 2) if total_risked > 0 else 0
-
-        def group_performance(field_name):
-            groups = {}
-
-            for pick in picks:
-                key = getattr(pick, field_name, None) or "Unknown"
-
-                if key not in groups:
-                    groups[key] = {
-                        "bets": 0,
-                        "wins": 0,
-                        "losses": 0,
-                        "units": 0,
-                        "risked": 0,
-                    }
-
-                groups[key]["bets"] += 1
-                groups[key]["risked"] += safe_float(pick.units)
-
-                if str(pick.result).lower() == "win":
-                    groups[key]["wins"] += 1
-                    groups[key]["units"] += safe_float(pick.units)
-
-                if str(pick.result).lower() == "loss":
-                    groups[key]["losses"] += 1
-                    groups[key]["units"] -= safe_float(pick.units)
-
-            output = []
-
-            for key, data in groups.items():
-                win_rate = round((data["wins"] / data["bets"]) * 100, 2) if data["bets"] else 0
-                group_roi = round((data["units"] / data["risked"]) * 100, 2) if data["risked"] else 0
-
-                output.append({
-                    "name": key,
-                    "bets": data["bets"],
-                    "wins": data["wins"],
-                    "losses": data["losses"],
-                    "win_rate": win_rate,
-                    "units": round(data["units"], 2),
-                    "roi": group_roi,
-                })
-
-            return sorted(output, key=lambda x: x["units"], reverse=True)
-
-        win_rate = round((wins / total_bets) * 100, 2) if total_bets else 0
+        db.commit()
 
         return {
-            "summary": {
-                "total_bets": total_bets,
-                "wins": wins,
-                "losses": losses,
-                "win_rate": win_rate,
-                "units": total_units,
-                "roi": roi,
-            },
-            "by_sport": group_performance("sport"),
-            "by_market": group_performance("market"),
-            "by_sportsbook": group_performance("sportsbook"),
-            "by_sharp_signal": group_performance("sharp_signal"),
-            "by_steam_strength": group_performance("steam_strength"),
-            "by_line_disagreement": group_performance("line_disagreement"),
-            "by_recommendation": group_performance("recommendation"),
+            "graded": graded_count,
+            "pending_remaining": db.query(ModelPlayHistory).filter(
+                ModelPlayHistory.result == "Pending"
+            ).count()
         }
 
     except Exception as e:
+        db.rollback()
         return {"error": str(e)}
 
     finally:
         db.close()
-        

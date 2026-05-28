@@ -55,6 +55,35 @@ class LineSnapshot(Base):
     current_odds = Column(Integer)
 
     created_at = Column(String)
-    updated_at = Column(String)    
+    updated_at = Column(String)
 
-    
+
+class ModelPlayHistory(Base):
+    __tablename__ = "model_play_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    date = Column(String, index=True)
+    sport = Column(String, index=True)
+    game = Column(String, index=True)
+    pick = Column(String, index=True)
+    market = Column(String, index=True)
+    sportsbook = Column(String, index=True)
+
+    odds = Column(String)
+    edge = Column(String)
+    confidence = Column(String)
+    recommendation = Column(String)
+
+    top_play_score = Column(String)
+    sharp_signal = Column(String)
+    steam_strength = Column(String)
+    line_disagreement = Column(String)
+    line_shop_value = Column(String)
+    clv_status = Column(String)
+
+    result = Column(String, default="Pending")
+    units_result = Column(String, default="")
+    closing_odds = Column(String, default="")
+    model_version = Column(String, default="")
+
