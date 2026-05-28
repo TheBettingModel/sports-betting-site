@@ -179,9 +179,35 @@ function MLBModelBoardPage() {
             Line Value: {play.line_shop_value ?? 0}
           </span>
 
-<span style={{ ...badgeStyle, backgroundColor: "#4c1d95" }}>
-  Sharpest Book: {play.sharpest_sportsbook || "N/A"}
-</span>
+          <span
+            style={{
+              ...badgeStyle,
+              backgroundColor:
+                play.steam_strength === "High"
+                  ? "#7f1d1d"
+                  : play.steam_strength === "Moderate"
+                  ? "#854d0e"
+                  : "#374151",
+            }}
+          >
+            Steam: {play.steam_strength || "Low"}
+          </span>
+
+          {play.late_sharp_action && (
+            <span style={{ ...badgeStyle, backgroundColor: "#166534" }}>
+              Late Sharp Action
+            </span>
+          )}
+
+          {play.fake_steam_risk && (
+            <span style={{ ...badgeStyle, backgroundColor: "#b91c1c" }}>
+              Fake Steam Risk
+            </span>
+          )}
+
+          <span style={{ ...badgeStyle, backgroundColor: "#4c1d95" }}>
+            Sharpest Book: {play.sharpest_sportsbook || "N/A"}
+          </span>
 
 <span
   style={{
@@ -283,6 +309,10 @@ function MLBModelBoardPage() {
             ({play.clv_score ?? 0}) — {play.clv_reason || "No CLV analysis available."}
           </p>
         </div>
+
+        <p style={{ color: "#d1d5db", lineHeight: "1.8" }}>
+          <strong>Steam Read:</strong> {play.steam_note || "No meaningful steam currently detected."}
+        </p>
 
         <div
           style={{
