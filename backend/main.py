@@ -1712,113 +1712,70 @@ def american_odds_movement(opening_odds, current_odds):
 def get_line_movement_signal(opening_odds, current_odds):
     movement = american_odds_movement(opening_odds, current_odds)
 
-    if movement <= -20:
+    if movement <= -35:
+        signal = "Heavy Steam"
+        steam_strength = "High"
+    elif movement <= -20:
         signal = "Steam Toward Pick"
+        steam_strength = "Moderate"
+    elif movement >= 35:
+        signal = "Heavy Reverse Movement"
+        steam_strength = "High"
     elif movement >= 20:
         signal = "Price Drift"
+        steam_strength = "Moderate"
     else:
         signal = "Stable Market"
+        steam_strength = "Low"
+
+    reverse_line_movement = (
+        movement <= -20 and current_odds < opening_odds
+    )
+
+    fake_steam_risk = (
+        abs(movement) >= 40
+    )
+
+    late_sharp_action = (
+        movement <= -25
+    )
+
+    if signal == "Heavy Steam":
+        steam_note = (
+            "Strong market steam detected toward this side across books."
+        )
+    elif signal == "Steam Toward Pick":
+        steam_note = (
+            "Consistent market support moving toward this play."
+        )
+    elif signal == "Heavy Reverse Movement":
+        steam_note = (
+            "Aggressive market movement against this side."
+        )
+    elif signal == "Price Drift":
+        steam_note = (
+            "Market drifting away from this side."
+        )
+    else:
+        steam_note = (
+            "No meaningful steam currently detected."
+        )
+
+    if fake_steam_risk:
+        steam_note += (
+            " Potential fake steam or unstable market conditions detected."
+        )
 
     return {
         "opening_odds": opening_odds,
         "current_odds": current_odds,
         "line_movement": movement,
         "line_signal": signal,
-    }
-
-def get_best_sportsbook_price(play, all_plays):
-    target_books = [
-        "FanDuel",
-        "DraftKings",
-        "Caesars",
-        "BetMGM",
-        "ESPN BET",
-        "ESPNBet",
-        "Fanatics",
-    ]
-
-    sharp_books = [
-        "DraftKings",
-        "FanDuel",
-        "Circa",
-        "Pinnacle",
-    ]
-
-    game = play.get("game")
-    market = play.get("market")
-    pick = play.get("pick")
-
-    matching = [
-        item for item in all_plays
-        if item.get("game") == game
-        and item.get("market") == market
-        and item.get("pick") == pick
-        and item.get("odds") is not None
-        and item.get("sportsbook") in target_books
-    ]
-
-    if not matching:
-        return {
-            "best_sportsbook": play.get("sportsbook"),
-            "best_odds": play.get("odds"),
-            "worst_odds": play.get("odds"),
-            "book_count": 1,
-            "line_shop_value": 0,
-            "line_disagreement": "Low",
-            "sharpest_sportsbook": play.get("sportsbook"),
-            "stale_line": False,
-            "sportsbook_note": "Only one usable sportsbook price found.",
-        }
-
-    best = max(matching, key=lambda x: int(x.get("odds", -9999)))
-    worst = min(matching, key=lambda x: int(x.get("odds", 9999)))
-
-    best_odds = int(best.get("odds", 0))
-    worst_odds = int(worst.get("odds", 0))
-    line_shop_value = best_odds - worst_odds
-
-    sharp_matches = [
-        item for item in matching
-        if item.get("sportsbook") in sharp_books
-    ]
-
-    if sharp_matches:
-        sharpest = max(sharp_matches, key=lambda x: int(x.get("odds", -9999)))
-    else:
-        sharpest = best
-
-    if line_shop_value >= 25:
-        line_disagreement = "High"
-    elif line_shop_value >= 10:
-        line_disagreement = "Moderate"
-    else:
-        line_disagreement = "Low"
-
-    stale_line = line_shop_value >= 20 and best.get("sportsbook") not in sharp_books
-
-    if stale_line:
-        sportsbook_note = (
-            "Possible stale line detected. Best price is meaningfully better "
-            "than the rest of the market."
-        )
-    elif line_shop_value >= 10:
-        sportsbook_note = (
-            "Line shopping value available. Best price offers a meaningful "
-            "edge over the worst listed book."
-        )
-    else:
-        sportsbook_note = "Market prices are mostly aligned across books."
-
-    return {
-        "best_sportsbook": best.get("sportsbook"),
-        "best_odds": best.get("odds"),
-        "worst_odds": worst.get("odds"),
-        "book_count": len(matching),
-        "line_shop_value": line_shop_value,
-        "line_disagreement": line_disagreement,
-        "sharpest_sportsbook": sharpest.get("sportsbook"),
-        "stale_line": stale_line,
-        "sportsbook_note": sportsbook_note,
+        "steam_strength": steam_strength,
+        "reverse_line_movement": reverse_line_movement,
+        "fake_steam_risk": fake_steam_risk,
+        "late_sharp_action": late_sharp_action,
+        "steam_note": steam_note,
     }
 
 def get_clv_signal(opening_odds, current_odds):
@@ -2241,6 +2198,11 @@ def model_mlb_today():
                             "current_odds": line_data.get("current_odds"),
                             "line_movement": line_data.get("line_movement"),
                             "line_signal": line_data.get("line_signal"),
+                            "steam_strength": line_data.get("steam_strength"),
+                            "reverse_line_movement": line_data.get("reverse_line_movement"),
+                            "fake_steam_risk": line_data.get("fake_steam_risk"),
+                            "late_sharp_action": line_data.get("late_sharp_action"),
+                            "steam_note": line_data.get("steam_note"),
                             "clv_status": clv_data.get("clv_status"),
                             "clv_score": clv_data.get("clv_score"),
                             "clv_reason": clv_data.get("clv_reason"),
