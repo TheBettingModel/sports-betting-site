@@ -45,17 +45,19 @@ function ModelBoardPage() {
     });
   }, [games]);
 
-const moneylineGames = useMemo(() => {
-  return sortedGames.filter((game) => game.market === "Moneyline");
+const fullGameMarkets = useMemo(() => {
+  return sortedGames.filter(
+    (game) => game.market === "Moneyline" || game.market === "Spread"
+  );
 }, [sortedGames]);
 
 const filteredGames = useMemo(() => {
-  if (filter === "All") return moneylineGames;
+  if (filter === "All") return fullGameMarkets;
 
-  return moneylineGames.filter(
+  return fullGameMarkets.filter(
     (game) => game.recommendation === filter
   );
-}, [moneylineGames, filter]);
+}, [fullGameMarkets, filter]);
 
   const topPlayKeys = useMemo(() => {
     const topThree = sortedGames
