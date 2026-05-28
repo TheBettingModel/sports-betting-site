@@ -402,10 +402,13 @@ const topTotals = sortedPlays.filter((play) => play.market === "Total");
         <p>No MLB plays available.</p>
       ) : (
         <>
-          {topPlay && (
+          {topTotals.length > 0 && (
             <section style={{ marginBottom: "55px" }}>
-              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>Auto Top Play</h2>
-              {renderCard(topPlay, 0, "Auto Top Play", true)}
+              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>
+                Top Over / Under Play
+              </h2>
+
+              {renderCard(topTotals[0], 0, "Top Over / Under Play", true)}
             </section>
           )}
 
