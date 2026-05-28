@@ -8,6 +8,7 @@ import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
 import MLBTotalsPage from "./pages/MLBTotalsPage";
 import SharpMarketPage from "./pages/SharpMarketPage";
+import NBAFirstQuarterPage from "./pages/NBAFirstQuarterPage";
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
 
           <div className="dropdown-menu" style={dropdownMenuStyle}>
             <Link style={dropdownLinkStyle} to="/model-board">Full Game</Link>
-            <Link style={dropdownLinkStyle} to="/model-board">1Q Bets</Link>
+            <Link style={dropdownLinkStyle} to="/nba-1q">1Q Bets</Link>
             <Link style={dropdownLinkStyle} to="/model-board">1H Bets</Link>
             <Link style={dropdownLinkStyle} to="/nba-totals">Totals</Link>
           </div>
@@ -79,7 +80,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/model-board" element={<ModelBoardPage />} />
         <Route path="/nba-totals" element={<NBATotalsPage />} />
-
+        <Route path="/nba-1q" element={<NBAFirstQuarterPage />} />
         <Route path="/mlb-model" element={<MLBModelBoardPage />} />
         <Route path="/mlb-f5" element={<MLBF5Page />} />
         <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />
