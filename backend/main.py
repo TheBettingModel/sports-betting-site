@@ -682,6 +682,107 @@ def calculate_pitcher_rating(era, whip):
 
     return max(50, min(95, rating))
 
+def calculate_team_hitting_rating(avg, ops, runs_per_game):
+    try:
+        avg = float(avg)
+        ops = float(ops)
+        runs_per_game = float(runs_per_game)
+    except Exception:
+        return 75
+
+    rating = 75
+
+    # Batting average
+    if avg >= .275:
+        rating += 8
+    elif avg >= .265:
+        rating += 5
+    elif avg >= .255:
+        rating += 2
+    elif avg <= .230:
+        rating -= 6
+    elif avg <= .240:
+        rating -= 3
+
+    # OPS
+    if ops >= .800:
+        rating += 10
+    elif ops >= .760:
+        rating += 6
+    elif ops >= .720:
+        rating += 3
+    elif ops <= .660:
+        rating -= 7
+    elif ops <= .700:
+        rating -= 4
+
+    # Runs per game
+    if runs_per_game >= 5.5:
+        rating += 8
+    elif runs_per_game >= 4.8:
+        rating += 5
+    elif runs_per_game >= 4.3:
+        rating += 2
+    elif runs_per_game <= 3.5:
+        rating -= 7
+    elif runs_per_game <= 4.0:
+        rating -= 4
+
+    return max(50, min(95, rating))
+
+def get_mlb_team_hitting_stats():
+    url = "https://statsapi.mlb.com/api/v1/teams/stats"
+
+    params = {
+        "sportIds": 1,
+        "stats": "season",
+        "group": "hitting",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {}
+
+        data = response.json()
+        team_map = {}
+
+        for stat_group in data.get("stats", []):
+            for split in stat_group.get("splits", []):
+                team = split.get("team", {})
+                stat = split.get("stat", {})
+
+                team_name = team.get("name")
+
+                if not team_name:
+                    continue
+
+                avg = stat.get("avg", "0")
+                ops = stat.get("ops", "0")
+                runs = float(stat.get("runs", 0))
+                games_played = max(float(stat.get("gamesPlayed", 1)), 1)
+
+                runs_per_game = round(runs / games_played, 2)
+
+                rating = calculate_team_hitting_rating(
+                    avg,
+                    ops,
+                    runs_per_game
+                )
+
+                team_map[team_name] = {
+                    "avg": avg,
+                    "ops": ops,
+                    "runs_per_game": runs_per_game,
+                    "hitting_rating": rating,
+                }
+
+        return team_map
+
+    except Exception as e:
+        print("MLB hitting stats error:", e)
+        return {}
 
 def get_pitcher_season_stats(player_id):
     url = f"https://statsapi.mlb.com/api/v1/people/{player_id}/stats"
@@ -1687,7 +1788,7 @@ def model_nba_today():
             reverse=True
         )
         save_model_play_history("NBA", final)
-        
+
         set_cache("nba_model", final)
 
         return {"plays": final}
@@ -2107,9 +2208,9 @@ def model_mlb_today():
                 return {"plays": cached, "cached": True}
             return {"plays": [], "error": response.text}
 
-        games = response.json()
         probable_pitchers = get_mlb_probable_pitchers()
-        auto_bullpen_data = get_auto_bullpen_data()
+        team_hitting_stats = get_mlb_team_hitting_stats()
+        auto_bullpen_data = get_auto_bullpen_data()            
         plays = []
 
         for game in games:
@@ -2168,6 +2269,19 @@ def model_mlb_today():
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
 
+                        hitting_data = team_hitting_stats.get(
+                            team_name,
+                            {
+                                "avg": "0",
+                                "ops": "0",
+                                "runs_per_game": 0,
+                                "hitting_rating": 75
+                            }
+                        )
+
+                        hitting_rating = hitting_data.get("hitting_rating", 75)
+                        hitting_adjustment = round((hitting_rating - 75) * 0.06, 2)
+
                         bullpen_data = auto_bullpen_data.get(
                             team_name,
                             get_mlb_bullpen_data(team_name)
@@ -2202,6 +2316,7 @@ def model_mlb_today():
                             pitcher_diff.get("pitcher_diff_adj", 0)
                             + market_adj
                             + weather_adj
+                            + hitting_adjustment
                         )
 
                         if bullpen_fatigue >= 3:
