@@ -45,10 +45,17 @@ function ModelBoardPage() {
     });
   }, [games]);
 
-  const filteredGames = useMemo(() => {
-    if (filter === "All") return sortedGames;
-    return sortedGames.filter((game) => game.recommendation === filter);
-  }, [sortedGames, filter]);
+const moneylineGames = useMemo(() => {
+  return sortedGames.filter((game) => game.market === "Moneyline");
+}, [sortedGames]);
+
+const filteredGames = useMemo(() => {
+  if (filter === "All") return moneylineGames;
+
+  return moneylineGames.filter(
+    (game) => game.recommendation === filter
+  );
+}, [moneylineGames, filter]);
 
   const topPlayKeys = useMemo(() => {
     const topThree = sortedGames
@@ -88,7 +95,7 @@ function ModelBoardPage() {
           fontSize: "38px",
         }}
       >
-        NBA Model
+        NBA Full Game Model
       </h1>
 
       <div
