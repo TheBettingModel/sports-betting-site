@@ -29,8 +29,7 @@ function MLBModelBoardPage() {
     );
   }, [plays]);
 
-  const topMoneyline = sortedPlays.filter((play) => play.market === "Moneyline");
-  const topTotals = sortedPlays.filter((play) => play.market === "Total");
+const topMoneyline = sortedPlays.filter((play) => play.market === "Moneyline");
 
   const badgeStyle = {
     backgroundColor: "#1f2937",
@@ -411,7 +410,7 @@ function MLBModelBoardPage() {
           )}
 
           <section style={{ marginBottom: "50px" }}>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>Top Moneyline Plays</h2>
+            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>Full Game Moneyline Plays</h2>
 
             {topMoneyline.length === 0 ? (
               <p style={{ color: "#9ca3af" }}>No moneyline plays available.</p>
@@ -420,15 +419,6 @@ function MLBModelBoardPage() {
             )}
           </section>
 
-          <section>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>Top Totals</h2>
-
-            {topTotals.length === 0 ? (
-              <p style={{ color: "#9ca3af" }}>No totals available.</p>
-            ) : (
-              topTotals.map((play, index) => renderCard(play, index, "Top Total"))
-            )}
-          </section>
         </>
       )}
     </div>
