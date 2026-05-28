@@ -730,6 +730,52 @@ def calculate_team_hitting_rating(avg, ops, runs_per_game):
 
     return max(50, min(95, rating))
 
+def get_team_handedness_split_rating(team_name, pitcher_throws):
+    # Temporary matchup layer.
+    # Later this can be replaced with live Statcast / Baseball Savant split data.
+
+    default_rating = 75
+
+    team_splits = {
+        "Los Angeles Dodgers": {"R": 86, "L": 84},
+        "New York Yankees": {"R": 85, "L": 87},
+        "Atlanta Braves": {"R": 84, "L": 82},
+        "Philadelphia Phillies": {"R": 82, "L": 83},
+        "Houston Astros": {"R": 81, "L": 84},
+        "Boston Red Sox": {"R": 80, "L": 78},
+        "Chicago Cubs": {"R": 79, "L": 77},
+        "Toronto Blue Jays": {"R": 78, "L": 80},
+        "Baltimore Orioles": {"R": 79, "L": 81},
+        "Texas Rangers": {"R": 78, "L": 77},
+        "San Diego Padres": {"R": 78, "L": 79},
+        "New York Mets": {"R": 77, "L": 76},
+        "Seattle Mariners": {"R": 75, "L": 76},
+        "Tampa Bay Rays": {"R": 76, "L": 75},
+        "Arizona Diamondbacks": {"R": 77, "L": 76},
+        "Cincinnati Reds": {"R": 76, "L": 75},
+        "Minnesota Twins": {"R": 75, "L": 77},
+        "Detroit Tigers": {"R": 75, "L": 74},
+        "Cleveland Guardians": {"R": 74, "L": 75},
+        "St. Louis Cardinals": {"R": 74, "L": 73},
+        "Kansas City Royals": {"R": 74, "L": 73},
+        "Miami Marlins": {"R": 70, "L": 69},
+        "Colorado Rockies": {"R": 72, "L": 71},
+        "Pittsburgh Pirates": {"R": 70, "L": 69},
+        "Washington Nationals": {"R": 70, "L": 69},
+        "Chicago White Sox": {"R": 68, "L": 67},
+        "Athletics": {"R": 69, "L": 68},
+        "Los Angeles Angels": {"R": 72, "L": 71},
+        "San Francisco Giants": {"R": 74, "L": 75},
+        "Milwaukee Brewers": {"R": 76, "L": 75},
+    }
+
+    pitcher_side = str(pitcher_throws or "R").upper()
+
+    if pitcher_side not in ["R", "L"]:
+        pitcher_side = "R"
+
+    return team_splits.get(team_name, {}).get(pitcher_side, default_rating)
+
 def get_mlb_team_hitting_stats():
     url = "https://statsapi.mlb.com/api/v1/teams/stats"
 
@@ -2270,6 +2316,21 @@ def model_mlb_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
+                        pitcher_hand = "R"
+
+                        if pitcher_name and pitcher_name != "TBD":
+                            if "LHP" in pitcher_name.upper():
+                                pitcher_hand = "L"
+
+                        split_rating = get_team_handedness_split_rating(
+                            team_name,
+                            pitcher_hand
+                        )
+
+                        split_adjustment = round(
+                            (split_rating - 75) * 0.05,
+                            2
+                        )
 
                         hitting_data = team_hitting_stats.get(
                             team_name,
@@ -2282,7 +2343,11 @@ def model_mlb_today():
                         )
 
                         hitting_rating = hitting_data.get("hitting_rating", 75)
-                        hitting_adjustment = round((hitting_rating - 75) * 0.06, 2)
+                        hitting_adjustment = round(
+                            ((hitting_rating - 75) * 0.06)
+                            + split_adjustment,
+                            2
+                        )
 
                         bullpen_data = auto_bullpen_data.get(
                             team_name,
