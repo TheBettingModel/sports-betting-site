@@ -25,6 +25,13 @@ def add_missing_clv_columns():
         "closing_odds",
         "clv_result",
         "clv_value",
+        "sport",
+        "sharp_signal",
+        "steam_strength",
+        "line_disagreement",
+        "top_play_score",
+        "line_shop_value",
+        "recommendation",
     ]
 
     for column in columns:
@@ -1205,6 +1212,15 @@ def save_pick(data: dict):
             implied_probability=str(data.get("implied_probability", "")),
             edge=str(data.get("edge", "")),
             result=str(data.get("result", "Pending")),
+
+            # Performance dashboard tracking
+            sport=str(data.get("sport", "")),
+            sharp_signal=str(data.get("sharp_signal", "")),
+            steam_strength=str(data.get("steam_strength", "")),
+            line_disagreement=str(data.get("line_disagreement", "")),
+            top_play_score=str(data.get("top_play_score", "")),
+            line_shop_value=str(data.get("line_shop_value", "")),
+            recommendation=str(data.get("recommendation", "")),
         )
 
         db.add(new_pick)
@@ -2879,3 +2895,103 @@ def model_mlb_nrfi_today():
             "error": str(e)
         }
     
+@app.get("/performance/dashboard")
+def performance_dashboard():
+    db = SessionLocal()
+
+    try:
+        picks = db.query(Pick).filter(Pick.result != "Pending").all()
+
+        total_bets = len(picks)
+        wins = len([p for p in picks if str(p.result).lower() == "win"])
+        losses = len([p for p in picks if str(p.result).lower() == "loss"])
+
+        def safe_float(value):
+            try:
+                return float(str(value).replace("%", "").replace("+", "").strip())
+            except Exception:
+                return 0.0
+
+        def units_result(pick):
+            units = safe_float(pick.units)
+
+            if str(pick.result).lower() == "win":
+                return units
+            if str(pick.result).lower() == "loss":
+                return -units
+            return 0
+
+        total_units = round(sum(units_result(p) for p in picks), 2)
+        total_risked = round(sum(safe_float(p.units) for p in picks), 2)
+        roi = round((total_units / total_risked) * 100, 2) if total_risked > 0 else 0
+
+        def group_performance(field_name):
+            groups = {}
+
+            for pick in picks:
+                key = getattr(pick, field_name, None) or "Unknown"
+
+                if key not in groups:
+                    groups[key] = {
+                        "bets": 0,
+                        "wins": 0,
+                        "losses": 0,
+                        "units": 0,
+                        "risked": 0,
+                    }
+
+                groups[key]["bets"] += 1
+                groups[key]["risked"] += safe_float(pick.units)
+
+                if str(pick.result).lower() == "win":
+                    groups[key]["wins"] += 1
+                    groups[key]["units"] += safe_float(pick.units)
+
+                if str(pick.result).lower() == "loss":
+                    groups[key]["losses"] += 1
+                    groups[key]["units"] -= safe_float(pick.units)
+
+            output = []
+
+            for key, data in groups.items():
+                win_rate = round((data["wins"] / data["bets"]) * 100, 2) if data["bets"] else 0
+                group_roi = round((data["units"] / data["risked"]) * 100, 2) if data["risked"] else 0
+
+                output.append({
+                    "name": key,
+                    "bets": data["bets"],
+                    "wins": data["wins"],
+                    "losses": data["losses"],
+                    "win_rate": win_rate,
+                    "units": round(data["units"], 2),
+                    "roi": group_roi,
+                })
+
+            return sorted(output, key=lambda x: x["units"], reverse=True)
+
+        win_rate = round((wins / total_bets) * 100, 2) if total_bets else 0
+
+        return {
+            "summary": {
+                "total_bets": total_bets,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": win_rate,
+                "units": total_units,
+                "roi": roi,
+            },
+            "by_sport": group_performance("sport"),
+            "by_market": group_performance("market"),
+            "by_sportsbook": group_performance("sportsbook"),
+            "by_sharp_signal": group_performance("sharp_signal"),
+            "by_steam_strength": group_performance("steam_strength"),
+            "by_line_disagreement": group_performance("line_disagreement"),
+            "by_recommendation": group_performance("recommendation"),
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+    finally:
+        db.close()
+        

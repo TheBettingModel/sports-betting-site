@@ -22,6 +22,14 @@ class Pick(Base):
     closing_odds = Column(String, default="")
     clv_result = Column(String, default="")
     clv_value = Column(String, default="")
+    # Performance dashboard tracking
+    sport = Column(String, default="")
+    sharp_signal = Column(String, default="")
+    steam_strength = Column(String, default="")
+    line_disagreement = Column(String, default="")
+    top_play_score = Column(String, default="")
+    line_shop_value = Column(String, default="")
+    recommendation = Column(String, default="")
 
 
 class CacheEntry(Base):
