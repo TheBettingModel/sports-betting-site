@@ -178,6 +178,30 @@ function MLBModelBoardPage() {
           >
             Line Value: {play.line_shop_value ?? 0}
           </span>
+
+<span style={{ ...badgeStyle, backgroundColor: "#4c1d95" }}>
+  Sharpest Book: {play.sharpest_sportsbook || "N/A"}
+</span>
+
+<span
+  style={{
+    ...badgeStyle,
+    backgroundColor:
+      play.line_disagreement === "High"
+        ? "#7f1d1d"
+        : play.line_disagreement === "Moderate"
+        ? "#854d0e"
+        : "#374151",
+        }}
+        >
+          Disagreement: {play.line_disagreement || "Low"}
+        </span>
+
+        {play.stale_line && (
+          <span style={{ ...badgeStyle, backgroundColor: "#b91c1c" }}>
+            Stale Line Alert
+          </span>
+        )}
         </div>
 
         <div style={sectionStyle}>
@@ -235,6 +259,10 @@ function MLBModelBoardPage() {
               <strong>Ballpark</strong>
               <p>{play.ballpark || "N/A"}</p>
             </div>
+            <div style={statBoxStyle}>
+            <strong>Sportsbook Read</strong>
+            <p>{play.sportsbook_note || "Market prices are mostly aligned."}</p>
+          </div>
           </div>
         </div>
 
