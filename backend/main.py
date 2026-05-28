@@ -2208,9 +2208,11 @@ def model_mlb_today():
                 return {"plays": cached, "cached": True}
             return {"plays": [], "error": response.text}
 
+        games = response.json()
+
         probable_pitchers = get_mlb_probable_pitchers()
         team_hitting_stats = get_mlb_team_hitting_stats()
-        auto_bullpen_data = get_auto_bullpen_data()            
+        auto_bullpen_data = get_auto_bullpen_data()
         plays = []
 
         for game in games:
