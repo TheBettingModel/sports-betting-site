@@ -2526,7 +2526,9 @@ def model_mlb_today():
                             f"Bullpen fatigue: {bullpen_fatigue}. "
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
-                            f"Market adjustment ({round(market_adj, 2)})."
+                            f"Market adjustment ({round(market_adj, 2)}). "
+                            f"Hitting adjustment ({hitting_adjustment}). "
+                            f"Split rating vs {pitcher_hand}HP ({split_rating}). "
                             f"Weather/Park adjustment ({weather_adj}). "
                             f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}."
                             f" {reason_filter}"
@@ -2937,6 +2939,13 @@ def model_mlb_f5_today():
                             "units": unit_size,
                             "model_version": "mlb_f5_v1",
                             "starting_pitcher": pitcher_name,
+                            "hitting_avg": hitting_data.get("avg"),
+                            "hitting_ops": hitting_data.get("ops"),
+                            "runs_per_game": hitting_data.get("runs_per_game"),
+                            "hitting_rating": hitting_rating,
+                            "pitcher_hand": pitcher_hand,
+                            "split_rating": split_rating,
+                            "hitting_adjustment": hitting_adjustment,
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
