@@ -3026,7 +3026,6 @@ def model_mlb_f5_today():
         return {"plays": final}
 
     except Exception as e:
-
         if cached:
             return {
                 "plays": cached,
@@ -3034,7 +3033,7 @@ def model_mlb_f5_today():
                 "error": str(e)
             }
 
-    return {
+        return {
             "plays": [],
             "error": str(e)
         }
