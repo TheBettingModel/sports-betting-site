@@ -1890,13 +1890,15 @@ def get_nrfi_yrfi_projection(
     game,
     probable_pitchers,
     team_hitting_stats=None,
-    confirmed_lineups=None
+    confirmed_lineups=None,
+    live_statcast_pitching=None
 ):
     
     away_team = game.get("away_team")
     home_team = game.get("home_team")
     
     team_hitting_stats = team_hitting_stats or {}
+    live_statcast_pitching = live_statcast_pitching or {}
 
     away_lineup = get_confirmed_lineup_strength(
         away_team,
@@ -1937,7 +1939,32 @@ def get_nrfi_yrfi_projection(
     away_rating = away_pitcher.get("rating", 75)
     home_rating = home_pitcher.get("rating", 75)
 
-    combined_pitcher_rating = (away_rating + home_rating) / 2
+    away_statcast = get_statcast_pitching_profile(
+        away_pitcher.get("pitcher"),
+        live_statcast_pitching
+    )
+
+    home_statcast = get_statcast_pitching_profile(
+        home_pitcher.get("pitcher"),
+        live_statcast_pitching
+    )
+
+    away_statcast_rating = away_statcast.get(
+        "statcast_pitching_rating",
+        75
+    )
+
+    home_statcast_rating = home_statcast.get(
+        "statcast_pitching_rating",
+        75
+    )
+
+    combined_pitcher_rating = (
+    away_rating
+    + home_rating
+    + away_statcast_rating
+    + home_statcast_rating
+) / 4
 
     weather_data = get_mlb_weather_adjustment(
         game,
@@ -3186,8 +3213,9 @@ def model_mlb_today():
                         pitcher_rating = starter_data.get("rating")
                         statcast_pitching = (
                             get_statcast_pitching_profile(
-                                pitcher_name
-                            )
+                            pitcher_name,
+                            live_statcast_pitching
+                        )
                         )
 
                         statcast_pitching_rating = (
@@ -3518,6 +3546,7 @@ def model_mlb_today():
                             "pitcher_rating": pitcher_rating,
                             "statcast_pitching_rating": statcast_pitching_rating,
                             "statcast_pitching_adjustment": statcast_pitching_adjustment,
+                            "statcast_source": statcast_pitching.get("statcast_source", "static"),
                             "xera_rating": statcast_pitching.get("xera_rating"),
                             "whiff_rating": statcast_pitching.get("whiff_rating"),
                             "k_rating": statcast_pitching.get("k_rating"),
@@ -3765,9 +3794,10 @@ def model_mlb_f5_today():
             if event_odds:
                 games.append(event_odds)
 
-        probable_pitchers = get_mlb_probable_pitchers()
-        confirmed_lineups = get_live_confirmed_lineups()
-        plays = []
+            probable_pitchers = get_mlb_probable_pitchers()
+            confirmed_lineups = get_live_confirmed_lineups()
+            live_statcast_pitching = get_live_statcast_pitching_profiles()
+            plays = []
 
         for game in games:
             game_name = (
@@ -3830,6 +3860,19 @@ def model_mlb_f5_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
+                        statcast_pitching = (
+                            get_statcast_pitching_profile(
+                                pitcher_name,
+                                live_statcast_pitching
+                            )
+                        )
+
+                        statcast_pitching_adjustment = (
+                            statcast_pitching.get(
+                                "statcast_pitching_adjustment",
+                                0
+                            )
+                        )
                         lineup_data = get_confirmed_lineup_strength(
                             team_name,
                             confirmed_lineups
@@ -3879,13 +3922,13 @@ def model_mlb_f5_today():
                         price_adj = get_price_adjustment(odds)
 
                         edge_boost = (
-                            pitcher_adj
-                            + price_adj
-                            + (weather_adj * 0.5)
-                            + lineup_adjustment
-                            + bullpen_availability_adjustment
-                        )
-
+                                pitcher_adj
+                                + statcast_pitching_adjustment
+                                + price_adj
+                                + (weather_adj * 0.5)
+                                + lineup_adjustment
+                                + bullpen_availability_adjustment
+                            )
                         model_prob = implied + edge_boost
                         model_prob = max(1, min(99, model_prob))
 
@@ -4097,18 +4140,20 @@ def model_mlb_nrfi_today():
             probable_pitchers = get_mlb_probable_pitchers()
             team_hitting_stats = get_mlb_team_hitting_stats()
             confirmed_lineups = get_live_confirmed_lineups()
+            live_statcast_pitching = get_live_statcast_pitching_profiles()
 
         plays = []
 
         for game in games:
-            projection = get_nrfi_yrfi_projection(
-                game,
+           projection = get_nrfi_yrfi_projection(
+                 game,
                 probable_pitchers,
                 team_hitting_stats,
-                confirmed_lineups
+                confirmed_lineups,
+                live_statcast_pitching
             )
 
-            plays.append(projection)
+        plays.append(projection)
 
         final = sorted(
             plays,
