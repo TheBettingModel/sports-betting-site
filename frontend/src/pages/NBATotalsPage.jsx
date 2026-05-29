@@ -66,15 +66,15 @@ const filteredGames = useMemo(() => {
   );
 }, [totalsGames, filter]);
 
-  const topPlayKeys = useMemo(() => {
-    const topThree = sortedGames
-      .filter((game) => game.recommendation === "Play")
-      .slice(0, 3);
+const topPlayKeys = useMemo(() => {
+  const topThree = totalsGames
+    .filter((game) => game.recommendation === "Play")
+    .slice(0, 3);
 
-    return new Set(
-      topThree.map((game) => `${game.game}-${game.pick}-${game.market}`)
-    );
-  }, [sortedGames]);
+  return new Set(
+    topThree.map((game) => `${game.game}-${game.pick}-${game.market}`)
+  );
+}, [totalsGames]);
 
   const isTopPlay = (game) => {
     return topPlayKeys.has(`${game.game}-${game.pick}-${game.market}`);
