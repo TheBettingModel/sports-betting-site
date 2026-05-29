@@ -688,6 +688,58 @@ def get_mlb_total_bullpen_adjustment(game):
     return round((fatigue_total * 0.15) + ((era_total - 8.00) * 0.10), 2)
 
 
+def get_mlb_totals_engine_adjustment(game, team_hitting_stats=None):
+    team_hitting_stats = team_hitting_stats or {}
+
+    away_team = game.get("away_team")
+    home_team = game.get("home_team")
+
+    away_lineup = get_confirmed_lineup_strength(away_team)
+    home_lineup = get_confirmed_lineup_strength(home_team)
+
+    away_hitting = team_hitting_stats.get(away_team, {"hitting_rating": 75})
+    home_hitting = team_hitting_stats.get(home_team, {"hitting_rating": 75})
+
+    away_hitting_rating = away_hitting.get("hitting_rating", 75)
+    home_hitting_rating = home_hitting.get("hitting_rating", 75)
+
+    combined_lineup_strength = (
+        away_lineup.get("lineup_strength", 75)
+        + home_lineup.get("lineup_strength", 75)
+    ) / 2
+
+    combined_hitting_rating = (
+        away_hitting_rating
+        + home_hitting_rating
+    ) / 2
+
+    bullpen_adj = get_mlb_total_bullpen_adjustment(game)
+
+    totals_adjustment = 0
+
+    if combined_lineup_strength >= 85:
+        totals_adjustment += 1.2
+    elif combined_lineup_strength >= 80:
+        totals_adjustment += 0.8
+    elif combined_lineup_strength <= 70:
+        totals_adjustment -= 0.8
+
+    if combined_hitting_rating >= 85:
+        totals_adjustment += 1.2
+    elif combined_hitting_rating >= 80:
+        totals_adjustment += 0.8
+    elif combined_hitting_rating <= 70:
+        totals_adjustment -= 0.8
+
+    totals_adjustment += bullpen_adj
+
+    return {
+        "totals_engine_adjustment": round(totals_adjustment, 2),
+        "combined_lineup_strength": round(combined_lineup_strength, 2),
+        "combined_hitting_rating": round(combined_hitting_rating, 2),
+        "combined_bullpen_adjustment": round(bullpen_adj, 2),
+    }
+
 def calculate_pitcher_rating(era, whip):
     try:
         era = float(era)
@@ -2538,6 +2590,18 @@ def model_mlb_today():
 
                         weather_adj = weather_data.get("weather_adjustment", 0)
 
+                        totals_engine = get_mlb_totals_engine_adjustment(
+                            game,
+                            team_hitting_stats
+                        )
+
+                        totals_engine_adjustment = (
+                            totals_engine.get(
+                                "totals_engine_adjustment",
+                                0
+                            )
+                        )
+
                         edge_boost = (
                             pitcher_diff.get("pitcher_diff_adj", 0)
                             + market_adj
@@ -2546,6 +2610,9 @@ def model_mlb_today():
                             + lineup_adjustment
                             + bullpen_availability_adjustment
                         )
+
+                        if market_key in ["totals", "alternate_totals"]:
+                            edge_boost += totals_engine_adjustment
 
                         if bullpen_fatigue >= 3:
                             edge_boost -= 0.5
@@ -2695,6 +2762,7 @@ def model_mlb_today():
                             f"({lineup_data.get('lineup_strength')}). "
                             f"Split rating vs {pitcher_hand}HP ({split_rating}). "
                             f"Weather/Park adjustment ({weather_adj}). "
+                            f"Totals engine adjustment ({totals_engine_adjustment}). "
                             f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}."
                             f" {reason_filter}"
                         )
@@ -2758,6 +2826,10 @@ def model_mlb_today():
                             "pitcher_diff_adjustment": pitcher_diff.get("pitcher_diff_adj"),
                             "market_adjustment": round(market_adj, 2),
                             "weather_adjustment": weather_adj,
+                            "totals_engine_adjustment": totals_engine_adjustment,
+                            "combined_lineup_strength": totals_engine.get("combined_lineup_strength"),
+                            "combined_hitting_rating": totals_engine.get("combined_hitting_rating"),
+                            "combined_bullpen_adjustment": totals_engine.get("combined_bullpen_adjustment"),
                             "ballpark": weather_data.get("park"),
                             "run_factor": weather_data.get("run_factor"),
                             "hr_factor": weather_data.get("hr_factor"),
