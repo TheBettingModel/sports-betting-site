@@ -871,9 +871,54 @@ def get_team_handedness_split_rating(team_name, pitcher_throws):
 
     return team_splits.get(team_name, {}).get(pitcher_side, default_rating)
 
-def get_confirmed_lineup_strength(team_name):
+def get_confirmed_lineup_strength(team_name, confirmed_lineups=None):
     # Conservative placeholder engine.
     # Later we can replace this with live confirmed lineup/player-level data.
+    
+    confirmed_lineups = confirmed_lineups or {}
+
+    confirmed_data = confirmed_lineups.get(team_name)
+
+    if confirmed_data:
+        base_rating = confirmed_data.get("base_rating", 75)
+        missing_stars = confirmed_data.get("missing_stars", 0)
+        top_order_strength = confirmed_data.get("top_order_strength", base_rating)
+        backup_catcher = confirmed_data.get("backup_catcher", False)
+
+        rating = base_rating
+
+        rating -= missing_stars * 4
+
+        if top_order_strength >= 85:
+            rating += 3
+        elif top_order_strength <= 70:
+            rating -= 3
+
+        if backup_catcher:
+            rating -= 2
+
+        rating = max(55, min(95, rating))
+
+        if rating >= 84:
+            status = "Strong Confirmed Lineup"
+        elif rating >= 76:
+            status = "Average Confirmed Lineup"
+        elif rating >= 70:
+            status = "Weak Confirmed Lineup"
+        else:
+            status = "Very Weak Confirmed Lineup"
+
+        adjustment = round((rating - 75) * 0.04, 2)
+
+        return {
+            "lineup_status": status,
+            "lineup_strength": rating,
+            "lineup_adjustment": adjustment,
+            "lineup_confirmed": False,
+            "missing_stars": 0,
+            "top_order_strength": rating,
+            "backup_catcher": False,
+        }
 
     lineup_strength = {
         "Los Angeles Dodgers": 90,
