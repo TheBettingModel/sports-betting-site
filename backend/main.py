@@ -2979,6 +2979,22 @@ def model_mlb_f5_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
+                        lineup_data = get_confirmed_lineup_strength(team_name)
+                        lineup_adjustment = lineup_data.get("lineup_adjustment", 0)
+
+                        bullpen_data = get_mlb_bullpen_data(team_name)
+
+                        bullpen_availability = get_bullpen_availability_score(
+                            team_name,
+                            bullpen_data
+                        )
+
+                        bullpen_availability_adjustment = (
+                            bullpen_availability.get(
+                                "bullpen_availability_adjustment",
+                                0
+                            )
+                        )
 
                         pitcher_diff = get_pitcher_rating_differential(
                             game,
@@ -3012,6 +3028,8 @@ def model_mlb_f5_today():
                             pitcher_adj
                             + price_adj
                             + (weather_adj * 0.5)
+                            + lineup_adjustment
+                            + bullpen_availability_adjustment
                         )
 
                         model_prob = implied + edge_boost
@@ -3055,6 +3073,11 @@ def model_mlb_f5_today():
                             f"F5 pitcher adjustment "
                             f"({round(pitcher_adj, 2)}). "
                             f"Price adjustment "
+                            f"Lineup strength: {lineup_data.get('lineup_status')} "
+                            f"({lineup_data.get('lineup_strength')}). "
+                            f"Bullpen availability: "
+                            f"{bullpen_availability.get('bullpen_availability_score')} "
+                            f"({bullpen_availability.get('high_leverage_risk')} risk). "
                             f"({round(price_adj, 2)}). "
                             f"Weather/Park adjustment "
                             f"({round(weather_adj * 0.5, 2)})."
@@ -3077,6 +3100,14 @@ def model_mlb_f5_today():
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
+                            "lineup_status": lineup_data.get("lineup_status"),
+                            "lineup_strength": lineup_data.get("lineup_strength"),
+                            "lineup_adjustment": lineup_adjustment,
+                            "lineup_confirmed": lineup_data.get("lineup_confirmed"),
+                            "bullpen_availability_score": bullpen_availability.get("bullpen_availability_score"),
+                            "bullpen_availability_adjustment": bullpen_availability_adjustment,
+                            "unavailable_arms_estimate": bullpen_availability.get("unavailable_arms_estimate"),
+                            "high_leverage_risk": bullpen_availability.get("high_leverage_risk"),
                             "opponent": pitcher_diff.get("opponent"),
                             "opponent_pitcher_rating": pitcher_diff.get(
                                 "opponent_rating"
