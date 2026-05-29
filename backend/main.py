@@ -777,6 +777,224 @@ def calculate_pitcher_rating(era, whip):
 
     return max(50, min(95, rating))
 
+def get_team_statcast_power_rating(team_name):
+    # Statcast Power Engine v1.
+    # Static baseline now; later replace with live Baseball Savant/Statcast data.
+
+    team_power = {
+        "Los Angeles Dodgers": {
+            "hard_hit_rating": 90,
+            "barrel_rating": 90,
+            "xwoba_rating": 88,
+            "xslg_rating": 89,
+        },
+        "New York Yankees": {
+            "hard_hit_rating": 89,
+            "barrel_rating": 91,
+            "xwoba_rating": 86,
+            "xslg_rating": 88,
+        },
+        "Atlanta Braves": {
+            "hard_hit_rating": 87,
+            "barrel_rating": 86,
+            "xwoba_rating": 85,
+            "xslg_rating": 86,
+        },
+        "Philadelphia Phillies": {
+            "hard_hit_rating": 85,
+            "barrel_rating": 84,
+            "xwoba_rating": 84,
+            "xslg_rating": 84,
+        },
+        "Houston Astros": {
+            "hard_hit_rating": 83,
+            "barrel_rating": 82,
+            "xwoba_rating": 84,
+            "xslg_rating": 83,
+        },
+        "Baltimore Orioles": {
+            "hard_hit_rating": 84,
+            "barrel_rating": 85,
+            "xwoba_rating": 82,
+            "xslg_rating": 84,
+        },
+        "Boston Red Sox": {
+            "hard_hit_rating": 82,
+            "barrel_rating": 81,
+            "xwoba_rating": 82,
+            "xslg_rating": 81,
+        },
+        "Chicago Cubs": {
+            "hard_hit_rating": 81,
+            "barrel_rating": 80,
+            "xwoba_rating": 80,
+            "xslg_rating": 80,
+        },
+        "Toronto Blue Jays": {
+            "hard_hit_rating": 80,
+            "barrel_rating": 79,
+            "xwoba_rating": 80,
+            "xslg_rating": 79,
+        },
+        "Texas Rangers": {
+            "hard_hit_rating": 79,
+            "barrel_rating": 78,
+            "xwoba_rating": 78,
+            "xslg_rating": 78,
+        },
+        "San Diego Padres": {
+            "hard_hit_rating": 79,
+            "barrel_rating": 78,
+            "xwoba_rating": 79,
+            "xslg_rating": 78,
+        },
+        "New York Mets": {
+            "hard_hit_rating": 78,
+            "barrel_rating": 77,
+            "xwoba_rating": 78,
+            "xslg_rating": 77,
+        },
+        "Milwaukee Brewers": {
+            "hard_hit_rating": 77,
+            "barrel_rating": 76,
+            "xwoba_rating": 77,
+            "xslg_rating": 76,
+        },
+        "Arizona Diamondbacks": {
+            "hard_hit_rating": 77,
+            "barrel_rating": 76,
+            "xwoba_rating": 77,
+            "xslg_rating": 76,
+        },
+        "Seattle Mariners": {
+            "hard_hit_rating": 76,
+            "barrel_rating": 77,
+            "xwoba_rating": 75,
+            "xslg_rating": 76,
+        },
+        "Tampa Bay Rays": {
+            "hard_hit_rating": 76,
+            "barrel_rating": 75,
+            "xwoba_rating": 76,
+            "xslg_rating": 75,
+        },
+        "Cincinnati Reds": {
+            "hard_hit_rating": 76,
+            "barrel_rating": 76,
+            "xwoba_rating": 75,
+            "xslg_rating": 76,
+        },
+        "Minnesota Twins": {
+            "hard_hit_rating": 75,
+            "barrel_rating": 76,
+            "xwoba_rating": 75,
+            "xslg_rating": 75,
+        },
+        "Detroit Tigers": {
+            "hard_hit_rating": 74,
+            "barrel_rating": 74,
+            "xwoba_rating": 74,
+            "xslg_rating": 74,
+        },
+        "Cleveland Guardians": {
+            "hard_hit_rating": 73,
+            "barrel_rating": 72,
+            "xwoba_rating": 74,
+            "xslg_rating": 72,
+        },
+        "St. Louis Cardinals": {
+            "hard_hit_rating": 73,
+            "barrel_rating": 72,
+            "xwoba_rating": 73,
+            "xslg_rating": 72,
+        },
+        "Kansas City Royals": {
+            "hard_hit_rating": 72,
+            "barrel_rating": 71,
+            "xwoba_rating": 72,
+            "xslg_rating": 71,
+        },
+        "San Francisco Giants": {
+            "hard_hit_rating": 73,
+            "barrel_rating": 74,
+            "xwoba_rating": 73,
+            "xslg_rating": 74,
+        },
+        "Los Angeles Angels": {
+            "hard_hit_rating": 72,
+            "barrel_rating": 72,
+            "xwoba_rating": 71,
+            "xslg_rating": 72,
+        },
+        "Colorado Rockies": {
+            "hard_hit_rating": 71,
+            "barrel_rating": 70,
+            "xwoba_rating": 70,
+            "xslg_rating": 70,
+        },
+        "Washington Nationals": {
+            "hard_hit_rating": 70,
+            "barrel_rating": 69,
+            "xwoba_rating": 70,
+            "xslg_rating": 69,
+        },
+        "Pittsburgh Pirates": {
+            "hard_hit_rating": 69,
+            "barrel_rating": 68,
+            "xwoba_rating": 69,
+            "xslg_rating": 68,
+        },
+        "Miami Marlins": {
+            "hard_hit_rating": 68,
+            "barrel_rating": 67,
+            "xwoba_rating": 68,
+            "xslg_rating": 67,
+        },
+        "Athletics": {
+            "hard_hit_rating": 68,
+            "barrel_rating": 68,
+            "xwoba_rating": 67,
+            "xslg_rating": 68,
+        },
+        "Chicago White Sox": {
+            "hard_hit_rating": 66,
+            "barrel_rating": 65,
+            "xwoba_rating": 66,
+            "xslg_rating": 65,
+        },
+    }
+
+    data = team_power.get(
+        team_name,
+        {
+            "hard_hit_rating": 75,
+            "barrel_rating": 75,
+            "xwoba_rating": 75,
+            "xslg_rating": 75,
+        }
+    )
+
+    statcast_power_rating = round(
+        (
+            data.get("hard_hit_rating", 75)
+            + data.get("barrel_rating", 75)
+            + data.get("xwoba_rating", 75)
+            + data.get("xslg_rating", 75)
+        ) / 4,
+        2
+    )
+
+    statcast_power_adjustment = round(
+        (statcast_power_rating - 75) * 0.05,
+        2
+    )
+
+    return {
+        **data,
+        "statcast_power_rating": statcast_power_rating,
+        "statcast_power_adjustment": statcast_power_adjustment,
+    }
+
 def calculate_team_hitting_rating(avg, ops, runs_per_game):
     try:
         avg = float(avg)
@@ -2686,6 +2904,24 @@ def model_mlb_today():
                             2
                         )
 
+                        statcast_data = get_team_statcast_power_rating(
+                            team_name
+                        )
+
+                        statcast_power_rating = (
+                            statcast_data.get(
+                                "statcast_power_rating",
+                                75
+                            )
+                        )
+
+                        statcast_power_adjustment = (
+                            statcast_data.get(
+                                "statcast_power_adjustment",
+                                0
+                            )
+                        )
+
                         bullpen_data = auto_bullpen_data.get(
                             team_name,
                             get_mlb_bullpen_data(team_name)
@@ -2745,6 +2981,7 @@ def model_mlb_today():
                             + market_adj
                             + weather_adj
                             + hitting_adjustment
+                            + statcast_power_adjustment
                             + lineup_adjustment
                             + bullpen_availability_adjustment
                         )
@@ -2896,6 +3133,7 @@ def model_mlb_today():
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Market adjustment ({round(market_adj, 2)}). "
                             f"Hitting adjustment ({hitting_adjustment}). "
+                            f"Statcast power adjustment ({statcast_power_adjustment}). "
                             f"Lineup strength: {lineup_data.get('lineup_status')} "
                             f"({lineup_data.get('lineup_strength')}). "
                             f"Split rating vs {pitcher_hand}HP ({split_rating}). "
@@ -2946,6 +3184,12 @@ def model_mlb_today():
                             "pitcher_hand": pitcher_hand,
                             "split_rating": split_rating,
                             "hitting_adjustment": hitting_adjustment,
+                            "statcast_power_rating": statcast_power_rating,
+                            "statcast_power_adjustment": statcast_power_adjustment,
+                            "hard_hit_rating": statcast_data.get("hard_hit_rating"),
+                            "barrel_rating": statcast_data.get("barrel_rating"),
+                            "xwoba_rating": statcast_data.get("xwoba_rating"),
+                            "xslg_rating": statcast_data.get("xslg_rating"),
                             "lineup_status": lineup_data.get("lineup_status"),
                             "lineup_strength": lineup_data.get("lineup_strength"),
                             "lineup_adjustment": lineup_adjustment,
