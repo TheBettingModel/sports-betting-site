@@ -1178,9 +1178,30 @@ def get_mlb_weather_adjustment(game, market_key, side=None):
         "weather_adjustment": round(adjustment, 2),
     }
 
-def get_nrfi_yrfi_projection(game, probable_pitchers):
+def get_nrfi_yrfi_projection(game, probable_pitchers, team_hitting_stats=None):
     away_team = game.get("away_team")
     home_team = game.get("home_team")
+    
+    team_hitting_stats = team_hitting_stats or {}
+
+    away_lineup = get_confirmed_lineup_strength(away_team)
+    home_lineup = get_confirmed_lineup_strength(home_team)
+
+    away_hitting = team_hitting_stats.get(away_team, {"hitting_rating": 75})
+    home_hitting = team_hitting_stats.get(home_team, {"hitting_rating": 75})
+
+    away_hitting_rating = away_hitting.get("hitting_rating", 75)
+    home_hitting_rating = home_hitting.get("hitting_rating", 75)
+
+    combined_lineup_strength = (
+        away_lineup.get("lineup_strength", 75)
+        + home_lineup.get("lineup_strength", 75)
+    ) / 2
+
+    combined_hitting_rating = (
+        away_hitting_rating
+        + home_hitting_rating
+    ) / 2
 
     default_pitcher = {
         "pitcher": "TBD",
@@ -1226,6 +1247,20 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
     if weather_adj <= -2:
         nrfi_probability += 2
 
+    if combined_lineup_strength >= 85:
+        nrfi_probability -= 3
+    elif combined_lineup_strength >= 80:
+        nrfi_probability -= 2
+    elif combined_lineup_strength <= 70:
+        nrfi_probability += 2
+
+    if combined_hitting_rating >= 85:
+        nrfi_probability -= 3
+    elif combined_hitting_rating >= 80:
+        nrfi_probability -= 2
+    elif combined_hitting_rating <= 70:
+        nrfi_probability += 2
+
     nrfi_probability = max(40, min(68, nrfi_probability))
     yrfi_probability = 100 - nrfi_probability
 
@@ -1244,6 +1279,8 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
         f"Combined pitcher rating: {round(combined_pitcher_rating, 1)}. "
         f"Ballpark: {weather_data.get('park', 'Unknown')} - {weather_data.get('weather_risk', 'Neutral')}. "
         f"Weather/Park adjustment: {weather_adj}. "
+        f"Combined lineup strength: {round(combined_lineup_strength, 1)}. "
+        f"Combined hitting rating: {round(combined_hitting_rating, 1)}. "
         f"NRFI probability: {round(nrfi_probability, 2)}%. "
         f"YRFI probability: {round(yrfi_probability, 2)}%."
     )
@@ -1259,6 +1296,14 @@ def get_nrfi_yrfi_projection(game, probable_pitchers):
         "away_pitcher_rating": away_rating,
         "home_pitcher_rating": home_rating,
         "combined_pitcher_rating": round(combined_pitcher_rating, 2),
+                "combined_lineup_strength": round(
+            combined_lineup_strength,
+            2
+        ),
+        "combined_hitting_rating": round(
+            combined_hitting_rating,
+            2
+        ),
         "ballpark": weather_data.get("park", "Unknown"),
         "weather_risk": weather_data.get("weather_risk", "Neutral"),
         "weather_adjustment": weather_adj,
@@ -3221,12 +3266,17 @@ def model_mlb_nrfi_today():
 
         games = response.json()
         probable_pitchers = get_mlb_probable_pitchers()
+        team_hitting_stats = get_mlb_team_hitting_stats()
 
         plays = []
 
         for game in games:
-            projection = get_nrfi_yrfi_projection(game, probable_pitchers)
-            plays.append(projection)
+            projection = get_nrfi_yrfi_projection(    
+            game,
+              probable_pitchers,
+                team_hitting_stats
+            )   
+        plays.append(projection)
 
         final = sorted(
             plays,
