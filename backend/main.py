@@ -607,6 +607,49 @@ def get_mlb_bullpen_data(team):
         {"fatigue": 0, "bullpen_era": 0.00, "status": "Normal"}
     )
 
+def get_bullpen_availability_score(team, bullpen_data):
+    fatigue = float(bullpen_data.get("fatigue", 0) or 0)
+    bullpen_era = float(bullpen_data.get("bullpen_era", 0) or 0)
+    status = bullpen_data.get("status", "Normal")
+
+    availability_score = 75
+    unavailable_arms = 0
+    high_leverage_risk = "Low"
+
+    if fatigue >= 12:
+        availability_score -= 18
+        unavailable_arms = 3
+        high_leverage_risk = "High"
+    elif fatigue >= 8:
+        availability_score -= 12
+        unavailable_arms = 2
+        high_leverage_risk = "Moderate"
+    elif fatigue >= 4:
+        availability_score -= 6
+        unavailable_arms = 1
+        high_leverage_risk = "Slight"
+
+    if bullpen_era >= 5.00:
+        availability_score -= 8
+    elif bullpen_era >= 4.25:
+        availability_score -= 4
+    elif bullpen_era <= 3.25 and bullpen_era > 0:
+        availability_score += 5
+
+    if status == "Very Tired":
+        availability_score -= 8
+    elif status == "Tired":
+        availability_score -= 4
+
+    availability_score = max(40, min(95, availability_score))
+    availability_adjustment = round((availability_score - 75) * 0.04, 2)
+
+    return {
+        "bullpen_availability_score": availability_score,
+        "bullpen_availability_adjustment": availability_adjustment,
+        "unavailable_arms_estimate": unavailable_arms,
+        "high_leverage_risk": high_leverage_risk,
+    }
 
 def get_mlb_bullpen_adjustment(game, team):
     opponent = get_opponent_team(game, team)
@@ -2417,6 +2460,18 @@ def model_mlb_today():
                         bullpen_era = bullpen_data.get("bullpen_era")
                         bullpen_status = bullpen_data.get("status")
 
+                        bullpen_availability = get_bullpen_availability_score(
+                            team_name,
+                            bullpen_data
+                        )
+
+                        bullpen_availability_adjustment = (
+                            bullpen_availability.get(
+                                "bullpen_availability_adjustment",
+                                0
+                            )
+                        )
+
                         pitcher_diff = get_pitcher_rating_differential(
                             game,
                             team_name,
@@ -2439,11 +2494,12 @@ def model_mlb_today():
                         weather_adj = weather_data.get("weather_adjustment", 0)
 
                         edge_boost = (
-                             pitcher_diff.get("pitcher_diff_adj", 0)
+                            pitcher_diff.get("pitcher_diff_adj", 0)
                             + market_adj
                             + weather_adj
                             + hitting_adjustment
                             + lineup_adjustment
+                            + bullpen_availability_adjustment
                         )
 
                         if bullpen_fatigue >= 3:
@@ -2584,6 +2640,8 @@ def model_mlb_today():
                             f"(ERA {pitcher_era}, WHIP {pitcher_whip}, Rating {pitcher_rating}). "
                             f"Bullpen: {bullpen_status}. "
                             f"Bullpen fatigue: {bullpen_fatigue}. "
+                            f"Bullpen availability: {bullpen_availability.get('bullpen_availability_score')} "
+                            f"({bullpen_availability.get('high_leverage_risk')} leverage risk). "
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Market adjustment ({round(market_adj, 2)}). "
@@ -2662,6 +2720,10 @@ def model_mlb_today():
                             "bullpen_fatigue": bullpen_fatigue,
                             "bullpen_era": bullpen_era,
                             "bullpen_status": bullpen_status,
+                            "bullpen_availability_score": bullpen_availability.get("bullpen_availability_score"),
+                            "bullpen_availability_adjustment": bullpen_availability_adjustment,
+                            "unavailable_arms_estimate": bullpen_availability.get("unavailable_arms_estimate"),
+                            "high_leverage_risk": bullpen_availability.get("high_leverage_risk"),
                             "reason": reason
                         })
 
