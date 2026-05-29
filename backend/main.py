@@ -763,9 +763,131 @@ def get_mlb_totals_engine_adjustment(game, team_hitting_stats=None):
         "combined_bullpen_adjustment": round(bullpen_adj, 2),
     }
 
-def get_statcast_pitching_profile(pitcher_name):
+def get_live_statcast_pitching_profiles():
+    year = date.today().year
+
+    urls = [
+        f"https://baseballsavant.mlb.com/leaderboard/percentile-rankings?type=pitcher&year={year}&csv=true",
+        f"https://baseballsavant.mlb.com/leaderboard/custom?type=pitcher&year={year}&csv=true",
+    ]
+
+    def clean_number(value, default=75):
+        try:
+            if value is None or value == "":
+                return default
+            return float(str(value).replace("%", "").strip())
+        except Exception:
+            return default
+
+    def get_first(row, possible_keys, default=75):
+        for key in possible_keys:
+            if key in row and row.get(key) not in [None, ""]:
+                return clean_number(row.get(key), default)
+        return default
+
+    try:
+        import csv
+        import io
+
+        for url in urls:
+            response = requests.get(url, timeout=15)
+
+            if response.status_code != 200:
+                continue
+
+            text = response.text
+
+            if "player" not in text.lower():
+                continue
+
+            reader = csv.DictReader(io.StringIO(text))
+            profiles = {}
+
+            for row in reader:
+                pitcher_name = (
+                    row.get("player_name")
+                    or row.get("last_name, first_name")
+                    or row.get("name")
+                    or row.get("player")
+                )
+
+                if not pitcher_name:
+                    continue
+
+                xera_rating = get_first(
+                    row,
+                    ["xera_percentile", "xERA_percentile", "xera", "xERA"],
+                    75
+                )
+
+                whiff_rating = get_first(
+                    row,
+                    ["whiff_percentile", "whiff_percent", "Whiff %", "whiff_percentile_rank"],
+                    75
+                )
+
+                k_rating = get_first(
+                    row,
+                    ["k_percentile", "k_percent", "K%", "strikeout_percentile"],
+                    75
+                )
+
+                hard_hit_allowed_rating = get_first(
+                    row,
+                    ["hard_hit_percentile", "hard_hit_percent", "Hard Hit %"],
+                    75
+                )
+
+                barrel_allowed_rating = get_first(
+                    row,
+                    ["barrel_percentile", "barrel_percent", "Barrel %"],
+                    75
+                )
+
+                statcast_pitching_rating = round(
+                    (
+                        xera_rating
+                        + whiff_rating
+                        + k_rating
+                        + hard_hit_allowed_rating
+                        + barrel_allowed_rating
+                    ) / 5,
+                    2
+                )
+
+                statcast_pitching_adjustment = round(
+                    (statcast_pitching_rating - 75) * 0.05,
+                    2
+                )
+
+                profiles[pitcher_name] = {
+                    "xera_rating": xera_rating,
+                    "whiff_rating": whiff_rating,
+                    "k_rating": k_rating,
+                    "hard_hit_allowed_rating": hard_hit_allowed_rating,
+                    "barrel_allowed_rating": barrel_allowed_rating,
+                    "statcast_pitching_rating": statcast_pitching_rating,
+                    "statcast_pitching_adjustment": statcast_pitching_adjustment,
+                    "statcast_source": "live",
+                }
+
+            if profiles:
+                return profiles
+
+        return {}
+
+    except Exception as e:
+        print("Live Statcast pitching profile error:", e)
+        return {}
+
+def get_statcast_pitching_profile(pitcher_name, live_profiles=None):
     # Statcast Pitching Engine v1.
     # Static baseline now; later replace with live Baseball Savant pitcher data.
+
+    live_profiles = live_profiles or {}
+
+    if pitcher_name in live_profiles:
+        return live_profiles[pitcher_name]
 
     pitcher_profiles = {
         "Paul Skenes": {
@@ -3003,6 +3125,7 @@ def model_mlb_today():
         probable_pitchers = get_mlb_probable_pitchers()
         team_hitting_stats = get_mlb_team_hitting_stats()
         confirmed_lineups = get_live_confirmed_lineups()
+        live_statcast_pitching = get_live_statcast_pitching_profiles()
         auto_bullpen_data = get_auto_bullpen_data()
         plays = []
 
