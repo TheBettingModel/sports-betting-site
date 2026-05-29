@@ -763,6 +763,115 @@ def get_mlb_totals_engine_adjustment(game, team_hitting_stats=None):
         "combined_bullpen_adjustment": round(bullpen_adj, 2),
     }
 
+def get_statcast_pitching_profile(pitcher_name):
+    # Statcast Pitching Engine v1.
+    # Static baseline now; later replace with live Baseball Savant pitcher data.
+
+    pitcher_profiles = {
+        "Paul Skenes": {
+            "xera_rating": 92,
+            "whiff_rating": 94,
+            "k_rating": 94,
+            "hard_hit_allowed_rating": 88,
+            "barrel_allowed_rating": 90,
+        },
+        "Chris Sale": {
+            "xera_rating": 92,
+            "whiff_rating": 93,
+            "k_rating": 92,
+            "hard_hit_allowed_rating": 89,
+            "barrel_allowed_rating": 90,
+        },
+        "Zack Wheeler": {
+            "xera_rating": 91,
+            "whiff_rating": 88,
+            "k_rating": 89,
+            "hard_hit_allowed_rating": 90,
+            "barrel_allowed_rating": 90,
+        },
+        "Tarik Skubal": {
+            "xera_rating": 92,
+            "whiff_rating": 91,
+            "k_rating": 91,
+            "hard_hit_allowed_rating": 90,
+            "barrel_allowed_rating": 90,
+        },
+        "Garrett Crochet": {
+            "xera_rating": 89,
+            "whiff_rating": 91,
+            "k_rating": 91,
+            "hard_hit_allowed_rating": 85,
+            "barrel_allowed_rating": 86,
+        },
+        "Nathan Eovaldi": {
+            "xera_rating": 84,
+            "whiff_rating": 78,
+            "k_rating": 79,
+            "hard_hit_allowed_rating": 84,
+            "barrel_allowed_rating": 83,
+        },
+        "Spencer Arrighetti": {
+            "xera_rating": 78,
+            "whiff_rating": 82,
+            "k_rating": 81,
+            "hard_hit_allowed_rating": 75,
+            "barrel_allowed_rating": 75,
+        },
+        "Jack Flaherty": {
+            "xera_rating": 72,
+            "whiff_rating": 77,
+            "k_rating": 78,
+            "hard_hit_allowed_rating": 68,
+            "barrel_allowed_rating": 68,
+        },
+        "Colin Rea": {
+            "xera_rating": 70,
+            "whiff_rating": 68,
+            "k_rating": 68,
+            "hard_hit_allowed_rating": 70,
+            "barrel_allowed_rating": 70,
+        },
+        "Patrick Corbin": {
+            "xera_rating": 66,
+            "whiff_rating": 62,
+            "k_rating": 62,
+            "hard_hit_allowed_rating": 64,
+            "barrel_allowed_rating": 64,
+        },
+    }
+
+    default_profile = {
+        "xera_rating": 75,
+        "whiff_rating": 75,
+        "k_rating": 75,
+        "hard_hit_allowed_rating": 75,
+        "barrel_allowed_rating": 75,
+    }
+
+    data = pitcher_profiles.get(pitcher_name, default_profile)
+
+    statcast_pitching_rating = round(
+        (
+            data.get("xera_rating", 75)
+            + data.get("whiff_rating", 75)
+            + data.get("k_rating", 75)
+            + data.get("hard_hit_allowed_rating", 75)
+            + data.get("barrel_allowed_rating", 75)
+        ) / 5,
+        2
+    )
+
+    statcast_pitching_adjustment = round(
+        (statcast_pitching_rating - 75) * 0.05,
+        2
+    )
+
+    return {
+        **data,
+        "statcast_pitching_rating": statcast_pitching_rating,
+        "statcast_pitching_adjustment": statcast_pitching_adjustment,
+    }
+
 def calculate_pitcher_rating(era, whip):
     try:
         era = float(era)
@@ -2889,6 +2998,25 @@ def model_mlb_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
+                        statcast_pitching = (
+                            get_statcast_pitching_profile(
+                                pitcher_name
+                            )
+                        )
+
+                        statcast_pitching_rating = (
+                            statcast_pitching.get(
+                                "statcast_pitching_rating",
+                                75
+                            )
+                        )
+
+                        statcast_pitching_adjustment = (
+                            statcast_pitching.get(
+                                "statcast_pitching_adjustment",
+                                0
+                            )
+                        )
                         lineup_data = get_confirmed_lineup_strength(
                             team_name,
                             confirmed_lineups
@@ -3005,6 +3133,7 @@ def model_mlb_today():
                             + weather_adj
                             + hitting_adjustment
                             + statcast_power_adjustment
+                            + statcast_pitching_adjustment
                             + lineup_adjustment
                             + bullpen_availability_adjustment
                         )
@@ -3154,6 +3283,7 @@ def model_mlb_today():
                             f"({bullpen_availability.get('high_leverage_risk')} leverage risk). "
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
+                            f"Statcast pitching adjustment ({statcast_pitching_adjustment}). "
                             f"Market adjustment ({round(market_adj, 2)}). "
                             f"Hitting adjustment ({hitting_adjustment}). "
                             f"Statcast power adjustment ({statcast_power_adjustment}). "
@@ -3200,6 +3330,13 @@ def model_mlb_today():
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
+                            "statcast_pitching_rating": statcast_pitching_rating,
+                            "statcast_pitching_adjustment": statcast_pitching_adjustment,
+                            "xera_rating": statcast_pitching.get("xera_rating"),
+                            "whiff_rating": statcast_pitching.get("whiff_rating"),
+                            "k_rating": statcast_pitching.get("k_rating"),
+                            "hard_hit_allowed_rating": statcast_pitching.get("hard_hit_allowed_rating"),
+                            "barrel_allowed_rating": statcast_pitching.get("barrel_allowed_rating"),
                             "hitting_avg": hitting_data.get("avg"),
                             "hitting_ops": hitting_data.get("ops"),
                             "runs_per_game": hitting_data.get("runs_per_game"),
