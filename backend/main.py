@@ -776,6 +776,63 @@ def get_team_handedness_split_rating(team_name, pitcher_throws):
 
     return team_splits.get(team_name, {}).get(pitcher_side, default_rating)
 
+def get_confirmed_lineup_strength(team_name):
+    # Conservative placeholder engine.
+    # Later we can replace this with live confirmed lineup/player-level data.
+
+    lineup_strength = {
+        "Los Angeles Dodgers": 90,
+        "New York Yankees": 88,
+        "Atlanta Braves": 86,
+        "Philadelphia Phillies": 85,
+        "Houston Astros": 84,
+        "Baltimore Orioles": 83,
+        "Boston Red Sox": 82,
+        "Chicago Cubs": 81,
+        "Toronto Blue Jays": 80,
+        "Texas Rangers": 79,
+        "San Diego Padres": 79,
+        "New York Mets": 78,
+        "Milwaukee Brewers": 78,
+        "Arizona Diamondbacks": 77,
+        "Seattle Mariners": 76,
+        "Tampa Bay Rays": 76,
+        "Cincinnati Reds": 75,
+        "Minnesota Twins": 75,
+        "Detroit Tigers": 74,
+        "Cleveland Guardians": 74,
+        "St. Louis Cardinals": 73,
+        "Kansas City Royals": 73,
+        "San Francisco Giants": 73,
+        "Los Angeles Angels": 72,
+        "Colorado Rockies": 71,
+        "Washington Nationals": 70,
+        "Pittsburgh Pirates": 70,
+        "Miami Marlins": 69,
+        "Athletics": 68,
+        "Chicago White Sox": 67,
+    }
+
+    rating = lineup_strength.get(team_name, 75)
+
+    if rating >= 84:
+        status = "Strong Lineup"
+    elif rating >= 76:
+        status = "Average Lineup"
+    elif rating >= 70:
+        status = "Weak Lineup"
+    else:
+        status = "Very Weak Lineup"
+
+    adjustment = round((rating - 75) * 0.04, 2)
+
+    return {
+        "lineup_status": status,
+        "lineup_strength": rating,
+        "lineup_adjustment": adjustment,
+        "lineup_confirmed": False,
+    }
+
 def get_mlb_team_hitting_stats():
     url = "https://statsapi.mlb.com/api/v1/teams/stats"
 
@@ -2316,6 +2373,8 @@ def model_mlb_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
+                        lineup_data = get_confirmed_lineup_strength(team_name)
+                        lineup_adjustment = lineup_data.get("lineup_adjustment", 0)
                         pitcher_hand = "R"
 
                         if pitcher_name and pitcher_name != "TBD":
@@ -2380,10 +2439,11 @@ def model_mlb_today():
                         weather_adj = weather_data.get("weather_adjustment", 0)
 
                         edge_boost = (
-                            pitcher_diff.get("pitcher_diff_adj", 0)
+                             pitcher_diff.get("pitcher_diff_adj", 0)
                             + market_adj
                             + weather_adj
                             + hitting_adjustment
+                            + lineup_adjustment
                         )
 
                         if bullpen_fatigue >= 3:
@@ -2528,6 +2588,8 @@ def model_mlb_today():
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Market adjustment ({round(market_adj, 2)}). "
                             f"Hitting adjustment ({hitting_adjustment}). "
+                            f"Lineup strength: {lineup_data.get('lineup_status')} "
+                            f"({lineup_data.get('lineup_strength')}). "
                             f"Split rating vs {pitcher_hand}HP ({split_rating}). "
                             f"Weather/Park adjustment ({weather_adj}). "
                             f"Ballpark: {weather_data.get('park')} - {weather_data.get('weather_risk')}."
@@ -2575,6 +2637,10 @@ def model_mlb_today():
                             "pitcher_hand": pitcher_hand,
                             "split_rating": split_rating,
                             "hitting_adjustment": hitting_adjustment,
+                            "lineup_status": lineup_data.get("lineup_status"),
+                            "lineup_strength": lineup_data.get("lineup_strength"),
+                            "lineup_adjustment": lineup_adjustment,
+                            "lineup_confirmed": lineup_data.get("lineup_confirmed"),
                             "away_starter": away_starter_data.get("pitcher"),
                             "away_pitcher_era": away_starter_data.get("era"),
                             "away_pitcher_whip": away_starter_data.get("whip"),
