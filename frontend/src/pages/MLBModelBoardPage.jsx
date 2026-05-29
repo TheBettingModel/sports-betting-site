@@ -402,10 +402,18 @@ const topMoneyline = sortedPlays.filter((play) => play.market === "Moneyline");
         <p>No MLB plays available.</p>
       ) : (
         <>
-          {topPlay && (
+          {topMoneyline.length > 0 && (
             <section style={{ marginBottom: "55px" }}>
-              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>Auto Top Play</h2>
-              {renderCard(topPlay, 0, "Auto Top Play", true)}
+              <h2 style={{ marginBottom: "18px", fontSize: "32px" }}>
+                Top Moneyline Play
+              </h2>
+
+              {renderCard(
+                topMoneyline[0],
+                0,
+                "Top Moneyline Play",
+                true
+              )}
             </section>
           )}
 
