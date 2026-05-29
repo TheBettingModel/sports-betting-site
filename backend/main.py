@@ -3291,12 +3291,13 @@ def model_mlb_nrfi_today():
         plays = []
 
         for game in games:
-            projection = get_nrfi_yrfi_projection(    
-            game,
-              probable_pitchers,
+            projection = get_nrfi_yrfi_projection(
+                game,
+                probable_pitchers,
                 team_hitting_stats
-            )   
-        plays.append(projection)
+            )
+
+            plays.append(projection)
 
         final = sorted(
             plays,
