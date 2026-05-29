@@ -3240,31 +3240,51 @@ def model_mlb_f5_today():
 def model_mlb_nrfi_today():
     cached = get_cache("mlb_nrfi_model")
 
-    odds_api_key = os.getenv("ODDS_API_KEY")
-
-    if not odds_api_key:
-        if cached:
-            return {"plays": cached, "cached": True, "error": "Missing API key"}
-        return {"plays": [], "error": "Missing API key"}
-
-    url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
-
-    params = {
-        "apiKey": odds_api_key,
-        "regions": "us",
-        "markets": "h2h",
-        "oddsFormat": "american",
-    }
-
     try:
-        response = requests.get(url, params=params, timeout=10)
+        today = date.today().isoformat()
 
-        if response.status_code != 200:
+        schedule_response = requests.get(
+            "https://statsapi.mlb.com/api/v1/schedule",
+            params={
+                "sportId": 1,
+                "date": today,
+                "hydrate": "probablePitcher",
+            },
+            timeout=10
+        )
+
+        if schedule_response.status_code != 200:
             if cached:
-                return {"plays": cached, "cached": True, "error": response.text}
-            return {"plays": [], "error": response.text}
+                return {
+                    "plays": cached,
+                    "cached": True,
+                    "error": schedule_response.text
+                }
 
-        games = response.json()
+            return {
+                "plays": [],
+                "error": schedule_response.text
+            }
+
+        schedule_data = schedule_response.json()
+
+        games = []
+
+        for day in schedule_data.get("dates", []):
+            for schedule_game in day.get("games", []):
+                teams = schedule_game.get("teams", {})
+
+                away_team = teams.get("away", {}).get("team", {}).get("name")
+                home_team = teams.get("home", {}).get("team", {}).get("name")
+
+                if not away_team or not home_team:
+                    continue
+
+                games.append({
+                    "away_team": away_team,
+                    "home_team": home_team,
+                })
+
         probable_pitchers = get_mlb_probable_pitchers()
         team_hitting_stats = get_mlb_team_hitting_stats()
 
