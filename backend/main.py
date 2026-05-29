@@ -616,18 +616,31 @@ def get_bullpen_availability_score(team, bullpen_data):
     unavailable_arms = 0
     high_leverage_risk = "Low"
 
+    innings_last_3_estimate = round(fatigue * 0.75, 1)
+    closer_back_to_back_risk = False
+    setup_back_to_back_risk = False
+    closer_available = True
+    setup_available = True
+
     if fatigue >= 12:
         availability_score -= 18
         unavailable_arms = 3
         high_leverage_risk = "High"
+        closer_back_to_back_risk = True
+        setup_back_to_back_risk = True
+        closer_available = False
+        setup_available = False
     elif fatigue >= 8:
         availability_score -= 12
         unavailable_arms = 2
         high_leverage_risk = "Moderate"
+        closer_back_to_back_risk = True
+        setup_available = False
     elif fatigue >= 4:
         availability_score -= 6
         unavailable_arms = 1
         high_leverage_risk = "Slight"
+        setup_back_to_back_risk = True
 
     if bullpen_era >= 5.00:
         availability_score -= 8
@@ -641,6 +654,11 @@ def get_bullpen_availability_score(team, bullpen_data):
     elif status == "Tired":
         availability_score -= 4
 
+    if innings_last_3_estimate >= 9:
+        availability_score -= 6
+    elif innings_last_3_estimate >= 6:
+        availability_score -= 3
+
     availability_score = max(40, min(95, availability_score))
     availability_adjustment = round((availability_score - 75) * 0.04, 2)
 
@@ -649,6 +667,11 @@ def get_bullpen_availability_score(team, bullpen_data):
         "bullpen_availability_adjustment": availability_adjustment,
         "unavailable_arms_estimate": unavailable_arms,
         "high_leverage_risk": high_leverage_risk,
+        "innings_last_3_estimate": innings_last_3_estimate,
+        "closer_back_to_back_risk": closer_back_to_back_risk,
+        "setup_back_to_back_risk": setup_back_to_back_risk,
+        "closer_available": closer_available,
+        "setup_available": setup_available,
     }
 
 def get_mlb_bullpen_adjustment(game, team):
@@ -3223,6 +3246,11 @@ def model_mlb_today():
                             "bullpen_availability_adjustment": bullpen_availability_adjustment,
                             "unavailable_arms_estimate": bullpen_availability.get("unavailable_arms_estimate"),
                             "high_leverage_risk": bullpen_availability.get("high_leverage_risk"),
+                            "innings_last_3_estimate": bullpen_availability.get("innings_last_3_estimate"),
+                            "closer_back_to_back_risk": bullpen_availability.get("closer_back_to_back_risk"),
+                            "setup_back_to_back_risk": bullpen_availability.get("setup_back_to_back_risk"),
+                            "closer_available": bullpen_availability.get("closer_available"),
+                            "setup_available": bullpen_availability.get("setup_available"),
                             "reason": reason
                         })
 
