@@ -871,6 +871,82 @@ def get_team_handedness_split_rating(team_name, pitcher_throws):
 
     return team_splits.get(team_name, {}).get(pitcher_side, default_rating)
 
+def get_live_confirmed_lineups():
+    # Live lineup feed v1.
+    # Uses MLB Stats API schedule data as the source.
+    # If official batting orders are unavailable, this safely returns {}.
+
+    today = date.today().isoformat()
+
+    url = "https://statsapi.mlb.com/api/v1/schedule"
+
+    params = {
+        "sportId": 1,
+        "date": today,
+        "hydrate": "lineups,probablePitcher",
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+
+        if response.status_code != 200:
+            return {}
+
+        data = response.json()
+        confirmed_lineups = {}
+
+        for day in data.get("dates", []):
+            for game in day.get("games", []):
+                teams = game.get("teams", {})
+
+                for side in ["away", "home"]:
+                    team_obj = teams.get(side, {}).get("team", {})
+                    team_name = team_obj.get("name")
+
+                    if not team_name:
+                        continue
+
+                    lineup_obj = teams.get(side, {}).get("lineup", [])
+                    batting_order = []
+
+                    if isinstance(lineup_obj, list):
+                        for player in lineup_obj:
+                            player_name = (
+                                player.get("fullName")
+                                or player.get("name")
+                            )
+
+                            if player_name:
+                                batting_order.append(player_name)
+
+                    if not batting_order:
+                        continue
+
+                    top_order_strength = 75
+
+                    if len(batting_order) >= 3:
+                        top_order_strength = 80
+
+                    if len(batting_order) >= 9:
+                        lineup_confirmed = True
+                    else:
+                        lineup_confirmed = False
+
+                    confirmed_lineups[team_name] = {
+                        "base_rating": 75,
+                        "missing_stars": 0,
+                        "top_order_strength": top_order_strength,
+                        "backup_catcher": False,
+                        "batting_order": batting_order,
+                        "lineup_confirmed": lineup_confirmed,
+                    }
+
+        return confirmed_lineups
+
+    except Exception as e:
+        print("Live confirmed lineup error:", e)
+        return {}
+
 def get_confirmed_lineup_strength(team_name, confirmed_lineups=None):
     # Conservative placeholder engine.
     # Later we can replace this with live confirmed lineup/player-level data.
@@ -1275,14 +1351,27 @@ def get_mlb_weather_adjustment(game, market_key, side=None):
         "weather_adjustment": round(adjustment, 2),
     }
 
-def get_nrfi_yrfi_projection(game, probable_pitchers, team_hitting_stats=None):
+def get_nrfi_yrfi_projection(
+    game,
+    probable_pitchers,
+    team_hitting_stats=None,
+    confirmed_lineups=None
+):
+    
     away_team = game.get("away_team")
     home_team = game.get("home_team")
     
     team_hitting_stats = team_hitting_stats or {}
 
-    away_lineup = get_confirmed_lineup_strength(away_team)
-    home_lineup = get_confirmed_lineup_strength(home_team)
+    away_lineup = get_confirmed_lineup_strength(
+        away_team,
+        confirmed_lineups
+        )
+
+    home_lineup = get_confirmed_lineup_strength(
+            home_team,
+            confirmed_lineups
+        )
 
     away_hitting = team_hitting_stats.get(away_team, {"hitting_rating": 75})
     home_hitting = team_hitting_stats.get(home_team, {"hitting_rating": 75})
@@ -2500,6 +2589,7 @@ def model_mlb_today():
 
         probable_pitchers = get_mlb_probable_pitchers()
         team_hitting_stats = get_mlb_team_hitting_stats()
+        confirmed_lineups = get_live_confirmed_lineups()
         auto_bullpen_data = get_auto_bullpen_data()
         plays = []
 
@@ -2558,7 +2648,10 @@ def model_mlb_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
-                        lineup_data = get_confirmed_lineup_strength(team_name)
+                        lineup_data = get_confirmed_lineup_strength(
+                            team_name,
+                            confirmed_lineups
+                        )
                         lineup_adjustment = lineup_data.get("lineup_adjustment", 0)
                         pitcher_hand = "R"
 
@@ -3078,6 +3171,7 @@ def model_mlb_f5_today():
                 games.append(event_odds)
 
         probable_pitchers = get_mlb_probable_pitchers()
+        confirmed_lineups = get_live_confirmed_lineups()
         plays = []
 
         for game in games:
@@ -3141,7 +3235,10 @@ def model_mlb_f5_today():
                         pitcher_era = starter_data.get("era")
                         pitcher_whip = starter_data.get("whip")
                         pitcher_rating = starter_data.get("rating")
-                        lineup_data = get_confirmed_lineup_strength(team_name)
+                        lineup_data = get_confirmed_lineup_strength(
+                            team_name,
+                            confirmed_lineups
+                        )
                         lineup_adjustment = lineup_data.get("lineup_adjustment", 0)
 
                         bullpen_data = get_mlb_bullpen_data(team_name)
@@ -3402,8 +3499,9 @@ def model_mlb_nrfi_today():
                     "home_team": home_team,
                 })
 
-        probable_pitchers = get_mlb_probable_pitchers()
-        team_hitting_stats = get_mlb_team_hitting_stats()
+            probable_pitchers = get_mlb_probable_pitchers()
+            team_hitting_stats = get_mlb_team_hitting_stats()
+            confirmed_lineups = get_live_confirmed_lineups()
 
         plays = []
 
@@ -3411,7 +3509,8 @@ def model_mlb_nrfi_today():
             projection = get_nrfi_yrfi_projection(
                 game,
                 probable_pitchers,
-                team_hitting_stats
+                team_hitting_stats,
+                confirmed_lineups
             )
 
             plays.append(projection)
