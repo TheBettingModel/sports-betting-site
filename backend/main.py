@@ -2024,6 +2024,13 @@ def get_nrfi_yrfi_projection(
 
     weather_adj = weather_data.get("weather_adjustment", 0)
 
+    umpire_data = get_umpire_engine_adjustment(
+        game,
+        "nrfi"
+    )
+
+    umpire_adjustment = umpire_data.get("umpire_adjustment", 0)
+
     nrfi_probability = 52
 
     if combined_pitcher_rating >= 90:
