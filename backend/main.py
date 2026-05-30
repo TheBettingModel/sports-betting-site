@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 
 
 from database import Base, SessionLocal, engine
@@ -760,6 +760,24 @@ def get_umpire_engine_adjustment(game, market_key=None):
         "umpire_walk_boost": profile.get("walk_boost", 0),
         "umpire_strikeout_boost": profile.get("strikeout_boost", 0),
     }
+
+def game_has_started(game):
+    commence_time = game.get("commence_time")
+
+    if not commence_time:
+        return False
+
+    try:
+        start_time = datetime.fromisoformat(
+            commence_time.replace("Z", "+00:00")
+        )
+
+        now = datetime.now(timezone.utc)
+
+        return now >= start_time
+
+    except Exception:
+        return False
 
 def get_mlb_totals_engine_adjustment(game, team_hitting_stats=None):
     team_hitting_stats = team_hitting_stats or {}
@@ -3267,6 +3285,9 @@ def model_mlb_today():
         plays = []
 
         for game in games:
+            if game_has_started(game):
+                continue
+
             game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
 
             for bookmaker in game.get("bookmakers", []):
@@ -3946,6 +3967,9 @@ def model_mlb_f5_today():
             plays = []
 
         for game in games:
+            if game_has_started(game):
+                continue
+
             game_name = (
                 f"{game.get('away_team')} vs "
                 f"{game.get('home_team')}"
