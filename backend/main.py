@@ -1868,6 +1868,78 @@ def get_pitcher_rating_differential(game, team_name, probable_pitchers):
         "pitcher_diff_adj": pitcher_diff_adj,
     }
 
+def get_market_consensus_data(game, market_key, pick_name):
+    prices = []
+
+    for bookmaker in game.get("bookmakers", []):
+        sportsbook = bookmaker.get("title")
+
+        for market in bookmaker.get("markets", []):
+            if market.get("key") != market_key:
+                continue
+
+            for outcome in market.get("outcomes", []):
+                if outcome.get("name") != pick_name:
+                    continue
+
+                price = outcome.get("price")
+
+                if price is None:
+                    continue
+
+                prices.append({
+                    "sportsbook": sportsbook,
+                    "price": int(price),
+                })
+
+    if not prices:
+        return {
+            "consensus_price": None,
+            "best_price": None,
+            "worst_price": None,
+            "best_book": None,
+            "worst_book": None,
+            "market_spread": 0,
+            "market_disagreement": "Unknown",
+            "stale_line_opportunity": False,
+            "consensus_book_count": 0,
+        }
+
+    sorted_prices = sorted(prices, key=lambda x: x["price"])
+
+    best = max(prices, key=lambda x: x["price"])
+    worst = min(prices, key=lambda x: x["price"])
+
+    consensus_price = round(
+        sum(item["price"] for item in prices) / len(prices),
+        2
+    )
+
+    market_spread = abs(best["price"] - worst["price"])
+
+    if market_spread >= 35:
+        disagreement = "High"
+    elif market_spread >= 20:
+        disagreement = "Moderate"
+    elif market_spread >= 10:
+        disagreement = "Low"
+    else:
+        disagreement = "Tight"
+
+    stale_line_opportunity = market_spread >= 25
+
+    return {
+        "consensus_price": consensus_price,
+        "best_price": best.get("price"),
+        "worst_price": worst.get("price"),
+        "best_book": best.get("sportsbook"),
+        "worst_book": worst.get("sportsbook"),
+        "market_spread": market_spread,
+        "market_disagreement": disagreement,
+        "stale_line_opportunity": stale_line_opportunity,
+        "consensus_book_count": len(prices),
+    }
+
 def get_mlb_market_adjustment(market_key, odds, point=None, side=None):
     price_adj = get_price_adjustment(odds)
 
@@ -3472,6 +3544,24 @@ def model_mlb_today():
                             )
                         )
 
+                        market_consensus = get_market_consensus_data(
+                            game,
+                            market_key,
+                            outcome.get("name")
+                        )
+
+                        consensus_adjustment = 0
+
+                        if market_consensus.get(
+                            "stale_line_opportunity"
+                        ):
+                            consensus_adjustment += 0.4
+
+                        if market_consensus.get(
+                            "market_disagreement"
+                        ) == "High":
+                            consensus_adjustment += 0.3
+
                         totals_engine = get_mlb_totals_engine_adjustment(
                             game,
                             team_hitting_stats
@@ -3494,6 +3584,7 @@ def model_mlb_today():
                             + statcast_pitching_adjustment
                             + lineup_adjustment
                             + bullpen_availability_adjustment
+                            + consensus_adjustment
                         )
 
                         if market_key in ["totals", "alternate_totals"]:
@@ -3651,6 +3742,8 @@ def model_mlb_today():
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Statcast pitching adjustment ({statcast_pitching_adjustment}). "
                             f"Market adjustment ({round(market_adj, 2)}). "
+                            f"Consensus adjustment ({consensus_adjustment}). "
+                            f"Market disagreement: {market_consensus.get('market_disagreement')}. "
                             f"Hitting adjustment ({hitting_adjustment}). "
                             f"Statcast power adjustment ({statcast_power_adjustment}). "
                             f"Lineup strength: {lineup_data.get('lineup_status')} "
@@ -3744,6 +3837,16 @@ def model_mlb_today():
                             "pitcher_rating_diff": pitcher_diff.get("rating_diff"),
                             "pitcher_diff_adjustment": pitcher_diff.get("pitcher_diff_adj"),
                             "market_adjustment": round(market_adj, 2),
+                            "consensus_adjustment": consensus_adjustment,
+                            "consensus_price": market_consensus.get("consensus_price"),
+                            "best_price": market_consensus.get("best_price"),
+                            "worst_price": market_consensus.get("worst_price"),
+                            "best_book": market_consensus.get("best_book"),
+                            "worst_book": market_consensus.get("worst_book"),
+                            "market_spread": market_consensus.get("market_spread"),
+                            "market_disagreement": market_consensus.get("market_disagreement"),
+                            "stale_line_opportunity": market_consensus.get("stale_line_opportunity"),
+                            "consensus_book_count": market_consensus.get("consensus_book_count"),
                             "weather_adjustment": weather_adj,
                             "totals_engine_adjustment": totals_engine_adjustment,
                             "combined_lineup_strength": totals_engine.get("combined_lineup_strength"),
