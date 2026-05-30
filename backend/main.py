@@ -3028,6 +3028,46 @@ def get_clv_signal(opening_odds, current_odds):
         )
     }
 
+def get_live_clv_tracker(opening_odds, current_odds, edge, recommendation):
+    movement = american_odds_movement(opening_odds, current_odds)
+
+    clv_direction = "Neutral"
+    clv_grade = "C"
+    clv_strength = 0
+
+    if movement <= -30:
+        clv_direction = "Strong Positive CLV"
+        clv_grade = "A"
+        clv_strength = abs(movement)
+    elif movement <= -15:
+        clv_direction = "Positive CLV"
+        clv_grade = "B"
+        clv_strength = abs(movement)
+    elif movement >= 30:
+        clv_direction = "Strong Negative CLV"
+        clv_grade = "F"
+        clv_strength = -abs(movement)
+    elif movement >= 15:
+        clv_direction = "Negative CLV"
+        clv_grade = "D"
+        clv_strength = -abs(movement)
+
+    model_validated = False
+
+    if clv_strength > 0 and edge >= 2 and recommendation in ["Play", "Lean"]:
+        model_validated = True
+
+    if clv_strength < 0 and recommendation == "Play":
+        clv_grade = "Risk"
+
+    return {
+        "live_clv_direction": clv_direction,
+        "live_clv_grade": clv_grade,
+        "live_clv_strength": clv_strength,
+        "model_validated_by_market": model_validated,
+        "clv_movement": movement,
+    }
+
 def get_or_create_line_snapshot(
     line_key,
     game,
@@ -3473,6 +3513,13 @@ def model_mlb_today():
                             current_odds
                         )
 
+                        clv_tracker = get_live_clv_tracker(
+                            opening_odds,
+                            current_odds,
+                            edge,
+                            recommendation
+                        )
+
                         # CLV + sharp score combo filter
                         reason_filter = ""
 
@@ -3539,6 +3586,11 @@ def model_mlb_today():
                             "clv_status": clv_data.get("clv_status"),
                             "clv_score": clv_data.get("clv_score"),
                             "clv_reason": clv_data.get("clv_reason"),
+                            "live_clv_direction": clv_tracker.get("live_clv_direction"),
+                            "live_clv_grade": clv_tracker.get("live_clv_grade"),
+                            "live_clv_strength": clv_tracker.get("live_clv_strength"),
+                            "model_validated_by_market": clv_tracker.get("model_validated_by_market"),
+                            "clv_movement": clv_tracker.get("clv_movement"),
                             "model_version": "mlb_v3_pitcher_edge",
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
