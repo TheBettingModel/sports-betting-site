@@ -16,15 +16,32 @@ function MLBF5ModelPage() {
     fontWeight: "bold",
   };
 
-  useEffect(() => {
-    fetch(`${API_URL}/model/mlb/f5/today`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.plays) setPlays(data.plays);
-        else setError("Failed to load MLB F5 model.");
-      })
-      .catch(() => setError("Failed to load MLB F5 model."));
-  }, [API_URL]);
+ useEffect(() => {
+  const controller = new AbortController();
+
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, 25000);
+
+  fetch(`${API_URL}/model/mlb/f5/today`, {
+    signal: controller.signal,
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (Array.isArray(data.plays)) {
+        setPlays(data.plays);
+      } else {
+        setError("Failed to load MLB F5 model.");
+      }
+    })
+    .catch(() => setError("Failed to load MLB F5 model."))
+    .finally(() => clearTimeout(timer));
+
+  return () => {
+    clearTimeout(timer);
+    controller.abort();
+  };
+}, [API_URL]);
 
   const sortedPlays = useMemo(() => {
     return [...plays].sort((a, b) => (b.edge || 0) - (a.edge || 0));

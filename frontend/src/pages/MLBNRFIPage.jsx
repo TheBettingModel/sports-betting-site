@@ -16,15 +16,32 @@ function MLBNRFIPage() {
     fontWeight: "bold",
   };
 
-  useEffect(() => {
-    fetch(`${API_URL}/model/mlb/nrfi/today`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.plays) setPlays(data.plays);
-        else setError("Failed to load MLB NRFI/YRFI model.");
-      })
-      .catch(() => setError("Failed to load MLB NRFI/YRFI model."));
-  }, [API_URL]);
+useEffect(() => {
+  const controller = new AbortController();
+
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, 25000);
+
+  fetch(`${API_URL}/model/mlb/nrfi/today`, {
+    signal: controller.signal,
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (Array.isArray(data.plays)) {
+        setPlays(data.plays);
+      } else {
+        setError("Failed to load MLB NRFI/YRFI model.");
+      }
+    })
+    .catch(() => setError("Failed to load MLB NRFI/YRFI model."))
+    .finally(() => clearTimeout(timer));
+
+  return () => {
+    clearTimeout(timer);
+    controller.abort();
+  };
+}, [API_URL]);
 
   const sortedPlays = useMemo(() => {
     return [...plays].sort((a, b) => {
