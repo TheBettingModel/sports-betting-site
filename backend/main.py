@@ -840,7 +840,7 @@ def get_live_statcast_pitching_profiles():
         import io
 
         for url in urls:
-            response = requests.get(url, timeout=15)
+            response = requests.get(url, timeout=4)
 
             if response.status_code != 200:
                 continue
@@ -3937,7 +3937,7 @@ def model_mlb_f5_today():
 
             probable_pitchers = get_mlb_probable_pitchers()
             confirmed_lineups = get_live_confirmed_lineups()
-            live_statcast_pitching = get_live_statcast_pitching_profiles()
+            live_statcast_pitching = {}
             plays = []
 
         for game in games:
@@ -4288,7 +4288,7 @@ def model_mlb_nrfi_today():
             probable_pitchers = get_mlb_probable_pitchers()
             team_hitting_stats = get_mlb_team_hitting_stats()
             confirmed_lineups = get_live_confirmed_lineups()
-            live_statcast_pitching = get_live_statcast_pitching_profiles()
+            live_statcast_pitching = {}
 
         plays = []
 
