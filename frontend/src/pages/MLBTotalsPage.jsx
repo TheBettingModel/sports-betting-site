@@ -18,7 +18,10 @@ function MLBTotalsPage() {
           setError("Failed to load MLB Model");
         }
       })
-      .catch(() => setError("Failed to load MLB Model"));
+      .catch((err) => {
+  console.error("MLB totals fetch error:", err);
+  setError("Failed to load MLB totals model.");
+})
   }, [API_URL]);
 
   const sortedPlays = useMemo(() => {

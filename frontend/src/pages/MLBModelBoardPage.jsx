@@ -7,19 +7,43 @@ function MLBModelBoardPage() {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  useEffect(() => {
-    fetch(`${API_URL}/model/mlb/today`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.plays) {
-          setPlays(data.plays);
-          setTopPlay(data.top_play || null);
-        } else {
-          setError("Failed to load MLB Model");
-        }
-      })
-      .catch(() => setError("Failed to load MLB Model"));
-  }, [API_URL]);
+useEffect(() => {
+  const controller = new AbortController();
+
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, 30000);
+
+  fetch(`${API_URL}/model/mlb/today`, {
+    signal: controller.signal,
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log("MLB model data:", data);
+
+      if (Array.isArray(data.plays)) {
+        setPlays(data.plays);
+        setTopPlay(data.top_play || null);
+      } else {
+        setError(data.error || "Failed to load MLB model.");
+      }
+    })
+    .catch((err) => {
+      console.error("MLB model fetch error:", err);
+      setError("Failed to load MLB model.");
+    })
+    .finally(() => clearTimeout(timer));
+
+  return () => {
+    clearTimeout(timer);
+    controller.abort();
+  };
+}, [API_URL]);
 
   const sortedPlays = useMemo(() => {
     return [...plays].sort(
