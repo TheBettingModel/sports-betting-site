@@ -3878,6 +3878,11 @@ def get_mlb_event_odds(event_id, markets, odds_api_key):
 @app.get("/model/mlb/f5/today")
 def model_mlb_f5_today():
     cached = get_cache("mlb_f5_model")
+    if cached:
+        return {
+        "plays": cached,
+        "cached": True
+    }
 
     odds_api_key = os.getenv("ODDS_API_KEY")
 
@@ -4239,6 +4244,11 @@ def model_mlb_f5_today():
 
 def model_mlb_nrfi_today():
     cached = get_cache("mlb_nrfi_model")
+    if cached:
+        return {
+            "plays": cached,
+            "cached": True
+        }
 
     try:
         today = date.today().isoformat()
