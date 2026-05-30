@@ -710,6 +710,56 @@ def get_mlb_total_bullpen_adjustment(game):
 
     return round((fatigue_total * 0.15) + ((era_total - 8.00) * 0.10), 2)
 
+def get_umpire_engine_adjustment(game, market_key=None):
+    # Umpire Engine v1.
+    # Placeholder engine until live assigned umpire data is added.
+    # Defaults to neutral when umpire is unknown.
+
+    umpire_name = game.get("umpire") or game.get("home_plate_umpire") or "Unknown"
+
+    umpire_profiles = {
+        "Unknown": {
+            "runs_rating": 75,
+            "over_under_lean": "Neutral",
+            "zone_rating": 75,
+            "walk_boost": 0,
+            "strikeout_boost": 0,
+        }
+    }
+
+    profile = umpire_profiles.get(
+        umpire_name,
+        umpire_profiles["Unknown"]
+    )
+
+    runs_rating = profile.get("runs_rating", 75)
+    zone_rating = profile.get("zone_rating", 75)
+
+    umpire_adjustment = 0
+
+    if runs_rating >= 85:
+        umpire_adjustment += 1.2
+    elif runs_rating >= 80:
+        umpire_adjustment += 0.7
+    elif runs_rating <= 65:
+        umpire_adjustment -= 1.2
+    elif runs_rating <= 70:
+        umpire_adjustment -= 0.7
+
+    if zone_rating >= 85:
+        umpire_adjustment -= 0.6
+    elif zone_rating <= 65:
+        umpire_adjustment += 0.6
+
+    return {
+        "umpire": umpire_name,
+        "umpire_adjustment": round(umpire_adjustment, 2),
+        "umpire_runs_rating": runs_rating,
+        "umpire_zone_rating": zone_rating,
+        "umpire_lean": profile.get("over_under_lean", "Neutral"),
+        "umpire_walk_boost": profile.get("walk_boost", 0),
+        "umpire_strikeout_boost": profile.get("strikeout_boost", 0),
+    }
 
 def get_mlb_totals_engine_adjustment(game, team_hitting_stats=None):
     team_hitting_stats = team_hitting_stats or {}
@@ -1995,6 +2045,12 @@ def get_nrfi_yrfi_projection(
     if weather_adj <= -2:
         nrfi_probability += 2
 
+    if umpire_adjustment >= 1:
+        nrfi_probability -= 2
+    elif umpire_adjustment <= -1:
+        nrfi_probability += 2
+
+
     if combined_lineup_strength >= 85:
         nrfi_probability -= 3
     elif combined_lineup_strength >= 80:
@@ -2027,6 +2083,7 @@ def get_nrfi_yrfi_projection(
         f"Combined pitcher rating: {round(combined_pitcher_rating, 1)}. "
         f"Ballpark: {weather_data.get('park', 'Unknown')} - {weather_data.get('weather_risk', 'Neutral')}. "
         f"Weather/Park adjustment: {weather_adj}. "
+        f"Umpire adjustment: {umpire_adjustment}. "
         f"Combined lineup strength: {round(combined_lineup_strength, 1)}. "
         f"Combined hitting rating: {round(combined_hitting_rating, 1)}. "
         f"NRFI probability: {round(nrfi_probability, 2)}%. "
@@ -2055,6 +2112,12 @@ def get_nrfi_yrfi_projection(
         "ballpark": weather_data.get("park", "Unknown"),
         "weather_risk": weather_data.get("weather_risk", "Neutral"),
         "weather_adjustment": weather_adj,
+        "umpire": umpire_data.get("umpire"),
+        "umpire": umpire_data.get("umpire"),
+        "umpire_adjustment": umpire_adjustment,
+        "umpire_runs_rating": umpire_data.get("umpire_runs_rating"),
+        "umpire_zone_rating": umpire_data.get("umpire_zone_rating"),
+        "umpire_lean": umpire_data.get("umpire_lean"),
         "reason": reason,
         "model_version": "mlb_nrfi_yrfi_v1",
     }
@@ -3369,6 +3432,18 @@ def model_mlb_today():
 
                         weather_adj = weather_data.get("weather_adjustment", 0)
 
+                        umpire_data = get_umpire_engine_adjustment(
+                            game,
+                            market_key
+                        )
+
+                        umpire_adjustment = (
+                            umpire_data.get(
+                                "umpire_adjustment",
+                                0
+                            )
+                        )
+
                         totals_engine = get_mlb_totals_engine_adjustment(
                             game,
                             team_hitting_stats
@@ -3385,6 +3460,7 @@ def model_mlb_today():
                             pitcher_diff.get("pitcher_diff_adj", 0)
                             + market_adj
                             + weather_adj
+                            + umpire_adjustment
                             + hitting_adjustment
                             + statcast_power_adjustment
                             + statcast_pitching_adjustment
@@ -3543,6 +3619,7 @@ def model_mlb_today():
                             f"Bullpen availability: {bullpen_availability.get('bullpen_availability_score')} "
                             f"({bullpen_availability.get('high_leverage_risk')} leverage risk). "
                             f"Pitcher rating differential: {pitcher_diff.get('rating_diff')}. "
+                            f"Umpire adjustment ({umpire_adjustment}). "
                             f"Pitcher differential adjustment ({pitcher_diff.get('pitcher_diff_adj')}). "
                             f"Statcast pitching adjustment ({statcast_pitching_adjustment}). "
                             f"Market adjustment ({round(market_adj, 2)}). "
@@ -3592,6 +3669,11 @@ def model_mlb_today():
                             "model_validated_by_market": clv_tracker.get("model_validated_by_market"),
                             "clv_movement": clv_tracker.get("clv_movement"),
                             "model_version": "mlb_v3_pitcher_edge",
+                            "umpire": umpire_data.get("umpire"),
+                            "umpire_adjustment": umpire_adjustment,
+                            "umpire_runs_rating": umpire_data.get("umpire_runs_rating"),
+                            "umpire_zone_rating": umpire_data.get("umpire_zone_rating"),
+                            "umpire_lean": umpire_data.get("umpire_lean"),
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
@@ -3963,6 +4045,13 @@ def model_mlb_f5_today():
                             "weather_adjustment",
                             0
                         )
+
+                        umpire_data = get_umpire_engine_adjustment(
+                            game,
+                            "nrfi"
+                        )
+
+                        umpire_adjustment = umpire_data.get("umpire_adjustment", 0)
 
                         pitcher_adj = (
                             pitcher_diff.get(
