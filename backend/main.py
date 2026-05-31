@@ -617,33 +617,69 @@ def get_bullpen_availability_score(team, bullpen_data):
     high_leverage_risk = "Low"
 
     innings_last_3_estimate = round(fatigue * 0.75, 1)
+
     closer_back_to_back_risk = False
     setup_back_to_back_risk = False
+    multi_inning_relief_risk = False
+    three_in_four_risk = False
+
     closer_available = True
     setup_available = True
+    top_relievers_available = 3
 
-    if fatigue >= 12:
-        availability_score -= 18
+    if fatigue >= 14:
+        availability_score -= 24
+        unavailable_arms = 4
+        high_leverage_risk = "Extreme"
+        closer_back_to_back_risk = True
+        setup_back_to_back_risk = True
+        multi_inning_relief_risk = True
+        three_in_four_risk = True
+        closer_available = False
+        setup_available = False
+        top_relievers_available = 0
+
+    elif fatigue >= 12:
+        availability_score -= 20
         unavailable_arms = 3
         high_leverage_risk = "High"
         closer_back_to_back_risk = True
         setup_back_to_back_risk = True
+        multi_inning_relief_risk = True
         closer_available = False
         setup_available = False
+        top_relievers_available = 1
+
     elif fatigue >= 8:
-        availability_score -= 12
+        availability_score -= 13
         unavailable_arms = 2
         high_leverage_risk = "Moderate"
         closer_back_to_back_risk = True
+        setup_back_to_back_risk = True
         setup_available = False
+        top_relievers_available = 2
+
     elif fatigue >= 4:
         availability_score -= 6
         unavailable_arms = 1
         high_leverage_risk = "Slight"
         setup_back_to_back_risk = True
+        top_relievers_available = 2
 
-    if bullpen_era >= 5.00:
+    if innings_last_3_estimate >= 10:
         availability_score -= 8
+        multi_inning_relief_risk = True
+        three_in_four_risk = True
+    elif innings_last_3_estimate >= 8:
+        availability_score -= 5
+        multi_inning_relief_risk = True
+    elif innings_last_3_estimate >= 6:
+        availability_score -= 3
+
+    if bullpen_era >= 5.25:
+        availability_score -= 10
+    elif bullpen_era >= 4.75:
+        availability_score -= 7
     elif bullpen_era >= 4.25:
         availability_score -= 4
     elif bullpen_era <= 3.25 and bullpen_era > 0:
@@ -651,16 +687,18 @@ def get_bullpen_availability_score(team, bullpen_data):
 
     if status == "Very Tired":
         availability_score -= 8
+        three_in_four_risk = True
     elif status == "Tired":
         availability_score -= 4
 
-    if innings_last_3_estimate >= 9:
-        availability_score -= 6
-    elif innings_last_3_estimate >= 6:
+    if not closer_available:
         availability_score -= 3
 
-    availability_score = max(40, min(95, availability_score))
-    availability_adjustment = round((availability_score - 75) * 0.04, 2)
+    if not setup_available:
+        availability_score -= 2
+
+    availability_score = max(35, min(95, availability_score))
+    availability_adjustment = round((availability_score - 75) * 0.045, 2)
 
     return {
         "bullpen_availability_score": availability_score,
@@ -670,8 +708,11 @@ def get_bullpen_availability_score(team, bullpen_data):
         "innings_last_3_estimate": innings_last_3_estimate,
         "closer_back_to_back_risk": closer_back_to_back_risk,
         "setup_back_to_back_risk": setup_back_to_back_risk,
+        "multi_inning_relief_risk": multi_inning_relief_risk,
+        "three_in_four_risk": three_in_four_risk,
         "closer_available": closer_available,
         "setup_available": setup_available,
+        "top_relievers_available": top_relievers_available,
     }
 
 def get_mlb_bullpen_adjustment(game, team):
@@ -4071,6 +4112,9 @@ def model_mlb_today():
                             "setup_back_to_back_risk": bullpen_availability.get("setup_back_to_back_risk"),
                             "closer_available": bullpen_availability.get("closer_available"),
                             "setup_available": bullpen_availability.get("setup_available"),
+                            "top_relievers_available": bullpen_availability.get("top_relievers_available"),
+                            "multi_inning_relief_risk": bullpen_availability.get("multi_inning_relief_risk"),
+                            "three_in_four_risk": bullpen_availability.get("three_in_four_risk"),
                             "reason": reason
                         })
 
