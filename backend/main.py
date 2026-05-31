@@ -710,6 +710,87 @@ def get_mlb_total_bullpen_adjustment(game):
 
     return round((fatigue_total * 0.15) + ((era_total - 8.00) * 0.10), 2)
 
+def get_live_mlb_umpires():
+    # Live Umpire Feed v1.
+    # Uses MLB Stats API boxscore official data when available.
+    # If umpires are not posted yet, safely returns {}.
+
+    today = date.today().isoformat()
+
+    schedule_url = "https://statsapi.mlb.com/api/v1/schedule"
+
+    try:
+        schedule_response = requests.get(
+            schedule_url,
+            params={
+                "sportId": 1,
+                "date": today,
+            },
+            timeout=8
+        )
+
+        if schedule_response.status_code != 200:
+            return {}
+
+        schedule_data = schedule_response.json()
+        umpire_map = {}
+
+        for day in schedule_data.get("dates", []):
+            for schedule_game in day.get("games", []):
+                game_pk = schedule_game.get("gamePk")
+                teams = schedule_game.get("teams", {})
+
+                away_team = teams.get("away", {}).get("team", {}).get("name")
+                home_team = teams.get("home", {}).get("team", {}).get("name")
+
+                if not game_pk or not away_team or not home_team:
+                    continue
+
+                boxscore_url = (
+                    f"https://statsapi.mlb.com/api/v1/game/"
+                    f"{game_pk}/boxscore"
+                )
+
+                try:
+                    boxscore_response = requests.get(
+                        boxscore_url,
+                        timeout=5
+                    )
+
+                    if boxscore_response.status_code != 200:
+                        continue
+
+                    boxscore = boxscore_response.json()
+                    officials = boxscore.get("officials", [])
+
+                    home_plate_umpire = None
+
+                    for official in officials:
+                        official_type = str(
+                            official.get("officialType", "")
+                        ).lower()
+
+                        if "home" in official_type:
+                            umpire_obj = official.get("official", {})
+                            home_plate_umpire = umpire_obj.get("fullName")
+                            break
+
+                    if not home_plate_umpire:
+                        continue
+
+                    game_key = f"{away_team} vs {home_team}"
+
+                    umpire_map[game_key] = home_plate_umpire
+
+                except Exception:
+                    continue
+
+        return umpire_map
+
+    except Exception as e:
+        print("Live umpire feed error:", e)
+        return {}
+
 def get_umpire_engine_adjustment(game, market_key=None):
     # Umpire Engine v1.
     # Placeholder engine until live assigned umpire data is added.
@@ -3353,6 +3434,7 @@ def model_mlb_today():
         team_hitting_stats = get_mlb_team_hitting_stats()
         confirmed_lineups = get_live_confirmed_lineups()
         live_statcast_pitching = get_live_statcast_pitching_profiles()
+        live_umpires = get_live_mlb_umpires()
         auto_bullpen_data = get_auto_bullpen_data()
         plays = []
 
@@ -3360,6 +3442,12 @@ def model_mlb_today():
             if game_has_started(game):
                 continue
 
+            game_name = (
+                f"{game.get('away_team')} vs "
+                f"{game.get('home_team')}"
+            )
+
+            game["home_plate_umpire"] = live_umpires.get(game_name)
             game_name = f"{game.get('away_team')} vs {game.get('home_team')}"
 
             for bookmaker in game.get("bookmakers", []):
@@ -4426,10 +4514,17 @@ def model_mlb_nrfi_today():
             team_hitting_stats = get_mlb_team_hitting_stats()
             confirmed_lineups = get_live_confirmed_lineups()
             live_statcast_pitching = {}
+            live_umpires = get_live_mlb_umpires()
 
         plays = []
 
         for game in games:
+            game_name = (
+                f"{game.get('away_team')} vs "
+                f"{game.get('home_team')}"
+            )
+
+            game["home_plate_umpire"] = live_umpires.get(game_name)
             projection = get_nrfi_yrfi_projection(
                 game,
                 probable_pitchers,
