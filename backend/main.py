@@ -2407,6 +2407,66 @@ def set_cache(key, payload):
         db.close()
 
 
+@app.get("/cached/mlb")
+def cached_mlb_models():
+    full_game = get_cache("mlb_model")
+    f5 = get_cache("mlb_f5_model")
+    nrfi = get_cache("mlb_nrfi_model")
+
+    return {
+        "full_game": full_game or [],
+        "f5": f5 or [],
+        "nrfi": nrfi or [],
+        "cached": True,
+        "date": str(date.today()),
+    }
+
+@app.post("/refresh/mlb")
+def refresh_mlb_models():
+    results = {}
+
+    try:
+        full_game_response = model_mlb_today()
+        results["full_game"] = {
+            "success": True,
+            "count": len(full_game_response.get("plays", [])),
+        }
+    except Exception as e:
+        results["full_game"] = {
+            "success": False,
+            "error": str(e),
+        }
+
+    try:
+        f5_response = model_mlb_f5_today()
+        results["f5"] = {
+            "success": True,
+            "count": len(f5_response.get("plays", [])),
+        }
+    except Exception as e:
+        results["f5"] = {
+            "success": False,
+            "error": str(e),
+        }
+
+    try:
+        nrfi_response = model_mlb_nrfi_today()
+        results["nrfi"] = {
+            "success": True,
+            "count": len(nrfi_response.get("plays", [])),
+        }
+    except Exception as e:
+        results["nrfi"] = {
+            "success": False,
+            "error": str(e),
+        }
+
+    return {
+        "success": True,
+        "date": str(date.today()),
+        "results": results,
+    }
+
 @app.get("/")
 def root():
     return {"message": "Backend running"}
