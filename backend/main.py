@@ -2672,57 +2672,112 @@ def get_play_of_the_day():
 @app.get("/model/performance")
 def model_performance():
     db = SessionLocal()
-    try:
-        picks = db.query(Pick).all()
 
-        graded = [
-            p for p in picks
-            if p.result in ["Win", "Loss"] and p.model_probability not in [None, ""]
-        ]
+    def safe_float(value, default=0):
+        try:
+            if value in [None, ""]:
+                return default
+            return float(value)
+        except Exception:
+            return default
 
-        if not graded:
-            return {}
+    def analyze_signal(records, field, positive_values=None):
+        positive_values = positive_values or []
 
-        buckets = {
-            "50-55": [],
-            "55-60": [],
-            "60-65": [],
-            "65-70": [],
-            "70+": [],
-        }
+        buckets = {}
 
-        for p in graded:
-            try:
-                prob = float(p.model_probability)
-            except Exception:
-                continue
+        for record in records:
+            value = getattr(record, field, None)
 
-            if prob < 55:
-                buckets["50-55"].append(p)
-            elif prob < 60:
-                buckets["55-60"].append(p)
-            elif prob < 65:
-                buckets["60-65"].append(p)
-            elif prob < 70:
-                buckets["65-70"].append(p)
+            if value in [None, ""]:
+                value = "Unknown"
+
+            if positive_values:
+                bucket = (
+                    str(value)
+                    if str(value) in positive_values
+                    else "Other"
+                )
             else:
-                buckets["70+"].append(p)
+                bucket = str(value)
+
+            if bucket not in buckets:
+                buckets[bucket] = {
+                    "plays": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "units": 0,
+                }
+
+            buckets[bucket]["plays"] += 1
+
+            if record.result == "Win":
+                buckets[bucket]["wins"] += 1
+            elif record.result == "Loss":
+                buckets[bucket]["losses"] += 1
+
+            buckets[bucket]["units"] += safe_float(record.units_result)
 
         results = {}
 
-        for bucket, bucket_picks in buckets.items():
-            if not bucket_picks:
-                continue
+        for bucket, data in buckets.items():
+            graded = data["wins"] + data["losses"]
 
-            wins = len([p for p in bucket_picks if p.result == "Win"])
-            total = len(bucket_picks)
+            if graded == 0:
+                win_rate = 0
+            else:
+                win_rate = round((data["wins"] / graded) * 100, 2)
 
             results[bucket] = {
-                "plays": total,
-                "win_rate": round((wins / total) * 100, 2),
+                "plays": data["plays"],
+                "graded": graded,
+                "wins": data["wins"],
+                "losses": data["losses"],
+                "win_rate": win_rate,
+                "units": round(data["units"], 2),
             }
 
         return results
+
+    try:
+        records = db.query(ModelPlayHistory).filter(
+            ModelPlayHistory.result.in_(["Win", "Loss"])
+        ).all()
+
+        if not records:
+            return {
+                "message": "No graded model history yet.",
+                "signals": {},
+            }
+
+        total_wins = len([r for r in records if r.result == "Win"])
+        total_losses = len([r for r in records if r.result == "Loss"])
+        total_units = sum(safe_float(r.units_result) for r in records)
+
+        return {
+            "summary": {
+                "graded_plays": len(records),
+                "wins": total_wins,
+                "losses": total_losses,
+                "win_rate": round(
+                    (total_wins / len(records)) * 100,
+                    2
+                ),
+                "units": round(total_units, 2),
+            },
+            "signals": {
+                "recommendation": analyze_signal(records, "recommendation"),
+                "market": analyze_signal(records, "market"),
+                "sharp_signal": analyze_signal(records, "sharp_signal"),
+                "steam_strength": analyze_signal(records, "steam_strength"),
+                "clv_status": analyze_signal(records, "clv_status"),
+                "live_clv_grade": analyze_signal(records, "live_clv_grade"),
+                "market_disagreement": analyze_signal(records, "market_disagreement"),
+                "high_leverage_risk": analyze_signal(records, "high_leverage_risk"),
+                "stale_line_opportunity": analyze_signal(records, "stale_line_opportunity"),
+                "model_validated_by_market": analyze_signal(records, "model_validated_by_market"),
+            },
+        }
 
     finally:
         db.close()
@@ -4654,6 +4709,34 @@ def save_model_play_history(sport, plays):
                 line_disagreement=str(play.get("line_disagreement", "")),
                 line_shop_value=str(play.get("line_shop_value", "")),
                 clv_status=str(play.get("clv_status", "")),
+                clv_score=str(play.get("clv_score", "")),
+                live_clv_grade=str(play.get("live_clv_grade", "")),
+                model_validated_by_market=str(play.get("model_validated_by_market", "")),
+
+                pitcher_rating_diff=str(play.get("pitcher_rating_diff", "")),
+                pitcher_diff_adjustment=str(play.get("pitcher_diff_adjustment", "")),
+                statcast_pitching_rating=str(play.get("statcast_pitching_rating", "")),
+                statcast_pitching_adjustment=str(play.get("statcast_pitching_adjustment", "")),
+
+                statcast_power_rating=str(play.get("statcast_power_rating", "")),
+                statcast_power_adjustment=str(play.get("statcast_power_adjustment", "")),
+                hitting_rating=str(play.get("hitting_rating", "")),
+                hitting_adjustment=str(play.get("hitting_adjustment", "")),
+
+                bullpen_availability_score=str(play.get("bullpen_availability_score", "")),
+                bullpen_availability_adjustment=str(play.get("bullpen_availability_adjustment", "")),
+                high_leverage_risk=str(play.get("high_leverage_risk", "")),
+
+                lineup_strength=str(play.get("lineup_strength", "")),
+                lineup_adjustment=str(play.get("lineup_adjustment", "")),
+
+                weather_adjustment=str(play.get("weather_adjustment", "")),
+                umpire_adjustment=str(play.get("umpire_adjustment", "")),
+
+                consensus_price=str(play.get("consensus_price", "")),
+                market_spread=str(play.get("market_spread", "")),
+                market_disagreement=str(play.get("market_disagreement", "")),
+                stale_line_opportunity=str(play.get("stale_line_opportunity", "")),
                 result="Pending",
                 units_result="",
                 closing_odds="",

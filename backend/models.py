@@ -82,6 +82,35 @@ class ModelPlayHistory(Base):
     line_shop_value = Column(String)
     clv_status = Column(String)
 
+    clv_score = Column(String, default="")
+    live_clv_grade = Column(String, default="")
+    model_validated_by_market = Column(String, default="")
+
+    pitcher_rating_diff = Column(String, default="")
+    pitcher_diff_adjustment = Column(String, default="")
+    statcast_pitching_rating = Column(String, default="")
+    statcast_pitching_adjustment = Column(String, default="")
+
+    statcast_power_rating = Column(String, default="")
+    statcast_power_adjustment = Column(String, default="")
+    hitting_rating = Column(String, default="")
+    hitting_adjustment = Column(String, default="")
+
+    bullpen_availability_score = Column(String, default="")
+    bullpen_availability_adjustment = Column(String, default="")
+    high_leverage_risk = Column(String, default="")
+
+    lineup_strength = Column(String, default="")
+    lineup_adjustment = Column(String, default="")
+
+    weather_adjustment = Column(String, default="")
+    umpire_adjustment = Column(String, default="")
+
+    consensus_price = Column(String, default="")
+    market_spread = Column(String, default="")
+    market_disagreement = Column(String, default="")
+    stale_line_opportunity = Column(String, default="")
+
     result = Column(String, default="Pending")
     units_result = Column(String, default="")
     closing_odds = Column(String, default="")
