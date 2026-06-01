@@ -2421,10 +2421,25 @@ def get_auto_bullpen_data():
 def get_cache(key):
     db = SessionLocal()
     try:
-        entry = db.query(CacheEntry).filter(CacheEntry.cache_key == key).first()
+        entry = db.query(CacheEntry).filter(
+            CacheEntry.cache_key == key
+        ).first()
+
         if not entry or not entry.payload:
             return None
-        return json.loads(entry.payload)
+
+        cached = json.loads(entry.payload)
+
+        # New cache format
+        if isinstance(cached, dict) and "date" in cached and "payload" in cached:
+            if cached.get("date") != str(date.today()):
+                return None
+
+            return cached.get("payload")
+
+        # Old cache format should be treated as stale
+        return None
+
     except Exception:
         return None
     finally:
@@ -2434,13 +2449,24 @@ def get_cache(key):
 def set_cache(key, payload):
     db = SessionLocal()
     try:
-        payload_json = json.dumps(payload)
-        entry = db.query(CacheEntry).filter(CacheEntry.cache_key == key).first()
+        payload_with_meta = {
+            "date": str(date.today()),
+            "payload": payload,
+        }
+
+        payload_json = json.dumps(payload_with_meta)
+
+        entry = db.query(CacheEntry).filter(
+            CacheEntry.cache_key == key
+        ).first()
 
         if entry:
             entry.payload = payload_json
         else:
-            entry = CacheEntry(cache_key=key, payload=payload_json)
+            entry = CacheEntry(
+                cache_key=key,
+                payload=payload_json
+            )
             db.add(entry)
 
         db.commit()
@@ -2459,7 +2485,7 @@ def cached_mlb_models():
         "f5": f5 or [],
         "nrfi": nrfi or [],
         "cached": True,
-        "date": str(date.today()),
+        "cache_date": str(date.today()),
     }
 
 @app.post("/refresh/mlb")
