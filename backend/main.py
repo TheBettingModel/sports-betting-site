@@ -883,6 +883,25 @@ def get_umpire_engine_adjustment(game, market_key=None):
         "umpire_strikeout_boost": profile.get("strikeout_boost", 0),
     }
 
+def game_is_today(game):
+    commence_time = game.get("commence_time")
+
+    if not commence_time:
+        return True
+
+    try:
+        start_time = datetime.fromisoformat(
+            commence_time.replace("Z", "+00:00")
+        )
+
+        eastern_now = datetime.now(timezone.utc).astimezone()
+        game_local_date = start_time.astimezone().date()
+
+        return game_local_date == eastern_now.date()
+
+    except Exception:
+        return True
+
 def game_has_started(game):
     commence_time = game.get("commence_time")
 
@@ -3623,6 +3642,9 @@ def model_mlb_today():
         for game in games:
             if game_has_started(game):
                 continue
+            
+            if game_has_started(game):
+                continue
 
             game_name = (
                 f"{game.get('away_team')} vs "
@@ -3668,7 +3690,7 @@ def model_mlb_today():
                                 "whip": 0.00,
                                 "rating": 75
                             }
-)
+                        )
 
                         starter_data = probable_pitchers.get(
                              team_name,
@@ -4345,6 +4367,9 @@ def model_mlb_f5_today():
         for game in games:
             if game_has_started(game):
                 continue
+
+            if game_has_started(game):
+             continue
 
             game_name = (
                 f"{game.get('away_team')} vs "
