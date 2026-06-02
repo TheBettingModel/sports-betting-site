@@ -4395,8 +4395,8 @@ def model_mlb_f5_today():
                 if not game_is_today(game):
                     continue
 
-                if game_has_started(game):
-                    continue
+            if game_has_started(game):
+                continue
 
             game_name = (
                 f"{game.get('away_team')} vs "
