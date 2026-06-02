@@ -883,6 +883,23 @@ def get_umpire_engine_adjustment(game, market_key=None):
         "umpire_strikeout_boost": profile.get("strikeout_boost", 0),
     }
 
+def get_today_utc_window():
+    now_utc = datetime.now(timezone.utc)
+    today = now_utc.date()
+
+    start = datetime.combine(
+        today,
+        datetime.min.time(),
+        tzinfo=timezone.utc
+    )
+
+    end = start + timedelta(days=1)
+
+    return (
+        start.isoformat().replace("+00:00", "Z"),
+        end.isoformat().replace("+00:00", "Z")
+    )
+
 def game_is_today(game):
     commence_time = game.get("commence_time")
 
@@ -3614,11 +3631,15 @@ def model_mlb_today():
 
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 
+    commence_from, commence_to = get_today_utc_window()
+
     params = {
         "apiKey": odds_api_key,
         "regions": "us",
         "markets": "h2h,spreads,totals",
-        "oddsFormat": "american"
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
     }
 
     try:
@@ -4234,8 +4255,12 @@ def model_mlb_today():
 def get_mlb_events(odds_api_key):
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/events"
 
+    commence_from, commence_to = get_today_utc_window()
+
     params = {
         "apiKey": odds_api_key,
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
     }
 
     try:
@@ -4364,12 +4389,12 @@ def model_mlb_f5_today():
             live_statcast_pitching = {}
             plays = []
 
-        for game in games:
-            if game_has_started(game):
-                continue
+            for game in games:
+                if not game_is_today(game):
+                    continue
 
-            if game_has_started(game):
-             continue
+                if game_has_started(game):
+                    continue
 
             game_name = (
                 f"{game.get('away_team')} vs "
