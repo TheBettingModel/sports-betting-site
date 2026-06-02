@@ -4255,12 +4255,8 @@ def model_mlb_today():
 def get_mlb_events(odds_api_key):
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/events"
 
-    commence_from, commence_to = get_today_utc_window()
-
     params = {
         "apiKey": odds_api_key,
-        "commenceTimeFrom": commence_from,
-        "commenceTimeTo": commence_to,
     }
 
     try:
