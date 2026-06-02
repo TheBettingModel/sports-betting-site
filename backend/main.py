@@ -4386,14 +4386,14 @@ def model_mlb_f5_today():
             if event_odds:
                 games.append(event_odds)
 
-            probable_pitchers = get_mlb_probable_pitchers()
-            confirmed_lineups = get_live_confirmed_lineups()
-            live_statcast_pitching = {}
-            plays = []
+        probable_pitchers = get_mlb_probable_pitchers()
+        confirmed_lineups = get_live_confirmed_lineups()
+        live_statcast_pitching = {}
+        plays = []
 
-            for game in games:
-                if not game_is_today(game):
-                    continue
+        for game in games:
+            if not game_is_today(game):
+                continue
 
             if game_has_started(game):
                 continue
