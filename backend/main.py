@@ -4187,43 +4187,49 @@ def model_mlb_today():
                             "reason": reason
                         })
 
-        best_by_game = {}
+        best_by_game_market = {}
 
         for play in plays:
             game = play.get("game")
+            market = play.get("market")
 
-            if game not in best_by_game:
-                best_by_game[game] = play
+            key = f"{game}|{market}"
+
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
             else:
-                current_best = best_by_game[game]
+                current_best = best_by_game_market[key]
 
                 if play.get("edge", 0) > current_best.get("edge", 0):
-                    best_by_game[game] = play
+                    best_by_game_market[key] = play
 
-            final = list(best_by_game.values())
 
-            for play in final:
-                price_data = get_best_sportsbook_price(play, plays)
+        final = list(best_by_game_market.values())
 
-                play["best_sportsbook"] = price_data["best_sportsbook"]
-                play["best_odds"] = price_data["best_odds"]
-                play["worst_odds"] = price_data["worst_odds"]
-                play["book_count"] = price_data["book_count"]
-                play["line_shop_value"] = price_data["line_shop_value"]
-                play["line_disagreement"] = price_data["line_disagreement"]
-                play["sharpest_sportsbook"] = price_data["sharpest_sportsbook"]
-                play["stale_line"] = price_data["stale_line"]
-                play["sportsbook_note"] = price_data["sportsbook_note"]
 
-                play["top_play_score"] = get_top_play_score(play)
+        for play in final:
+            price_data = get_best_sportsbook_price(play, plays)
 
-            final = sorted(
-                final,
-                key=lambda x: x.get("top_play_score", 0),
-                reverse=True
-            )
+            play["best_sportsbook"] = price_data["best_sportsbook"]
+            play["best_odds"] = price_data["best_odds"]
+            play["worst_odds"] = price_data["worst_odds"]
+            play["book_count"] = price_data["book_count"]
+            play["line_shop_value"] = price_data["line_shop_value"]
+            play["line_disagreement"] = price_data["line_disagreement"]
+            play["sharpest_sportsbook"] = price_data["sharpest_sportsbook"]
+            play["stale_line"] = price_data["stale_line"]
+            play["sportsbook_note"] = price_data["sportsbook_note"]
 
-            top_play = final[0] if final else None
+            play["top_play_score"] = get_top_play_score(play)
+
+
+        final = sorted(
+            final,
+            key=lambda x: x.get("top_play_score", 0),
+            reverse=True
+        )
+
+        top_play = final[0] if final else None
 
         final = sorted(
             final,
