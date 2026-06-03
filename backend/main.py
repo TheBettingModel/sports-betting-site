@@ -3189,6 +3189,9 @@ def model_nba_today():
                         plays.append({
                             "game": game_name,
                             "sportsbook": sportsbook,
+                            "sharp_book_score": sharp_book_data.get("sharp_book_score"),
+                            "sharp_book_signal": sharp_book_data.get("sharp_book_signal"),
+                            "book_weight_adjustment": book_weight_adjustment,
                             "market": market_name,
                             "pick": pick_name,
                             "odds": odds,
@@ -3237,6 +3240,47 @@ def model_nba_today():
             return {"plays": cached, "cached": True, "error": str(e)}
         return {"plays": [], "error": str(e)}
     
+def get_sharp_sportsbook_weight(bookmaker):
+    sharp_books = {
+        "Pinnacle": 100,
+        "Circa Sports": 95,
+        "Bookmaker": 92,
+        "BetOnline": 88,
+
+        "DraftKings": 78,
+        "FanDuel": 76,
+        "Caesars": 74,
+        "BetMGM": 72,
+
+        "ESPN BET": 65,
+        "Hard Rock Bet": 65,
+    }
+
+    score = sharp_books.get(bookmaker, 60)
+
+    if score >= 90:
+        signal = "Market Maker"
+        adjustment = 0.6
+
+    elif score >= 75:
+        signal = "Sharp Influenced"
+        adjustment = 0.3
+
+    elif score >= 65:
+        signal = "Neutral Book"
+        adjustment = 0
+
+    else:
+        signal = "Recreational Lean"
+        adjustment = -0.2
+
+
+    return {
+        "sharp_book_score": score,
+        "sharp_book_signal": signal,
+        "book_weight_adjustment": adjustment,
+    }
+
 def get_sharp_market_signal(edge, odds, recommendation):
     try:
         edge_value = float(edge)
@@ -3718,6 +3762,12 @@ def model_mlb_today():
 
             for bookmaker in game.get("bookmakers", []):
                 sportsbook = bookmaker.get("title")
+
+                sharp_book_data = get_sharp_sportsbook_weight(sportsbook)
+                book_weight_adjustment = sharp_book_data.get(
+                    "book_weight_adjustment",
+                    0
+                )
                 
                 for market in bookmaker.get("markets", []):
                     market_key = market.get("key")
@@ -3939,6 +3989,7 @@ def model_mlb_today():
                             + lineup_adjustment
                             + bullpen_availability_adjustment
                             + consensus_adjustment
+                            + book_weight_adjustment
                         )
 
                         if market_key in ["totals", "alternate_totals"]:
@@ -4457,6 +4508,12 @@ def model_mlb_f5_today():
             for bookmaker in game.get("bookmakers", []):
                 sportsbook = bookmaker.get("title")
 
+                sharp_book_data = get_sharp_sportsbook_weight(sportsbook)
+                book_weight_adjustment = sharp_book_data.get(
+                    "book_weight_adjustment",
+                    0
+                )
+
                 for market in bookmaker.get("markets", []):
                     market_key = market.get("key")
 
@@ -4584,6 +4641,7 @@ def model_mlb_f5_today():
                                 + (weather_adj * 0.5)
                                 + lineup_adjustment
                                 + bullpen_availability_adjustment
+                                + book_weight_adjustment
                             )
                         model_prob = implied + edge_boost
                         model_prob = max(1, min(99, model_prob))
@@ -4639,6 +4697,9 @@ def model_mlb_f5_today():
                         plays.append({
                             "game": game_name,
                             "sportsbook": sportsbook,
+                            "sharp_book_score": sharp_book_data.get("sharp_book_score"),
+                            "sharp_book_signal": sharp_book_data.get("sharp_book_signal"),
+                            "book_weight_adjustment": book_weight_adjustment,
                             "market": market_name,
                             "pick": pick_name,
                             "odds": odds,
