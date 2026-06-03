@@ -1829,11 +1829,26 @@ def get_confirmed_lineup_strength(team_name, confirmed_lineups=None):
 
     adjustment = round((rating - 75) * 0.04, 2)
 
+    lineup_confidence = 55
+
+    lineup_depth_score = 9
+
+    star_power_score = rating
+
     return {
         "lineup_status": status,
         "lineup_strength": rating,
         "lineup_adjustment": adjustment,
         "lineup_confirmed": False,
+
+        # Live Lineup Strength V2 fallback
+        "lineup_version": "lineup_v2_projected",
+        "lineup_confidence": lineup_confidence,
+        "lineup_depth_score": lineup_depth_score,
+        "star_power_score": star_power_score,
+        "missing_stars": 0,
+        "top_order_strength": rating,
+        "backup_catcher": False,
     }
 
 def get_mlb_team_hitting_stats():
