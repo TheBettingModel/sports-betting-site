@@ -1747,14 +1747,40 @@ def get_confirmed_lineup_strength(team_name, confirmed_lineups=None):
 
         adjustment = round((rating - 75) * 0.04, 2)
 
+        lineup_depth_score = len(
+            confirmed_data.get("batting_order", [])
+        )
+
+        if lineup_depth_score >= 9:
+            depth_adjustment = 2
+        elif lineup_depth_score >= 6:
+            depth_adjustment = 1
+        else:
+            depth_adjustment = -2
+
+        star_power_score = top_order_strength + depth_adjustment
+
+        lineup_confidence = 90 if confirmed_data.get(
+            "lineup_confirmed"
+        ) else 65
+
         return {
             "lineup_status": status,
             "lineup_strength": rating,
             "lineup_adjustment": adjustment,
-            "lineup_confirmed": False,
-            "missing_stars": 0,
-            "top_order_strength": rating,
-            "backup_catcher": False,
+            "lineup_confirmed": confirmed_data.get(
+                "lineup_confirmed",
+                False
+            ),
+
+            # Live Lineup Strength V2
+            "lineup_version": "lineup_v2",
+            "lineup_confidence": lineup_confidence,
+            "lineup_depth_score": lineup_depth_score,
+            "star_power_score": star_power_score,
+            "missing_stars": missing_stars,
+            "top_order_strength": top_order_strength,
+            "backup_catcher": backup_catcher,
         }
 
     lineup_strength = {
@@ -4137,6 +4163,13 @@ def model_mlb_today():
                             "lineup_strength": lineup_data.get("lineup_strength"),
                             "lineup_adjustment": lineup_adjustment,
                             "lineup_confirmed": lineup_data.get("lineup_confirmed"),
+                            "lineup_version": lineup_data.get("lineup_version"),
+                            "lineup_confidence": lineup_data.get("lineup_confidence"),
+                            "lineup_depth_score": lineup_data.get("lineup_depth_score"),
+                            "star_power_score": lineup_data.get("star_power_score"),
+                            "missing_stars": lineup_data.get("missing_stars"),
+                            "top_order_strength": lineup_data.get("top_order_strength"),
+                            "backup_catcher": lineup_data.get("backup_catcher"),
                             "away_starter": away_starter_data.get("pitcher"),
                             "away_pitcher_era": away_starter_data.get("era"),
                             "away_pitcher_whip": away_starter_data.get("whip"),
@@ -4398,6 +4431,9 @@ def model_mlb_f5_today():
             if game_has_started(game):
                 continue
 
+            if game_has_started(game):
+                continue
+
             game_name = (
                 f"{game.get('away_team')} vs "
                 f"{game.get('home_team')}"
@@ -4606,6 +4642,13 @@ def model_mlb_f5_today():
                             "lineup_strength": lineup_data.get("lineup_strength"),
                             "lineup_adjustment": lineup_adjustment,
                             "lineup_confirmed": lineup_data.get("lineup_confirmed"),
+                            "lineup_version": lineup_data.get("lineup_version"),
+                            "lineup_confidence": lineup_data.get("lineup_confidence"),
+                            "lineup_depth_score": lineup_data.get("lineup_depth_score"),
+                            "star_power_score": lineup_data.get("star_power_score"),
+                            "missing_stars": lineup_data.get("missing_stars"),
+                            "top_order_strength": lineup_data.get("top_order_strength"),
+                            "backup_catcher": lineup_data.get("backup_catcher"),
                             "bullpen_availability_score": bullpen_availability.get("bullpen_availability_score"),
                             "bullpen_availability_adjustment": bullpen_availability_adjustment,
                             "unavailable_arms_estimate": bullpen_availability.get("unavailable_arms_estimate"),
