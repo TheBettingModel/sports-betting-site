@@ -3189,9 +3189,6 @@ def model_nba_today():
                         plays.append({
                             "game": game_name,
                             "sportsbook": sportsbook,
-                            "sharp_book_score": sharp_book_data.get("sharp_book_score"),
-                            "sharp_book_signal": sharp_book_data.get("sharp_book_signal"),
-                            "book_weight_adjustment": book_weight_adjustment,
                             "market": market_name,
                             "pick": pick_name,
                             "odds": odds,
