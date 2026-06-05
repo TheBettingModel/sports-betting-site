@@ -2078,6 +2078,68 @@ def get_mlb_probable_pitchers():
     except Exception:
         return {}
     
+def get_batter_vs_pitcher_matchup(
+    team_name,
+    opponent_pitcher,
+    team_hitting_stats=None
+):
+    """
+    Batter vs Pitcher Engine V1
+
+    Measures offense matchup quality against today's starter.
+    """
+
+    team_hitting_stats = team_hitting_stats or {}
+
+    hitting = team_hitting_stats.get(
+        team_name,
+        {}
+    )
+
+    hitting_rating = hitting.get(
+        "hitting_rating",
+        75
+    )
+
+    pitcher_rating = opponent_pitcher.get(
+        "rating",
+        75
+    )
+
+    matchup_score = (
+        hitting_rating
+        - pitcher_rating
+        + 75
+    )
+
+    matchup_score = max(
+        50,
+        min(100, matchup_score)
+    )
+
+    if matchup_score >= 85:
+        signal = "Elite Hitter Advantage"
+        adjustment = 1.0
+
+    elif matchup_score >= 78:
+        signal = "Hitter Edge"
+        adjustment = 0.5
+
+    elif matchup_score <= 65:
+        signal = "Pitcher Advantage"
+        adjustment = -0.7
+
+    else:
+        signal = "Neutral Matchup"
+        adjustment = 0
+
+
+    return {
+        "bvp_rating": round(matchup_score, 2),
+        "bvp_adjustment": adjustment,
+        "bvp_signal": signal,
+    }
+
 def get_pitcher_rating_differential(game, team_name, probable_pitchers):
     away_team = game.get("away_team")
     home_team = game.get("home_team")
@@ -3921,6 +3983,28 @@ def model_mlb_today():
                             2
                         )
 
+                        opponent_team = (
+                            home_team if team_name == away_team else away_team
+                        )
+
+                        opponent_pitcher = probable_pitchers.get(
+                            opponent_team,
+                            {
+                                "pitcher": "TBD",
+                                "era": 0.00,
+                                "whip": 0.00,
+                                "rating": 75,
+                            }
+                        )
+
+                        bvp_data = get_batter_vs_pitcher_matchup(
+                            team_name,
+                            opponent_pitcher,
+                            team_hitting_stats
+                        )
+
+                        bvp_adjustment = bvp_data.get("bvp_adjustment", 0)
+
                         statcast_data = get_team_statcast_power_rating(
                             team_name
                         )
@@ -4029,6 +4113,7 @@ def model_mlb_today():
                             + weather_adj
                             + umpire_adjustment
                             + hitting_adjustment
+                            + bvp_adjustment
                             + statcast_power_adjustment
                             + statcast_pitching_adjustment
                             + lineup_adjustment
@@ -4264,6 +4349,9 @@ def model_mlb_today():
                             "hitting_ops": hitting_data.get("ops"),
                             "runs_per_game": hitting_data.get("runs_per_game"),
                             "hitting_rating": hitting_rating,
+                            "bvp_rating": bvp_data.get("bvp_rating"),
+                            "bvp_adjustment": bvp_adjustment,
+                            "bvp_signal": bvp_data.get("bvp_signal"),
                             "pitcher_hand": pitcher_hand,
                             "split_rating": split_rating,
                             "hitting_adjustment": hitting_adjustment,
@@ -4682,8 +4770,33 @@ def model_mlb_f5_today():
 
                         price_adj = get_price_adjustment(odds)
 
+                        opponent_team = (
+                            game.get("home_team")
+                            if team_name == game.get("away_team")
+                            else game.get("away_team")
+                        )
+
+                        opponent_pitcher = probable_pitchers.get(
+                            opponent_team,
+                            {
+                                "pitcher": "TBD",
+                                "era": 0.00,
+                                "whip": 0.00,
+                                "rating": 75,
+                            }
+                        )
+
+                        bvp_data = get_batter_vs_pitcher_matchup(
+                            team_name,
+                            opponent_pitcher,
+                            get_mlb_team_hitting_stats()
+                        )
+
+                        bvp_adjustment = bvp_data.get("bvp_adjustment", 0)
+
                         edge_boost = (
                                 pitcher_adj
+                                + bvp_adjustment
                                 + statcast_pitching_adjustment
                                 + price_adj
                                 + (weather_adj * 0.5)
@@ -4762,6 +4875,9 @@ def model_mlb_f5_today():
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
                             "pitcher_rating": pitcher_rating,
+                            "bvp_rating": bvp_data.get("bvp_rating"),
+                            "bvp_adjustment": bvp_adjustment,
+                            "bvp_signal": bvp_data.get("bvp_signal"),
                             "lineup_status": lineup_data.get("lineup_status"),
                             "lineup_strength": lineup_data.get("lineup_strength"),
                             "lineup_adjustment": lineup_adjustment,
