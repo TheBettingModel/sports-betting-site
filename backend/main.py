@@ -18,6 +18,54 @@ load_dotenv()
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
+def ensure_model_history_columns():
+    columns = {
+        "clv_score": "VARCHAR",
+        "live_clv_grade": "VARCHAR",
+        "model_validated_by_market": "VARCHAR",
+        "pitcher_rating_diff": "VARCHAR",
+        "pitcher_diff_adjustment": "VARCHAR",
+        "statcast_pitching_rating": "VARCHAR",
+        "statcast_pitching_adjustment": "VARCHAR",
+        "statcast_power_rating": "VARCHAR",
+        "statcast_power_adjustment": "VARCHAR",
+        "hitting_rating": "VARCHAR",
+        "hitting_adjustment": "VARCHAR",
+        "bullpen_availability_score": "VARCHAR",
+        "bullpen_availability_adjustment": "VARCHAR",
+        "high_leverage_risk": "VARCHAR",
+        "lineup_strength": "VARCHAR",
+        "lineup_adjustment": "VARCHAR",
+        "weather_adjustment": "VARCHAR",
+        "umpire_adjustment": "VARCHAR",
+        "consensus_price": "VARCHAR",
+        "market_spread": "VARCHAR",
+        "market_disagreement": "VARCHAR",
+        "stale_line_opportunity": "VARCHAR",
+    }
+
+    try:
+        with engine.connect() as conn:
+            existing = conn.exec_driver_sql(
+                "PRAGMA table_info(model_play_history)"
+            ).fetchall()
+
+            existing_columns = [column[1] for column in existing]
+
+            for column_name, column_type in columns.items():
+                if column_name not in existing_columns:
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE model_play_history "
+                        f"ADD COLUMN {column_name} {column_type}"
+                    )
+
+            conn.commit()
+
+    except Exception as e:
+        print("Model history migration error:", e)
+
+
+ensure_model_history_columns()
 
 def add_missing_clv_columns():
     db = SessionLocal()
