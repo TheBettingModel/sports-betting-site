@@ -87,12 +87,13 @@ function MLBNRFIPage() {
         {play.recommendation}
       </h3>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
         <span style={badgeStyle}>Confidence: {play.confidence}</span>
         <span style={badgeStyle}>NRFI: {play.nrfi_probability}%</span>
         <span style={badgeStyle}>YRFI: {play.yrfi_probability}%</span>
         <span style={badgeStyle}>Pitcher Rating: {play.combined_pitcher_rating}</span>
         <span style={badgeStyle}>Lineup Strength: {play.combined_lineup_strength}</span>
+
         <span
           style={{
             ...badgeStyle,
@@ -102,6 +103,36 @@ function MLBNRFIPage() {
         >
           {play.recommendation}
         </span>
+      </div>
+
+      <div style={signalGridStyle}>
+        <div>
+          <h4>⚾ Starting Pitchers</h4>
+          <p>Away: {play.away_starter || "N/A"}</p>
+          <p>Home: {play.home_starter || "N/A"}</p>
+          <p>Combined: {play.combined_pitcher_rating}</p>
+        </div>
+
+        <div>
+          <h4>🔥 First Inning Offense</h4>
+          <p>Lineups: {play.combined_lineup_strength}</p>
+          <p>Top Order: {play.top_order_strength || "N/A"}</p>
+          <p>Hitting: {play.combined_hitting_rating || "N/A"}</p>
+        </div>
+
+        <div>
+          <h4>🌦️ Environment</h4>
+          <p>Weather: {play.weather_risk || "N/A"}</p>
+          <p>Park: {play.ballpark || "N/A"}</p>
+          <p>Umpire: {play.umpire_signal || "N/A"}</p>
+        </div>
+
+        <div>
+          <h4>📊 Model Read</h4>
+          <p>NRFI: {play.nrfi_probability}%</p>
+          <p>YRFI: {play.yrfi_probability}%</p>
+          <p>Lean: {play.recommendation}</p>
+        </div>
       </div>
 
       <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
@@ -176,6 +207,17 @@ const badgeStyle = {
   borderRadius: "999px",
   fontSize: "14px",
   fontWeight: "bold",
+};
+
+
+const signalGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "16px",
+  backgroundColor: "#020617",
+  padding: "18px",
+  borderRadius: "12px",
+  marginBottom: "18px",
 };
 
 export default MLBNRFIPage;
