@@ -3004,32 +3004,66 @@ def model_performance():
                 "signals": {},
             }
 
-        total_wins = len([r for r in records if r.result == "Win"])
-        total_losses = len([r for r in records if r.result == "Loss"])
-        total_units = sum(safe_float(r.units_result) for r in records)
+        actionable_records = [
+            r for r in records
+            if str(r.recommendation) in ["Play", "Lean"]
+        ]
+
+        pass_records = [
+            r for r in records
+            if str(r.recommendation) == "Pass"
+        ]
+
+        def summarize(records_to_summarize):
+            wins = len([
+                r for r in records_to_summarize
+                if r.result == "Win"
+            ])
+
+            losses = len([
+                r for r in records_to_summarize
+                if r.result == "Loss"
+            ])
+
+            graded = wins + losses
+
+            units = sum(
+                safe_float(r.units_result)
+                for r in records_to_summarize
+            )
+
+            win_rate = (
+                round((wins / graded) * 100, 2)
+                if graded > 0
+                else 0
+            )
+
+            return {
+                "graded_plays": graded,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": win_rate,
+                "units": round(units, 2),
+            }
 
         return {
-            "summary": {
-                "graded_plays": len(records),
-                "wins": total_wins,
-                "losses": total_losses,
-                "win_rate": round(
-                    (total_wins / len(records)) * 100,
-                    2
-                ),
-                "units": round(total_units, 2),
-            },
+            "summary": summarize(actionable_records),
+
+            "pass_tracking": summarize(pass_records),
+
+            "all_graded": summarize(records),
+
             "signals": {
                 "recommendation": analyze_signal(records, "recommendation"),
-                "market": analyze_signal(records, "market"),
-                "sharp_signal": analyze_signal(records, "sharp_signal"),
-                "steam_strength": analyze_signal(records, "steam_strength"),
-                "clv_status": analyze_signal(records, "clv_status"),
-                "live_clv_grade": analyze_signal(records, "live_clv_grade"),
-                "market_disagreement": analyze_signal(records, "market_disagreement"),
-                "high_leverage_risk": analyze_signal(records, "high_leverage_risk"),
-                "stale_line_opportunity": analyze_signal(records, "stale_line_opportunity"),
-                "model_validated_by_market": analyze_signal(records, "model_validated_by_market"),
+                "market": analyze_signal(actionable_records, "market"),
+                "sharp_signal": analyze_signal(actionable_records, "sharp_signal"),
+                "steam_strength": analyze_signal(actionable_records, "steam_strength"),
+                "clv_status": analyze_signal(actionable_records, "clv_status"),
+                "live_clv_grade": analyze_signal(actionable_records, "live_clv_grade"),
+                "market_disagreement": analyze_signal(actionable_records, "market_disagreement"),
+                "high_leverage_risk": analyze_signal(actionable_records, "high_leverage_risk"),
+                "stale_line_opportunity": analyze_signal(actionable_records, "stale_line_opportunity"),
+                "model_validated_by_market": analyze_signal(actionable_records, "model_validated_by_market"),
             },
         }
 
