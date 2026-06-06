@@ -85,12 +85,15 @@ function MLBF5ModelPage() {
         {play.pick}
       </h3>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
         <span style={badgeStyle}>Market: {play.market}</span>
         <span style={badgeStyle}>Odds: {play.odds}</span>
         <span style={badgeStyle}>Edge: {play.edge}%</span>
         <span style={badgeStyle}>Confidence: {play.confidence}</span>
         <span style={badgeStyle}>Units: {play.units}</span>
+        <span style={badgeStyle}>Best Book: {play.best_sportsbook || "N/A"}</span>
+        <span style={badgeStyle}>Best Odds: {play.best_odds || "N/A"}</span>
+
         <span
           style={{
             ...badgeStyle,
@@ -100,6 +103,37 @@ function MLBF5ModelPage() {
         >
           {play.recommendation}
         </span>
+      </div>
+
+      <div style={signalGridStyle}>
+
+        <div>
+          <h4>📈 Market</h4>
+          <p>Sharp Book: {play.sharp_book_signal || "N/A"}</p>
+          <p>Book Weight: {play.book_weight_adjustment ?? "N/A"}</p>
+        </div>
+
+        <div>
+          <h4>⚾ Starting Pitching</h4>
+          <p>Starter: {play.starting_pitcher}</p>
+          <p>Rating: {play.pitcher_rating}</p>
+          <p>Diff: {play.pitcher_rating_diff}</p>
+        </div>
+
+        <div>
+          <h4>🔥 F5 Offense</h4>
+          <p>BVP: {play.bvp_signal}</p>
+          <p>Lineup: {play.lineup_status}</p>
+          <p>Star Power: {play.star_power_score}</p>
+        </div>
+
+        <div>
+          <h4>⚠️ Risk</h4>
+          <p>Bullpen: {play.high_leverage_risk}</p>
+          <p>Weather: {play.weather_risk}</p>
+          <p>Park: {play.ballpark}</p>
+        </div>
+
       </div>
 
       <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
@@ -173,5 +207,16 @@ const badgeStyle = {
   fontSize: "14px",
   fontWeight: "bold",
 };
+
+const signalGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "16px",
+  backgroundColor: "#020617",
+  padding: "18px",
+  borderRadius: "12px",
+  marginBottom: "18px",
+};
+
 
 export default MLBF5ModelPage;
