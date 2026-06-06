@@ -4136,7 +4136,7 @@ def model_mlb_today():
                             pick_name = team_name
 
                         elif market_key in ["spreads", "alternate_spreads"]:
-                            continue
+                            point = outcome.get("point")
 
                             if point is None:
                                 continue
@@ -4144,16 +4144,15 @@ def model_mlb_today():
                             if abs(float(point)) > 1.5:
                                 continue
 
-                            # Require stronger value for run lines so MLB board does not over-prioritize -1.5 plays
-                            if market_key in ["spreads", "alternate_spreads"]:
-                                market_adj -= 1.25
-                            # Extra discipline on favorite -1.5 run lines
-                            
+                            # Require stronger value for run lines
+                            market_adj -= 1.25
+
+                            # Extra discipline on favorite -1.5
                             if float(point) < 0:
                                 market_adj -= 1.25
 
                             market_name = "Run Line"
-                            pick_name = f"{team_name} {point:+}"
+                            pick_name = f"{team_name} {float(point):+}"
 
                         elif market_key in ["totals", "alternate_totals"]:
                             point = outcome.get("point")
