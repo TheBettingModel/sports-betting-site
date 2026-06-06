@@ -12,7 +12,7 @@ import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
 import MLBTotalsPage from "./pages/MLBTotalsPage";
 
-import SharpMarketPage from "./pages/SharpMarketPage";
+
 import ModelPerformancePage from "./pages/ModelPerformancePage";
 
 
@@ -113,43 +113,6 @@ function App() {
           </div>
         </div>
 
-
-
-        {/* SHARP MENU */}
-        <div
-          style={dropdownStyle}
-          onMouseEnter={(e) =>
-            (e.currentTarget.querySelector(".dropdown-menu").style.display =
-              "block")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.querySelector(".dropdown-menu").style.display =
-              "none")
-          }
-        >
-          <span style={linkStyle}>Sharp Market ▾</span>
-
-          <div className="dropdown-menu" style={dropdownMenuStyle}>
-
-            <Link style={dropdownLinkStyle} to="/sharp-market">
-              Sharp Board
-            </Link>
-
-            <Link style={dropdownLinkStyle} to="/sharp-market">
-              Steam Moves
-            </Link>
-
-            <Link style={dropdownLinkStyle} to="/sharp-market">
-              CLV Tracker
-            </Link>
-
-            <Link style={dropdownLinkStyle} to="/sharp-market">
-              Line Shopping
-            </Link>
-
-          </div>
-        </div>
-
       </nav>
 
 
@@ -208,10 +171,6 @@ function App() {
         />
 
 
-        <Route
-          path="/sharp-market"
-          element={<SharpMarketPage />}
-        />
 
       </Routes>
 
