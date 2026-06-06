@@ -103,7 +103,7 @@ function MLBTotalsPage() {
           display: "flex",
           flexWrap: "wrap",
           gap: "10px",
-          marginBottom: "16px",
+          marginBottom: "20px",
         }}
       >
         <span style={badgeStyle}>Market: {play.market}</span>
@@ -111,6 +111,8 @@ function MLBTotalsPage() {
         <span style={badgeStyle}>Edge: {play.edge}%</span>
         <span style={badgeStyle}>Confidence: {play.confidence}</span>
         <span style={badgeStyle}>Units: {play.units}</span>
+        <span style={badgeStyle}>Best Book: {play.best_sportsbook || "N/A"}</span>
+        <span style={badgeStyle}>Best Odds: {play.best_odds || "N/A"}</span>
 
         <span
           style={{
@@ -121,6 +123,36 @@ function MLBTotalsPage() {
         >
           {play.recommendation}
         </span>
+      </div>
+
+      <div style={signalGridStyle}>
+        <div>
+          <h4>🌦️ Weather / Park</h4>
+          <p>Weather: {play.weather_risk}</p>
+          <p>Park: {play.ballpark}</p>
+          <p>Weather Adj: {play.weather_adjustment}</p>
+        </div>
+
+        <div>
+          <h4>🔥 Offense</h4>
+          <p>Lineup: {play.lineup_status}</p>
+          <p>Power: {play.statcast_power_rating}</p>
+          <p>BVP: {play.bvp_signal}</p>
+        </div>
+
+        <div>
+          <h4>⚾ Pitching / Bullpen</h4>
+          <p>Starter Diff: {play.pitcher_rating_diff}</p>
+          <p>Bullpen: {play.high_leverage_risk}</p>
+          <p>Fatigue: {play.bullpen_fatigue}</p>
+        </div>
+
+        <div>
+          <h4>📈 Market</h4>
+          <p>Sharp: {play.sharp_signal}</p>
+          <p>CLV: {play.clv_status}</p>
+          <p>Steam: {play.steam_strength}</p>
+        </div>
       </div>
 
       <p
@@ -229,6 +261,17 @@ const badgeStyle = {
   borderRadius: "999px",
   fontSize: "14px",
   fontWeight: "bold",
+};
+
+
+const signalGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "16px",
+  backgroundColor: "#020617",
+  padding: "18px",
+  borderRadius: "12px",
+  marginBottom: "18px",
 };
 
 export default MLBTotalsPage;
