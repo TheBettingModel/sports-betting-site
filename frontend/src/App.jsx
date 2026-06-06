@@ -3,6 +3,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import NBATotalsPage from "./pages/NBATotalsPage";
+import MLBRunLinePage from "./pages/MLBRunLinePage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
@@ -48,6 +49,7 @@ function App() {
 
           <div className="dropdown-menu" style={dropdownMenuStyle}>
             <Link style={dropdownLinkStyle} to="/mlb-model">Full Game</Link>
+            <Link style={dropdownLinkStyle} to="/mlb-runline">Run Line</Link>
             <Link style={dropdownLinkStyle} to="/mlb-f5">F5 Model</Link>
             <Link style={dropdownLinkStyle} to="/mlb-nrfi">NRFI/YRFI</Link>
             <Link style={dropdownLinkStyle} to="/mlb-totals">Team Totals</Link>
@@ -80,6 +82,7 @@ function App() {
         <Route path="/nba-totals" element={<NBATotalsPage />} />
         <Route path="/nba-1q" element={<NBAFirstQuarterPage />} />
         <Route path="/mlb-model" element={<MLBModelBoardPage />} />
+        <Route path="/mlb-runline" element={<MLBRunLinePage />} />
         <Route path="/mlb-f5" element={<MLBF5Page />} />
         <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />
         <Route path="/mlb-totals" element={<MLBTotalsPage />} />
