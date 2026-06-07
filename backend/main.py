@@ -5277,31 +5277,72 @@ def grade_mlb_history():
 
             result = "Pending"
 
+            pick_text = str(play.pick)
+
             if play.market == "Moneyline":
-                if play.pick == winner:
-                    result = "Win"
-                else:
-                    result = "Loss"
+                result = "Win" if pick_text == winner else "Loss"
+
+            elif play.market == "Run Line":
+                try:
+                    away_score = game_data.get("away_score", 0)
+                    home_score = game_data.get("home_score", 0)
+
+                    parts = pick_text.rsplit(" ", 1)
+
+                    if len(parts) != 2:
+                        continue
+
+                    team = parts[0]
+                    spread = float(parts[1])
+
+                    if team not in play.game:
+                        continue
+
+                    if play.game.startswith(team):
+                        team_score = away_score
+                        opponent_score = home_score
+                    else:
+                        team_score = home_score
+                        opponent_score = away_score
+
+                    margin = team_score - opponent_score
+                    adjusted_margin = margin + spread
+
+                    if adjusted_margin > 0:
+                        result = "Win"
+                    elif adjusted_margin < 0:
+                        result = "Loss"
+                    else:
+                        result = "Push"
+
+                except Exception:
+                    continue
 
             elif play.market == "Total":
                 try:
-                    pick_text = str(play.pick)
-
                     if "Over" in pick_text:
-                        target = float(pick_text.replace("Over", "").strip())
+                        target = float(
+                            pick_text.replace("Over", "").strip()
+                        )
 
                         if total_runs > target:
                             result = "Win"
-                        else:
+                        elif total_runs < target:
                             result = "Loss"
+                        else:
+                            result = "Push"
 
                     elif "Under" in pick_text:
-                        target = float(pick_text.replace("Under", "").strip())
+                        target = float(
+                            pick_text.replace("Under", "").strip()
+                        )
 
                         if total_runs < target:
                             result = "Win"
-                        else:
+                        elif total_runs > target:
                             result = "Loss"
+                        else:
+                            result = "Push"
 
                 except Exception:
                     continue
@@ -5317,6 +5358,8 @@ def grade_mlb_history():
                 play.units_result = str(round(units, 2))
             elif result == "Loss":
                 play.units_result = str(round(-units, 2))
+            elif result == "Push":
+                play.units_result = "0"
 
             graded_count += 1
 
