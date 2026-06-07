@@ -5,7 +5,7 @@ import HomePage from "./pages/HomePage";
 import ModelBoardPage from "./pages/ModelBoardPage";
 import NBATotalsPage from "./pages/NBATotalsPage";
 import NBAFirstQuarterPage from "./pages/NBAFirstQuarterPage";
-
+import AdminPage from "./pages/AdminPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBRunLinePage from "./pages/MLBRunLinePage";
 import MLBF5Page from "./pages/MLBF5ModelPage";
@@ -42,6 +42,9 @@ function App() {
           Performance
         </Link>
 
+        <Link style={linkStyle} to="/admin">
+          Admin
+        </Link>
 
         {/* NBA MENU */}
         <div
@@ -126,6 +129,7 @@ function App() {
           element={<ModelPerformancePage />}
         />
 
+        <Route path="/admin" element={<AdminPage />} />
 
         {/* NBA ROUTES */}
         <Route
