@@ -3948,6 +3948,82 @@ def get_top_play_score(play):
 
     return round(score, 2)
 
+def get_model_learning_boost(play):
+    db = SessionLocal()
+
+    def safe_float(value, default=0):
+        try:
+            if value in [None, ""]:
+                return default
+            return float(value)
+        except Exception:
+            return default
+
+    def score_bucket(field, value):
+        records = db.query(ModelPlayHistory).filter(
+            ModelPlayHistory.sport == "MLB",
+            ModelPlayHistory.result.in_(["Win", "Loss"]),
+            getattr(ModelPlayHistory, field) == str(value),
+        ).all()
+
+        graded = len(records)
+
+        if graded < 3:
+            return 0
+
+        wins = len([r for r in records if r.result == "Win"])
+        units = sum(safe_float(r.units_result) for r in records)
+        win_rate = wins / graded
+
+        boost = 0
+
+        if win_rate >= 0.60:
+            boost += 2
+        elif win_rate <= 0.45:
+            boost -= 2
+
+        if units >= 2:
+            boost += 1
+        elif units <= -2:
+            boost -= 1
+
+        return boost
+
+    try:
+        total_boost = 0
+
+        total_boost += score_bucket(
+            "market",
+            play.get("market", "")
+        )
+
+        total_boost += score_bucket(
+            "recommendation",
+            play.get("recommendation", "")
+        )
+
+        total_boost += score_bucket(
+            "sharp_signal",
+            play.get("sharp_signal", "")
+        )
+
+        total_boost += score_bucket(
+            "clv_status",
+            play.get("clv_status", "")
+        )
+
+        total_boost += score_bucket(
+            "steam_strength",
+            play.get("steam_strength", "")
+        )
+
+        total_boost = max(-6, min(8, total_boost))
+
+        return round(total_boost, 2)
+
+    finally:
+        db.close()
+
 def get_auto_pod_score(play):
     score = 0
 
@@ -4010,6 +4086,10 @@ def get_auto_pod_score(play):
         score += 1.5
     elif market == "NRFI/YRFI":
         score += 1
+
+    learning_boost = get_model_learning_boost(play)
+    play["learning_boost"] = learning_boost
+    score += learning_boost
 
     return round(score, 2)
 
