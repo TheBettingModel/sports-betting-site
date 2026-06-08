@@ -4991,6 +4991,8 @@ def model_mlb_f5_today():
             reverse=True,
         )
 
+        save_model_play_history("MLB", final)
+
         set_cache("mlb_f5_model", final)
 
         return {"plays": final}
@@ -5093,6 +5095,8 @@ def model_mlb_nrfi_today():
             key=lambda x: x["confidence"],
             reverse=True
         )
+
+        save_model_play_history("MLB", final)
 
         set_cache("mlb_nrfi_model", final)
 
@@ -5198,6 +5202,7 @@ def get_mlb_final_scores(target_date):
     params = {
         "sportId": 1,
         "date": target_date,
+        "hydrate": "linescore",
     }
 
     try:
@@ -5221,17 +5226,56 @@ def get_mlb_final_scores(target_date):
                 away_score = game.get("teams", {}).get("away", {}).get("score", 0)
                 home_score = game.get("teams", {}).get("home", {}).get("score", 0)
 
+                linescore = game.get("linescore", {})
+                innings = linescore.get("innings", [])
+
+                away_f5 = 0
+                home_f5 = 0
+                away_1st = 0
+                home_1st = 0
+
+                for idx, inning in enumerate(innings[:5]):
+                    away_runs = inning.get("away", {}).get("runs", 0) or 0
+                    home_runs = inning.get("home", {}).get("runs", 0) or 0
+
+                    away_f5 += away_runs
+                    home_f5 += home_runs
+
+                    if idx == 0:
+                        away_1st = away_runs
+                        home_1st = home_runs
+
                 game_key_1 = f"{away_team} vs {home_team}"
                 game_key_2 = f"{home_team} vs {away_team}"
 
                 winner = away_team if away_score > home_score else home_team
                 total_runs = away_score + home_score
 
+                f5_winner = None
+
+                if away_f5 > home_f5:
+                    f5_winner = away_team
+                elif home_f5 > away_f5:
+                    f5_winner = home_team
+                else:
+                    f5_winner = "Tie"
+
+                first_inning_runs = away_1st + home_1st
+
                 results[game_key_1] = {
                     "winner": winner,
                     "away_score": away_score,
                     "home_score": home_score,
                     "total_runs": total_runs,
+
+                    "away_f5": away_f5,
+                    "home_f5": home_f5,
+                    "f5_total_runs": away_f5 + home_f5,
+                    "f5_winner": f5_winner,
+
+                    "away_1st": away_1st,
+                    "home_1st": home_1st,
+                    "first_inning_runs": first_inning_runs,
                 }
 
                 results[game_key_2] = results[game_key_1]
