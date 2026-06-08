@@ -4024,6 +4024,89 @@ def get_model_learning_boost(play):
     finally:
         db.close()
 
+def get_market_timing_signal(play):
+    score = 0
+    reasons = []
+
+    clv_status = play.get("clv_status")
+    steam_strength = play.get("steam_strength")
+    line_signal = play.get("line_signal")
+    sharp_signal = play.get("sharp_signal")
+    market_disagreement = play.get("market_disagreement")
+    stale_line = play.get("stale_line")
+    late_sharp_action = play.get("late_sharp_action")
+    reverse_line_movement = play.get("reverse_line_movement")
+    fake_steam_risk = play.get("fake_steam_risk")
+
+    if clv_status == "Positive CLV":
+        score += 3
+        reasons.append("Positive CLV supports entering now.")
+    elif clv_status == "Negative CLV":
+        score -= 3
+        reasons.append("Negative CLV suggests the best number may be gone.")
+
+    if steam_strength == "High":
+        score += 2
+        reasons.append("Strong steam detected.")
+    elif steam_strength == "Low":
+        score += 0
+
+    if line_signal in ["Sharp Move", "Market Moving Toward Model"]:
+        score += 2
+        reasons.append("Line movement supports the model side.")
+    elif line_signal in ["Market Moving Away", "Bad Move"]:
+        score -= 2
+        reasons.append("Line movement is working against the model side.")
+
+    if sharp_signal in ["Sharp Play", "Value Watch"]:
+        score += 2
+        reasons.append("Sharp signal supports the play.")
+
+    if market_disagreement in ["High", "Moderate"]:
+        score += 1
+        reasons.append("Sportsbooks show price disagreement; line shopping matters.")
+
+    if stale_line:
+        score += 2
+        reasons.append("Potential stale line opportunity detected.")
+
+    if late_sharp_action:
+        score += 2
+        reasons.append("Late sharp action supports quick entry.")
+
+    if reverse_line_movement:
+        score += 1
+        reasons.append("Reverse line movement detected.")
+
+    if fake_steam_risk:
+        score -= 3
+        reasons.append("Fake steam risk detected.")
+
+    try:
+        edge = float(play.get("edge", 0))
+    except Exception:
+        edge = 0
+
+    if edge >= 5:
+        score += 2
+        reasons.append("Strong model edge.")
+    elif edge < 2:
+        score -= 2
+        reasons.append("Limited model edge.")
+
+    if score >= 5:
+        timing = "Bet Now"
+    elif score >= 1:
+        timing = "Wait / Line Shop"
+    else:
+        timing = "Avoid / No Rush"
+
+    return {
+        "market_timing_signal": timing,
+        "market_timing_score": score,
+        "market_timing_reasons": reasons,
+    }
+
 def get_auto_pod_score(play):
     score = 0
 
@@ -4086,6 +4169,16 @@ def get_auto_pod_score(play):
         score += 1.5
     elif market == "NRFI/YRFI":
         score += 1
+
+    timing_data = get_market_timing_signal(play)
+    play.update(timing_data)
+
+    if timing_data.get("market_timing_signal") == "Bet Now":
+        score += 4
+    elif timing_data.get("market_timing_signal") == "Wait / Line Shop":
+        score += 1
+    else:
+        score -= 4
 
     learning_boost = get_model_learning_boost(play)
     play["learning_boost"] = learning_boost
