@@ -5079,7 +5079,6 @@ def model_mlb_nrfi_today():
                 f"{game.get('home_team')}"
             )
 
-            game["home_plate_umpire"] = live_umpires.get(game_name)
             projection = get_nrfi_yrfi_projection(
                 game,
                 probable_pitchers,
@@ -5087,6 +5086,11 @@ def model_mlb_nrfi_today():
                 confirmed_lineups,
                 live_statcast_pitching
             )
+
+            projection["market"] = "NRFI/YRFI"
+            projection["pick"] = projection.get("recommendation", "Pass")
+            projection["sportsbook"] = "Model"
+            projection["odds"] = ""
 
             plays.append(projection)
 
