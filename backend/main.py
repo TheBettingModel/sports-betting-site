@@ -4083,6 +4083,102 @@ def get_pitcher_change_protection(play):
         "pitcher_change_note": [],
     }
 
+def get_lineup_reaction_signal(play):
+    confirmed_lineups = get_live_confirmed_lineups()
+
+    game = str(play.get("game", ""))
+
+    if " vs " not in game:
+        return {
+            "lineup_reaction_signal": "Unknown",
+            "lineup_reaction_score": 0,
+            "lineup_reaction_note": [],
+        }
+
+    away_team, home_team = game.split(" vs ")
+
+    saved_strength = play.get("lineup_strength")
+
+    try:
+        saved_strength = float(saved_strength)
+    except Exception:
+        saved_strength = None
+
+    away_current = get_confirmed_lineup_strength(
+        away_team,
+        confirmed_lineups
+    )
+
+    home_current = get_confirmed_lineup_strength(
+        home_team,
+        confirmed_lineups
+    )
+
+    notes = []
+    score = 0
+
+    away_confirmed = away_current.get("lineup_confirmed", False)
+    home_confirmed = home_current.get("lineup_confirmed", False)
+
+    if not away_confirmed and not home_confirmed:
+        return {
+            "lineup_reaction_signal": "Projected",
+            "lineup_reaction_score": 0,
+            "lineup_reaction_note": [
+                "Confirmed lineups not available yet."
+            ],
+        }
+
+    current_strength = None
+
+    pick = str(play.get("pick", ""))
+
+    if away_team in pick:
+        current_strength = away_current.get("lineup_strength", 75)
+    elif home_team in pick:
+        current_strength = home_current.get("lineup_strength", 75)
+    else:
+        current_strength = (
+            away_current.get("lineup_strength", 75)
+            + home_current.get("lineup_strength", 75)
+        ) / 2
+
+    if saved_strength is not None:
+        diff = current_strength - saved_strength
+
+        if diff <= -8:
+            score -= 6
+            notes.append(
+                f"Confirmed lineup is much weaker than projection ({round(diff, 1)})."
+            )
+        elif diff <= -4:
+            score -= 3
+            notes.append(
+                f"Confirmed lineup is weaker than projection ({round(diff, 1)})."
+            )
+        elif diff >= 6:
+            score += 3
+            notes.append(
+                f"Confirmed lineup is stronger than projection (+{round(diff, 1)})."
+            )
+        else:
+            notes.append("Confirmed lineup is close to projection.")
+
+    if current_strength >= 84:
+        signal = "Lineup Upgrade"
+    elif current_strength <= 70:
+        signal = "Lineup Downgrade"
+        score -= 3
+    else:
+        signal = "Lineup Stable"
+
+    return {
+        "lineup_reaction_signal": signal,
+        "lineup_reaction_score": score,
+        "lineup_reaction_current_strength": round(current_strength, 2),
+        "lineup_reaction_note": notes,
+    }
+
 def get_market_timing_signal(play):
     score = 0
     reasons = []
@@ -4235,6 +4331,10 @@ def get_auto_pod_score(play):
     if pitcher_check.get("pitcher_change_detected"):
         score -= 50
         play["recommendation"] = "VOID - Pitcher Change"
+
+    lineup_reaction = get_lineup_reaction_signal(play)
+    play.update(lineup_reaction)
+    score += lineup_reaction.get("lineup_reaction_score", 0)
 
     timing_data = get_market_timing_signal(play)
     play.update(timing_data)
