@@ -11,7 +11,7 @@ import MLBRunLinePage from "./pages/MLBRunLinePage";
 import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
 import MLBTotalsPage from "./pages/MLBTotalsPage";
-
+import AutoPODPage from "./pages/AutoPODPage";
 
 import ModelPerformancePage from "./pages/ModelPerformancePage";
 
@@ -40,6 +40,10 @@ function App() {
 
         <Link style={linkStyle} to="/model-performance">
           Performance
+        </Link>
+
+        <Link style={linkStyle} to="/auto-pod">
+          Auto POD
         </Link>
 
         <Link style={linkStyle} to="/admin">
@@ -130,6 +134,8 @@ function App() {
         />
 
         <Route path="/admin" element={<AdminPage />} />
+
+        <Route path="/auto-pod" element={<AutoPODPage />} />
 
         {/* NBA ROUTES */}
         <Route
