@@ -19,6 +19,112 @@ app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
 def ensure_model_history_columns():
+    # SQLite-only migration helper.
+    # Postgres/Neon uses Base.metadata.create_all and already has the current schema.
+    try:
+        database_url = str(engine.url)
+
+        if not database_url.startswith("sqlite"):
+            return
+
+        columns = {
+            "clv_score": "VARCHAR",
+            "live_clv_grade": "VARCHAR",
+            "model_validated_by_market": "VARCHAR",
+            "pitcher_rating_diff": "VARCHAR",
+            "pitcher_diff_adjustment": "VARCHAR",
+            "statcast_pitching_rating": "VARCHAR",
+            "statcast_pitching_adjustment": "VARCHAR",
+            "statcast_power_rating": "VARCHAR",
+            "statcast_power_adjustment": "VARCHAR",
+            "hitting_rating": "VARCHAR",
+            "hitting_adjustment": "VARCHAR",
+            "bullpen_availability_score": "VARCHAR",
+            "bullpen_availability_adjustment": "VARCHAR",
+            "high_leverage_risk": "VARCHAR",
+            "lineup_strength": "VARCHAR",
+            "lineup_adjustment": "VARCHAR",
+            "weather_adjustment": "VARCHAR",
+            "umpire_adjustment": "VARCHAR",
+            "consensus_price": "VARCHAR",
+            "market_spread": "VARCHAR",
+            "market_disagreement": "VARCHAR",
+            "stale_line_opportunity": "VARCHAR",
+        }
+
+        with engine.connect() as conn:
+            existing = conn.exec_driver_sql(
+                "PRAGMA table_info(model_play_history)"
+            ).fetchall()
+
+            existing_columns = [column[1] for column in existing]
+
+            for column_name, column_type in columns.items():
+                if column_name not in existing_columns:
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE model_play_history "
+                        f"ADD COLUMN {column_name} {column_type}"
+                    )
+
+            conn.commit()
+
+    except Exception as e:
+        print("Model history migration error:", e)
+
+
+    # SQLite-only migration helper.
+    # Postgres/Neon uses Base.metadata.create_all and already has the current schema.
+    try:
+        database_url = str(engine.url)
+
+        if not database_url.startswith("sqlite"):
+            return
+
+        columns = {
+            "clv_score": "VARCHAR",
+            "live_clv_grade": "VARCHAR",
+            "model_validated_by_market": "VARCHAR",
+            "pitcher_rating_diff": "VARCHAR",
+            "pitcher_diff_adjustment": "VARCHAR",
+            "statcast_pitching_rating": "VARCHAR",
+            "statcast_pitching_adjustment": "VARCHAR",
+            "statcast_power_rating": "VARCHAR",
+            "statcast_power_adjustment": "VARCHAR",
+            "hitting_rating": "VARCHAR",
+            "hitting_adjustment": "VARCHAR",
+            "bullpen_availability_score": "VARCHAR",
+            "bullpen_availability_adjustment": "VARCHAR",
+            "high_leverage_risk": "VARCHAR",
+            "lineup_strength": "VARCHAR",
+            "lineup_adjustment": "VARCHAR",
+            "weather_adjustment": "VARCHAR",
+            "umpire_adjustment": "VARCHAR",
+            "consensus_price": "VARCHAR",
+            "market_spread": "VARCHAR",
+            "market_disagreement": "VARCHAR",
+            "stale_line_opportunity": "VARCHAR",
+        }
+
+        with engine.connect() as conn:
+            existing = conn.exec_driver_sql(
+                "PRAGMA table_info(model_play_history)"
+            ).fetchall()
+
+            existing_columns = [column[1] for column in existing]
+
+            for column_name, column_type in columns.items():
+                if column_name not in existing_columns:
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE model_play_history "
+                        f"ADD COLUMN {column_name} {column_type}"
+                    )
+
+            conn.commit()
+
+    except Exception as e:
+        print("Model history migration error:", e)
+
+
     columns = {
         "clv_score": "VARCHAR",
         "live_clv_grade": "VARCHAR",
@@ -3842,6 +3948,116 @@ def get_top_play_score(play):
 
     return round(score, 2)
 
+def get_auto_pod_score(play):
+    score = 0
+
+    try:
+        score += float(play.get("edge", 0)) * 2
+    except Exception:
+        pass
+
+    try:
+        score += float(play.get("confidence", 0)) * 0.35
+    except Exception:
+        pass
+
+    recommendation = play.get("recommendation")
+
+    if recommendation == "Play":
+        score += 12
+    elif recommendation == "Lean":
+        score += 5
+    elif recommendation == "Pass":
+        score -= 20
+
+    if play.get("sharp_signal") in ["Sharp Play", "Value Watch"]:
+        score += 6
+
+    if play.get("sharp_book_signal") == "Sharp Influenced":
+        score += 3
+
+    if play.get("clv_status") == "Positive CLV":
+        score += 5
+    elif play.get("clv_status") == "Negative CLV":
+        score -= 4
+
+    if play.get("steam_strength") == "High":
+        score += 3
+
+    if play.get("bvp_signal") in ["Elite Hitter Advantage", "Hitter Edge"]:
+        score += 3
+
+    if play.get("high_leverage_risk") in ["High", "Very High"]:
+        score -= 3
+
+    if play.get("weather_risk") in ["High wind risk", "Weather risk"]:
+        score -= 3
+
+    try:
+        score += float(play.get("line_shop_value", 0)) * 0.25
+    except Exception:
+        pass
+
+    market = play.get("market")
+
+    if market == "Run Line":
+        score += 1
+    elif market == "Moneyline":
+        score += 2
+    elif market == "Total":
+        score += 0.5
+    elif market == "F5 Moneyline":
+        score += 1.5
+    elif market == "NRFI/YRFI":
+        score += 1
+
+    return round(score, 2)
+
+
+@app.get("/model/mlb/play-of-the-day")
+def model_mlb_play_of_the_day():
+    candidates = []
+
+    full_game = model_mlb_today()
+    f5 = model_mlb_f5_today()
+    nrfi = model_mlb_nrfi_today()
+
+    for play in full_game.get("plays", []):
+        if play.get("recommendation") in ["Play", "Lean"]:
+            candidates.append(play)
+
+    for play in f5.get("plays", []):
+        if play.get("recommendation") in ["Play", "Lean"]:
+            candidates.append(play)
+
+    for play in nrfi.get("plays", []):
+        if play.get("recommendation") in ["NRFI", "YRFI", "Play", "Lean"]:
+            candidates.append(play)
+
+    if not candidates:
+        return {
+            "play_of_the_day": None,
+            "candidates": [],
+            "message": "No qualified MLB play of the day found."
+        }
+
+    for play in candidates:
+        play["auto_pod_score"] = get_auto_pod_score(play)
+
+    candidates = sorted(
+        candidates,
+        key=lambda x: x.get("auto_pod_score", 0),
+        reverse=True
+    )
+
+    top = candidates[0]
+
+    return {
+        "play_of_the_day": top,
+        "candidates": candidates[:10],
+        "count": len(candidates),
+        "model_version": "mlb_auto_pod_v1"
+    }
 
 @app.get("/model/mlb/today")
 def model_mlb_today():
