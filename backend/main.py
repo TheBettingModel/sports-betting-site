@@ -4024,6 +4024,65 @@ def get_model_learning_boost(play):
     finally:
         db.close()
 
+def get_pitcher_change_protection(play):
+    probable_pitchers = get_mlb_probable_pitchers()
+
+    game = str(play.get("game", ""))
+
+    away_saved = play.get("away_starter")
+    home_saved = play.get("home_starter")
+
+    if " vs " not in game:
+        return {
+            "pitcher_status": "Unknown",
+            "pitcher_change_detected": False,
+        }
+
+    away_team, home_team = game.split(" vs ")
+
+    current_away = probable_pitchers.get(
+        away_team,
+        {}
+    ).get("pitcher")
+
+    current_home = probable_pitchers.get(
+        home_team,
+        {}
+    ).get("pitcher")
+
+    changes = []
+
+    if (
+        away_saved
+        and current_away
+        and away_saved != current_away
+    ):
+        changes.append(
+            f"{away_team}: {away_saved} changed to {current_away}"
+        )
+
+    if (
+        home_saved
+        and current_home
+        and home_saved != current_home
+    ):
+        changes.append(
+            f"{home_team}: {home_saved} changed to {current_home}"
+        )
+
+    if changes:
+        return {
+            "pitcher_status": "Changed",
+            "pitcher_change_detected": True,
+            "pitcher_change_note": changes,
+        }
+
+    return {
+        "pitcher_status": "Confirmed",
+        "pitcher_change_detected": False,
+        "pitcher_change_note": [],
+    }
+
 def get_market_timing_signal(play):
     score = 0
     reasons = []
@@ -4169,6 +4228,13 @@ def get_auto_pod_score(play):
         score += 1.5
     elif market == "NRFI/YRFI":
         score += 1
+
+    pitcher_check = get_pitcher_change_protection(play)
+    play.update(pitcher_check)
+
+    if pitcher_check.get("pitcher_change_detected"):
+        score -= 50
+        play["recommendation"] = "VOID - Pitcher Change"
 
     timing_data = get_market_timing_signal(play)
     play.update(timing_data)
