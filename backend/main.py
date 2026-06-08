@@ -5395,6 +5395,29 @@ def grade_mlb_history():
                 except Exception:
                     continue
 
+            elif play.market == "F5 Moneyline":
+                f5_winner = game_data.get("f5_winner")
+
+                if f5_winner == "Tie":
+                    result = "Push"
+                elif pick_text == f5_winner:
+                    result = "Win"
+                else:
+                    result = "Loss"
+
+            elif play.market in ["NRFI/YRFI", ""]:
+                first_inning_runs = game_data.get("first_inning_runs", 0)
+                recommendation = str(play.recommendation)
+
+                if recommendation == "NRFI":
+                    result = "Win" if first_inning_runs == 0 else "Loss"
+
+                elif recommendation == "YRFI":
+                    result = "Win" if first_inning_runs > 0 else "Loss"
+
+                else:
+                    result = "Pending"
+
             play.result = result
 
             try:
