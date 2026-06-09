@@ -3572,14 +3572,50 @@ def model_nba_today():
 
         final = list(best_by_game_market.values())
 
+        for play in final:
+            price_data = get_best_sportsbook_price(play, plays)
+
+            play["best_sportsbook"] = price_data["best_sportsbook"]
+            play["best_odds"] = price_data["best_odds"]
+            play["worst_odds"] = price_data["worst_odds"]
+            play["book_count"] = price_data["book_count"]
+            play["line_shop_value"] = price_data["line_shop_value"]
+            play["line_disagreement"] = price_data["line_disagreement"]
+            play["sharpest_sportsbook"] = price_data["sharpest_sportsbook"]
+            play["stale_line"] = price_data["stale_line"]
+            play["sportsbook_note"] = price_data["sportsbook_note"]
+
+            timing_data = get_market_timing_signal(play)
+            play.update(timing_data)
+
+            learning_boost = get_model_learning_boost(play)
+            play["learning_boost"] = learning_boost
+
+            play["top_play_score"] = get_top_play_score(play)
+            play["auto_pod_score"] = get_auto_pod_score(play)
+
+        final = sorted(
+            final,
+            key=lambda x: x.get("top_play_score", 0),
+            reverse=True
+        )
+
+        top_play = final[0] if final else None
+
         final = sorted(
             final,
             key=lambda x: x["edge"],
             reverse=True
         )
+
         save_model_play_history("NBA", final)
 
         set_cache("nba_model", final)
+
+        return {
+            "top_play": top_play,
+            "plays": final
+        }
 
         return {"plays": final}
 
