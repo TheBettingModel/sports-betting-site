@@ -3436,7 +3436,7 @@ def model_nba_today():
                             recommendation
                         )
 
-                        plays.append({
+                        play = {
                             "game": game_name,
                             "sportsbook": sportsbook,
                             "market": market_name,
@@ -3448,11 +3448,112 @@ def model_nba_today():
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
+
+                            "sport": "NBA",
+                            "model_version": "nba_v2_market_engine",
+
                             "playoff_mode": True,
                             "playoff_adjustment": playoff_adj,
-                            "playoff_reasons": playoff_data.get("playoff_reasons", []),
+                            "playoff_reasons": playoff_data.get(
+                                "playoff_reasons",
+                                []
+                            ),
+
                             "reason": reason.strip()
-                        })
+                        }
+
+
+                        # Sharp sportsbook weighting
+                        book_data = get_sharp_sportsbook_weight(
+                            sportsbook
+                        )
+
+                        play.update(book_data)
+
+
+                        # Sharp market signal
+                        sharp_data = get_sharp_market_signal(
+                            edge,
+                            odds,
+                            recommendation
+                        )
+
+                        play.update(sharp_data)
+
+
+                        # Line snapshot / CLV tracking
+                        line_key = get_line_key(
+                            game_name,
+                            market_name,
+                            pick_name,
+                            sportsbook
+                        )
+
+                        snapshot = get_or_create_line_snapshot(
+                            line_key,
+                            game_name,
+                            market_name,
+                            pick_name,
+                            sportsbook,
+                            odds
+                        )
+
+                        opening_odds = snapshot.get(
+                            "opening_odds",
+                            odds
+                        )
+
+                        current_odds = snapshot.get(
+                            "current_odds",
+                            odds
+                        )
+
+                        play["opening_odds"] = opening_odds
+                        play["current_odds"] = current_odds
+
+
+                        # Steam / movement engine
+                        movement_data = get_line_movement_signal(
+                            opening_odds,
+                            current_odds
+                        )
+
+                        play.update(movement_data)
+
+
+                        # CLV engine
+                        clv_data = get_clv_signal(
+                            opening_odds,
+                            current_odds
+                        )
+
+                        play.update(clv_data)
+
+
+                        # Live CLV grading
+                        live_clv = get_live_clv_tracker(
+                            opening_odds,
+                            current_odds,
+                            edge,
+                            recommendation
+                        )
+
+                        play.update(live_clv)
+
+
+                        # Market timing
+                        timing = get_market_timing_signal(play)
+
+                        play.update(timing)
+
+
+                        # Top play ranking
+                        play["top_play_score"] = get_top_play_score(
+                            play
+                        )
+
+
+                        plays.append(play)
 
         best_by_game_market = {}
 
