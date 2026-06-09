@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
@@ -16,6 +17,8 @@ import AutoPODPage from "./pages/AutoPODPage";
 import AdminPage from "./pages/AdminPage";
 
 function App() {
+  const [openDropdown, setOpenDropdown] = useState(null);
+
   return (
     <div style={{ backgroundColor: "#0b0b0b", minHeight: "100vh", color: "white" }}>
       <nav style={navStyle}>
@@ -25,23 +28,43 @@ function App() {
         <Link style={linkStyle} to="/auto-pod">Auto POD</Link>
 
         <div style={dropdownStyle}>
-          <span style={linkStyle}>NBA ▾</span>
-          <div className="dropdown-menu" style={dropdownMenuStyle}>
-            <Link style={dropdownLinkStyle} to="/model-board">Full Game</Link>
-            <Link style={dropdownLinkStyle} to="/nba-totals">Totals</Link>
-            <Link style={dropdownLinkStyle} to="/nba-1q">1st Quarter</Link>
-          </div>
+          <span
+            style={linkStyle}
+            onClick={() =>
+              setOpenDropdown(openDropdown === "nba" ? null : "nba")
+            }
+          >
+            NBA ▾
+          </span>
+
+          {openDropdown === "nba" && (
+            <div style={dropdownMenuStyle}>
+              <Link style={dropdownLinkStyle} to="/model-board">Full Game</Link>
+              <Link style={dropdownLinkStyle} to="/nba-totals">Totals</Link>
+              <Link style={dropdownLinkStyle} to="/nba-1q">1st Quarter</Link>
+            </div>
+          )}
         </div>
 
         <div style={dropdownStyle}>
-          <span style={linkStyle}>MLB ▾</span>
-          <div className="dropdown-menu" style={dropdownMenuStyle}>
-            <Link style={dropdownLinkStyle} to="/mlb-model">Moneyline</Link>
-            <Link style={dropdownLinkStyle} to="/mlb-runline">Run Line</Link>
-            <Link style={dropdownLinkStyle} to="/mlb-f5">F5 Model</Link>
-            <Link style={dropdownLinkStyle} to="/mlb-nrfi">NRFI/YRFI</Link>
-            <Link style={dropdownLinkStyle} to="/mlb-totals">Totals</Link>
-          </div>
+          <span
+            style={linkStyle}
+            onClick={() =>
+              setOpenDropdown(openDropdown === "mlb" ? null : "mlb")
+            }
+          >
+            MLB ▾
+          </span>
+
+          {openDropdown === "mlb" && (
+            <div style={dropdownMenuStyle}>
+              <Link style={dropdownLinkStyle} to="/mlb-model">Moneyline</Link>
+              <Link style={dropdownLinkStyle} to="/mlb-runline">Run Line</Link>
+              <Link style={dropdownLinkStyle} to="/mlb-f5">F5 Model</Link>
+              <Link style={dropdownLinkStyle} to="/mlb-nrfi">NRFI/YRFI</Link>
+              <Link style={dropdownLinkStyle} to="/mlb-totals">Totals</Link>
+            </div>
+          )}
         </div>
 
         <div style={rightNavStyle}>
@@ -118,7 +141,6 @@ const dropdownStyle = {
 };
 
 const dropdownMenuStyle = {
-  display: "none",
   position: "absolute",
   top: "100%",
   left: 0,
