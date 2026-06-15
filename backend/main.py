@@ -688,8 +688,112 @@ def get_dynamic_units(edge, confidence, recommendation):
     return 0.5
 
 
+NBA_INJURY_REPORT = {
+    # Placeholder v1.
+    # Next season this can be replaced with live injury feed data.
+    "Boston Celtics": {
+        "status": "Healthy",
+        "missing_players": [],
+        "questionable_players": [],
+        "minutes_restrictions": [],
+        "star_player_risk": "Low",
+    },
+    "New York Knicks": {
+        "status": "Healthy",
+        "missing_players": [],
+        "questionable_players": [],
+        "minutes_restrictions": [],
+        "star_player_risk": "Low",
+    },
+    "San Antonio Spurs": {
+        "status": "Healthy",
+        "missing_players": [],
+        "questionable_players": [],
+        "minutes_restrictions": [],
+        "star_player_risk": "Low",
+    },
+}
+
+
+NBA_PLAYER_IMPACT = {
+    # Superstar tier
+    "Jayson Tatum": 5.0,
+    "Jaylen Brown": 3.5,
+    "Nikola Jokic": 6.0,
+    "Giannis Antetokounmpo": 5.5,
+    "Luka Doncic": 5.5,
+    "Shai Gilgeous-Alexander": 5.0,
+    "Victor Wembanyama": 5.0,
+    "Jalen Brunson": 4.5,
+
+    # Star / starter tier
+    "Kristaps Porzingis": 3.0,
+    "Derrick White": 2.0,
+    "Jrue Holiday": 2.0,
+    "Karl-Anthony Towns": 3.0,
+    "Mikal Bridges": 2.0,
+    "OG Anunoby": 2.0,
+}
+
+
 def get_injury_adjustment(team):
     return NBA_INJURY_ADJUSTMENTS.get(team, 0.0)
+
+
+def get_nba_injury_reaction(team):
+    report = NBA_INJURY_REPORT.get(
+        team,
+        {
+            "status": "Unknown",
+            "missing_players": [],
+            "questionable_players": [],
+            "minutes_restrictions": [],
+            "star_player_risk": "Unknown",
+        }
+    )
+
+    missing_players = report.get("missing_players", [])
+    questionable_players = report.get("questionable_players", [])
+    minutes_restrictions = report.get("minutes_restrictions", [])
+
+    adjustment = 0
+    notes = []
+
+    for player in missing_players:
+        impact = NBA_PLAYER_IMPACT.get(player, 1.0)
+        adjustment -= impact
+        notes.append(f"{player} OUT (-{impact}).")
+
+    for player in questionable_players:
+        impact = NBA_PLAYER_IMPACT.get(player, 1.0) * 0.45
+        adjustment -= impact
+        notes.append(f"{player} QUESTIONABLE (-{round(impact, 2)}).")
+
+    for player in minutes_restrictions:
+        impact = NBA_PLAYER_IMPACT.get(player, 1.0) * 0.30
+        adjustment -= impact
+        notes.append(f"{player} minutes restriction (-{round(impact, 2)}).")
+
+    if adjustment <= -5:
+        grade = "High Injury Risk"
+    elif adjustment <= -2.5:
+        grade = "Moderate Injury Risk"
+    elif adjustment < 0:
+        grade = "Minor Injury Risk"
+    else:
+        grade = "Clean"
+
+    return {
+        "injury_status": report.get("status", "Unknown"),
+        "injury_adjustment": round(adjustment, 2),
+        "injury_score": round(100 + adjustment * 10, 2),
+        "missing_players": missing_players,
+        "questionable_players": questionable_players,
+        "minutes_restrictions": minutes_restrictions,
+        "star_player_risk": report.get("star_player_risk", "Unknown"),
+        "availability_grade": grade,
+        "injury_notes": notes,
+    }
 
 
 def get_team_rating(team):
@@ -3240,6 +3344,10 @@ def model_nba_today():
                                 home_adj = home_adj * 0.6
 
                             injury_adj = get_injury_adjustment(team_name)
+
+                            injury_reaction = get_nba_injury_reaction(team_name)
+                            injury_reaction_adj = injury_reaction.get("injury_adjustment", 0)
+
                             price_adj = get_price_adjustment(odds)
 
                             if market_key == "h2h":
@@ -3305,6 +3413,7 @@ def model_nba_today():
                                 + rating_adj
                                 + home_adj
                                 + injury_adj
+                                + injury_reaction_adj
                                 + price_adj
                             )
 
@@ -5879,6 +5988,16 @@ def save_model_play_history(sport, plays):
                 units_result="",
                 closing_odds="",
                 model_version=str(play.get("model_version", "")),
+                injury_status=str(play.get("injury_status", "")),
+                injury_adjustment=str(play.get("injury_adjustment", "")),
+                injury_score=str(play.get("injury_score", "")),
+                missing_players=str(play.get("missing_players", "")),
+                questionable_players=str(play.get("questionable_players", "")),
+                minutes_restrictions=str(play.get("minutes_restrictions", "")),
+                star_player_risk=str(play.get("star_player_risk", "")),
+                availability_grade=str(play.get("availability_grade", "")),
+                injury_notes=str(play.get("injury_notes", "")),
+
             )
 
             db.add(history)
