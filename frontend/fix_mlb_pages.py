@@ -1,7 +1,52 @@
-import { useEffect, useMemo, useState } from "react";
+from pathlib import Path
+
+pages = {
+    "MLBModelBoardPage.jsx": {
+        "component": "MLBModelBoardPage",
+        "title": "MLB Full Game Model",
+        "endpoint": "/model/mlb/today",
+        "market_filter": 'play.market === "Moneyline"',
+        "empty": "No MLB moneyline plays available.",
+        "top": "Top Moneyline Play",
+    },
+    "MLBRunLinePage.jsx": {
+        "component": "MLBRunLinePage",
+        "title": "MLB Run Line Model",
+        "endpoint": "/model/mlb/today",
+        "market_filter": 'play.market === "Run Line"',
+        "empty": "No MLB run line plays available.",
+        "top": "Top Run Line Play",
+    },
+    "MLBF5ModelPage.jsx": {
+        "component": "MLBF5ModelPage",
+        "title": "MLB F5 Model",
+        "endpoint": "/model/mlb/f5/today",
+        "market_filter": 'true',
+        "empty": "No MLB F5 plays available.",
+        "top": "Top F5 Play",
+    },
+    "MLBNRFIPage.jsx": {
+        "component": "MLBNRFIPage",
+        "title": "MLB NRFI/YRFI Model",
+        "endpoint": "/model/mlb/nrfi/today",
+        "market_filter": 'true',
+        "empty": "No MLB NRFI/YRFI plays available.",
+        "top": "Top NRFI/YRFI Play",
+    },
+    "MLBTotalsPage.jsx": {
+        "component": "MLBTotalsPage",
+        "title": "MLB Totals Model",
+        "endpoint": "/model/mlb/today",
+        "market_filter": 'play.market === "Total"',
+        "empty": "No MLB totals plays available.",
+        "top": "Top Totals Play",
+    },
+}
+
+template = r'''import { useEffect, useMemo, useState } from "react";
 import MLBTabs from "../components/MLBTabs";
 
-function MLBModelBoardPage() {
+function __COMPONENT__() {
   const [plays, setPlays] = useState([]);
   const [error, setError] = useState("");
 
@@ -13,7 +58,7 @@ function MLBModelBoardPage() {
 
     setError("");
 
-    fetch(`${API_URL}/model/mlb/today`, {
+    fetch(`${API_URL}__ENDPOINT__`, {
       signal: controller.signal,
     })
       .then((res) => {
@@ -47,7 +92,7 @@ function MLBModelBoardPage() {
   }, [plays]);
 
   const filteredPlays = useMemo(() => {
-    return sortedPlays.filter((play) => play.market === "Moneyline");
+    return sortedPlays.filter((play) => __MARKET_FILTER__);
   }, [sortedPlays]);
 
   const topPlay = filteredPlays[0];
@@ -138,7 +183,7 @@ function MLBModelBoardPage() {
   return (
     <div style={pageStyle}>
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
-        MLB Full Game Model
+        __TITLE__
       </h1>
 
       <MLBTabs />
@@ -151,15 +196,15 @@ function MLBModelBoardPage() {
       {error ? (
         <p style={{ color: "#f87171" }}>{error}</p>
       ) : filteredPlays.length === 0 ? (
-        <p>No MLB moneyline plays available.</p>
+        <p>__EMPTY__</p>
       ) : (
         <>
           {topPlay && (
             <section style={{ marginBottom: "45px" }}>
               <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-                Top Moneyline Play
+                __TOP__
               </h2>
-              {renderCard(topPlay, 0, "Top Moneyline Play", true)}
+              {renderCard(topPlay, 0, "__TOP__", true)}
             </section>
           )}
 
@@ -237,4 +282,23 @@ const reasonStyle = {
   lineHeight: "1.6",
 };
 
-export default MLBModelBoardPage;
+export default __COMPONENT__;
+'''
+
+for filename, config in pages.items():
+    content = template
+    for key, value in {
+        "__COMPONENT__": config["component"],
+        "__TITLE__": config["title"],
+        "__ENDPOINT__": config["endpoint"],
+        "__MARKET_FILTER__": config["market_filter"],
+        "__EMPTY__": config["empty"],
+        "__TOP__": config["top"],
+    }.items():
+        content = content.replace(key, value)
+
+    path = Path("src/pages") / filename
+    path.write_text(content)
+    print(f"Rebuilt {path}")
+
+print("Done rebuilding MLB pages.")

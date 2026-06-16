@@ -41,14 +41,16 @@ function MLBRunLinePage() {
   }, [API_URL]);
 
   const sortedPlays = useMemo(() => {
-    return [...plays].sort((a, b) => (b.edge || 0) - (a.edge || 0));
+    return [...plays].sort((a, b) => {
+      return (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0);
+    });
   }, [plays]);
 
-  const runLinePlays = useMemo(() => {
+  const filteredPlays = useMemo(() => {
     return sortedPlays.filter((play) => play.market === "Run Line");
   }, [sortedPlays]);
 
-  const topRunLine = runLinePlays[0];
+  const topPlay = filteredPlays[0];
 
   const getBadgeColor = (recommendation) => {
     if (recommendation === "Play") return "#16a34a";
@@ -58,7 +60,7 @@ function MLBRunLinePage() {
 
   const renderCard = (play, index, label = null, featured = false) => (
     <div
-      key={`${play.game}-${play.pick}-${index}`}
+      key={`${play.game}-${play.pick || play.recommendation}-${index}`}
       style={{
         backgroundColor: "#111827",
         border: featured ? "2px solid #22c55e" : "1px solid #374151",
@@ -67,36 +69,25 @@ function MLBRunLinePage() {
         boxShadow: featured ? "0 0 18px rgba(34, 197, 94, 0.35)" : "none",
       }}
     >
-      {label && (
-        <div
-          style={{
-            backgroundColor: "#22c55e",
-            color: "black",
-            padding: "6px 10px",
-            borderRadius: "8px",
-            display: "inline-block",
-            marginBottom: "16px",
-            fontWeight: "bold",
-            fontSize: "14px",
-          }}
-        >
-          {label}
-        </div>
-      )}
+      {label && <div style={labelStyle}>{label}</div>}
 
-      <h2 style={{ fontSize: "24px", marginBottom: "8px" }}>{play.game}</h2>
+      <h2 style={{ fontSize: "24px", marginBottom: "8px" }}>
+        {play.game}
+      </h2>
+
       <h3 style={{ fontSize: "20px", color: "#facc15", marginBottom: "12px" }}>
-        {play.pick}
+        {play.pick || play.recommendation}
       </h3>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
-        <span style={badgeStyle}>Market: {play.market}</span>
-        <span style={badgeStyle}>Odds: {play.odds}</span>
-        <span style={badgeStyle}>Edge: {play.edge}%</span>
-        <span style={badgeStyle}>Confidence: {play.confidence}</span>
-        <span style={badgeStyle}>Units: {play.units}</span>
-        <span style={badgeStyle}>Best Book: {play.best_sportsbook || "N/A"}</span>
-        <span style={badgeStyle}>Best Odds: {play.best_odds || "N/A"}</span>
+      <div style={badgeWrapStyle}>
+        <span style={badgeStyle}>Market: {play.market || "N/A"}</span>
+        <span style={badgeStyle}>Odds: {play.odds || "N/A"}</span>
+        <span style={badgeStyle}>Edge: {play.edge ?? "N/A"}%</span>
+        <span style={badgeStyle}>Confidence: {play.confidence ?? "N/A"}</span>
+        <span style={badgeStyle}>Units: {play.units ?? "N/A"}</span>
+        <span style={badgeStyle}>
+          Best Book: {play.best_sportsbook || play.sportsbook || "N/A"}
+        </span>
 
         <span
           style={{
@@ -104,99 +95,81 @@ function MLBRunLinePage() {
             backgroundColor: getBadgeColor(play.recommendation),
           }}
         >
-          {play.recommendation}
+          {play.recommendation || "N/A"}
         </span>
       </div>
 
-
       <div style={signalGridStyle}>
-
         <div>
           <h4>📈 Market</h4>
-          <p>Sharp: {play.sharp_signal}</p>
-          <p>Sharp Book: {play.sharp_book_signal}</p>
-          <p>CLV: {play.clv_status}</p>
+          <p>Sharp: {play.sharp_signal || "N/A"}</p>
+          <p>CLV: {play.clv_status || "N/A"}</p>
+          <p>Timing: {play.market_timing_signal || "N/A"}</p>
         </div>
 
         <div>
           <h4>⚾ Pitching</h4>
-          <p>Starter: {play.starting_pitcher}</p>
-          <p>Rating: {play.pitcher_rating}</p>
-          <p>Diff: {play.pitcher_rating_diff}</p>
+          <p>Starter: {play.starting_pitcher || play.away_starter || "N/A"}</p>
+          <p>Rating: {play.pitcher_rating || play.combined_pitcher_rating || "N/A"}</p>
+          <p>Diff: {play.pitcher_rating_diff || "N/A"}</p>
         </div>
 
         <div>
           <h4>🔥 Offense</h4>
-          <p>BVP: {play.bvp_signal}</p>
-          <p>Lineup: {play.lineup_status}</p>
-          <p>Power: {play.statcast_power_rating}</p>
+          <p>BVP: {play.bvp_signal || "N/A"}</p>
+          <p>Lineup: {play.lineup_status || "N/A"}</p>
+          <p>Power: {play.statcast_power_rating || "N/A"}</p>
         </div>
 
         <div>
           <h4>⚠️ Risk</h4>
-          <p>Bullpen: {play.high_leverage_risk}</p>
-          <p>Weather: {play.weather_risk}</p>
-          <p>Park: {play.ballpark}</p>
+          <p>Bullpen: {play.high_leverage_risk || play.bullpen_status || "N/A"}</p>
+          <p>Weather: {play.weather_risk || "N/A"}</p>
+          <p>Park: {play.ballpark || "N/A"}</p>
         </div>
-
       </div>
 
-      <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
-        {play.reason || "No model reason available."}
+      <p style={reasonStyle}>
+        {play.reason || play.sharp_reason || "No model reason available."}
       </p>
     </div>
   );
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        backgroundColor: "#0b0b0b",
-        minHeight: "100vh",
-        color: "white",
-      }}
-    >
+    <div style={pageStyle}>
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
         MLB Run Line Model
       </h1>
 
       <MLBTabs />
 
-      <p
-        style={{
-          color: "#9ca3af",
-          marginBottom: "30px",
-          maxWidth: "850px",
-          lineHeight: "1.6",
-        }}
-      >
-        MLB run line model focused on margin value, pitcher edge, bullpen strength
-        strength, lineup quality, Statcast signals, market movement, CLV, and
-        weather/park adjustments.
+      <p style={subtitleStyle}>
+        MLB model powered by pitching, bullpen, lineup quality, Statcast,
+        weather, sharp action, CLV, sportsbook comparison, and market timing.
       </p>
 
       {error ? (
         <p style={{ color: "#f87171" }}>{error}</p>
-      ) : runLinePlays.length === 0 ? (
+      ) : filteredPlays.length === 0 ? (
         <p>No MLB run line plays available.</p>
       ) : (
         <>
-          {topRunLine && (
+          {topPlay && (
             <section style={{ marginBottom: "45px" }}>
               <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
                 Top Run Line Play
               </h2>
-              {renderCard(topRunLine, 0, "Top Run Line Play", true)}
+              {renderCard(topPlay, 0, "Top Run Line Play", true)}
             </section>
           )}
 
           <section>
             <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-              Run Line Plays
+              Plays
             </h2>
 
             <div style={{ display: "grid", gap: "24px" }}>
-              {runLinePlays.map((play, index) =>
+              {filteredPlays.map((play, index) =>
                 renderCard(play, index, index < 3 ? "Top Play" : null)
               )}
             </div>
@@ -206,6 +179,38 @@ function MLBRunLinePage() {
     </div>
   );
 }
+
+const pageStyle = {
+  padding: "30px",
+  backgroundColor: "#0b0b0b",
+  minHeight: "100vh",
+  color: "white",
+};
+
+const subtitleStyle = {
+  color: "#9ca3af",
+  marginBottom: "30px",
+  maxWidth: "850px",
+  lineHeight: "1.6",
+};
+
+const labelStyle = {
+  backgroundColor: "#22c55e",
+  color: "black",
+  padding: "6px 10px",
+  borderRadius: "8px",
+  display: "inline-block",
+  marginBottom: "16px",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const badgeWrapStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+  marginBottom: "20px",
+};
 
 const badgeStyle = {
   backgroundColor: "#1f2937",
@@ -225,6 +230,11 @@ const signalGridStyle = {
   padding: "18px",
   borderRadius: "12px",
   marginBottom: "18px",
+};
+
+const reasonStyle = {
+  color: "#d1d5db",
+  lineHeight: "1.6",
 };
 
 export default MLBRunLinePage;
