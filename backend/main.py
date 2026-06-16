@@ -795,6 +795,118 @@ def get_nba_injury_reaction(team):
         "injury_notes": notes,
     }
 
+NBA_PROJECTED_ROTATIONS = {
+    # Placeholder v1.
+    # Next season this can be replaced with live starters / rotation feeds.
+    "Boston Celtics": {
+        "projected_starters": [
+            "Jrue Holiday",
+            "Derrick White",
+            "Jaylen Brown",
+            "Jayson Tatum",
+            "Kristaps Porzingis",
+        ],
+        "confirmed_starters": [],
+        "bench_depth_score": 86,
+        "rotation_status": "Projected",
+    },
+    "New York Knicks": {
+        "projected_starters": [
+            "Jalen Brunson",
+            "Mikal Bridges",
+            "OG Anunoby",
+            "Karl-Anthony Towns",
+            "Mitchell Robinson",
+        ],
+        "confirmed_starters": [],
+        "bench_depth_score": 78,
+        "rotation_status": "Projected",
+    },
+    "San Antonio Spurs": {
+        "projected_starters": [
+            "De'Aaron Fox",
+            "Devin Vassell",
+            "Harrison Barnes",
+            "Jeremy Sochan",
+            "Victor Wembanyama",
+        ],
+        "confirmed_starters": [],
+        "bench_depth_score": 74,
+        "rotation_status": "Projected",
+    },
+}
+
+
+def get_nba_rotation_protection(team):
+    rotation = NBA_PROJECTED_ROTATIONS.get(
+        team,
+        {
+            "projected_starters": [],
+            "confirmed_starters": [],
+            "bench_depth_score": 75,
+            "rotation_status": "Unknown",
+        }
+    )
+
+    projected = rotation.get("projected_starters", [])
+    confirmed = rotation.get("confirmed_starters", [])
+    bench_depth_score = rotation.get("bench_depth_score", 75)
+    rotation_status = rotation.get("rotation_status", "Unknown")
+
+    starter_changes = []
+
+    if confirmed:
+        for player in projected:
+            if player not in confirmed:
+                starter_changes.append(player)
+
+    adjustment = 0
+    notes = []
+
+    if confirmed and starter_changes:
+        for player in starter_changes:
+            impact = NBA_PLAYER_IMPACT.get(player, 1.0)
+            adjustment -= impact * 0.35
+            notes.append(
+                f"{player} missing from confirmed starters "
+                f"(-{round(impact * 0.35, 2)})."
+            )
+
+    if not confirmed:
+        notes.append("Starters projected, not confirmed.")
+
+    if bench_depth_score >= 85:
+        depth_grade = "Strong Bench"
+        adjustment += 0.4
+    elif bench_depth_score >= 75:
+        depth_grade = "Average Bench"
+    elif bench_depth_score >= 65:
+        depth_grade = "Thin Bench"
+        adjustment -= 0.5
+    else:
+        depth_grade = "Weak Bench"
+        adjustment -= 1.0
+
+    if starter_changes:
+        rotation_risk = "High"
+    elif rotation_status == "Confirmed":
+        rotation_risk = "Low"
+    elif rotation_status == "Projected":
+        rotation_risk = "Medium"
+    else:
+        rotation_risk = "Unknown"
+
+    return {
+        "starter_status": rotation_status,
+        "projected_starters": projected,
+        "confirmed_starters": confirmed,
+        "starter_changes": starter_changes,
+        "rotation_risk": rotation_risk,
+        "rotation_adjustment": round(adjustment, 2),
+        "depth_score": bench_depth_score,
+        "bench_depth_grade": depth_grade,
+        "rotation_notes": notes,
+    }
 
 def get_team_rating(team):
     return NBA_TEAM_RATINGS.get(team, 75)
@@ -3348,6 +3460,9 @@ def model_nba_today():
                             injury_reaction = get_nba_injury_reaction(team_name)
                             injury_reaction_adj = injury_reaction.get("injury_adjustment", 0)
 
+                            rotation_protection = get_nba_rotation_protection(team_name)
+                            rotation_adj = rotation_protection.get("rotation_adjustment", 0)
+
                             price_adj = get_price_adjustment(odds)
 
                             if market_key == "h2h":
@@ -3414,6 +3529,7 @@ def model_nba_today():
                                 + home_adj
                                 + injury_adj
                                 + injury_reaction_adj
+                                + rotation_adj
                                 + price_adj
                             )
 
@@ -3544,7 +3660,7 @@ def model_nba_today():
                             confidence,
                             recommendation
                         )
-
+                    
                         play = {
                             "game": game_name,
                             "sportsbook": sportsbook,
@@ -3561,6 +3677,26 @@ def model_nba_today():
                             "sport": "NBA",
                             "model_version": "nba_v2_market_engine",
 
+                            "injury_status": injury_reaction.get("injury_status"),
+                            "injury_adjustment": injury_reaction.get("injury_adjustment"),
+                            "injury_score": injury_reaction.get("injury_score"),
+                            "missing_players": injury_reaction.get("missing_players"),
+                            "questionable_players": injury_reaction.get("questionable_players"),
+                            "minutes_restrictions": injury_reaction.get("minutes_restrictions"),
+                            "star_player_risk": injury_reaction.get("star_player_risk"),
+                            "availability_grade": injury_reaction.get("availability_grade"),
+                            "injury_notes": injury_reaction.get("injury_notes"),
+
+                            "starter_status": rotation_protection.get("starter_status"),
+                            "projected_starters": rotation_protection.get("projected_starters"),
+                            "confirmed_starters": rotation_protection.get("confirmed_starters"),
+                            "starter_changes": rotation_protection.get("starter_changes"),
+                            "rotation_risk": rotation_protection.get("rotation_risk"),
+                            "rotation_adjustment": rotation_protection.get("rotation_adjustment"),
+                            "depth_score": rotation_protection.get("depth_score"),
+                            "bench_depth_grade": rotation_protection.get("bench_depth_grade"),
+                            "rotation_notes": rotation_protection.get("rotation_notes"),
+
                             "playoff_mode": True,
                             "playoff_adjustment": playoff_adj,
                             "playoff_reasons": playoff_data.get(
@@ -3570,7 +3706,6 @@ def model_nba_today():
 
                             "reason": reason.strip()
                         }
-
 
                         # Sharp sportsbook weighting
                         book_data = get_sharp_sportsbook_weight(
