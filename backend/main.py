@@ -7137,3 +7137,58 @@ def grade_nba_history():
 
     finally:
         db.close()
+
+@app.post("/refresh/nba")
+def refresh_nba_models():
+    results = {}
+
+    try:
+        full_game_response = model_nba_today()
+
+        results["full_game"] = {
+            "success": True,
+            "count": len(full_game_response.get("plays", [])),
+        }
+
+    except Exception as e:
+        results["full_game"] = {
+            "success": False,
+            "error": str(e),
+        }
+
+
+    try:
+        first_quarter_response = model_nba_first_quarter_today()
+
+        results["first_quarter"] = {
+            "success": True,
+            "count": len(first_quarter_response.get("plays", [])),
+        }
+
+    except Exception as e:
+        results["first_quarter"] = {
+            "success": False,
+            "error": str(e),
+        }
+
+
+    try:
+        grade_response = grade_nba_history()
+
+        results["grading"] = {
+            "success": True,
+            "response": grade_response,
+        }
+
+    except Exception as e:
+        results["grading"] = {
+            "success": False,
+            "error": str(e),
+        }
+
+
+    return {
+        "success": True,
+        "date": str(date.today()),
+        "results": results,
+    }
