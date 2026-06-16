@@ -2,14 +2,16 @@ import { useState } from "react";
 
 function AdminPage() {
   const [loading, setLoading] = useState("");
-  const [refreshResult, setRefreshResult] = useState(null);
-  const [gradeResult, setGradeResult] = useState(null);
+  const [mlbRefreshResult, setMlbRefreshResult] = useState(null);
+  const [nbaRefreshResult, setNbaRefreshResult] = useState(null);
+  const [mlbGradeResult, setMlbGradeResult] = useState(null);
+  const [nbaGradeResult, setNbaGradeResult] = useState(null);
   const [performance, setPerformance] = useState(null);
   const [error, setError] = useState("");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const runAction = async (label, url, options = {}) => {
+  const runAction = async (label, url, setter, options = {}) => {
     setLoading(label);
     setError("");
 
@@ -21,42 +23,12 @@ function AdminPage() {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      return data;
+      setter(data);
     } catch (err) {
       setError(err.message || "Action failed");
-      return null;
     } finally {
       setLoading("");
     }
-  };
-
-  const refreshMLB = async () => {
-    const data = await runAction(
-      "Refreshing MLB",
-      `${API_URL}/refresh/mlb`,
-      { method: "POST" }
-    );
-
-    if (data) setRefreshResult(data);
-  };
-
-  const gradeMLB = async () => {
-    const data = await runAction(
-      "Grading MLB",
-      `${API_URL}/grade/mlb/history`,
-      { method: "POST" }
-    );
-
-    if (data) setGradeResult(data);
-  };
-
-  const loadPerformance = async () => {
-    const data = await runAction(
-      "Loading Performance",
-      `${API_URL}/model/performance`
-    );
-
-    if (data) setPerformance(data);
   };
 
   return (
@@ -64,28 +36,96 @@ function AdminPage() {
       <h1>Admin Control Panel</h1>
 
       <p style={subtitleStyle}>
-        Refresh models, grade results, and check database performance status.
+        Internal controls for refreshing models, grading history, and checking performance.
       </p>
 
-      {error && (
-        <div style={errorStyle}>
-          {error}
+      {error && <div style={errorStyle}>{error}</div>}
+
+      <section style={sectionStyle}>
+        <h2>Model Refresh</h2>
+
+        <div style={buttonGridStyle}>
+          <button
+            style={buttonStyle}
+            onClick={() =>
+              runAction(
+                "Refreshing MLB",
+                `${API_URL}/refresh/mlb`,
+                setMlbRefreshResult,
+                { method: "POST" }
+              )
+            }
+            disabled={!!loading}
+          >
+            ⚾ Refresh MLB
+          </button>
+
+          <button
+            style={buttonStyle}
+            onClick={() =>
+              runAction(
+                "Refreshing NBA",
+                `${API_URL}/refresh/nba`,
+                setNbaRefreshResult,
+                { method: "POST" }
+              )
+            }
+            disabled={!!loading}
+          >
+            🏀 Refresh NBA
+          </button>
         </div>
-      )}
+      </section>
 
-      <div style={buttonGridStyle}>
-        <button style={buttonStyle} onClick={refreshMLB} disabled={!!loading}>
-          🔄 Refresh MLB
-        </button>
+      <section style={sectionStyle}>
+        <h2>Historical Grading</h2>
 
-        <button style={buttonStyle} onClick={gradeMLB} disabled={!!loading}>
-          📊 Grade MLB History
-        </button>
+        <div style={buttonGridStyle}>
+          <button
+            style={buttonStyle}
+            onClick={() =>
+              runAction(
+                "Grading MLB",
+                `${API_URL}/grade/mlb/history`,
+                setMlbGradeResult,
+                { method: "POST" }
+              )
+            }
+            disabled={!!loading}
+          >
+            📊 Grade MLB
+          </button>
 
-        <button style={buttonStyle} onClick={loadPerformance} disabled={!!loading}>
-          🧠 Check Performance
-        </button>
-      </div>
+          <button
+            style={buttonStyle}
+            onClick={() =>
+              runAction(
+                "Grading NBA",
+                `${API_URL}/grade/nba/history`,
+                setNbaGradeResult,
+                { method: "POST" }
+              )
+            }
+            disabled={!!loading}
+          >
+            📊 Grade NBA
+          </button>
+
+          <button
+            style={secondaryButtonStyle}
+            onClick={() =>
+              runAction(
+                "Loading Performance",
+                `${API_URL}/model/performance`,
+                setPerformance
+              )
+            }
+            disabled={!!loading}
+          >
+            🧠 Check Performance
+          </button>
+        </div>
+      </section>
 
       {loading && (
         <p style={{ color: "#facc15", marginTop: "20px" }}>
@@ -94,8 +134,10 @@ function AdminPage() {
       )}
 
       <div style={gridStyle}>
-        <ResultCard title="Refresh Result" data={refreshResult} />
-        <ResultCard title="Grade Result" data={gradeResult} />
+        <ResultCard title="MLB Refresh" data={mlbRefreshResult} />
+        <ResultCard title="NBA Refresh" data={nbaRefreshResult} />
+        <ResultCard title="MLB Grading" data={mlbGradeResult} />
+        <ResultCard title="NBA Grading" data={nbaGradeResult} />
         <PerformanceCard data={performance} />
       </div>
     </div>
@@ -110,9 +152,7 @@ function ResultCard({ title, data }) {
       {!data ? (
         <p style={mutedStyle}>No action run yet.</p>
       ) : (
-        <pre style={preStyle}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
+        <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>
       )}
     </div>
   );
@@ -134,12 +174,10 @@ function PerformanceCard({ data }) {
             {data.summary?.wins}-{data.summary?.losses}
           </p>
           <p>
-            <strong>Win Rate:</strong>{" "}
-            {data.summary?.win_rate}%
+            <strong>Win Rate:</strong> {data.summary?.win_rate}%
           </p>
           <p>
-            <strong>Units:</strong>{" "}
-            {data.summary?.units}
+            <strong>Units:</strong> {data.summary?.units}
           </p>
           <p>
             <strong>Pass Tracking:</strong>{" "}
@@ -167,15 +205,32 @@ const subtitleStyle = {
   marginBottom: "24px",
 };
 
+const sectionStyle = {
+  backgroundColor: "#0f172a",
+  border: "1px solid #1f2937",
+  borderRadius: "16px",
+  padding: "20px",
+  marginBottom: "22px",
+};
+
 const buttonGridStyle = {
   display: "flex",
   flexWrap: "wrap",
   gap: "14px",
-  marginBottom: "28px",
 };
 
 const buttonStyle = {
   backgroundColor: "#22c55e",
+  color: "black",
+  border: "none",
+  padding: "12px 18px",
+  borderRadius: "10px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle = {
+  backgroundColor: "#38bdf8",
   color: "black",
   border: "none",
   padding: "12px 18px",
@@ -214,6 +269,7 @@ const preStyle = {
   borderRadius: "10px",
   overflowX: "auto",
   whiteSpace: "pre-wrap",
+  maxHeight: "320px",
 };
 
 export default AdminPage;
