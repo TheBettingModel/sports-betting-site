@@ -19,57 +19,82 @@ import AdminPage from "./pages/AdminPage";
 function App() {
   const [openDropdown, setOpenDropdown] = useState(null);
 
+  const toggleDropdown = (name) => {
+    setOpenDropdown(openDropdown === name ? null : name);
+  };
+
+  const closeDropdown = () => {
+    setOpenDropdown(null);
+  };
+
   return (
-    <div style={{ backgroundColor: "#0b0b0b", minHeight: "100vh", color: "white" }}>
+    <div style={appStyle}>
       <nav style={navStyle}>
-        <div style={logoStyle}>The Betting Model</div>
+        <Link style={logoStyle} to="/" onClick={closeDropdown}>
+          The Betting Model
+        </Link>
 
-        <Link style={linkStyle} to="/">Home</Link>
-        <Link style={linkStyle} to="/auto-pod">Auto POD</Link>
+        <div style={leftNavStyle}>
+          <Link style={linkStyle} to="/" onClick={closeDropdown}>
+            Home
+          </Link>
 
-        <div style={dropdownStyle}>
-          <span
-            style={linkStyle}
-            onClick={() =>
-              setOpenDropdown(openDropdown === "nba" ? null : "nba")
-            }
-          >
-            NBA ▾
-          </span>
+          <Link style={linkStyle} to="/auto-pod" onClick={closeDropdown}>
+            Play of the Day
+          </Link>
 
-          {openDropdown === "nba" && (
-            <div style={dropdownMenuStyle}>
-              <Link style={dropdownLinkStyle} to="/model-board">Full Game</Link>
-              <Link style={dropdownLinkStyle} to="/nba-totals">Totals</Link>
-              <Link style={dropdownLinkStyle} to="/nba-1q">1st Quarter</Link>
-            </div>
-          )}
-        </div>
+          <div style={dropdownStyle}>
+            <button
+              style={dropdownButtonStyle}
+              onClick={() => toggleDropdown("models")}
+            >
+              Models ▾
+            </button>
 
-        <div style={dropdownStyle}>
-          <span
-            style={linkStyle}
-            onClick={() =>
-              setOpenDropdown(openDropdown === "mlb" ? null : "mlb")
-            }
-          >
-            MLB ▾
-          </span>
+            {openDropdown === "models" && (
+              <div style={dropdownMenuStyle}>
+                <div style={dropdownHeaderStyle}>NBA</div>
+                <Link style={dropdownLinkStyle} to="/model-board" onClick={closeDropdown}>
+                  NBA Full Game
+                </Link>
+                <Link style={dropdownLinkStyle} to="/nba-totals" onClick={closeDropdown}>
+                  NBA Totals
+                </Link>
+                <Link style={dropdownLinkStyle} to="/nba-1q" onClick={closeDropdown}>
+                  NBA 1Q
+                </Link>
 
-          {openDropdown === "mlb" && (
-            <div style={dropdownMenuStyle}>
-              <Link style={dropdownLinkStyle} to="/mlb-model">Moneyline</Link>
-              <Link style={dropdownLinkStyle} to="/mlb-runline">Run Line</Link>
-              <Link style={dropdownLinkStyle} to="/mlb-f5">F5 Model</Link>
-              <Link style={dropdownLinkStyle} to="/mlb-nrfi">NRFI/YRFI</Link>
-              <Link style={dropdownLinkStyle} to="/mlb-totals">Totals</Link>
-            </div>
-          )}
+                <div style={dropdownDividerStyle} />
+
+                <div style={dropdownHeaderStyle}>MLB</div>
+                <Link style={dropdownLinkStyle} to="/mlb-model" onClick={closeDropdown}>
+                  MLB Full Game
+                </Link>
+                <Link style={dropdownLinkStyle} to="/mlb-runline" onClick={closeDropdown}>
+                  MLB Run Line
+                </Link>
+                <Link style={dropdownLinkStyle} to="/mlb-f5" onClick={closeDropdown}>
+                  MLB F5
+                </Link>
+                <Link style={dropdownLinkStyle} to="/mlb-nrfi" onClick={closeDropdown}>
+                  MLB NRFI/YRFI
+                </Link>
+                <Link style={dropdownLinkStyle} to="/mlb-totals" onClick={closeDropdown}>
+                  MLB Totals
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={rightNavStyle}>
-          <Link style={linkStyle} to="/model-performance">Model Analytics</Link>
-          <Link style={adminLinkStyle} to="/admin">Admin</Link>
+          <Link style={linkStyle} to="/model-performance" onClick={closeDropdown}>
+            Analytics
+          </Link>
+
+          <Link style={adminLinkStyle} to="/admin" onClick={closeDropdown}>
+            Admin
+          </Link>
         </div>
       </nav>
 
@@ -94,10 +119,16 @@ function App() {
   );
 }
 
+const appStyle = {
+  backgroundColor: "#0b0b0b",
+  minHeight: "100vh",
+  color: "white",
+};
+
 const navStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "20px",
+  gap: "24px",
   padding: "18px 30px",
   borderBottom: "1px solid #1f2937",
   backgroundColor: "#111827",
@@ -108,8 +139,23 @@ const navStyle = {
 
 const logoStyle = {
   fontSize: "22px",
-  fontWeight: "bold",
-  marginRight: "20px",
+  fontWeight: "800",
+  marginRight: "12px",
+  color: "white",
+  textDecoration: "none",
+};
+
+const leftNavStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "18px",
+};
+
+const rightNavStyle = {
+  marginLeft: "auto",
+  display: "flex",
+  alignItems: "center",
+  gap: "18px",
 };
 
 const linkStyle = {
@@ -117,7 +163,7 @@ const linkStyle = {
   textDecoration: "none",
   cursor: "pointer",
   fontSize: "15px",
-  fontWeight: "500",
+  fontWeight: "600",
 };
 
 const adminLinkStyle = {
@@ -128,29 +174,46 @@ const adminLinkStyle = {
   fontWeight: "700",
 };
 
-const rightNavStyle = {
-  marginLeft: "auto",
-  display: "flex",
-  alignItems: "center",
-  gap: "20px",
-};
-
 const dropdownStyle = {
   position: "relative",
-  display: "inline-block",
 };
 
-constropdownMenuStyle = {
+const dropdownButtonStyle = {
+  background: "transparent",
+  border: "none",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "15px",
+  fontWeight: "600",
+  padding: 0,
+};
+
+const dropdownMenuStyle = {
   position: "absolute",
-  top: "100%",
+  top: "32px",
   left: 0,
   backgroundColor: "#111827",
-  minWidth: "190px",
+  minWidth: "220px",
   border: "1px solid #374151",
-  borderRadius: "10px",
-  padding: "8px 0",
+  borderRadius: "14px",
+  padding: "10px 0",
   zIndex: 1000,
-  boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+  boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
+};
+
+const dropdownHeaderStyle = {
+  color: "#9ca3af",
+  fontSize: "12px",
+  fontWeight: "800",
+  padding: "8px 14px 6px",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const dropdownDividerStyle = {
+  height: "1px",
+  backgroundColor: "#374151",
+  margin: "8px 0",
 };
 
 const dropdownLinkStyle = {
