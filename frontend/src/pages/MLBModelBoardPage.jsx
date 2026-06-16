@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 function MLBModelBoardPage() {
   const [plays, setPlays] = useState([]);
@@ -10,25 +11,18 @@ function MLBModelBoardPage() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000);
 
-    setError("");
-
     fetch(`${API_URL}/model/mlb/today`, {
       signal: controller.signal,
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.plays)) {
           setPlays(data.plays);
         } else {
-          setError(data.error || "Failed to load MLB model.");
+          setError("Failed to load MLB model.");
         }
       })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        console.error("MLB model fetch error:", err);
+      .catch(() => {
         setError("Failed to load MLB model.");
       })
       .finally(() => clearTimeout(timer));
@@ -40,188 +34,217 @@ function MLBModelBoardPage() {
   }, [API_URL]);
 
   const sortedPlays = useMemo(() => {
-    return [...plays].sort((a, b) => (b.edge || 0) - (a.edge || 0));
+    return [...plays].sort(
+      (a, b) => (b.edge || 0) - (a.edge || 0)
+    );
   }, [plays]);
 
-  const moneylinePlays = useMemo(() => {
-    return sortedPlays.filter((play) => play.market === "Moneyline");
-  }, [sortedPlays]);
+  const moneylinePlays = sortedPlays.filter(
+    (play) => play.market === "Moneyline"
+  );
 
-  const topMoneyline = moneylinePlays[0];
+  const topPlay = moneylinePlays[0];
 
-  const getBadgeColor = (recommendation) => {
-    if (recommendation === "Play") return "#16a34a";
-    if (recommendation === "Lean") return "#f59e0b";
-    return "#6b7280";
-  };
-
-  const renderCard = (play, index, label = null, featured = false) => (
+  const renderCard = (play, index, featured = false) => (
     <div
       key={`${play.game}-${play.pick}-${index}`}
       style={{
         backgroundColor: "#111827",
-        border: featured ? "2px solid #22c55e" : "1px solid #374151",
+        border: featured
+          ? "2px solid #22c55e"
+          : "1px solid #374151",
         borderRadius: "16px",
         padding: "24px",
-        boxShadow: featured ? "0 0 18px rgba(34, 197, 94, 0.35)" : "none",
       }}
     >
-      {label && (
-        <div
-          style={{
-            backgroundColor: "#22c55e",
-            color: "black",
-            padding: "6px 10px",
-            borderRadius: "8px",
-            display: "inline-block",
-            marginBottom: "16px",
-            fontWeight: "bold",
-            fontSize: "14px",
-          }}
-        >
-          {label}
+      {featured && (
+        <div style={labelStyle}>
+          Top Moneyline Play
         </div>
       )}
 
-      <h2 style={{ fontSize: "24px", marginBottom: "8px" }}>{play.game}</h2>
-      <h3 style={{ fontSize: "20px", color: "#facc15", marginBottom: "12px" }}>
+      <h2>{play.game}</h2>
+
+      <h3 style={{ color: "#facc15" }}>
         {play.pick}
       </h3>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
-        <span style={badgeStyle}>Market: {play.market}</span>
+      <div style={badgeWrapStyle}>
         <span style={badgeStyle}>Odds: {play.odds}</span>
         <span style={badgeStyle}>Edge: {play.edge}%</span>
-        <span style={badgeStyle}>Confidence: {play.confidence}</span>
-        <span style={badgeStyle}>Units: {play.units}</span>
-        <span style={badgeStyle}>Best Book: {play.best_sportsbook || "N/A"}</span>
-        <span style={badgeStyle}>Best Odds: {play.best_odds || "N/A"}</span>
-
-        <span
-          style={{
-            ...badgeStyle,
-            backgroundColor: getBadgeColor(play.recommendation),
-          }}
-        >
+        <span style={badgeStyle}>
+          Confidence: {play.confidence}
+        </span>
+        <span style={badgeStyle}>
+          Units: {play.units}
+        </span>
+        <span style={badgeStyle}>
           {play.recommendation}
         </span>
       </div>
 
-
       <div style={signalGridStyle}>
-
         <div>
           <h4>📈 Market</h4>
           <p>Sharp: {play.sharp_signal}</p>
-          <p>Sharp Book: {play.sharp_book_signal}</p>
           <p>CLV: {play.clv_status}</p>
         </div>
 
         <div>
           <h4>⚾ Pitching</h4>
-          <p>Starter: {play.starting_pitcher}</p>
+          <p>{play.starting_pitcher}</p>
           <p>Rating: {play.pitcher_rating}</p>
-          <p>Diff: {play.pitcher_rating_diff}</p>
         </div>
 
         <div>
           <h4>🔥 Offense</h4>
+          <p>{play.lineup_status}</p>
           <p>BVP: {play.bvp_signal}</p>
-          <p>Lineup: {play.lineup_status}</p>
-          <p>Power: {play.statcast_power_rating}</p>
         </div>
 
         <div>
           <h4>⚠️ Risk</h4>
-          <p>Bullpen: {play.high_leverage_risk}</p>
-          <p>Weather: {play.weather_risk}</p>
-          <p>Park: {play.ballpark}</p>
+          <p>{play.weather_risk}</p>
+          <p>{play.high_leverage_risk}</p>
         </div>
-
       </div>
 
-      <p style={{ color: "#d1d5db", lineHeight: "1.6" }}>
+      <p style={reasonStyle}>
         {play.reason || "No model reason available."}
       </p>
     </div>
   );
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        backgroundColor: "#0b0b0b",
-        minHeight: "100vh",
-        color: "white",
-      }}
-    >
-      <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
+    <div style={pageStyle}>
+
+      <h1 style={{ fontSize: "38px" }}>
         MLB Full Game Model
       </h1>
 
-      <p
-        style={{
-          color: "#9ca3af",
-          marginBottom: "30px",
-          maxWidth: "850px",
-          lineHeight: "1.6",
-        }}
-      >
-        Full game MLB model focused on moneyline value, pitcher edge, bullpen
-        strength, lineup quality, Statcast signals, market movement, CLV, and
-        weather/park adjustments.
+      <div style={tabContainerStyle}>
+        <Link style={activeTabStyle} to="/mlb-model">
+          Full Game
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-runline">
+          Run Line
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-f5">
+          F5
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-nrfi">
+          NRFI/YRFI
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-totals">
+          Totals
+        </Link>
+      </div>
+
+      <p style={subtitleStyle}>
+        MLB model powered by pitching, bullpen,
+        Statcast, lineup quality, weather,
+        sharp action, CLV, and market movement.
       </p>
 
       {error ? (
-        <p style={{ color: "#f87171" }}>{error}</p>
-      ) : moneylinePlays.length === 0 ? (
-        <p>No MLB moneyline plays available.</p>
+        <p style={{ color: "#f87171" }}>
+          {error}
+        </p>
       ) : (
         <>
-          {topMoneyline && (
-            <section style={{ marginBottom: "45px" }}>
-              <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-                Top Moneyline Play
-              </h2>
-              {renderCard(topMoneyline, 0, "Top Moneyline Play", true)}
-            </section>
-          )}
+          {topPlay &&
+            renderCard(topPlay, 0, true)
+          }
 
-          <section>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-              Moneyline Plays
-            </h2>
-
-            <div style={{ display: "grid", gap: "24px" }}>
-              {moneylinePlays.map((play, index) =>
-                renderCard(play, index, index < 3 ? "Top Play" : null)
-              )}
-            </div>
-          </section>
+          <div style={gridStyle}>
+            {moneylinePlays.slice(1).map(
+              (play, index) =>
+                renderCard(play, index)
+            )}
+          </div>
         </>
       )}
+
     </div>
   );
 }
 
+const pageStyle = {
+  padding: "30px",
+  backgroundColor: "#0b0b0b",
+  minHeight: "100vh",
+  color: "white",
+};
+
+const subtitleStyle = {
+  color: "#9ca3af",
+  marginBottom: "30px",
+};
+
+const tabContainerStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "12px",
+  marginBottom: "28px",
+};
+
+const tabStyle = {
+  backgroundColor: "#1f2937",
+  color: "white",
+  textDecoration: "none",
+  padding: "10px 16px",
+  borderRadius: "999px",
+  border: "1px solid #374151",
+  fontWeight: "bold",
+};
+
+const activeTabStyle = {
+  ...tabStyle,
+  backgroundColor: "#22c55e",
+  color: "black",
+};
+
+const labelStyle = {
+  backgroundColor: "#22c55e",
+  color: "black",
+  padding: "8px",
+  borderRadius: "8px",
+  display: "inline-block",
+};
+
+const badgeWrapStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+};
+
 const badgeStyle = {
   backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  color: "white",
   padding: "8px 10px",
   borderRadius: "999px",
-  fontSize: "14px",
-  fontWeight: "bold",
 };
 
 const signalGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(180px,1fr))",
   gap: "16px",
-  backgroundColor: "#020617",
-  padding: "18px",
-  borderRadius: "12px",
-  marginBottom: "18px",
+  marginTop: "20px",
+};
+
+const reasonStyle = {
+  color: "#d1d5db",
+  lineHeight: "1.6",
+};
+
+const gridStyle = {
+  display: "grid",
+  gap: "24px",
+  marginTop: "30px",
 };
 
 export default MLBModelBoardPage;
