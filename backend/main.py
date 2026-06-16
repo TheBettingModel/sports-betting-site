@@ -5306,6 +5306,109 @@ def model_mlb_play_of_the_day():
         "model_version": "mlb_auto_pod_v1"
     }
 
+def get_best_candidate_from_response(response):
+    candidates = []
+
+    for play in response.get("plays", []):
+        if play.get("recommendation") in ["Play", "Lean"]:
+            candidates.append(play)
+
+    if not candidates:
+        return None
+
+    for play in candidates:
+        if not play.get("auto_pod_score"):
+            play["auto_pod_score"] = get_auto_pod_score(play)
+
+    candidates = sorted(
+        candidates,
+        key=lambda x: x.get("auto_pod_score", 0),
+        reverse=True
+    )
+
+    return candidates[0]
+
+
+@app.get("/model/nba/play-of-the-day")
+def model_nba_play_of_the_day():
+    candidates = []
+
+    full_game = model_nba_today()
+    first_q = model_nba_first_quarter_today()
+
+    for play in full_game.get("plays", []):
+        if play.get("recommendation") in ["Play", "Lean"]:
+            candidates.append(play)
+
+    for play in first_q.get("plays", []):
+        if play.get("recommendation") in ["Play", "Lean"]:
+            candidates.append(play)
+
+    if not candidates:
+        return {
+            "play_of_the_day": None,
+            "candidates": [],
+            "message": "No qualified NBA play of the day found.",
+            "model_version": "nba_auto_pod_v1"
+        }
+
+    for play in candidates:
+        play["auto_pod_score"] = get_auto_pod_score(play)
+
+    candidates = sorted(
+        candidates,
+        key=lambda x: x.get("auto_pod_score", 0),
+        reverse=True
+    )
+
+    return {
+        "play_of_the_day": candidates[0],
+        "candidates": candidates[:10],
+        "count": len(candidates),
+        "model_version": "nba_auto_pod_v1"
+    }
+
+
+@app.get("/model/play-of-the-day")
+def model_combined_play_of_the_day():
+    mlb_response = model_mlb_play_of_the_day()
+    nba_response = model_nba_play_of_the_day()
+
+    mlb_pod = mlb_response.get("play_of_the_day")
+    nba_pod = nba_response.get("play_of_the_day")
+
+    candidates = []
+
+    if mlb_pod:
+        mlb_pod["pod_sport"] = "MLB"
+        candidates.append(mlb_pod)
+
+    if nba_pod:
+        nba_pod["pod_sport"] = "NBA"
+        candidates.append(nba_pod)
+
+    if not candidates:
+        return {
+            "overall_pod": None,
+            "mlb_pod": mlb_pod,
+            "nba_pod": nba_pod,
+            "message": "No qualified play of the day found.",
+            "model_version": "combined_auto_pod_v1"
+        }
+
+    overall = sorted(
+        candidates,
+        key=lambda x: x.get("auto_pod_score", 0),
+        reverse=True
+    )[0]
+
+    return {
+        "overall_pod": overall,
+        "mlb_pod": mlb_pod,
+        "nba_pod": nba_pod,
+        "model_version": "combined_auto_pod_v1"
+    }
+
 @app.get("/model/mlb/today")
 def model_mlb_today():
     cached = get_cache("mlb_model_v2")
