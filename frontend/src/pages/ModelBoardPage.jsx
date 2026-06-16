@@ -1,355 +1,266 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
-function ModelBoardPage() {
-  const [games, setGames] = useState([]);
+function MLBModelBoardPage() {
+  const [plays, setPlays] = useState([]);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("All");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const badgeStyle = {
-    backgroundColor: "#1f2937",
-    border: "1px solid #374151",
-    color: "white",
-    padding: "8px 10px",
-    borderRadius: "999px",
-    fontSize: "14px",
-    fontWeight: "bold",
-  };
-
-  const miniStatStyle = {
-    backgroundColor: "#111827",
-    border: "1px solid #374151",
-    borderRadius: "10px",
-    padding: "12px",
-  };
-
   useEffect(() => {
-    fetch(`${API_URL}/model/nba/today`)
-      .then((res) => res.json())
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+
+    setError("");
+
+    fetch(`${API_URL}/model/mlb/today`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
-        if (data.plays) {
-          setGames(data.plays);
+        if (Array.isArray(data.plays)) {
+          setPlays(data.plays);
         } else {
-          setError("Failed to load NBA model.");
+          setError(data.error || "Failed to load MLB model.");
         }
       })
-      .catch(() => {
-        setError("Failed to load NBA model.");
-      });
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.error("MLB model fetch error:", err);
+        setError("Failed to load MLB model.");
+      })
+      .finally(() => clearTimeout(timer));
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [API_URL]);
 
-  const sortedGames = useMemo(() => {
-    return [...games].sort((a, b) => {
-      return (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0);
-    });
-  }, [games]);
+  const sortedPlays = useMemo(() => {
+    return [...plays].sort((a, b) => (b.edge || 0) - (a.edge || 0));
+  }, [plays]);
 
-const fullGameMarkets = useMemo(() => {
-  return sortedGames.filter(
-    (game) => game.market === "Moneyline" || game.market === "Spread"
-  );
-}, [sortedGames]);
+  const moneylinePlays = useMemo(() => {
+    return sortedPlays.filter((play) => play.market === "Moneyline");
+  }, [sortedPlays]);
 
-const filteredGames = useMemo(() => {
-  if (filter === "All") return fullGameMarkets;
+  const topMoneyline = moneylinePlays[0];
 
-  return fullGameMarkets.filter(
-    (game) => game.recommendation === filter
-  );
-}, [fullGameMarkets, filter]);
-
-  const topPlayKeys = useMemo(() => {
-    const topThree = sortedGames
-      .filter((game) => game.recommendation === "Play")
-      .slice(0, 3);
-
-    return new Set(
-      topThree.map((game) => `${game.game}-${game.pick}-${game.market}`)
-    );
-  }, [sortedGames]);
-
-  const isTopPlay = (game) => {
-    return topPlayKeys.has(`${game.game}-${game.pick}-${game.market}`);
+  const getBadgeColor = (recommendation) => {
+    if (recommendation === "Play") return "#16a34a";
+    if (recommendation === "Lean") return "#f59e0b";
+    return "#6b7280";
   };
 
-  const getRecommendedUnits = (edge) => {
-    const edgeValue = parseFloat(String(edge).replace("%", ""));
-
-    if (isNaN(edgeValue)) return "1 Unit";
-    if (edgeValue >= 4) return "2 Units";
-    if (edgeValue >= 2) return "1.5 Units";
-    return "1 Unit";
-  };
-
-  return (
+  const renderCard = (play, index, label = null, featured = false) => (
     <div
+      key={`${play.game}-${play.pick}-${index}`}
       style={{
-        padding: "30px",
-        backgroundColor: "#0b0b0b",
-        minHeight: "100vh",
-        color: "white",
+        backgroundColor: "#111827",
+        border: featured ? "2px solid #22c55e" : "1px solid #374151",
+        borderRadius: "16px",
+        padding: "24px",
+        boxShadow: featured ? "0 0 18px rgba(34, 197, 94, 0.35)" : "none",
       }}
     >
-      <h1
-        style={{
-          marginBottom: "20px",
-          fontSize: "38px",
-        }}
-      >
-        NBA Full Game Model
-      </h1>
+      {label && <div style={labelStyle}>{label}</div>}
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "10px",
-          marginBottom: "30px",
-        }}
-      >
-        {["All", "Play", "Lean", "Pass"].map((item) => (
-          <button
-            key={item}
-            onClick={() => setFilter(item)}
-            style={{
-              backgroundColor: filter === item ? "#e10600" : "#1f2937",
-              color: "white",
-              border: "1px solid #374151",
-              borderRadius: "999px",
-              padding: "10px 14px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            {item === "All" ? "All" : `${item}s`}
-          </button>
-        ))}
-      </div>
+      <h2 style={{ marginBottom: "8px" }}>{play.game}</h2>
 
-      {error ? (
-        <p>{error}</p>
-      ) : filteredGames.length === 0 ? (
-        <p>No {filter.toLowerCase()} available.</p>
-      ) : (
-        <div
+      <h3 style={{ color: "#facc15", marginBottom: "16px" }}>
+        {play.pick}
+      </h3>
+
+      <div style={badgeWrapStyle}>
+        <span style={badgeStyle}>Odds: {play.odds}</span>
+        <span style={badgeStyle}>Edge: {play.edge}%</span>
+        <span style={badgeStyle}>Confidence: {play.confidence}</span>
+        <span style={badgeStyle}>Units: {play.units}</span>
+        <span
           style={{
-            display: "grid",
-            gap: "24px",
+            ...badgeStyle,
+            backgroundColor: getBadgeColor(play.recommendation),
           }}
         >
-          {filteredGames.map((game, index) => (
-            <div
-              key={index}
-              style={{
-                backgroundColor: "#111827",
-                border: isTopPlay(game)
-                  ? "2px solid #e10600"
-                  : "1px solid #374151",
-                borderRadius: "16px",
-                padding: "24px",
-                boxShadow: isTopPlay(game)
-                  ? "0 0 15px rgba(225, 6, 0, 0.35)"
-                  : "none",
-              }}
-            >
-              {isTopPlay(game) && (
-                <div
-                  style={{
-                    backgroundColor: "#e10600",
-                    color: "white",
-                    padding: "6px 10px",
-                    borderRadius: "8px",
-                    display: "inline-block",
-                    marginBottom: "16px",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
-                  Top Play
-                </div>
-              )}
+          {play.recommendation}
+        </span>
+      </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <p
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: "14px",
-                    marginBottom: "6px",
-                  }}
-                >
-                  {game.market} • {game.sportsbook}
-                </p>
-
-                <h2 style={{ marginBottom: "8px" }}>{game.game}</h2>
-
-                <h1
-                  style={{
-                    color: "#22c55e",
-                    marginBottom: "12px",
-                    fontSize: "30px",
-                  }}
-                >
-                  {game.pick}
-                </h1>
-
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <span style={badgeStyle}>Odds: {game.odds}</span>
-
-                  <span style={badgeStyle}>Edge: {game.edge}%</span>
-
-                  <span style={badgeStyle}>
-                    Confidence: {game.confidence}%
-                  </span>
-
-                  <span style={badgeStyle}>
-                    Units: {getRecommendedUnits(game.edge)}
-                  </span>
-
-                  <span
-                    style={{
-                      ...badgeStyle,
-                      backgroundColor:
-                        game.recommendation === "Play"
-                          ? "#166534"
-                          : game.recommendation === "Lean"
-                          ? "#854d0e"
-                          : "#374151",
-                    }}
-                  >
-                    {game.recommendation}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid #334155",
-                  borderRadius: "10px",
-                  padding: "14px",
-                  marginBottom: "16px",
-                }}
-              >
-                <h3 style={{ marginTop: 0 }}>Why We Like It</h3>
-
-                <p
-                  style={{
-                    color: "#d1d5db",
-                    lineHeight: "1.7",
-                  }}
-                >
-                  {game.reason || "Model edge based on pricing, team rating, market value, and playoff environment."}
-                </p>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: "12px",
-                  marginBottom: "16px",
-                }}
-              >
-                <div style={miniStatStyle}>
-                  <strong>Implied Probability</strong>
-                  <p>{game.implied_probability}%</p>
-                </div>
-
-                <div style={miniStatStyle}>
-                  <strong>Model Probability</strong>
-                  <p>{game.model_probability}%</p>
-                </div>
-
-                <div style={miniStatStyle}>
-                  <strong>Playoff Adjustment</strong>
-                  <p>{game.playoff_adjustment ?? "N/A"}</p>
-                </div>
-
-                <div style={miniStatStyle}>
-                  <strong>Recommendation</strong>
-                  <p>{game.recommendation}</p>
-                </div>
-              </div>
-
-              <hr
-                style={{
-                  borderColor: "#374151",
-                  margin: "20px 0",
-                }}
-              />
-
-              <h3>Model Details</h3>
-
-              <p>
-                <strong>Market:</strong> {game.market}
-              </p>
-
-              <p>
-                <strong>Sportsbook:</strong> {game.sportsbook}
-              </p>
-
-              <p>
-                <strong>Pick:</strong> {game.pick}
-              </p>
-
-              <p>
-                <strong>Odds:</strong> {game.odds}
-              </p>
-
-              <p>
-                <strong>Edge:</strong> {game.edge}%
-              </p>
-
-              <p>
-                <strong>Confidence:</strong> {game.confidence}%
-              </p>
-
-              <p>
-                <strong>Recommended Units:</strong>{" "}
-                {getRecommendedUnits(game.edge)}
-              </p>
-
-              {game.playoff_mode && (
-                <>
-                  <hr
-                    style={{
-                      borderColor: "#374151",
-                      margin: "20px 0",
-                    }}
-                  />
-
-                  <h3>Playoff Mode</h3>
-
-                  <p>
-                    <strong>Playoff Adjustment:</strong>{" "}
-                    {game.playoff_adjustment ?? "N/A"}
-                  </p>
-
-                  {game.playoff_reasons &&
-                    game.playoff_reasons.length > 0 && (
-                      <ul style={{ color: "#d1d5db", lineHeight: "1.6" }}>
-                        {game.playoff_reasons.map((reason, idx) => (
-                          <li key={idx}>{reason}</li>
-                        ))}
-                      </ul>
-                    )}
-                </>
-              )}
-            </div>
-          ))}
+      <div style={miniGridStyle}>
+        <div style={miniBoxStyle}>
+          <strong>Sharp</strong>
+          <p>{play.sharp_signal || "N/A"}</p>
         </div>
+
+        <div style={miniBoxStyle}>
+          <strong>CLV</strong>
+          <p>{play.clv_status || "N/A"}</p>
+        </div>
+
+        <div style={miniBoxStyle}>
+          <strong>Timing</strong>
+          <p>{play.market_timing_signal || "N/A"}</p>
+        </div>
+
+        <div style={miniBoxStyle}>
+          <strong>Best Book</strong>
+          <p>{play.best_sportsbook || play.sportsbook || "N/A"}</p>
+        </div>
+      </div>
+
+      <p style={reasonStyle}>
+        {play.reason || play.sharp_reason || "No model reason available."}
+      </p>
+    </div>
+  );
+
+  return (
+    <div style={pageStyle}>
+      <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
+        MLB Full Game Model
+      </h1>
+
+      <div style={tabContainerStyle}>
+        <Link style={activeTabStyle} to="/mlb-model">
+          Full Game
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-runline">
+          Run Line
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-f5">
+          F5
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-nrfi">
+          NRFI/YRFI
+        </Link>
+
+        <Link style={tabStyle} to="/mlb-totals">
+          Totals
+        </Link>
+      </div>
+
+      <p style={subtitleStyle}>
+        Full game MLB model focused on moneyline value, pitcher edge, bullpen
+        strength, lineup quality, Statcast signals, market movement, CLV, and
+        weather/park adjustments.
+      </p>
+
+      {error ? (
+        <p style={{ color: "#f87171" }}>{error}</p>
+      ) : moneylinePlays.length === 0 ? (
+        <p>No MLB moneyline plays available.</p>
+      ) : (
+        <>
+          {topMoneyline &&
+            renderCard(topMoneyline, 0, "Top MLB Moneyline", true)}
+
+          <div style={gridStyle}>
+            {moneylinePlays.slice(1).map((play, index) =>
+              renderCard(play, index + 1)
+            )}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-export default ModelBoardPage;
+const pageStyle = {
+  padding: "30px",
+  backgroundColor: "#0b0b0b",
+  minHeight: "100vh",
+  color: "white",
+};
+
+const subtitleStyle = {
+  color: "#9ca3af",
+  marginBottom: "30px",
+  maxWidth: "850px",
+  lineHeight: "1.6",
+};
+
+const tabContainerStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "12px",
+  marginBottom: "28px",
+};
+
+const tabStyle = {
+  backgroundColor: "#1f2937",
+  color: "white",
+  textDecoration: "none",
+  padding: "10px 16px",
+  borderRadius: "999px",
+  fontWeight: "bold",
+  border: "1px solid #374151",
+};
+
+const activeTabStyle = {
+  ...tabStyle,
+  backgroundColor: "#22c55e",
+  color: "black",
+};
+
+const labelStyle = {
+  backgroundColor: "#22c55e",
+  color: "black",
+  padding: "6px 10px",
+  borderRadius: "8px",
+  display: "inline-block",
+  marginBottom: "16px",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const badgeWrapStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "10px",
+  marginBottom: "18px",
+};
+
+const badgeStyle = {
+  backgroundColor: "#1f2937",
+  border: "1px solid #374151",
+  color: "white",
+  padding: "8px 10px",
+  borderRadius: "999px",
+  fontSize: "14px",
+  fontWeight: "bold",
+};
+
+const miniGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: "12px",
+  marginBottom: "18px",
+};
+
+const miniBoxStyle = {
+  backgroundColor: "#020617",
+  border: "1px solid #374151",
+  borderRadius: "12px",
+  padding: "12px",
+};
+
+const reasonStyle = {
+  color: "#d1d5db",
+  lineHeight: "1.6",
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: "20px",
+  marginTop: "24px",
+};
+
+export default MLBModelBoardPage;
