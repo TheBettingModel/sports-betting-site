@@ -908,6 +908,105 @@ def get_nba_rotation_protection(team):
         "rotation_notes": notes,
     }
 
+NBA_REST_PROFILE = {
+    # Placeholder v1.
+    # Next season this can be replaced with live schedule/rest data.
+    "Boston Celtics": {
+        "back_to_back": False,
+        "three_in_four": False,
+        "travel_spot": "Normal",
+        "rest_days": 2,
+        "opponent_rest_days": 2,
+    },
+    "New York Knicks": {
+        "back_to_back": False,
+        "three_in_four": False,
+        "travel_spot": "Normal",
+        "rest_days": 2,
+        "opponent_rest_days": 2,
+    },
+    "San Antonio Spurs": {
+        "back_to_back": False,
+        "three_in_four": False,
+        "travel_spot": "Normal",
+        "rest_days": 2,
+        "opponent_rest_days": 2,
+    },
+}
+
+
+def get_nba_rest_fatigue(team):
+    profile = NBA_REST_PROFILE.get(
+        team,
+        {
+            "back_to_back": False,
+            "three_in_four": False,
+            "travel_spot": "Unknown",
+            "rest_days": 1,
+            "opponent_rest_days": 1,
+        }
+    )
+
+    adjustment = 0
+    notes = []
+
+    back_to_back = profile.get("back_to_back", False)
+    three_in_four = profile.get("three_in_four", False)
+    travel_spot = profile.get("travel_spot", "Unknown")
+    rest_days = int(profile.get("rest_days", 1) or 1)
+    opponent_rest_days = int(profile.get("opponent_rest_days", 1) or 1)
+
+    if back_to_back:
+        adjustment -= 1.0
+        notes.append("Team is on a back-to-back (-1.0).")
+
+    if three_in_four:
+        adjustment -= 0.8
+        notes.append("Team is playing 3 games in 4 nights (-0.8).")
+
+    if travel_spot == "Long Travel":
+        adjustment -= 0.7
+        notes.append("Long travel spot creates fatigue risk (-0.7).")
+    elif travel_spot == "Home Stand":
+        adjustment += 0.3
+        notes.append("Home stand creates stability boost (+0.3).")
+
+    rest_advantage = rest_days - opponent_rest_days
+
+    if rest_advantage >= 2:
+        adjustment += 0.8
+        notes.append("Strong rest advantage (+0.8).")
+    elif rest_advantage == 1:
+        adjustment += 0.4
+        notes.append("Small rest advantage (+0.4).")
+    elif rest_advantage <= -2:
+        adjustment -= 0.8
+        notes.append("Major rest disadvantage (-0.8).")
+    elif rest_advantage == -1:
+        adjustment -= 0.4
+        notes.append("Small rest disadvantage (-0.4).")
+
+    if adjustment >= 0.8:
+        rest_grade = "Rest Advantage"
+    elif adjustment <= -1.2:
+        rest_grade = "High Fatigue Risk"
+    elif adjustment < 0:
+        rest_grade = "Minor Fatigue Risk"
+    else:
+        rest_grade = "Neutral Rest"
+
+    return {
+        "back_to_back": back_to_back,
+        "three_in_four": three_in_four,
+        "travel_spot": travel_spot,
+        "rest_days": rest_days,
+        "opponent_rest_days": opponent_rest_days,
+        "rest_advantage": rest_advantage,
+        "fatigue_adjustment": round(adjustment, 2),
+        "rest_grade": rest_grade,
+        "rest_notes": notes,
+    }
+
 def get_team_rating(team):
     return NBA_TEAM_RATINGS.get(team, 75)
 
@@ -3463,6 +3562,9 @@ def model_nba_today():
                             rotation_protection = get_nba_rotation_protection(team_name)
                             rotation_adj = rotation_protection.get("rotation_adjustment", 0)
 
+                            rest_fatigue = get_nba_rest_fatigue(team_name)
+                            fatigue_adj = rest_fatigue.get("fatigue_adjustment", 0)
+
                             price_adj = get_price_adjustment(odds)
 
                             if market_key == "h2h":
@@ -3530,6 +3632,7 @@ def model_nba_today():
                                 + injury_adj
                                 + injury_reaction_adj
                                 + rotation_adj
+                                + fatigue_adj
                                 + price_adj
                             )
 
@@ -3696,6 +3799,16 @@ def model_nba_today():
                             "depth_score": rotation_protection.get("depth_score"),
                             "bench_depth_grade": rotation_protection.get("bench_depth_grade"),
                             "rotation_notes": rotation_protection.get("rotation_notes"),
+
+                            "back_to_back": rest_fatigue.get("back_to_back"),
+                            "three_in_four": rest_fatigue.get("three_in_four"),
+                            "travel_spot": rest_fatigue.get("travel_spot"),
+                            "rest_days": rest_fatigue.get("rest_days"),
+                            "opponent_rest_days": rest_fatigue.get("opponent_rest_days"),
+                            "rest_advantage": rest_fatigue.get("rest_advantage"),
+                            "fatigue_adjustment": rest_fatigue.get("fatigue_adjustment"),
+                            "rest_grade": rest_fatigue.get("rest_grade"),
+                            "rest_notes": rest_fatigue.get("rest_notes"),
 
                             "playoff_mode": True,
                             "playoff_adjustment": playoff_adj,
