@@ -592,8 +592,6 @@ def get_nba_playoff_adjustment(game, team_name, spread=None, total=None):
     reasons = []
 
     home_team = game.get("home_team")
-    away_team = game.get("away_team")
-
     is_home = team_name == home_team
 
     # Playoff home court matters more
@@ -1005,6 +1003,164 @@ def get_nba_rest_fatigue(team):
         "fatigue_adjustment": round(adjustment, 2),
         "rest_grade": rest_grade,
         "rest_notes": notes,
+    }
+
+NBA_MATCHUP_PROFILE = {
+    # Placeholder v1.
+    # Next season this can be replaced with live team-stat feeds.
+    "Boston Celtics": {
+        "pace": 98,
+        "offense_rating": 119,
+        "defense_rating": 111,
+        "rebound_rating": 82,
+        "turnover_rating": 84,
+        "three_point_rating": 88,
+        "three_point_defense": 84,
+    },
+    "New York Knicks": {
+        "pace": 96,
+        "offense_rating": 116,
+        "defense_rating": 112,
+        "rebound_rating": 86,
+        "turnover_rating": 80,
+        "three_point_rating": 82,
+        "three_point_defense": 81,
+    },
+    "San Antonio Spurs": {
+        "pace": 101,
+        "offense_rating": 113,
+        "defense_rating": 114,
+        "rebound_rating": 80,
+        "turnover_rating": 76,
+        "three_point_rating": 79,
+        "three_point_defense": 78,
+    },
+}
+
+
+def get_nba_matchup_engine(team, opponent):
+    team_profile = NBA_MATCHUP_PROFILE.get(
+        team,
+        {
+            "pace": 98,
+            "offense_rating": 114,
+            "defense_rating": 114,
+            "rebound_rating": 75,
+            "turnover_rating": 75,
+            "three_point_rating": 75,
+            "three_point_defense": 75,
+        }
+    )
+
+    opponent_profile = NBA_MATCHUP_PROFILE.get(
+        opponent,
+        {
+            "pace": 98,
+            "offense_rating": 114,
+            "defense_rating": 114,
+            "rebound_rating": 75,
+            "turnover_rating": 75,
+            "three_point_rating": 75,
+            "three_point_defense": 75,
+        }
+    )
+
+    spread_adj = 0
+    total_adj = 0
+    notes = []
+
+    offense_edge = (
+        team_profile.get("offense_rating", 114)
+        - opponent_profile.get("defense_rating", 114)
+    )
+
+    defense_edge = (
+        opponent_profile.get("offense_rating", 114)
+        - team_profile.get("defense_rating", 114)
+    )
+
+    rebound_edge = (
+        team_profile.get("rebound_rating", 75)
+        - opponent_profile.get("rebound_rating", 75)
+    )
+
+    turnover_edge = (
+        team_profile.get("turnover_rating", 75)
+        - opponent_profile.get("turnover_rating", 75)
+    )
+
+    three_point_edge = (
+        team_profile.get("three_point_rating", 75)
+        - opponent_profile.get("three_point_defense", 75)
+    )
+
+    pace_avg = (
+        team_profile.get("pace", 98)
+        + opponent_profile.get("pace", 98)
+    ) / 2
+
+    spread_adj += offense_edge * 0.04
+    spread_adj -= defense_edge * 0.03
+    spread_adj += rebound_edge * 0.02
+    spread_adj += turnover_edge * 0.02
+    spread_adj += three_point_edge * 0.025
+
+    if pace_avg >= 101:
+        total_adj += 1.0
+        notes.append("Fast projected pace boosts total environment.")
+    elif pace_avg <= 96:
+        total_adj -= 0.8
+        notes.append("Slow projected pace lowers total environment.")
+
+    if offense_edge >= 5:
+        notes.append("Offensive matchup edge.")
+    elif offense_edge <= -5:
+        notes.append("Offensive matchup disadvantage.")
+
+    if rebound_edge >= 5:
+        notes.append("Rebounding edge.")
+    elif rebound_edge <= -5:
+        notes.append("Rebounding disadvantage.")
+
+    if three_point_edge >= 5:
+        notes.append("3PT matchup edge.")
+    elif three_point_edge <= -5:
+        notes.append("3PT matchup disadvantage.")
+
+    total_adj += (offense_edge - defense_edge) * 0.05
+
+    matchup_score = (
+        75
+        + offense_edge * 0.8
+        - defense_edge * 0.6
+        + rebound_edge * 0.3
+        + turnover_edge * 0.3
+        + three_point_edge * 0.4
+    )
+
+    matchup_score = max(40, min(95, matchup_score))
+
+    if matchup_score >= 84:
+        matchup_grade = "Strong Matchup Edge"
+    elif matchup_score >= 76:
+        matchup_grade = "Positive Matchup"
+    elif matchup_score >= 68:
+        matchup_grade = "Neutral Matchup"
+    else:
+        matchup_grade = "Bad Matchup"
+
+    return {
+        "pace_rating": round(pace_avg, 2),
+        "offense_edge": round(offense_edge, 2),
+        "defense_edge": round(defense_edge, 2),
+        "rebound_edge": round(rebound_edge, 2),
+        "turnover_edge": round(turnover_edge, 2),
+        "three_point_edge": round(three_point_edge, 2),
+        "matchup_adjustment": round(spread_adj, 2),
+        "total_matchup_adjustment": round(total_adj, 2),
+        "matchup_score": round(matchup_score, 2),
+        "matchup_grade": matchup_grade,
+        "matchup_notes": notes,
     }
 
 def get_team_rating(team):
@@ -3546,6 +3702,16 @@ def model_nba_today():
                             team_name = outcome.get("name")
                             opponent = get_opponent_team(game, team_name)
 
+                            matchup_data = get_nba_matchup_engine(
+                                team_name,
+                                opponent
+                            )
+
+                            matchup_adj = matchup_data.get(
+                                "matchup_adjustment",
+                                0
+                            )
+
                             rating_gap = get_team_rating(team_name) - get_team_rating(opponent)
                             rating_adj = rating_gap * (0.10 if market_key == "h2h" else 0.08)
 
@@ -3633,6 +3799,7 @@ def model_nba_today():
                                 + injury_reaction_adj
                                 + rotation_adj
                                 + fatigue_adj
+                                + matchup_adj
                                 + price_adj
                             )
 
@@ -3809,6 +3976,18 @@ def model_nba_today():
                             "fatigue_adjustment": rest_fatigue.get("fatigue_adjustment"),
                             "rest_grade": rest_fatigue.get("rest_grade"),
                             "rest_notes": rest_fatigue.get("rest_notes"),
+
+                            "pace_rating": matchup_data.get("pace_rating"),
+                            "offense_edge": matchup_data.get("offense_edge"),
+                            "defense_edge": matchup_data.get("defense_edge"),
+                            "rebound_edge": matchup_data.get("rebound_edge"),
+                            "turnover_edge": matchup_data.get("turnover_edge"),
+                            "three_point_edge": matchup_data.get("three_point_edge"),
+                            "matchup_adjustment": matchup_data.get("matchup_adjustment"),
+                            "total_matchup_adjustment": matchup_data.get("total_matchup_adjustment"),
+                            "matchup_score": matchup_data.get("matchup_score"),
+                            "matchup_grade": matchup_data.get("matchup_grade"),
+                            "matchup_notes": matchup_data.get("matchup_notes"),
 
                             "playoff_mode": True,
                             "playoff_adjustment": playoff_adj,
