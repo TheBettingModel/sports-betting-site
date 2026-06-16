@@ -1,54 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-function MLBModelBoardPage() {
+function ModelBoardPage() {
   const [plays, setPlays] = useState([]);
   const [error, setError] = useState("");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-
-    setError("");
-
-    fetch(`${API_URL}/model/mlb/today`, {
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    fetch(`${API_URL}/model/nba/today`)
+      .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data.plays)) {
-          setPlays(data.plays);
-        } else {
-          setError(data.error || "Failed to load MLB model.");
-        }
+        if (Array.isArray(data.plays)) setPlays(data.plays);
+        else setError("Failed to load NBA model.");
       })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        console.error("MLB model fetch error:", err);
-        setError("Failed to load MLB model.");
-      })
-      .finally(() => clearTimeout(timer));
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
+      .catch(() => setError("Failed to load NBA model."));
   }, [API_URL]);
 
   const sortedPlays = useMemo(() => {
     return [...plays].sort((a, b) => (b.edge || 0) - (a.edge || 0));
   }, [plays]);
 
-  const moneylinePlays = useMemo(() => {
-    return sortedPlays.filter((play) => play.market === "Moneyline");
+  const fullGamePlays = useMemo(() => {
+    return sortedPlays.filter((play) =>
+      ["Spread", "Moneyline"].includes(play.market)
+    );
   }, [sortedPlays]);
 
-  const topMoneyline = moneylinePlays[0];
+  const topPlay = fullGamePlays[0];
 
   const getBadgeColor = (recommendation) => {
     if (recommendation === "Play") return "#16a34a";
@@ -69,13 +48,12 @@ function MLBModelBoardPage() {
     >
       {label && <div style={labelStyle}>{label}</div>}
 
-      <h2 style={{ marginBottom: "8px" }}>{play.game}</h2>
+      <h2>{play.game}</h2>
 
-      <h3 style={{ color: "#facc15", marginBottom: "16px" }}>
-        {play.pick}
-      </h3>
+      <h3 style={{ color: "#facc15" }}>{play.pick}</h3>
 
       <div style={badgeWrapStyle}>
+        <span style={badgeStyle}>Market: {play.market}</span>
         <span style={badgeStyle}>Odds: {play.odds}</span>
         <span style={badgeStyle}>Edge: {play.edge}%</span>
         <span style={badgeStyle}>Confidence: {play.confidence}</span>
@@ -107,8 +85,8 @@ function MLBModelBoardPage() {
         </div>
 
         <div style={miniBoxStyle}>
-          <strong>Best Book</strong>
-          <p>{play.best_sportsbook || play.sportsbook || "N/A"}</p>
+          <strong>Injuries</strong>
+          <p>{play.availability_grade || "N/A"}</p>
         </div>
       </div>
 
@@ -121,48 +99,39 @@ function MLBModelBoardPage() {
   return (
     <div style={pageStyle}>
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
-        MLB Full Game Model
+        NBA Full Game Model
       </h1>
 
       <div style={tabContainerStyle}>
-        <Link style={activeTabStyle} to="/mlb-model">
+        <Link style={activeTabStyle} to="/model-board">
           Full Game
         </Link>
 
-        <Link style={tabStyle} to="/mlb-runline">
-          Run Line
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-f5">
-          F5
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-nrfi">
-          NRFI/YRFI
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-totals">
+        <Link style={tabStyle} to="/nba-totals">
           Totals
+        </Link>
+
+        <Link style={tabStyle} to="/nba-1q">
+          1Q
         </Link>
       </div>
 
       <p style={subtitleStyle}>
-        Full game MLB model focused on moneyline value, pitcher edge, bullpen
-        strength, lineup quality, Statcast signals, market movement, CLV, and
-        weather/park adjustments.
+        NBA full game model powered by market pricing, sharp signals, CLV,
+        injuries, rotation protection, rest/fatigue, matchup edges, and star
+        player impact.
       </p>
 
       {error ? (
         <p style={{ color: "#f87171" }}>{error}</p>
-      ) : moneylinePlays.length === 0 ? (
-        <p>No MLB moneyline plays available.</p>
+      ) : fullGamePlays.length === 0 ? (
+        <p>No NBA full game plays available.</p>
       ) : (
         <>
-          {topMoneyline &&
-            renderCard(topMoneyline, 0, "Top MLB Moneyline", true)}
+          {topPlay && renderCard(topPlay, 0, "Top NBA Play", true)}
 
           <div style={gridStyle}>
-            {moneylinePlays.slice(1).map((play, index) =>
+            {fullGamePlays.slice(1).map((play, index) =>
               renderCard(play, index + 1)
             )}
           </div>
@@ -263,4 +232,4 @@ const gridStyle = {
   marginTop: "24px",
 };
 
-export default MLBModelBoardPage;
+export default ModelBoardPage;
