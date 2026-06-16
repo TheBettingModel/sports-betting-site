@@ -1163,6 +1163,113 @@ def get_nba_matchup_engine(team, opponent):
         "matchup_notes": notes,
     }
 
+NBA_STAR_PROFILE = {
+    # Placeholder v1.
+    # Next season this can be replaced with live player usage / on-off feeds.
+    "Boston Celtics": {
+        "primary_star": "Jayson Tatum",
+        "secondary_star": "Jaylen Brown",
+        "star_power_score": 91,
+        "usage_concentration": 78,
+        "team_dependency": 74,
+    },
+    "New York Knicks": {
+        "primary_star": "Jalen Brunson",
+        "secondary_star": "Karl-Anthony Towns",
+        "star_power_score": 88,
+        "usage_concentration": 84,
+        "team_dependency": 82,
+    },
+    "San Antonio Spurs": {
+        "primary_star": "Victor Wembanyama",
+        "secondary_star": "De'Aaron Fox",
+        "star_power_score": 89,
+        "usage_concentration": 81,
+        "team_dependency": 86,
+    },
+}
+
+
+def get_nba_star_player_impact(team, opponent):
+    team_stars = NBA_STAR_PROFILE.get(
+        team,
+        {
+            "primary_star": "Unknown",
+            "secondary_star": "Unknown",
+            "star_power_score": 75,
+            "usage_concentration": 75,
+            "team_dependency": 75,
+        }
+    )
+
+    opponent_stars = NBA_STAR_PROFILE.get(
+        opponent,
+        {
+            "primary_star": "Unknown",
+            "secondary_star": "Unknown",
+            "star_power_score": 75,
+            "usage_concentration": 75,
+            "team_dependency": 75,
+        }
+    )
+
+    star_power_edge = (
+        team_stars.get("star_power_score", 75)
+        - opponent_stars.get("star_power_score", 75)
+    )
+
+    dependency_risk = 0
+    notes = []
+
+    if team_stars.get("team_dependency", 75) >= 85:
+        dependency_risk -= 0.8
+        notes.append("High dependency on primary star creates volatility.")
+    elif team_stars.get("team_dependency", 75) <= 70:
+        dependency_risk += 0.4
+        notes.append("Balanced scoring profile lowers star dependency risk.")
+
+    if team_stars.get("usage_concentration", 75) >= 84:
+        dependency_risk -= 0.4
+        notes.append("High usage concentration adds variance.")
+    elif team_stars.get("usage_concentration", 75) <= 72:
+        dependency_risk += 0.3
+        notes.append("Lower usage concentration supports depth.")
+
+    star_adjustment = (star_power_edge * 0.04) + dependency_risk
+
+    star_score = 75 + star_power_edge * 0.8 + dependency_risk * 5
+    star_score = max(40, min(95, star_score))
+
+    if star_score >= 84:
+        star_grade = "Star Edge"
+    elif star_score >= 76:
+        star_grade = "Slight Star Edge"
+    elif star_score >= 68:
+        star_grade = "Neutral Star Matchup"
+    else:
+        star_grade = "Star Disadvantage"
+
+    if dependency_risk <= -0.8:
+        pod_protection = "High Star Volatility"
+    elif dependency_risk < 0:
+        pod_protection = "Monitor Star Dependency"
+    else:
+        pod_protection = "Clear"
+
+    return {
+        "primary_star": team_stars.get("primary_star"),
+        "secondary_star": team_stars.get("secondary_star"),
+        "star_power_score": team_stars.get("star_power_score"),
+        "usage_concentration": team_stars.get("usage_concentration"),
+        "team_dependency": team_stars.get("team_dependency"),
+        "star_power_edge": round(star_power_edge, 2),
+        "star_adjustment": round(star_adjustment, 2),
+        "star_score": round(star_score, 2),
+        "star_grade": star_grade,
+        "star_pod_protection": pod_protection,
+        "star_notes": notes,
+    }
+
 def get_team_rating(team):
     return NBA_TEAM_RATINGS.get(team, 75)
 
@@ -3712,6 +3819,16 @@ def model_nba_today():
                                 0
                             )
 
+                            star_impact = get_nba_star_player_impact(
+                                team_name,
+                                opponent
+                            )
+
+                            star_adj = star_impact.get(
+                                "star_adjustment",
+                                0
+                            )
+
                             rating_gap = get_team_rating(team_name) - get_team_rating(opponent)
                             rating_adj = rating_gap * (0.10 if market_key == "h2h" else 0.08)
 
@@ -3800,6 +3917,7 @@ def model_nba_today():
                                 + rotation_adj
                                 + fatigue_adj
                                 + matchup_adj
+                                + star_adj
                                 + price_adj
                             )
 
@@ -3988,6 +4106,18 @@ def model_nba_today():
                             "matchup_score": matchup_data.get("matchup_score"),
                             "matchup_grade": matchup_data.get("matchup_grade"),
                             "matchup_notes": matchup_data.get("matchup_notes"),
+
+                            "primary_star": star_impact.get("primary_star"),
+                            "secondary_star": star_impact.get("secondary_star"),
+                            "star_power_score": star_impact.get("star_power_score"),
+                            "usage_concentration": star_impact.get("usage_concentration"),
+                            "team_dependency": star_impact.get("team_dependency"),
+                            "star_power_edge": star_impact.get("star_power_edge"),
+                            "star_adjustment": star_impact.get("star_adjustment"),
+                            "star_score": star_impact.get("star_score"),
+                            "star_grade": star_impact.get("star_grade"),
+                            "star_pod_protection": star_impact.get("star_pod_protection"),
+                            "star_notes": star_impact.get("star_notes"),
 
                             "playoff_mode": True,
                             "playoff_adjustment": playoff_adj,
