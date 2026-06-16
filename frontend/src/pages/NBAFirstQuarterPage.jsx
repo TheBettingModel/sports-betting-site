@@ -25,7 +25,7 @@ function NBAFirstQuarterPage() {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/model/nba/today`)
+    fetch(`${API_URL}/model/nba/1q/today`)
       .then((res) => res.json())
       .then((data) => {
         if (data.plays) {

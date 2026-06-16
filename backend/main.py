@@ -3755,6 +3755,54 @@ def model_performance():
         db.close()
 
 
+def get_nba_first_quarter_adjustment(play):
+    adjustment = 0
+    notes = []
+
+    pace = play.get("pace_rating", 98)
+    rest = play.get("rest_grade", "")
+    star_score = play.get("star_score", 75)
+    matchup_score = play.get("matchup_score", 75)
+
+    if pace >= 101:
+        adjustment += 1.0
+        notes.append("Fast pace improves 1Q projection.")
+
+    if pace <= 96:
+        adjustment -= 0.8
+        notes.append("Slow pace lowers 1Q projection.")
+
+    if rest == "Rest Advantage":
+        adjustment += 0.6
+        notes.append("Fresh team early-game advantage.")
+
+    if "Fatigue" in rest:
+        adjustment -= 0.6
+        notes.append("Fatigue hurts early performance.")
+
+    if star_score >= 85:
+        adjustment += 0.5
+        notes.append("Elite star impact early.")
+
+    if matchup_score >= 85:
+        adjustment += 0.5
+        notes.append("Strong matchup edge early.")
+
+    if adjustment >= 1:
+        grade = "Strong 1Q Edge"
+    elif adjustment > 0:
+        grade = "Positive 1Q Edge"
+    elif adjustment < 0:
+        grade = "1Q Risk"
+    else:
+        grade = "Neutral"
+
+    return {
+        "first_q_adjustment": round(adjustment, 2),
+        "first_q_grade": grade,
+        "first_q_notes": notes,
+    }
+
 @app.get("/model/nba/today")
 def model_nba_today():
     cached = get_cache("nba_model")
@@ -4289,6 +4337,63 @@ def model_nba_today():
         if cached:
             return {"plays": cached, "cached": True, "error": str(e)}
         return {"plays": [], "error": str(e)}
+    
+@app.get("/model/nba/1q/today")
+def model_nba_first_quarter_today():
+
+    data = model_nba_today()
+
+    plays = data.get("plays", [])
+
+    first_q = []
+
+    for play in plays:
+        if play.get("market") not in [
+            "Spread",
+            "Total"
+        ]:
+            continue
+
+        q_data = get_nba_first_quarter_adjustment(
+            play
+        )
+
+        new_play = play.copy()
+
+        new_play.update(q_data)
+
+        new_play["market"] = "1Q " + play.get("market", "")
+        new_play["model_version"] = "nba_1q_v1"
+
+        new_play["model_probability"] = round(
+            new_play.get("model_probability", 0)
+            + q_data.get("first_q_adjustment", 0),
+            2
+        )
+
+        new_play["edge"] = round(
+            new_play.get("model_probability", 0)
+            - new_play.get("implied_probability", 0),
+            2
+        )
+
+        first_q.append(new_play)
+
+
+    first_q = sorted(
+        first_q,
+        key=lambda x: x.get("edge", 0),
+        reverse=True
+    )
+
+    set_cache(
+        "nba_1q_model",
+        first_q
+    )
+
+    return {
+        "plays": first_q
+    }
     
 def get_sharp_sportsbook_weight(bookmaker):
     sharp_books = {
