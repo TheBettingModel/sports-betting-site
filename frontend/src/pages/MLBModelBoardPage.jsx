@@ -153,4 +153,12 @@ function MLBModelBoardPage() {
   );
 }
 
+
+const pageStyle = {
+  padding: "30px",
+  backgroundColor: "#0b0b0b",
+  minHeight: "100vh",
+  color: "white",
+};
+
 export default MLBModelBoardPage;
