@@ -46,49 +46,44 @@ function App() {
           <div style={dropdownStyle}>
             <button
               style={dropdownButtonStyle}
-              onClick={() => toggleDropdown("models")}
+              onClick={() => toggleDropdown("sports")}
             >
-              Models ▾
+              Sports ▾
             </button>
 
-            {openDropdown === "models" && (
+            {openDropdown === "sports" && (
               <div style={dropdownMenuStyle}>
-                <div style={dropdownHeaderStyle}>NBA</div>
-                <Link style={dropdownLinkStyle} to="/model-board" onClick={closeDropdown}>
-                  NBA Full Game
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/model-board"
+                  onClick={closeDropdown}
+                >
+                  🏀 NBA
                 </Link>
-                <Link style={dropdownLinkStyle} to="/nba-totals" onClick={closeDropdown}>
-                  NBA Totals
-                </Link>
-                <Link style={dropdownLinkStyle} to="/nba-1q" onClick={closeDropdown}>
-                  NBA 1Q
+
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/mlb-model"
+                  onClick={closeDropdown}
+                >
+                  ⚾ MLB
                 </Link>
 
                 <div style={dropdownDividerStyle} />
 
-                <div style={dropdownHeaderStyle}>MLB</div>
-                <Link style={dropdownLinkStyle} to="/mlb-model" onClick={closeDropdown}>
-                  MLB Full Game
-                </Link>
-                <Link style={dropdownLinkStyle} to="/mlb-runline" onClick={closeDropdown}>
-                  MLB Run Line
-                </Link>
-                <Link style={dropdownLinkStyle} to="/mlb-f5" onClick={closeDropdown}>
-                  MLB F5
-                </Link>
-                <Link style={dropdownLinkStyle} to="/mlb-nrfi" onClick={closeDropdown}>
-                  MLB NRFI/YRFI
-                </Link>
-                <Link style={dropdownLinkStyle} to="/mlb-totals" onClick={closeDropdown}>
-                  MLB Totals
-                </Link>
+                <div style={comingSoonStyle}>🏈 NFL Coming Soon</div>
+                <div style={comingSoonStyle}>🏒 NHL Coming Soon</div>
               </div>
             )}
           </div>
         </div>
 
         <div style={rightNavStyle}>
-          <Link style={linkStyle} to="/model-performance" onClick={closeDropdown}>
+          <Link
+            style={linkStyle}
+            to="/model-performance"
+            onClick={closeDropdown}
+          >
             Analytics
           </Link>
 
@@ -201,15 +196,6 @@ const dropdownMenuStyle = {
   boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
 };
 
-const dropdownHeaderStyle = {
-  color: "#9ca3af",
-  fontSize: "12px",
-  fontWeight: "800",
-  padding: "8px 14px 6px",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-};
-
 const dropdownDividerStyle = {
   height: "1px",
   backgroundColor: "#374151",
@@ -220,6 +206,12 @@ const dropdownLinkStyle = {
   display: "block",
   color: "white",
   textDecoration: "none",
+  padding: "10px 14px",
+  fontSize: "14px",
+};
+
+const comingSoonStyle = {
+  color: "#6b7280",
   padding: "10px 14px",
   fontSize: "14px",
 };
