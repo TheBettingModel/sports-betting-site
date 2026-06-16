@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MLBTabs from "../components/MLBTabs";
 
 function MLBNRFIPage() {
   const [plays, setPlays] = useState([]);
@@ -153,6 +154,8 @@ function MLBNRFIPage() {
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
         MLB NRFI / YRFI Model
       </h1>
+
+      <MLBTabs />
 
       <p
         style={{

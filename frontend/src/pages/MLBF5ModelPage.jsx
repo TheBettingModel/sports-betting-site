@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MLBTabs from "../components/MLBTabs";
 
 function MLBF5ModelPage() {
   const [plays, setPlays] = useState([]);
@@ -152,6 +153,8 @@ function MLBF5ModelPage() {
       }}
     >
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>MLB F5 Model</h1>
+
+      <MLBTabs />
 
       <p
         style={{

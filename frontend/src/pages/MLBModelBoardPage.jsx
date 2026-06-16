@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import MLBTabs from "../components/MLBTabs";
 
 function MLBModelBoardPage() {
   const [plays, setPlays] = useState([]);
@@ -122,27 +122,7 @@ function MLBModelBoardPage() {
         MLB Full Game Model
       </h1>
 
-      <div style={tabContainerStyle}>
-        <Link style={activeTabStyle} to="/mlb-model">
-          Full Game
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-runline">
-          Run Line
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-f5">
-          F5
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-nrfi">
-          NRFI/YRFI
-        </Link>
-
-        <Link style={tabStyle} to="/mlb-totals">
-          Totals
-        </Link>
-      </div>
+      <MLBTabs />
 
       <p style={subtitleStyle}>
         MLB model powered by pitching, bullpen,
@@ -172,79 +152,5 @@ function MLBModelBoardPage() {
     </div>
   );
 }
-
-const pageStyle = {
-  padding: "30px",
-  backgroundColor: "#0b0b0b",
-  minHeight: "100vh",
-  color: "white",
-};
-
-const subtitleStyle = {
-  color: "#9ca3af",
-  marginBottom: "30px",
-};
-
-const tabContainerStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "12px",
-  marginBottom: "28px",
-};
-
-const tabStyle = {
-  backgroundColor: "#1f2937",
-  color: "white",
-  textDecoration: "none",
-  padding: "10px 16px",
-  borderRadius: "999px",
-  border: "1px solid #374151",
-  fontWeight: "bold",
-};
-
-const activeTabStyle = {
-  ...tabStyle,
-  backgroundColor: "#22c55e",
-  color: "black",
-};
-
-const labelStyle = {
-  backgroundColor: "#22c55e",
-  color: "black",
-  padding: "8px",
-  borderRadius: "8px",
-  display: "inline-block",
-};
-
-const badgeWrapStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "10px",
-};
-
-const badgeStyle = {
-  backgroundColor: "#1f2937",
-  padding: "8px 10px",
-  borderRadius: "999px",
-};
-
-const signalGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(180px,1fr))",
-  gap: "16px",
-  marginTop: "20px",
-};
-
-const reasonStyle = {
-  color: "#d1d5db",
-  lineHeight: "1.6",
-};
-
-const gridStyle = {
-  display: "grid",
-  gap: "24px",
-  marginTop: "30px",
-};
 
 export default MLBModelBoardPage;

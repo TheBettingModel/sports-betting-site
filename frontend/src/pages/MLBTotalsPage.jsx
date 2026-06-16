@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MLBTabs from "../components/MLBTabs";
 
 function MLBTotalsPage() {
   const [plays, setPlays] = useState([]);
@@ -183,6 +184,8 @@ function MLBTotalsPage() {
       >
         MLB Totals Model
       </h1>
+
+      <MLBTabs />
 
       <p
         style={{

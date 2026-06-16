@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MLBTabs from "../components/MLBTabs";
 
 function MLBRunLinePage() {
   const [plays, setPlays] = useState([]);
@@ -158,6 +159,8 @@ function MLBRunLinePage() {
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
         MLB Run Line Model
       </h1>
+
+      <MLBTabs />
 
       <p
         style={{
