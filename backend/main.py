@@ -6922,3 +6922,218 @@ def grade_mlb_history():
 
     finally:
         db.close()
+
+def get_nba_final_scores():
+    url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
+
+    try:
+        response = requests.get(
+            url,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            return {}
+
+        data = response.json()
+
+        results = {}
+
+        for event in data.get("events", []):
+            competition = event.get("competitions", [])[0]
+
+            if competition.get("status", {}).get("type", {}).get("completed") != True:
+                continue
+
+            competitors = competition.get("competitors", [])
+
+            away = None
+            home = None
+
+            for team in competitors:
+                if team.get("homeAway") == "away":
+                    away = team
+
+                if team.get("homeAway") == "home":
+                    home = team
+
+            if not away or not home:
+                continue
+
+            away_name = away.get("team", {}).get("displayName")
+            home_name = home.get("team", {}).get("displayName")
+
+            away_score = int(away.get("score"))
+            home_score = int(home.get("score"))
+
+            winner = (
+                away_name
+                if away_score > home_score
+                else home_name
+            )
+
+            total = away_score + home_score
+
+            key1 = f"{away_name} vs {home_name}"
+            key2 = f"{home_name} vs {away_name}"
+
+            results[key1] = {
+                "winner": winner,
+                "away_score": away_score,
+                "home_score": home_score,
+                "total": total,
+            }
+
+            results[key2] = results[key1]
+
+        return results
+
+    except Exception as e:
+        print("NBA score fetch error:", e)
+        return {}
+    
+@app.post("/grade/nba/history")
+def grade_nba_history():
+    db = SessionLocal()
+
+    try:
+        pending = db.query(ModelPlayHistory).filter(
+            ModelPlayHistory.sport == "NBA",
+            ModelPlayHistory.result == "Pending",
+        ).all()
+
+        if not pending:
+            return {"message": "No pending NBA plays found."}
+
+        scores = get_nba_final_scores()
+
+        graded = 0
+
+        for play in pending:
+
+            game = scores.get(play.game)
+
+            if not game:
+                continue
+
+            result = "Pending"
+            pick = str(play.pick)
+
+            if play.market == "Moneyline":
+                result = (
+                    "Win"
+                    if pick == game.get("winner")
+                    else "Loss"
+                )
+
+
+            elif play.market in [
+                "Spread",
+                "1Q Spread"
+            ]:
+                try:
+                    team, spread = pick.rsplit(" ", 1)
+
+                    spread = float(spread)
+
+                    if team not in play.game:
+                        continue
+
+                    if play.game.startswith(team):
+                        team_score = game["away_score"]
+                        opp_score = game["home_score"]
+                    else:
+                        team_score = game["home_score"]
+                        opp_score = game["away_score"]
+
+                    adjusted = (
+                        team_score
+                        - opp_score
+                        + spread
+                    )
+
+                    if adjusted > 0:
+                        result = "Win"
+                    elif adjusted < 0:
+                        result = "Loss"
+                    else:
+                        result = "Push"
+
+                except Exception:
+                    continue
+
+
+            elif play.market in [
+                "Total",
+                "1Q Total"
+            ]:
+                try:
+                    if "Over" in pick:
+                        number = float(
+                            pick.replace(
+                                "Over",
+                                ""
+                            ).strip()
+                        )
+
+                        result = (
+                            "Win"
+                            if game["total"] > number
+                            else "Loss"
+                        )
+
+                    elif "Under" in pick:
+                        number = float(
+                            pick.replace(
+                                "Under",
+                                ""
+                            ).strip()
+                        )
+
+                        result = (
+                            "Win"
+                            if game["total"] < number
+                            else "Loss"
+                        )
+
+                except Exception:
+                    continue
+
+
+            play.result = result
+
+            try:
+                units = float(play.confidence) / 100
+            except Exception:
+                units = 1
+
+            if result == "Win":
+                play.units_result = str(
+                    round(units, 2)
+                )
+
+            elif result == "Loss":
+                play.units_result = str(
+                    round(-units, 2)
+                )
+
+            elif result == "Push":
+                play.units_result = "0"
+
+            graded += 1
+
+
+        db.commit()
+
+        return {
+            "graded": graded
+        }
+
+    except Exception as e:
+        db.rollback()
+        return {
+            "error": str(e)
+        }
+
+    finally:
+        db.close()
