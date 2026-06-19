@@ -271,6 +271,20 @@ app.add_middleware(
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 MLB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
+NFL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds"
+
+NFL_TEAM_RATINGS = {
+    "Kansas City Chiefs": 90,
+    "Buffalo Bills": 88,
+    "Baltimore Ravens": 88,
+    "San Francisco 49ers": 87,
+    "Detroit Lions": 86,
+    "Philadelphia Eagles": 86,
+    "Dallas Cowboys": 84,
+    "Cincinnati Bengals": 84,
+    "Miami Dolphins": 83,
+    "Green Bay Packers": 82,
+}
 
 HOME_COURT_ADVANTAGE = 1.5
 
@@ -3805,7 +3819,10 @@ def get_nba_first_quarter_adjustment(play):
 
 @app.get("/model/nba/today")
 def model_nba_today():
-    cached = get_cache("nba_model")
+
+    @app.get("/model/nba/today")
+    def model_nba_today():
+        cached = get_cache("nba_model")
 
     if not ODDS_API_KEY:
         if cached:
@@ -7240,6 +7257,10 @@ def grade_nba_history():
 
     finally:
         db.close()
+
+@app.post("/refresh/nfl")
+def refresh_nfl_models():
+    ...
 
 @app.post("/refresh/nba")
 def refresh_nba_models():
