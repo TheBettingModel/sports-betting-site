@@ -11,6 +11,7 @@ import MLBRunLinePage from "./pages/MLBRunLinePage";
 import MLBF5Page from "./pages/MLBF5ModelPage";
 import MLBNRFIPage from "./pages/MLBNRFIPage";
 import MLBTotalsPage from "./pages/MLBTotalsPage";
+import NFLModelPage from "./pages/NFLModelPage";
 
 import ModelPerformancePage from "./pages/ModelPerformancePage";
 import AutoPODPage from "./pages/AutoPODPage";
@@ -71,7 +72,13 @@ function App() {
 
                 <div style={dropdownDividerStyle} />
 
-                <div style={comingSoonStyle}>🏈 NFL Coming Soon</div>
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/nfl-model"
+                  onClick={closeDropdown}
+                >
+                  🏈 NFL
+                </Link>
                 <div style={comingSoonStyle}>🏒 NHL Coming Soon</div>
               </div>
             )}
@@ -107,6 +114,20 @@ function App() {
         <Route path="/mlb-f5" element={<MLBF5Page />} />
         <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />
         <Route path="/mlb-totals" element={<MLBTotalsPage />} />
+
+        <Route path="/nfl-model" element={<NFLModelPage />} />
+        <Route
+          path="/nfl-moneyline"
+          element={<NFLModelPage marketFilter="Moneyline" title="NFL Moneyline Model" />}
+        />
+        <Route
+          path="/nfl-spread"
+          element={<NFLModelPage marketFilter="Spread" title="NFL Spread Model" />}
+        />
+        <Route
+          path="/nfl-totals"
+          element={<NFLModelPage marketFilter="Total" title="NFL Totals Model" />}
+        />
 
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
