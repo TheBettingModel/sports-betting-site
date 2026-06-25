@@ -273,6 +273,42 @@ ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 MLB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 NFL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds"
 WNBA_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_wnba/odds"
+NHL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/icehockey_nhl/odds"
+
+NHL_TEAM_RATINGS = {
+    "Florida Panthers": 90,
+    "Edmonton Oilers": 89,
+    "Colorado Avalanche": 87,
+    "Dallas Stars": 86,
+    "Carolina Hurricanes": 85,
+    "New York Rangers": 84,
+    "Toronto Maple Leafs": 84,
+    "Vegas Golden Knights": 83,
+    "Tampa Bay Lightning": 82,
+    "Boston Bruins": 82,
+    "New Jersey Devils": 81,
+    "Winnipeg Jets": 81,
+    "Vancouver Canucks": 80,
+    "Los Angeles Kings": 80,
+    "Minnesota Wild": 78,
+    "Nashville Predators": 78,
+    "St. Louis Blues": 77,
+    "Washington Capitals": 77,
+    "Detroit Red Wings": 76,
+    "New York Islanders": 76,
+    "Pittsburgh Penguins": 75,
+    "Seattle Kraken": 75,
+    "Utah Mammoth": 74,
+    "Ottawa Senators": 74,
+    "Buffalo Sabres": 73,
+    "Calgary Flames": 73,
+    "Anaheim Ducks": 72,
+    "Philadelphia Flyers": 72,
+    "Montreal Canadiens": 71,
+    "Columbus Blue Jackets": 70,
+    "San Jose Sharks": 69,
+    "Chicago Blackhawks": 68,
+}
 
 WNBA_TEAM_RATINGS = {
     "Las Vegas Aces": 90,
@@ -3837,6 +3873,195 @@ def get_nba_first_quarter_adjustment(play):
 
 
 
+
+
+@app.get("/model/nhl/today")
+def model_nhl_today():
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {"plays": [], "error": "Missing ODDS_API_KEY"}
+
+    commence_from, commence_to = get_today_utc_window()
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
+    }
+
+    try:
+        response = requests.get(
+            NHL_ODDS_BASE_URL,
+            params=params,
+            timeout=8
+        )
+
+        if response.status_code != 200:
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        plays = []
+
+        for game in games[:10]:
+            home_team = game.get("home_team")
+            away_team = game.get("away_team")
+            game_name = f"{away_team} vs {home_team}"
+
+            for bookmaker in game.get("bookmakers", [])[:2]:
+                sportsbook = bookmaker.get("title")
+
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
+
+                    if market_key == "h2h":
+                        market_name = "Moneyline"
+                    elif market_key == "spreads":
+                        market_name = "Puck Line"
+                    elif market_key == "totals":
+                        market_name = "Total"
+                    else:
+                        continue
+
+                    for outcome in market.get("outcomes", [])[:2]:
+                        pick_name = outcome.get("name")
+                        odds = outcome.get("price")
+                        point = outcome.get("point")
+
+                        if odds is None:
+                            continue
+
+                        pick_display = (
+                            f"{pick_name} {point}"
+                            if market_name in ["Puck Line", "Total"]
+                            else pick_name
+                        )
+
+                        implied = american_to_implied_probability(odds)
+
+                        team_rating = NHL_TEAM_RATINGS.get(pick_name, 76)
+
+                        if pick_name == home_team:
+                            opponent = away_team
+                            home_adj = 1.0
+                        elif pick_name == away_team:
+                            opponent = home_team
+                            home_adj = -1.0
+                        else:
+                            opponent = None
+                            home_adj = 0
+
+                        opponent_rating = NHL_TEAM_RATINGS.get(opponent, 76)
+
+                        rating_diff = team_rating - opponent_rating
+                        rating_adj = rating_diff * 0.3
+                        price_adj = get_price_adjustment(odds)
+
+                        goalie_adj = 0
+                        rest_adj = 0
+
+                        if market_name == "Total":
+                            model_prob = implied + price_adj
+                            reason = (
+                                f"NHL totals v1. Price adjustment ({price_adj}). "
+                                "Goalie, pace, and shot-quality layers will be added later."
+                            )
+                        else:
+                            model_prob = (
+                                implied
+                                + rating_adj
+                                + home_adj
+                                + goalie_adj
+                                + rest_adj
+                                + price_adj
+                            )
+                            reason = (
+                                f"NHL rating edge ({round(rating_diff, 2)}). "
+                                f"Rating adjustment ({round(rating_adj, 2)}). "
+                                f"Home-ice adjustment ({home_adj}). "
+                                f"Goalie placeholder ({goalie_adj}). "
+                                f"Rest placeholder ({rest_adj}). "
+                                f"Price adjustment ({price_adj})."
+                            )
+
+                        model_prob = max(1, min(99, model_prob))
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        units = get_dynamic_units(edge, confidence, recommendation)
+
+                        play = {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_display,
+                            "odds": odds,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": units,
+                            "sport": "NHL",
+                            "model_version": "nhl_v1_fast_market_engine",
+                            "team_rating": team_rating,
+                            "opponent_rating": opponent_rating,
+                            "rating_diff": round(rating_diff, 2),
+                            "rating_adjustment": round(rating_adj, 2),
+                            "home_ice_adjustment": home_adj,
+                            "goalie_adjustment": goalie_adj,
+                            "rest_adjustment": rest_adj,
+                            "price_adjustment": price_adj,
+                            "reason": reason,
+                        }
+
+                        play.update(get_sharp_sportsbook_weight(sportsbook))
+
+                        play.update(
+                            get_sharp_market_signal(edge, odds, recommendation)
+                        )
+
+                        plays.append(play)
+
+        best_by_game_market = {}
+
+        for play in plays:
+            key = f"{play.get('game')}|{play.get('market')}"
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
+            elif play.get("edge", 0) > best_by_game_market[key].get("edge", 0):
+                best_by_game_market[key] = play
+
+        final = sorted(
+            list(best_by_game_market.values()),
+            key=lambda x: x.get("edge", 0),
+            reverse=True
+        )
+
+        return {"plays": final}
+
+    except Exception as e:
+        return {"plays": [], "error": str(e)}
 
 @app.get("/model/wnba/today")
 def model_wnba_today():
@@ -7687,6 +7912,25 @@ def grade_nba_history():
     finally:
         db.close()
 
+
+
+@app.post("/refresh/nhl")
+def refresh_nhl_models():
+    try:
+        response = model_nhl_today()
+
+        return {
+            "success": True,
+            "date": str(date.today()),
+            "count": len(response.get("plays", [])),
+            "response": response,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+        }
 
 @app.post("/refresh/wnba")
 def refresh_wnba_models():
