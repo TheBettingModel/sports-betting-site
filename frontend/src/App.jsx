@@ -13,6 +13,7 @@ import MLBNRFIPage from "./pages/MLBNRFIPage";
 import MLBTotalsPage from "./pages/MLBTotalsPage";
 import NFLModelPage from "./pages/NFLModelPage";
 import WNBAModelPage from "./pages/WNBAModelPage";
+import NHLModelPage from "./pages/NHLModelPage";
 
 import ModelPerformancePage from "./pages/ModelPerformancePage";
 import AutoPODPage from "./pages/AutoPODPage";
@@ -88,7 +89,13 @@ function App() {
                 >
                   🏀 WNBA
                 </Link>
-                <div style={comingSoonStyle}>🏒 NHL Coming Soon</div>
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/nhl-model"
+                  onClick={closeDropdown}
+                >
+                  🏒 NHL
+                </Link>
               </div>
             )}
           </div>
@@ -150,6 +157,18 @@ function App() {
         <Route
           path="/wnba-totals"
           element={<WNBAModelPage marketFilter="Total" title="WNBA Totals Model" />}
+        />
+
+        <Route path="/nhl-model" element={<NHLModelPage />} />
+
+        <Route
+          path="/nhl-puckline"
+          element={<NHLModelPage marketFilter="Puck Line" title="NHL Puck Line Model" />}
+        />
+
+        <Route
+          path="/nhl-totals"
+          element={<NHLModelPage marketFilter="Total" title="NHL Total Model" />}
         />
 
         <Route path="/admin" element={<AdminPage />} />
