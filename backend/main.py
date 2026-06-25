@@ -274,6 +274,30 @@ MLB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 NFL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds"
 WNBA_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_wnba/odds"
 NHL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/icehockey_nhl/odds"
+NCAAF_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds"
+
+NCAAF_TEAM_RATINGS = {
+    "Georgia Bulldogs": 92,
+    "Ohio State Buckeyes": 91,
+    "Texas Longhorns": 90,
+    "Oregon Ducks": 89,
+    "Alabama Crimson Tide": 88,
+    "Notre Dame Fighting Irish": 87,
+    "Penn State Nittany Lions": 86,
+    "Michigan Wolverines": 85,
+    "LSU Tigers": 85,
+    "Clemson Tigers": 84,
+    "Tennessee Volunteers": 83,
+    "Ole Miss Rebels": 83,
+    "Florida State Seminoles": 82,
+    "Miami Hurricanes": 82,
+    "USC Trojans": 81,
+    "Utah Utes": 80,
+    "Kansas State Wildcats": 79,
+    "Oklahoma Sooners": 79,
+    "Texas A&M Aggies": 78,
+    "Iowa Hawkeyes": 77,
+}
 
 NHL_TEAM_RATINGS = {
     "Florida Panthers": 90,
@@ -3874,6 +3898,197 @@ def get_nba_first_quarter_adjustment(play):
 
 
 
+
+
+@app.get("/model/ncaaf/today")
+def model_ncaaf_today():
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {"plays": [], "error": "Missing ODDS_API_KEY"}
+
+    commence_from, commence_to = get_today_utc_window()
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
+    }
+
+    try:
+        response = requests.get(
+            NCAAF_ODDS_BASE_URL,
+            params=params,
+            timeout=8
+        )
+
+        if response.status_code != 200:
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        plays = []
+
+        for game in games[:12]:
+            home_team = game.get("home_team")
+            away_team = game.get("away_team")
+            game_name = f"{away_team} vs {home_team}"
+
+            for bookmaker in game.get("bookmakers", [])[:2]:
+                sportsbook = bookmaker.get("title")
+
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
+
+                    if market_key == "h2h":
+                        market_name = "Moneyline"
+                    elif market_key == "spreads":
+                        market_name = "Spread"
+                    elif market_key == "totals":
+                        market_name = "Total"
+                    else:
+                        continue
+
+                    for outcome in market.get("outcomes", [])[:2]:
+                        pick_name = outcome.get("name")
+                        odds = outcome.get("price")
+                        point = outcome.get("point")
+
+                        if odds is None:
+                            continue
+
+                        pick_display = (
+                            f"{pick_name} {point}"
+                            if market_name in ["Spread", "Total"]
+                            else pick_name
+                        )
+
+                        implied = american_to_implied_probability(odds)
+
+                        team_rating = NCAAF_TEAM_RATINGS.get(pick_name, 74)
+
+                        if pick_name == home_team:
+                            opponent = away_team
+                            home_adj = 2.0
+                        elif pick_name == away_team:
+                            opponent = home_team
+                            home_adj = -2.0
+                        else:
+                            opponent = None
+                            home_adj = 0
+
+                        opponent_rating = NCAAF_TEAM_RATINGS.get(opponent, 74)
+
+                        rating_diff = team_rating - opponent_rating
+                        rating_adj = rating_diff * 0.3
+                        price_adj = get_price_adjustment(odds)
+
+                        conference_adj = 0
+                        qb_adj = 0
+                        explosiveness_adj = 0
+
+                        if market_name == "Total":
+                            model_prob = implied + price_adj + explosiveness_adj
+                            reason = (
+                                f"NCAAF totals v1. Price adjustment ({price_adj}). "
+                                f"Explosiveness placeholder ({explosiveness_adj})."
+                            )
+                        else:
+                            model_prob = (
+                                implied
+                                + rating_adj
+                                + home_adj
+                                + conference_adj
+                                + qb_adj
+                                + price_adj
+                            )
+                            reason = (
+                                f"NCAAF rating edge ({round(rating_diff, 2)}). "
+                                f"Rating adjustment ({round(rating_adj, 2)}). "
+                                f"Home-field adjustment ({home_adj}). "
+                                f"Conference placeholder ({conference_adj}). "
+                                f"QB placeholder ({qb_adj}). "
+                                f"Price adjustment ({price_adj})."
+                            )
+
+                        model_prob = max(1, min(99, model_prob))
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        units = get_dynamic_units(edge, confidence, recommendation)
+
+                        play = {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_display,
+                            "odds": odds,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": units,
+                            "sport": "NCAAF",
+                            "model_version": "ncaaf_v1_fast_market_engine",
+                            "team_rating": team_rating,
+                            "opponent_rating": opponent_rating,
+                            "rating_diff": round(rating_diff, 2),
+                            "rating_adjustment": round(rating_adj, 2),
+                            "home_field_adjustment": home_adj,
+                            "conference_adjustment": conference_adj,
+                            "qb_adjustment": qb_adj,
+                            "explosiveness_adjustment": explosiveness_adj,
+                            "price_adjustment": price_adj,
+                            "reason": reason,
+                        }
+
+                        play.update(get_sharp_sportsbook_weight(sportsbook))
+
+                        play.update(
+                            get_sharp_market_signal(edge, odds, recommendation)
+                        )
+
+                        plays.append(play)
+
+        best_by_game_market = {}
+
+        for play in plays:
+            key = f"{play.get('game')}|{play.get('market')}"
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
+            elif play.get("edge", 0) > best_by_game_market[key].get("edge", 0):
+                best_by_game_market[key] = play
+
+        final = sorted(
+            list(best_by_game_market.values()),
+            key=lambda x: x.get("edge", 0),
+            reverse=True
+        )
+
+        return {"plays": final}
+
+    except Exception as e:
+        return {"plays": [], "error": str(e)}
 
 @app.get("/model/nhl/today")
 def model_nhl_today():
@@ -7913,6 +8128,25 @@ def grade_nba_history():
         db.close()
 
 
+
+
+@app.post("/refresh/ncaaf")
+def refresh_ncaaf_models():
+    try:
+        response = model_ncaaf_today()
+
+        return {
+            "success": True,
+            "date": str(date.today()),
+            "count": len(response.get("plays", [])),
+            "response": response,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+        }
 
 @app.post("/refresh/nhl")
 def refresh_nhl_models():
