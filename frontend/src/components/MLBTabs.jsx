@@ -4,11 +4,11 @@ function MLBTabs() {
   const location = useLocation();
 
   const tabs = [
-    { label: "Full Game", path: "/mlb-model" },
+    { label: "Moneyline", path: "/mlb-model" },
     { label: "Run Line", path: "/mlb-runline" },
     { label: "F5", path: "/mlb-f5" },
     { label: "NRFI/YRFI", path: "/mlb-nrfi" },
-    { label: "Totals", path: "/mlb-totals" },
+    { label: "Total", path: "/mlb-totals" },
   ];
 
   return (

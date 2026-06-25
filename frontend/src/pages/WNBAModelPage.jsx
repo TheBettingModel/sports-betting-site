@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import WNBATabs from "../components/WNBATabs";
 
-function WNBAModelPage({ marketFilter = "All", title = "WNBA Full Game Model" }) {
+function WNBAModelPage({ marketFilter = "All", title = "WNBA Moneyline Model" }) {
   const [plays, setPlays] = useState([]);
   const [error, setError] = useState("");
 

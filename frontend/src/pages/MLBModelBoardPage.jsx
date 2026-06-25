@@ -138,7 +138,7 @@ function MLBModelBoardPage() {
   return (
     <div style={pageStyle}>
       <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
-        MLB Full Game Model
+        MLB Moneyline Model
       </h1>
 
       <MLBTabs />

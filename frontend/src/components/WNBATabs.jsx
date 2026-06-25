@@ -4,7 +4,6 @@ function WNBATabs() {
   const location = useLocation();
 
   const tabs = [
-    { label: "Full Game", path: "/wnba-model" },
     { label: "Moneyline", path: "/wnba-moneyline" },
     { label: "Spread", path: "/wnba-spread" },
     { label: "Totals", path: "/wnba-totals" },

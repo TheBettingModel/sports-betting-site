@@ -4,7 +4,6 @@ function NFLTabs() {
   const location = useLocation();
 
   const tabs = [
-    { label: "Full Game", path: "/nfl-model" },
     { label: "Moneyline", path: "/nfl-moneyline" },
     { label: "Spread", path: "/nfl-spread" },
     { label: "Totals", path: "/nfl-totals" },

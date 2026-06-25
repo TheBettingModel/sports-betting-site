@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import NFLTabs from "../components/NFLTabs";
 
-function NFLModelPage({ marketFilter = "All", title = "NFL Full Game Model" }) {
+function NFLModelPage({ marketFilter = "All", title = "NFL Moneyline Model" }) {
   const [plays, setPlays] = useState([]);
   const [error, setError] = useState("");
 
