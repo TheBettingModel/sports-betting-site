@@ -272,6 +272,23 @@ ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"
 MLB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
 NFL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds"
+WNBA_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_wnba/odds"
+
+WNBA_TEAM_RATINGS = {
+    "Las Vegas Aces": 90,
+    "New York Liberty": 89,
+    "Minnesota Lynx": 87,
+    "Connecticut Sun": 85,
+    "Seattle Storm": 83,
+    "Phoenix Mercury": 82,
+    "Indiana Fever": 81,
+    "Dallas Wings": 79,
+    "Atlanta Dream": 78,
+    "Chicago Sky": 76,
+    "Washington Mystics": 75,
+    "Los Angeles Sparks": 75,
+    "Golden State Valkyries": 74,
+}
 
 NFL_TEAM_RATINGS = {
     "Kansas City Chiefs": 90,
@@ -3817,6 +3834,180 @@ def get_nba_first_quarter_adjustment(play):
         "first_q_notes": notes,
     }
 
+
+
+
+
+@app.get("/model/wnba/today")
+def model_wnba_today():
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {"plays": [], "error": "Missing ODDS_API_KEY"}
+
+    commence_from, commence_to = get_today_utc_window()
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
+    }
+
+    try:
+        response = requests.get(
+            WNBA_ODDS_BASE_URL,
+            params=params,
+            timeout=8
+        )
+
+        if response.status_code != 200:
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        plays = []
+
+        for game in games[:8]:
+            home_team = game.get("home_team")
+            away_team = game.get("away_team")
+            game_name = f"{away_team} vs {home_team}"
+
+            for bookmaker in game.get("bookmakers", [])[:2]:
+                sportsbook = bookmaker.get("title")
+
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
+
+                    if market_key == "h2h":
+                        market_name = "Moneyline"
+                    elif market_key == "spreads":
+                        market_name = "Spread"
+                    elif market_key == "totals":
+                        market_name = "Total"
+                    else:
+                        continue
+
+                    for outcome in market.get("outcomes", [])[:2]:
+                        pick_name = outcome.get("name")
+                        odds = outcome.get("price")
+                        point = outcome.get("point")
+
+                        if odds is None:
+                            continue
+
+                        pick_display = (
+                            f"{pick_name} {point}"
+                            if market_name in ["Spread", "Total"]
+                            else pick_name
+                        )
+
+                        implied = american_to_implied_probability(odds)
+
+                        team_rating = WNBA_TEAM_RATINGS.get(pick_name, 76)
+
+                        if pick_name == home_team:
+                            opponent = away_team
+                            home_adj = 1.2
+                        elif pick_name == away_team:
+                            opponent = home_team
+                            home_adj = -1.2
+                        else:
+                            opponent = None
+                            home_adj = 0
+
+                        opponent_rating = WNBA_TEAM_RATINGS.get(opponent, 76)
+
+                        rating_diff = team_rating - opponent_rating
+                        rating_adj = rating_diff * 0.35
+                        price_adj = get_price_adjustment(odds)
+
+                        if market_name == "Total":
+                            model_prob = implied + price_adj
+                            reason = f"WNBA totals v1. Price adjustment ({price_adj})."
+                        else:
+                            model_prob = implied + rating_adj + home_adj + price_adj
+                            reason = (
+                                f"WNBA rating edge ({round(rating_diff, 2)}). "
+                                f"Rating adjustment ({round(rating_adj, 2)}). "
+                                f"Home-court adjustment ({home_adj}). "
+                                f"Price adjustment ({price_adj})."
+                            )
+
+                        model_prob = max(1, min(99, model_prob))
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        units = get_dynamic_units(edge, confidence, recommendation)
+
+                        play = {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_display,
+                            "odds": odds,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": units,
+                            "sport": "WNBA",
+                            "model_version": "wnba_v1_ultra_fast",
+                            "team_rating": team_rating,
+                            "opponent_rating": opponent_rating,
+                            "rating_diff": round(rating_diff, 2),
+                            "rating_adjustment": round(rating_adj, 2),
+                            "home_court_adjustment": home_adj,
+                            "price_adjustment": price_adj,
+                            "reason": reason,
+                        }
+
+                        play.update(get_sharp_sportsbook_weight(sportsbook))
+
+                        play.update(
+                            get_sharp_market_signal(edge, odds, recommendation)
+                        )
+
+                        plays.append(play)
+
+        best_by_game_market = {}
+
+        for play in plays:
+            key = f"{play.get('game')}|{play.get('market')}"
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
+            elif play.get("edge", 0) > best_by_game_market[key].get("edge", 0):
+                best_by_game_market[key] = play
+
+        final = sorted(
+            list(best_by_game_market.values()),
+            key=lambda x: x.get("edge", 0),
+            reverse=True
+        )
+
+        return {"plays": final}
+
+    except Exception as e:
+        return {"plays": [], "error": str(e)}
 
 @app.get("/model/nfl/today")
 def model_nfl_today():
@@ -7495,6 +7686,25 @@ def grade_nba_history():
 
     finally:
         db.close()
+
+
+@app.post("/refresh/wnba")
+def refresh_wnba_models():
+    try:
+        response = model_wnba_today()
+
+        return {
+            "success": True,
+            "date": str(date.today()),
+            "count": len(response.get("plays", [])),
+            "response": response,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+        }
 
 @app.post("/refresh/nfl")
 def refresh_nfl_models():
