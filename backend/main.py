@@ -4085,6 +4085,10 @@ def model_ncaaf_today():
             reverse=True
         )
 
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
         return {"plays": final}
 
     except Exception as e:
@@ -4273,6 +4277,10 @@ def model_nhl_today():
             reverse=True
         )
 
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
         return {"plays": final}
 
     except Exception as e:
@@ -4443,6 +4451,10 @@ def model_wnba_today():
             key=lambda x: x.get("edge", 0),
             reverse=True
         )
+
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
 
         return {"plays": final}
 
@@ -4681,6 +4693,10 @@ def model_nfl_today():
 
         save_model_play_history("NFL", final)
         set_cache("nfl_model", final)
+
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
 
         return {"plays": final}
 
@@ -5217,6 +5233,10 @@ def model_nba_today():
             "plays": final
         }
 
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
         return {"plays": final}
 
     except Exception as e:
@@ -5398,6 +5418,227 @@ def get_sharp_market_signal(edge, odds, recommendation):
         "market_strength": market_strength,
         "sharp_reason": " ".join(reasons)
     }
+
+
+
+def get_universal_final_rating(play):
+    try:
+        edge = float(play.get("edge", 0) or 0)
+    except Exception:
+        edge = 0
+
+    try:
+        confidence = float(play.get("confidence", 60) or 60)
+    except Exception:
+        confidence = 60
+
+    sharp_score = play.get("sharp_score", 0) or 0
+    market_score = play.get("market_intelligence_score", 0) or 0
+    clv_score = play.get("clv_score", 0) or 0
+    timing_score = play.get("market_timing_score", 0) or 0
+    book_score = play.get("sharp_book_score", 60) or 60
+    line_shop_value = play.get("line_shop_value", 0) or 0
+
+    score = 50
+    reasons = []
+
+    # Edge weight
+    if edge >= 6:
+        score += 18
+        reasons.append("Elite model edge.")
+    elif edge >= 4:
+        score += 14
+        reasons.append("Strong model edge.")
+    elif edge >= 2:
+        score += 8
+        reasons.append("Playable model edge.")
+    elif edge > 0:
+        score += 3
+        reasons.append("Small positive edge.")
+    else:
+        score -= 8
+        reasons.append("No positive model edge.")
+
+    # Confidence weight
+    if confidence >= 88:
+        score += 10
+        reasons.append("High confidence rating.")
+    elif confidence >= 80:
+        score += 7
+        reasons.append("Strong confidence rating.")
+    elif confidence >= 70:
+        score += 4
+        reasons.append("Moderate confidence rating.")
+    else:
+        score -= 2
+        reasons.append("Low confidence rating.")
+
+    # Sharp market
+    if sharp_score >= 5:
+        score += 9
+        reasons.append("Strong sharp signal.")
+    elif sharp_score >= 3:
+        score += 6
+        reasons.append("Positive sharp signal.")
+    elif sharp_score >= 1:
+        score += 3
+        reasons.append("Some market support.")
+    elif sharp_score < 0:
+        score -= 4
+        reasons.append("Weak sharp signal.")
+
+    # Market intelligence
+    if market_score >= 8:
+        score += 9
+        reasons.append("Strong market intelligence grade.")
+    elif market_score >= 5:
+        score += 6
+        reasons.append("Positive market intelligence.")
+    elif market_score >= 2:
+        score += 3
+        reasons.append("Neutral market intelligence.")
+    else:
+        score -= 2
+        reasons.append("Weak market intelligence.")
+
+    # CLV
+    if clv_score >= 20:
+        score += 6
+        reasons.append("Strong positive CLV.")
+    elif clv_score >= 10:
+        score += 4
+        reasons.append("Positive CLV.")
+    elif clv_score < 0:
+        score -= 5
+        reasons.append("Negative CLV risk.")
+
+    # Timing
+    if timing_score >= 6:
+        score += 5
+        reasons.append("Market timing supports entry.")
+    elif timing_score >= 3:
+        score += 3
+        reasons.append("Market timing is acceptable.")
+
+    # Book quality
+    if book_score >= 90:
+        score += 3
+        reasons.append("Market-maker book involved.")
+    elif book_score >= 75:
+        score += 2
+        reasons.append("Sharp-influenced book involved.")
+
+    # Line shopping
+    if line_shop_value >= 20:
+        score += 4
+        reasons.append("Strong line shopping value.")
+    elif line_shop_value >= 10:
+        score += 2
+        reasons.append("Useful line shopping value.")
+
+    score = max(0, min(100, round(score, 2)))
+
+    if score >= 90:
+        final_recommendation = "Elite Play"
+        stars = 5
+        tier = "A+"
+    elif score >= 80:
+        final_recommendation = "Play"
+        stars = 4
+        tier = "A"
+    elif score >= 70:
+        final_recommendation = "Lean"
+        stars = 3
+        tier = "B"
+    elif score >= 60:
+        final_recommendation = "Watch List"
+        stars = 2
+        tier = "C"
+    else:
+        final_recommendation = "Pass"
+        stars = 1
+        tier = "D"
+
+    return {
+        "final_model_score": score,
+        "final_model_tier": tier,
+        "final_recommendation": final_recommendation,
+        "final_stars": stars,
+        "final_rating_reasons": reasons,
+    }
+
+
+def get_universal_market_intelligence(play, all_plays):
+    price_data = get_best_sportsbook_price(play, all_plays)
+
+    score = 0
+    reasons = []
+
+    line_shop_value = price_data.get("line_shop_value", 0) or 0
+    line_disagreement = price_data.get("line_disagreement", "Low")
+    stale_line = price_data.get("stale_line", False)
+
+    sharp_score = play.get("sharp_score", 0) or 0
+    sharp_book_score = play.get("sharp_book_score", 60) or 60
+
+    if line_shop_value >= 25:
+        score += 4
+        reasons.append("Major sportsbook price gap.")
+    elif line_shop_value >= 10:
+        score += 2
+        reasons.append("Meaningful line shopping edge.")
+    else:
+        reasons.append("Market prices mostly aligned.")
+
+    if line_disagreement == "High":
+        score += 2
+        reasons.append("High market disagreement.")
+    elif line_disagreement == "Moderate":
+        score += 1
+        reasons.append("Moderate market disagreement.")
+
+    if stale_line:
+        score += 3
+        reasons.append("Possible stale line opportunity.")
+
+    if sharp_score >= 4:
+        score += 2
+        reasons.append("Strong sharp/value signal.")
+    elif sharp_score >= 2:
+        score += 1
+        reasons.append("Positive sharp/value signal.")
+    elif sharp_score < 0:
+        score -= 1
+        reasons.append("Weak market signal.")
+
+    if sharp_book_score >= 90:
+        score += 2
+        reasons.append("Market-maker sportsbook involved.")
+    elif sharp_book_score >= 75:
+        score += 1
+        reasons.append("Sharp-influenced sportsbook involved.")
+
+    if score >= 8:
+        grade = "A"
+        signal = "Strong Market Edge"
+    elif score >= 5:
+        grade = "B"
+        signal = "Positive Market Edge"
+    elif score >= 2:
+        grade = "C"
+        signal = "Neutral Market Edge"
+    else:
+        grade = "D"
+        signal = "Weak Market Edge"
+
+    return {
+        **price_data,
+        "market_intelligence_score": score,
+        "market_intelligence_grade": grade,
+        "market_intelligence_signal": signal,
+        "market_intelligence_reasons": reasons,
+    }
+
 
 def get_line_key(game, market, pick, sportsbook):
     return f"{game}|{market}|{pick}|{sportsbook}"
@@ -7447,6 +7688,10 @@ def model_mlb_f5_today():
 
         set_cache("mlb_f5_model", final)
 
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
         return {"plays": final}
 
     except Exception as e:
@@ -7555,6 +7800,10 @@ def model_mlb_nrfi_today():
         save_model_play_history("MLB", final)
 
         set_cache("mlb_nrfi_model", final)
+
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
 
         return {"plays": final}
 
