@@ -115,4 +115,11 @@ class ModelPlayHistory(Base):
     units_result = Column(String, default="")
     closing_odds = Column(String, default="")
     model_version = Column(String, default="")
+    final_model_score = Column(String, default="")
+    final_model_tier = Column(String, default="")
+    final_recommendation = Column(String, default="")
+    final_stars = Column(String, default="")
+    market_intelligence_score = Column(String, default="")
+    market_intelligence_grade = Column(String, default="")
+    market_intelligence_signal = Column(String, default="")
 

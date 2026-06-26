@@ -3766,6 +3766,35 @@ def model_analytics_v2():
             )
         )
 
+    def group_by_dynamic(records, field):
+        buckets = {}
+
+        for r in records:
+            value = getattr(r, field, None)
+
+            if value in [None, ""]:
+                value = "Unknown"
+
+            value = str(value)
+
+            if value not in buckets:
+                buckets[value] = []
+
+            buckets[value].append(r)
+
+        output = {}
+
+        for key, bucket_records in buckets.items():
+            output[key] = summarize(bucket_records)
+
+        return dict(
+            sorted(
+                output.items(),
+                key=lambda item: item[1].get("units", 0),
+                reverse=True
+            )
+        )
+
     def bucket_edge(records):
         buckets = {
             "Negative": [],
@@ -3835,6 +3864,10 @@ def model_analytics_v2():
             "by_market": group_by(graded_records, "market"),
             "by_sportsbook": group_by(graded_records, "sportsbook"),
             "by_recommendation": group_by(graded_records, "recommendation"),
+            "by_final_recommendation": group_by_dynamic(graded_records, "final_recommendation"),
+            "by_final_model_tier": group_by_dynamic(graded_records, "final_model_tier"),
+            "by_market_intelligence_grade": group_by_dynamic(graded_records, "market_intelligence_grade"),
+            "by_market_intelligence_signal": group_by_dynamic(graded_records, "market_intelligence_signal"),
             "by_sharp_signal": group_by(graded_records, "sharp_signal"),
             "by_clv_status": group_by(graded_records, "clv_status"),
             "by_steam_strength": group_by(graded_records, "steam_strength"),
@@ -8052,6 +8085,13 @@ def save_model_play_history(sport, plays):
                 units_result="",
                 closing_odds="",
                 model_version=str(play.get("model_version", "")),
+                final_model_score=str(play.get("final_model_score", "")),
+                final_model_tier=str(play.get("final_model_tier", "")),
+                final_recommendation=str(play.get("final_recommendation", "")),
+                final_stars=str(play.get("final_stars", "")),
+                market_intelligence_score=str(play.get("market_intelligence_score", "")),
+                market_intelligence_grade=str(play.get("market_intelligence_grade", "")),
+                market_intelligence_signal=str(play.get("market_intelligence_signal", "")),
                 injury_status=str(play.get("injury_status", "")),
                 injury_adjustment=str(play.get("injury_adjustment", "")),
                 injury_score=str(play.get("injury_score", "")),
