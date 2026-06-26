@@ -14,6 +14,7 @@ import MLBTotalsPage from "./pages/MLBTotalsPage";
 import NFLModelPage from "./pages/NFLModelPage";
 import WNBAModelPage from "./pages/WNBAModelPage";
 import NHLModelPage from "./pages/NHLModelPage";
+import NCAAFModelPage from "./pages/NCAAFModelPage";
 
 import ModelPerformancePage from "./pages/ModelPerformancePage";
 import AutoPODPage from "./pages/AutoPODPage";
@@ -96,6 +97,14 @@ function App() {
                 >
                   🏒 NHL
                 </Link>
+
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/ncaaf-model"
+                  onClick={closeDropdown}
+                >
+                  🏈 NCAAF
+                </Link>
               </div>
             )}
           </div>
@@ -169,6 +178,18 @@ function App() {
         <Route
           path="/nhl-totals"
           element={<NHLModelPage marketFilter="Total" title="NHL Total Model" />}
+        />
+
+        <Route path="/ncaaf-model" element={<NCAAFModelPage />} />
+
+        <Route
+          path="/ncaaf-spread"
+          element={<NCAAFModelPage marketFilter="Spread" title="NCAA Football Spread Model" />}
+        />
+
+        <Route
+          path="/ncaaf-totals"
+          element={<NCAAFModelPage marketFilter="Total" title="NCAA Football Total Model" />}
         />
 
         <Route path="/admin" element={<AdminPage />} />
