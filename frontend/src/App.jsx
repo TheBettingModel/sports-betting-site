@@ -17,6 +17,7 @@ import NHLModelPage from "./pages/NHLModelPage";
 import NCAAFModelPage from "./pages/NCAAFModelPage";
 
 import ModelPerformancePage from "./pages/ModelPerformancePage";
+import AnalyticsV2Page from "./pages/AnalyticsV2Page";
 import AutoPODPage from "./pages/AutoPODPage";
 import AdminPage from "./pages/AdminPage";
 
@@ -113,7 +114,7 @@ function App() {
         <div style={rightNavStyle}>
           <Link
             style={linkStyle}
-            to="/model-performance"
+            to="/analytics"
             onClick={closeDropdown}
           >
             Analytics
@@ -129,6 +130,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/auto-pod" element={<AutoPODPage />} />
         <Route path="/model-performance" element={<ModelPerformancePage />} />
+        <Route path="/analytics" element={<AnalyticsV2Page />} />
 
         <Route path="/model-board" element={<ModelBoardPage />} />
         <Route path="/nba-totals" element={<NBATotalsPage />} />
