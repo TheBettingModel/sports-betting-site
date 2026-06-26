@@ -3698,6 +3698,170 @@ def get_play_of_the_day():
         db.close()
 
 
+
+@app.get("/model/analytics/v2")
+def model_analytics_v2():
+    db = SessionLocal()
+
+    def safe_float(value, default=0):
+        try:
+            if value in [None, ""]:
+                return default
+            return float(value)
+        except Exception:
+            return default
+
+    def summarize(records):
+        wins = len([r for r in records if r.result == "Win"])
+        losses = len([r for r in records if r.result == "Loss"])
+        pushes = len([r for r in records if r.result == "Push"])
+        pending = len([r for r in records if r.result == "Pending"])
+
+        graded = wins + losses
+        total = len(records)
+
+        units = sum(safe_float(r.units_result) for r in records)
+
+        win_rate = round((wins / graded) * 100, 2) if graded else 0
+        roi = round((units / graded) * 100, 2) if graded else 0
+
+        return {
+            "total": total,
+            "graded": graded,
+            "pending": pending,
+            "wins": wins,
+            "losses": losses,
+            "pushes": pushes,
+            "win_rate": win_rate,
+            "units": round(units, 2),
+            "roi": roi,
+        }
+
+    def group_by(records, field):
+        buckets = {}
+
+        for r in records:
+            value = getattr(r, field, None)
+
+            if value in [None, ""]:
+                value = "Unknown"
+
+            value = str(value)
+
+            if value not in buckets:
+                buckets[value] = []
+
+            buckets[value].append(r)
+
+        output = {}
+
+        for key, bucket_records in buckets.items():
+            output[key] = summarize(bucket_records)
+
+        return dict(
+            sorted(
+                output.items(),
+                key=lambda item: item[1].get("units", 0),
+                reverse=True
+            )
+        )
+
+    def bucket_edge(records):
+        buckets = {
+            "Negative": [],
+            "0-2": [],
+            "2-4": [],
+            "4-6": [],
+            "6+": [],
+        }
+
+        for r in records:
+            edge = safe_float(r.edge)
+
+            if edge < 0:
+                buckets["Negative"].append(r)
+            elif edge < 2:
+                buckets["0-2"].append(r)
+            elif edge < 4:
+                buckets["2-4"].append(r)
+            elif edge < 6:
+                buckets["4-6"].append(r)
+            else:
+                buckets["6+"].append(r)
+
+        return {k: summarize(v) for k, v in buckets.items()}
+
+    def bucket_confidence(records):
+        buckets = {
+            "Under 70": [],
+            "70-79": [],
+            "80-89": [],
+            "90+": [],
+        }
+
+        for r in records:
+            confidence = safe_float(r.confidence)
+
+            if confidence < 70:
+                buckets["Under 70"].append(r)
+            elif confidence < 80:
+                buckets["70-79"].append(r)
+            elif confidence < 90:
+                buckets["80-89"].append(r)
+            else:
+                buckets["90+"].append(r)
+
+        return {k: summarize(v) for k, v in buckets.items()}
+
+    try:
+        records = db.query(ModelPlayHistory).all()
+
+        graded_records = [
+            r for r in records
+            if r.result in ["Win", "Loss", "Push"]
+        ]
+
+        actionable_records = [
+            r for r in graded_records
+            if str(r.recommendation) in ["Play", "Lean"]
+        ]
+
+        return {
+            "summary": summarize(records),
+            "graded_summary": summarize(graded_records),
+            "actionable_summary": summarize(actionable_records),
+
+            "by_sport": group_by(graded_records, "sport"),
+            "by_market": group_by(graded_records, "market"),
+            "by_sportsbook": group_by(graded_records, "sportsbook"),
+            "by_recommendation": group_by(graded_records, "recommendation"),
+            "by_sharp_signal": group_by(graded_records, "sharp_signal"),
+            "by_clv_status": group_by(graded_records, "clv_status"),
+            "by_steam_strength": group_by(graded_records, "steam_strength"),
+            "by_line_disagreement": group_by(graded_records, "line_disagreement"),
+            "by_model_version": group_by(graded_records, "model_version"),
+
+            "edge_buckets": bucket_edge(graded_records),
+            "confidence_buckets": bucket_confidence(graded_records),
+
+            "notes": [
+                "Analytics v2 uses ModelPlayHistory.",
+                "Only graded plays are used in grouped performance sections.",
+                "Pending plays are included only in the top-level summary.",
+            ],
+            "model_version": "historical_analytics_v2",
+        }
+
+    except Exception as e:
+        return {
+            "error": str(e),
+            "summary": {},
+        }
+
+    finally:
+        db.close()
+
+
 @app.get("/model/performance")
 def model_performance():
     db = SessionLocal()
