@@ -5618,6 +5618,103 @@ def get_sharp_market_signal(edge, odds, recommendation):
 
 
 
+
+def get_universal_pod_score(play):
+    def safe_float(value, default=0):
+        try:
+            if value in [None, ""]:
+                return default
+            return float(value)
+        except Exception:
+            return default
+
+    final_score = safe_float(play.get("final_model_score"), 50)
+    market_score = safe_float(play.get("market_intelligence_score"), 0)
+    sharp_score = safe_float(play.get("sharp_score"), 0)
+    clv_score = safe_float(play.get("clv_score"), 0)
+    timing_score = safe_float(play.get("market_timing_score"), 0)
+    book_score = safe_float(play.get("sharp_book_score"), 60)
+    edge = safe_float(play.get("edge"), 0)
+
+    score = 0
+    reasons = []
+
+    score += final_score * 0.40
+    reasons.append(f"Final model score contribution: {round(final_score * 0.40, 2)}.")
+
+    score += market_score * 2
+    reasons.append(f"Market intelligence contribution: {round(market_score * 2, 2)}.")
+
+    score += sharp_score * 2
+    reasons.append(f"Sharp signal contribution: {round(sharp_score * 2, 2)}.")
+
+    if clv_score > 0:
+        score += min(clv_score, 20) * 0.5
+        reasons.append("Positive CLV supports the play.")
+    elif clv_score < 0:
+        score -= 5
+        reasons.append("Negative CLV risk.")
+
+    if timing_score > 0:
+        score += min(timing_score, 10)
+        reasons.append("Market timing supports entry.")
+
+    if book_score >= 90:
+        score += 4
+        reasons.append("Market-maker book involved.")
+    elif book_score >= 75:
+        score += 2
+        reasons.append("Sharp-influenced book involved.")
+
+    if edge >= 6:
+        score += 6
+        reasons.append("Elite edge bonus.")
+    elif edge >= 4:
+        score += 4
+        reasons.append("Strong edge bonus.")
+    elif edge >= 2:
+        score += 2
+        reasons.append("Playable edge bonus.")
+    else:
+        score -= 4
+        reasons.append("Weak edge penalty.")
+
+    recommendation = str(
+        play.get("final_recommendation")
+        or play.get("recommendation")
+        or ""
+    )
+
+    if recommendation in ["Elite Play", "Play"]:
+        score += 5
+        reasons.append("Recommendation qualifies as a play.")
+    elif recommendation == "Lean":
+        score += 2
+        reasons.append("Recommendation qualifies as a lean.")
+    elif recommendation == "Pass":
+        score -= 8
+        reasons.append("Pass recommendation penalty.")
+
+    score = round(max(0, min(100, score)), 2)
+
+    if score >= 90:
+        tier = "Elite POD Candidate"
+    elif score >= 80:
+        tier = "Strong POD Candidate"
+    elif score >= 70:
+        tier = "Playable POD Candidate"
+    elif score >= 60:
+        tier = "Watchlist POD Candidate"
+    else:
+        tier = "Not POD Qualified"
+
+    return {
+        "universal_pod_score": score,
+        "universal_pod_tier": tier,
+        "universal_pod_reasons": reasons,
+    }
+
+
 def get_universal_final_rating(play):
     try:
         edge = float(play.get("edge", 0) or 0)
@@ -6692,6 +6789,76 @@ def model_nba_play_of_the_day():
         "model_version": "nba_auto_pod_v1"
     }
 
+
+
+
+@app.get("/model/play-of-the-day-v2")
+def model_play_of_the_day_v2():
+    sport_cache_keys = {
+        "MLB": "mlb_model_v2",
+        "NBA": "nba_model",
+        "NFL": "nfl_model",
+        "WNBA": "wnba_model",
+        "NHL": "nhl_model",
+        "NCAAF": "ncaaf_model",
+    }
+
+    all_candidates = []
+    by_sport = {}
+    errors = {}
+
+    for sport, cache_key in sport_cache_keys.items():
+        try:
+            plays = get_cache(cache_key) or []
+
+            qualified = []
+
+            for play in plays:
+                play = dict(play)
+                play["pod_sport"] = sport
+
+                if "universal_pod_score" not in play:
+                    play.update(get_universal_pod_score(play))
+
+                final_recommendation = str(
+                    play.get("final_recommendation")
+                    or play.get("recommendation")
+                    or ""
+                )
+
+                if final_recommendation in ["Elite Play", "Play", "Lean"]:
+                    qualified.append(play)
+                    all_candidates.append(play)
+
+            qualified = sorted(
+                qualified,
+                key=lambda x: x.get("universal_pod_score", 0),
+                reverse=True
+            )
+
+            by_sport[sport] = qualified[0] if qualified else None
+
+        except Exception as e:
+            errors[sport] = str(e)
+            by_sport[sport] = None
+
+    all_candidates = sorted(
+        all_candidates,
+        key=lambda x: x.get("universal_pod_score", 0),
+        reverse=True
+    )
+
+    overall = all_candidates[0] if all_candidates else None
+
+    return {
+        "overall_play": overall,
+        "top_5": all_candidates[:5],
+        "by_sport": by_sport,
+        "candidate_count": len(all_candidates),
+        "errors": errors,
+        "model_version": "universal_pod_v2_cache_first",
+        "note": "Uses cached model outputs for fast loading. Refresh sport models first for latest plays.",
+    }
 
 @app.get("/model/play-of-the-day")
 def model_combined_play_of_the_day():
