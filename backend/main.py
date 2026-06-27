@@ -4286,6 +4286,8 @@ def model_ncaaf_today():
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
 
+        set_cache("ncaaf_model", final)
+
         return {"plays": final}
 
     except Exception as e:
@@ -4478,6 +4480,8 @@ def model_nhl_today():
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
 
+        set_cache("nhl_model", final)
+
         return {"plays": final}
 
     except Exception as e:
@@ -4652,6 +4656,8 @@ def model_wnba_today():
         for play in final:
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
+
+        set_cache("wnba_model", final)
 
         return {"plays": final}
 
@@ -6795,7 +6801,7 @@ def model_nba_play_of_the_day():
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
-        "MLB": "mlb_model_v2",
+        "MLB": "mlb_model",
         "NBA": "nba_model",
         "NFL": "nfl_model",
         "WNBA": "wnba_model",
