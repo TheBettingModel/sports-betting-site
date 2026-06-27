@@ -6796,6 +6796,40 @@ def model_nba_play_of_the_day():
 
 
 
+
+@app.get("/debug/pod-cache")
+def debug_pod_cache():
+    keys = [
+        "mlb_model",
+        "mlb_f5_model",
+        "mlb_nrfi_model",
+        "wnba_model",
+        "nba_model",
+        "nfl_model",
+        "nhl_model",
+        "ncaaf_model",
+    ]
+
+    output = {}
+
+    for key in keys:
+        cached = get_cache(key) or []
+
+        sample = cached[0] if isinstance(cached, list) and len(cached) > 0 else None
+
+        output[key] = {
+            "count": len(cached) if isinstance(cached, list) else 0,
+            "sample_market": sample.get("market") if sample else None,
+            "sample_pick": sample.get("pick") if sample else None,
+            "sample_recommendation": sample.get("recommendation") if sample else None,
+            "sample_final_recommendation": sample.get("final_recommendation") if sample else None,
+            "sample_final_score": sample.get("final_model_score") if sample else None,
+            "sample_pod_score": sample.get("universal_pod_score") if sample else None,
+        }
+
+    return output
+
+
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
