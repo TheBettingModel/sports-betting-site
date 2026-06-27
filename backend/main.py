@@ -6855,7 +6855,10 @@ def model_play_of_the_day_v2():
                 play = dict(play)
                 play["pod_sport"] = sport
 
-                if "universal_pod_score" not in play:
+                if "final_recommendation" not in play or not play.get("final_recommendation"):
+                    play.update(get_universal_final_rating(play))
+
+                if "universal_pod_score" not in play or not play.get("universal_pod_score"):
                     play.update(get_universal_pod_score(play))
 
                 final_recommendation = str(
