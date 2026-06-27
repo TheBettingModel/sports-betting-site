@@ -7759,9 +7759,9 @@ def get_mlb_event_odds(event_id, markets, odds_api_key):
         }
 
 @app.get("/model/mlb/f5/today")
-def model_mlb_f5_today():
+def model_mlb_f5_today(force_refresh=False):
     cached = get_cache("mlb_f5_model")
-    if cached:
+    if cached and not force_refresh:
         return {
         "plays": cached,
         "cached": True
