@@ -3467,7 +3467,7 @@ def refresh_mlb_models():
         }
 
     try:
-        f5_response = model_mlb_f5_today()
+        f5_response = model_mlb_f5_today(force_refresh=True)
         results["f5"] = {
             "success": True,
             "count": len(f5_response.get("plays", [])),
@@ -3479,7 +3479,7 @@ def refresh_mlb_models():
         }
 
     try:
-        nrfi_response = model_mlb_nrfi_today()
+        nrfi_response = model_mlb_nrfi_today(force_refresh=True)
         results["nrfi"] = {
             "success": True,
             "count": len(nrfi_response.get("plays", [])),
@@ -8183,9 +8183,9 @@ def model_mlb_f5_today(force_refresh=False):
 
 @app.get("/model/mlb/nrfi/today")
 
-def model_mlb_nrfi_today():
+def model_mlb_nrfi_today(force_refresh=False):
     cached = get_cache("mlb_nrfi_model")
-    if cached:
+    if cached and not force_refresh:
         return {
             "plays": cached,
             "cached": True
