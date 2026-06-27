@@ -4894,12 +4894,12 @@ def model_nfl_today():
         for play in final:
             play["auto_pod_score"] = get_auto_pod_score(play)
 
-        save_model_play_history("NFL", final)
-        set_cache("nfl_model", final)
-
         for play in final:
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
+
+        save_model_play_history("NFL", final)
+        set_cache("nfl_model", final)
 
         return {"plays": final}
 
@@ -5429,18 +5429,16 @@ def model_nba_today():
 
         save_model_play_history("NBA", final)
 
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
         set_cache("nba_model", final)
 
         return {
             "top_play": top_play,
             "plays": final
         }
-
-        for play in final:
-            play.update(get_universal_market_intelligence(play, plays))
-            play.update(get_universal_final_rating(play))
-
-        return {"plays": final}
 
     except Exception as e:
         if cached:
@@ -8054,13 +8052,13 @@ def model_mlb_f5_today():
             reverse=True,
         )
 
-        save_model_play_history("MLB", final)
-
-        set_cache("mlb_f5_model", final)
-
         for play in final:
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
+
+        save_model_play_history("MLB", final)
+
+        set_cache("mlb_f5_model", final)
 
         return {"plays": final}
 
@@ -8167,13 +8165,13 @@ def model_mlb_nrfi_today():
             reverse=True
         )
 
-        save_model_play_history("MLB", final)
-
-        set_cache("mlb_nrfi_model", final)
-
         for play in final:
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
+
+        save_model_play_history("MLB", final)
+
+        set_cache("mlb_nrfi_model", final)
 
         return {"plays": final}
 
