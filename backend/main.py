@@ -5623,6 +5623,30 @@ def get_sharp_market_signal(edge, odds, recommendation):
 
 
 
+
+def finalize_model_plays_for_cache(plays, all_plays=None):
+    if all_plays is None:
+        all_plays = plays
+
+    finalized = []
+
+    for play in plays:
+        play = dict(play)
+
+        if not play.get("market_intelligence_score"):
+            play.update(get_universal_market_intelligence(play, all_plays))
+
+        if not play.get("final_recommendation"):
+            play.update(get_universal_final_rating(play))
+
+        if not play.get("universal_pod_score"):
+            play.update(get_universal_pod_score(play))
+
+        finalized.append(play)
+
+    return finalized
+
+
 def get_universal_pod_score(play):
     def safe_float(value, default=0):
         try:
@@ -8136,9 +8160,7 @@ def model_mlb_f5_today():
             reverse=True,
         )
 
-        for play in final:
-            play.update(get_universal_market_intelligence(play, plays))
-            play.update(get_universal_final_rating(play))
+        final = finalize_model_plays_for_cache(final, plays)
 
         save_model_play_history("MLB", final)
 
@@ -8249,9 +8271,7 @@ def model_mlb_nrfi_today():
             reverse=True
         )
 
-        for play in final:
-            play.update(get_universal_market_intelligence(play, plays))
-            play.update(get_universal_final_rating(play))
+        final = finalize_model_plays_for_cache(final, plays)
 
         save_model_play_history("MLB", final)
 
