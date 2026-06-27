@@ -6797,6 +6797,53 @@ def model_nba_play_of_the_day():
 
 
 
+
+@app.post("/debug/clear-pod-caches")
+def clear_pod_caches():
+    db = SessionLocal()
+
+    keys = [
+        "mlb_model",
+        "mlb_f5_model",
+        "mlb_nrfi_model",
+        "wnba_model",
+        "nba_model",
+        "nfl_model",
+        "nhl_model",
+        "ncaaf_model",
+    ]
+
+    try:
+        deleted = 0
+
+        for key in keys:
+            rows = db.query(CacheEntry).filter(
+                CacheEntry.key == key
+            ).all()
+
+            for row in rows:
+                db.delete(row)
+                deleted += 1
+
+        db.commit()
+
+        return {
+            "success": True,
+            "deleted": deleted,
+            "keys": keys,
+        }
+
+    except Exception as e:
+        db.rollback()
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
+    finally:
+        db.close()
+
+
 @app.get("/debug/pod-cache")
 def debug_pod_cache():
     keys = [
