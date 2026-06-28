@@ -21,6 +21,8 @@ import AnalyticsV2Page from "./pages/AnalyticsV2Page";
 import AutoPODPage from "./pages/AutoPODPage";
 import AdminPage from "./pages/AdminPage";
 
+import SoccerModelPage from "./pages/SoccerModelPage";
+
 function App() {
   const [openDropdown, setOpenDropdown] = useState(null);
 
@@ -72,6 +74,14 @@ function App() {
                   onClick={closeDropdown}
                 >
                   ⚾ MLB
+                </Link>
+
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/soccer-model"
+                  onClick={closeDropdown}
+                >
+                  ⚽ Soccer
                 </Link>
 
                 <div style={dropdownDividerStyle} />
@@ -141,6 +151,8 @@ function App() {
         <Route path="/mlb-f5" element={<MLBF5Page />} />
         <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />
         <Route path="/mlb-totals" element={<MLBTotalsPage />} />
+
+        <Route path="/soccer-model" element={<SoccerModelPage />} />
 
         <Route path="/nfl-model" element={<NFLModelPage />} />
         <Route
