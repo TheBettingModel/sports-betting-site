@@ -6835,6 +6835,7 @@ def clear_pod_caches():
         "nfl_model",
         "nhl_model",
         "ncaaf_model",
+        "soccer_model",
     ]
 
     try:
@@ -6879,6 +6880,7 @@ def debug_pod_cache():
         "nfl_model",
         "nhl_model",
         "ncaaf_model",
+        "soccer_model",
     ]
 
     output = {}
@@ -6901,6 +6903,328 @@ def debug_pod_cache():
     return output
 
 
+
+
+SOCCER_TEAM_RATINGS = {
+    "Manchester City": 94,
+    "Arsenal": 90,
+    "Liverpool": 89,
+    "Chelsea": 84,
+    "Tottenham Hotspur": 83,
+    "Manchester United": 82,
+    "Newcastle United": 81,
+    "Aston Villa": 80,
+    "Barcelona": 92,
+    "Real Madrid": 94,
+    "Atletico Madrid": 88,
+    "Bayern Munich": 93,
+    "Borussia Dortmund": 86,
+    "Paris Saint Germain": 91,
+    "Inter Milan": 90,
+    "AC Milan": 86,
+    "Juventus": 86,
+    "Napoli": 85,
+    "United States": 82,
+    "Brazil": 92,
+    "Argentina": 93,
+    "France": 94,
+    "England": 91,
+    "Spain": 91,
+    "Germany": 89,
+    "Portugal": 90,
+    "Netherlands": 88,
+    "Italy": 87,
+    "Canada": 78,
+    "Mexico": 80,
+}
+
+SOCCER_SPORT_KEYS = [
+    "soccer_epl",
+    "soccer_spain_la_liga",
+    "soccer_italy_serie_a",
+    "soccer_germany_bundesliga",
+    "soccer_france_ligue_one",
+    "soccer_usa_mls",
+    "soccer_uefa_champs_league",
+    "soccer_fifa_world_cup",
+]
+
+def get_soccer_team_rating(team):
+    return SOCCER_TEAM_RATINGS.get(team, 76)
+
+def get_soccer_market_name(market_key):
+    if market_key == "h2h":
+        return "Moneyline"
+    if market_key == "spreads":
+        return "Spread"
+    if market_key == "totals":
+        return "Total"
+    return market_key
+
+def model_soccer_for_sport_key(sport_key, odds_api_key):
+    commence_from, commence_to = get_today_utc_window()
+
+    url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds"
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
+    }
+
+    response = requests.get(url, params=params, timeout=10)
+
+    if response.status_code != 200:
+        return []
+
+    games = response.json()
+    plays = []
+
+    for game in games:
+        if game_has_started(game):
+            continue
+
+        away_team = game.get("away_team")
+        home_team = game.get("home_team")
+        game_name = f"{away_team} vs {home_team}"
+
+        for bookmaker in game.get("bookmakers", []):
+            sportsbook = bookmaker.get("title")
+
+            sharp_book_data = get_sharp_sportsbook_weight(sportsbook)
+            book_weight_adjustment = sharp_book_data.get(
+                "book_weight_adjustment",
+                0
+            )
+
+            for market in bookmaker.get("markets", []):
+                market_key = market.get("key")
+                market_name = get_soccer_market_name(market_key)
+
+                for outcome in market.get("outcomes", []):
+                    odds = outcome.get("price")
+
+                    if odds is None:
+                        continue
+
+                    implied = american_to_implied_probability(odds)
+                    pick_name = outcome.get("name")
+
+                    if market_key == "totals":
+                        point = outcome.get("point")
+                        pick_display = f"{pick_name} {point}" if point else pick_name
+
+                        base_prob = implied
+                        total_adjustment = 0.4 if pick_name == "Under" else 0.2
+                        model_prob = base_prob + total_adjustment + book_weight_adjustment
+
+                        reason = (
+                            "Soccer totals v1. "
+                            f"Base implied probability ({round(implied, 2)}). "
+                            f"Total adjustment ({total_adjustment})."
+                        )
+
+                    else:
+                        point = outcome.get("point")
+                        pick_display = (
+                            f"{pick_name} {point}"
+                            if point is not None and market_key == "spreads"
+                            else pick_name
+                        )
+
+                        team_rating = get_soccer_team_rating(pick_name)
+
+                        opponent = home_team if pick_name == away_team else away_team
+                        opponent_rating = get_soccer_team_rating(opponent)
+
+                        rating_diff = team_rating - opponent_rating
+                        rating_adjustment = round(rating_diff * 0.25, 2)
+
+                        home_adjustment = 0
+                        if pick_name == home_team:
+                            home_adjustment = 1.1
+                        elif pick_name == away_team:
+                            home_adjustment = -0.4
+
+                        price_adjustment = 0
+                        if odds > 120:
+                            price_adjustment = 0.5
+                        elif odds < -180:
+                            price_adjustment = -0.8
+
+                        spread_adjustment = 0
+                        if market_key == "spreads" and point is not None:
+                            try:
+                                spread_adjustment = -abs(float(point)) * 0.15
+                            except Exception:
+                                spread_adjustment = 0
+
+                        model_prob = (
+                            implied
+                            + rating_adjustment
+                            + home_adjustment
+                            + price_adjustment
+                            + spread_adjustment
+                            + book_weight_adjustment
+                        )
+
+                        reason = (
+                            f"Soccer rating edge ({rating_diff}). "
+                            f"Rating adjustment ({rating_adjustment}). "
+                            f"Home adjustment ({home_adjustment}). "
+                            f"Price adjustment ({price_adjustment}). "
+                        )
+
+                    model_prob = max(1, min(99, model_prob))
+                    edge = round(model_prob - implied, 2)
+
+                    if edge >= 4:
+                        recommendation = "Play"
+                    elif edge >= 2:
+                        recommendation = "Lean"
+                    else:
+                        recommendation = "Pass"
+
+                    if edge >= 5:
+                        confidence = 88
+                    elif edge >= 4:
+                        confidence = 82
+                    elif edge >= 3:
+                        confidence = 76
+                    elif edge >= 2:
+                        confidence = 70
+                    else:
+                        confidence = 58
+
+                    units = get_dynamic_units(
+                        edge,
+                        confidence,
+                        recommendation
+                    )
+
+                    play = {
+                        "game": game_name,
+                        "sportsbook": sportsbook,
+                        "market": market_name,
+                        "pick": pick_display,
+                        "odds": odds,
+                        "implied_probability": round(implied, 2),
+                        "model_probability": round(model_prob, 2),
+                        "edge": edge,
+                        "confidence": confidence,
+                        "recommendation": recommendation,
+                        "units": units,
+                        "sport": "Soccer",
+                        "league": sport_key,
+                        "model_version": "soccer_v1_universal",
+                        "reason": reason,
+                    }
+
+                    play.update(sharp_book_data)
+
+                    sharp_data = get_sharp_market_signal(
+                        edge,
+                        odds,
+                        recommendation
+                    )
+
+                    play.update(sharp_data)
+
+                    plays.append(play)
+
+    return plays
+
+
+@app.get("/model/soccer/today")
+def model_soccer_today(force_refresh=False):
+    cached = get_cache("soccer_model")
+
+    if cached and not force_refresh:
+        return {
+            "plays": cached,
+            "cached": True,
+        }
+
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {
+            "plays": [],
+            "error": "Missing ODDS_API_KEY"
+        }
+
+    all_plays = []
+    errors = {}
+
+    for sport_key in SOCCER_SPORT_KEYS:
+        try:
+            plays = model_soccer_for_sport_key(
+                sport_key,
+                odds_api_key
+            )
+
+            all_plays.extend(plays)
+
+        except Exception as e:
+            errors[sport_key] = str(e)
+
+    best_by_game_market = {}
+
+    for play in all_plays:
+        key = (
+            play.get("game"),
+            play.get("market"),
+            play.get("pick")
+        )
+
+        current = best_by_game_market.get(key)
+
+        if not current:
+            best_by_game_market[key] = play
+            continue
+
+        if int(play.get("odds", -9999)) > int(current.get("odds", -9999)):
+            best_by_game_market[key] = play
+
+    final = sorted(
+        list(best_by_game_market.values()),
+        key=lambda x: x.get("edge", 0),
+        reverse=True
+    )
+
+    for play in final:
+        price_data = get_best_sportsbook_price(play, all_plays)
+        play.update(price_data)
+
+    final = finalize_model_plays_for_cache(final, all_plays)
+
+    save_model_play_history("Soccer", final)
+
+    set_cache("soccer_model", final)
+
+    return {
+        "plays": final,
+        "count": len(final),
+        "errors": errors,
+        "model_version": "soccer_v1_universal",
+    }
+
+
+@app.post("/refresh/soccer")
+def refresh_soccer():
+    response = model_soccer_today(force_refresh=True)
+
+    return {
+        "success": True,
+        "date": str(date.today()),
+        "count": len(response.get("plays", [])),
+        "response": response,
+    }
+
+
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
@@ -6910,6 +7234,7 @@ def model_play_of_the_day_v2():
         "WNBA": ["wnba_model"],
         "NHL": ["nhl_model"],
         "NCAAF": ["ncaaf_model"],
+        "Soccer": ["soccer_model"],
     }
 
     all_candidates = []
