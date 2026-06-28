@@ -7483,24 +7483,34 @@ def refresh_all_models():
     results = {}
 
     refresh_jobs = {
-        "MLB": refresh_mlb,
-        "NBA": refresh_nba,
-        "WNBA": refresh_wnba,
-        "NFL": refresh_nfl,
-        "NCAAF": refresh_ncaaf,
-        "NHL": refresh_nhl,
-        "Soccer": refresh_soccer,
+        "MLB": "refresh_mlb",
+        "NBA": "refresh_nba",
+        "WNBA": "refresh_wnba",
+        "NFL": "refresh_nfl",
+        "NCAAF": "refresh_ncaaf",
+        "NHL": "refresh_nhl",
+        "Soccer": "refresh_soccer",
     }
 
-    for sport, refresh_func in refresh_jobs.items():
+    for sport, function_name in refresh_jobs.items():
         try:
+            refresh_func = globals().get(function_name)
+
+            if not refresh_func:
+                results[sport] = {
+                    "success": False,
+                    "count": 0,
+                    "error": f"{function_name} is not defined.",
+                }
+                continue
+
             response = refresh_func()
 
             count = 0
 
             if isinstance(response, dict):
                 if "count" in response:
-                    count = response.get("count", 0)
+                    count = int(response.get("count", 0) or 0)
                 elif "results" in response:
                     for item in response.get("results", {}).values():
                         if isinstance(item, dict):
@@ -7523,7 +7533,7 @@ def refresh_all_models():
         "success": True,
         "date": str(date.today()),
         "results": results,
-        "model_version": "refresh_all_v1",
+        "model_version": "refresh_all_v2_safe",
     }
 
 
