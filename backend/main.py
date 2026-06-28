@@ -6904,21 +6904,27 @@ def debug_pod_cache():
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
-        "MLB": "mlb_model",
-        "NBA": "nba_model",
-        "NFL": "nfl_model",
-        "WNBA": "wnba_model",
-        "NHL": "nhl_model",
-        "NCAAF": "ncaaf_model",
+        "MLB": ["mlb_model", "mlb_f5_model", "mlb_nrfi_model"],
+        "NBA": ["nba_model"],
+        "NFL": ["nfl_model"],
+        "WNBA": ["wnba_model"],
+        "NHL": ["nhl_model"],
+        "NCAAF": ["ncaaf_model"],
     }
 
     all_candidates = []
     by_sport = {}
     errors = {}
 
-    for sport, cache_key in sport_cache_keys.items():
+    for sport, cache_keys in sport_cache_keys.items():
         try:
-            plays = get_cache(cache_key) or []
+            plays = []
+
+            for cache_key in cache_keys:
+                cached_plays = get_cache(cache_key) or []
+
+                if isinstance(cached_plays, list):
+                    plays.extend(cached_plays)
 
             qualified = []
 
