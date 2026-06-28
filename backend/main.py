@@ -6949,6 +6949,134 @@ SOCCER_SPORT_KEYS = [
     "soccer_fifa_world_cup",
 ]
 
+
+def get_soccer_team_profile(team):
+    rating = get_soccer_team_rating(team)
+
+    if rating >= 91:
+        tier = "Elite"
+        attack = 90
+        defense = 88
+        form = 86
+    elif rating >= 86:
+        tier = "Strong"
+        attack = 84
+        defense = 82
+        form = 80
+    elif rating >= 80:
+        tier = "Average"
+        attack = 78
+        defense = 76
+        form = 75
+    elif rating >= 74:
+        tier = "Weak"
+        attack = 72
+        defense = 71
+        form = 70
+    else:
+        tier = "Very Weak"
+        attack = 68
+        defense = 67
+        form = 68
+
+    return {
+        "soccer_team_rating": rating,
+        "soccer_team_tier": tier,
+        "soccer_attack_rating": attack,
+        "soccer_defense_rating": defense,
+        "soccer_form_rating": form,
+    }
+
+
+def get_soccer_context_adjustment(sport_key, market_key, pick_name, odds, rating_diff):
+    tournament_mode = sport_key in [
+        "soccer_fifa_world_cup",
+        "soccer_uefa_champs_league",
+    ]
+
+    adjustment = 0
+    notes = []
+
+    if tournament_mode:
+        adjustment += 0.35
+        notes.append("Tournament match intensity adjustment.")
+
+    if pick_name == "Draw":
+        if abs(rating_diff) <= 4:
+            adjustment += 1.2
+            notes.append("Balanced matchup increases draw probability.")
+        elif abs(rating_diff) >= 12:
+            adjustment -= 1.0
+            notes.append("Large team gap reduces draw probability.")
+
+    if odds is not None:
+        try:
+            odds_value = int(odds)
+
+            if odds_value <= -220:
+                adjustment -= 0.8
+                notes.append("Heavy favorite price protection.")
+            elif odds_value >= 180:
+                adjustment += 0.35
+                notes.append("Plus-money upside adjustment.")
+        except Exception:
+            pass
+
+    if market_key == "totals":
+        adjustment += 0.25
+        notes.append("Soccer totals market adjustment.")
+
+    return {
+        "soccer_context_adjustment": round(adjustment, 2),
+        "soccer_tournament_mode": tournament_mode,
+        "soccer_context_notes": notes,
+    }
+
+
+def get_soccer_total_environment(home_team, away_team):
+    home_profile = get_soccer_team_profile(home_team)
+    away_profile = get_soccer_team_profile(away_team)
+
+    attack_average = round(
+        (
+            home_profile.get("soccer_attack_rating", 75)
+            + away_profile.get("soccer_attack_rating", 75)
+        ) / 2,
+        2
+    )
+
+    defense_average = round(
+        (
+            home_profile.get("soccer_defense_rating", 75)
+            + away_profile.get("soccer_defense_rating", 75)
+        ) / 2,
+        2
+    )
+
+    btts_score = round(
+        (attack_average - defense_average) + 50,
+        2
+    )
+
+    if btts_score >= 55:
+        total_environment = "Goal Friendly"
+        total_adjustment = 0.8
+    elif btts_score <= 47:
+        total_environment = "Under Lean"
+        total_adjustment = -0.5
+    else:
+        total_environment = "Neutral"
+        total_adjustment = 0.2
+
+    return {
+        "soccer_attack_average": attack_average,
+        "soccer_defense_average": defense_average,
+        "soccer_btts_score": btts_score,
+        "soccer_total_environment": total_environment,
+        "soccer_total_adjustment": total_adjustment,
+    }
+
+
 def get_soccer_team_rating(team):
     return SOCCER_TEAM_RATINGS.get(team, 76)
 
@@ -7017,14 +7145,47 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                         point = outcome.get("point")
                         pick_display = f"{pick_name} {point}" if point else pick_name
 
-                        base_prob = implied
-                        total_adjustment = 0.4 if pick_name == "Under" else 0.2
-                        model_prob = base_prob + total_adjustment + book_weight_adjustment
+                        total_env = get_soccer_total_environment(
+                            home_team,
+                            away_team
+                        )
+
+                        env_adjustment = total_env.get(
+                            "soccer_total_adjustment",
+                            0
+                        )
+
+                        if pick_name == "Under":
+                            total_adjustment = -env_adjustment
+                        else:
+                            total_adjustment = env_adjustment
+
+                        context_data = get_soccer_context_adjustment(
+                            sport_key,
+                            market_key,
+                            pick_name,
+                            odds,
+                            0
+                        )
+
+                        context_adjustment = context_data.get(
+                            "soccer_context_adjustment",
+                            0
+                        )
+
+                        model_prob = (
+                            implied
+                            + total_adjustment
+                            + context_adjustment
+                            + book_weight_adjustment
+                        )
 
                         reason = (
-                            "Soccer totals v1. "
-                            f"Base implied probability ({round(implied, 2)}). "
-                            f"Total adjustment ({total_adjustment})."
+                            "Soccer totals v2. "
+                            f"Total environment: {total_env.get('soccer_total_environment')}. "
+                            f"BTTS score: {total_env.get('soccer_btts_score')}. "
+                            f"Total adjustment ({round(total_adjustment, 2)}). "
+                            f"Context adjustment ({context_adjustment})."
                         )
 
                     else:
@@ -7039,6 +7200,9 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
 
                         opponent = home_team if pick_name == away_team else away_team
                         opponent_rating = get_soccer_team_rating(opponent)
+
+                        team_profile = get_soccer_team_profile(pick_name)
+                        opponent_profile = get_soccer_team_profile(opponent)
 
                         rating_diff = team_rating - opponent_rating
                         rating_adjustment = round(rating_diff * 0.25, 2)
@@ -7062,20 +7226,36 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                             except Exception:
                                 spread_adjustment = 0
 
+                        context_data = get_soccer_context_adjustment(
+                            sport_key,
+                            market_key,
+                            pick_name,
+                            odds,
+                            rating_diff
+                        )
+
+                        context_adjustment = context_data.get(
+                            "soccer_context_adjustment",
+                            0
+                        )
+
                         model_prob = (
                             implied
                             + rating_adjustment
                             + home_adjustment
                             + price_adjustment
                             + spread_adjustment
+                            + context_adjustment
                             + book_weight_adjustment
                         )
 
                         reason = (
                             f"Soccer rating edge ({rating_diff}). "
+                            f"Team tier: {team_profile.get('soccer_team_tier')}. "
                             f"Rating adjustment ({rating_adjustment}). "
                             f"Home adjustment ({home_adjustment}). "
                             f"Price adjustment ({price_adjustment}). "
+                            f"Context adjustment ({context_adjustment}). "
                         )
 
                     model_prob = max(1, min(99, model_prob))
@@ -7119,9 +7299,19 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                         "units": units,
                         "sport": "Soccer",
                         "league": sport_key,
-                        "model_version": "soccer_v1_universal",
+                        "model_version": "soccer_v2_advanced",
+                        "soccer_tournament_mode": context_data.get("soccer_tournament_mode"),
+                        "soccer_context_adjustment": context_data.get("soccer_context_adjustment"),
+                        "soccer_context_notes": context_data.get("soccer_context_notes"),
                         "reason": reason,
                     }
+
+                    if market_key != "totals":
+                        play.update(team_profile)
+                        play["opponent_soccer_rating"] = opponent_profile.get("soccer_team_rating")
+                        play["opponent_soccer_tier"] = opponent_profile.get("soccer_team_tier")
+                    else:
+                        play.update(total_env)
 
                     play.update(sharp_book_data)
 
@@ -7209,7 +7399,7 @@ def model_soccer_today(force_refresh=False):
         "plays": final,
         "count": len(final),
         "errors": errors,
-        "model_version": "soccer_v1_universal",
+        "model_version": "soccer_v2_advanced",
     }
 
 
