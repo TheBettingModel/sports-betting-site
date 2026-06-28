@@ -6906,36 +6906,21 @@ def debug_pod_cache():
 
 
 SOCCER_TEAM_RATINGS = {
-    "Manchester City": 94,
-    "Arsenal": 90,
-    "Liverpool": 89,
-    "Chelsea": 84,
-    "Tottenham Hotspur": 83,
-    "Manchester United": 82,
-    "Newcastle United": 81,
-    "Aston Villa": 80,
-    "Barcelona": 92,
-    "Real Madrid": 94,
-    "Atletico Madrid": 88,
-    "Bayern Munich": 93,
-    "Borussia Dortmund": 86,
-    "Paris Saint Germain": 91,
-    "Inter Milan": 90,
-    "AC Milan": 86,
-    "Juventus": 86,
-    "Napoli": 85,
-    "United States": 82,
-    "Brazil": 92,
-    "Argentina": 93,
-    "France": 94,
-    "England": 91,
-    "Spain": 91,
-    "Germany": 89,
-    "Portugal": 90,
-    "Netherlands": 88,
-    "Italy": 87,
-    "Canada": 78,
-    "Mexico": 80,
+    "Argentina": 97, "France": 96, "Spain": 95, "England": 94,
+    "Brazil": 94, "Portugal": 93, "Germany": 92, "Netherlands": 90,
+    "Italy": 89, "Belgium": 88, "Croatia": 87, "Uruguay": 86,
+    "Colombia": 85, "United States": 84, "Japan": 83, "Mexico": 83,
+    "Switzerland": 82, "Morocco": 82, "Senegal": 81, "Canada": 80,
+    "Austria": 80, "Ecuador": 79, "Norway": 79, "Sweden": 79,
+    "Paraguay": 78, "Australia": 77, "Ghana": 76, "South Africa": 74,
+    "Ivory Coast": 74, "Egypt": 74, "Algeria": 74, "DR Congo": 72,
+    "Cape Verde": 72, "Bosnia and Herzegovina": 72,
+    "Manchester City": 94, "Real Madrid": 94, "Bayern Munich": 93,
+    "Barcelona": 92, "Paris Saint Germain": 91, "Arsenal": 90,
+    "Inter Milan": 90, "Liverpool": 89, "Atletico Madrid": 88,
+    "Borussia Dortmund": 86, "AC Milan": 86, "Juventus": 86,
+    "Chelsea": 84, "Tottenham Hotspur": 83, "Manchester United": 82,
+    "Newcastle United": 81, "Aston Villa": 80,
 }
 
 SOCCER_SPORT_KEYS = [
@@ -7089,6 +7074,70 @@ def get_soccer_market_name(market_key):
         return "Total"
     return market_key
 
+
+def get_soccer_world_cup_host_adjustment(team, sport_key):
+    if sport_key != "soccer_fifa_world_cup":
+        return 0
+
+    if team in ["United States", "Mexico", "Canada"]:
+        return 1.0
+
+    return 0
+
+
+def get_soccer_rest_travel_adjustment(team, sport_key):
+    if sport_key == "soccer_fifa_world_cup":
+        if team in ["United States", "Mexico", "Canada"]:
+            return 0.4
+        if team in ["Argentina", "Brazil", "Colombia", "Ecuador", "Uruguay"]:
+            return 0.1
+        return -0.15
+
+    return 0
+
+
+def get_soccer_pressure_adjustment(market_key, pick_name, rating_diff):
+    adjustment = 0
+
+    if pick_name == "Draw":
+        return 0
+
+    if market_key == "h2h" and rating_diff >= 10:
+        adjustment += 0.6
+
+    if market_key == "spreads" and rating_diff >= 12:
+        adjustment += 0.4
+
+    if rating_diff <= -10:
+        adjustment -= 0.35
+
+    return round(adjustment, 2)
+
+
+def get_soccer_v3_adjustments(team, sport_key, market_key, pick_name, rating_diff):
+    host_adj = get_soccer_world_cup_host_adjustment(team, sport_key)
+    rest_travel_adj = get_soccer_rest_travel_adjustment(team, sport_key)
+    pressure_adj = get_soccer_pressure_adjustment(market_key, pick_name, rating_diff)
+
+    total = round(host_adj + rest_travel_adj + pressure_adj, 2)
+
+    notes = []
+
+    if host_adj:
+        notes.append("World Cup host-country boost.")
+    if rest_travel_adj:
+        notes.append("Rest/travel geography adjustment.")
+    if pressure_adj:
+        notes.append("Market pressure adjustment.")
+
+    return {
+        "soccer_v3_adjustment": total,
+        "soccer_host_adjustment": host_adj,
+        "soccer_rest_travel_adjustment": rest_travel_adj,
+        "soccer_pressure_adjustment": pressure_adj,
+        "soccer_v3_notes": notes,
+    }
+
 def model_soccer_for_sport_key(sport_key, odds_api_key):
     commence_from, commence_to = get_today_utc_window()
 
@@ -7239,6 +7288,16 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                             0
                         )
 
+                        v3_data = get_soccer_v3_adjustments(
+                            pick_name,
+                            sport_key,
+                            market_key,
+                            pick_name,
+                            rating_diff
+                        )
+
+                        v3_adjustment = v3_data.get("soccer_v3_adjustment", 0)
+
                         model_prob = (
                             implied
                             + rating_adjustment
@@ -7246,6 +7305,7 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                             + price_adjustment
                             + spread_adjustment
                             + context_adjustment
+                            + v3_adjustment
                             + book_weight_adjustment
                         )
 
@@ -7256,6 +7316,7 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                             f"Home adjustment ({home_adjustment}). "
                             f"Price adjustment ({price_adjustment}). "
                             f"Context adjustment ({context_adjustment}). "
+                            f"Soccer v3 adjustment ({v3_adjustment}). "
                         )
 
                     model_prob = max(1, min(99, model_prob))
@@ -7299,7 +7360,7 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                         "units": units,
                         "sport": "Soccer",
                         "league": sport_key,
-                        "model_version": "soccer_v2_advanced",
+                        "model_version": "soccer_v3_pro",
                         "soccer_tournament_mode": context_data.get("soccer_tournament_mode"),
                         "soccer_context_adjustment": context_data.get("soccer_context_adjustment"),
                         "soccer_context_notes": context_data.get("soccer_context_notes"),
@@ -7307,6 +7368,7 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
                     }
 
                     if market_key != "totals":
+                        play.update(v3_data)
                         play.update(team_profile)
                         play["opponent_soccer_rating"] = opponent_profile.get("soccer_team_rating")
                         play["opponent_soccer_tier"] = opponent_profile.get("soccer_team_tier")
@@ -7399,7 +7461,7 @@ def model_soccer_today(force_refresh=False):
         "plays": final,
         "count": len(final),
         "errors": errors,
-        "model_version": "soccer_v2_advanced",
+        "model_version": "soccer_v3_pro",
     }
 
 
