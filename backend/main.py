@@ -7477,6 +7477,56 @@ def refresh_soccer():
     }
 
 
+
+@app.post("/refresh/all")
+def refresh_all_models():
+    results = {}
+
+    refresh_jobs = {
+        "MLB": refresh_mlb,
+        "NBA": refresh_nba,
+        "WNBA": refresh_wnba,
+        "NFL": refresh_nfl,
+        "NCAAF": refresh_ncaaf,
+        "NHL": refresh_nhl,
+        "Soccer": refresh_soccer,
+    }
+
+    for sport, refresh_func in refresh_jobs.items():
+        try:
+            response = refresh_func()
+
+            count = 0
+
+            if isinstance(response, dict):
+                if "count" in response:
+                    count = response.get("count", 0)
+                elif "results" in response:
+                    for item in response.get("results", {}).values():
+                        if isinstance(item, dict):
+                            count += int(item.get("count", 0) or 0)
+
+            results[sport] = {
+                "success": True,
+                "count": count,
+                "response": response,
+            }
+
+        except Exception as e:
+            results[sport] = {
+                "success": False,
+                "count": 0,
+                "error": str(e),
+            }
+
+    return {
+        "success": True,
+        "date": str(date.today()),
+        "results": results,
+        "model_version": "refresh_all_v1",
+    }
+
+
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
