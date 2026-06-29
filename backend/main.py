@@ -8422,9 +8422,23 @@ def model_mlb_today():
     
         save_model_play_history("MLB", final)
 
+        output = save_model_output(
+            sport="MLB",
+            cache_key="mlb_model",
+            plays=final,
+            all_plays=plays,
+        )
+
+        final = output.get("plays", [])
+        top_play = final[0] if final else None
+
         return {
             "top_play": top_play,
-            "plays": final
+            "plays": final,
+            "count": output.get("count", 0),
+            "cache_key": output.get("cache_key"),
+            "cache_count": output.get("cache_count"),
+            "cache_valid": output.get("cache_valid"),
         }
 
     
@@ -9038,6 +9052,38 @@ def model_mlb_nrfi_today(force_refresh=False):
             "error": str(e)
         }
     
+
+def save_model_output(sport, cache_key, plays, all_plays=None, save_history=True):
+    if plays is None:
+        plays = []
+
+    if all_plays is None:
+        all_plays = plays
+
+    finalized = finalize_model_plays_for_cache(
+        plays,
+        all_plays
+    )
+
+    if save_history:
+        save_model_play_history(sport, finalized)
+
+    set_cache(cache_key, finalized)
+
+    cached_check = get_cache(cache_key) or []
+
+    return {
+        "plays": finalized,
+        "count": len(finalized),
+        "cache_key": cache_key,
+        "cache_count": len(cached_check) if isinstance(cached_check, list) else 0,
+        "cache_valid": (
+            isinstance(cached_check, list)
+            and len(cached_check) == len(finalized)
+        ),
+    }
+
+
 def save_model_play_history(sport, plays):
     db = SessionLocal()
 
