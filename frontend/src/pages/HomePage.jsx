@@ -34,6 +34,40 @@ function HomePage() {
   const bySport = podData?.by_sport || {};
   const candidateCount = podData?.candidate_count || 0;
 
+  const dashboardStats = useMemo(() => {
+    const plays = podData?.top_5 || [];
+
+    const avg = (key) => {
+      if (!plays.length) return "N/A";
+      const nums = plays
+        .map((play) => Number(play?.[key]))
+        .filter((num) => !Number.isNaN(num));
+
+      if (!nums.length) return "N/A";
+
+      return (nums.reduce((sum, num) => sum + num, 0) / nums.length).toFixed(2);
+    };
+
+    const bestMarketPlay = [...plays].sort(
+      (a, b) =>
+        Number(b.market_intelligence_score || 0) -
+        Number(a.market_intelligence_score || 0)
+    )[0];
+
+    const bestRatedPlay = [...plays].sort(
+      (a, b) =>
+        Number(b.final_model_score || 0) -
+        Number(a.final_model_score || 0)
+    )[0];
+
+    return {
+      averageEdge: avg("edge"),
+      averageConfidence: avg("confidence"),
+      bestRatedPlay,
+      bestMarketPlay,
+    };
+  }, [podData]);
+
   const sportCards = useMemo(
     () => [
       {
@@ -151,6 +185,40 @@ function HomePage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <div>
+            <h2 style={sectionTitleStyle}>Dashboard Intelligence</h2>
+            <p style={sectionSubtitleStyle}>
+              Snapshot of today's model board quality and market strength.
+            </p>
+          </div>
+        </div>
+
+        <div style={intelligenceGridStyle}>
+          <IntelligenceCard
+            label="Average Edge"
+            value={formatPercent(dashboardStats.averageEdge)}
+            note="Across top-ranked plays"
+          />
+          <IntelligenceCard
+            label="Average Confidence"
+            value={dashboardStats.averageConfidence}
+            note="Model confidence average"
+          />
+          <IntelligenceCard
+            label="Highest Rated Play"
+            value={dashboardStats.bestRatedPlay?.pick || "N/A"}
+            note={dashboardStats.bestRatedPlay?.game || "No play available"}
+          />
+          <IntelligenceCard
+            label="Best Market Signal"
+            value={dashboardStats.bestMarketPlay?.market_intelligence_grade || "N/A"}
+            note={dashboardStats.bestMarketPlay?.pick || "No play available"}
+          />
+        </div>
       </section>
 
       <section style={sectionStyle}>
@@ -296,6 +364,16 @@ function SportCard({ sport, count }) {
         <p style={mutedStyle}>No qualified play currently.</p>
       )}
     </Link>
+  );
+}
+
+function IntelligenceCard({ label, value, note }) {
+  return (
+    <div style={intelligenceCardStyle}>
+      <span style={intelligenceLabelStyle}>{label}</span>
+      <strong style={intelligenceValueStyle}>{value ?? "N/A"}</strong>
+      <p style={intelligenceNoteStyle}>{note}</p>
+    </div>
   );
 }
 
@@ -595,6 +673,39 @@ const sportPlayBoxStyle = {
   flexDirection: "column",
   gap: "5px",
   color: "#d1d5db",
+};
+
+const intelligenceGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "16px",
+};
+
+const intelligenceCardStyle = {
+  backgroundColor: "#111827",
+  border: "1px solid #374151",
+  borderRadius: "20px",
+  padding: "20px",
+};
+
+const intelligenceLabelStyle = {
+  color: "#94a3b8",
+  fontSize: "13px",
+  display: "block",
+  marginBottom: "8px",
+};
+
+const intelligenceValueStyle = {
+  color: "white",
+  fontSize: "24px",
+  display: "block",
+  marginBottom: "8px",
+};
+
+const intelligenceNoteStyle = {
+  color: "#cbd5e1",
+  margin: 0,
+  lineHeight: "1.5",
 };
 
 const featureGridStyle = {
