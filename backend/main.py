@@ -5647,6 +5647,151 @@ def finalize_model_plays_for_cache(plays, all_plays=None):
     return finalized
 
 
+
+def safe_int_odds(value, default=0):
+    try:
+        if value in [None, ""]:
+            return default
+        return int(value)
+    except Exception:
+        return default
+
+
+def is_pod_price_allowed(play, min_favorite_odds=-200):
+    odds = safe_int_odds(
+        play.get("best_odds") or play.get("odds"),
+        default=0
+    )
+
+    if odds <= min_favorite_odds:
+        return False
+
+    return True
+
+
+def normalize_pick_side_for_dedupe(play):
+    pick = str(play.get("pick", "")).strip()
+
+    remove_tokens = [
+        " -3.5", " -3.25", " -3.0", " -2.75", " -2.5", " -2.25",
+        " -2.0", " -1.75", " -1.5", " -1.25", " -1.0", " -0.75",
+        " -0.5", " 0.0", " +0.5", " +0.75", " +1.0", " +1.25",
+        " +1.5", " +1.75", " +2.0", " +2.25", " +2.5",
+        " 0.5", " 0.75", " 1.0", " 1.25", " 1.5", " 1.75",
+        " 2.0", " 2.25", " 2.5", " 3.0", " 3.5"
+    ]
+
+    clean = pick
+
+    for token in remove_tokens:
+        clean = clean.replace(token, "")
+
+    return clean.strip()
+
+
+def get_universal_candidate_key(play):
+    game = str(play.get("game", "")).strip()
+    side = normalize_pick_side_for_dedupe(play)
+
+    return f"{game}|{side}"
+
+
+def dedupe_universal_candidates(candidates):
+    best_by_key = {}
+
+    for play in candidates:
+        key = get_universal_candidate_key(play)
+
+        current = best_by_key.get(key)
+
+        if not current:
+            best_by_key[key] = play
+            continue
+
+        current_score = float(current.get("universal_pod_score", 0) or 0)
+        new_score = float(play.get("universal_pod_score", 0) or 0)
+
+        if new_score > current_score:
+            best_by_key[key] = play
+
+    return list(best_by_key.values())
+
+
+def get_universal_pod_candidates_from_cache(sport_cache_keys):
+    all_candidates = []
+    by_sport = {}
+    errors = {}
+
+    for sport, cache_keys in sport_cache_keys.items():
+        try:
+            plays = []
+
+            for cache_key in cache_keys:
+                cached_plays = get_cache(cache_key) or []
+
+                if isinstance(cached_plays, list):
+                    plays.extend(cached_plays)
+
+            qualified = []
+
+            for play in plays:
+                play = dict(play)
+                play["pod_sport"] = sport
+
+                if not play.get("final_recommendation"):
+                    play.update(get_universal_final_rating(play))
+
+                if not play.get("universal_pod_score"):
+                    play.update(get_universal_pod_score(play))
+
+                final_recommendation = str(
+                    play.get("final_recommendation")
+                    or play.get("recommendation")
+                    or ""
+                )
+
+                if final_recommendation not in ["Elite Play", "Play", "Lean"]:
+                    continue
+
+                if not is_pod_price_allowed(play):
+                    play["pod_excluded"] = True
+                    play["pod_exclusion_reason"] = (
+                        "Excluded from POD due to heavy favorite price."
+                    )
+                    continue
+
+                qualified.append(play)
+                all_candidates.append(play)
+
+            qualified = dedupe_universal_candidates(qualified)
+
+            qualified = sorted(
+                qualified,
+                key=lambda x: x.get("universal_pod_score", 0),
+                reverse=True
+            )
+
+            by_sport[sport] = qualified[0] if qualified else None
+
+        except Exception as e:
+            errors[sport] = str(e)
+            by_sport[sport] = None
+
+    all_candidates = dedupe_universal_candidates(all_candidates)
+
+    all_candidates = sorted(
+        all_candidates,
+        key=lambda x: x.get("universal_pod_score", 0),
+        reverse=True
+    )
+
+    return {
+        "all_candidates": all_candidates,
+        "by_sport": by_sport,
+        "errors": errors,
+    }
+
+
 def get_universal_pod_score(play):
     def safe_float(value, default=0):
         try:
@@ -7549,75 +7694,29 @@ def model_play_of_the_day_v2():
         "Soccer": ["soccer_model"],
     }
 
-    all_candidates = []
-    by_sport = {}
-    errors = {}
-
-    for sport, cache_keys in sport_cache_keys.items():
-        try:
-            plays = []
-
-            for cache_key in cache_keys:
-                cached_plays = get_cache(cache_key) or []
-
-                if isinstance(cached_plays, list):
-                    plays.extend(cached_plays)
-
-            qualified = []
-
-            for play in plays:
-                play = dict(play)
-                play["pod_sport"] = sport
-
-                if "final_recommendation" not in play or not play.get("final_recommendation"):
-                    play.update(get_universal_final_rating(play))
-
-                if "universal_pod_score" not in play or not play.get("universal_pod_score"):
-                    play.update(get_universal_pod_score(play))
-
-                final_recommendation = str(
-                    play.get("final_recommendation")
-                    or play.get("recommendation")
-                    or ""
-                )
-
-                if final_recommendation in ["Elite Play", "Play", "Lean"]:
-                    if is_pod_price_allowed(play):
-                        qualified.append(play)
-                        all_candidates.append(play)
-                    else:
-                        play["pod_excluded"] = True
-                        play["pod_exclusion_reason"] = "Excluded from POD due to heavy price."
-
-            qualified = sorted(
-                qualified,
-                key=lambda x: x.get("universal_pod_score", 0),
-                reverse=True
-            )
-
-            by_sport[sport] = qualified[0] if qualified else None
-
-        except Exception as e:
-            errors[sport] = str(e)
-            by_sport[sport] = None
-
-    all_candidates = sorted(
-        all_candidates,
-        key=lambda x: x.get("universal_pod_score", 0),
-        reverse=True
+    pipeline = get_universal_pod_candidates_from_cache(
+        sport_cache_keys
     )
 
-    overall = all_candidates[0] if all_candidates else None
+    all_candidates = pipeline.get("all_candidates", [])
+    by_sport = pipeline.get("by_sport", {})
+    errors = pipeline.get("errors", {})
+
+    overall_play = all_candidates[0] if all_candidates else None
 
     return {
-        "overall_play": overall,
+        "overall_play": overall_play,
         "top_5": all_candidates[:5],
         "by_sport": by_sport,
         "candidate_count": len(all_candidates),
         "errors": errors,
-        "model_version": "universal_pod_v2_cache_first",
-        "note": "Uses cached model outputs for fast loading. Refresh sport models first for latest plays.",
+        "model_version": "universal_pod_v3_price_safe_deduped",
+        "note": (
+            "Uses cached model outputs, excludes heavy favorite POD prices, "
+            "and dedupes multiple plays from the same game/side."
+        ),
     }
+
 
 @app.get("/model/play-of-the-day")
 def model_combined_play_of_the_day():
