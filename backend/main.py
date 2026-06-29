@@ -7582,8 +7582,12 @@ def model_play_of_the_day_v2():
                 )
 
                 if final_recommendation in ["Elite Play", "Play", "Lean"]:
-                    qualified.append(play)
-                    all_candidates.append(play)
+                    if is_pod_price_allowed(play):
+                        qualified.append(play)
+                        all_candidates.append(play)
+                    else:
+                        play["pod_excluded"] = True
+                        play["pod_exclusion_reason"] = "Excluded from POD due to heavy price."
 
             qualified = sorted(
                 qualified,
@@ -7596,6 +7600,8 @@ def model_play_of_the_day_v2():
         except Exception as e:
             errors[sport] = str(e)
             by_sport[sport] = None
+
+    all_candidates = dedupe_pod_candidates(all_candidates)
 
     all_candidates = sorted(
         all_candidates,
