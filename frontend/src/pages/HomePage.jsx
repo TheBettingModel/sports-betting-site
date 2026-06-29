@@ -113,13 +113,7 @@ function HomePage() {
 
           <div style={heroButtonWrapStyle}>
             <Link to="/auto-pod" style={primaryButtonStyle}>
-              View Play of the Day
-            </Link>
-            <Link to="/admin" style={secondaryButtonStyle}>
-              Refresh Models
-            </Link>
-            <Link to="/model-performance" style={secondaryButtonStyle}>
-              Analytics
+              View Today's Board
             </Link>
           </div>
 
