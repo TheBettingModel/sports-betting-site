@@ -7601,8 +7601,6 @@ def model_play_of_the_day_v2():
             errors[sport] = str(e)
             by_sport[sport] = None
 
-    all_candidates = dedupe_pod_candidates(all_candidates)
-
     all_candidates = sorted(
         all_candidates,
         key=lambda x: x.get("universal_pod_score", 0),
