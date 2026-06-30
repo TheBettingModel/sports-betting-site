@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -10,12 +10,13 @@ function formatOdds(odds) {
 }
 
 function getScore(play) {
-  return (
+  return Number(
     play?.universal_pod_score ??
-    play?.pod_score ??
-    play?.auto_pod_score ??
-    play?.top_play_score ??
-    0
+      play?.pod_score ??
+      play?.auto_pod_score ??
+      play?.top_play_score ??
+      play?.final_rating ??
+      0
   );
 }
 
@@ -24,7 +25,12 @@ function getSport(play) {
 }
 
 function getGame(play) {
-  return play?.game || play?.matchup || `${play?.away_team || ""} vs ${play?.home_team || ""}`.trim();
+  return (
+    play?.game ||
+    play?.matchup ||
+    `${play?.away_team || ""} vs ${play?.home_team || ""}`.trim() ||
+    "Game unavailable"
+  );
 }
 
 function getPick(play) {
@@ -39,65 +45,82 @@ function getBook(play) {
   return play?.best_sportsbook || play?.sportsbook || play?.book || "Best Available";
 }
 
-function PlayCard({ play, rank }) {
+function getTier(play) {
+  return play?.final_model_tier || play?.tier || play?.market_intelligence_grade || "Model Play";
+}
+
+function MainPodCard({ play, rank }) {
   if (!play) return null;
 
   return (
-    <div className="home-card">
-      <div className="card-top-row">
-        <span className="rank-badge">#{rank}</span>
-        <span className="sport-badge">{getSport(play)}</span>
+    <div className={`pod-card pod-card-rank-${rank}`}>
+      <div className="pod-card-glow" />
+
+      <div className="pod-card-header">
+        <div>
+          <span className="rank-pill">#{rank}</span>
+          <span className="sport-pill">{getSport(play)}</span>
+        </div>
+        <div className="score-box">
+          <span>POD</span>
+          <strong>{getScore(play).toFixed(2)}</strong>
+        </div>
       </div>
 
       <h3>{getGame(play)}</h3>
 
-      <div className="pick-line">
-        {getPick(play)} <span>{formatOdds(play?.best_odds ?? play?.odds)}</span>
+      <div className="primary-pick">
+        <span>{getPick(play)}</span>
+        <strong>{formatOdds(play?.best_odds ?? play?.odds)}</strong>
       </div>
 
-      <div className="card-grid">
+      <div className="pod-metrics">
         <div>
-          <p>Market</p>
+          <span>Market</span>
           <strong>{getMarket(play)}</strong>
         </div>
         <div>
-          <p>Book</p>
+          <span>Best Book</span>
           <strong>{getBook(play)}</strong>
         </div>
         <div>
-          <p>POD Score</p>
-          <strong>{Number(getScore(play)).toFixed(2)}</strong>
+          <span>Edge</span>
+          <strong>{play?.edge ?? play?.model_edge ?? "N/A"}</strong>
         </div>
         <div>
-          <p>Tier</p>
-          <strong>{play?.final_model_tier || play?.tier || "N/A"}</strong>
+          <span>Confidence</span>
+          <strong>{play?.confidence ?? play?.final_confidence ?? "N/A"}</strong>
         </div>
       </div>
 
-      <div className="recommendation">
-        {play?.final_recommendation || play?.recommendation || "Model Play"}
+      <div className="pod-footer">
+        <span>{getTier(play)}</span>
+        <strong>{play?.final_recommendation || play?.recommendation || "Recommended"}</strong>
       </div>
     </div>
   );
 }
 
-function SportBestCard({ sport, play }) {
+function SportCard({ sport, play }) {
   if (!play) return null;
 
   return (
-    <div className="sport-best-card">
-      <div className="sport-best-header">
+    <div className="sport-card">
+      <div className="sport-card-top">
         <span>{sport}</span>
-        <strong>{Number(getScore(play)).toFixed(2)}</strong>
+        <strong>{getScore(play).toFixed(2)}</strong>
       </div>
 
       <h4>{getGame(play)}</h4>
 
-      <p>
-        {getPick(play)} · {getMarket(play)} · {formatOdds(play?.best_odds ?? play?.odds)}
-      </p>
+      <div className="sport-pick">
+        {getPick(play)} <span>{formatOdds(play?.best_odds ?? play?.odds)}</span>
+      </div>
 
-      <small>{getBook(play)}</small>
+      <div className="sport-card-bottom">
+        <span>{getMarket(play)}</span>
+        <span>{getBook(play)}</span>
+      </div>
     </div>
   );
 }
@@ -109,72 +132,113 @@ export default function HomePage() {
   useEffect(() => {
     fetch(`${API_URL}/model/play-of-the-day-v2`)
       .then((res) => res.json())
-      .then((data) => {
-        setPodData(data);
-      })
-      .catch(() => {
-        setError("Unable to load dashboard data.");
-      });
+      .then((data) => setPodData(data))
+      .catch(() => setError("Unable to load dashboard data."));
   }, []);
 
-  const topThreeOverall = Array.isArray(podData?.top_5)
-    ? podData.top_5.slice(0, 3)
-    : [];
+  const topThreeOverall = useMemo(() => {
+    const plays = Array.isArray(podData?.top_5) ? podData.top_5 : [];
+    return plays.slice(0, 3);
+  }, [podData]);
 
   const bestBySport = podData?.by_sport || {};
 
+  const activeSports = Object.values(bestBySport).filter(Boolean).length;
+  const topScore = topThreeOverall[0] ? getScore(topThreeOverall[0]).toFixed(2) : "0.00";
+
   return (
-    <div className="homepage">
-      <section className="hero-section">
-        <div>
-          <p className="eyebrow">The Betting Model</p>
-          <h1>Sports Betting Dashboard</h1>
+    <div className="homepage-v4">
+      <section className="dashboard-hero">
+        <div className="hero-copy">
+          <span className="dashboard-label">The Betting Model</span>
+          <h1>Model Dashboard</h1>
           <p>
-            Universal model intelligence across every active sport. Built for line shopping,
-            sharp market tracking, POD ranking, and long-term betting discipline.
+            Universal betting intelligence across every active sport — ranked by POD score,
+            market strength, line value, sharp book data, and final model recommendation.
           </p>
         </div>
+
+        <div className="hero-panel">
+          <div>
+            <span>Top POD Score</span>
+            <strong>{topScore}</strong>
+          </div>
+          <div>
+            <span>Active Sports</span>
+            <strong>{activeSports}</strong>
+          </div>
+          <div>
+            <span>System</span>
+            <strong>Universal v3</strong>
+          </div>
+        </div>
       </section>
 
-      {error && <div className="error-box">{error}</div>}
+      {error && <div className="dashboard-error">{error}</div>}
 
-      <section className="section-block">
-        <div className="section-header">
+      <section className="dashboard-section">
+        <div className="dashboard-section-header">
           <div>
-            <p className="eyebrow">Universal POD v3</p>
+            <span className="dashboard-label">Universal POD v3</span>
             <h2>Top 3 Overall Play of the Day</h2>
           </div>
-          <p>Ranked by universal POD score across all sports.</p>
+          <p>Cross-sport ranking with duplicate cleanup and heavy favorite protection.</p>
         </div>
 
-        <div className="top-three-grid">
+        <div className="pod-grid">
           {topThreeOverall.length > 0 ? (
             topThreeOverall.map((play, index) => (
-              <PlayCard key={`${getGame(play)}-${index}`} play={play} rank={index + 1} />
+              <MainPodCard key={`${getGame(play)}-${index}`} play={play} rank={index + 1} />
             ))
           ) : (
-            <div className="empty-card">No overall POD plays available right now.</div>
+            <div className="empty-dashboard-card">No overall POD plays available right now.</div>
           )}
         </div>
       </section>
 
-      <section className="section-block">
-        <div className="section-header">
+      <section className="dashboard-section">
+        <div className="dashboard-section-header">
           <div>
-            <p className="eyebrow">Sport Breakdown</p>
+            <span className="dashboard-label">Balanced Sport Exposure</span>
             <h2>Best Play By Sport</h2>
           </div>
-          <p>One best model play per sport so MLB does not dominate the homepage.</p>
+          <p>One top play from each sport so no single sport dominates the dashboard.</p>
         </div>
 
-        <div className="sport-best-grid">
+        <div className="sport-grid">
           {Object.entries(bestBySport).length > 0 ? (
             Object.entries(bestBySport).map(([sport, play]) => (
-              <SportBestCard key={sport} sport={sport} play={play} />
+              <SportCard key={sport} sport={sport} play={play} />
             ))
           ) : (
-            <div className="empty-card">No sport-by-sport plays available right now.</div>
+            <div className="empty-dashboard-card">No sport-by-sport plays available right now.</div>
           )}
+        </div>
+      </section>
+
+      <section className="dashboard-section intelligence-strip">
+        <div>
+          <span className="dashboard-label">Dashboard Intelligence</span>
+          <h2>Market Command Center</h2>
+        </div>
+
+        <div className="intelligence-grid">
+          <div>
+            <span>Line Shopping</span>
+            <strong>Active</strong>
+          </div>
+          <div>
+            <span>Sharp Book Analysis</span>
+            <strong>Active</strong>
+          </div>
+          <div>
+            <span>Market Grades</span>
+            <strong>Active</strong>
+          </div>
+          <div>
+            <span>Final Tiers</span>
+            <strong>Active</strong>
+          </div>
         </div>
       </section>
     </div>
