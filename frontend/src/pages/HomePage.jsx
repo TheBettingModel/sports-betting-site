@@ -9,128 +9,125 @@ function formatOdds(value) {
   return num > 0 ? `+${num}` : `${num}`;
 }
 
-function getScore(play) {
+function fmt(value, suffix = "") {
+  if (value === null || value === undefined || value === "") return "N/A";
+  return `${value}${suffix}`;
+}
+
+function podScore(play) {
   return Number(play?.universal_pod_score ?? play?.top_play_score ?? play?.final_model_score ?? 0);
 }
 
-function getSport(play) {
+function sport(play) {
   return play?.pod_sport || play?.sport || play?.league || "Unknown";
 }
 
-function getBook(play) {
+function bestBook(play) {
   return play?.best_sportsbook || play?.best_book || play?.sportsbook || "N/A";
 }
 
-function getOdds(play) {
+function bestOdds(play) {
   return play?.best_odds ?? play?.odds;
 }
 
-function getRec(play) {
+function recommendation(play) {
   return play?.final_recommendation || play?.recommendation || "N/A";
 }
 
-function getTier(play) {
+function tier(play) {
   return play?.final_model_tier || play?.universal_pod_tier || play?.market_intelligence_grade || "N/A";
 }
 
-function Metric({ label, value, highlight = false }) {
+function Tile({ label, value, tone = "" }) {
   return (
-    <div className="home-metric">
+    <div className={`pro-tile ${tone}`}>
       <span>{label}</span>
-      <strong className={highlight ? "home-highlight" : ""}>{value ?? "N/A"}</strong>
+      <strong>{value ?? "N/A"}</strong>
     </div>
   );
 }
 
-function ReasonList({ play }) {
+function StatusPill({ children, tone = "green" }) {
+  return <span className={`pro-pill ${tone}`}>{children}</span>;
+}
+
+function FeaturedPOD({ play }) {
+  if (!play) return <div className="pro-empty">No Play of the Day available right now.</div>;
+
   const reasons =
-    play?.final_rating_reasons ||
-    play?.universal_pod_reasons ||
-    play?.market_intelligence_reasons ||
+    play.final_rating_reasons ||
+    play.market_intelligence_reasons ||
+    play.universal_pod_reasons ||
     [];
 
-  if (!Array.isArray(reasons) || reasons.length === 0) {
-    return (
-      <div className="home-reason-list">
-        <div>✓ Model edge and market data support this play.</div>
-        <div>✓ Sportsbook comparison is active.</div>
-        <div>✓ Sharp signal and POD score are included.</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="home-reason-list">
-      {reasons.slice(0, 6).map((reason, index) => (
-        <div key={index}>✓ {reason}</div>
-      ))}
-    </div>
-  );
-}
-
-function FeaturedPlay({ play }) {
-  if (!play) {
-    return <div className="home-empty">No Play of the Day available right now.</div>;
-  }
-
-  return (
-    <section className="home-feature-shell">
-      <div className="home-feature-main">
-        <div className="home-chip-row">
-          <span className="home-chip green">Today’s Overall POD</span>
-          <span className="home-chip blue">{getSport(play)}</span>
-          <span className="home-chip gold">{getRec(play)}</span>
+    <section className="pro-feature">
+      <div className="pro-feature-left">
+        <div className="pro-chip-row">
+          <StatusPill>Overall POD</StatusPill>
+          <StatusPill tone="blue">{sport(play)}</StatusPill>
+          <StatusPill tone="gold">{recommendation(play)}</StatusPill>
+          <StatusPill tone="dark">{tier(play)}</StatusPill>
         </div>
 
         <h2>{play.game}</h2>
 
-        <div className="home-feature-pick">
+        <div className="pro-bet-ticket">
           <div>
             <span>Model Pick</span>
             <strong>{play.pick}</strong>
           </div>
           <div>
-            <span>Best Odds</span>
-            <strong>{formatOdds(getOdds(play))}</strong>
+            <span>Best Price</span>
+            <strong>{formatOdds(bestOdds(play))}</strong>
           </div>
           <div>
-            <span>Best Sportsbook</span>
-            <strong>{getBook(play)}</strong>
+            <span>Sportsbook</span>
+            <strong>{bestBook(play)}</strong>
           </div>
         </div>
 
-        <ReasonList play={play} />
+        <div className="pro-key-grid">
+          <Tile label="Edge" value={fmt(play.edge, "%")} tone="positive" />
+          <Tile label="Confidence" value={fmt(play.confidence, "%")} tone="positive" />
+          <Tile label="Model Score" value={play.final_model_score} />
+          <Tile label="Market Grade" value={play.market_intelligence_grade} />
+          <Tile label="Sharp Signal" value={play.sharp_signal} tone="positive" />
+          <Tile label="Line Value" value={play.line_shop_value} tone="positive" />
+        </div>
       </div>
 
-      <aside className="home-feature-side">
-        <div className="home-score-ring">
-          <span>POD Score</span>
-          <strong>{getScore(play).toFixed(2)}</strong>
-          <small>{getTier(play)}</small>
+      <aside className="pro-feature-right">
+        <div className="pro-score-card">
+          <span>Universal POD Score</span>
+          <strong>{podScore(play).toFixed(2)}</strong>
+          <small>{play.universal_pod_tier || "POD Candidate"}</small>
         </div>
 
-        <div className="home-side-grid">
-          <Metric label="Edge" value={play.edge} highlight />
-          <Metric label="Confidence" value={play.confidence} highlight />
-          <Metric label="Units" value={play.units} />
-          <Metric label="Stars" value={play.final_stars ? `${play.final_stars}/5` : "N/A"} />
+        <div className="pro-why-card">
+          <span>Why The Model Likes It</span>
+          {(Array.isArray(reasons) && reasons.length ? reasons.slice(0, 5) : [
+            "Positive model edge.",
+            "Sportsbook comparison active.",
+            "Market intelligence included.",
+          ]).map((reason, index) => (
+            <p key={index}>✓ {reason}</p>
+          ))}
         </div>
       </aside>
     </section>
   );
 }
 
-function TopThreeTable({ plays }) {
-  if (!plays.length) {
-    return <div className="home-empty">No ranked POD plays available.</div>;
-  }
+function BoardTable({ plays }) {
+  if (!plays.length) return <div className="pro-empty">No ranked plays available.</div>;
 
   return (
-    <div className="home-table-wrap">
-      <table className="home-table">
+    <div className="pro-table-shell">
+      <table className="pro-table">
         <thead>
           <tr>
-            <th>Rank</th>
+            <th>#</th>
             <th>Sport</th>
             <th>Game</th>
             <th>Pick</th>
@@ -146,17 +143,17 @@ function TopThreeTable({ plays }) {
         <tbody>
           {plays.map((play, index) => (
             <tr key={`${play.game}-${play.pick}-${index}`}>
-              <td><span className="home-rank">#{index + 1}</span></td>
-              <td>{getSport(play)}</td>
-              <td className="home-game">{play.game}</td>
-              <td className="home-pick">{play.pick}</td>
+              <td><span className="pro-rank">#{index + 1}</span></td>
+              <td><span className="pro-sport-tag">{sport(play)}</span></td>
+              <td className="pro-game">{play.game}</td>
+              <td className="pro-pick">{play.pick}</td>
               <td>{play.market || "N/A"}</td>
-              <td>{getBook(play)}</td>
-              <td className="home-positive">{formatOdds(getOdds(play))}</td>
-              <td>{play.edge ?? "N/A"}</td>
-              <td>{play.confidence ?? "N/A"}</td>
-              <td className="home-positive">{getScore(play).toFixed(2)}</td>
-              <td>{getRec(play)}</td>
+              <td>{bestBook(play)}</td>
+              <td className="pro-money">{formatOdds(bestOdds(play))}</td>
+              <td>{fmt(play.edge, "%")}</td>
+              <td>{fmt(play.confidence, "%")}</td>
+              <td className="pro-money">{podScore(play).toFixed(2)}</td>
+              <td>{recommendation(play)}</td>
             </tr>
           ))}
         </tbody>
@@ -165,55 +162,30 @@ function TopThreeTable({ plays }) {
   );
 }
 
-function SportCard({ sport, play }) {
+function SportCard({ name, play }) {
   if (!play) return null;
 
   return (
-    <div className="home-sport-card">
-      <div className="home-sport-top">
-        <span>{sport}</span>
-        <strong>{getScore(play).toFixed(2)}</strong>
+    <article className="pro-sport-card">
+      <div className="pro-sport-header">
+        <span>{name}</span>
+        <strong>{podScore(play).toFixed(2)}</strong>
       </div>
 
       <h3>{play.game}</h3>
 
-      <div className="home-sport-pick">
+      <div className="pro-sport-ticket">
         <span>{play.pick}</span>
-        <strong>{formatOdds(getOdds(play))}</strong>
+        <strong>{formatOdds(bestOdds(play))}</strong>
       </div>
 
-      <div className="home-sport-stats">
-        <Metric label="Market" value={play.market} />
-        <Metric label="Book" value={getBook(play)} />
-        <Metric label="Edge" value={play.edge} highlight />
-        <Metric label="Grade" value={getTier(play)} highlight />
+      <div className="pro-sport-metrics">
+        <Tile label="Book" value={bestBook(play)} />
+        <Tile label="Edge" value={fmt(play.edge, "%")} tone="positive" />
+        <Tile label="Conf" value={fmt(play.confidence, "%")} />
+        <Tile label="Grade" value={tier(play)} tone="positive" />
       </div>
-    </div>
-  );
-}
-
-function MarketPulse({ play }) {
-  return (
-    <section className="home-section">
-      <div className="home-section-title">
-        <div>
-          <span className="home-eyebrow">Market Intelligence</span>
-          <h2>Dashboard Pulse</h2>
-        </div>
-        <p>Sharp signals, CLV, steam, market grade, and line-shopping value from the top-ranked play.</p>
-      </div>
-
-      <div className="home-pulse-grid">
-        <Metric label="Sharp Signal" value={play?.sharp_signal || "N/A"} highlight />
-        <Metric label="Sharp Book" value={play?.sharp_book_signal || "N/A"} />
-        <Metric label="Market Grade" value={play?.market_intelligence_grade || "N/A"} highlight />
-        <Metric label="CLV Status" value={play?.clv_status || "N/A"} />
-        <Metric label="Steam Strength" value={play?.steam_strength || "N/A"} />
-        <Metric label="Line Shop Value" value={play?.line_shop_value ?? "N/A"} highlight />
-        <Metric label="Best Book" value={play ? getBook(play) : "N/A"} />
-        <Metric label="Worst Odds" value={formatOdds(play?.worst_odds)} />
-      </div>
-    </section>
+    </article>
   );
 }
 
@@ -232,67 +204,82 @@ export default function HomePage() {
     return Array.isArray(data?.top_5) ? data.top_5.slice(0, 3) : [];
   }, [data]);
 
-  const overallPlay = data?.overall_play || topThree[0] || null;
-  const bySport = data?.by_sport || {};
-  const sportEntries = Object.entries(bySport).filter(([, play]) => play);
+  const overall = data?.overall_play || topThree[0] || null;
+  const bySport = Object.entries(data?.by_sport || {}).filter(([, play]) => play);
 
   return (
-    <main className="home-dashboard-pro">
-      <section className="home-hero-pro">
+    <main className="pro-home">
+      <section className="pro-topbar">
         <div>
-          <span className="home-eyebrow">The Betting Model</span>
-          <h1>Model Dashboard</h1>
+          <span className="pro-overline">The Betting Model</span>
+          <h1>Sports Betting Analytics Dashboard</h1>
           <p>
-            Universal model board for Play of the Day rankings, best play by sport, sportsbook comparison,
-            sharp market signals, line value, confidence, edge, CLV, and final betting recommendations.
+            Professional model board for POD rankings, sharp market intelligence,
+            sportsbook comparison, line shopping, CLV, edge, confidence, and final betting grades.
           </p>
         </div>
 
-        <div className="home-hero-metrics">
-          <Metric label="Top POD Score" value={overallPlay ? getScore(overallPlay).toFixed(2) : "0.00"} highlight />
-          <Metric label="Active Sports" value={sportEntries.length} />
-          <Metric label="Top Recommendation" value={overallPlay ? getRec(overallPlay) : "N/A"} highlight />
-          <Metric label="Best Sportsbook" value={overallPlay ? getBook(overallPlay) : "N/A"} />
+        <div className="pro-status-grid">
+          <Tile label="Top POD" value={overall ? podScore(overall).toFixed(2) : "0.00"} tone="positive" />
+          <Tile label="Active Sports" value={bySport.length} />
+          <Tile label="Top Rec" value={overall ? recommendation(overall) : "N/A"} tone="positive" />
+          <Tile label="Best Book" value={overall ? bestBook(overall) : "N/A"} />
         </div>
       </section>
 
-      {error && <div className="home-error">{error}</div>}
+      {error && <div className="pro-error">{error}</div>}
 
-      <FeaturedPlay play={overallPlay} />
+      <FeaturedPOD play={overall} />
 
-      <section className="home-section">
-        <div className="home-section-title">
+      <section className="pro-section">
+        <div className="pro-section-title">
           <div>
-            <span className="home-eyebrow">Universal POD v3</span>
-            <h2>Top 3 Overall Play of the Day</h2>
+            <span className="pro-overline">Universal POD v3</span>
+            <h2>Top 3 Overall Plays</h2>
           </div>
-          <p>Ranked by universal POD score with duplicate cleanup and heavy-favorite protection.</p>
+          <p>Ranked by universal POD score with duplicate cleanup and price guardrails.</p>
         </div>
-
-        <TopThreeTable plays={topThree} />
+        <BoardTable plays={topThree} />
       </section>
 
-      <section className="home-section">
-        <div className="home-section-title">
+      <section className="pro-section">
+        <div className="pro-section-title">
           <div>
-            <span className="home-eyebrow">Sport Boards</span>
+            <span className="pro-overline">Sport Boards</span>
             <h2>Best Play By Sport</h2>
           </div>
-          <p>One best model play per sport to avoid one league dominating the dashboard.</p>
+          <p>Balanced exposure across every active model so one sport cannot dominate the dashboard.</p>
         </div>
 
-        <div className="home-sport-grid">
-          {sportEntries.length ? (
-            sportEntries.map(([sport, play]) => (
-              <SportCard key={sport} sport={sport} play={play} />
-            ))
+        <div className="pro-sports-grid">
+          {bySport.length ? (
+            bySport.map(([name, play]) => <SportCard key={name} name={name} play={play} />)
           ) : (
-            <div className="home-empty">No sport-by-sport plays available.</div>
+            <div className="pro-empty">No sport-by-sport plays available.</div>
           )}
         </div>
       </section>
 
-      <MarketPulse play={overallPlay} />
+      <section className="pro-section">
+        <div className="pro-section-title">
+          <div>
+            <span className="pro-overline">Market Pulse</span>
+            <h2>Sharp & Line Value</h2>
+          </div>
+          <p>Live intelligence from the current top-ranked play.</p>
+        </div>
+
+        <div className="pro-pulse-grid">
+          <Tile label="Sharp Signal" value={overall?.sharp_signal} tone="positive" />
+          <Tile label="Sharp Book" value={overall?.sharp_book_signal} />
+          <Tile label="CLV Status" value={overall?.clv_status} />
+          <Tile label="Steam" value={overall?.steam_strength} />
+          <Tile label="Market Grade" value={overall?.market_intelligence_grade} tone="positive" />
+          <Tile label="Line Shop Value" value={overall?.line_shop_value} tone="positive" />
+          <Tile label="Best Odds" value={formatOdds(overall?.best_odds)} tone="positive" />
+          <Tile label="Worst Odds" value={formatOdds(overall?.worst_odds)} />
+        </div>
+      </section>
     </main>
   );
 }
