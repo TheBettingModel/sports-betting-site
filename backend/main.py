@@ -7683,6 +7683,7 @@ def refresh_all_models():
 
 
 
+
 def normalize_pod_game_key(play):
     import re
 
@@ -7704,26 +7705,162 @@ def normalize_pod_game_key(play):
     return game
 
 
-def remove_same_game_pod_conflicts(plays):
-    cleaned = []
-    seen_games = set()
+def pod_tier_value(play):
+    tier = str(
+        play.get("final_model_tier")
+        or play.get("universal_pod_tier")
+        or play.get("market_intelligence_grade")
+        or ""
+    ).upper()
 
-    sorted_plays = sorted(
-        plays,
-        key=lambda x: float(x.get("universal_pod_score", 0) or 0),
+    if "A+" in tier:
+        return 7
+    if tier == "A" or "ELITE" in tier:
+        return 6
+    if "A-" in tier:
+        return 5
+    if "B+" in tier:
+        return 4
+    if tier == "B" or "PLAYABLE" in tier:
+        return 3
+    if "C" in tier:
+        return 2
+    return 1
+
+
+def pod_recommendation_value(play):
+    rec = str(play.get("final_recommendation") or play.get("recommendation") or "").lower()
+
+    if "elite" in rec:
+        return 5
+    if "play" in rec:
+        return 4
+    if "lean" in rec:
+        return 3
+    if "watch" in rec:
+        return 2
+    if "pass" in rec:
+        return 0
+    return 1
+
+
+def pod_market_grade_value(play):
+    grade = str(play.get("market_intelligence_grade") or "").upper()
+
+    if grade == "A+":
+        return 7
+    if grade == "A":
+        return 6
+    if grade == "A-":
+        return 5
+    if grade == "B+":
+        return 4
+    if grade == "B":
+        return 3
+    if grade == "C":
+        return 2
+    return 1
+
+
+def pod_sharp_signal_value(play):
+    signal = str(
+        play.get("sharp_signal")
+        or play.get("sharp_book_signal")
+        or play.get("market_intelligence_signal")
+        or ""
+    ).lower()
+
+    if "sharp play" in signal:
+        return 5
+    if "sharp" in signal:
+        return 4
+    if "positive" in signal:
+        return 3
+    if "value" in signal:
+        return 2
+    if "neutral" in signal:
+        return 1
+    return 0
+
+
+def pod_market_priority(play):
+    market = str(play.get("market") or "").lower()
+
+    if "moneyline" in market or market in ["h2h", "ml"]:
+        return 10
+    if "spread" in market or "run line" in market or "puck line" in market:
+        return 9
+    if "total" in market and "team" not in market:
+        return 8
+    if "team total" in market:
+        return 7
+    if "first 5" in market or "f5" in market or "first half" in market or "1h" in market:
+        return 6
+    if "nrfi" in market or "yrfi" in market:
+        return 5
+    if "draw" in market or "double chance" in market:
+        return 4
+    if "prop" in market:
+        return 3
+    if "alt" in market or "alternative" in market:
+        return 2
+    return 1
+
+
+def universal_pod_exposure_score(play):
+    return (
+        float(play.get("universal_pod_score", 0) or 0),
+        pod_tier_value(play),
+        pod_recommendation_value(play),
+        float(play.get("confidence", 0) or 0),
+        float(play.get("edge", 0) or 0),
+        pod_market_grade_value(play),
+        pod_sharp_signal_value(play),
+        float(play.get("line_shop_value", 0) or 0),
+        pod_market_priority(play),
+    )
+
+
+def apply_universal_pod_exposure_engine(plays):
+    grouped = {}
+
+    for play in plays:
+        game_key = normalize_pod_game_key(play)
+
+        if not game_key:
+            game_key = str(play.get("game") or play.get("matchup") or "unknown-game").lower()
+
+        current = grouped.get(game_key)
+
+        if current is None:
+            grouped[game_key] = play
+            continue
+
+        if universal_pod_exposure_score(play) > universal_pod_exposure_score(current):
+            grouped[game_key] = play
+
+    cleaned = list(grouped.values())
+
+    cleaned.sort(
+        key=lambda x: universal_pod_exposure_score(x),
         reverse=True,
     )
 
-    for play in sorted_plays:
-        game_key = normalize_pod_game_key(play)
-
-        if game_key in seen_games:
-            continue
-
-        seen_games.add(game_key)
-        cleaned.append(play)
+    for play in cleaned:
+        play["universal_exposure_engine"] = "v4"
+        play["exposure_status"] = "Flagship Play"
+        play["exposure_reason"] = (
+            "Selected as the single flagship recommendation for this game using POD score, "
+            "tier, recommendation, confidence, edge, market grade, sharp signal, line value, "
+            "and market priority."
+        )
 
     return cleaned
+
+
+def remove_same_game_pod_conflicts(plays):
+    return apply_universal_pod_exposure_engine(plays)
+
 
 
 @app.get("/model/play-of-the-day-v2")
