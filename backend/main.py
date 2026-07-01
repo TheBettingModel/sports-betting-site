@@ -7682,6 +7682,50 @@ def refresh_all_models():
     }
 
 
+
+def normalize_pod_game_key(play):
+    import re
+
+    game = (
+        play.get("game")
+        or play.get("matchup")
+        or f"{play.get('away_team', '')} vs {play.get('home_team', '')}"
+    )
+
+    game = str(game or "").lower().strip()
+    game = re.sub(r"[^a-z0-9]+", " ", game).strip()
+
+    parts = re.split(r"\s+(?:vs|v|at)\s+", game)
+
+    if len(parts) >= 2:
+        teams = sorted([parts[0].strip(), parts[1].strip()])
+        return " :: ".join(teams)
+
+    return game
+
+
+def remove_same_game_pod_conflicts(plays):
+    cleaned = []
+    seen_games = set()
+
+    sorted_plays = sorted(
+        plays,
+        key=lambda x: float(x.get("universal_pod_score", 0) or 0),
+        reverse=True,
+    )
+
+    for play in sorted_plays:
+        game_key = normalize_pod_game_key(play)
+
+        if game_key in seen_games:
+            continue
+
+        seen_games.add(game_key)
+        cleaned.append(play)
+
+    return cleaned
+
+
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
@@ -7701,6 +7745,8 @@ def model_play_of_the_day_v2():
     all_candidates = pipeline.get("all_candidates", [])
     by_sport = pipeline.get("by_sport", {})
     errors = pipeline.get("errors", {})
+
+    all_candidates = remove_same_game_pod_conflicts(all_candidates)
 
     overall_play = all_candidates[0] if all_candidates else None
 
