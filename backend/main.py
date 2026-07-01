@@ -7807,9 +7807,46 @@ def pod_market_priority(play):
     return 1
 
 
+def pod_flagship_practicality_adjustment(play):
+    pick = str(play.get("pick") or "").lower()
+    market = str(play.get("market") or "").lower()
+    rec = str(play.get("final_recommendation") or play.get("recommendation") or "").lower()
+
+    adjustment = 0
+
+    # Draws are valid soccer bets, but should not become the cross-sport flagship
+    # unless the model edge and recommendation are clearly elite.
+    if pick == "draw" or "draw" in pick:
+        adjustment -= 8
+
+        if "elite" in rec:
+            adjustment += 4
+
+        if float(play.get("edge", 0) or 0) >= 5:
+            adjustment += 3
+
+        if float(play.get("confidence", 0) or 0) >= 85:
+            adjustment += 2
+
+    # Avoid letting stale-line value alone overpower practical betting quality.
+    if play.get("stale_line") and float(play.get("edge", 0) or 0) < 4:
+        adjustment -= 4
+
+    # Favor stronger directional markets for flagship placement.
+    if "moneyline" in market and "draw" not in pick:
+        adjustment += 2
+
+    if "spread" in market or "run line" in market or "puck line" in market:
+        adjustment += 2
+
+    return adjustment
+
+
 def universal_pod_exposure_score(play):
+    adjusted_pod_score = float(play.get("universal_pod_score", 0) or 0) + pod_flagship_practicality_adjustment(play)
+
     return (
-        float(play.get("universal_pod_score", 0) or 0),
+        adjusted_pod_score,
         pod_tier_value(play),
         pod_recommendation_value(play),
         float(play.get("confidence", 0) or 0),
