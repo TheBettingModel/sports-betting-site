@@ -275,6 +275,7 @@ NFL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl
 WNBA_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_wnba/odds"
 NHL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/icehockey_nhl/odds"
 NCAAF_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds"
+NCAAMB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_ncaab/odds"
 
 NCAAF_TEAM_RATINGS = {
     "Georgia Bulldogs": 92,
@@ -332,6 +333,56 @@ NHL_TEAM_RATINGS = {
     "Columbus Blue Jackets": 70,
     "San Jose Sharks": 69,
     "Chicago Blackhawks": 68,
+}
+
+
+NCAAMB_TEAM_RATINGS = {
+    "Duke": 94,
+    "Houston": 93,
+    "UConn": 92,
+    "Kansas": 91,
+    "North Carolina": 90,
+    "Kentucky": 89,
+    "Arizona": 89,
+    "Purdue": 88,
+    "Gonzaga": 88,
+    "Alabama": 87,
+    "Tennessee": 87,
+    "Auburn": 86,
+    "Baylor": 86,
+    "Michigan State": 85,
+    "Marquette": 85,
+    "Creighton": 84,
+    "Iowa State": 84,
+    "Texas": 83,
+    "Arkansas": 83,
+    "Indiana": 82,
+    "Illinois": 82,
+    "Wisconsin": 81,
+    "Villanova": 81,
+    "Virginia": 80,
+    "Florida": 80,
+    "UCLA": 80,
+    "Michigan": 79,
+    "Ohio State": 79,
+    "Maryland": 78,
+    "Memphis": 78,
+    "San Diego State": 78,
+    "St. John's": 77,
+    "Xavier": 77,
+    "Texas Tech": 77,
+    "Clemson": 76,
+    "Miami": 76,
+    "Oregon": 76,
+    "USC": 75,
+    "Seton Hall": 75,
+    "Providence": 75,
+    "Dayton": 74,
+    "VCU": 74,
+    "Boise State": 73,
+    "Colorado State": 73,
+    "Nevada": 73,
+    "New Mexico": 73,
 }
 
 WNBA_TEAM_RATINGS = {
@@ -4487,6 +4538,398 @@ def model_nhl_today():
     except Exception as e:
         return {"plays": [], "error": str(e)}
 
+@app.get("/model/ncaamb/today")
+def model_ncaamb_today():
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {"plays": [], "error": "Missing ODDS_API_KEY"}
+
+    commence_from, commence_to = get_today_utc_window()
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
+    }
+
+    try:
+        response = requests.get(
+            NCAAMB_ODDS_BASE_URL,
+            params=params,
+            timeout=8
+        )
+
+        if response.status_code != 200:
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        plays = []
+
+        for game in games[:12]:
+            home_team = game.get("home_team")
+            away_team = game.get("away_team")
+            game_name = f"{away_team} vs {home_team}"
+
+            for bookmaker in game.get("bookmakers", [])[:2]:
+                sportsbook = bookmaker.get("title")
+
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
+
+                    if market_key == "h2h":
+                        market_name = "Moneyline"
+                    elif market_key == "spreads":
+                        market_name = "Spread"
+                    elif market_key == "totals":
+                        market_name = "Total"
+                    else:
+                        continue
+
+                    for outcome in market.get("outcomes", [])[:2]:
+                        pick_name = outcome.get("name")
+                        odds = outcome.get("price")
+                        point = outcome.get("point")
+
+                        if odds is None:
+                            continue
+
+                        pick_display = (
+                            f"{pick_name} {point}"
+                            if market_name in ["Spread", "Total"]
+                            else pick_name
+                        )
+
+                        implied = american_to_implied_probability(odds)
+
+                        team_rating = NCAAMB_TEAM_RATINGS.get(pick_name, 74)
+
+                        if pick_name == home_team:
+                            opponent = away_team
+                            home_adj = 2.0
+                        elif pick_name == away_team:
+                            opponent = home_team
+                            home_adj = -2.0
+                        else:
+                            opponent = None
+                            home_adj = 0
+
+                        opponent_rating = NCAAMB_TEAM_RATINGS.get(opponent, 74)
+
+                        rating_diff = team_rating - opponent_rating
+                        rating_adj = rating_diff * 0.3
+                        price_adj = get_price_adjustment(odds)
+
+                        conference_adj = 0
+                        qb_adj = 0
+                        explosiveness_adj = 0
+
+                        if market_name == "Total":
+                            model_prob = implied + price_adj + explosiveness_adj
+                            reason = (
+                                f"NCAAMB totals v1. Price adjustment ({price_adj}). "
+                                f"Explosiveness placeholder ({explosiveness_adj})."
+                            )
+                        else:
+                            model_prob = (
+                                implied
+                                + rating_adj
+                                + home_adj
+                                + conference_adj
+                                + qb_adj
+                                + price_adj
+                            )
+                            reason = (
+                                f"NCAAMB rating edge ({round(rating_diff, 2)}). "
+                                f"Rating adjustment ({round(rating_adj, 2)}). "
+                                f"Home-field adjustment ({home_adj}). "
+                                f"Conference placeholder ({conference_adj}). "
+                                f"QB placeholder ({qb_adj}). "
+                                f"Price adjustment ({price_adj})."
+                            )
+
+                        model_prob = max(1, min(99, model_prob))
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        units = get_dynamic_units(edge, confidence, recommendation)
+
+                        play = {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_display,
+                            "odds": odds,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": units,
+                            "sport": "NCAAMB",
+                            "model_version": "ncaamb_v1_fast_market_engine",
+                            "team_rating": team_rating,
+                            "opponent_rating": opponent_rating,
+                            "rating_diff": round(rating_diff, 2),
+                            "rating_adjustment": round(rating_adj, 2),
+                            "home_field_adjustment": home_adj,
+                            "conference_adjustment": conference_adj,
+                            "qb_adjustment": qb_adj,
+                            "explosiveness_adjustment": explosiveness_adj,
+                            "price_adjustment": price_adj,
+                            "reason": reason,
+                        }
+
+                        play.update(get_sharp_sportsbook_weight(sportsbook))
+
+                        play.update(
+                            get_sharp_market_signal(edge, odds, recommendation)
+                        )
+
+                        plays.append(play)
+
+        best_by_game_market = {}
+
+        for play in plays:
+            key = f"{play.get('game')}|{play.get('market')}"
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
+            elif play.get("edge", 0) > best_by_game_market[key].get("edge", 0):
+                best_by_game_market[key] = play
+
+        final = sorted(
+            list(best_by_game_market.values()),
+            key=lambda x: x.get("edge", 0),
+            reverse=True
+        )
+
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
+        set_cache("ncaamb_model", final)
+
+        return {"plays": final}
+
+    except Exception as e:
+        return {"plays": [], "error": str(e)}
+
+@app.get("/model/nhl/today")
+def model_nhl_today():
+    odds_api_key = os.getenv("ODDS_API_KEY")
+
+    if not odds_api_key:
+        return {"plays": [], "error": "Missing ODDS_API_KEY"}
+
+    commence_from, commence_to = get_today_utc_window()
+
+    params = {
+        "apiKey": odds_api_key,
+        "regions": "us",
+        "markets": "h2h,spreads,totals",
+        "oddsFormat": "american",
+        "commenceTimeFrom": commence_from,
+        "commenceTimeTo": commence_to,
+    }
+
+    try:
+        response = requests.get(
+            NHL_ODDS_BASE_URL,
+            params=params,
+            timeout=8
+        )
+
+        if response.status_code != 200:
+            return {"plays": [], "error": response.text}
+
+        games = response.json()
+        plays = []
+
+        for game in games[:10]:
+            home_team = game.get("home_team")
+            away_team = game.get("away_team")
+            game_name = f"{away_team} vs {home_team}"
+
+            for bookmaker in game.get("bookmakers", [])[:2]:
+                sportsbook = bookmaker.get("title")
+
+                for market in bookmaker.get("markets", []):
+                    market_key = market.get("key")
+
+                    if market_key == "h2h":
+                        market_name = "Moneyline"
+                    elif market_key == "spreads":
+                        market_name = "Puck Line"
+                    elif market_key == "totals":
+                        market_name = "Total"
+                    else:
+                        continue
+
+                    for outcome in market.get("outcomes", [])[:2]:
+                        pick_name = outcome.get("name")
+                        odds = outcome.get("price")
+                        point = outcome.get("point")
+
+                        if odds is None:
+                            continue
+
+                        pick_display = (
+                            f"{pick_name} {point}"
+                            if market_name in ["Puck Line", "Total"]
+                            else pick_name
+                        )
+
+                        implied = american_to_implied_probability(odds)
+
+                        team_rating = NHL_TEAM_RATINGS.get(pick_name, 76)
+
+                        if pick_name == home_team:
+                            opponent = away_team
+                            home_adj = 1.0
+                        elif pick_name == away_team:
+                            opponent = home_team
+                            home_adj = -1.0
+                        else:
+                            opponent = None
+                            home_adj = 0
+
+                        opponent_rating = NHL_TEAM_RATINGS.get(opponent, 76)
+
+                        rating_diff = team_rating - opponent_rating
+                        rating_adj = rating_diff * 0.3
+                        price_adj = get_price_adjustment(odds)
+
+                        goalie_adj = 0
+                        rest_adj = 0
+
+                        if market_name == "Total":
+                            model_prob = implied + price_adj
+                            reason = (
+                                f"NHL totals v1. Price adjustment ({price_adj}). "
+                                "Goalie, pace, and shot-quality layers will be added later."
+                            )
+                        else:
+                            model_prob = (
+                                implied
+                                + rating_adj
+                                + home_adj
+                                + goalie_adj
+                                + rest_adj
+                                + price_adj
+                            )
+                            reason = (
+                                f"NHL rating edge ({round(rating_diff, 2)}). "
+                                f"Rating adjustment ({round(rating_adj, 2)}). "
+                                f"Home-ice adjustment ({home_adj}). "
+                                f"Goalie placeholder ({goalie_adj}). "
+                                f"Rest placeholder ({rest_adj}). "
+                                f"Price adjustment ({price_adj})."
+                            )
+
+                        model_prob = max(1, min(99, model_prob))
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 4:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        if edge >= 5:
+                            confidence = 90
+                        elif edge >= 4:
+                            confidence = 84
+                        elif edge >= 3:
+                            confidence = 78
+                        elif edge >= 2:
+                            confidence = 72
+                        else:
+                            confidence = 60
+
+                        units = get_dynamic_units(edge, confidence, recommendation)
+
+                        play = {
+                            "game": game_name,
+                            "sportsbook": sportsbook,
+                            "market": market_name,
+                            "pick": pick_display,
+                            "odds": odds,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": units,
+                            "sport": "NHL",
+                            "model_version": "nhl_v1_fast_market_engine",
+                            "team_rating": team_rating,
+                            "opponent_rating": opponent_rating,
+                            "rating_diff": round(rating_diff, 2),
+                            "rating_adjustment": round(rating_adj, 2),
+                            "home_ice_adjustment": home_adj,
+                            "goalie_adjustment": goalie_adj,
+                            "rest_adjustment": rest_adj,
+                            "price_adjustment": price_adj,
+                            "reason": reason,
+                        }
+
+                        play.update(get_sharp_sportsbook_weight(sportsbook))
+
+                        play.update(
+                            get_sharp_market_signal(edge, odds, recommendation)
+                        )
+
+                        plays.append(play)
+
+        best_by_game_market = {}
+
+        for play in plays:
+            key = f"{play.get('game')}|{play.get('market')}"
+            if key not in best_by_game_market:
+                best_by_game_market[key] = play
+            elif play.get("edge", 0) > best_by_game_market[key].get("edge", 0):
+                best_by_game_market[key] = play
+
+        final = sorted(
+            list(best_by_game_market.values()),
+            key=lambda x: x.get("edge", 0),
+            reverse=True
+        )
+
+        for play in final:
+            play.update(get_universal_market_intelligence(play, plays))
+            play.update(get_universal_final_rating(play))
+
+        set_cache("nhl_model", final)
+
+        return {"plays": final}
+
+    except Exception as e:
+        return {"plays": [], "error": str(e)}
+
+
+
 @app.get("/model/wnba/today")
 def model_wnba_today():
     odds_api_key = os.getenv("ODDS_API_KEY")
@@ -6980,6 +7423,7 @@ def clear_pod_caches():
         "nfl_model",
         "nhl_model",
         "ncaaf_model",
+        "ncaamb_model",
         "soccer_model",
     ]
 
@@ -7025,6 +7469,7 @@ def debug_pod_cache():
         "nfl_model",
         "nhl_model",
         "ncaaf_model",
+        "ncaamb_model",
         "soccer_model",
     ]
 
@@ -7961,6 +8406,7 @@ def model_play_of_the_day_v2():
         "WNBA": ["wnba_model"],
         "NHL": ["nhl_model"],
         "NCAAF": ["ncaaf_model"],
+        "NCAAMB": ["ncaamb_model"],
         "Soccer": ["soccer_model"],
     }
 
@@ -9955,6 +10401,26 @@ def refresh_nhl_models():
     except Exception as e:
         return {
             "success": False,
+            "error": str(e),
+        }
+
+
+
+@app.post("/refresh/ncaamb")
+def refresh_ncaamb_models():
+    try:
+        delete_cache("ncaamb_model")
+        response = model_ncaamb_today()
+        return {
+            "success": True,
+            "sport": "NCAAMB",
+            "model": "ncaamb_v1_fast_market_engine",
+            "count": len(response.get("plays", [])) if isinstance(response, dict) else 0,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "sport": "NCAAMB",
             "error": str(e),
         }
 
