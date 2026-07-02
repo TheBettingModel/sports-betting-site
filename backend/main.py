@@ -7786,8 +7786,56 @@ def pod_sharp_signal_value(play):
 def pod_market_priority(play):
     market = str(play.get("market") or "").lower()
 
-    if "moneyline" in market or market in ["h2h", "ml"]:
-        return 10
+    # ---------- Flagship Markets ----------
+    if "moneyline" in market or market in ["ml", "h2h"]:
+        return 100
+
+    if (
+        "spread" in market
+        or "run line" in market
+        or "puck line" in market
+    ):
+        return 95
+
+    if (
+        "total" in market
+        and "team total" not in market
+        and "first" not in market
+        and "f5" not in market
+    ):
+        return 90
+
+    if "team total" in market:
+        return 85
+
+    # ---------- Derivative Markets ----------
+    if (
+        "first 5" in market
+        or "f5" in market
+        or "1st 5" in market
+        or "first half" in market
+        or "1h" in market
+    ):
+        return 70
+
+    if "nrfi" in market or "yrfi" in market:
+        return 65
+
+    # ---------- Soccer ----------
+    if "draw" in market:
+        return 60
+
+    if "double chance" in market:
+        return 55
+
+    # ---------- Everything Else ----------
+    if "prop" in market:
+        return 40
+
+    if "alt" in market or "alternative" in market:
+        return 30
+
+    return 500
     if "spread" in market or "run line" in market or "puck line" in market:
         return 9
     if "total" in market and "team" not in market:
@@ -7854,6 +7902,10 @@ def universal_pod_exposure_score(play):
         pod_market_grade_value(play),
         pod_sharp_signal_value(play),
         float(play.get("line_shop_value", 0) or 0),
+
+        # Strong preference for flagship/full-game markets.
+        # Derivative markets (F5, NRFI, etc.) must clearly outperform
+        # to become the Overall POD.
         pod_market_priority(play),
     )
 
