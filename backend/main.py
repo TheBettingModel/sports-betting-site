@@ -8942,6 +8942,100 @@ def remove_same_game_pod_conflicts(plays):
 # UNIVERSAL MODEL STATUS / HEALTH CHECK
 # ============================================================
 
+
+
+# ============================================================
+# PLATFORM INTELLIGENCE v1
+# ============================================================
+
+@app.get("/platform/intelligence")
+def platform_intelligence():
+
+    sport_cache_map = {
+        "MLB": ["mlb_model","mlb_f5_model","mlb_nrfi_model"],
+        "NBA": ["nba_model"],
+        "NFL": ["nfl_model"],
+        "NHL": ["nhl_model"],
+        "WNBA": ["wnba_model"],
+        "NCAAF": ["ncaaf_model"],
+        "NCAAMB": ["ncaamb_model"],
+        "Soccer": ["soccer_model"],
+        "UFC": ["ufc_model"],
+    }
+
+    plays = []
+
+    for caches in sport_cache_map.values():
+        for key in caches:
+            cached = get_cache(key)
+            if isinstance(cached, list):
+                plays.extend(cached)
+
+    if not plays:
+        return {
+            "success": True,
+            "platform_version": "platform_intelligence_v1",
+            "summary": {}
+        }
+
+    elite = [
+        p for p in plays
+        if str(
+            p.get("final_recommendation")
+            or p.get("recommendation")
+            or ""
+        ).lower() in ["elite play","play"]
+    ]
+
+    def avg(values):
+        values=[v for v in values if isinstance(v,(int,float))]
+        return round(sum(values)/len(values),2) if values else 0
+
+    sport_summary={}
+    market_summary={}
+    sportsbook_summary={}
+
+    for p in plays:
+
+        sport=p.get("sport","Unknown")
+        market=p.get("market","Unknown")
+        book=p.get("best_sportsbook") or p.get("sportsbook") or "Unknown"
+
+        sport_summary[sport]=sport_summary.get(sport,0)+1
+        market_summary[market]=market_summary.get(market,0)+1
+        sportsbook_summary[book]=sportsbook_summary.get(book,0)+1
+
+    top_sport=max(sport_summary,key=sport_summary.get)
+    top_market=max(market_summary,key=market_summary.get)
+    top_book=max(sportsbook_summary,key=sportsbook_summary.get)
+
+    summary={
+        "active_sports":len(sport_summary),
+        "total_plays":len(plays),
+        "elite_plays":len(elite),
+        "average_edge":avg([p.get("edge") for p in plays]),
+        "average_confidence":avg([p.get("confidence") for p in plays]),
+        "average_pod_score":avg([p.get("universal_pod_score") for p in plays]),
+        "highest_confidence":max([p.get("confidence",0) for p in plays]),
+        "highest_edge":max([p.get("edge",0) for p in plays]),
+        "sharp_plays":len([p for p in plays if p.get("sharp_signal")=="Sharp Play"]),
+        "line_shop_opportunities":len([p for p in plays if (p.get("line_shop_value") or 0)>0]),
+        "best_sport_today":top_sport,
+        "best_market_today":top_market,
+        "top_sportsbook":top_book,
+        "sport_breakdown":sport_summary,
+        "market_breakdown":market_summary,
+        "sportsbook_breakdown":sportsbook_summary
+    }
+
+    return {
+        "success":True,
+        "platform_version":"platform_intelligence_v1",
+        "summary":summary
+    }
+
+
+
 @app.get("/model/status")
 def model_status():
     sport_cache_map = {
