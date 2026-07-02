@@ -276,6 +276,7 @@ WNBA_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_wnba/odd
 NHL_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/icehockey_nhl/odds"
 NCAAF_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds"
 NCAAMB_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball_ncaab/odds"
+UFC_ODDS_BASE_URL = "https://api.the-odds-api.com/v4/sports/mma_mixed_martial_arts/odds"
 
 NCAAF_TEAM_RATINGS = {
     "Georgia Bulldogs": 92,
@@ -7687,6 +7688,7 @@ def clear_pod_caches():
         "nhl_model",
         "ncaaf_model",
         "ncaamb_model",
+        "ufc_model",
         "soccer_model",
     ]
 
@@ -7733,6 +7735,7 @@ def debug_pod_cache():
         "nhl_model",
         "ncaaf_model",
         "ncaamb_model",
+        "ufc_model",
         "soccer_model",
     ]
 
@@ -8243,6 +8246,279 @@ def model_soccer_for_sport_key(sport_key, odds_api_key):
     return plays
 
 
+
+
+# ============================================================
+# UFC v1 FIGHTER MARKET ENGINE
+# ============================================================
+
+UFC_FIGHTER_RATINGS = {
+    "Islam Makhachev": {"overall": 96, "striking": 86, "grappling": 97, "cardio": 91, "defense": 93, "finish": 88, "experience": 92},
+    "Jon Jones": {"overall": 95, "striking": 90, "grappling": 94, "cardio": 88, "defense": 92, "finish": 90, "experience": 96},
+    "Alex Pereira": {"overall": 94, "striking": 98, "grappling": 76, "cardio": 86, "defense": 84, "finish": 96, "experience": 88},
+    "Ilia Topuria": {"overall": 93, "striking": 93, "grappling": 88, "cardio": 89, "defense": 89, "finish": 92, "experience": 84},
+    "Merab Dvalishvili": {"overall": 92, "striking": 82, "grappling": 95, "cardio": 98, "defense": 88, "finish": 74, "experience": 89},
+    "Dricus Du Plessis": {"overall": 91, "striking": 88, "grappling": 86, "cardio": 91, "defense": 84, "finish": 90, "experience": 86},
+    "Tom Aspinall": {"overall": 91, "striking": 91, "grappling": 88, "cardio": 84, "defense": 86, "finish": 94, "experience": 82},
+    "Leon Edwards": {"overall": 90, "striking": 91, "grappling": 82, "cardio": 88, "defense": 90, "finish": 78, "experience": 91},
+    "Sean O'Malley": {"overall": 90, "striking": 94, "grappling": 76, "cardio": 86, "defense": 84, "finish": 89, "experience": 84},
+    "Max Holloway": {"overall": 89, "striking": 92, "grappling": 78, "cardio": 95, "defense": 86, "finish": 82, "experience": 95},
+    "Khamzat Chimaev": {"overall": 89, "striking": 84, "grappling": 95, "cardio": 82, "defense": 85, "finish": 91, "experience": 78},
+    "Charles Oliveira": {"overall": 88, "striking": 86, "grappling": 94, "cardio": 84, "defense": 78, "finish": 95, "experience": 93},
+    "Justin Gaethje": {"overall": 87, "striking": 90, "grappling": 78, "cardio": 87, "defense": 76, "finish": 92, "experience": 91},
+    "Dustin Poirier": {"overall": 87, "striking": 89, "grappling": 80, "cardio": 87, "defense": 80, "finish": 88, "experience": 94},
+    "Arman Tsarukyan": {"overall": 87, "striking": 84, "grappling": 90, "cardio": 89, "defense": 86, "finish": 82, "experience": 80},
+}
+
+
+def get_ufc_fighter_profile(name):
+    base = UFC_FIGHTER_RATINGS.get(name)
+
+    if not base:
+        base = {
+            "overall": 76,
+            "striking": 76,
+            "grappling": 76,
+            "cardio": 76,
+            "defense": 76,
+            "finish": 76,
+            "experience": 76,
+        }
+
+    return {
+        "ufc_fighter_rating": base.get("overall", 76),
+        "ufc_striking_rating": base.get("striking", 76),
+        "ufc_grappling_rating": base.get("grappling", 76),
+        "ufc_cardio_rating": base.get("cardio", 76),
+        "ufc_defense_rating": base.get("defense", 76),
+        "ufc_finish_rating": base.get("finish", 76),
+        "ufc_experience_rating": base.get("experience", 76),
+    }
+
+
+def get_ufc_matchup_adjustment(fighter, opponent):
+    fighter_profile = get_ufc_fighter_profile(fighter)
+    opponent_profile = get_ufc_fighter_profile(opponent)
+
+    rating_diff = fighter_profile["ufc_fighter_rating"] - opponent_profile["ufc_fighter_rating"]
+    striking_diff = fighter_profile["ufc_striking_rating"] - opponent_profile["ufc_striking_rating"]
+    grappling_diff = fighter_profile["ufc_grappling_rating"] - opponent_profile["ufc_grappling_rating"]
+    cardio_diff = fighter_profile["ufc_cardio_rating"] - opponent_profile["ufc_cardio_rating"]
+    defense_diff = fighter_profile["ufc_defense_rating"] - opponent_profile["ufc_defense_rating"]
+    finish_diff = fighter_profile["ufc_finish_rating"] - opponent_profile["ufc_finish_rating"]
+    experience_diff = fighter_profile["ufc_experience_rating"] - opponent_profile["ufc_experience_rating"]
+
+    adjustment = 0
+    adjustment += rating_diff * 0.08
+    adjustment += striking_diff * 0.025
+    adjustment += grappling_diff * 0.03
+    adjustment += cardio_diff * 0.025
+    adjustment += defense_diff * 0.025
+    adjustment += finish_diff * 0.02
+    adjustment += experience_diff * 0.015
+
+    notes = []
+
+    if striking_diff >= 8:
+        notes.append("Clear striking advantage.")
+    if grappling_diff >= 8:
+        notes.append("Clear grappling advantage.")
+    if cardio_diff >= 8:
+        notes.append("Cardio advantage.")
+    if finish_diff >= 8:
+        notes.append("Finishing upside.")
+    if rating_diff >= 8:
+        notes.append("Overall fighter rating edge.")
+
+    return {
+        "ufc_adjustment": round(adjustment, 2),
+        "ufc_rating_diff": round(rating_diff, 2),
+        "ufc_striking_diff": round(striking_diff, 2),
+        "ufc_grappling_diff": round(grappling_diff, 2),
+        "ufc_cardio_diff": round(cardio_diff, 2),
+        "ufc_defense_diff": round(defense_diff, 2),
+        "ufc_finish_diff": round(finish_diff, 2),
+        "ufc_experience_diff": round(experience_diff, 2),
+        "ufc_notes": notes,
+        "ufc_fighter_profile": fighter_profile,
+        "ufc_opponent_profile": opponent_profile,
+    }
+
+
+@app.get("/model/ufc/today")
+def model_ufc_today(force_refresh=False):
+    cached = get_cache("ufc_model")
+    if cached and not force_refresh:
+        return {
+            "plays": cached,
+            "top_play": cached[0] if cached else None,
+            "model_version": "ufc_v1_fighter_market_engine",
+        }
+
+    try:
+        params = {
+            "apiKey": ODDS_API_KEY,
+            "regions": "us",
+            "markets": "h2h",
+            "oddsFormat": "american",
+        }
+
+        response = requests.get(UFC_ODDS_BASE_URL, params=params, timeout=15)
+
+        if response.status_code != 200:
+            return {
+                "plays": [],
+                "top_play": None,
+                "error": f"Odds API error {response.status_code}: {response.text}",
+                "model_version": "ufc_v1_fighter_market_engine",
+            }
+
+        events = response.json()
+        plays = []
+
+        for event in events:
+            home_fighter = event.get("home_team")
+            away_fighter = event.get("away_team")
+            game = f"{away_fighter} vs {home_fighter}"
+
+            if not home_fighter or not away_fighter:
+                continue
+
+            for bookmaker in event.get("bookmakers", []):
+                sportsbook = bookmaker.get("title", "Unknown")
+
+                for market in bookmaker.get("markets", []):
+                    if market.get("key") != "h2h":
+                        continue
+
+                    for outcome in market.get("outcomes", []):
+                        pick_name = outcome.get("name")
+                        price = outcome.get("price")
+
+                        if not pick_name or price is None:
+                            continue
+
+                        opponent = home_fighter if pick_name == away_fighter else away_fighter
+                        if pick_name == home_fighter:
+                            opponent = away_fighter
+
+                        implied = american_to_implied_probability(price)
+
+                        matchup = get_ufc_matchup_adjustment(pick_name, opponent)
+                        adjustment = matchup.get("ufc_adjustment", 0)
+
+                        price_adj = 0
+                        if price > 150:
+                            price_adj += 0.75
+                        elif price > 100:
+                            price_adj += 0.45
+                        elif price < -250:
+                            price_adj -= 1.25
+                        elif price < -180:
+                            price_adj -= 0.65
+
+                        model_prob = implied + adjustment + price_adj
+                        model_prob = max(1, min(99, model_prob))
+
+                        edge = round(model_prob - implied, 2)
+
+                        if edge >= 5:
+                            recommendation = "Play"
+                        elif edge >= 2:
+                            recommendation = "Lean"
+                        else:
+                            recommendation = "Pass"
+
+                        confidence = 65 + (edge * 3)
+                        confidence += max(0, matchup.get("ufc_rating_diff", 0)) * 0.4
+                        confidence = round(max(1, min(99, confidence)), 0)
+
+                        units = 0
+                        if recommendation == "Play":
+                            units = 1.5 if edge >= 5 else 1
+                        elif recommendation == "Lean":
+                            units = 1
+
+                        reason = (
+                            f"UFC fighter rating edge ({matchup.get('ufc_rating_diff')}). "
+                            f"Striking diff ({matchup.get('ufc_striking_diff')}). "
+                            f"Grappling diff ({matchup.get('ufc_grappling_diff')}). "
+                            f"Cardio diff ({matchup.get('ufc_cardio_diff')}). "
+                            f"Finish diff ({matchup.get('ufc_finish_diff')}). "
+                            f"Price adjustment ({price_adj}). "
+                        )
+
+                        play = {
+                            "game": game,
+                            "sport": "UFC",
+                            "league": "mma_mixed_martial_arts",
+                            "sportsbook": sportsbook,
+                            "market": "Moneyline",
+                            "pick": pick_name,
+                            "odds": price,
+                            "implied_probability": round(implied, 2),
+                            "model_probability": round(model_prob, 2),
+                            "edge": edge,
+                            "confidence": confidence,
+                            "recommendation": recommendation,
+                            "units": units,
+                            "model_version": "ufc_v1_fighter_market_engine",
+                            "opponent": opponent,
+                            "ufc_adjustment": adjustment,
+                            "ufc_notes": matchup.get("ufc_notes"),
+                            "reason": reason,
+                        }
+
+                        play.update(matchup.get("ufc_fighter_profile", {}))
+
+                        opponent_profile = matchup.get("ufc_opponent_profile", {})
+                        for key, value in opponent_profile.items():
+                            play[f"opponent_{key}"] = value
+
+                        play["ufc_rating_diff"] = matchup.get("ufc_rating_diff")
+                        play["ufc_striking_diff"] = matchup.get("ufc_striking_diff")
+                        play["ufc_grappling_diff"] = matchup.get("ufc_grappling_diff")
+                        play["ufc_cardio_diff"] = matchup.get("ufc_cardio_diff")
+                        play["ufc_defense_diff"] = matchup.get("ufc_defense_diff")
+                        play["ufc_finish_diff"] = matchup.get("ufc_finish_diff")
+                        play["ufc_experience_diff"] = matchup.get("ufc_experience_diff")
+
+                        play.update(get_sharp_signal(play))
+                        play.update(get_best_sportsbook_price(play))
+                        play.update(get_market_intelligence(play))
+                        play.update(get_final_model_rating(play))
+                        play.update(get_universal_pod_score(play))
+
+                        plays.append(play)
+
+        final = sorted(
+            plays,
+            key=lambda x: (
+                float(x.get("universal_pod_score", 0) or 0),
+                float(x.get("edge", 0) or 0),
+                float(x.get("confidence", 0) or 0),
+            ),
+            reverse=True,
+        )
+
+        save_model_play_history("UFC", final)
+        set_cache("ufc_model", final)
+
+        return {
+            "plays": final,
+            "top_play": final[0] if final else None,
+            "model_version": "ufc_v1_fighter_market_engine",
+        }
+
+    except Exception as e:
+        return {
+            "plays": [],
+            "top_play": None,
+            "error": str(e),
+            "model_version": "ufc_v1_fighter_market_engine",
+        }
+
+
 @app.get("/model/soccer/today")
 def model_soccer_today(force_refresh=False):
     cached = get_cache("soccer_model")
@@ -8670,6 +8946,7 @@ def model_play_of_the_day_v2():
         "NHL": ["nhl_model"],
         "NCAAF": ["ncaaf_model"],
         "NCAAMB": ["ncaamb_model"],
+        "UFC": ["ufc_model"],
         "Soccer": ["soccer_model"],
     }
 
@@ -10668,6 +10945,26 @@ def refresh_nhl_models():
         }
 
 
+
+
+
+@app.post("/refresh/ufc")
+def refresh_ufc_models():
+    try:
+        delete_cache("ufc_model")
+        response = model_ufc_today(force_refresh=True)
+        return {
+            "success": True,
+            "sport": "UFC",
+            "model": "ufc_v1_fighter_market_engine",
+            "count": len(response.get("plays", [])) if isinstance(response, dict) else 0,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "sport": "UFC",
+            "error": str(e),
+        }
 
 @app.post("/refresh/ncaamb")
 def refresh_ncaamb_models():
