@@ -4538,6 +4538,267 @@ def model_nhl_today():
     except Exception as e:
         return {"plays": [], "error": str(e)}
 
+
+
+# ============================================================
+# NCAA MEN'S BASKETBALL v2 EFFICIENCY ENGINE
+# ============================================================
+
+NCAAMB_ADVANCED_TEAM_PROFILES = {
+    "Duke": {"off": 92, "def": 90, "tempo": 72, "sos": 88, "form": 89, "efg": 90, "reb": 86, "to": 84, "ft": 82},
+    "Houston": {"off": 88, "def": 95, "tempo": 65, "sos": 90, "form": 90, "efg": 85, "reb": 91, "to": 88, "ft": 78},
+    "UConn": {"off": 91, "def": 89, "tempo": 69, "sos": 87, "form": 88, "efg": 89, "reb": 90, "to": 84, "ft": 81},
+    "Kansas": {"off": 88, "def": 87, "tempo": 70, "sos": 91, "form": 84, "efg": 86, "reb": 84, "to": 80, "ft": 79},
+    "North Carolina": {"off": 89, "def": 84, "tempo": 74, "sos": 86, "form": 84, "efg": 87, "reb": 88, "to": 78, "ft": 80},
+    "Kentucky": {"off": 90, "def": 80, "tempo": 75, "sos": 85, "form": 82, "efg": 89, "reb": 81, "to": 76, "ft": 82},
+    "Arizona": {"off": 89, "def": 83, "tempo": 76, "sos": 84, "form": 83, "efg": 88, "reb": 86, "to": 77, "ft": 79},
+    "Purdue": {"off": 91, "def": 84, "tempo": 67, "sos": 86, "form": 85, "efg": 90, "reb": 89, "to": 80, "ft": 83},
+    "Gonzaga": {"off": 88, "def": 82, "tempo": 73, "sos": 81, "form": 84, "efg": 88, "reb": 84, "to": 79, "ft": 80},
+    "Alabama": {"off": 91, "def": 78, "tempo": 80, "sos": 86, "form": 83, "efg": 89, "reb": 82, "to": 75, "ft": 81},
+    "Tennessee": {"off": 84, "def": 91, "tempo": 67, "sos": 88, "form": 84, "efg": 81, "reb": 85, "to": 83, "ft": 76},
+    "Auburn": {"off": 87, "def": 87, "tempo": 71, "sos": 85, "form": 84, "efg": 86, "reb": 87, "to": 80, "ft": 78},
+    "Baylor": {"off": 88, "def": 82, "tempo": 70, "sos": 86, "form": 81, "efg": 87, "reb": 80, "to": 78, "ft": 81},
+    "Michigan State": {"off": 82, "def": 85, "tempo": 68, "sos": 87, "form": 79, "efg": 80, "reb": 84, "to": 80, "ft": 76},
+    "Marquette": {"off": 87, "def": 81, "tempo": 72, "sos": 84, "form": 82, "efg": 86, "reb": 76, "to": 85, "ft": 79},
+}
+
+def get_ncaamb_profile(team):
+    base_rating = NCAAMB_TEAM_RATINGS.get(team, 74)
+
+    default_profile = {
+        "off": base_rating,
+        "def": base_rating,
+        "tempo": 70,
+        "sos": 74,
+        "form": base_rating,
+        "efg": base_rating,
+        "reb": base_rating,
+        "to": base_rating,
+        "ft": base_rating,
+    }
+
+    profile = NCAAMB_ADVANCED_TEAM_PROFILES.get(team, default_profile)
+
+    return {
+        "ncaamb_team_rating": base_rating,
+        "ncaamb_offensive_efficiency": profile.get("off", base_rating),
+        "ncaamb_defensive_efficiency": profile.get("def", base_rating),
+        "ncaamb_tempo_rating": profile.get("tempo", 70),
+        "ncaamb_strength_of_schedule": profile.get("sos", 74),
+        "ncaamb_recent_form": profile.get("form", base_rating),
+        "ncaamb_effective_fg": profile.get("efg", base_rating),
+        "ncaamb_rebounding_rate": profile.get("reb", base_rating),
+        "ncaamb_turnover_rating": profile.get("to", base_rating),
+        "ncaamb_free_throw_rate": profile.get("ft", base_rating),
+    }
+
+
+def parse_ncaamb_teams(play):
+    game = str(play.get("game") or play.get("matchup") or "")
+
+    if " vs " in game:
+        parts = game.split(" vs ", 1)
+    elif " at " in game:
+        parts = game.split(" at ", 1)
+    else:
+        return "", ""
+
+    away = parts[0].strip()
+    home = parts[1].strip()
+    return away, home
+
+
+def infer_ncaamb_pick_team(play, away_team, home_team):
+    pick = str(play.get("pick") or "")
+
+    if away_team and away_team.lower() in pick.lower():
+        return away_team
+
+    if home_team and home_team.lower() in pick.lower():
+        return home_team
+
+    return ""
+
+
+def get_ncaamb_matchup_adjustment(play):
+    away_team, home_team = parse_ncaamb_teams(play)
+    pick_team = infer_ncaamb_pick_team(play, away_team, home_team)
+
+    if not away_team or not home_team:
+        return {
+            "ncaamb_adjustment": 0,
+            "ncaamb_notes": ["Unable to parse matchup teams."],
+        }
+
+    away_profile = get_ncaamb_profile(away_team)
+    home_profile = get_ncaamb_profile(home_team)
+
+    pick_profile = get_ncaamb_profile(pick_team) if pick_team else None
+    opp_team = home_team if pick_team == away_team else away_team if pick_team == home_team else ""
+    opp_profile = get_ncaamb_profile(opp_team) if opp_team else None
+
+    combined_tempo = round(
+        (
+            away_profile.get("ncaamb_tempo_rating", 70)
+            + home_profile.get("ncaamb_tempo_rating", 70)
+        )
+        / 2,
+        2,
+    )
+
+    total_environment = "Neutral"
+    totals_adjustment = 0
+
+    if combined_tempo >= 74:
+        total_environment = "Fast Pace"
+        totals_adjustment = 0.65
+    elif combined_tempo <= 67:
+        total_environment = "Slow Pace"
+        totals_adjustment = -0.55
+
+    adjustment = 0
+    notes = []
+
+    if pick_profile and opp_profile:
+        offense_vs_defense = (
+            pick_profile.get("ncaamb_offensive_efficiency", 74)
+            - opp_profile.get("ncaamb_defensive_efficiency", 74)
+        )
+        rating_diff = (
+            pick_profile.get("ncaamb_team_rating", 74)
+            - opp_profile.get("ncaamb_team_rating", 74)
+        )
+        sos_diff = (
+            pick_profile.get("ncaamb_strength_of_schedule", 74)
+            - opp_profile.get("ncaamb_strength_of_schedule", 74)
+        )
+        form_diff = (
+            pick_profile.get("ncaamb_recent_form", 74)
+            - opp_profile.get("ncaamb_recent_form", 74)
+        )
+        possession_edge = (
+            pick_profile.get("ncaamb_rebounding_rate", 74)
+            + pick_profile.get("ncaamb_turnover_rating", 74)
+            - opp_profile.get("ncaamb_rebounding_rate", 74)
+            - opp_profile.get("ncaamb_turnover_rating", 74)
+        ) / 2
+
+        adjustment += rating_diff * 0.06
+        adjustment += offense_vs_defense * 0.035
+        adjustment += sos_diff * 0.025
+        adjustment += form_diff * 0.035
+        adjustment += possession_edge * 0.02
+
+        if pick_team == home_team:
+            adjustment += 1.25
+            notes.append("Home-court advantage applied.")
+
+        if offense_vs_defense >= 8:
+            notes.append("Strong offensive efficiency edge.")
+        if form_diff >= 6:
+            notes.append("Positive recent form edge.")
+        if possession_edge >= 6:
+            notes.append("Rebounding/turnover possession edge.")
+
+    else:
+        rating_diff = 0
+        offense_vs_defense = 0
+        sos_diff = 0
+        form_diff = 0
+        possession_edge = 0
+
+    market = str(play.get("market") or "").lower()
+
+    if "total" in market:
+        adjustment += totals_adjustment
+        notes.append(f"Total environment: {total_environment}.")
+
+    return {
+        "ncaamb_adjustment": round(adjustment, 2),
+        "ncaamb_total_environment": total_environment,
+        "ncaamb_combined_tempo": combined_tempo,
+        "ncaamb_away_team": away_team,
+        "ncaamb_home_team": home_team,
+        "ncaamb_pick_team": pick_team,
+        "ncaamb_opponent": opp_team,
+        "ncaamb_pick_profile": pick_profile,
+        "ncaamb_opponent_profile": opp_profile,
+        "ncaamb_rating_diff": round(rating_diff, 2),
+        "ncaamb_offense_vs_defense_edge": round(offense_vs_defense, 2),
+        "ncaamb_sos_diff": round(sos_diff, 2),
+        "ncaamb_recent_form_diff": round(form_diff, 2),
+        "ncaamb_possession_edge": round(possession_edge, 2),
+        "ncaamb_notes": notes,
+    }
+
+
+def enhance_ncaamb_play(play):
+    if play.get("sport") != "NCAAMB":
+        return play
+
+    data = get_ncaamb_matchup_adjustment(play)
+    adjustment = data.get("ncaamb_adjustment", 0)
+
+    play.update({
+        "model_version": "ncaamb_v2_efficiency_market_engine",
+        "ncaamb_engine_version": "v2_efficiency",
+        "ncaamb_adjustment": adjustment,
+        "ncaamb_total_environment": data.get("ncaamb_total_environment"),
+        "ncaamb_combined_tempo": data.get("ncaamb_combined_tempo"),
+        "ncaamb_away_team": data.get("ncaamb_away_team"),
+        "ncaamb_home_team": data.get("ncaamb_home_team"),
+        "ncaamb_pick_team": data.get("ncaamb_pick_team"),
+        "ncaamb_opponent": data.get("ncaamb_opponent"),
+        "ncaamb_rating_diff": data.get("ncaamb_rating_diff"),
+        "ncaamb_offense_vs_defense_edge": data.get("ncaamb_offense_vs_defense_edge"),
+        "ncaamb_sos_diff": data.get("ncaamb_sos_diff"),
+        "ncaamb_recent_form_diff": data.get("ncaamb_recent_form_diff"),
+        "ncaamb_possession_edge": data.get("ncaamb_possession_edge"),
+        "ncaamb_notes": data.get("ncaamb_notes"),
+    })
+
+    pick_profile = data.get("ncaamb_pick_profile") or {}
+    opponent_profile = data.get("ncaamb_opponent_profile") or {}
+
+    for key, value in pick_profile.items():
+        play[key] = value
+
+    for key, value in opponent_profile.items():
+        play[f"opponent_{key}"] = value
+
+    if play.get("model_probability") is not None:
+        try:
+            play["model_probability"] = round(
+                max(1, min(99, float(play.get("model_probability", 0)) + adjustment)),
+                2,
+            )
+
+            implied = float(play.get("implied_probability", 0) or 0)
+            play["edge"] = round(play["model_probability"] - implied, 2)
+        except Exception:
+            pass
+
+    try:
+        confidence = float(play.get("confidence", 0) or 0)
+        play["confidence"] = round(max(1, min(99, confidence + (adjustment * 1.1))), 0)
+    except Exception:
+        pass
+
+    reason = play.get("reason") or ""
+    play["reason"] = (
+        reason
+        + f"NCAAMB efficiency adjustment ({adjustment}). "
+        + f"Tempo: {data.get('ncaamb_combined_tempo')}. "
+        + f"Off/Def edge: {data.get('ncaamb_offense_vs_defense_edge')}. "
+        + f"SOS diff: {data.get('ncaamb_sos_diff')}. "
+        + f"Recent form diff: {data.get('ncaamb_recent_form_diff')}. "
+        + f"Possession edge: {data.get('ncaamb_possession_edge')}. "
+    )
+
+    return play
+
+
+
 @app.get("/model/ncaamb/today")
 def model_ncaamb_today():
     odds_api_key = os.getenv("ODDS_API_KEY")
@@ -4726,6 +4987,8 @@ def model_ncaamb_today():
         for play in final:
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
+
+        final = [enhance_ncaamb_play(play) for play in final]
 
         set_cache("ncaamb_model", final)
 
@@ -10414,7 +10677,7 @@ def refresh_ncaamb_models():
         return {
             "success": True,
             "sport": "NCAAMB",
-            "model": "ncaamb_v1_fast_market_engine",
+            "model": "ncaamb_v2_efficiency_market_engine",
             "count": len(response.get("plays", [])) if isinstance(response, dict) else 0,
         }
     except Exception as e:
