@@ -9086,16 +9086,15 @@ def automation_run_daily():
     status_error = None
 
     try:
-        # Build POD directly from current cached model outputs.
-        pipeline = get_universal_pod_pipeline()
-        all_candidates = pipeline.get("top_5", []) or []
-        all_candidates = apply_universal_pod_exposure_engine(all_candidates)
+        pod_response = requests.get(
+            "https://sports-betting-backend-ecic.onrender.com/model/play-of-the-day-v2",
+            timeout=20,
+        )
 
-        pod = {
-            "overall_play": all_candidates[0] if all_candidates else None,
-            "top_5": all_candidates[:5],
-            "by_sport": pipeline.get("by_sport", {}),
-        }
+        if pod_response.status_code != 200:
+            raise Exception(f"POD endpoint returned HTTP {pod_response.status_code}")
+
+        pod = pod_response.json()
     except Exception as e:
         pod = {"error": str(e)}
         pod_error = str(e)
