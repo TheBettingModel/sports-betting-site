@@ -9,207 +9,228 @@ function formatOdds(value) {
   return num > 0 ? `+${num}` : `${num}`;
 }
 
-function getScore(play) {
+function score(play) {
   return Number(play?.universal_pod_score ?? play?.pod_score ?? play?.final_model_score ?? 0);
 }
 
-function getBook(play) {
-  return play?.best_sportsbook || play?.best_book || play?.sportsbook || "N/A";
-}
-
-function getRec(play) {
-  return play?.final_recommendation || play?.recommendation || "N/A";
-}
-
-function getTier(play) {
-  return play?.final_model_tier || play?.universal_pod_tier || play?.market_intelligence_grade || "N/A";
-}
-
-function getSport(play) {
+function sport(play) {
   return play?.pod_sport || play?.sport || play?.league || "Unknown";
 }
 
-function MetricTile({ label, value, highlight = false }) {
+function book(play) {
+  return play?.best_sportsbook || play?.best_book || play?.sportsbook || "Best Available";
+}
+
+function rec(play) {
+  return play?.final_recommendation || play?.recommendation || "Model Play";
+}
+
+function tier(play) {
+  return play?.final_model_tier || play?.universal_pod_tier || play?.market_intelligence_grade || "N/A";
+}
+
+function odds(play) {
+  return play?.best_odds ?? play?.odds;
+}
+
+function Metric({ label, value, accent = false }) {
   return (
-    <div style={metricTileStyle}>
+    <div style={metricStyle}>
       <span style={metricLabelStyle}>{label}</span>
-      <strong style={{ ...metricValueStyle, color: highlight ? "#22c55e" : "white" }}>
+      <strong style={{ ...metricValueStyle, color: accent ? "#22c55e" : "#f9fafb" }}>
         {value ?? "N/A"}
       </strong>
     </div>
   );
 }
 
-function Badge({ children, color = "#1f2937" }) {
-  return <span style={{ ...badgeStyle, backgroundColor: color }}>{children}</span>;
+function Pill({ children, tone = "dark" }) {
+  const colors = {
+    green: "#16a34a",
+    yellow: "#ca8a04",
+    blue: "#2563eb",
+    red: "#dc2626",
+    dark: "#1f2937",
+  };
+
+  return <span style={{ ...pillStyle, backgroundColor: colors[tone] || colors.dark }}>{children}</span>;
 }
 
-function FeaturedPlay({ play }) {
-  if (!play) return <p>No featured play available.</p>;
+function FlagshipPlay({ play }) {
+  if (!play) return <div style={emptyStyle}>No flagship play available.</div>;
 
-  const reasons =
-    play.final_rating_reasons ||
-    play.market_intelligence_reasons ||
-    play.universal_pod_reasons ||
-    [];
+  const reasons = play.final_rating_reasons || play.market_intelligence_reasons || play.universal_pod_reasons || [];
 
   return (
-    <div style={featuredCardStyle}>
-      <div style={labelStyle}>Today’s Featured Model Play</div>
+    <section style={flagshipStyle}>
+      <div>
+        <div style={eyebrowStyle}>Today’s Flagship Play</div>
 
-      <div style={featuredGridStyle}>
-        <div>
-          <h2 style={{ fontSize: "34px", marginBottom: "8px" }}>{play.game}</h2>
-          <h3 style={{ fontSize: "26px", color: "#facc15", marginBottom: "16px" }}>
-            {play.pick} {formatOdds(play.best_odds ?? play.odds)}
-          </h3>
+        <div style={flagshipTopStyle}>
+          <div>
+            <h1 style={flagshipPickStyle}>{play.pick}</h1>
+            <p style={flagshipGameStyle}>{play.game}</p>
+          </div>
 
-          <div style={badgeWrapStyle}>
-            <Badge>Sport: {getSport(play)}</Badge>
-            <Badge>Market: {play.market || "N/A"}</Badge>
-            <Badge>Best Book: {getBook(play)}</Badge>
-            <Badge>Edge: {play.edge ?? "N/A"}%</Badge>
-            <Badge>Confidence: {play.confidence ?? "N/A"}</Badge>
-            <Badge>POD: {getScore(play).toFixed(2)}</Badge>
-            <Badge color="#16a34a">{getRec(play)}</Badge>
-            <Badge color="#14532d">{getTier(play)}</Badge>
+          <div style={scoreBadgeStyle}>
+            <span>POD</span>
+            <strong>{score(play).toFixed(2)}</strong>
           </div>
         </div>
 
-        <div style={scorePanelStyle}>
-          <span style={{ color: "#9ca3af", fontWeight: "bold" }}>POD SCORE</span>
-          <strong style={{ color: "#22c55e", fontSize: "46px" }}>
-            {getScore(play).toFixed(2)}
-          </strong>
-          <p style={{ color: "#d1d5db", marginTop: "8px" }}>{getTier(play)}</p>
+        <div style={pillRowStyle}>
+          <Pill tone="green">{rec(play)}</Pill>
+          <Pill tone="blue">{sport(play)}</Pill>
+          <Pill>{play.market || "N/A"}</Pill>
+          <Pill tone="yellow">{tier(play)}</Pill>
+        </div>
+
+        <div style={ticketGridStyle}>
+          <Metric label="Best Odds" value={formatOdds(odds(play))} accent />
+          <Metric label="Best Book" value={book(play)} />
+          <Metric label="Edge" value={`${play.edge ?? "N/A"}%`} accent />
+          <Metric label="Confidence" value={play.confidence ?? "N/A"} accent />
+          <Metric label="Units" value={play.units ?? "N/A"} />
+          <Metric label="Market Grade" value={play.market_intelligence_grade || "N/A"} />
         </div>
       </div>
 
-      <div style={signalGridStyle}>
-        <div>
-          <h4>📈 Market</h4>
-          <p>Sharp: {play.sharp_signal || "N/A"}</p>
-          <p>CLV: {play.clv_status || "N/A"}</p>
-          <p>Grade: {play.market_intelligence_grade || "N/A"}</p>
-        </div>
-        <div>
-          <h4>💰 Sportsbook</h4>
-          <p>Best: {getBook(play)}</p>
-          <p>Line Value: {play.line_shop_value ?? "N/A"}</p>
-          <p>Worst Odds: {formatOdds(play.worst_odds)}</p>
-        </div>
-        <div>
-          <h4>🔥 Sharp</h4>
-          <p>Signal: {play.sharp_signal || "N/A"}</p>
-          <p>Book: {play.sharp_book_signal || "N/A"}</p>
-          <p>Steam: {play.steam_strength || "N/A"}</p>
-        </div>
-        <div>
-          <h4>⭐ Rating</h4>
-          <p>Model Score: {play.final_model_score ?? "N/A"}</p>
-          <p>Stars: {play.final_stars ? `${play.final_stars}/5` : "N/A"}</p>
-          <p>Recommendation: {getRec(play)}</p>
-        </div>
-      </div>
+      <aside style={whyStyle}>
+        <h3 style={{ marginTop: 0 }}>Why The Model Likes It</h3>
+        {Array.isArray(reasons) && reasons.length > 0 ? (
+          reasons.slice(0, 6).map((reason, index) => (
+            <p key={index} style={reasonLineStyle}>✓ {reason}</p>
+          ))
+        ) : (
+          <p style={reasonLineStyle}>{play.reason || play.sharp_reason || "No model reason available."}</p>
+        )}
 
-      <div style={reasonStyle}>
-        {Array.isArray(reasons) && reasons.length > 0
-          ? reasons.slice(0, 5).map((reason, index) => (
-              <p key={index} style={{ margin: "5px 0" }}>✓ {reason}</p>
-            ))
-          : play.reason || play.sharp_reason || "No model reason available."}
-      </div>
-    </div>
+        <div style={miniSignalGridStyle}>
+          <div>
+            <span>Sharp</span>
+            <strong>{play.sharp_signal || "N/A"}</strong>
+          </div>
+          <div>
+            <span>CLV</span>
+            <strong>{play.clv_status || "N/A"}</strong>
+          </div>
+          <div>
+            <span>Line Value</span>
+            <strong>{play.line_shop_value ?? "N/A"}</strong>
+          </div>
+        </div>
+      </aside>
+    </section>
   );
 }
 
-function TopPlayCard({ play, index }) {
+function TopPlayRow({ play, index }) {
   if (!play) return null;
 
   return (
-    <div style={playCardStyle}>
-      <div style={labelStyle}>#{index + 1} Overall Play</div>
-      <h3 style={{ fontSize: "22px", marginBottom: "8px" }}>{play.game}</h3>
-      <h4 style={{ color: "#facc15", fontSize: "20px", marginBottom: "12px" }}>
-        {play.pick} {formatOdds(play.best_odds ?? play.odds)}
-      </h4>
+    <div style={topRowStyle}>
+      <div style={rankStyle}>#{index + 1}</div>
 
-      <div style={badgeWrapStyle}>
-        <Badge>{getSport(play)}</Badge>
-        <Badge>{play.market || "N/A"}</Badge>
-        <Badge>{getBook(play)}</Badge>
-        <Badge>Edge: {play.edge ?? "N/A"}%</Badge>
-        <Badge>Conf: {play.confidence ?? "N/A"}</Badge>
-        <Badge>POD: {getScore(play).toFixed(2)}</Badge>
-        <Badge color="#16a34a">{getRec(play)}</Badge>
+      <div style={{ flex: 1 }}>
+        <div style={rowHeaderStyle}>
+          <strong>{play.pick}</strong>
+          <span>{formatOdds(odds(play))}</span>
+        </div>
+        <p style={rowSubStyle}>{play.game}</p>
       </div>
+
+      <div style={rowMetricsStyle}>
+        <span>{sport(play)}</span>
+        <span>{play.market || "N/A"}</span>
+        <span>Edge {play.edge ?? "N/A"}%</span>
+        <span>Conf {play.confidence ?? "N/A"}</span>
+        <span>POD {score(play).toFixed(2)}</span>
+      </div>
+
+      <Pill tone="green">{rec(play)}</Pill>
     </div>
   );
 }
 
-function SportPlayCard({ sport, play }) {
+function SportCard({ name, play }) {
   if (!play) return null;
 
   return (
-    <div style={sportCardStyle}>
-      <div style={sportTopStyle}>
-        <div style={labelStyle}>{sport}</div>
-        <strong style={{ color: "#22c55e", fontSize: "23px" }}>
-          {getScore(play).toFixed(2)}
-        </strong>
+    <a href={sportPath(name)} style={sportCardStyle}>
+      <div style={sportCardTopStyle}>
+        <span>{sportEmoji(name)} {name}</span>
+        <strong>{score(play).toFixed(2)}</strong>
       </div>
-
-      <h3 style={{ fontSize: "19px", marginBottom: "10px" }}>{play.game}</h3>
-      <h4 style={{ color: "#facc15", marginBottom: "14px" }}>
-        {play.pick} {formatOdds(play.best_odds ?? play.odds)}
-      </h4>
-
-      <div style={badgeWrapStyle}>
-        <Badge>{play.market || "N/A"}</Badge>
-        <Badge>{getBook(play)}</Badge>
-        <Badge>Edge: {play.edge ?? "N/A"}%</Badge>
-        <Badge>{getRec(play)}</Badge>
+      <h3 style={sportPickStyle}>{play.pick}</h3>
+      <p style={sportGameStyle}>{play.game}</p>
+      <div style={sportMetricRowStyle}>
+        <span>{play.market || "N/A"}</span>
+        <span>{formatOdds(odds(play))}</span>
+        <span>{rec(play)}</span>
       </div>
-    </div>
+    </a>
   );
 }
 
-function SportStatusTable({ status }) {
+function sportEmoji(name) {
+  return {
+    MLB: "⚾",
+    NBA: "🏀",
+    NFL: "🏈",
+    NHL: "🏒",
+    WNBA: "🏀",
+    NCAAF: "🏈",
+    NCAAMB: "🏀",
+    Soccer: "⚽",
+    UFC: "🥊",
+  }[name] || "📊";
+}
+
+function sportPath(name) {
+  return {
+    MLB: "/mlb-model",
+    NBA: "/model-board",
+    NFL: "/nfl-model",
+    NHL: "/nhl-model",
+    WNBA: "/wnba-model",
+    NCAAF: "/ncaaf-model",
+    NCAAMB: "/model/ncaamb",
+    Soccer: "/soccer-model",
+    UFC: "/model/ufc",
+  }[name] || "/";
+}
+
+function StatusTable({ status }) {
   const sports = status?.sports || {};
 
   return (
-    <div style={tableWrapStyle}>
+    <div style={tableShellStyle}>
       <table style={tableStyle}>
         <thead>
           <tr>
             <th style={thStyle}>Sport</th>
             <th style={thStyle}>Status</th>
             <th style={thStyle}>Plays</th>
-            <th style={thStyle}>Top Play</th>
             <th style={thStyle}>Model</th>
           </tr>
         </thead>
         <tbody>
-          {Object.entries(sports).map(([sport, info]) => {
-            const top = info?.top_play;
-            return (
-              <tr key={sport}>
-                <td style={tdStyle}>{sport}</td>
-                <td style={tdStyle}>
-                  <span style={{
-                    ...statusPillStyle,
-                    backgroundColor: info.healthy ? "#14532d" : "#374151",
-                    color: info.healthy ? "#86efac" : "#d1d5db",
-                  }}>
-                    {info.healthy ? "Active" : "No Games"}
-                  </span>
-                </td>
-                <td style={tdStyle}>{info.play_count ?? 0}</td>
-                <td style={tdStyle}>{top ? `${top.pick || "N/A"} (${top.game || "N/A"})` : "N/A"}</td>
-                <td style={tdStyle}>{info.model_version || "N/A"}</td>
-              </tr>
-            );
-          })}
+          {Object.entries(sports).map(([name, info]) => (
+            <tr key={name}>
+              <td style={tdStyle}>{sportEmoji(name)} {name}</td>
+              <td style={tdStyle}>
+                <span style={{
+                  ...statusStyle,
+                  backgroundColor: info.healthy ? "#14532d" : "#374151",
+                  color: info.healthy ? "#86efac" : "#d1d5db",
+                }}>
+                  {info.healthy ? "Active" : "No Games"}
+                </span>
+              </td>
+              <td style={tdStyle}>{info.play_count ?? 0}</td>
+              <td style={tdStyle}>{info.model_version || "N/A"}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -237,37 +258,37 @@ export default function HomePage() {
   }, []);
 
   const summary = intelligence?.summary || {};
-  const topThree = useMemo(() => {
-    return Array.isArray(podData?.top_5) ? podData.top_5.slice(0, 3) : [];
+  const topThree = useMemo(() => (Array.isArray(podData?.top_5) ? podData.top_5.slice(0, 3) : []), [podData]);
+  const flagship = podData?.overall_play || topThree[0] || summary.best_value_play || null;
+
+  const sportEntries = useMemo(() => {
+    const bySport = podData?.by_sport || {};
+    const order = ["MLB", "Soccer", "WNBA", "NBA", "NFL", "NHL", "NCAAF", "NCAAMB", "UFC"];
+    return order
+      .filter((name) => bySport[name])
+      .map((name) => [name, bySport[name]]);
   }, [podData]);
 
-  const featuredPlay = podData?.overall_play || topThree[0] || summary.best_value_play || null;
-  const sportEntries = Object.entries(podData?.by_sport || {}).filter(([, play]) => play);
-
   return (
-    <div style={pageStyle}>
+    <main style={pageStyle}>
       <section style={heroStyle}>
         <div>
-          <div style={labelStyle}>The Betting Model</div>
-          <h1 style={{ marginBottom: "10px", fontSize: "42px" }}>
-            Sports Betting Intelligence Platform
-          </h1>
-          <p style={subtitleStyle}>
-            AI-powered betting analytics built on market intelligence, sportsbook comparison,
-            sharp signals, line shopping, CLV, model confidence, and universal POD rankings.
+          <div style={eyebrowStyle}>The Betting Model</div>
+          <h1 style={heroTitleStyle}>What should I bet today?</h1>
+          <p style={heroTextStyle}>
+            A live sports betting intelligence platform built around model edge, sharp signals,
+            sportsbook comparison, line shopping, CLV, and cross-sport POD rankings.
           </p>
-
-          <div style={heroButtonWrapStyle}>
-            <a href="#top-plays" style={primaryButtonStyle}>View Today’s Plays</a>
-            <a href="#membership" style={secondaryButtonStyle}>Become a Member</a>
+          <div style={heroActionsStyle}>
+            <a href="#top-plays" style={primaryButtonStyle}>View Top Plays</a>
+            <a href="#membership" style={secondaryButtonStyle}>Become Pro</a>
           </div>
         </div>
 
-        <div style={heroMetricGridStyle}>
-          <MetricTile label="Slate Strength" value={summary.slate_strength || "Loading"} highlight />
-          <MetricTile label="Best Sport" value={summary.best_sport_today || "N/A"} />
-          <MetricTile label="Elite Plays" value={summary.elite_plays ?? "N/A"} highlight />
-          <MetricTile label="Sharp Plays" value={summary.sharp_plays ?? "N/A"} />
+        <div style={pulsePanelStyle}>
+          <span style={pulseLabelStyle}>Today’s Market Pulse</span>
+          <strong style={pulseTitleStyle}>{summary.slate_strength || "Loading Slate"}</strong>
+          <p style={pulseTextStyle}>{summary.market_pulse_summary || "Loading platform intelligence..."}</p>
         </div>
       </section>
 
@@ -277,331 +298,468 @@ export default function HomePage() {
         <p>Loading dashboard...</p>
       ) : (
         <>
+          <FlagshipPlay play={flagship} />
+
           <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>Platform Intelligence</h2>
-            <p style={subtitleStyle}>{summary.market_pulse_summary || "Loading market pulse..."}</p>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <div style={eyebrowStyle}>Market Intelligence</div>
+                <h2 style={sectionTitleStyle}>Today’s Betting Landscape</h2>
+              </div>
+            </div>
 
             <div style={metricGridStyle}>
-              <MetricTile label="Total Plays" value={summary.total_plays} />
-              <MetricTile label="Active Sports" value={summary.active_sports} />
-              <MetricTile label="Best Market" value={summary.best_market_today} />
-              <MetricTile label="Top Sportsbook" value={summary.top_sportsbook} />
-              <MetricTile label="Avg Edge" value={`${summary.average_edge ?? 0}%`} highlight />
-              <MetricTile label="Avg Confidence" value={summary.average_confidence} />
-              <MetricTile label="Line Shop Opps" value={summary.line_shop_opportunities} highlight />
-              <MetricTile label="Slate Score" value={summary.slate_score} />
+              <Metric label="Total Plays" value={summary.total_plays} />
+              <Metric label="Elite Plays" value={summary.elite_plays} accent />
+              <Metric label="Best Sport" value={summary.best_sport_today} accent />
+              <Metric label="Best Market" value={summary.best_market_today} />
+              <Metric label="Sharp Plays" value={summary.sharp_plays} accent />
+              <Metric label="Line Shopping" value={summary.line_shop_opportunities} accent />
+              <Metric label="Avg Edge" value={`${summary.average_edge ?? 0}%`} />
+              <Metric label="Slate Score" value={summary.slate_score} />
             </div>
-          </section>
-
-          <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>Today’s Featured Play</h2>
-            <FeaturedPlay play={featuredPlay} />
           </section>
 
           <section id="top-plays" style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>Top 3 Overall Model Plays</h2>
-            <div style={gridStyle}>
-              {topThree.map((play, index) => (
-                <TopPlayCard key={`${play.game}-${play.pick}-${index}`} play={play} index={index} />
-              ))}
+            <div style={sectionHeaderStyle}>
+              <div>
+                <div style={eyebrowStyle}>Cross-Sport Board</div>
+                <h2 style={sectionTitleStyle}>Top Model Plays Today</h2>
+              </div>
+            </div>
+
+            <div style={topBoardStyle}>
+              {topThree.length > 0 ? (
+                topThree.map((play, index) => (
+                  <TopPlayRow key={`${play.game}-${play.pick}-${index}`} play={play} index={index} />
+                ))
+              ) : (
+                <div style={emptyStyle}>No top plays available.</div>
+              )}
             </div>
           </section>
 
           <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>Best Play By Sport</h2>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <div style={eyebrowStyle}>Sport Boards</div>
+                <h2 style={sectionTitleStyle}>Best Play By Sport</h2>
+              </div>
+            </div>
+
             <div style={sportGridStyle}>
-              {sportEntries.map(([sport, play]) => (
-                <SportPlayCard key={sport} sport={sport} play={play} />
-              ))}
+              {sportEntries.length > 0 ? (
+                sportEntries.map(([name, play]) => (
+                  <SportCard key={name} name={name} play={play} />
+                ))
+              ) : (
+                <div style={emptyStyle}>No sport-by-sport plays available.</div>
+              )}
             </div>
           </section>
 
           <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>Market Pulse</h2>
-            <div style={signalGridStyle}>
+            <div style={sectionHeaderStyle}>
               <div>
-                <h4>🔥 Best Value</h4>
-                <p>{summary.best_value_play?.pick || "N/A"}</p>
-                <p>{summary.best_value_play?.game || "N/A"}</p>
-              </div>
-              <div>
-                <h4>📈 Highest Edge</h4>
-                <p>{summary.highest_edge_play?.pick || "N/A"}</p>
-                <p>Edge: {summary.highest_edge_play?.edge ?? "N/A"}%</p>
-              </div>
-              <div>
-                <h4>✅ Highest Confidence</h4>
-                <p>{summary.highest_confidence_play?.pick || "N/A"}</p>
-                <p>Confidence: {summary.highest_confidence_play?.confidence ?? "N/A"}</p>
-              </div>
-              <div>
-                <h4>💰 Best Line Shop</h4>
-                <p>{summary.best_line_shop_play?.pick || "N/A"}</p>
-                <p>Value: {summary.best_line_shop_play?.line_shop_value ?? "N/A"}</p>
+                <div style={eyebrowStyle}>Model Health</div>
+                <h2 style={sectionTitleStyle}>Sport Status</h2>
               </div>
             </div>
-          </section>
 
-          <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>Sport Status</h2>
-            <SportStatusTable status={status} />
+            <StatusTable status={status} />
           </section>
 
           <section id="membership" style={membershipStyle}>
             <div>
-              <div style={labelStyle}>Coming Soon</div>
-              <h2 style={{ fontSize: "32px", marginBottom: "10px" }}>The Betting Model Pro</h2>
-              <p style={subtitleStyle}>
-                Unlock every model board, advanced analytics, sportsbook comparison,
-                CLV tracking, market timing, historical performance, and premium betting tools.
+              <div style={eyebrowStyle}>Coming Soon</div>
+              <h2 style={membershipTitleStyle}>The Betting Model Pro</h2>
+              <p style={heroTextStyle}>
+                Premium access will unlock every model board, market intelligence, line shopping,
+                CLV tracking, historical analytics, advanced performance dashboards, and future alerts.
               </p>
             </div>
 
-            <div style={membershipGridStyle}>
-              <MetricTile label="Free" value="Top Plays" />
-              <MetricTile label="Pro" value="Full Access" highlight />
-              <MetricTile label="VIP" value="Alerts + Reports" highlight />
+            <div style={membershipCardsStyle}>
+              <Metric label="Free" value="Top Plays" />
+              <Metric label="Pro" value="Full Model Access" accent />
+              <Metric label="VIP" value="Alerts + Reports" accent />
             </div>
           </section>
         </>
       )}
-    </div>
+    </main>
   );
 }
 
 const pageStyle = {
-  padding: "30px",
-  backgroundColor: "#0b0b0b",
   minHeight: "100vh",
+  padding: "30px",
   color: "white",
+  background: "radial-gradient(circle at top left, rgba(34,197,94,.12), transparent 28%), radial-gradient(circle at top right, rgba(59,130,246,.10), transparent 26%), #0b0b0b",
 };
 
 const heroStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "18px",
-  padding: "28px",
-  marginBottom: "34px",
   display: "grid",
-  gridTemplateColumns: "1.35fr 1fr",
+  gridTemplateColumns: "1.4fr .9fr",
   gap: "24px",
+  alignItems: "stretch",
+  marginBottom: "28px",
 };
 
-const subtitleStyle = {
+const eyebrowStyle = {
+  display: "inline-block",
+  backgroundColor: "#22c55e",
+  color: "black",
+  padding: "6px 10px",
+  borderRadius: "8px",
+  marginBottom: "14px",
+  fontWeight: "900",
+  fontSize: "13px",
+  textTransform: "uppercase",
+};
+
+const heroTitleStyle = {
+  margin: "0 0 12px",
+  fontSize: "56px",
+  lineHeight: ".95",
+  letterSpacing: "-0.06em",
+};
+
+const heroTextStyle = {
   color: "#9ca3af",
-  marginBottom: "20px",
-  maxWidth: "950px",
-  lineHeight: "1.6",
+  lineHeight: "1.65",
+  maxWidth: "850px",
 };
 
-const heroButtonWrapStyle = {
+const heroActionsStyle = {
   display: "flex",
   gap: "12px",
   flexWrap: "wrap",
+  marginTop: "20px",
 };
 
 const primaryButtonStyle = {
   backgroundColor: "#22c55e",
   color: "black",
-  padding: "12px 16px",
-  borderRadius: "10px",
-  fontWeight: "bold",
+  padding: "13px 17px",
+  borderRadius: "12px",
+  fontWeight: "900",
   textDecoration: "none",
 };
 
 const secondaryButtonStyle = {
-  backgroundColor: "#1f2937",
-  color: "white",
-  padding: "12px 16px",
-  borderRadius: "10px",
-  fontWeight: "bold",
-  textDecoration: "none",
+  backgroundColor: "#111827",
   border: "1px solid #374151",
+  color: "white",
+  padding: "13px 17px",
+  borderRadius: "12px",
+  fontWeight: "900",
+  textDecoration: "none",
 };
 
-const heroMetricGridStyle = {
+const pulsePanelStyle = {
+  background: "linear-gradient(145deg, #111827, #020617)",
+  border: "1px solid #374151",
+  borderRadius: "20px",
+  padding: "24px",
+};
+
+const pulseLabelStyle = {
+  color: "#9ca3af",
+  fontSize: "13px",
+  fontWeight: "900",
+  textTransform: "uppercase",
+};
+
+const pulseTitleStyle = {
+  display: "block",
+  color: "#22c55e",
+  fontSize: "34px",
+  marginTop: "12px",
+};
+
+const pulseTextStyle = {
+  color: "#d1d5db",
+  lineHeight: "1.55",
+};
+
+const flagshipStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
+  gridTemplateColumns: "1.35fr .8fr",
+  gap: "24px",
+  background: "linear-gradient(145deg, #111827, #020617)",
+  border: "2px solid #22c55e",
+  borderRadius: "22px",
+  padding: "26px",
+  boxShadow: "0 0 28px rgba(34,197,94,.22)",
+  marginBottom: "42px",
+};
+
+const flagshipTopStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "18px",
+  alignItems: "flex-start",
+};
+
+const flagshipPickStyle = {
+  fontSize: "52px",
+  lineHeight: ".95",
+  margin: "0 0 8px",
+  color: "#facc15",
+  letterSpacing: "-0.055em",
+};
+
+const flagshipGameStyle = {
+  color: "#d1d5db",
+  fontSize: "18px",
+  margin: 0,
+};
+
+const scoreBadgeStyle = {
+  minWidth: "150px",
+  backgroundColor: "#020617",
+  border: "1px solid #14532d",
+  borderRadius: "16px",
+  padding: "16px",
+  textAlign: "center",
+};
+
+const pillRowStyle = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  margin: "18px 0",
+};
+
+const pillStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  color: "white",
+  border: "1px solid rgba(255,255,255,.12)",
+  borderRadius: "999px",
+  padding: "8px 11px",
+  fontSize: "13px",
+  fontWeight: "900",
+};
+
+const ticketGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
   gap: "12px",
-};
-
-const sectionStyle = {
-  marginBottom: "45px",
-};
-
-const sectionTitleStyle = {
-  marginBottom: "18px",
-  fontSize: "30px",
 };
 
 const metricGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
   gap: "14px",
 };
 
-const metricTileStyle = {
-  backgroundColor: "#111827",
+const metricStyle = {
+  background: "linear-gradient(145deg, #111827, #020617)",
   border: "1px solid #374151",
-  borderRadius: "14px",
+  borderRadius: "16px",
   padding: "18px",
 };
 
 const metricLabelStyle = {
-  color: "#9ca3af",
   display: "block",
-  fontSize: "13px",
-  fontWeight: "bold",
-  marginBottom: "8px",
+  color: "#9ca3af",
+  fontSize: "12px",
+  fontWeight: "900",
   textTransform: "uppercase",
+  marginBottom: "8px",
 };
 
 const metricValueStyle = {
-  fontSize: "22px",
   display: "block",
+  fontSize: "20px",
 };
 
-const featuredCardStyle = {
-  backgroundColor: "#111827",
-  border: "2px solid #22c55e",
-  borderRadius: "16px",
-  padding: "24px",
-  boxShadow: "0 0 18px rgba(34, 197, 94, 0.35)",
-};
-
-const featuredGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr 190px",
-  gap: "22px",
-};
-
-const scorePanelStyle = {
+const whyStyle = {
   backgroundColor: "#020617",
-  border: "1px solid #14532d",
-  borderRadius: "14px",
-  padding: "18px",
-  textAlign: "center",
+  border: "1px solid #374151",
+  borderRadius: "18px",
+  padding: "20px",
 };
 
-const gridStyle = {
+const reasonLineStyle = {
+  color: "#d1d5db",
+  lineHeight: "1.45",
+};
+
+const miniSignalGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: "22px",
+  gridTemplateColumns: "1fr",
+  gap: "10px",
+  marginTop: "16px",
+};
+
+const sectionStyle = {
+  marginBottom: "42px",
+};
+
+const sectionHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "18px",
+  alignItems: "end",
+  marginBottom: "18px",
+};
+
+const sectionTitleStyle = {
+  margin: 0,
+  fontSize: "32px",
+  letterSpacing: "-0.04em",
+};
+
+const topBoardStyle = {
+  display: "grid",
+  gap: "14px",
+};
+
+const topRowStyle = {
+  display: "flex",
+  gap: "16px",
+  alignItems: "center",
+  background: "linear-gradient(145deg, #111827, #020617)",
+  border: "1px solid #374151",
+  borderRadius: "18px",
+  padding: "18px",
+};
+
+const rankStyle = {
+  width: "46px",
+  height: "46px",
+  borderRadius: "14px",
+  display: "grid",
+  placeItems: "center",
+  backgroundColor: "#22c55e",
+  color: "black",
+  fontWeight: "900",
+};
+
+const rowHeaderStyle = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  color: "#facc15",
+  fontSize: "20px",
+};
+
+const rowSubStyle = {
+  color: "#9ca3af",
+  margin: "6px 0 0",
+};
+
+const rowMetricsStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  color: "#d1d5db",
+  fontSize: "13px",
 };
 
 const sportGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-  gap: "24px",
-};
-
-const playCardStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "16px",
-  padding: "22px",
+  gridTemplateColumns: "repeat(auto-fit, minmax(245px, 1fr))",
+  gap: "16px",
 };
 
 const sportCardStyle = {
-  backgroundColor: "#111827",
+  display: "block",
+  background: "linear-gradient(145deg, #111827, #020617)",
   border: "1px solid #374151",
-  borderRadius: "16px",
-  padding: "22px",
+  borderRadius: "18px",
+  padding: "18px",
+  color: "white",
+  textDecoration: "none",
 };
 
-const sportTopStyle = {
+const sportCardTopStyle = {
   display: "flex",
   justifyContent: "space-between",
   gap: "12px",
-  alignItems: "center",
+  color: "#22c55e",
+  fontWeight: "900",
 };
 
-const labelStyle = {
-  backgroundColor: "#22c55e",
-  color: "black",
-  padding: "6px 10px",
-  borderRadius: "8px",
-  display: "inline-block",
-  marginBottom: "16px",
-  fontWeight: "bold",
-  fontSize: "14px",
+const sportPickStyle = {
+  color: "#facc15",
+  marginBottom: "8px",
 };
 
-const badgeWrapStyle = {
+const sportGameStyle = {
+  color: "#9ca3af",
+  minHeight: "42px",
+};
+
+const sportMetricRowStyle = {
   display: "flex",
   flexWrap: "wrap",
-  gap: "10px",
-  marginBottom: "20px",
-};
-
-const badgeStyle = {
-  border: "1px solid #374151",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: "999px",
-  fontSize: "14px",
-  fontWeight: "bold",
-};
-
-const signalGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "16px",
-  backgroundColor: "#020617",
-  padding: "18px",
-  borderRadius: "12px",
-  marginBottom: "18px",
-};
-
-const reasonStyle = {
+  gap: "8px",
   color: "#d1d5db",
-  lineHeight: "1.6",
+  fontSize: "13px",
 };
 
-const tableWrapStyle = {
+const tableShellStyle = {
   overflowX: "auto",
   border: "1px solid #374151",
-  borderRadius: "14px",
+  borderRadius: "16px",
 };
 
 const tableStyle = {
   width: "100%",
-  minWidth: "850px",
+  minWidth: "720px",
   borderCollapse: "collapse",
   backgroundColor: "#111827",
 };
 
 const thStyle = {
   color: "#9ca3af",
-  padding: "12px",
+  padding: "13px",
   textAlign: "left",
   borderBottom: "1px solid #374151",
 };
 
 const tdStyle = {
-  padding: "12px",
+  padding: "13px",
   borderBottom: "1px solid #1f2937",
 };
 
-const statusPillStyle = {
-  padding: "5px 9px",
+const statusStyle = {
+  display: "inline-block",
   borderRadius: "999px",
-  fontSize: "13px",
-  fontWeight: "bold",
+  padding: "5px 9px",
+  fontSize: "12px",
+  fontWeight: "900",
 };
 
 const membershipStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "18px",
-  padding: "28px",
   display: "grid",
   gridTemplateColumns: "1.2fr 1fr",
-  gap: "24px",
+  gap: "22px",
+  background: "linear-gradient(145deg, #111827, #020617)",
+  border: "1px solid #374151",
+  borderRadius: "22px",
+  padding: "26px",
 };
 
-const membershipGridStyle = {
+const membershipTitleStyle = {
+  fontSize: "34px",
+  margin: "0 0 10px",
+};
+
+const membershipCardsStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(3, 1fr)",
   gap: "12px",
+};
+
+const emptyStyle = {
+  backgroundColor: "#111827",
+  border: "1px solid #374151",
+  borderRadius: "16px",
+  padding: "18px",
+  color: "#9ca3af",
 };
