@@ -5194,6 +5194,319 @@ def model_nhl_today():
 
 
 
+
+
+# ============================================================
+# MLB F5 v2 STARTING PITCHER ENGINE
+# ============================================================
+
+def enhance_mlb_f5_play_v2(play):
+    market = str(play.get("market") or "").lower()
+    version = str(play.get("model_version") or "").lower()
+
+    if "f5" not in market and "first 5" not in market and "mlb_f5" not in version:
+        return play
+
+    adjustment = 0
+    notes = []
+
+    pitcher_diff = float(play.get("pitcher_rating_diff") or 0)
+    starter_rating = float(play.get("pitcher_rating") or play.get("home_pitcher_rating") or 75)
+    opponent_rating = float(play.get("opponent_pitcher_rating") or play.get("away_pitcher_rating") or 75)
+
+    top_order = float(play.get("top_order_strength") or play.get("lineup_strength") or 75)
+    lineup_depth = float(play.get("lineup_depth_score") or 7)
+    star_power = float(play.get("star_power_score") or play.get("lineup_strength") or 75)
+
+    k_rating = float(play.get("k_rating") or 75)
+    whiff_rating = float(play.get("whiff_rating") or 75)
+    hard_hit_allowed = float(play.get("hard_hit_allowed_rating") or 75)
+
+    if pitcher_diff >= 10:
+        adjustment += 1.1
+        notes.append("Strong first-five starting pitcher edge.")
+    elif pitcher_diff >= 5:
+        adjustment += 0.55
+        notes.append("Moderate first-five starting pitcher edge.")
+    elif pitcher_diff <= -8:
+        adjustment -= 0.85
+        notes.append("Negative first-five starting pitcher edge.")
+
+    if starter_rating >= 86:
+        adjustment += 0.55
+        notes.append("High-quality F5 starter profile.")
+
+    if opponent_rating <= 68:
+        adjustment += 0.35
+        notes.append("Opponent starter vulnerability.")
+
+    if top_order >= 84:
+        adjustment += 0.45
+        notes.append("Strong top-order lineup support.")
+
+    if star_power >= 84:
+        adjustment += 0.3
+        notes.append("Star-power boost for first five innings.")
+
+    if lineup_depth <= 6:
+        adjustment -= 0.25
+        notes.append("Lineup depth concern.")
+
+    if k_rating >= 82 or whiff_rating >= 82:
+        adjustment += 0.35
+        notes.append("Strikeout/whiff profile supports early-game edge.")
+
+    if hard_hit_allowed <= 68:
+        adjustment -= 0.35
+        notes.append("Hard-contact risk against starter.")
+
+    # F5 should not overweight bullpen conditions.
+    bullpen_penalty_removed = 0
+    bullpen_adj = float(play.get("bullpen_availability_adjustment") or 0)
+    if bullpen_adj < 0:
+        bullpen_penalty_removed = abs(bullpen_adj) * 0.35
+        adjustment += bullpen_penalty_removed
+        notes.append("Reduced late-game bullpen penalty for F5 market.")
+
+    play["model_version"] = "mlb_f5_v2_starting_pitcher_engine"
+    play["f5_engine_version"] = "v2_starting_pitcher"
+    play["f5_starting_pitcher_adjustment"] = round(adjustment, 2)
+    play["f5_pitcher_rating_diff"] = pitcher_diff
+    play["f5_top_order_strength"] = top_order
+    play["f5_star_power_score"] = star_power
+    play["f5_k_whiff_profile"] = round((k_rating + whiff_rating) / 2, 2)
+    play["f5_bullpen_penalty_removed"] = round(bullpen_penalty_removed, 2)
+    play["f5_notes"] = notes
+
+    try:
+        implied = float(play.get("implied_probability") or 0)
+        model_prob = float(play.get("model_probability") or implied)
+        model_prob = max(1, min(99, model_prob + adjustment))
+        play["model_probability"] = round(model_prob, 2)
+        play["edge"] = round(model_prob - implied, 2)
+
+        confidence = float(play.get("confidence") or 60)
+        play["confidence"] = round(max(1, min(99, confidence + adjustment * 1.4)), 0)
+
+        edge = float(play.get("edge") or 0)
+        if edge >= 5:
+            play["recommendation"] = "Play"
+        elif edge >= 2:
+            play["recommendation"] = "Lean"
+        else:
+            play["recommendation"] = "Pass"
+    except Exception:
+        pass
+
+    play["reason"] = (
+        (play.get("reason") or "")
+        + f" MLB F5 v2 adjustment ({round(adjustment, 2)}). "
+        + " ".join(notes)
+        + " "
+    )
+
+    try:
+        play.update(get_sharp_signal(play))
+        play.update(get_market_intelligence(play))
+        play.update(get_final_model_rating(play))
+        play.update(get_universal_pod_score(play))
+    except Exception:
+        pass
+
+    return play
+
+
+# ============================================================
+# WNBA v2 EFFICIENCY MARKET ENGINE
+# ============================================================
+
+WNBA_ADVANCED_TEAM_PROFILES = {
+    "New York Liberty": {"off": 91, "def": 88, "pace": 82, "form": 88, "reb": 86, "to": 84, "inj": 0},
+    "Las Vegas Aces": {"off": 92, "def": 86, "pace": 83, "form": 87, "reb": 84, "to": 82, "inj": 0},
+    "Minnesota Lynx": {"off": 88, "def": 90, "pace": 78, "form": 88, "reb": 87, "to": 85, "inj": 0},
+    "Connecticut Sun": {"off": 84, "def": 88, "pace": 75, "form": 83, "reb": 88, "to": 82, "inj": 0},
+    "Seattle Storm": {"off": 84, "def": 84, "pace": 80, "form": 80, "reb": 82, "to": 79, "inj": 0},
+    "Phoenix Mercury": {"off": 86, "def": 80, "pace": 84, "form": 80, "reb": 78, "to": 76, "inj": 0},
+    "Atlanta Dream": {"off": 82, "def": 83, "pace": 79, "form": 79, "reb": 81, "to": 78, "inj": 0},
+    "Indiana Fever": {"off": 85, "def": 78, "pace": 84, "form": 81, "reb": 79, "to": 76, "inj": 0},
+    "Washington Mystics": {"off": 78, "def": 80, "pace": 76, "form": 76, "reb": 78, "to": 77, "inj": 0},
+    "Dallas Wings": {"off": 80, "def": 76, "pace": 86, "form": 75, "reb": 80, "to": 72, "inj": 0},
+    "Chicago Sky": {"off": 77, "def": 79, "pace": 78, "form": 74, "reb": 83, "to": 74, "inj": 0},
+    "Los Angeles Sparks": {"off": 76, "def": 77, "pace": 77, "form": 73, "reb": 76, "to": 73, "inj": 0},
+    "Golden State Valkyries": {"off": 75, "def": 75, "pace": 78, "form": 74, "reb": 75, "to": 74, "inj": 0},
+}
+
+def get_wnba_profile_v2(team):
+    base = WNBA_TEAM_RATINGS.get(team, 76)
+    profile = WNBA_ADVANCED_TEAM_PROFILES.get(team, {
+        "off": base,
+        "def": base,
+        "pace": 79,
+        "form": base,
+        "reb": base,
+        "to": base,
+        "inj": 0,
+    })
+
+    return {
+        "wnba_team_rating_v2": base,
+        "wnba_offensive_rating": profile.get("off", base),
+        "wnba_defensive_rating": profile.get("def", base),
+        "wnba_pace_rating": profile.get("pace", 79),
+        "wnba_recent_form_rating": profile.get("form", base),
+        "wnba_rebounding_rating": profile.get("reb", base),
+        "wnba_turnover_rating": profile.get("to", base),
+        "wnba_injury_adjustment": profile.get("inj", 0),
+    }
+
+
+def parse_wnba_teams_v2(play):
+    game = str(play.get("game") or "")
+    if " vs " in game:
+        away, home = game.split(" vs ", 1)
+        return away.strip(), home.strip()
+    if " at " in game:
+        away, home = game.split(" at ", 1)
+        return away.strip(), home.strip()
+    return "", ""
+
+
+def infer_wnba_pick_team_v2(play, away, home):
+    pick = str(play.get("pick") or "")
+    if away and away.lower() in pick.lower():
+        return away
+    if home and home.lower() in pick.lower():
+        return home
+    return ""
+
+
+def enhance_wnba_play_v2(play):
+    if play.get("sport") != "WNBA":
+        return play
+
+    away, home = parse_wnba_teams_v2(play)
+    pick_team = infer_wnba_pick_team_v2(play, away, home)
+    opponent = home if pick_team == away else away if pick_team == home else ""
+
+    pick_profile = get_wnba_profile_v2(pick_team) if pick_team else {}
+    opp_profile = get_wnba_profile_v2(opponent) if opponent else {}
+
+    adjustment = 0
+    notes = []
+
+    if pick_profile and opp_profile:
+        rating_diff = pick_profile["wnba_team_rating_v2"] - opp_profile["wnba_team_rating_v2"]
+        off_def_edge = pick_profile["wnba_offensive_rating"] - opp_profile["wnba_defensive_rating"]
+        form_diff = pick_profile["wnba_recent_form_rating"] - opp_profile["wnba_recent_form_rating"]
+        possession_edge = (
+            pick_profile["wnba_rebounding_rating"]
+            + pick_profile["wnba_turnover_rating"]
+            - opp_profile["wnba_rebounding_rating"]
+            - opp_profile["wnba_turnover_rating"]
+        ) / 2
+
+        adjustment += rating_diff * 0.055
+        adjustment += off_def_edge * 0.035
+        adjustment += form_diff * 0.035
+        adjustment += possession_edge * 0.025
+        adjustment += pick_profile.get("wnba_injury_adjustment", 0)
+
+        if pick_team == home:
+            adjustment += 1.1
+            notes.append("WNBA home-court advantage applied.")
+
+        if off_def_edge >= 7:
+            notes.append("Strong offensive efficiency edge.")
+        if form_diff >= 5:
+            notes.append("Positive recent form edge.")
+        if possession_edge >= 5:
+            notes.append("Rebounding/turnover possession edge.")
+    else:
+        rating_diff = play.get("rating_diff", 0) or 0
+        off_def_edge = 0
+        form_diff = 0
+        possession_edge = 0
+
+    combined_pace = 79
+    if away and home:
+        away_profile = get_wnba_profile_v2(away)
+        home_profile = get_wnba_profile_v2(home)
+        combined_pace = round((away_profile["wnba_pace_rating"] + home_profile["wnba_pace_rating"]) / 2, 2)
+
+    market = str(play.get("market") or "").lower()
+    total_environment = "Neutral"
+
+    if "total" in market:
+        if combined_pace >= 83:
+            adjustment += 0.55
+            total_environment = "Fast Pace"
+            notes.append("Fast-paced WNBA total environment.")
+        elif combined_pace <= 76:
+            adjustment -= 0.45
+            total_environment = "Slow Pace"
+            notes.append("Slow-paced WNBA total environment.")
+
+    play["model_version"] = "wnba_v2_efficiency_market_engine"
+    play["wnba_engine_version"] = "v2_efficiency"
+    play["wnba_adjustment"] = round(adjustment, 2)
+    play["wnba_pick_team"] = pick_team
+    play["wnba_opponent"] = opponent
+    play["wnba_offense_vs_defense_edge"] = round(off_def_edge, 2)
+    play["wnba_recent_form_diff"] = round(form_diff, 2)
+    play["wnba_possession_edge"] = round(possession_edge, 2)
+    play["wnba_combined_pace"] = combined_pace
+    play["wnba_total_environment"] = total_environment
+    play["wnba_notes"] = notes
+
+    for key, value in pick_profile.items():
+        play[key] = value
+
+    for key, value in opp_profile.items():
+        play[f"opponent_{key}"] = value
+
+    try:
+        implied = float(play.get("implied_probability") or 0)
+        model_prob = float(play.get("model_probability") or implied)
+        model_prob = max(1, min(99, model_prob + adjustment))
+        play["model_probability"] = round(model_prob, 2)
+        play["edge"] = round(model_prob - implied, 2)
+
+        confidence = float(play.get("confidence") or 60)
+        play["confidence"] = round(max(1, min(99, confidence + adjustment * 1.2)), 0)
+
+        edge = float(play.get("edge") or 0)
+        if edge >= 5:
+            play["recommendation"] = "Play"
+        elif edge >= 2:
+            play["recommendation"] = "Lean"
+        else:
+            play["recommendation"] = "Pass"
+    except Exception:
+        pass
+
+    play["reason"] = (
+        (play.get("reason") or "")
+        + f" WNBA v2 efficiency adjustment ({round(adjustment, 2)}). "
+        + f"Off/Def edge ({round(off_def_edge, 2)}). "
+        + f"Recent form diff ({round(form_diff, 2)}). "
+        + f"Possession edge ({round(possession_edge, 2)}). "
+        + f"Pace environment: {total_environment}. "
+        + " ".join(notes)
+        + " "
+    )
+
+    try:
+        play.update(get_sharp_signal(play))
+        play.update(get_market_intelligence(play))
+        play.update(get_final_model_rating(play))
+        play.update(get_universal_pod_score(play))
+    except Exception:
+        pass
+
+    return play
+
+
+
 @app.get("/model/wnba/today")
 def model_wnba_today():
     odds_api_key = os.getenv("ODDS_API_KEY")
@@ -5327,7 +5640,7 @@ def model_wnba_today():
                             "recommendation": recommendation,
                             "units": units,
                             "sport": "WNBA",
-                            "model_version": "wnba_v1_ultra_fast",
+                            "model_version": "wnba_v2_efficiency_market_engine",
                             "team_rating": team_rating,
                             "opponent_rating": opponent_rating,
                             "rating_diff": round(rating_diff, 2),
@@ -5363,6 +5676,8 @@ def model_wnba_today():
         for play in final:
             play.update(get_universal_market_intelligence(play, plays))
             play.update(get_universal_final_rating(play))
+
+        final = [enhance_wnba_play_v2(play) for play in final]
 
         set_cache("wnba_model", final)
 
@@ -10658,7 +10973,7 @@ def model_mlb_f5_today(force_refresh=False):
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": unit_size,
-                            "model_version": "mlb_f5_v1",
+                            "model_version": "mlb_f5_v2_starting_pitcher_engine",
                             "starting_pitcher": pitcher_name,
                             "pitcher_era": pitcher_era,
                             "pitcher_whip": pitcher_whip,
@@ -10749,6 +11064,8 @@ def model_mlb_f5_today(force_refresh=False):
         final = finalize_model_plays_for_cache(final, plays)
 
         save_model_play_history("MLB", final)
+
+        final = [enhance_mlb_f5_play_v2(play) for play in final]
 
         set_cache("mlb_f5_model", final)
 
