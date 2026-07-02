@@ -8936,6 +8936,81 @@ def remove_same_game_pod_conflicts(plays):
 
 
 
+
+
+# ============================================================
+# UNIVERSAL MODEL STATUS / HEALTH CHECK
+# ============================================================
+
+@app.get("/model/status")
+def model_status():
+    sport_cache_map = {
+        "MLB": ["mlb_model", "mlb_f5_model", "mlb_nrfi_model"],
+        "NBA": ["nba_model"],
+        "NFL": ["nfl_model"],
+        "NHL": ["nhl_model"],
+        "WNBA": ["wnba_model"],
+        "NCAAF": ["ncaaf_model"],
+        "NCAAMB": ["ncaamb_model"],
+        "Soccer": ["soccer_model"],
+        "UFC": ["ufc_model"],
+    }
+
+    status = {}
+
+    for sport, cache_keys in sport_cache_map.items():
+        sport_plays = []
+
+        for key in cache_keys:
+            cached = get_cache(key)
+            if isinstance(cached, list):
+                sport_plays.extend(cached)
+
+        top_play = None
+        if sport_plays:
+            top_play = sorted(
+                sport_plays,
+                key=lambda x: float(
+                    x.get("universal_pod_score")
+                    or x.get("top_play_score")
+                    or x.get("final_model_score")
+                    or x.get("edge")
+                    or 0
+                ),
+                reverse=True,
+            )[0]
+
+        status[sport] = {
+            "healthy": len(sport_plays) > 0,
+            "cache_keys": cache_keys,
+            "play_count": len(sport_plays),
+            "top_play": top_play,
+            "model_version": top_play.get("model_version") if top_play else None,
+            "top_pod_score": top_play.get("universal_pod_score") if top_play else None,
+            "top_recommendation": (
+                top_play.get("final_recommendation")
+                or top_play.get("recommendation")
+                if top_play
+                else None
+            ),
+        }
+
+    active_sports = [
+        sport for sport, data in status.items()
+        if data.get("healthy")
+    ]
+
+    return {
+        "success": True,
+        "platform": "The Betting Model",
+        "status_version": "model_status_v1",
+        "sports_supported": list(sport_cache_map.keys()),
+        "active_sports": active_sports,
+        "active_sport_count": len(active_sports),
+        "sports": status,
+    }
+
+
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
     sport_cache_keys = {
