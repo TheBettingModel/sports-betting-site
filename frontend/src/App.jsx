@@ -118,6 +118,22 @@ function App() {
                 >
                   🏈 NCAAF
                 </Link>
+
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/model/ncaamb"
+                  onClick={closeDropdown}
+                >
+                  🏀 NCAA Basketball
+                </Link>
+
+                <Link
+                  style={dropdownLinkStyle}
+                  to="/model/ufc"
+                  onClick={closeDropdown}
+                >
+                  🥊 UFC
+                </Link>
               </div>
             )}
           </div>
