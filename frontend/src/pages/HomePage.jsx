@@ -33,6 +33,27 @@ function odds(play) {
   return play?.best_odds ?? play?.odds;
 }
 
+function stars(play) {
+  const value = Number(play?.final_stars || 0);
+  if (!value) return "★★★☆☆";
+  return "★".repeat(Math.max(1, Math.min(5, value))) + "☆".repeat(Math.max(0, 5 - value));
+}
+
+function ratingScore(play) {
+  return play?.final_model_score ?? play?.universal_pod_score ?? play?.top_play_score ?? "N/A";
+}
+
+function movementText(play) {
+  const opening = play?.opening_odds ?? play?.open_odds;
+  const current = play?.current_odds ?? play?.best_odds ?? play?.odds;
+
+  if (opening === undefined || opening === null || current === undefined || current === null) {
+    return "Movement unavailable";
+  }
+
+  return `${formatOdds(opening)} → ${formatOdds(current)}`;
+}
+
 function Metric({ label, value, accent = false }) {
   return (
     <div style={metricStyle}>
@@ -105,14 +126,24 @@ function FlagshipPlay({ play }) {
           <p style={reasonLineStyle}>{play.reason || play.sharp_reason || "No model reason available."}</p>
         )}
 
+        <div style={modelMeterStyle}>
+          <span>Model Rating</span>
+          <strong>{stars(play)}</strong>
+          <small>{ratingScore(play)} / 100</small>
+        </div>
+
         <div style={miniSignalGridStyle}>
           <div>
-            <span>Sharp</span>
-            <strong>{play.sharp_signal || "N/A"}</strong>
+            <span>Market Move</span>
+            <strong>{movementText(play)}</strong>
           </div>
           <div>
             <span>CLV</span>
             <strong>{play.clv_status || "N/A"}</strong>
+          </div>
+          <div>
+            <span>Sharp</span>
+            <strong>{play.sharp_signal || "N/A"}</strong>
           </div>
           <div>
             <span>Line Value</span>
@@ -142,9 +173,12 @@ function TopPlayRow({ play, index }) {
       <div style={rowMetricsStyle}>
         <span>{sport(play)}</span>
         <span>{play.market || "N/A"}</span>
+        <span>{book(play)}</span>
+        <span>{stars(play)}</span>
         <span>Edge {play.edge ?? "N/A"}%</span>
         <span>Conf {play.confidence ?? "N/A"}</span>
         <span>POD {score(play).toFixed(2)}</span>
+        <span>{play.market_intelligence_grade || "Grade N/A"}</span>
       </div>
 
       <Pill tone="green">{rec(play)}</Pill>
@@ -374,14 +408,15 @@ export default function HomePage() {
               <div style={eyebrowStyle}>Coming Soon</div>
               <h2 style={membershipTitleStyle}>The Betting Model Pro</h2>
               <p style={heroTextStyle}>
-                Premium access will unlock every model board, market intelligence, line shopping,
-                CLV tracking, historical analytics, advanced performance dashboards, and future alerts.
+                Free users will see the flagship play, Top 3 board, and market pulse. Pro members
+                will unlock full model boards, sharp money analysis, CLV tracking, line shopping,
+                historical analytics, live refreshes, and premium alerts.
               </p>
             </div>
 
             <div style={membershipCardsStyle}>
-              <Metric label="Free" value="Top Plays" />
-              <Metric label="Pro" value="Full Model Access" accent />
+              <Metric label="Free" value="Flagship + Top 3" />
+              <Metric label="Pro" value="Full Model Boards" accent />
               <Metric label="VIP" value="Alerts + Reports" accent />
             </div>
           </section>
@@ -586,6 +621,15 @@ const whyStyle = {
 const reasonLineStyle = {
   color: "#d1d5db",
   lineHeight: "1.45",
+};
+
+const modelMeterStyle = {
+  backgroundColor: "#111827",
+  border: "1px solid #374151",
+  borderRadius: "14px",
+  padding: "14px",
+  marginTop: "16px",
+  marginBottom: "14px",
 };
 
 const miniSignalGridStyle = {
