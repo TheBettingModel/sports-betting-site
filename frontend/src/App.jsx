@@ -1,3 +1,5 @@
+import UFCModelPage from "./pages/UFCModelPage";
+import NCAAMBModelPage from "./pages/NCAAMBModelPage";
 import { useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 
@@ -207,7 +209,11 @@ function App() {
         />
 
         <Route path="/admin" element={<AdminPage />} />
-      </Routes>
+      
+          <Route path="/model/ncaamb" element={<NCAAMBModelPage />} />
+          <Route path="/model/ufc" element={<UFCModelPage />} />
+
+        </Routes>
     </div>
   );
 }
