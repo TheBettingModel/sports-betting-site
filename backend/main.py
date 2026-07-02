@@ -9030,20 +9030,116 @@ def platform_intelligence():
     top_market=max(market_summary,key=market_summary.get)
     top_book=max(sportsbook_summary,key=sportsbook_summary.get)
 
+    def score_play(play):
+        return float(
+            play.get("universal_pod_score")
+            or play.get("final_model_score")
+            or play.get("top_play_score")
+            or play.get("edge")
+            or 0
+        )
+
+    def compact_play(play):
+        if not play:
+            return None
+
+        return {
+            "game": play.get("game"),
+            "sport": play.get("sport"),
+            "market": play.get("market"),
+            "pick": play.get("pick"),
+            "sportsbook": play.get("best_sportsbook") or play.get("sportsbook"),
+            "odds": play.get("best_odds") or play.get("odds"),
+            "edge": play.get("edge"),
+            "confidence": play.get("confidence"),
+            "recommendation": play.get("final_recommendation") or play.get("recommendation"),
+            "tier": play.get("final_model_tier") or play.get("universal_pod_tier"),
+            "pod_score": play.get("universal_pod_score"),
+            "market_grade": play.get("market_intelligence_grade"),
+            "sharp_signal": play.get("sharp_signal"),
+            "line_shop_value": play.get("line_shop_value"),
+        }
+
+    best_value_play = max(
+        plays,
+        key=lambda p: (
+            float(p.get("universal_pod_score") or 0),
+            float(p.get("edge") or 0),
+            float(p.get("confidence") or 0),
+        ),
+    )
+
+    highest_edge_play = max(
+        plays,
+        key=lambda p: float(p.get("edge") or 0),
+    )
+
+    highest_confidence_play = max(
+        plays,
+        key=lambda p: float(p.get("confidence") or 0),
+    )
+
+    best_line_shop_play = max(
+        plays,
+        key=lambda p: float(p.get("line_shop_value") or 0),
+    )
+
+    elite_by_sport = {}
+    for play in elite:
+        sport = play.get("sport", "Unknown")
+        elite_by_sport[sport] = elite_by_sport.get(sport, 0) + 1
+
+    avg_edge = avg([p.get("edge") for p in plays])
+    avg_confidence = avg([p.get("confidence") for p in plays])
+    avg_pod = avg([p.get("universal_pod_score") for p in plays])
+    sharp_count = len([p for p in plays if p.get("sharp_signal") == "Sharp Play"])
+    line_shop_count = len([p for p in plays if (p.get("line_shop_value") or 0) > 0])
+
+    slate_score = 0
+    slate_score += min(30, len(elite) * 7)
+    slate_score += min(20, sharp_count * 4)
+    slate_score += min(20, line_shop_count * 1.5)
+    slate_score += min(15, avg_edge * 2)
+    slate_score += min(15, avg_confidence / 6)
+    slate_score = round(slate_score, 2)
+
+    if slate_score >= 75:
+        slate_strength = "Strong Slate"
+    elif slate_score >= 50:
+        slate_strength = "Playable Slate"
+    elif slate_score >= 30:
+        slate_strength = "Light Slate"
+    else:
+        slate_strength = "Weak Slate"
+
+    market_pulse_summary = (
+        f"{slate_strength}: {len(elite)} elite/play-grade plays, "
+        f"{sharp_count} sharp plays, {line_shop_count} line-shopping opportunities. "
+        f"Best sport today: {top_sport}. Best market: {top_market}."
+    )
+
     summary={
         "active_sports":len(sport_summary),
         "total_plays":len(plays),
         "elite_plays":len(elite),
-        "average_edge":avg([p.get("edge") for p in plays]),
-        "average_confidence":avg([p.get("confidence") for p in plays]),
-        "average_pod_score":avg([p.get("universal_pod_score") for p in plays]),
+        "average_edge":avg_edge,
+        "average_confidence":avg_confidence,
+        "average_pod_score":avg_pod,
         "highest_confidence":max([p.get("confidence",0) for p in plays]),
         "highest_edge":max([p.get("edge",0) for p in plays]),
-        "sharp_plays":len([p for p in plays if p.get("sharp_signal")=="Sharp Play"]),
-        "line_shop_opportunities":len([p for p in plays if (p.get("line_shop_value") or 0)>0]),
+        "sharp_plays":sharp_count,
+        "line_shop_opportunities":line_shop_count,
         "best_sport_today":top_sport,
         "best_market_today":top_market,
         "top_sportsbook":top_book,
+        "slate_score":slate_score,
+        "slate_strength":slate_strength,
+        "market_pulse_summary":market_pulse_summary,
+        "best_value_play":compact_play(best_value_play),
+        "highest_edge_play":compact_play(highest_edge_play),
+        "highest_confidence_play":compact_play(highest_confidence_play),
+        "best_line_shop_play":compact_play(best_line_shop_play),
+        "elite_play_count_by_sport":elite_by_sport,
         "sport_breakdown":sport_summary,
         "market_breakdown":market_summary,
         "sportsbook_breakdown":sportsbook_summary
@@ -9051,7 +9147,7 @@ def platform_intelligence():
 
     return {
         "success":True,
-        "platform_version":"platform_intelligence_v1",
+        "platform_version":"platform_intelligence_v2",
         "summary":summary
     }
 
