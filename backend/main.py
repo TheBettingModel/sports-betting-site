@@ -8950,12 +8950,93 @@ def remove_same_game_pod_conflicts(plays):
 
 
 
+
 # ============================================================
-# AUTOMATION ENGINE v1
+# AUTOMATION ENGINE v2
 # ============================================================
+
+AUTOMATION_RUN_HISTORY = []
+
+
+def extract_automation_count(result):
+    if not isinstance(result, dict):
+        return 0
+
+    if isinstance(result.get("count"), int):
+        return result.get("count", 0)
+
+    total = 0
+
+    results = result.get("results")
+    if isinstance(results, dict):
+        for item in results.values():
+            if isinstance(item, dict) and isinstance(item.get("count"), int):
+                total += item.get("count", 0)
+
+    response = result.get("response")
+    if isinstance(response, dict):
+        plays = response.get("plays")
+        if isinstance(plays, list):
+            total += len(plays)
+
+    plays = result.get("plays")
+    if isinstance(plays, list):
+        total += len(plays)
+
+    return total
+
+
+def extract_automation_breakdown(result):
+    if not isinstance(result, dict):
+        return {}
+
+    breakdown = {}
+
+    results = result.get("results")
+    if isinstance(results, dict):
+        for name, item in results.items():
+            if isinstance(item, dict):
+                breakdown[name] = item.get("count", 0)
+
+    response = result.get("response")
+    if isinstance(response, dict) and isinstance(response.get("plays"), list):
+        breakdown["plays"] = len(response.get("plays", []))
+
+    if isinstance(result.get("plays"), list):
+        breakdown["plays"] = len(result.get("plays", []))
+
+    if isinstance(result.get("count"), int) and not breakdown:
+        breakdown["plays"] = result.get("count", 0)
+
+    return breakdown
+
+
+def compact_automation_play(play):
+    if not isinstance(play, dict):
+        return None
+
+    return {
+        "game": play.get("game"),
+        "sport": play.get("sport") or play.get("pod_sport"),
+        "market": play.get("market"),
+        "pick": play.get("pick"),
+        "sportsbook": play.get("best_sportsbook") or play.get("sportsbook"),
+        "odds": play.get("best_odds") or play.get("odds"),
+        "edge": play.get("edge"),
+        "confidence": play.get("confidence"),
+        "recommendation": play.get("final_recommendation") or play.get("recommendation"),
+        "pod_score": play.get("universal_pod_score"),
+    }
+
 
 @app.post("/automation/run-daily")
 def automation_run_daily():
+    import time
+    from datetime import datetime
+
+    started_at = datetime.utcnow().isoformat() + "Z"
+    started = time.time()
+
     steps = []
     total_plays = 0
 
@@ -8972,59 +9053,134 @@ def automation_run_daily():
     ]
 
     for sport, refresh_fn in refresh_sequence:
+        sport_started = time.time()
+
         try:
             result = refresh_fn()
-            count = result.get("count", 0) if isinstance(result, dict) else 0
+            elapsed = round(time.time() - sport_started, 2)
+            count = extract_automation_count(result)
+            breakdown = extract_automation_breakdown(result)
             total_plays += count
 
             steps.append({
                 "sport": sport,
                 "success": True,
                 "count": count,
+                "breakdown": breakdown,
+                "runtime_seconds": elapsed,
                 "result": result,
             })
         except Exception as e:
+            elapsed = round(time.time() - sport_started, 2)
             steps.append({
                 "sport": sport,
                 "success": False,
                 "count": 0,
+                "breakdown": {},
+                "runtime_seconds": elapsed,
                 "error": str(e),
             })
+
+    pod_error = None
+    intelligence_error = None
+    status_error = None
 
     try:
         pod = play_of_the_day_v2()
     except Exception as e:
         pod = {"error": str(e)}
+        pod_error = str(e)
 
     try:
         intelligence = platform_intelligence()
     except Exception as e:
         intelligence = {"error": str(e)}
+        intelligence_error = str(e)
 
     try:
         status = model_status()
     except Exception as e:
         status = {"error": str(e)}
+        status_error = str(e)
+
+    finished_at = datetime.utcnow().isoformat() + "Z"
+    runtime_seconds = round(time.time() - started, 2)
 
     successful = [s for s in steps if s.get("success")]
     failed = [s for s in steps if not s.get("success")]
 
-    return {
-        "success": len(failed) == 0,
-        "automation_version": "automation_engine_v1",
-        "message": "Daily model automation completed.",
+    downstream_failures = len([x for x in [pod_error, intelligence_error, status_error] if x])
+    health_score = 100
+    health_score -= len(failed) * 10
+    health_score -= downstream_failures * 8
+
+    if total_plays == 0:
+        health_score -= 15
+
+    health_score = max(0, min(100, health_score))
+
+    summary = intelligence.get("summary") if isinstance(intelligence, dict) else {}
+    overall_play = pod.get("overall_play") if isinstance(pod, dict) else None
+
+    sport_counts = {
+        step.get("sport"): step.get("count", 0)
+        for step in steps
+    }
+
+    daily_summary = (
+        f"Daily automation complete: {total_plays} plays generated across "
+        f"{len(successful)}/{len(refresh_sequence)} sports. "
+        f"Slate: {summary.get('slate_strength', 'N/A')}. "
+        f"Best sport: {summary.get('best_sport_today', 'N/A')}. "
+        f"Top play: {(overall_play or {}).get('pick', 'N/A')}. "
+        f"Completed in {runtime_seconds}s."
+    )
+
+    run_record = {
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "runtime_seconds": runtime_seconds,
+        "success": len(failed) == 0 and downstream_failures == 0,
+        "health_score": health_score,
         "sports_refreshed": len(successful),
         "sports_failed": len(failed),
         "total_plays": total_plays,
+        "sport_counts": sport_counts,
+        "errors": {
+            "sports": failed,
+            "pod": pod_error,
+            "platform_intelligence": intelligence_error,
+            "model_status": status_error,
+        },
+    }
+
+    AUTOMATION_RUN_HISTORY.insert(0, run_record)
+    del AUTOMATION_RUN_HISTORY[20:]
+
+    return {
+        "success": run_record["success"],
+        "automation_version": "automation_engine_v2",
+        "message": "Daily model automation completed.",
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "runtime_seconds": runtime_seconds,
+        "health_score": health_score,
+        "sports_refreshed": len(successful),
+        "sports_failed": len(failed),
+        "total_plays": total_plays,
+        "sport_counts": sport_counts,
+        "daily_summary": daily_summary,
         "steps": steps,
         "pod": {
-            "overall_play": pod.get("overall_play") if isinstance(pod, dict) else None,
+            "overall_play": compact_automation_play(overall_play),
             "top_5_count": len(pod.get("top_5", [])) if isinstance(pod, dict) else 0,
+            "error": pod_error,
         },
-        "platform_intelligence": intelligence.get("summary") if isinstance(intelligence, dict) else None,
+        "platform_intelligence": summary,
         "model_status": {
             "active_sports": status.get("active_sports") if isinstance(status, dict) else [],
             "active_sport_count": status.get("active_sport_count") if isinstance(status, dict) else 0,
+            "error": status_error,
         },
     }
 
@@ -9035,9 +9191,12 @@ def automation_status():
         intelligence = platform_intelligence()
         status = model_status()
 
+        latest_run = AUTOMATION_RUN_HISTORY[0] if AUTOMATION_RUN_HISTORY else None
+
         return {
             "success": True,
-            "automation_version": "automation_engine_v1",
+            "automation_version": "automation_engine_v2",
+            "latest_run": latest_run,
             "platform_intelligence": intelligence.get("summary") if isinstance(intelligence, dict) else None,
             "model_status": {
                 "active_sports": status.get("active_sports") if isinstance(status, dict) else [],
@@ -9047,9 +9206,20 @@ def automation_status():
     except Exception as e:
         return {
             "success": False,
-            "automation_version": "automation_engine_v1",
+            "automation_version": "automation_engine_v2",
             "error": str(e),
         }
+
+
+@app.get("/automation/history")
+def automation_history():
+    return {
+        "success": True,
+        "automation_version": "automation_engine_v2",
+        "runs": AUTOMATION_RUN_HISTORY,
+        "count": len(AUTOMATION_RUN_HISTORY),
+    }
+
 
 
 @app.get("/platform/intelligence")
