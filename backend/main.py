@@ -8948,6 +8948,110 @@ def remove_same_game_pod_conflicts(plays):
 # PLATFORM INTELLIGENCE v1
 # ============================================================
 
+
+
+# ============================================================
+# AUTOMATION ENGINE v1
+# ============================================================
+
+@app.post("/automation/run-daily")
+def automation_run_daily():
+    steps = []
+    total_plays = 0
+
+    refresh_sequence = [
+        ("MLB", refresh_mlb_models),
+        ("NBA", refresh_nba_models),
+        ("NFL", refresh_nfl_models),
+        ("NHL", refresh_nhl_models),
+        ("WNBA", refresh_wnba_models),
+        ("NCAAF", refresh_ncaaf_models),
+        ("NCAAMB", refresh_ncaamb_models),
+        ("Soccer", refresh_soccer),
+        ("UFC", refresh_ufc_models),
+    ]
+
+    for sport, refresh_fn in refresh_sequence:
+        try:
+            result = refresh_fn()
+            count = result.get("count", 0) if isinstance(result, dict) else 0
+            total_plays += count
+
+            steps.append({
+                "sport": sport,
+                "success": True,
+                "count": count,
+                "result": result,
+            })
+        except Exception as e:
+            steps.append({
+                "sport": sport,
+                "success": False,
+                "count": 0,
+                "error": str(e),
+            })
+
+    try:
+        pod = play_of_the_day_v2()
+    except Exception as e:
+        pod = {"error": str(e)}
+
+    try:
+        intelligence = platform_intelligence()
+    except Exception as e:
+        intelligence = {"error": str(e)}
+
+    try:
+        status = model_status()
+    except Exception as e:
+        status = {"error": str(e)}
+
+    successful = [s for s in steps if s.get("success")]
+    failed = [s for s in steps if not s.get("success")]
+
+    return {
+        "success": len(failed) == 0,
+        "automation_version": "automation_engine_v1",
+        "message": "Daily model automation completed.",
+        "sports_refreshed": len(successful),
+        "sports_failed": len(failed),
+        "total_plays": total_plays,
+        "steps": steps,
+        "pod": {
+            "overall_play": pod.get("overall_play") if isinstance(pod, dict) else None,
+            "top_5_count": len(pod.get("top_5", [])) if isinstance(pod, dict) else 0,
+        },
+        "platform_intelligence": intelligence.get("summary") if isinstance(intelligence, dict) else None,
+        "model_status": {
+            "active_sports": status.get("active_sports") if isinstance(status, dict) else [],
+            "active_sport_count": status.get("active_sport_count") if isinstance(status, dict) else 0,
+        },
+    }
+
+
+@app.get("/automation/status")
+def automation_status():
+    try:
+        intelligence = platform_intelligence()
+        status = model_status()
+
+        return {
+            "success": True,
+            "automation_version": "automation_engine_v1",
+            "platform_intelligence": intelligence.get("summary") if isinstance(intelligence, dict) else None,
+            "model_status": {
+                "active_sports": status.get("active_sports") if isinstance(status, dict) else [],
+                "active_sport_count": status.get("active_sport_count") if isinstance(status, dict) else 0,
+            },
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "automation_version": "automation_engine_v1",
+            "error": str(e),
+        }
+
+
 @app.get("/platform/intelligence")
 def platform_intelligence():
 
