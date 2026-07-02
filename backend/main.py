@@ -8969,7 +8969,28 @@ def platform_intelligence():
         for key in caches:
             cached = get_cache(key)
             if isinstance(cached, list):
-                plays.extend(cached)
+                for play in cached:
+                    if isinstance(play, dict) and not play.get("sport"):
+                        if key.startswith("mlb"):
+                            play["sport"] = "MLB"
+                        elif key.startswith("nba"):
+                            play["sport"] = "NBA"
+                        elif key.startswith("nfl"):
+                            play["sport"] = "NFL"
+                        elif key.startswith("nhl"):
+                            play["sport"] = "NHL"
+                        elif key.startswith("wnba"):
+                            play["sport"] = "WNBA"
+                        elif key.startswith("ncaaf"):
+                            play["sport"] = "NCAAF"
+                        elif key.startswith("ncaamb"):
+                            play["sport"] = "NCAAMB"
+                        elif key.startswith("soccer"):
+                            play["sport"] = "Soccer"
+                        elif key.startswith("ufc"):
+                            play["sport"] = "UFC"
+
+                    plays.append(play)
 
     if not plays:
         return {
