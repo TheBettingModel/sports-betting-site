@@ -9086,7 +9086,16 @@ def automation_run_daily():
     status_error = None
 
     try:
-        pod = play_of_the_day_v2()
+        # Build POD directly from current cached model outputs.
+        pipeline = get_universal_pod_pipeline()
+        all_candidates = pipeline.get("top_5", []) or []
+        all_candidates = apply_universal_pod_exposure_engine(all_candidates)
+
+        pod = {
+            "overall_play": all_candidates[0] if all_candidates else None,
+            "top_5": all_candidates[:5],
+            "by_sport": pipeline.get("by_sport", {}),
+        }
     except Exception as e:
         pod = {"error": str(e)}
         pod_error = str(e)
