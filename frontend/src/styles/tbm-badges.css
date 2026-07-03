@@ -1,0 +1,44 @@
+.tbm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid var(--tbm-border-soft);
+  background: #1f2937;
+  color: #d1d5db;
+  padding: 6px 9px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tbm-badge-green {
+  background: #14532d;
+  color: #86efac;
+  border-color: #166534;
+}
+
+.tbm-badge-blue {
+  background: #0b3b78;
+  color: #bfdbfe;
+  border-color: #1d4ed8;
+}
+
+.tbm-badge-purple {
+  background: #3b2175;
+  color: #ddd6fe;
+  border-color: #6d28d9;
+}
+
+.tbm-badge-gold {
+  background: #713f12;
+  color: #fde68a;
+  border-color: #ca8a04;
+}
+
+.tbm-badge-red {
+  background: #7f1d1d;
+  color: #fecaca;
+  border-color: #dc2626;
+}

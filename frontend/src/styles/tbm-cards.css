@@ -1,0 +1,107 @@
+.tbm-card {
+  background: linear-gradient(145deg, var(--tbm-card), #020617);
+  border: 1px solid var(--tbm-border);
+  border-radius: var(--tbm-radius);
+  box-shadow: var(--tbm-shadow);
+  color: var(--tbm-text);
+}
+
+.tbm-card-pad {
+  padding: 16px;
+}
+
+.tbm-card-featured {
+  border: 2px solid var(--tbm-green);
+  box-shadow: 0 0 28px rgba(34, 197, 94, 0.25), var(--tbm-shadow);
+}
+
+.tbm-card-hover {
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.tbm-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(34, 197, 94, 0.65);
+  box-shadow: 0 0 22px rgba(34, 197, 94, 0.18), var(--tbm-shadow);
+}
+
+.tbm-play-card {
+  min-height: 218px;
+  padding: 15px;
+}
+
+.tbm-play-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.tbm-logo-matchup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tbm-vs {
+  color: var(--tbm-muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tbm-pick-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  border-top: 1px solid rgba(55, 65, 81, 0.65);
+  border-bottom: 1px solid rgba(55, 65, 81, 0.65);
+  padding: 11px 0;
+  margin: 8px 0 10px;
+}
+
+.tbm-pick-title {
+  margin: 0 0 4px;
+  color: var(--tbm-gold);
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.tbm-game-text {
+  margin: 0;
+  color: var(--tbm-muted);
+  font-size: 12px;
+}
+
+.tbm-odds {
+  color: var(--tbm-green);
+  font-size: 22px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.tbm-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tbm-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+@media (max-width: 560px) {
+  .tbm-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tbm-pick-row {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,15 @@
+@media (max-width: 760px) {
+  .tbm-grid,
+  .tbm-grid-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-play-card {
+    min-height: auto;
+  }
+
+  .tbm-logo-shell {
+    width: 38px;
+    height: 38px;
+  }
+}
