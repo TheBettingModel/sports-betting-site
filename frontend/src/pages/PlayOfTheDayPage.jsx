@@ -27,7 +27,23 @@ function PlayOfTheDayPage() {
   }, []);
 
   const pick = data?.play_of_the_day;
-  const bestBySport = data?.best_by_sport || {};
+
+  const bestBySport = (() => {
+    const raw = data?.best_by_sport || data?.by_sport || {};
+    const cleaned = { ...raw };
+
+    // Play of the Day is the single source of truth.
+    // If POD is Soccer, the Soccer best-play card must match it.
+    if (pick?.sport) {
+      cleaned[pick.sport] = pick;
+    }
+
+    if (pick?.pod_sport) {
+      cleaned[pick.pod_sport] = pick;
+    }
+
+    return cleaned;
+  })();
 
   return (
     <div style={pageStyle}>
