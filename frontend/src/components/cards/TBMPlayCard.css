@@ -1,0 +1,220 @@
+.tbm-play-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.08), transparent 30%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+  padding: 16px;
+  color: #f8fafc;
+}
+
+.tbm-play-card.featured {
+  border-color: rgba(69, 255, 84, 0.5);
+}
+
+.tbm-play-card-top,
+.tbm-play-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tbm-play-sport {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.tbm-play-card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-play-tier {
+  border: 1px solid rgba(69, 255, 84, 0.28);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(69, 255, 84, 0.08);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.tbm-play-matchup {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 42px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.tbm-play-team {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tbm-play-team span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.tbm-play-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.18), transparent 45%),
+    linear-gradient(145deg, #111827, #020617);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: white;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.tbm-play-vs {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.tbm-play-main-pick {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.tbm-play-main-pick span {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.tbm-play-main-pick strong {
+  display: block;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.tbm-play-main-pick em {
+  display: block;
+  margin-top: 4px;
+  color: #45ff54;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.tbm-play-metrics {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.tbm-play-metrics div {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.tbm-play-metrics span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tbm-play-metrics strong {
+  display: block;
+  margin-top: 5px;
+  color: #45ff54;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-play-badges {
+  margin-top: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tbm-play-badge {
+  min-height: 24px;
+  border-radius: 7px;
+  padding: 5px 8px;
+  color: white;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-play-badge.green {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.tbm-play-badge.blue {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.tbm-play-badge.purple {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
+.tbm-play-footer {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.tbm-play-footer span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tbm-play-footer strong {
+  color: #45ff54;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+@media (max-width: 720px) {
+  .tbm-play-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
