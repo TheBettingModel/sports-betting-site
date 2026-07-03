@@ -10047,6 +10047,136 @@ def automation_history():
 
 
 
+
+
+# ============================================================
+# HOMEPAGE DATA ENGINE v1
+# Single source of truth for public homepage + POD dashboard
+# ============================================================
+
+def compact_homepage_play(play):
+    if not isinstance(play, dict):
+        return None
+
+    return {
+        "game": play.get("game"),
+        "sport": play.get("sport") or play.get("pod_sport"),
+        "pod_sport": play.get("pod_sport") or play.get("sport"),
+        "market": play.get("market"),
+        "pick": play.get("pick"),
+        "sportsbook": play.get("best_sportsbook") or play.get("sportsbook"),
+        "best_sportsbook": play.get("best_sportsbook") or play.get("sportsbook"),
+        "odds": play.get("best_odds") or play.get("odds"),
+        "best_odds": play.get("best_odds") or play.get("odds"),
+        "edge": play.get("edge"),
+        "confidence": play.get("confidence"),
+        "units": play.get("units"),
+        "recommendation": play.get("final_recommendation") or play.get("recommendation"),
+        "final_recommendation": play.get("final_recommendation") or play.get("recommendation"),
+        "tier": play.get("final_model_tier") or play.get("universal_pod_tier"),
+        "final_model_tier": play.get("final_model_tier"),
+        "universal_pod_score": play.get("universal_pod_score"),
+        "universal_pod_tier": play.get("universal_pod_tier"),
+        "market_intelligence_grade": play.get("market_intelligence_grade"),
+        "sharp_signal": play.get("sharp_signal"),
+        "clv_status": play.get("clv_status"),
+        "line_shop_value": play.get("line_shop_value"),
+        "final_model_score": play.get("final_model_score"),
+        "final_stars": play.get("final_stars"),
+        "reason": play.get("reason") or play.get("sharp_reason"),
+        "final_rating_reasons": play.get("final_rating_reasons"),
+        "market_intelligence_reasons": play.get("market_intelligence_reasons"),
+        "universal_pod_reasons": play.get("universal_pod_reasons"),
+    }
+
+
+def get_homepage_play_score(play):
+    if not isinstance(play, dict):
+        return 0
+
+    return (
+        float(play.get("universal_pod_score") or 0) * 1.0
+        + float(play.get("confidence") or 0) * 0.15
+        + float(play.get("edge") or 0) * 2.0
+        + float(play.get("market_intelligence_score") or 0) * 1.5
+        + float(play.get("sharp_score") or 0) * 1.25
+    )
+
+
+def build_homepage_data():
+    pod_response = play_of_the_day_v2()
+    platform_response = platform_intelligence()
+    status_response = model_status()
+
+    overall_play = pod_response.get("overall_play")
+    top_5 = pod_response.get("top_5", []) or []
+    by_sport = pod_response.get("by_sport", {}) or {}
+
+    if overall_play:
+        flagship_sport = overall_play.get("pod_sport") or overall_play.get("sport")
+
+        # The flagship play is the official sport-best card for its sport.
+        if flagship_sport:
+            by_sport[flagship_sport] = overall_play
+
+        # Remove same-game conflicting plays from top list.
+        cleaned_top = []
+        seen_games = set()
+
+        for play in [overall_play] + top_5:
+            game = play.get("game")
+            if game == overall_play.get("game") and play.get("pick") != overall_play.get("pick"):
+                continue
+            if game in seen_games:
+                continue
+            cleaned_top.append(play)
+            seen_games.add(game)
+
+        top_5 = cleaned_top[:5]
+
+    # Final safety pass: if a sport-best card conflicts with the flagship same game,
+    # replace it with the flagship.
+    for sport_name, play in list(by_sport.items()):
+        if (
+            overall_play
+            and isinstance(play, dict)
+            and play.get("game") == overall_play.get("game")
+            and play.get("pick") != overall_play.get("pick")
+        ):
+            by_sport[sport_name] = overall_play
+
+    compact_by_sport = {
+        sport_name: compact_homepage_play(play)
+        for sport_name, play in by_sport.items()
+        if play
+    }
+
+    return {
+        "success": True,
+        "homepage_version": "homepage_data_engine_v1",
+        "play_of_the_day": compact_homepage_play(overall_play),
+        "overall_play": compact_homepage_play(overall_play),
+        "top_5": [compact_homepage_play(play) for play in top_5 if play],
+        "best_by_sport": compact_by_sport,
+        "by_sport": compact_by_sport,
+        "platform_intelligence": platform_response.get("summary") if isinstance(platform_response, dict) else {},
+        "model_status": status_response,
+    }
+
+
+@app.get("/homepage")
+def homepage_data():
+    try:
+        return build_homepage_data()
+    except Exception as e:
+        return {
+            "success": False,
+            "homepage_version": "homepage_data_engine_v1",
+            "error": str(e),
+        }
+
+
+
 @app.get("/platform/intelligence")
 def platform_intelligence():
 
