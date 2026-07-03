@@ -1,0 +1,329 @@
+.tbm-hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 18px;
+  border: 1px solid rgba(69, 255, 84, 0.42);
+  border-radius: 22px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.13), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.12), transparent 28%),
+    linear-gradient(145deg, rgba(10, 22, 32, 0.98), rgba(3, 8, 13, 0.99));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+  color: #f8fafc;
+}
+
+.tbm-hero-card.empty {
+  display: block;
+}
+
+.tbm-hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.tbm-hero-kicker span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.tbm-hero-kicker strong {
+  font-size: 13px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tbm-hero-matchup {
+  display: grid;
+  grid-template-columns: 1fr 52px 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.tbm-hero-team {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tbm-hero-team span {
+  max-width: 100%;
+  overflow: hidden;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-hero-logo {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.22), transparent 42%),
+    linear-gradient(145deg, #111827, #020617);
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  color: white;
+  font-size: 14px;
+  font-weight: 950;
+  box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.04);
+}
+
+.tbm-hero-vs {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.tbm-hero-pick-box {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.tbm-hero-pick-box span {
+  display: block;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tbm-hero-pick-box h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 950;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.tbm-hero-pick-box div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.tbm-hero-pick-box strong {
+  color: #45ff54;
+  font-size: 30px;
+  font-weight: 950;
+}
+
+.tbm-hero-pick-box em {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tbm-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.tbm-hero-metric {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  padding: 11px 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.tbm-hero-metric span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-hero-metric strong {
+  display: block;
+  margin-top: 5px;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-hero-metric strong.accent {
+  color: #45ff54;
+}
+
+.tbm-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.tbm-hero-badge {
+  min-height: 26px;
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: white;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-hero-badge.green {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.tbm-hero-badge.blue {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.tbm-hero-badge.purple {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
+.tbm-hero-badge.gold {
+  background: linear-gradient(135deg, #ca8a04, #854d0e);
+}
+
+.tbm-hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tbm-hero-score-card,
+.tbm-hero-why,
+.tbm-hero-signal-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.028);
+}
+
+.tbm-hero-score-card {
+  padding: 16px;
+  text-align: center;
+}
+
+.tbm-hero-score-card span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.tbm-hero-score-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #45ff54;
+  font-size: 44px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.tbm-hero-score-card small {
+  display: block;
+  margin-top: 7px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.tbm-hero-why {
+  padding: 15px;
+}
+
+.tbm-hero-why h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-hero-why p {
+  margin: 7px 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tbm-hero-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.tbm-hero-signal-grid div {
+  padding: 12px;
+}
+
+.tbm-hero-signal-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-hero-signal-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .tbm-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-hero-metrics {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .tbm-hero-card {
+    padding: 14px;
+  }
+
+  .tbm-hero-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tbm-hero-matchup {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-hero-vs {
+    margin: 0 auto;
+  }
+}

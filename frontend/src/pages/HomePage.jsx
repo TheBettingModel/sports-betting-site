@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -87,81 +88,7 @@ function LogoBubble({ label, emoji }) {
 }
 
 function FlagshipPlay({ play }) {
-  if (!play) return <div style={emptyStyle}>No flagship play available.</div>;
-
-  const reasons = play.final_rating_reasons || play.market_intelligence_reasons || play.universal_pod_reasons || [];
-
-  return (
-    <section style={flagshipStyle}>
-      <div>
-        <div style={eyebrowStyle}>Today’s Flagship Play</div>
-
-        <div style={flagshipTopStyle}>
-          <div>
-            <h1 style={flagshipPickStyle}>{play.pick}</h1>
-            <p style={flagshipGameStyle}>{play.game}</p>
-          </div>
-
-          <div style={scoreBadgeStyle}>
-            <span>POD</span>
-            <strong>{score(play).toFixed(2)}</strong>
-          </div>
-        </div>
-
-        <div style={pillRowStyle}>
-          <Pill tone="green">{rec(play)}</Pill>
-          <Pill tone="blue">{sport(play)}</Pill>
-          <Pill>{play.market || "N/A"}</Pill>
-          <Pill tone="yellow">{tier(play)}</Pill>
-        </div>
-
-        <div style={ticketGridStyle}>
-          <Metric label="Best Odds" value={formatOdds(odds(play))} accent />
-          <Metric label="Best Book" value={book(play)} />
-          <Metric label="Edge" value={`${play.edge ?? "N/A"}%`} accent />
-          <Metric label="Confidence" value={play.confidence ?? "N/A"} accent />
-          <Metric label="Units" value={play.units ?? "N/A"} />
-          <Metric label="Market Grade" value={play.market_intelligence_grade || "N/A"} />
-        </div>
-      </div>
-
-      <aside style={whyStyle}>
-        <h3 style={{ marginTop: 0 }}>Why The Model Likes It</h3>
-        {Array.isArray(reasons) && reasons.length > 0 ? (
-          reasons.slice(0, 6).map((reason, index) => (
-            <p key={index} style={reasonLineStyle}>✓ {reason}</p>
-          ))
-        ) : (
-          <p style={reasonLineStyle}>{play.reason || play.sharp_reason || "No model reason available."}</p>
-        )}
-
-        <div style={modelMeterStyle}>
-          <span>Model Rating</span>
-          <strong>{stars(play)}</strong>
-          <small>{ratingScore(play)} / 100</small>
-        </div>
-
-        <div style={miniSignalGridStyle}>
-          <div>
-            <span>Market Move</span>
-            <strong>{movementText(play)}</strong>
-          </div>
-          <div>
-            <span>CLV</span>
-            <strong>{play.clv_status || "N/A"}</strong>
-          </div>
-          <div>
-            <span>Sharp</span>
-            <strong>{play.sharp_signal || "N/A"}</strong>
-          </div>
-          <div>
-            <span>Line Value</span>
-            <strong>{play.line_shop_value ?? "N/A"}</strong>
-          </div>
-        </div>
-      </aside>
-    </section>
-  );
+  return <TBMHeroPlayCard play={play} />;
 }
 
 function TopPlayRow({ play, index }) {
