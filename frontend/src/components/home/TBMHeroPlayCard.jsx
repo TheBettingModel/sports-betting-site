@@ -1,4 +1,5 @@
 import "./TBMHeroPlayCard.css";
+import TBMTeamLogo from "../logos/TBMTeamLogo";
 
 function formatOdds(value) {
   if (value === null || value === undefined || value === "") return "N/A";
@@ -51,14 +52,8 @@ function splitGame(game = "") {
   return { away: "Away", home: "Home" };
 }
 
-function TeamLogo({ team }) {
-  const text = String(team || "TBM").slice(0, 3).toUpperCase();
-
-  return (
-    <div className="tbm-hero-logo">
-      {text}
-    </div>
-  );
+function TeamLogo({ team, sport }) {
+  return <TBMTeamLogo team={team} sport={sport} size={62} />;
 }
 
 function HeroMetric({ label, value, accent }) {
@@ -108,14 +103,14 @@ export default function TBMHeroPlayCard({ play }) {
 
         <div className="tbm-hero-matchup">
           <div className="tbm-hero-team">
-            <TeamLogo team={away} />
+            <TeamLogo team={away} sport={getSport(play)} />
             <span>{away}</span>
           </div>
 
           <div className="tbm-hero-vs">VS</div>
 
           <div className="tbm-hero-team">
-            <TeamLogo team={home} />
+            <TeamLogo team={home} sport={getSport(play)} />
             <span>{home}</span>
           </div>
         </div>
