@@ -308,10 +308,10 @@ export default function HomePage() {
       <section style={heroStyle}>
         <div>
           <div style={eyebrowStyle}>The Betting Model</div>
-          <h1 style={heroTitleStyle}>One free pick. Full card for members.</h1>
+          <h1 style={heroTitleStyle}>Smarter picks. Better market insight.</h1>
           <p style={heroTextStyle}>
-            The Betting Model gives free visitors today’s flagship play. Pro members unlock the full
-            daily card, model boards, market intelligence, sharp money, line shopping, and CLV tools.
+            The Betting Model turns odds, sharp signals, line movement, sportsbook pricing, and model edge
+            into a cleaner daily betting dashboard.
           </p>
           <div style={heroActionsStyle}>
             <a href="#top-plays" style={primaryButtonStyle}>View Premium Card</a>
@@ -366,8 +366,8 @@ export default function HomePage() {
               <div>
                 <h3 style={{ marginTop: 0, fontSize: "24px" }}>Full Card Locked</h3>
                 <p style={heroTextStyle}>
-                  Free visitors get today’s flagship play. Pro members unlock the full daily card,
-                  including premium MLB, F5, NRFI, Soccer, WNBA, NCAAMB, UFC and all model-board plays.
+                  Today’s public board shows the flagship model play. The full daily card will unlock
+                  premium plays, deeper market intelligence, and complete model-board access.
                 </p>
               </div>
 

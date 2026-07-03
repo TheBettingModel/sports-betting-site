@@ -3214,3 +3214,68 @@ tr:hover td {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ============================================================
+   COMPACT MODEL CARD v1
+   Reduces bulky play cards across sport pages
+   ============================================================ */
+
+@media (min-width: 900px) {
+  div[style*="padding: 24px"],
+  div[style*="padding: \"24px\""] {
+    padding: 18px !important;
+  }
+
+  div[style*="gap: \"24px\""],
+  div[style*="gap: 24px"] {
+    gap: 16px !important;
+  }
+
+  div[style*="fontSize: \"38px\""],
+  div[style*="font-size: 38px"] {
+    font-size: 32px !important;
+  }
+
+  div[style*="fontSize: \"30px\""],
+  div[style*="font-size: 30px"] {
+    font-size: 25px !important;
+  }
+
+  h2 {
+    font-size: 21px !important;
+  }
+
+  h3 {
+    font-size: 18px !important;
+  }
+
+  p {
+    font-size: 14px;
+  }
+
+  span[style*="borderRadius: \"999px\""],
+  span[style*="border-radius: 999px"] {
+    padding: 6px 9px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Make long model reason sections less dominant */
+p[style*="line-height: 1.6"],
+p[style*="lineHeight: \"1.6\""] {
+  font-size: 13px !important;
+  color: #9ca3af !important;
+}
+
+/* Future logo-ready card rhythm */
+.model-logo-placeholder {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
