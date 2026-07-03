@@ -291,14 +291,16 @@ export default function HomePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/model/play-of-the-day-v2`).then((res) => res.json()),
-      fetch(`${API_URL}/platform/intelligence`).then((res) => res.json()),
-      fetch(`${API_URL}/model/status`).then((res) => res.json()),
+      fetch(`${API_URL}/homepage`).then((res) => res.json()),
     ])
-      .then(([pod, intel, modelStatus]) => {
-        setPodData(pod);
-        setIntelligence(intel);
-        setStatus(modelStatus);
+      .then(([homepage]) => {
+        setPodData({
+          overall_play: homepage.overall_play,
+          top_5: homepage.top_5,
+          by_sport: homepage.by_sport,
+        });
+        setIntelligence({ summary: homepage.platform_intelligence });
+        setStatus(homepage.model_status);
       })
       .catch(() => setError("Failed to load homepage dashboard."));
   }, []);
