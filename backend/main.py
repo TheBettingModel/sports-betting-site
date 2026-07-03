@@ -9218,6 +9218,40 @@ def model_ufc_today(force_refresh=False):
 
         plays = [enhance_ufc_play_v2(play) for play in plays]
 
+        # Keep one best sportsbook/price per fighter per fight so the UFC board
+        # does not show the same fighter repeatedly from different books.
+        deduped = {}
+        for play in plays:
+            key = (
+                str(play.get("game") or "").strip().lower(),
+                str(play.get("pick") or "").strip().lower(),
+                str(play.get("market") or "").strip().lower(),
+            )
+
+            current = deduped.get(key)
+            if current is None:
+                deduped[key] = play
+                continue
+
+            new_score = (
+                float(play.get("universal_pod_score") or 0),
+                float(play.get("edge") or 0),
+                float(play.get("confidence") or 0),
+                float(play.get("best_odds") or play.get("odds") or 0),
+            )
+
+            current_score = (
+                float(current.get("universal_pod_score") or 0),
+                float(current.get("edge") or 0),
+                float(current.get("confidence") or 0),
+                float(current.get("best_odds") or current.get("odds") or 0),
+            )
+
+            if new_score > current_score:
+                deduped[key] = play
+
+        plays = list(deduped.values())
+
         final = sorted(
             plays,
             key=lambda x: (
