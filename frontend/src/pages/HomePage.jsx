@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
+import "../components/home/TBMDashboardFramework.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -241,7 +242,8 @@ export default function HomePage() {
   }, [podData, flagship]);
 
   return (
-    <main style={pageStyle}>
+    <main style={pageStyle} className="tbm-home-v2">
+      <div className="tbm-home-v2-inner">
       <section style={heroStyle}>
         <div>
           <div style={eyebrowStyle}>The Betting Model</div>
@@ -326,7 +328,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div style={sportGridStyle}>
+            <div style={sportGridStyle} className="tbm-home-sports-grid">
               {sportEntries.length > 0 ? (
                 sportEntries.map(([name, play]) => (
                   <SportCard key={name} name={name} play={play} />
@@ -383,13 +385,14 @@ export default function HomePage() {
           </section>
         </>
       )}
+          </div>
     </main>
   );
 }
 
 const pageStyle = {
   minHeight: "100vh",
-  padding: "30px",
+  padding: "0",
   color: "white",
   background: "radial-gradient(circle at top left, rgba(34,197,94,.12), transparent 28%), radial-gradient(circle at top right, rgba(59,130,246,.10), transparent 26%), #0b0b0b",
 };
