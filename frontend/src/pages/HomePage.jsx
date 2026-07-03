@@ -308,13 +308,13 @@ export default function HomePage() {
       <section style={heroStyle}>
         <div>
           <div style={eyebrowStyle}>The Betting Model</div>
-          <h1 style={heroTitleStyle}>What should I bet today?</h1>
+          <h1 style={heroTitleStyle}>One free pick. Full card for members.</h1>
           <p style={heroTextStyle}>
-            A live sports betting intelligence platform built around model edge, sharp signals,
-            sportsbook comparison, line shopping, CLV, and cross-sport POD rankings.
+            The Betting Model gives free visitors today’s flagship play. Pro members unlock the full
+            daily card, model boards, market intelligence, sharp money, line shopping, and CLV tools.
           </p>
           <div style={heroActionsStyle}>
-            <a href="#top-plays" style={primaryButtonStyle}>View Top Plays</a>
+            <a href="#top-plays" style={primaryButtonStyle}>View Premium Card</a>
             <a href="#membership" style={secondaryButtonStyle}>Become Pro</a>
           </div>
         </div>
@@ -357,19 +357,27 @@ export default function HomePage() {
           <section id="top-plays" style={sectionStyle}>
             <div style={sectionHeaderStyle}>
               <div>
-                <div style={eyebrowStyle}>Cross-Sport Board</div>
-                <h2 style={sectionTitleStyle}>Top Model Plays Today</h2>
+                <div style={eyebrowStyle}>Free Preview</div>
+                <h2 style={sectionTitleStyle}>Today’s Premium Card</h2>
               </div>
             </div>
 
-            <div style={topBoardStyle}>
-              {topThree.length > 0 ? (
-                topThree.map((play, index) => (
-                  <TopPlayRow key={`${play.game}-${play.pick}-${index}`} play={play} index={index} />
-                ))
-              ) : (
-                <div style={emptyStyle}>No top plays available.</div>
-              )}
+            <div style={lockedCardStyle}>
+              <div>
+                <h3 style={{ marginTop: 0, fontSize: "24px" }}>Full Card Locked</h3>
+                <p style={heroTextStyle}>
+                  Free visitors get today’s flagship play. Pro members unlock the full daily card,
+                  including premium MLB, F5, NRFI, Soccer, WNBA, NCAAMB, UFC and all model-board plays.
+                </p>
+              </div>
+
+              <div style={lockedListStyle}>
+                <div style={lockedPickStyle}>🔒 Premium Play #1</div>
+                <div style={lockedPickStyle}>🔒 Premium Play #2</div>
+                <div style={lockedPickStyle}>🔒 Premium Play #3</div>
+              </div>
+
+              <a href="#membership" style={primaryButtonStyle}>Unlock Today’s Card</a>
             </div>
           </section>
 
@@ -401,6 +409,22 @@ export default function HomePage() {
             </div>
 
             <StatusTable status={status} />
+          </section>
+
+          <section style={sectionStyle}>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <div style={eyebrowStyle}>Model Transparency</div>
+                <h2 style={sectionTitleStyle}>Performance Snapshot</h2>
+              </div>
+            </div>
+
+            <div style={metricGridStyle}>
+              <Metric label="Yesterday" value="Coming Soon" />
+              <Metric label="Season Units" value="Tracked Soon" accent />
+              <Metric label="Win Rate" value="Tracked Soon" />
+              <Metric label="ROI" value="Tracked Soon" accent />
+            </div>
           </section>
 
           <section id="membership" style={membershipStyle}>
@@ -798,6 +822,31 @@ const membershipCardsStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(3, 1fr)",
   gap: "12px",
+};
+
+const lockedCardStyle = {
+  display: "grid",
+  gridTemplateColumns: "1.2fr .9fr auto",
+  gap: "18px",
+  alignItems: "center",
+  background: "linear-gradient(145deg, #111827, #020617)",
+  border: "1px solid #374151",
+  borderRadius: "20px",
+  padding: "22px",
+};
+
+const lockedListStyle = {
+  display: "grid",
+  gap: "10px",
+};
+
+const lockedPickStyle = {
+  backgroundColor: "#020617",
+  border: "1px solid #374151",
+  borderRadius: "12px",
+  padding: "13px",
+  color: "#d1d5db",
+  fontWeight: "900",
 };
 
 const emptyStyle = {
