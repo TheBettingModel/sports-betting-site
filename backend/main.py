@@ -9200,11 +9200,16 @@ def model_ufc_today(force_refresh=False):
                         play["ufc_finish_diff"] = matchup.get("ufc_finish_diff")
                         play["ufc_experience_diff"] = matchup.get("ufc_experience_diff")
 
-                        play.update(get_sharp_signal(play))
-                        play.update(get_best_sportsbook_price(play))
-                        play.update(get_market_intelligence(play))
-                        play.update(get_final_model_rating(play))
-                        play.update(get_universal_pod_score(play))
+                        if "get_sharp_signal" in globals():
+                            play.update(get_sharp_signal(play))
+                        if "get_best_sportsbook_price" in globals():
+                            play.update(get_best_sportsbook_price(play))
+                        if "get_market_intelligence" in globals():
+                            play.update(get_market_intelligence(play))
+                        if "get_final_model_rating" in globals():
+                            play.update(get_final_model_rating(play))
+                        if "get_universal_pod_score" in globals():
+                            play.update(get_universal_pod_score(play))
 
                         plays.append(play)
 
