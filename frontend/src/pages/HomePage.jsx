@@ -77,6 +77,15 @@ function Pill({ children, tone = "dark" }) {
   return <span style={{ ...pillStyle, backgroundColor: colors[tone] || colors.dark }}>{children}</span>;
 }
 
+function LogoBubble({ label, emoji }) {
+  return (
+    <div style={logoBubbleStyle}>
+      <span>{emoji}</span>
+      <small>{label}</small>
+    </div>
+  );
+}
+
 function FlagshipPlay({ play }) {
   if (!play) return <div style={emptyStyle}>No flagship play available.</div>;
 
@@ -192,14 +201,17 @@ function SportCard({ name, play }) {
   return (
     <a href={sportPath(name)} style={sportCardStyle}>
       <div style={sportCardTopStyle}>
-        <span>{sportEmoji(name)} {name}</span>
-        <strong>{score(play).toFixed(2)}</strong>
+        <LogoBubble label={name} emoji={sportEmoji(name)} />
+        <strong>{score(play).toFixed(1)}</strong>
       </div>
+
       <h3 style={sportPickStyle}>{play.pick}</h3>
       <p style={sportGameStyle}>{play.game}</p>
+
       <div style={sportMetricRowStyle}>
         <span>{play.market || "N/A"}</span>
         <span>{formatOdds(odds(play))}</span>
+        <span>{play.confidence ?? "N/A"}%</span>
         <span>{rec(play)}</span>
       </div>
     </a>
@@ -330,7 +342,7 @@ export default function HomePage() {
       <section style={heroStyle}>
         <div>
           <div style={eyebrowStyle}>The Betting Model</div>
-          <h1 style={heroTitleStyle}>Smarter picks. Better market insight.</h1>
+          <h1 style={heroTitleStyle}>Today’s Betting Dashboard</h1>
           <p style={heroTextStyle}>
             The Betting Model turns odds, sharp signals, line movement, sportsbook pricing, and model edge
             into a cleaner daily betting dashboard.
@@ -394,9 +406,9 @@ export default function HomePage() {
               </div>
 
               <div style={lockedListStyle}>
-                <div style={lockedPickStyle}>🔒 Premium Play #1</div>
-                <div style={lockedPickStyle}>🔒 Premium Play #2</div>
-                <div style={lockedPickStyle}>🔒 Premium Play #3</div>
+                <div style={lockedPickStyle}><span>🔒 Premium Play #1</span><strong>Full Card</strong></div>
+                <div style={lockedPickStyle}><span>🔒 Premium Play #2</span><strong>Sharp Edge</strong></div>
+                <div style={lockedPickStyle}><span>🔒 Premium Play #3</span><strong>Best Line</strong></div>
               </div>
 
               <a href="#membership" style={primaryButtonStyle}>Unlock Today’s Card</a>
@@ -654,7 +666,7 @@ const metricLabelStyle = {
 
 const metricValueStyle = {
   display: "block",
-  fontSize: "20px",
+  fontSize: "18px",
 };
 
 const whyStyle = {
@@ -734,7 +746,7 @@ const rowHeaderStyle = {
   gap: "10px",
   flexWrap: "wrap",
   color: "#facc15",
-  fontSize: "20px",
+  fontSize: "18px",
 };
 
 const rowSubStyle = {
@@ -750,10 +762,21 @@ const rowMetricsStyle = {
   fontSize: "13px",
 };
 
+const logoBubbleStyle = {
+  width: "46px",
+  height: "46px",
+  borderRadius: "999px",
+  backgroundColor: "#020617",
+  border: "1px solid #374151",
+  display: "grid",
+  placeItems: "center",
+  color: "white",
+};
+
 const sportGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(245px, 1fr))",
-  gap: "16px",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "14px",
 };
 
 const sportCardStyle = {
@@ -761,7 +784,7 @@ const sportCardStyle = {
   background: "linear-gradient(145deg, #111827, #020617)",
   border: "1px solid #374151",
   borderRadius: "18px",
-  padding: "18px",
+  padding: "15px",
   color: "white",
   textDecoration: "none",
 };
@@ -776,20 +799,23 @@ const sportCardTopStyle = {
 
 const sportPickStyle = {
   color: "#facc15",
-  marginBottom: "8px",
+  margin: "12px 0 6px",
+  fontSize: "17px",
 };
 
 const sportGameStyle = {
   color: "#9ca3af",
-  minHeight: "42px",
+  minHeight: "34px",
+  fontSize: "13px",
+  marginBottom: "10px",
 };
 
 const sportMetricRowStyle = {
   display: "flex",
   flexWrap: "wrap",
-  gap: "8px",
+  gap: "7px",
   color: "#d1d5db",
-  fontSize: "13px",
+  fontSize: "12px",
 };
 
 const tableShellStyle = {
@@ -866,9 +892,12 @@ const lockedPickStyle = {
   backgroundColor: "#020617",
   border: "1px solid #374151",
   borderRadius: "12px",
-  padding: "13px",
+  padding: "12px",
   color: "#d1d5db",
   fontWeight: "900",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "10px",
 };
 
 const emptyStyle = {
