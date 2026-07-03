@@ -3279,3 +3279,179 @@ p[style*="lineHeight: \"1.6\""] {
   justify-content: center;
   font-weight: 900;
 }
+
+/* ============================================================
+   The Betting Model — Logo + Compact Card System v1
+   ============================================================ */
+
+.tbm-compact-card {
+  background: linear-gradient(145deg, #111827, #020617);
+  border: 1px solid #374151;
+  border-radius: 18px;
+  padding: 16px;
+  color: white;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.tbm-featured-card {
+  border: 2px solid #22c55e;
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.25);
+}
+
+.tbm-card-top,
+.tbm-card-main,
+.tbm-metric-strip,
+.tbm-signal-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tbm-card-top {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tbm-matchup-logos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tbm-logo-shell {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #020617;
+  border: 1px solid #374151;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-weight: 900;
+}
+
+.tbm-logo {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+.tbm-vs {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tbm-card-score {
+  background: #020617;
+  border: 1px solid #14532d;
+  border-radius: 12px;
+  padding: 8px 10px;
+  text-align: center;
+  min-width: 68px;
+}
+
+.tbm-card-score span,
+.tbm-odds-box span {
+  display: block;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tbm-card-score strong {
+  color: #22c55e;
+  font-size: 18px;
+}
+
+.tbm-card-label {
+  display: inline-block;
+  background: #22c55e;
+  color: black;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.tbm-card-main {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.tbm-card-main h3 {
+  margin: 0 0 4px;
+  color: #facc15;
+  font-size: 20px;
+}
+
+.tbm-card-main p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.tbm-odds-box {
+  background: #020617;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 9px 11px;
+  text-align: right;
+  min-width: 92px;
+}
+
+.tbm-odds-box strong {
+  font-size: 18px;
+}
+
+.tbm-metric-strip,
+.tbm-signal-strip {
+  flex-wrap: wrap;
+}
+
+.tbm-metric-strip {
+  border-top: 1px solid #1f2937;
+  padding-top: 10px;
+  margin-top: 6px;
+}
+
+.tbm-metric-strip span,
+.tbm-signal-strip span {
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #d1d5db;
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tbm-metric-strip strong {
+  color: white;
+}
+
+.tbm-signal-strip {
+  margin-top: 10px;
+}
+
+.tbm-rec-pill {
+  background: #14532d !important;
+  color: #86efac !important;
+  border-color: #166534 !important;
+}
+
+@media (max-width: 620px) {
+  .tbm-card-main {
+    flex-direction: column;
+  }
+
+  .tbm-odds-box {
+    text-align: left;
+    width: 100%;
+  }
+}
