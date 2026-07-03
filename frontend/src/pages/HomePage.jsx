@@ -298,10 +298,32 @@ export default function HomePage() {
   const sportEntries = useMemo(() => {
     const bySport = podData?.by_sport || {};
     const order = ["MLB", "Soccer", "WNBA", "NBA", "NFL", "NHL", "NCAAF", "NCAAMB", "UFC"];
+
     return order
-      .filter((name) => bySport[name])
-      .map((name) => [name, bySport[name]]);
-  }, [podData]);
+      .map((name) => {
+        let play = bySport[name];
+
+        // If the overall flagship play belongs to this sport, it should be
+        // the official sport-best card too. This prevents conflicts like:
+        // POD = Argentina -2.5, Soccer best = Argentina/Cape Verde Draw.
+        if (flagship && sport(flagship) === name) {
+          play = flagship;
+        }
+
+        // Safety: never show a same-game conflicting play against the flagship.
+        if (
+          flagship &&
+          play &&
+          play.game === flagship.game &&
+          play.pick !== flagship.pick
+        ) {
+          play = flagship;
+        }
+
+        return play ? [name, play] : null;
+      })
+      .filter(Boolean);
+  }, [podData, flagship]);
 
   return (
     <main style={pageStyle}>
