@@ -9099,6 +9099,7 @@ def dedupe_ufc_plays_by_fighter_market(plays):
 def model_ufc_today(force_refresh=False):
     cached = get_cache("ufc_model")
     if cached and not force_refresh:
+        cached = dedupe_ufc_plays_by_fighter_market(cached)
         return {
             "plays": cached,
             "top_play": cached[0] if cached else None,
@@ -9287,6 +9288,17 @@ def model_ufc_today(force_refresh=False):
 
         final = sorted(
             plays,
+            key=lambda x: (
+                float(x.get("universal_pod_score", 0) or 0),
+                float(x.get("edge", 0) or 0),
+                float(x.get("confidence", 0) or 0),
+            ),
+            reverse=True,
+        )
+
+        final = dedupe_ufc_plays_by_fighter_market(final)
+        final = sorted(
+            final,
             key=lambda x: (
                 float(x.get("universal_pod_score", 0) or 0),
                 float(x.get("edge", 0) or 0),
