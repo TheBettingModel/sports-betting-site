@@ -9062,6 +9062,39 @@ def enhance_ufc_play_v2(play):
 
 
 
+
+
+def dedupe_ufc_plays_by_fighter_market(plays):
+    deduped = {}
+
+    for play in plays:
+        key = (
+            str(play.get("game") or "").strip().lower(),
+            str(play.get("pick") or "").strip().lower(),
+            str(play.get("market") or "").strip().lower(),
+        )
+
+        current = deduped.get(key)
+
+        if current is None:
+            deduped[key] = play
+            continue
+
+        def score(p):
+            return (
+                float(p.get("universal_pod_score") or 0),
+                float(p.get("final_model_score") or 0),
+                float(p.get("edge") or 0),
+                float(p.get("confidence") or 0),
+                float(p.get("line_shop_value") or 0),
+            )
+
+        if score(play) > score(current):
+            deduped[key] = play
+
+    return list(deduped.values())
+
+
 @app.get("/model/ufc/today")
 def model_ufc_today(force_refresh=False):
     cached = get_cache("ufc_model")
@@ -9254,6 +9287,17 @@ def model_ufc_today(force_refresh=False):
 
         final = sorted(
             plays,
+            key=lambda x: (
+                float(x.get("universal_pod_score", 0) or 0),
+                float(x.get("edge", 0) or 0),
+                float(x.get("confidence", 0) or 0),
+            ),
+            reverse=True,
+        )
+
+        final = dedupe_ufc_plays_by_fighter_market(final)
+        final = sorted(
+            final,
             key=lambda x: (
                 float(x.get("universal_pod_score", 0) or 0),
                 float(x.get("edge", 0) or 0),
