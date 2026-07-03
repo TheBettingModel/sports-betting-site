@@ -10104,7 +10104,11 @@ def get_homepage_play_score(play):
 
 
 def build_homepage_data():
-    pod_response = play_of_the_day_v2()
+    pod_response = requests.get(
+        "https://sports-betting-backend-ecic.onrender.com/model/play-of-the-day-v2",
+        timeout=20,
+    ).json()
+
     platform_response = platform_intelligence()
     status_response = model_status()
 
