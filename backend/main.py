@@ -9203,7 +9203,10 @@ def model_ufc_today(force_refresh=False):
                         if "get_sharp_signal" in globals():
                             play.update(get_sharp_signal(play))
                         if "get_best_sportsbook_price" in globals():
-                            play.update(get_best_sportsbook_price(play))
+                            try:
+                                play.update(get_best_sportsbook_price(play, plays))
+                            except TypeError:
+                                play.update(get_best_sportsbook_price(play))
                         if "get_market_intelligence" in globals():
                             play.update(get_market_intelligence(play))
                         if "get_final_model_rating" in globals():
