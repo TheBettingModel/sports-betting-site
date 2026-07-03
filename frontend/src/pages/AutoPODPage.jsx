@@ -32,7 +32,7 @@ function normalizeBestBySport(data) {
 
   const overallPlay = data?.overall_play;
   const topFive = data?.top_5 || [];
-  const bySport = data?.by_sport || {};
+  const bySport = normalizeBestBySport(data);
 
   const sportEmojis = {
     MLB: "⚾",
