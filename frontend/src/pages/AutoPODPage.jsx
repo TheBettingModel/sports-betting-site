@@ -11,7 +11,7 @@ function normalizeBestBySport(data) {
 
   return cleaned;
 }
-\nfunction AutoPODPage() {
+function AutoPODPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
