@@ -8660,6 +8660,408 @@ def get_ufc_matchup_adjustment(fighter, opponent):
     }
 
 
+
+
+# ============================================================
+# UFC v2 PRO ANALYTICS ENGINE
+# ============================================================
+
+UFC_ADVANCED_FIGHTER_PROFILES = {
+    "Islam Makhachev": {
+        "overall": 96, "striking": 86, "power": 84, "speed": 87, "cardio": 91,
+        "durability": 90, "iq": 94, "takedown": 97, "td_def": 91,
+        "submission": 95, "control": 96, "reach": 70, "height": 70,
+        "age": 34, "experience": 92, "pressure": 88, "counter": 86, "finish": 88
+    },
+    "Jon Jones": {
+        "overall": 95, "striking": 90, "power": 88, "speed": 84, "cardio": 88,
+        "durability": 91, "iq": 98, "takedown": 94, "td_def": 93,
+        "submission": 90, "control": 94, "reach": 84, "height": 76,
+        "age": 39, "experience": 97, "pressure": 86, "counter": 92, "finish": 90
+    },
+    "Alex Pereira": {
+        "overall": 94, "striking": 99, "power": 99, "speed": 89, "cardio": 86,
+        "durability": 88, "iq": 88, "takedown": 70, "td_def": 80,
+        "submission": 62, "control": 68, "reach": 79, "height": 76,
+        "age": 39, "experience": 88, "pressure": 92, "counter": 93, "finish": 97
+    },
+    "Ilia Topuria": {
+        "overall": 93, "striking": 94, "power": 94, "speed": 92, "cardio": 89,
+        "durability": 89, "iq": 88, "takedown": 87, "td_def": 86,
+        "submission": 86, "control": 85, "reach": 69, "height": 67,
+        "age": 29, "experience": 84, "pressure": 91, "counter": 90, "finish": 93
+    },
+    "Merab Dvalishvili": {
+        "overall": 92, "striking": 82, "power": 76, "speed": 90, "cardio": 99,
+        "durability": 90, "iq": 89, "takedown": 97, "td_def": 89,
+        "submission": 78, "control": 96, "reach": 68, "height": 66,
+        "age": 35, "experience": 89, "pressure": 98, "counter": 80, "finish": 74
+    },
+    "Dricus Du Plessis": {
+        "overall": 91, "striking": 88, "power": 90, "speed": 84, "cardio": 91,
+        "durability": 91, "iq": 84, "takedown": 86, "td_def": 84,
+        "submission": 84, "control": 84, "reach": 76, "height": 73,
+        "age": 32, "experience": 86, "pressure": 92, "counter": 82, "finish": 91
+    },
+    "Tom Aspinall": {
+        "overall": 91, "striking": 92, "power": 94, "speed": 91, "cardio": 84,
+        "durability": 86, "iq": 86, "takedown": 87, "td_def": 85,
+        "submission": 86, "control": 86, "reach": 78, "height": 77,
+        "age": 33, "experience": 82, "pressure": 88, "counter": 87, "finish": 95
+    },
+    "Leon Edwards": {
+        "overall": 90, "striking": 92, "power": 82, "speed": 89, "cardio": 88,
+        "durability": 89, "iq": 91, "takedown": 80, "td_def": 89,
+        "submission": 76, "control": 78, "reach": 74, "height": 72,
+        "age": 34, "experience": 91, "pressure": 80, "counter": 93, "finish": 78
+    },
+    "Sean O'Malley": {
+        "overall": 90, "striking": 95, "power": 90, "speed": 94, "cardio": 86,
+        "durability": 84, "iq": 87, "takedown": 72, "td_def": 80,
+        "submission": 68, "control": 70, "reach": 72, "height": 71,
+        "age": 31, "experience": 84, "pressure": 83, "counter": 94, "finish": 90
+    },
+    "Max Holloway": {
+        "overall": 89, "striking": 93, "power": 82, "speed": 88, "cardio": 98,
+        "durability": 95, "iq": 91, "takedown": 74, "td_def": 86,
+        "submission": 72, "control": 74, "reach": 69, "height": 71,
+        "age": 34, "experience": 96, "pressure": 95, "counter": 90, "finish": 82
+    },
+    "Khamzat Chimaev": {
+        "overall": 89, "striking": 84, "power": 88, "speed": 88, "cardio": 82,
+        "durability": 85, "iq": 82, "takedown": 96, "td_def": 88,
+        "submission": 90, "control": 95, "reach": 75, "height": 74,
+        "age": 32, "experience": 78, "pressure": 96, "counter": 79, "finish": 92
+    },
+    "Charles Oliveira": {
+        "overall": 88, "striking": 86, "power": 84, "speed": 85, "cardio": 84,
+        "durability": 80, "iq": 88, "takedown": 82, "td_def": 76,
+        "submission": 99, "control": 88, "reach": 74, "height": 70,
+        "age": 36, "experience": 94, "pressure": 86, "counter": 84, "finish": 96
+    },
+    "Justin Gaethje": {
+        "overall": 87, "striking": 91, "power": 93, "speed": 85, "cardio": 87,
+        "durability": 88, "iq": 84, "takedown": 76, "td_def": 84,
+        "submission": 66, "control": 70, "reach": 70, "height": 71,
+        "age": 37, "experience": 91, "pressure": 94, "counter": 84, "finish": 93
+    },
+    "Dustin Poirier": {
+        "overall": 87, "striking": 90, "power": 88, "speed": 84, "cardio": 87,
+        "durability": 88, "iq": 89, "takedown": 76, "td_def": 82,
+        "submission": 78, "control": 74, "reach": 72, "height": 69,
+        "age": 37, "experience": 95, "pressure": 88, "counter": 88, "finish": 89
+    },
+    "Arman Tsarukyan": {
+        "overall": 87, "striking": 84, "power": 82, "speed": 88, "cardio": 90,
+        "durability": 87, "iq": 84, "takedown": 91, "td_def": 88,
+        "submission": 84, "control": 90, "reach": 72, "height": 67,
+        "age": 30, "experience": 81, "pressure": 88, "counter": 82, "finish": 83
+    },
+}
+
+
+def get_ufc_profile_v2(name):
+    base = UFC_ADVANCED_FIGHTER_PROFILES.get(name)
+
+    if not base:
+        old = UFC_FIGHTER_RATINGS.get(name, {}) if "UFC_FIGHTER_RATINGS" in globals() else {}
+        overall = old.get("overall", 76)
+        base = {
+            "overall": overall,
+            "striking": old.get("striking", overall),
+            "power": overall,
+            "speed": overall,
+            "cardio": old.get("cardio", overall),
+            "durability": overall,
+            "iq": overall,
+            "takedown": old.get("grappling", overall),
+            "td_def": overall,
+            "submission": old.get("grappling", overall),
+            "control": old.get("grappling", overall),
+            "reach": 72,
+            "height": 70,
+            "age": 31,
+            "experience": old.get("experience", overall),
+            "pressure": overall,
+            "counter": overall,
+            "finish": old.get("finish", overall),
+        }
+
+    return {
+        "ufc_overall_rating": base.get("overall", 76),
+        "ufc_striking_rating": base.get("striking", 76),
+        "ufc_power_rating": base.get("power", 76),
+        "ufc_speed_rating": base.get("speed", 76),
+        "ufc_cardio_rating": base.get("cardio", 76),
+        "ufc_durability_rating": base.get("durability", 76),
+        "ufc_fight_iq_rating": base.get("iq", 76),
+        "ufc_takedown_rating": base.get("takedown", 76),
+        "ufc_takedown_defense": base.get("td_def", 76),
+        "ufc_submission_rating": base.get("submission", 76),
+        "ufc_control_rating": base.get("control", 76),
+        "ufc_reach_inches": base.get("reach", 72),
+        "ufc_height_inches": base.get("height", 70),
+        "ufc_age": base.get("age", 31),
+        "ufc_experience_rating": base.get("experience", 76),
+        "ufc_pressure_rating": base.get("pressure", 76),
+        "ufc_counter_rating": base.get("counter", 76),
+        "ufc_finish_rating": base.get("finish", 76),
+    }
+
+
+def get_ufc_age_curve_adjustment(age):
+    try:
+        age = float(age)
+    except Exception:
+        return 0
+
+    if age <= 25:
+        return -0.15
+    if 26 <= age <= 32:
+        return 0.35
+    if 33 <= age <= 36:
+        return 0
+    if 37 <= age <= 39:
+        return -0.35
+    return -0.75
+
+
+def get_ufc_style_label(profile, opponent_profile):
+    striking_edge = profile["ufc_striking_rating"] - opponent_profile["ufc_striking_rating"]
+    grappling_edge = (
+        profile["ufc_takedown_rating"]
+        + profile["ufc_submission_rating"]
+        + profile["ufc_control_rating"]
+        - opponent_profile["ufc_takedown_rating"]
+        - opponent_profile["ufc_submission_rating"]
+        - opponent_profile["ufc_control_rating"]
+    ) / 3
+
+    if striking_edge >= 8 and grappling_edge >= 5:
+        return "Complete Skill Edge"
+    if striking_edge >= 8:
+        return "Striking Advantage"
+    if grappling_edge >= 8:
+        return "Grappling Advantage"
+    if profile["ufc_pressure_rating"] >= 90:
+        return "Pressure Fighter Edge"
+    if profile["ufc_counter_rating"] >= 90:
+        return "Counter Striker Edge"
+    return "Balanced Matchup"
+
+
+def get_ufc_v2_matchup_data(fighter, opponent):
+    profile = get_ufc_profile_v2(fighter)
+    opp = get_ufc_profile_v2(opponent)
+
+    overall_diff = profile["ufc_overall_rating"] - opp["ufc_overall_rating"]
+    striking_diff = profile["ufc_striking_rating"] - opp["ufc_striking_rating"]
+    power_diff = profile["ufc_power_rating"] - opp["ufc_power_rating"]
+    speed_diff = profile["ufc_speed_rating"] - opp["ufc_speed_rating"]
+    cardio_diff = profile["ufc_cardio_rating"] - opp["ufc_cardio_rating"]
+    durability_diff = profile["ufc_durability_rating"] - opp["ufc_durability_rating"]
+    iq_diff = profile["ufc_fight_iq_rating"] - opp["ufc_fight_iq_rating"]
+
+    takedown_diff = profile["ufc_takedown_rating"] - opp["ufc_takedown_defense"]
+    td_def_diff = profile["ufc_takedown_defense"] - opp["ufc_takedown_rating"]
+    submission_diff = profile["ufc_submission_rating"] - opp["ufc_submission_rating"]
+    control_diff = profile["ufc_control_rating"] - opp["ufc_control_rating"]
+
+    reach_diff = profile["ufc_reach_inches"] - opp["ufc_reach_inches"]
+    height_diff = profile["ufc_height_inches"] - opp["ufc_height_inches"]
+    experience_diff = profile["ufc_experience_rating"] - opp["ufc_experience_rating"]
+    finish_diff = profile["ufc_finish_rating"] - opp["ufc_finish_rating"]
+    pressure_diff = profile["ufc_pressure_rating"] - opp["ufc_pressure_rating"]
+    counter_diff = profile["ufc_counter_rating"] - opp["ufc_counter_rating"]
+
+    age_curve = get_ufc_age_curve_adjustment(profile["ufc_age"]) - get_ufc_age_curve_adjustment(opp["ufc_age"])
+
+    adjustment = 0
+    adjustment += overall_diff * 0.07
+    adjustment += striking_diff * 0.025
+    adjustment += power_diff * 0.018
+    adjustment += speed_diff * 0.018
+    adjustment += cardio_diff * 0.025
+    adjustment += durability_diff * 0.02
+    adjustment += iq_diff * 0.025
+    adjustment += takedown_diff * 0.028
+    adjustment += td_def_diff * 0.018
+    adjustment += submission_diff * 0.018
+    adjustment += control_diff * 0.022
+    adjustment += reach_diff * 0.035
+    adjustment += height_diff * 0.02
+    adjustment += experience_diff * 0.018
+    adjustment += finish_diff * 0.018
+    adjustment += pressure_diff * 0.012
+    adjustment += counter_diff * 0.012
+    adjustment += age_curve
+
+    notes = []
+
+    if overall_diff >= 8:
+        notes.append("Overall fighter rating edge.")
+    if striking_diff >= 8:
+        notes.append("Clear striking advantage.")
+    if takedown_diff >= 8:
+        notes.append("Takedown path advantage.")
+    if td_def_diff >= 8:
+        notes.append("Strong takedown defense matchup.")
+    if cardio_diff >= 8:
+        notes.append("Cardio advantage.")
+    if durability_diff >= 8:
+        notes.append("Durability edge.")
+    if iq_diff >= 8:
+        notes.append("Fight IQ edge.")
+    if finish_diff >= 8:
+        notes.append("Finishing upside.")
+    if reach_diff >= 3:
+        notes.append("Meaningful reach advantage.")
+    if age_curve > 0:
+        notes.append("Positive age-curve adjustment.")
+    if age_curve < 0:
+        notes.append("Negative age-curve adjustment.")
+
+    style_label = get_ufc_style_label(profile, opp)
+
+    estimated_finish_probability = max(
+        8,
+        min(
+            75,
+            32
+            + (finish_diff * 0.75)
+            + (power_diff * 0.45)
+            + (submission_diff * 0.35)
+            + (durability_diff * 0.25),
+        ),
+    )
+
+    estimated_decision_probability = max(10, min(82, 100 - estimated_finish_probability))
+
+    return {
+        "ufc_v2_adjustment": round(adjustment, 2),
+        "ufc_style_matchup": style_label,
+        "ufc_overall_diff": round(overall_diff, 2),
+        "ufc_striking_diff": round(striking_diff, 2),
+        "ufc_power_diff": round(power_diff, 2),
+        "ufc_speed_diff": round(speed_diff, 2),
+        "ufc_cardio_diff": round(cardio_diff, 2),
+        "ufc_durability_diff": round(durability_diff, 2),
+        "ufc_fight_iq_diff": round(iq_diff, 2),
+        "ufc_takedown_path_edge": round(takedown_diff, 2),
+        "ufc_takedown_defense_edge": round(td_def_diff, 2),
+        "ufc_submission_diff": round(submission_diff, 2),
+        "ufc_control_diff": round(control_diff, 2),
+        "ufc_reach_advantage": round(reach_diff, 2),
+        "ufc_height_advantage": round(height_diff, 2),
+        "ufc_age_curve_adjustment": round(age_curve, 2),
+        "ufc_experience_diff": round(experience_diff, 2),
+        "ufc_finish_diff": round(finish_diff, 2),
+        "ufc_pressure_diff": round(pressure_diff, 2),
+        "ufc_counter_diff": round(counter_diff, 2),
+        "ufc_estimated_finish_probability": round(estimated_finish_probability, 2),
+        "ufc_estimated_decision_probability": round(estimated_decision_probability, 2),
+        "ufc_v2_notes": notes,
+        "ufc_profile_v2": profile,
+        "ufc_opponent_profile_v2": opp,
+    }
+
+
+def enhance_ufc_play_v2(play):
+    if play.get("sport") != "UFC":
+        return play
+
+    fighter = play.get("pick")
+    opponent = play.get("opponent")
+
+    if not fighter or not opponent:
+        return play
+
+    data = get_ufc_v2_matchup_data(fighter, opponent)
+    adjustment = data.get("ufc_v2_adjustment", 0)
+
+    play["model_version"] = "ufc_v2_pro_analytics_engine"
+    play["ufc_engine_version"] = "v2_pro"
+    play["ufc_v2_adjustment"] = adjustment
+    play["ufc_style_matchup"] = data.get("ufc_style_matchup")
+    play["ufc_overall_diff"] = data.get("ufc_overall_diff")
+    play["ufc_power_diff"] = data.get("ufc_power_diff")
+    play["ufc_speed_diff"] = data.get("ufc_speed_diff")
+    play["ufc_durability_diff"] = data.get("ufc_durability_diff")
+    play["ufc_fight_iq_diff"] = data.get("ufc_fight_iq_diff")
+    play["ufc_takedown_path_edge"] = data.get("ufc_takedown_path_edge")
+    play["ufc_takedown_defense_edge"] = data.get("ufc_takedown_defense_edge")
+    play["ufc_submission_diff"] = data.get("ufc_submission_diff")
+    play["ufc_control_diff"] = data.get("ufc_control_diff")
+    play["ufc_reach_advantage"] = data.get("ufc_reach_advantage")
+    play["ufc_height_advantage"] = data.get("ufc_height_advantage")
+    play["ufc_age_curve_adjustment"] = data.get("ufc_age_curve_adjustment")
+    play["ufc_estimated_finish_probability"] = data.get("ufc_estimated_finish_probability")
+    play["ufc_estimated_decision_probability"] = data.get("ufc_estimated_decision_probability")
+    play["ufc_v2_notes"] = data.get("ufc_v2_notes")
+
+    for key, value in data.get("ufc_profile_v2", {}).items():
+        play[key] = value
+
+    for key, value in data.get("ufc_opponent_profile_v2", {}).items():
+        play[f"opponent_{key}"] = value
+
+    try:
+        implied = float(play.get("implied_probability") or 0)
+        model_prob = float(play.get("model_probability") or implied)
+        model_prob = max(1, min(99, model_prob + adjustment))
+        play["model_probability"] = round(model_prob, 2)
+        play["edge"] = round(model_prob - implied, 2)
+
+        confidence = float(play.get("confidence") or 60)
+        confidence += adjustment * 1.35
+        confidence += max(0, float(data.get("ufc_overall_diff") or 0)) * 0.25
+        play["confidence"] = round(max(1, min(99, confidence)), 0)
+
+        edge = float(play.get("edge") or 0)
+        if edge >= 5:
+            play["recommendation"] = "Play"
+        elif edge >= 2:
+            play["recommendation"] = "Lean"
+        else:
+            play["recommendation"] = "Pass"
+
+        if edge >= 6 and play["confidence"] >= 85:
+            play["units"] = 2
+        elif edge >= 5:
+            play["units"] = 1.5
+        elif edge >= 2:
+            play["units"] = 1
+        else:
+            play["units"] = 0
+    except Exception:
+        pass
+
+    play["reason"] = (
+        (play.get("reason") or "")
+        + f" UFC v2 Pro adjustment ({adjustment}). "
+        + f"Style matchup: {data.get('ufc_style_matchup')}. "
+        + f"Overall diff ({data.get('ufc_overall_diff')}). "
+        + f"Striking diff ({data.get('ufc_striking_diff')}). "
+        + f"Takedown path edge ({data.get('ufc_takedown_path_edge')}). "
+        + f"Reach advantage ({data.get('ufc_reach_advantage')}). "
+        + f"Finish probability estimate ({data.get('ufc_estimated_finish_probability')}%). "
+        + " ".join(data.get("ufc_v2_notes") or [])
+        + " "
+    )
+
+    try:
+        play.update(get_sharp_signal(play))
+        play.update(get_best_sportsbook_price(play))
+        play.update(get_market_intelligence(play))
+        play.update(get_final_model_rating(play))
+        play.update(get_universal_pod_score(play))
+    except Exception:
+        pass
+
+    return play
+
+
+
 @app.get("/model/ufc/today")
 def model_ufc_today(force_refresh=False):
     cached = get_cache("ufc_model")
@@ -8667,7 +9069,7 @@ def model_ufc_today(force_refresh=False):
         return {
             "plays": cached,
             "top_play": cached[0] if cached else None,
-            "model_version": "ufc_v1_fighter_market_engine",
+            "model_version": "ufc_v2_pro_analytics_engine",
         }
 
     try:
@@ -8685,7 +9087,7 @@ def model_ufc_today(force_refresh=False):
                 "plays": [],
                 "top_play": None,
                 "error": f"Odds API error {response.status_code}: {response.text}",
-                "model_version": "ufc_v1_fighter_market_engine",
+                "model_version": "ufc_v2_pro_analytics_engine",
             }
 
         events = response.json()
@@ -8777,7 +9179,7 @@ def model_ufc_today(force_refresh=False):
                             "confidence": confidence,
                             "recommendation": recommendation,
                             "units": units,
-                            "model_version": "ufc_v1_fighter_market_engine",
+                            "model_version": "ufc_v2_pro_analytics_engine",
                             "opponent": opponent,
                             "ufc_adjustment": adjustment,
                             "ufc_notes": matchup.get("ufc_notes"),
@@ -8806,6 +9208,8 @@ def model_ufc_today(force_refresh=False):
 
                         plays.append(play)
 
+        plays = [enhance_ufc_play_v2(play) for play in plays]
+
         final = sorted(
             plays,
             key=lambda x: (
@@ -8822,7 +9226,7 @@ def model_ufc_today(force_refresh=False):
         return {
             "plays": final,
             "top_play": final[0] if final else None,
-            "model_version": "ufc_v1_fighter_market_engine",
+            "model_version": "ufc_v2_pro_analytics_engine",
         }
 
     except Exception as e:
@@ -8830,7 +9234,7 @@ def model_ufc_today(force_refresh=False):
             "plays": [],
             "top_play": None,
             "error": str(e),
-            "model_version": "ufc_v1_fighter_market_engine",
+            "model_version": "ufc_v2_pro_analytics_engine",
         }
 
 
@@ -11841,7 +12245,7 @@ def refresh_ufc_models():
         return {
             "success": True,
             "sport": "UFC",
-            "model": "ufc_v1_fighter_market_engine",
+            "model": "ufc_v2_pro_analytics_engine",
             "count": len(response.get("plays", [])) if isinstance(response, dict) else 0,
         }
     except Exception as e:
