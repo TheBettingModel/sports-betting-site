@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-function formatOdds(value) {
+
+function normalizeBestBySport(data) {
+  const pick = data?.play_of_the_day || data?.overall_play;
+  const raw = data?.best_by_sport || data?.by_sport || {};
+  const cleaned = { ...raw };
+
+  if (pick?.sport) cleaned[pick.sport] = pick;
+  if (pick?.pod_sport) cleaned[pick.pod_sport] = pick;
+
+  return cleaned;
+}
+\nfunction formatOdds(value) {
   if (value === null || value === undefined || value === "") return "N/A";
   const num = Number(value);
   if (Number.isNaN(num)) return value;
@@ -111,7 +122,7 @@ function PlayOfTheDayPage() {
             <h2 style={{ marginBottom: "18px", fontSize: "28px" }}>Best Play By Sport</h2>
 
             <div style={sportGridStyle}>
-              {Object.entries(bestBySport).map(([sport, play]) => (
+              {Object.entries(normalizeBestBySport(data)).map(([sport, play]) => (
                 <div key={sport} style={sportCardStyle}>
                   <div style={labelStyle}>{sport}</div>
                   <h3 style={{ color: "#facc15" }}>{play.pick}</h3>

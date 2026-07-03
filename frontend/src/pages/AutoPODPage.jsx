@@ -1,13 +1,24 @@
 import { useEffect, useState } from "react";
 
-function AutoPODPage() {
+
+function normalizeBestBySport(data) {
+  const pick = data?.play_of_the_day || data?.overall_play;
+  const raw = data?.best_by_sport || data?.by_sport || {};
+  const cleaned = { ...raw };
+
+  if (pick?.sport) cleaned[pick.sport] = pick;
+  if (pick?.pod_sport) cleaned[pick.pod_sport] = pick;
+
+  return cleaned;
+}
+\nfunction AutoPODPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    fetch(`${API_URL}/model/play-of-the-day-v2`)
+    fetch(`${API_URL}/homepage`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -172,7 +183,7 @@ function AutoPODPage() {
             <h2>Best Play by Sport</h2>
 
             <div style={gridStyle}>
-              {Object.entries(bySport).map(([sport, play]) =>
+              {Object.entries(normalizeBestBySport(data)).map(([sport, play]) =>
                 renderPodCard(`${sport} POD`, sportEmojis[sport] || "⭐", play)
               )}
             </div>
