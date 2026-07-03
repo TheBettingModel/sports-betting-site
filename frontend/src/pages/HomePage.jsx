@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
+import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -92,34 +93,7 @@ function FlagshipPlay({ play }) {
 }
 
 function TopPlayRow({ play, index }) {
-  if (!play) return null;
-
-  return (
-    <div style={topRowStyle}>
-      <div style={rankStyle}>#{index + 1}</div>
-
-      <div style={{ flex: 1 }}>
-        <div style={rowHeaderStyle}>
-          <strong>{play.pick}</strong>
-          <span>{formatOdds(odds(play))}</span>
-        </div>
-        <p style={rowSubStyle}>{play.game}</p>
-      </div>
-
-      <div style={rowMetricsStyle}>
-        <span>{sport(play)}</span>
-        <span>{play.market || "N/A"}</span>
-        <span>{book(play)}</span>
-        <span>{stars(play)}</span>
-        <span>Edge {play.edge ?? "N/A"}%</span>
-        <span>Conf {play.confidence ?? "N/A"}</span>
-        <span>POD {score(play).toFixed(2)}</span>
-        <span>{play.market_intelligence_grade || "Grade N/A"}</span>
-      </div>
-
-      <Pill tone="green">{rec(play)}</Pill>
-    </div>
-  );
+  return <TBMTopPlayRow play={play} index={index} />;
 }
 
 function SportCard({ name, play }) {

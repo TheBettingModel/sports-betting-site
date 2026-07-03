@@ -1,0 +1,121 @@
+.tbm-top-play-row-v2 {
+  display: grid;
+  grid-template-columns: 40px 1.55fr 1.25fr 90px 110px 100px 130px 80px 80px;
+  align-items: center;
+  gap: 14px;
+  min-height: 78px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.tbm-top-play-row-v2:hover {
+  background: rgba(69, 255, 84, 0.035);
+}
+
+.tbm-top-rank {
+  color: #cbd5e1;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.tbm-top-matchup {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.tbm-top-logos {
+  display: flex;
+  align-items: center;
+}
+
+.tbm-top-logos .tbm-real-logo-shell + .tbm-real-logo-shell {
+  margin-left: -10px;
+}
+
+.tbm-top-matchup strong,
+.tbm-top-pick strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-top-matchup span,
+.tbm-top-pick span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.tbm-top-odds {
+  justify-self: start;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: rgba(37, 99, 235, 0.15);
+  color: #93c5fd;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-top-score,
+.tbm-top-grade {
+  justify-self: start;
+  border: 1px solid rgba(69, 255, 84, 0.26);
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-top-edge {
+  color: #45ff54;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-top-book {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.tbm-top-conf {
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+@media (max-width: 1100px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 32px 1fr 1fr 80px;
+  }
+
+  .tbm-top-score,
+  .tbm-top-edge,
+  .tbm-top-book,
+  .tbm-top-grade,
+  .tbm-top-conf {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-top-rank {
+    display: none;
+  }
+}
