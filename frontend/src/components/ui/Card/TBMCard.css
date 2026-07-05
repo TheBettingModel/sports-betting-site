@@ -1,0 +1,16 @@
+.tbm-ui-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.07), transparent 34%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.32);
+  color: #f8fafc;
+}
+
+.tbm-ui-card.glow {
+  border-color: rgba(69, 255, 84, 0.42);
+  box-shadow:
+    0 0 0 1px rgba(69, 255, 84, 0.08),
+    0 22px 70px rgba(0, 0, 0, 0.42);
+}
