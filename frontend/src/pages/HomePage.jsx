@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
 import TBMSportCard from "../components/home/TBMSportCard";
+import TBMKpiRow from "../components/home/TBMKpiRow";
 import "../components/home/TBMDashboardFramework.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -253,6 +254,8 @@ export default function HomePage() {
         <p>Loading dashboard...</p>
       ) : (
         <>
+          <TBMKpiRow flagship={flagship} topPlays={topPlays} />
+
           <FlagshipPlay play={flagship} />
 
           <section style={sectionStyle}>
