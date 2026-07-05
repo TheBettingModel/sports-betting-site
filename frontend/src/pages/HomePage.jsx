@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
+import TBMSportCard from "../components/home/TBMSportCard";
 import "../components/home/TBMDashboardFramework.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -98,26 +99,7 @@ function TopPlayRow({ play, index }) {
 }
 
 function SportCard({ name, play }) {
-  if (!play) return null;
-
-  return (
-    <a href={sportPath(name)} style={sportCardStyle}>
-      <div style={sportCardTopStyle}>
-        <LogoBubble label={name} emoji={sportEmoji(name)} />
-        <strong>{score(play).toFixed(1)}</strong>
-      </div>
-
-      <h3 style={sportPickStyle}>{play.pick}</h3>
-      <p style={sportGameStyle}>{play.game}</p>
-
-      <div style={sportMetricRowStyle}>
-        <span>{play.market || "N/A"}</span>
-        <span>{formatOdds(odds(play))}</span>
-        <span>{play.confidence ?? "N/A"}%</span>
-        <span>{rec(play)}</span>
-      </div>
-    </a>
-  );
+  return <TBMSportCard name={name} play={play} href={sportPath(name)} />;
 }
 
 function sportEmoji(name) {
