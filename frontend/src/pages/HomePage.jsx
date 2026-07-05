@@ -254,7 +254,7 @@ export default function HomePage() {
         <p>Loading dashboard...</p>
       ) : (
         <>
-          <TBMKpiRow flagship={flagship} topPlays={topPlays} />
+          <TBMKpiRow flagship={flagship} topPlays={topThree} />
 
           <FlagshipPlay play={flagship} />
 
