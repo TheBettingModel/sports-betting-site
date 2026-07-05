@@ -17,35 +17,35 @@ const pageTitles = {
   "/model/ufc": "UFC Model",
 };
 
-const mainLinks = [
-  { label: "Dashboard", path: "/", icon: "D" },
-  { label: "Play of the Day", path: "/auto-pod", icon: "POD" },
-  { label: "Analytics", path: "/analytics", icon: "A" },
-  { label: "Admin", path: "/admin", icon: "SET" },
+const platformLinks = [
+  { label: "Dashboard", path: "/" },
+  { label: "Play of the Day", path: "/auto-pod" },
+  { label: "Analytics", path: "/analytics" },
+  { label: "Admin", path: "/admin" },
 ];
 
-const sportsLinks = [
-  { label: "MLB", path: "/mlb-model", icon: "MLB" },
-  { label: "NBA", path: "/model-board", icon: "NBA" },
-  { label: "NFL", path: "/nfl-model", icon: "NFL" },
-  { label: "NHL", path: "/nhl-model", icon: "NHL" },
-  { label: "WNBA", path: "/wnba-model", icon: "WNBA" },
-  { label: "Soccer", path: "/soccer-model", icon: "SOC" },
-  { label: "NCAAF", path: "/ncaaf-model", icon: "CFB" },
-  { label: "NCAAMB", path: "/model/ncaamb", icon: "CBB" },
-  { label: "UFC", path: "/model/ufc", icon: "UFC" },
+const sportLinks = [
+  { label: "MLB", path: "/mlb-model" },
+  { label: "NBA", path: "/model-board" },
+  { label: "NFL", path: "/nfl-model" },
+  { label: "NHL", path: "/nhl-model" },
+  { label: "WNBA", path: "/wnba-model" },
+  { label: "Soccer", path: "/soccer-model" },
+  { label: "NCAAF", path: "/ncaaf-model" },
+  { label: "NCAAMB", path: "/model/ncaamb" },
+  { label: "UFC", path: "/model/ufc" },
 ];
 
 function SidebarLink({ item }) {
   return (
     <NavLink
       to={item.path}
+      end={item.path === "/"}
       className={({ isActive }) =>
         isActive ? "tbm-shell-link active" : "tbm-shell-link"
       }
     >
-      <span className="tbm-shell-link-icon">{item.icon}</span>
-      <strong>{item.label}</strong>
+      {item.label}
     </NavLink>
   );
 }
@@ -68,24 +68,18 @@ export default function TBMAppShell({ children }) {
         <nav className="tbm-app-nav">
           <div className="tbm-app-nav-title">Platform</div>
           <div className="tbm-app-nav-group">
-            {mainLinks.map((item) => (
+            {platformLinks.map((item) => (
               <SidebarLink key={item.path} item={item} />
             ))}
           </div>
 
           <div className="tbm-app-nav-title">Sports Models</div>
           <div className="tbm-app-nav-group">
-            {sportsLinks.map((item) => (
+            {sportLinks.map((item) => (
               <SidebarLink key={item.path} item={item} />
             ))}
           </div>
         </nav>
-
-        <div className="tbm-app-pro">
-          <span>PRO ACCESS</span>
-          <strong>Full Model Dashboard</strong>
-          <p>Unlock full card, market intelligence, performance tracking, and advanced model pages.</p>
-        </div>
       </aside>
 
       <main className="tbm-app-main">
@@ -99,7 +93,6 @@ export default function TBMAppShell({ children }) {
             <span className="tbm-app-market-open">Market Open</span>
             <button type="button">Search</button>
             <button type="button">Alerts</button>
-            <div className="tbm-app-profile">TBM</div>
           </div>
         </header>
 
