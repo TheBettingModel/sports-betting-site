@@ -24,6 +24,7 @@ import AutoPODPage from "./pages/AutoPODPage";
 import AdminPage from "./pages/AdminPage";
 
 import SoccerModelPage from "./pages/SoccerModelPage";
+import TBMAppShell from "./components/layout/TBMAppShell";
 
 function App() {
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -37,122 +38,7 @@ function App() {
   };
 
   return (
-    <div style={appStyle}>
-      <nav style={navStyle}>
-        <Link style={logoStyle} to="/" onClick={closeDropdown}>
-          The Betting Model
-        </Link>
-
-        <div style={leftNavStyle}>
-          <Link style={linkStyle} to="/" onClick={closeDropdown}>
-            Home
-          </Link>
-
-          <Link style={linkStyle} to="/auto-pod" onClick={closeDropdown}>
-            Play of the Day
-          </Link>
-
-          <div style={dropdownStyle}>
-            <button
-              style={dropdownButtonStyle}
-              onClick={() => toggleDropdown("sports")}
-            >
-              Sports ▾
-            </button>
-
-            {openDropdown === "sports" && (
-              <div style={dropdownMenuStyle}>
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/model-board"
-                  onClick={closeDropdown}
-                >
-                  🏀 NBA
-                </Link>
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/mlb-model"
-                  onClick={closeDropdown}
-                >
-                  ⚾ MLB
-                </Link>
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/soccer-model"
-                  onClick={closeDropdown}
-                >
-                  ⚽ Soccer
-                </Link>
-
-                <div style={dropdownDividerStyle} />
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/nfl-model"
-                  onClick={closeDropdown}
-                >
-                  🏈 NFL
-                </Link>
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/wnba-model"
-                  onClick={closeDropdown}
-                >
-                  🏀 WNBA
-                </Link>
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/nhl-model"
-                  onClick={closeDropdown}
-                >
-                  🏒 NHL
-                </Link>
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/ncaaf-model"
-                  onClick={closeDropdown}
-                >
-                  🏈 NCAAF
-                </Link>
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/model/ncaamb"
-                  onClick={closeDropdown}
-                >
-                  🏀 NCAA Basketball
-                </Link>
-
-                <Link
-                  style={dropdownLinkStyle}
-                  to="/model/ufc"
-                  onClick={closeDropdown}
-                >
-                  🥊 UFC
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={rightNavStyle}>
-          <Link
-            style={linkStyle}
-            to="/analytics"
-            onClick={closeDropdown}
-          >
-            Analytics
-          </Link>
-
-          <Link style={adminLinkStyle} to="/admin" onClick={closeDropdown}>
-            Admin
-          </Link>
-        </div>
-      </nav>
+    <TBMAppShell>
 
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -230,7 +116,7 @@ function App() {
           <Route path="/model/ufc" element={<UFCModelPage />} />
 
         </Routes>
-    </div>
+    </TBMAppShell>
   );
 }
 

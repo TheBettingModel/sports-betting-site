@@ -1,0 +1,248 @@
+.tbm-app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 30%),
+    #03080d;
+  color: #f8fafc;
+}
+
+.tbm-app-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    linear-gradient(180deg, rgba(7, 17, 25, 0.98), rgba(2, 8, 13, 0.98));
+  padding: 18px 14px;
+}
+
+.tbm-app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 6px 20px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  margin-bottom: 14px;
+}
+
+.tbm-app-brand-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(69, 255, 84, 0.34);
+  background: rgba(69, 255, 84, 0.1);
+  color: #45ff54;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.tbm-app-brand h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.tbm-app-brand p {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tbm-app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tbm-app-nav-title {
+  padding: 8px 12px 2px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tbm-app-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tbm-shell-link {
+  min-height: 43px;
+  border-radius: 11px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: 0.18s ease;
+}
+
+.tbm-shell-link span {
+  width: 22px;
+  display: grid;
+  place-items: center;
+}
+
+.tbm-shell-link strong {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.tbm-shell-link:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: white;
+}
+
+.tbm-shell-link.active {
+  background: linear-gradient(90deg, rgba(69, 255, 84, 0.2), rgba(69, 255, 84, 0.05));
+  color: white;
+  box-shadow: inset 3px 0 0 #45ff54;
+}
+
+.tbm-app-pro {
+  margin-top: 20px;
+  border: 1px solid rgba(69, 255, 84, 0.22);
+  border-radius: 16px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.11), transparent 35%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.tbm-app-pro span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.tbm-app-pro strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.tbm-app-pro p {
+  margin: 7px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tbm-app-main {
+  min-width: 0;
+}
+
+.tbm-app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 82px;
+  padding: 18px 26px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(3, 8, 13, 0.82);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tbm-app-topbar h1 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.tbm-app-topbar p {
+  margin: 5px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.tbm-app-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tbm-app-top-actions button,
+.tbm-app-market-open {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f8fafc;
+  padding: 9px 13px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.tbm-app-market-open {
+  border-color: rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  text-transform: uppercase;
+}
+
+.tbm-app-content {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .tbm-app-shell {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .tbm-app-brand div:not(.tbm-app-brand-mark),
+  .tbm-shell-link strong,
+  .tbm-app-nav-title,
+  .tbm-app-pro {
+    display: none;
+  }
+
+  .tbm-app-brand {
+    justify-content: center;
+  }
+
+  .tbm-shell-link {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .tbm-app-shell {
+    display: block;
+  }
+
+  .tbm-app-sidebar {
+    display: none;
+  }
+
+  .tbm-app-topbar {
+    position: static;
+    display: block;
+    padding: 16px;
+  }
+
+  .tbm-app-top-actions {
+    margin-top: 12px;
+    overflow-x: auto;
+  }
+}
