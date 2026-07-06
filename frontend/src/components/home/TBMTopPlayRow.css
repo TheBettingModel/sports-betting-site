@@ -119,3 +119,26 @@
     display: none;
   }
 }
+
+.tbm-top-matchup > div:last-child {
+  min-width: 0;
+}
+
+.tbm-top-matchup strong {
+  max-width: 100%;
+  line-height: 1.2;
+}
+
+.tbm-top-pick {
+  min-width: 0;
+}
+
+.tbm-top-play-row-v2 {
+  overflow: hidden;
+}
+
+@media (max-width: 1280px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 78px;
+  }
+}
