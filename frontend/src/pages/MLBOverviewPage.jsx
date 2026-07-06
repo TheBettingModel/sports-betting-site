@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import MLBTabs from "../components/MLBTabs";
 import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
 import { TBMPage, TBMCard } from "../components/ui";
+import MLBIntelligenceCenter from "../components/mlb/MLBIntelligenceCenter";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -259,6 +260,8 @@ export default function MLBOverviewPage() {
       {error && <p className="mlb-v4-error">{error}</p>}
 
       <TopPlayTable plays={topPlays} />
+
+      <MLBIntelligenceCenter plays={allPlays} />
 
       <section className="mlb-v4-card-grid">
         <TBMCard className="mlb-v4-panel">
