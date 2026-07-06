@@ -1,0 +1,81 @@
+.mlb-slate-command {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  margin: 18px 0;
+  border-color: rgba(69, 255, 84, 0.32);
+}
+
+.mlb-slate-command-left span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mlb-slate-command-left strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fafc;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.mlb-slate-command-left small {
+  display: block;
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mlb-slate-command-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mlb-slate-command-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 13px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-slate-command-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-slate-command-grid strong {
+  display: block;
+  margin-top: 7px;
+  color: #45ff54;
+  font-size: 16px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1150px) {
+  .mlb-slate-command {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-slate-command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .mlb-slate-command-grid {
+    grid-template-columns: 1fr;
+  }
+}

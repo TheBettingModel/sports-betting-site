@@ -3,6 +3,7 @@ import MLBTabs from "../components/MLBTabs";
 import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
 import { TBMPage, TBMCard } from "../components/ui";
 import MLBIntelligenceCenter from "../components/mlb/MLBIntelligenceCenter";
+import MLBSlateCommandBar from "../components/mlb/MLBSlateCommandBar";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -258,6 +259,8 @@ export default function MLBOverviewPage() {
       <MLBTabs />
 
       {error && <p className="mlb-v4-error">{error}</p>}
+
+      <MLBSlateCommandBar plays={allPlays} f5Count={f5.length} nrfiCount={nrfi.length} />
 
       <TopPlayTable plays={topPlays} />
 
