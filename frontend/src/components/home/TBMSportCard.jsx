@@ -1,4 +1,5 @@
 import TBMTeamLogo from "../logos/TBMTeamLogo";
+import TBMSportsbookBadge from "../logos/TBMSportsbookBadge";
 import "./TBMSportCard.css";
 
 function formatOdds(value) {
@@ -34,6 +35,10 @@ function getScore(play) {
 
 function getOdds(play) {
   return play?.best_odds ?? play?.odds;
+}
+
+function getBook(play) {
+  return play?.best_sportsbook || play?.best_book || play?.sportsbook || "Best Available";
 }
 
 function getRecommendation(play) {
@@ -80,7 +85,7 @@ export default function TBMSportCard({ name, play, href }) {
 
       <div className="tbm-sport-card-footer-v2">
         <span>{play.market || "Market"}</span>
-        <strong>{getRecommendation(play)}</strong>
+        <TBMSportsbookBadge book={getBook(play)} />
       </div>
     </a>
   );
