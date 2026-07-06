@@ -1,0 +1,118 @@
+.mlb-sharp-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-sharp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-sharp-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-sharp-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.mlb-sharp-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-sharp-meter {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255,255,255,.025);
+  margin-bottom: 14px;
+}
+
+.mlb-sharp-track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.13);
+  overflow: hidden;
+}
+
+.mlb-sharp-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #facc15, #ef4444);
+  box-shadow: 0 0 22px rgba(69, 255, 84, 0.35);
+}
+
+.mlb-sharp-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.mlb-sharp-scale span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.mlb-sharp-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mlb-sharp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.mlb-sharp-row strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.mlb-sharp-row span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mlb-sharp-row em {
+  align-self: center;
+  color: #45ff54;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 950;
+  text-align: right;
+}
+
+.mlb-sharp-empty {
+  color: #94a3b8;
+  padding: 12px;
+}
