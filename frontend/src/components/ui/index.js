@@ -4,3 +4,7 @@ export { default as TBMMetric } from "./Metric/TBMMetric";
 export { default as TBMSection } from "./Section/TBMSection";
 
 export * from "./Layout";
+
+export * from "./Dashboard/TBMDashboardGrid";
+
+export * from "./Dashboard/TBMDashboardGrid";
