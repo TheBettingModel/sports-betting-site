@@ -1,5 +1,4 @@
 import { NavLink, useLocation } from "react-router-dom";
-import TBMLeagueIcon from "../logos/TBMLeagueIcon";
 import "./TBMAppShell.css";
 
 const pageTitles = {
@@ -19,22 +18,22 @@ const pageTitles = {
 };
 
 const platformLinks = [
-  { label: "Dashboard", path: "/", icon: "dashboard" },
-  { label: "Play of the Day", path: "/auto-pod", icon: "pod" },
-  { label: "Analytics", path: "/analytics", icon: "analytics" },
-  { label: "Admin", path: "/admin", icon: "admin" },
+  { label: "Dashboard", path: "/" },
+  { label: "Play of the Day", path: "/auto-pod" },
+  { label: "Analytics", path: "/analytics" },
+  { label: "Admin", path: "/admin" },
 ];
 
 const sportLinks = [
-  { label: "MLB", path: "/mlb-model", icon: "mlb" },
-  { label: "NBA", path: "/model-board", icon: "nba" },
-  { label: "NFL", path: "/nfl-model", icon: "nfl" },
-  { label: "NHL", path: "/nhl-model", icon: "nhl" },
-  { label: "WNBA", path: "/wnba-model", icon: "wnba" },
-  { label: "Soccer", path: "/soccer-model", icon: "soccer" },
-  { label: "NCAAF", path: "/ncaaf-model", icon: "ncaaf" },
-  { label: "NCAAMB", path: "/model/ncaamb", icon: "ncaamb" },
-  { label: "UFC", path: "/model/ufc", icon: "ufc" },
+  { label: "MLB", path: "/mlb-model" },
+  { label: "NBA", path: "/model-board" },
+  { label: "NFL", path: "/nfl-model" },
+  { label: "NHL", path: "/nhl-model" },
+  { label: "Soccer", path: "/soccer-model" },
+  { label: "WNBA", path: "/wnba-model" },
+  { label: "UFC", path: "/model/ufc" },
+  { label: "NCAAF", path: "/ncaaf-model" },
+  { label: "NCAAMB", path: "/model/ncaamb" },
 ];
 
 function SidebarLink({ item }) {
@@ -46,7 +45,7 @@ function SidebarLink({ item }) {
         isActive ? "tbm-shell-link active" : "tbm-shell-link"
       }
     >
-      <TBMLeagueIcon type={item.icon} />
+      <span className="tbm-shell-dot" />
       <span className="tbm-shell-link-label">{item.label}</span>
     </NavLink>
   );

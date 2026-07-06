@@ -71,6 +71,7 @@
 .tbm-shell-link {
   display: flex;
   align-items: center;
+  gap: 11px;
   min-height: 42px;
   border-radius: 10px;
   padding: 0 13px;
@@ -167,4 +168,22 @@
     margin-top: 12px;
     overflow-x: auto;
   }
+}
+
+
+.tbm-shell-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+  flex-shrink: 0;
+}
+
+.tbm-shell-link.active .tbm-shell-dot {
+  background: #45ff54;
+  box-shadow: 0 0 12px rgba(69, 255, 84, 0.75);
+}
+
+.tbm-shell-link-label {
+  flex: 1;
 }
