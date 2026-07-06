@@ -1,0 +1,112 @@
+.mlb-heat-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-heat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-heat-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-heat-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.mlb-heat-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-heat-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mlb-heat-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 15px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-heat-label strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.mlb-heat-label span,
+.mlb-heat-edge span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mlb-heat-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.13);
+  overflow: hidden;
+}
+
+.mlb-heat-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(69, 255, 84, 0.35);
+}
+
+.mlb-heat-bar i.blue { background: #3b82f6; }
+.mlb-heat-bar i.green { background: #45ff54; }
+.mlb-heat-bar i.purple { background: #8b5cf6; }
+.mlb-heat-bar i.orange { background: #f97316; }
+.mlb-heat-bar i.gold { background: #facc15; }
+
+.mlb-heat-edge {
+  text-align: right;
+}
+
+.mlb-heat-edge strong {
+  display: block;
+  color: #45ff54;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+@media (max-width: 760px) {
+  .mlb-heat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-heat-edge {
+    text-align: left;
+  }
+}
