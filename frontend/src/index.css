@@ -3811,3 +3811,247 @@ p[style*="lineHeight: \"1.6\""] {
     grid-template-columns: 1fr;
   }
 }
+
+.mlb-overview-hero-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) 420px;
+  gap: 18px;
+  align-items: start;
+}
+
+.mlb-overview-snapshot {
+  padding: 18px;
+}
+
+.mlb-overview-snapshot-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.mlb-overview-snapshot-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.mlb-overview-snapshot-head strong {
+  color: #45ff54;
+  font-size: 12px;
+}
+
+.mlb-overview-snapshot > div:not(.mlb-overview-snapshot-head) {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  padding: 11px 0;
+}
+
+.mlb-overview-snapshot span {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.mlb-overview-snapshot strong {
+  color: #45ff54;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.mlb-overview-top-panel {
+  margin-top: 18px;
+}
+
+.mlb-overview-panel-header p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.mlb-overview-bottom-clean {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.mlb-overview-progress-list,
+.mlb-overview-driver-list,
+.mlb-overview-roadmap-clean {
+  display: grid;
+  gap: 10px;
+}
+
+.mlb-overview-progress-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 34px 18px;
+  align-items: center;
+  gap: 12px;
+  color: #f8fafc;
+  text-decoration: none;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.mlb-overview-progress-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mlb-overview-progress-row span {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.mlb-overview-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  overflow: hidden;
+}
+
+.mlb-overview-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #45ff54;
+}
+
+.mlb-overview-progress-fill.blue { background: #3b82f6; }
+.mlb-overview-progress-fill.green { background: #45ff54; }
+.mlb-overview-progress-fill.purple { background: #8b5cf6; }
+.mlb-overview-progress-fill.orange { background: #f97316; }
+.mlb-overview-progress-fill.gold { background: #facc15; }
+
+.mlb-overview-progress-row strong {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.mlb-overview-progress-row em {
+  color: #94a3b8;
+  font-style: normal;
+  font-size: 20px;
+}
+
+.mlb-overview-driver {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-overview-driver strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.mlb-overview-driver span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mlb-overview-driver em {
+  align-self: center;
+  color: #45ff54;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.mlb-overview-driver em.gold {
+  color: #facc15;
+}
+
+.mlb-overview-book-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.mlb-overview-book-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255,255,255,.025);
+  text-align: center;
+}
+
+.mlb-overview-book-grid span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.mlb-overview-book-grid strong {
+  display: block;
+  margin-top: 10px;
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.mlb-overview-book-grid small {
+  display: block;
+  margin-top: 8px;
+  color: #45ff54;
+  font-size: 12px;
+}
+
+.mlb-overview-roadmap-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.mlb-overview-roadmap-row span {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #94a3b8;
+}
+
+.mlb-overview-roadmap-row span.done {
+  background: rgba(69, 255, 84, 0.15);
+  color: #45ff54;
+  border-color: rgba(69, 255, 84, 0.35);
+}
+
+.mlb-overview-roadmap-row strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.mlb-overview-roadmap-row em {
+  color: #94a3b8;
+  font-style: normal;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .mlb-overview-hero-row,
+  .mlb-overview-bottom-clean {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .mlb-overview-progress-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-overview-book-grid {
+    grid-template-columns: 1fr;
+  }
+}

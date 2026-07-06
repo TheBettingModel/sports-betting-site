@@ -31,13 +31,40 @@ function topMarket(plays) {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
 }
 
-function MarketTile({ title, value, sub, href }) {
+function ProgressRow({ label, value, max = 10, href, tone = "green" }) {
+  const pct = Math.min(100, Math.max(8, (Number(value || 0) / Math.max(max, 1)) * 100));
+
   return (
-    <a className="mlb-overview-tile" href={href}>
-      <span>{title}</span>
+    <a className="mlb-overview-progress-row" href={href}>
+      <span>{label}</span>
+      <div className="mlb-overview-progress-track">
+        <div className={`mlb-overview-progress-fill ${tone}`} style={{ width: `${pct}%` }} />
+      </div>
       <strong>{value}</strong>
-      <small>{sub}</small>
+      <em>›</em>
     </a>
+  );
+}
+
+function EdgeDriver({ title, text, grade = "Strong", tone = "green" }) {
+  return (
+    <div className="mlb-overview-driver">
+      <div>
+        <strong>{title}</strong>
+        <span>{text}</span>
+      </div>
+      <em className={tone}>{grade}</em>
+    </div>
+  );
+}
+
+function RoadmapItem({ title, status, complete = false }) {
+  return (
+    <div className="mlb-overview-roadmap-row">
+      <span className={complete ? "done" : ""}>{complete ? "✓" : "○"}</span>
+      <strong>{title}</strong>
+      <em>{status}</em>
+    </div>
   );
 }
 
@@ -78,9 +105,9 @@ export default function MLBOverviewPage() {
 
   const allPlays = useMemo(() => {
     return [
-      ...fullGame.map((p) => ({ ...p, overview_market: p.market || "Full Game" })),
-      ...f5.map((p) => ({ ...p, overview_market: p.market || "First 5" })),
-      ...nrfi.map((p) => ({ ...p, overview_market: p.market || "NRFI/YRFI" })),
+      ...fullGame.map((p) => ({ ...p, sport: "MLB", overview_market: p.market || "Full Game" })),
+      ...f5.map((p) => ({ ...p, sport: "MLB", overview_market: p.market || "First 5" })),
+      ...nrfi.map((p) => ({ ...p, sport: "MLB", overview_market: p.market || "NRFI/YRFI" })),
     ];
   }, [fullGame, f5, nrfi]);
 
@@ -93,16 +120,30 @@ export default function MLBOverviewPage() {
   const moneylineCount = marketCount(fullGame, "moneyline");
   const runLineCount = marketCount(fullGame, "run");
   const totalsCount = marketCount(fullGame, "total");
+  const maxMarketCount = Math.max(moneylineCount, runLineCount, totalsCount, f5.length, nrfi.length, 1);
 
   return (
     <TBMPage className="mlb-overview-page">
-      <div className="mlb-overview-header">
-        <span>MLB Overview</span>
-        <h1>MLB Dashboard</h1>
-        <p>
-          Complete MLB command center for full game, run line, totals, first five,
-          NRFI/YRFI, market intelligence, line shopping, and top model edges.
-        </p>
+      <div className="mlb-overview-hero-row">
+        <div className="mlb-overview-header">
+          <span>MLB Overview</span>
+          <h1>MLB Dashboard</h1>
+          <p>
+            Complete MLB command center for every market with model edges, sharp signals,
+            line value, pitching advantages, weather, bullpen risk, and pricing intelligence.
+          </p>
+        </div>
+
+        <TBMCard className="mlb-overview-snapshot">
+          <div className="mlb-overview-snapshot-head">
+            <h2>Today’s Snapshot</h2>
+            <strong>● Live</strong>
+          </div>
+          <div><span>Total Plays</span><strong>{allPlays.length}</strong></div>
+          <div><span>Avg Edge</span><strong>{avgEdge(allPlays).toFixed(2)}%</strong></div>
+          <div><span>Sharp Signals</span><strong>{sharpCount(allPlays)}</strong></div>
+          <div><span>Top Market</span><strong>{topMarket(allPlays)}</strong></div>
+        </TBMCard>
       </div>
 
       <MLBTabs />
@@ -117,70 +158,82 @@ export default function MLBOverviewPage() {
         <TBMMetric label="F5 / NRFI Plays" value={`${f5.length} / ${nrfi.length}`} />
       </TBMGrid>
 
-      <section className="mlb-overview-main">
-        <TBMCard className="mlb-overview-panel">
-          <div className="mlb-overview-panel-header">
-            <span>Top MLB Edges</span>
-            <h2>Best Plays Across Every MLB Market</h2>
-          </div>
+      <TBMCard className="mlb-overview-panel mlb-overview-top-panel">
+        <div className="mlb-overview-panel-header">
+          <span>Top MLB Edges</span>
+          <h2>Best Plays Across Every MLB Market</h2>
+          <p>The best model opportunities ranked by edge.</p>
+        </div>
 
-          <div className="mlb-overview-top-list">
-            {topPlays.length > 0 ? (
-              topPlays.map((play, index) => (
-                <TBMTopPlayRow
-                  key={`${play.game}-${play.pick}-${index}`}
-                  play={{ ...play, sport: "MLB" }}
-                  index={index}
-                />
-              ))
-            ) : (
-              <div className="mlb-overview-empty">No MLB plays available.</div>
-            )}
-          </div>
-        </TBMCard>
+        <div className="mlb-overview-top-list">
+          {topPlays.length > 0 ? (
+            topPlays.map((play, index) => (
+              <TBMTopPlayRow
+                key={`${play.game}-${play.pick}-${index}`}
+                play={play}
+                index={index}
+              />
+            ))
+          ) : (
+            <div className="mlb-overview-empty">No MLB plays available.</div>
+          )}
+        </div>
+      </TBMCard>
 
+      <section className="mlb-overview-bottom-clean">
         <TBMCard className="mlb-overview-panel">
           <div className="mlb-overview-panel-header">
             <span>Market Breakdown</span>
-            <h2>MLB Model Boards</h2>
+            <h2>Plays by Market</h2>
           </div>
 
-          <div className="mlb-overview-market-grid">
-            <MarketTile title="Moneyline" value={moneylineCount} sub="Full game ML" href="/mlb-model" />
-            <MarketTile title="Run Line" value={runLineCount} sub="Spread market" href="/mlb-runline" />
-            <MarketTile title="Totals" value={totalsCount} sub="Over / Under" href="/mlb-totals" />
-            <MarketTile title="First 5" value={f5.length} sub="F5 markets" href="/mlb-f5" />
-            <MarketTile title="NRFI/YRFI" value={nrfi.length} sub="First inning" href="/mlb-nrfi" />
-          </div>
-        </TBMCard>
-      </section>
-
-      <section className="mlb-overview-bottom">
-        <TBMCard className="mlb-overview-panel">
-          <div className="mlb-overview-panel-header">
-            <span>Model Intelligence</span>
-            <h2>What This Dashboard Is Watching</h2>
-          </div>
-
-          <div className="mlb-overview-intel-grid">
-            <TBMMetric label="Pitching Edge" value="Starter Rating" />
-            <TBMMetric label="Bullpen Edge" value="Fatigue + Form" />
-            <TBMMetric label="Weather Edge" value="Risk + Park" />
-            <TBMMetric label="Market Edge" value="Sharp + CLV" accent />
+          <div className="mlb-overview-progress-list">
+            <ProgressRow label="Moneyline" value={moneylineCount} max={maxMarketCount} href="/mlb-model" tone="blue" />
+            <ProgressRow label="Run Line" value={runLineCount} max={maxMarketCount} href="/mlb-runline" tone="green" />
+            <ProgressRow label="Totals" value={totalsCount} max={maxMarketCount} href="/mlb-totals" tone="purple" />
+            <ProgressRow label="First 5" value={f5.length} max={maxMarketCount} href="/mlb-f5" tone="orange" />
+            <ProgressRow label="NRFI / YRFI" value={nrfi.length} max={maxMarketCount} href="/mlb-nrfi" tone="gold" />
           </div>
         </TBMCard>
 
         <TBMCard className="mlb-overview-panel">
           <div className="mlb-overview-panel-header">
-            <span>Next Build</span>
+            <span>Model Edge Drivers</span>
+            <h2>Key Factors Powering Today</h2>
+          </div>
+
+          <div className="mlb-overview-driver-list">
+            <EdgeDriver title="Pitching Edge" text="Starter ratings, form, and matchup advantage" />
+            <EdgeDriver title="Bullpen Edge" text="Fatigue, leverage usage, and recent form" />
+            <EdgeDriver title="Weather & Park" text="Weather risk, wind, totals pressure, and park factors" grade="Moderate" tone="gold" />
+            <EdgeDriver title="Market Intelligence" text="Sharp action, CLV trends, steam, and timing" />
+          </div>
+        </TBMCard>
+
+        <TBMCard className="mlb-overview-panel">
+          <div className="mlb-overview-panel-header">
+            <span>Line Shopping</span>
+            <h2>Best Price Intelligence</h2>
+          </div>
+
+          <div className="mlb-overview-book-grid">
+            <div><span>Best Overall Book</span><strong>FanDuel</strong><small>Top Prices</small></div>
+            <div><span>Most Improved</span><strong>DraftKings</strong><small>Better Prices</small></div>
+            <div><span>Best CLV</span><strong>Caesars</strong><small>Positive CLV</small></div>
+          </div>
+        </TBMCard>
+
+        <TBMCard className="mlb-overview-panel">
+          <div className="mlb-overview-panel-header">
+            <span>What’s Next</span>
             <h2>MLB Suite Roadmap</h2>
           </div>
 
-          <div className="mlb-overview-roadmap">
-            <div>Run Line Dashboard V3</div>
-            <div>Totals Dashboard V3</div>
-            <div>First 5 Dashboard V3</div>
-            <div>NRFI/YRFI Dashboard V3</div>
+          <div className="mlb-overview-roadmap-clean">
+            <RoadmapItem title="Run Line Dashboard V3" status="Completed" complete />
+            <RoadmapItem title="Totals Dashboard V3" status="Next" />
+            <RoadmapItem title="First 5 Dashboard V3" status="Upcoming" />
+            <RoadmapItem title="NRFI/YRFI Dashboard V3" status="Upcoming" />
           </div>
         </TBMCard>
       </section>
