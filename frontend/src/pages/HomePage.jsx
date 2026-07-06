@@ -290,22 +290,36 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div style={lockedCardStyle}>
-              <div>
-                <h3 style={{ marginTop: 0, fontSize: "24px" }}>Full Card Locked</h3>
-                <p style={heroTextStyle}>
-                  Today’s public board shows the flagship model play. The full daily card will unlock
-                  premium plays, deeper market intelligence, and complete model-board access.
-                </p>
-              </div>
+            <div style={{ display: "grid", gap: "14px" }}>
+              {topThree.length > 0 ? (
+                topThree.map((play, index) => (
+                  <TopPlayRow
+                    key={`${play.game}-${play.pick}-${index}`}
+                    play={play}
+                    index={index}
+                  />
+                ))
+              ) : (
+                <div style={emptyStyle}>No premium preview plays available.</div>
+              )}
 
-              <div style={lockedListStyle}>
-                <div style={lockedPickStyle}><span>🔒 Premium Play #1</span><strong>Full Card</strong></div>
-                <div style={lockedPickStyle}><span>🔒 Premium Play #2</span><strong>Sharp Edge</strong></div>
-                <div style={lockedPickStyle}><span>🔒 Premium Play #3</span><strong>Best Line</strong></div>
-              </div>
+              <div style={lockedCardStyle}>
+                <div>
+                  <h3 style={{ marginTop: 0, fontSize: "24px" }}>Full Card Locked</h3>
+                  <p style={heroTextStyle}>
+                    Free users see the flagship play and Top 3 preview. Pro members unlock the full card,
+                    sharper market intelligence, line shopping, and complete model-board access.
+                  </p>
+                </div>
 
-              <a href="#membership" style={primaryButtonStyle}>Unlock Today’s Card</a>
+                <div style={lockedListStyle}>
+                  <div style={lockedPickStyle}><span>Premium Play #4+</span><strong>Locked</strong></div>
+                  <div style={lockedPickStyle}><span>Sharp Edge Report</span><strong>Pro</strong></div>
+                  <div style={lockedPickStyle}><span>Best Line Finder</span><strong>Pro</strong></div>
+                </div>
+
+                <a href="#membership" style={primaryButtonStyle}>Unlock Today’s Card</a>
+              </div>
             </div>
           </section>
 
