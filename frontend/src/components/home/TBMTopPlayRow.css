@@ -165,3 +165,42 @@
     grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 78px;
   }
 }
+
+.tbm-top-play-row-v2 {
+  min-height: 68px;
+  padding: 12px 14px;
+}
+
+.tbm-top-odds,
+.tbm-top-score,
+.tbm-top-grade {
+  padding: 6px 9px;
+  font-size: 13px;
+}
+
+.tbm-top-edge,
+.tbm-top-book,
+.tbm-top-conf {
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .tbm-top-rank {
+    display: none;
+  }
+
+  .tbm-top-odds,
+  .tbm-top-score,
+  .tbm-top-edge,
+  .tbm-top-book,
+  .tbm-top-grade,
+  .tbm-top-conf {
+    display: inline-flex;
+    width: fit-content;
+  }
+}
