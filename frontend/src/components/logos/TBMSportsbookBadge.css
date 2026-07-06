@@ -6,41 +6,68 @@
   border-radius: 9px;
   padding: 7px 10px;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  background: rgba(255, 255, 255, 0.04);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 40%),
+    rgba(255, 255, 255, 0.04);
   color: #f8fafc;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 950;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
+  box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.035);
 }
 
 .tbm-sportsbook-badge.fanduel {
-  border-color: rgba(59, 130, 246, 0.45);
-  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(37, 99, 235, 0.14);
+  color: #bfdbfe;
 }
 
 .tbm-sportsbook-badge.draftkings {
-  border-color: rgba(34, 197, 94, 0.45);
-  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.55);
+  background: rgba(22, 163, 74, 0.14);
+  color: #bbf7d0;
 }
 
 .tbm-sportsbook-badge.betmgm {
-  border-color: rgba(250, 204, 21, 0.45);
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(202, 138, 4, 0.14);
   color: #fde68a;
 }
 
 .tbm-sportsbook-badge.caesars {
-  border-color: rgba(168, 85, 247, 0.45);
-  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.55);
+  background: rgba(126, 34, 206, 0.14);
+  color: #e9d5ff;
+}
+
+.tbm-sportsbook-badge.betrivers {
+  border-color: rgba(14, 165, 233, 0.55);
+  background: rgba(2, 132, 199, 0.14);
+  color: #bae6fd;
+}
+
+.tbm-sportsbook-badge.fanatics {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(220, 38, 38, 0.14);
+  color: #fecaca;
 }
 
 .tbm-sportsbook-badge.bovada {
-  border-color: rgba(239, 68, 68, 0.45);
-  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(153, 27, 27, 0.16);
+  color: #fecaca;
 }
 
 .tbm-sportsbook-badge.espn-bet {
-  border-color: rgba(220, 38, 38, 0.45);
+  border-color: rgba(220, 38, 38, 0.55);
+  background: rgba(127, 29, 29, 0.16);
   color: #fecaca;
+}
+
+.tbm-sportsbook-badge.pointsbet {
+  border-color: rgba(14, 165, 233, 0.55);
+  background: rgba(12, 74, 110, 0.16);
+  color: #bae6fd;
 }
