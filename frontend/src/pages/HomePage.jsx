@@ -3,6 +3,7 @@ import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
 import TBMSportCard from "../components/home/TBMSportCard";
 import TBMKpiRow from "../components/home/TBMKpiRow";
+import { DashboardMain } from "../components/ui";
 import "../components/home/TBMDashboardFramework.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -256,27 +257,30 @@ export default function HomePage() {
         <>
           <TBMKpiRow flagship={flagship} topPlays={topThree} />
 
-          <FlagshipPlay play={flagship} />
+          <DashboardMain
+            left={<FlagshipPlay play={flagship} />}
+            right={
+              <section style={sectionStyle}>
+                <div style={sectionHeaderStyle}>
+                  <div>
+                    <div style={eyebrowStyle}>Market Intelligence</div>
+                    <h2 style={sectionTitleStyle}>Today’s Betting Landscape</h2>
+                  </div>
+                </div>
 
-          <section style={sectionStyle}>
-            <div style={sectionHeaderStyle}>
-              <div>
-                <div style={eyebrowStyle}>Market Intelligence</div>
-                <h2 style={sectionTitleStyle}>Today’s Betting Landscape</h2>
-              </div>
-            </div>
-
-            <div style={metricGridStyle}>
-              <Metric label="Total Plays" value={summary.total_plays} />
-              <Metric label="Elite Plays" value={summary.elite_plays} accent />
-              <Metric label="Best Sport" value={summary.best_sport_today} accent />
-              <Metric label="Best Market" value={summary.best_market_today} />
-              <Metric label="Sharp Plays" value={summary.sharp_plays} accent />
-              <Metric label="Line Shopping" value={summary.line_shop_opportunities} accent />
-              <Metric label="Avg Edge" value={`${summary.average_edge ?? 0}%`} />
-              <Metric label="Slate Score" value={summary.slate_score} />
-            </div>
-          </section>
+                <div style={metricGridStyle}>
+                  <Metric label="Total Plays" value={summary.total_plays} />
+                  <Metric label="Elite Plays" value={summary.elite_plays} accent />
+                  <Metric label="Best Sport" value={summary.best_sport_today} accent />
+                  <Metric label="Best Market" value={summary.best_market_today} />
+                  <Metric label="Sharp Plays" value={summary.sharp_plays} accent />
+                  <Metric label="Line Shopping" value={summary.line_shop_opportunities} accent />
+                  <Metric label="Avg Edge" value={`${summary.average_edge ?? 0}%`} />
+                  <Metric label="Slate Score" value={summary.slate_score} />
+                </div>
+              </section>
+            }
+          />
 
           <section id="top-plays" style={sectionStyle}>
             <div style={sectionHeaderStyle}>
