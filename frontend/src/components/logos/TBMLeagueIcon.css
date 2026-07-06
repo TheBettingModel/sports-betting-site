@@ -1,0 +1,47 @@
+.tbm-league-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.14), transparent 40%),
+    linear-gradient(145deg, #111827, #020617);
+  color: #f8fafc;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.04);
+}
+
+.tbm-league-icon.mlb,
+.tbm-league-icon.nhl,
+.tbm-league-icon.ncaaf {
+  border-color: rgba(59, 130, 246, 0.38);
+  color: #93c5fd;
+}
+
+.tbm-league-icon.nba,
+.tbm-league-icon.wnba,
+.tbm-league-icon.ncaamb {
+  border-color: rgba(249, 115, 22, 0.38);
+  color: #fdba74;
+}
+
+.tbm-league-icon.soccer {
+  border-color: rgba(34, 197, 94, 0.38);
+  color: #86efac;
+}
+
+.tbm-league-icon.ufc {
+  border-color: rgba(239, 68, 68, 0.42);
+  color: #fca5a5;
+}
+
+.tbm-league-icon.pod,
+.tbm-league-icon.analytics {
+  border-color: rgba(69, 255, 84, 0.42);
+  color: #45ff54;
+}
