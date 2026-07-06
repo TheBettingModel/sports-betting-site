@@ -6,6 +6,7 @@ const pageTitles = {
   "/auto-pod": "Play of the Day",
   "/analytics": "Analytics",
   "/admin": "Admin",
+  "/mlb-overview": "MLB Dashboard",
   "/mlb-model": "MLB Model",
   "/model-board": "NBA Model",
   "/nfl-model": "NFL Model",
@@ -25,7 +26,7 @@ const platformLinks = [
 ];
 
 const sportLinks = [
-  { label: "MLB", path: "/mlb-model" },
+  { label: "MLB", path: "/mlb-overview" },
   { label: "NBA", path: "/model-board" },
   { label: "NFL", path: "/nfl-model" },
   { label: "NHL", path: "/nhl-model" },

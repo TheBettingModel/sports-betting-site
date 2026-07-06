@@ -8,6 +8,7 @@ import ModelBoardPage from "./pages/ModelBoardPage";
 import NBATotalsPage from "./pages/NBATotalsPage";
 import NBAFirstQuarterPage from "./pages/NBAFirstQuarterPage";
 
+import MLBOverviewPage from "./pages/MLBOverviewPage";
 import MLBModelBoardPage from "./pages/MLBModelBoardPage";
 import MLBRunLinePage from "./pages/MLBRunLinePage";
 import MLBF5Page from "./pages/MLBF5ModelPage";
@@ -50,6 +51,7 @@ function App() {
         <Route path="/nba-totals" element={<NBATotalsPage />} />
         <Route path="/nba-1q" element={<NBAFirstQuarterPage />} />
 
+        <Route path="/mlb-overview" element={<MLBOverviewPage />} />
         <Route path="/mlb-model" element={<MLBModelBoardPage />} />
         <Route path="/mlb-runline" element={<MLBRunLinePage />} />
         <Route path="/mlb-f5" element={<MLBF5Page />} />
