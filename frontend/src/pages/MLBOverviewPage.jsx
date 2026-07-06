@@ -4,6 +4,7 @@ import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
 import { TBMPage, TBMCard } from "../components/ui";
 import MLBIntelligenceCenter from "../components/mlb/MLBIntelligenceCenter";
 import MLBSlateCommandBar from "../components/mlb/MLBSlateCommandBar";
+import MLBPitcherMatchupCenter from "../components/mlb/MLBPitcherMatchupCenter";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -265,6 +266,8 @@ export default function MLBOverviewPage() {
       <TopPlayTable plays={topPlays} />
 
       <MLBIntelligenceCenter plays={allPlays} />
+
+      <MLBPitcherMatchupCenter plays={allPlays} />
 
       <section className="mlb-v4-card-grid">
         <TBMCard className="mlb-v4-panel">

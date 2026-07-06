@@ -1,0 +1,118 @@
+.mlb-pitcher-center {
+  padding: 18px;
+  margin-top: 22px;
+}
+
+.mlb-pitcher-title {
+  margin-bottom: 14px;
+}
+
+.mlb-pitcher-title span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-pitcher-title h2 {
+  margin: 6px 0 0;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.mlb-pitcher-list {
+  display: grid;
+  gap: 11px;
+}
+
+.mlb-pitcher-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(360px, 0.95fr);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 15px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-pitcher-rank {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+  font-weight: 950;
+}
+
+.mlb-pitcher-info {
+  min-width: 0;
+}
+
+.mlb-pitcher-info strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-pitcher-info span {
+  display: block;
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-pitcher-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.mlb-pitcher-metrics div {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 11px;
+  padding: 9px;
+  background: rgba(255,255,255,.02);
+}
+
+.mlb-pitcher-metrics span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-pitcher-metrics strong {
+  display: block;
+  margin-top: 5px;
+  color: #45ff54;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.mlb-pitcher-empty {
+  color: #94a3b8;
+  padding: 14px;
+}
+
+@media (max-width: 950px) {
+  .mlb-pitcher-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-pitcher-metrics {
+    grid-template-columns: 1fr;
+  }
+}
