@@ -1,4 +1,5 @@
 import "./TBMHeroPlayCard.css";
+import TBMSportsbookBadge from "../logos/TBMSportsbookBadge";
 import TBMTeamLogo from "../logos/TBMTeamLogo";
 
 function formatOdds(value) {
@@ -129,7 +130,7 @@ export default function TBMHeroPlayCard({ play }) {
           <HeroMetric label="Confidence" value={`${play.confidence ?? "N/A"}%`} accent />
           <HeroMetric label="Units" value={play.units ?? "N/A"} />
           <HeroMetric label="POD Score" value={score ? score.toFixed(2) : "N/A"} accent />
-          <HeroMetric label="Book" value={getBook(play)} />
+          <div className="tbm-hero-book-metric"><span>Book</span><TBMSportsbookBadge book={getBook(play)} /></div>
           <HeroMetric label="Tier" value={getTier(play)} />
         </div>
 
@@ -175,7 +176,7 @@ export default function TBMHeroPlayCard({ play }) {
           </div>
           <div>
             <span>Book</span>
-            <strong>{getBook(play)}</strong>
+            <TBMSportsbookBadge book={getBook(play)} />
           </div>
         </div>
       </aside>

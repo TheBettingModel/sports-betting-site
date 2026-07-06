@@ -1,3 +1,4 @@
+import TBMSportsbookBadge from "../logos/TBMSportsbookBadge";
 import TBMTeamLogo from "../logos/TBMTeamLogo";
 import "./TBMTopPlayRow.css";
 
@@ -81,7 +82,7 @@ export default function TBMTopPlayRow({ play, index }) {
 
       <div className="tbm-top-edge">+{play.edge ?? "N/A"}%</div>
 
-      <div className="tbm-top-book">{getBook(play)}</div>
+      <div className="tbm-top-book"><TBMSportsbookBadge book={getBook(play)} /></div>
 
       <div className="tbm-top-grade">{getGrade(play)}</div>
 
