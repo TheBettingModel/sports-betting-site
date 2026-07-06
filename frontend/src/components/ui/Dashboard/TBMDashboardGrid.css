@@ -1,0 +1,30 @@
+.tbm-dashboard-row {
+  margin-bottom: 18px;
+}
+
+.tbm-dashboard-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.tbm-dashboard-bottom {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.tbm-dashboard-left,
+.tbm-dashboard-right {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .tbm-dashboard-main,
+  .tbm-dashboard-bottom {
+    grid-template-columns: 1fr;
+  }
+}
