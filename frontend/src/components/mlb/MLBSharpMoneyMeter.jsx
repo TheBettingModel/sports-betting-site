@@ -1,24 +1,23 @@
 import { TBMCard } from "../ui";
 import "./MLBSharpMoneyMeter.css";
 
-function sharpScore(play) {
-  return Number(play?.sharp_score || play?.sharp_book_score || play?.sharp_rating || 0);
+function score(play) {
+  return Number(play?.sharp_score || play?.sharp_book_score || 0);
 }
 
 function getSharpPlays(plays = []) {
   return [...plays]
     .filter((p) =>
       String(p.sharp_signal || p.sharp_book_signal || "").toLowerCase().includes("sharp") ||
-      sharpScore(p) > 0
+      score(p) > 0
     )
-    .sort((a, b) => sharpScore(b) - sharpScore(a))
+    .sort((a, b) => score(b) - score(a))
     .slice(0, 5);
 }
 
 export default function MLBSharpMoneyMeter({ plays = [] }) {
   const sharpPlays = getSharpPlays(plays);
-  const totalSharp = sharpPlays.length;
-  const meter = Math.min(100, Math.max(8, totalSharp * 18));
+  const meter = Math.min(100, Math.max(8, sharpPlays.length * 18));
 
   return (
     <TBMCard className="mlb-sharp-card">
@@ -27,8 +26,7 @@ export default function MLBSharpMoneyMeter({ plays = [] }) {
           <span>Sharp Money Meter</span>
           <h2>Respected market activity</h2>
         </div>
-
-        <strong>{totalSharp} Signals</strong>
+        <strong>{sharpPlays.length} Signals</strong>
       </div>
 
       <div className="mlb-sharp-meter">
@@ -50,7 +48,6 @@ export default function MLBSharpMoneyMeter({ plays = [] }) {
                 <strong>{play.pick || play.game}</strong>
                 <span>{play.game}</span>
               </div>
-
               <em>{play.sharp_signal || play.sharp_book_signal || "Sharp Watch"}</em>
             </div>
           ))
