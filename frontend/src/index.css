@@ -4737,3 +4737,80 @@ p[style*="lineHeight: \"1.6\""] {
     display: none;
   }
 }
+
+/* MLB Dashboard V6 Compact Command Center */
+.mlb-command-center-v6 {
+  gap: 18px;
+}
+
+.mlb-command-main-v6,
+.mlb-command-side-v6 {
+  gap: 14px;
+}
+
+.mlb-command-center-v6 .tbm-ui-card {
+  border-radius: 16px;
+}
+
+.mlb-command-center-v6 .mlb-intel-card,
+.mlb-command-center-v6 .mlb-heat-card,
+.mlb-command-center-v6 .mlb-price-card,
+.mlb-command-center-v6 .mlb-sharp-card,
+.mlb-command-center-v6 .mlb-pitcher-center,
+.mlb-command-center-v6 .mlb-weather-card,
+.mlb-command-center-v6 .mlb-line-card,
+.mlb-command-center-v6 .mlb-performance-mini {
+  padding: 15px;
+}
+
+.mlb-intel-title h2,
+.mlb-heat-header h2,
+.mlb-price-header h2,
+.mlb-sharp-header h2,
+.mlb-pitcher-title h2,
+.mlb-weather-header h2,
+.mlb-line-header h2,
+.mlb-performance-header h2 {
+  font-size: 17px;
+}
+
+.mlb-intel-signal-row,
+.mlb-heat-row,
+.mlb-price-row,
+.mlb-sharp-row,
+.mlb-pitcher-row,
+.mlb-weather-row,
+.mlb-line-row {
+  padding: 10px;
+}
+
+.mlb-intel-signal-row strong,
+.mlb-sharp-row strong,
+.mlb-line-game strong,
+.mlb-pitcher-info strong {
+  font-size: 12px;
+}
+
+.mlb-intel-signal-row small,
+.mlb-sharp-row span,
+.mlb-line-game span,
+.mlb-pitcher-info span {
+  font-size: 10px;
+}
+
+.mlb-v4-card-grid {
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.mlb-v4-panel {
+  padding: 16px;
+}
+
+.mlb-v4-panel-title span {
+  font-size: 18px;
+}
+
+.mlb-v4-panel-title h2 {
+  font-size: 12px;
+}
