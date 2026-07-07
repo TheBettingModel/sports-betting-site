@@ -125,10 +125,10 @@ function TopPlayTable({ plays }) {
     <TBMCard className="mlb-v4-top-table">
       <div className="mlb-v4-panel-title">
         <div>
-          <span>Top MLB Edges Across All Markets</span>
-          <h2>Best model opportunities ranked by edge</h2>
+          <span>MLB Edge Board</span>
+          <h2>Ranked by Edge</h2>
         </div>
-        <a href="/mlb-model">View All Markets ↗</a>
+        <a href="/mlb-model">Full Board ↗</a>
       </div>
 
       <div className="mlb-v4-table">
@@ -253,7 +253,7 @@ export default function MLBOverviewPage() {
 
         <TBMCard className="mlb-v4-snapshot">
           <div className="mlb-v4-snapshot-title">
-            <h2>Today’s Snapshot</h2>
+            <h2>Live Pulse</h2>
             <strong>● Live</strong>
           </div>
           <SnapshotRow label="Total Plays" value={allPlays.length} />
