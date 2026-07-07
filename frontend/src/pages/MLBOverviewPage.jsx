@@ -7,6 +7,7 @@ import MLBSlateCommandBar from "../components/mlb/MLBSlateCommandBar";
 import MLBPitcherMatchupCenter from "../components/mlb/MLBPitcherMatchupCenter";
 import MLBMarketHeatMap from "../components/mlb/MLBMarketHeatMap";
 import MLBSharpMoneyMeter from "../components/mlb/MLBSharpMoneyMeter";
+import MLBWeatherParkCenter from "../components/mlb/MLBWeatherParkCenter";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -274,6 +275,8 @@ export default function MLBOverviewPage() {
       <MLBMarketHeatMap fullGame={fullGame} f5={f5} nrfi={nrfi} />
 
       <MLBSharpMoneyMeter plays={allPlays} />
+
+      <MLBWeatherParkCenter plays={allPlays} />
 
       <section className="mlb-v4-card-grid">
         <TBMCard className="mlb-v4-panel">
