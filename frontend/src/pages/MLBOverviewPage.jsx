@@ -10,6 +10,7 @@ import MLBSharpMoneyMeter from "../components/mlb/MLBSharpMoneyMeter";
 import MLBWeatherParkCenter from "../components/mlb/MLBWeatherParkCenter";
 import MLBSportsbookPriceBoard from "../components/mlb/MLBSportsbookPriceBoard";
 import MLBLineMovementTracker from "../components/mlb/MLBLineMovementTracker";
+import MLBPerformanceMiniDashboard from "../components/mlb/MLBPerformanceMiniDashboard";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -282,6 +283,8 @@ export default function MLBOverviewPage() {
           <MLBPitcherMatchupCenter plays={allPlays} />
           <MLBWeatherParkCenter plays={allPlays} />
           <MLBLineMovementTracker plays={allPlays} />
+
+          <MLBPerformanceMiniDashboard />
         </aside>
       </section>
 
