@@ -270,19 +270,20 @@ export default function MLBOverviewPage() {
 
       <TopPlayTable plays={topPlays} />
 
-      <MLBIntelligenceCenter plays={allPlays} />
+      <section className="mlb-command-center-v6">
+        <div className="mlb-command-main-v6">
+          <MLBIntelligenceCenter plays={allPlays} />
+          <MLBMarketHeatMap fullGame={fullGame} f5={f5} nrfi={nrfi} />
+          <MLBSportsbookPriceBoard plays={allPlays} />
+        </div>
 
-      <MLBPitcherMatchupCenter plays={allPlays} />
-
-      <MLBMarketHeatMap fullGame={fullGame} f5={f5} nrfi={nrfi} />
-
-      <MLBSharpMoneyMeter plays={allPlays} />
-
-      <MLBWeatherParkCenter plays={allPlays} />
-
-      <MLBSportsbookPriceBoard plays={allPlays} />
-
-      <MLBLineMovementTracker plays={allPlays} />
+        <aside className="mlb-command-side-v6">
+          <MLBSharpMoneyMeter plays={allPlays} />
+          <MLBPitcherMatchupCenter plays={allPlays} />
+          <MLBWeatherParkCenter plays={allPlays} />
+          <MLBLineMovementTracker plays={allPlays} />
+        </aside>
+      </section>
 
       <section className="mlb-v4-card-grid">
         <TBMCard className="mlb-v4-panel">

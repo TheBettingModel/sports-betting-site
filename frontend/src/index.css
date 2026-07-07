@@ -4485,3 +4485,101 @@ p[style*="lineHeight: \"1.6\""] {
     grid-template-columns: 1fr;
   }
 }
+
+.mlb-command-center-v6 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(420px, 0.65fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.mlb-command-center-v6 .mlb-intel-grid {
+  margin-top: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mlb-command-center-v6 .mlb-intel-card.wide {
+  grid-column: span 2;
+}
+
+.mlb-command-main-v6,
+.mlb-command-side-v6 {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.mlb-command-center-v6 .mlb-heat-card,
+.mlb-command-center-v6 .mlb-price-card,
+.mlb-command-center-v6 .mlb-sharp-card,
+.mlb-command-center-v6 .mlb-pitcher-center,
+.mlb-command-center-v6 .mlb-weather-card,
+.mlb-command-center-v6 .mlb-line-card {
+  margin-top: 0;
+}
+
+@media (max-width: 1250px) {
+  .mlb-command-center-v6 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .mlb-command-center-v6 .mlb-intel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-command-center-v6 .mlb-intel-card.wide {
+    grid-column: span 1;
+  }
+}
+
+.mlb-command-center-v6 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(420px, 0.65fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.mlb-command-center-v6 .mlb-intel-grid {
+  margin-top: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mlb-command-center-v6 .mlb-intel-card.wide {
+  grid-column: span 2;
+}
+
+.mlb-command-main-v6,
+.mlb-command-side-v6 {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.mlb-command-center-v6 .mlb-heat-card,
+.mlb-command-center-v6 .mlb-price-card,
+.mlb-command-center-v6 .mlb-sharp-card,
+.mlb-command-center-v6 .mlb-pitcher-center,
+.mlb-command-center-v6 .mlb-weather-card,
+.mlb-command-center-v6 .mlb-line-card {
+  margin-top: 0;
+}
+
+@media (max-width: 1250px) {
+  .mlb-command-center-v6 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .mlb-command-center-v6 .mlb-intel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-command-center-v6 .mlb-intel-card.wide {
+    grid-column: span 1;
+  }
+}
