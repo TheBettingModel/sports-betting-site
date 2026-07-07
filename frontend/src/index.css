@@ -4660,3 +4660,80 @@ p[style*="lineHeight: \"1.6\""] {
     display: none;
   }
 }
+
+/* MLB Top Plays Table V6 Cleanup */
+.mlb-v4-top-table {
+  padding: 18px;
+}
+
+.mlb-v4-table-head,
+.mlb-v4-table-row {
+  grid-template-columns: 40px 1.25fr 1.2fr 120px 78px 78px 100px 70px 128px;
+  gap: 10px;
+}
+
+.mlb-v4-table-row {
+  min-height: 66px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.mlb-v4-table-row:last-child {
+  margin-bottom: 0;
+}
+
+.mlb-v4-table-head {
+  border-bottom: none;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 12px;
+}
+
+.mlb-v4-table-row .game strong,
+.mlb-v4-table-row .pick strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-v4-table-row .rank {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.mlb-v4-market-pill {
+  max-width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-v4-table-row .confidence i {
+  height: 4px;
+}
+
+.mlb-v4-table-row .tbm-sportsbook-badge {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .mlb-v4-table-head {
+    display: none;
+  }
+
+  .mlb-v4-table-row {
+    min-width: 0;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .mlb-v4-table-row .rank {
+    display: none;
+  }
+}
