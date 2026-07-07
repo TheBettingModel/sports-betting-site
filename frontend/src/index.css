@@ -4901,3 +4901,90 @@ p[style*="lineHeight: \"1.6\""] {
   margin-left: auto;
   margin-right: auto;
 }
+
+/* MLB V6 cleanup: less text, cleaner dashboard */
+.mlb-v4-card-grid {
+  display: none !important;
+}
+
+.mlb-v4-snapshot {
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(9, 21, 31, 0.98), rgba(3, 8, 13, 0.98));
+}
+
+.mlb-v4-snapshot-title h2 {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.mlb-v4-snapshot-title strong {
+  border: 1px solid rgba(69, 255, 84, 0.35);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(69, 255, 84, 0.1);
+}
+
+.mlb-v4-snapshot-row {
+  padding: 10px 0;
+}
+
+.mlb-v4-snapshot-row span {
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 850;
+}
+
+.mlb-v4-snapshot-row strong {
+  font-size: 18px;
+}
+
+.mlb-v4-panel-title span {
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mlb-v4-panel-title h2 {
+  display: none;
+}
+
+.mlb-v4-panel-title a {
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.mlb-v4-table-head span {
+  font-size: 10px;
+}
+
+.mlb-sharp-card {
+  text-align: center;
+}
+
+.mlb-sharp-header {
+  justify-content: center;
+  text-align: center;
+}
+
+.mlb-sharp-header > strong {
+  display: none;
+}
+
+.mlb-sharp-row {
+  align-items: center;
+  text-align: left;
+}
+
+.mlb-sharp-row em {
+  min-width: 110px;
+  text-align: center;
+}
+
+.mlb-sharp-meter {
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
