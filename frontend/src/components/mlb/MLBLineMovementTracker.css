@@ -1,0 +1,132 @@
+.mlb-line-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-line-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-line-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-line-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.mlb-line-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  height: fit-content;
+  text-transform: uppercase;
+}
+
+.mlb-line-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mlb-line-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 220px 160px;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  padding: 13px;
+  background: rgba(255,255,255,.025);
+}
+
+.mlb-line-game {
+  min-width: 0;
+}
+
+.mlb-line-game strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-line-game span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-line-move {
+  display: grid;
+  grid-template-columns: 1fr 44px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.mlb-line-move span,
+.mlb-line-move strong {
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.035);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.mlb-line-move span {
+  color: #cbd5e1;
+}
+
+.mlb-line-move strong {
+  color: #45ff54;
+}
+
+.mlb-line-move i {
+  height: 2px;
+  background: linear-gradient(90deg, rgba(148,163,184,.3), #45ff54);
+  border-radius: 999px;
+}
+
+.mlb-line-row em {
+  color: #facc15;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 950;
+  text-align: right;
+}
+
+.mlb-line-empty {
+  color: #94a3b8;
+  padding: 12px;
+}
+
+@media (max-width: 950px) {
+  .mlb-line-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-line-row em {
+    text-align: left;
+  }
+}
