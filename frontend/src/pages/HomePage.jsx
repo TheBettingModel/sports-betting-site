@@ -3,6 +3,7 @@ import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
 import TBMSportCard from "../components/home/TBMSportCard";
 import TBMKpiRow from "../components/home/TBMKpiRow";
+import DashboardStatusTable from "../components/home/DashboardStatusTable";
 import { DashboardMain } from "../components/ui";
 import "../components/home/TBMDashboardFramework.css";
 
@@ -350,7 +351,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <StatusTable status={status} />
+            <DashboardStatusTable status={status} />
           </section>
 
           <section style={sectionStyle}>
