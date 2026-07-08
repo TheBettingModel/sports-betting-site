@@ -1,7 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import TBMTeamLogo from "../components/logos/TBMTeamLogo";
+import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
+import { TBMPage, TBMCard, TBMMetric } from "../components/ui";
+import "./PlayOfTheDayPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+function formatOdds(value) {
+  if (value === null || value === undefined || value === "") return "N/A";
+  const num = Number(value);
+  if (Number.isNaN(num)) return value;
+  return num > 0 ? `+${num}` : `${num}`;
+}
+
+function splitGame(game = "") {
+  if (game.includes(" vs ")) {
+    const [away, home] = game.split(" vs ");
+    return { away, home };
+  }
+
+  if (game.includes(" at ")) {
+    const [away, home] = game.split(" at ");
+    return { away, home };
+  }
+
+  return { away: "Away", home: "Home" };
+}
 
 function normalizeBestBySport(data) {
   const pick = data?.play_of_the_day || data?.overall_play;
@@ -13,14 +37,53 @@ function normalizeBestBySport(data) {
 
   return cleaned;
 }
-\nfunction formatOdds(value) {
-  if (value === null || value === undefined || value === "") return "N/A";
-  const num = Number(value);
-  if (Number.isNaN(num)) return value;
-  return num > 0 ? `+${num}` : `${num}`;
+
+function getSport(play) {
+  return play?.sport || play?.pod_sport || play?.league || "Sport";
 }
 
-function PlayOfTheDayPage() {
+function getPick(play) {
+  return play?.pick || play?.recommendation || "No Pick";
+}
+
+function getBook(play) {
+  return play?.best_sportsbook || play?.sportsbook || "Best Available";
+}
+
+function score(play) {
+  return play?.universal_pod_score ?? play?.pod_score ?? play?.final_model_score ?? "N/A";
+}
+
+function CompactSportPlay({ sport, play }) {
+  const { away, home } = splitGame(play?.game || "");
+
+  return (
+    <a className="pod-sport-card" href="/">
+      <div className="pod-sport-card-top">
+        <span>{sport}</span>
+        <strong>{play?.final_recommendation || play?.recommendation || "Model Play"}</strong>
+      </div>
+
+      <div className="pod-sport-matchup">
+        <div>
+          <TBMTeamLogo team={away} sport={sport} size={34} />
+          <span>{away}</span>
+        </div>
+
+        <em>@</em>
+
+        <div>
+          <TBMTeamLogo team={home} sport={sport} size={34} />
+          <span>{home}</span>
+        </div>
+      </div>
+
+      <div className="pod-sport-pick">{getPick(play)}</div>
+    </a>
+  );
+}
+
+export default function PlayOfTheDayPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
@@ -38,186 +101,84 @@ function PlayOfTheDayPage() {
   }, []);
 
   const pick = data?.play_of_the_day;
-
-  const bestBySport = (() => {
-    const raw = data?.best_by_sport || data?.by_sport || {};
-    const cleaned = { ...raw };
-
-    // Play of the Day is the single source of truth.
-    // If POD is Soccer, the Soccer best-play card must match it.
-    if (pick?.sport) {
-      cleaned[pick.sport] = pick;
-    }
-
-    if (pick?.pod_sport) {
-      cleaned[pick.pod_sport] = pick;
-    }
-
-    return cleaned;
-  })();
+  const bestBySport = useMemo(() => normalizeBestBySport(data), [data]);
+  const { away, home } = splitGame(pick?.game || "");
 
   return (
-    <div style={pageStyle}>
-      <h1 style={{ fontSize: "38px", marginBottom: "10px" }}>Play of the Day</h1>
-
-      <p style={subtitleStyle}>
-        The official Play of the Day dashboard uses the same Homepage Data Engine as the public
-        homepage, so the flagship play and best-by-sport cards stay consistent.
-      </p>
+    <TBMPage className="pod-page-v2">
+      <header className="pod-header-v2">
+        <div>
+          <span>Official Pick</span>
+          <h1>Play of the Day</h1>
+          <p>One flagship model play. Clean, simple, and updated from the same dashboard engine.</p>
+        </div>
+      </header>
 
       {error ? (
-        <p style={{ color: "#f87171" }}>{error}</p>
+        <p className="pod-error">{error}</p>
       ) : !pick ? (
-        <p>Loading play of the day...</p>
+        <TBMCard className="pod-loading">Loading play of the day...</TBMCard>
       ) : (
         <>
-          <section style={podCardStyle}>
-            <div style={labelStyle}>Official POD</div>
-
-            <h2 style={{ fontSize: "30px", marginBottom: "8px" }}>{pick.game}</h2>
-            <h3 style={{ fontSize: "24px", color: "#facc15", marginBottom: "18px" }}>
-              {pick.pick} {formatOdds(pick.best_odds ?? pick.odds)}
-            </h3>
-
-            <div style={badgeWrapStyle}>
-              <span style={badgeStyle}>Sport: {pick.sport || pick.pod_sport || "N/A"}</span>
-              <span style={badgeStyle}>Market: {pick.market || "N/A"}</span>
-              <span style={badgeStyle}>Book: {pick.best_sportsbook || pick.sportsbook || "N/A"}</span>
-              <span style={badgeStyle}>Edge: {pick.edge ?? "N/A"}%</span>
-              <span style={badgeStyle}>Confidence: {pick.confidence ?? "N/A"}</span>
-              <span style={badgeStyle}>Units: {pick.units ?? "N/A"}</span>
-              <span style={badgeStyle}>POD Score: {pick.universal_pod_score ?? "N/A"}</span>
-              <span style={{ ...badgeStyle, backgroundColor: "#16a34a" }}>
-                {pick.final_recommendation || pick.recommendation || "Model Play"}
-              </span>
-            </div>
-
-            <div style={signalGridStyle}>
+          <TBMCard glow className="pod-feature-card">
+            <div className="pod-feature-top">
               <div>
-                <h4>📈 Market</h4>
-                <p>Market Grade: {pick.market_intelligence_grade || "N/A"}</p>
-                <p>Sharp: {pick.sharp_signal || "N/A"}</p>
-                <p>CLV: {pick.clv_status || "N/A"}</p>
+                <span className="pod-label">Today’s POD</span>
+                <h2>{getPick(pick)}</h2>
+                <p>{pick.game}</p>
               </div>
 
-              <div>
-                <h4>⭐ Rating</h4>
-                <p>Tier: {pick.final_model_tier || pick.tier || "N/A"}</p>
-                <p>Stars: {pick.final_stars ? `${pick.final_stars}/5` : "N/A"}</p>
-                <p>Score: {pick.final_model_score ?? "N/A"}</p>
-              </div>
-
-              <div>
-                <h4>💰 Sportsbook</h4>
-                <p>Best Book: {pick.best_sportsbook || pick.sportsbook || "N/A"}</p>
-                <p>Best Odds: {formatOdds(pick.best_odds ?? pick.odds)}</p>
-                <p>Line Value: {pick.line_shop_value ?? "N/A"}</p>
+              <div className="pod-score">
+                <span>Score</span>
+                <strong>{score(pick)}</strong>
               </div>
             </div>
 
-            <p style={reasonStyle}>{pick.reason || "No model reason available."}</p>
-          </section>
+            <div className="pod-matchup-row">
+              <div>
+                <TBMTeamLogo team={away} sport={getSport(pick)} size={58} />
+                <span>{away}</span>
+              </div>
 
-          <section style={{ marginTop: "42px" }}>
-            <h2 style={{ marginBottom: "18px", fontSize: "28px" }}>Best Play By Sport</h2>
+              <em>@</em>
 
-            <div style={sportGridStyle}>
-              {Object.entries(normalizeBestBySport(data)).map(([sport, play]) => (
-                <div key={sport} style={sportCardStyle}>
-                  <div style={labelStyle}>{sport}</div>
-                  <h3 style={{ color: "#facc15" }}>{play.pick}</h3>
-                  <p>{play.game}</p>
-                  <div style={badgeWrapStyle}>
-                    <span style={badgeStyle}>{play.market || "N/A"}</span>
-                    <span style={badgeStyle}>{formatOdds(play.best_odds ?? play.odds)}</span>
-                    <span style={badgeStyle}>POD {play.universal_pod_score ?? "N/A"}</span>
-                    <span style={badgeStyle}>{play.final_recommendation || play.recommendation || "N/A"}</span>
-                  </div>
-                </div>
+              <div>
+                <TBMTeamLogo team={home} sport={getSport(pick)} size={58} />
+                <span>{home}</span>
+              </div>
+            </div>
+
+            <div className="pod-metric-grid">
+              <TBMMetric label="Sport" value={getSport(pick)} />
+              <TBMMetric label="Market" value={pick.market || "N/A"} />
+              <TBMMetric label="Odds" value={formatOdds(pick.best_odds ?? pick.odds)} accent />
+              <TBMMetric label="Edge" value={`${pick.edge ?? "N/A"}%`} accent />
+              <TBMMetric label="Confidence" value={`${pick.confidence ?? "N/A"}%`} />
+              <TBMMetric label="Units" value={pick.units ?? "N/A"} />
+            </div>
+
+            <div className="pod-signal-strip">
+              <span>{pick.sharp_signal || "Sharp Watch"}</span>
+              <span>{pick.clv_status || "CLV Watch"}</span>
+              <span>{pick.market_intelligence_grade || "Market Grade N/A"}</span>
+              <TBMSportsbookBadge book={getBook(pick)} />
+            </div>
+          </TBMCard>
+
+          <section className="pod-section">
+            <div className="pod-section-header">
+              <span>Sport Board</span>
+              <h2>Best Play by Sport</h2>
+            </div>
+
+            <div className="pod-sport-grid">
+              {Object.entries(bestBySport).map(([sport, play]) => (
+                <CompactSportPlay key={sport} sport={sport} play={play} />
               ))}
             </div>
           </section>
         </>
       )}
-    </div>
+    </TBMPage>
   );
 }
-
-const pageStyle = {
-  padding: "30px",
-  backgroundColor: "#0b0b0b",
-  minHeight: "100vh",
-  color: "white",
-};
-
-const subtitleStyle = {
-  color: "#9ca3af",
-  marginBottom: "30px",
-  maxWidth: "900px",
-  lineHeight: "1.6",
-};
-
-const podCardStyle = {
-  backgroundColor: "#111827",
-  border: "2px solid #22c55e",
-  borderRadius: "16px",
-  padding: "24px",
-  boxShadow: "0 0 18px rgba(34,197,94,.35)",
-};
-
-const labelStyle = {
-  backgroundColor: "#22c55e",
-  color: "black",
-  padding: "6px 10px",
-  borderRadius: "8px",
-  display: "inline-block",
-  marginBottom: "16px",
-  fontWeight: "bold",
-};
-
-const badgeWrapStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "10px",
-  marginBottom: "20px",
-};
-
-const badgeStyle = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: "999px",
-  fontSize: "14px",
-  fontWeight: "bold",
-};
-
-const signalGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-  gap: "16px",
-  backgroundColor: "#020617",
-  padding: "18px",
-  borderRadius: "12px",
-  marginBottom: "18px",
-};
-
-const reasonStyle = {
-  color: "#d1d5db",
-  lineHeight: "1.6",
-};
-
-const sportGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-  gap: "18px",
-};
-
-const sportCardStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "16px",
-  padding: "18px",
-};
-
-export default PlayOfTheDayPage;
