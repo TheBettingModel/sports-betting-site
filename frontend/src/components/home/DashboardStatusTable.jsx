@@ -1,42 +1,35 @@
 import "./DashboardStatusTable.css";
 
-function normalizeStatus(status) {
+const SPORTS = ["MLB", "NBA", "NFL", "NHL", "WNBA", "Soccer", "NCAAF", "NCAAMB", "UFC"];
+
+function getActiveSports(status) {
   if (!status) return [];
 
-  if (Array.isArray(status)) return status;
+  if (Array.isArray(status.active_sports)) return status.active_sports.map(String);
 
-  return Object.entries(status).map(([sport, data]) => ({
-    sport,
-    ...(typeof data === "object" && data !== null ? data : { status: data }),
-  }));
-}
+  if (status.platform && Array.isArray(status.platform.active_sports)) {
+    return status.platform.active_sports.map(String);
+  }
 
-function isActive(row) {
-  const text = String(row.status || row.refresh_status || row.state || "").toLowerCase();
-  const games = Number(row.games ?? row.count ?? row.play_count ?? row.total_games ?? 0);
+  if (Array.isArray(status.sports)) {
+    return status.sports
+      .filter((sport) => sport.active || sport.status === "success" || sport.status === "active")
+      .map((sport) => String(sport.sport || sport.name || sport.league));
+  }
 
-  if (text.includes("error") || text.includes("offline") || text.includes("off")) return false;
-  if (games > 0) return true;
-  if (text.includes("success") || text.includes("ready") || text.includes("active")) return true;
-
-  return false;
+  return [];
 }
 
 export default function DashboardStatusTable({ status }) {
-  const rows = normalizeStatus(status);
-
-  if (!rows.length) {
-    return <div className="dashboard-status-empty">No sport status available.</div>;
-  }
+  const activeSports = getActiveSports(status).map((sport) => sport.toLowerCase());
 
   return (
     <div className="dashboard-status-simple">
-      {rows.map((row, index) => {
-        const sport = row.sport || row.name || row.league || `Sport ${index + 1}`;
-        const active = isActive(row);
+      {SPORTS.map((sport) => {
+        const active = activeSports.includes(sport.toLowerCase());
 
         return (
-          <div className="dashboard-status-simple-row" key={`${sport}-${index}`}>
+          <div className="dashboard-status-simple-row" key={sport}>
             <strong>{sport}</strong>
             <span className={active ? "active" : "inactive"}>
               {active ? "Active" : "Not Active"}
