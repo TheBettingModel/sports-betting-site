@@ -1,189 +1,166 @@
 import { useEffect, useMemo, useState } from "react";
-import TBMTeamLogo from "../components/logos/TBMTeamLogo";
-import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
-import { TBMPage, TBMCard } from "../components/ui";
 import "./PlayOfTheDayPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-function formatOdds(value) {
-  if (value === null || value === undefined || value === "") return "N/A";
-  const num = Number(value);
-  if (Number.isNaN(num)) return value;
-  return num > 0 ? `+${num}` : `${num}`;
+const SPORT_META = {
+  MLB: { label: "MLB", icon: "⚾" },
+  NBA: { label: "NBA", icon: "🏀" },
+  NFL: { label: "NFL", icon: "🏈" },
+  NHL: { label: "NHL", icon: "🏒" },
+  WNBA: { label: "WNBA", icon: "🏀" },
+  NCAAF: { label: "NCAAF", icon: "🏈" },
+  Soccer: { label: "Soccer", icon: "⚽" },
+};
+
+function cleanTeamName(name = "") {
+  return String(name)
+    .replace(/\s+/g, " ")
+    .replace(/^\d+\s*/, "")
+    .trim();
 }
 
-function splitGame(game = "") {
-  if (game.includes(" vs ")) {
-    const [away, home] = game.split(" vs ");
-    return { away, home };
+function slugTeam(name = "") {
+  return cleanTeamName(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function splitTeams(game = "") {
+  const text = String(game || "");
+  const parts = text.split(/\s+vs\.?\s+|\s+@\s+/i);
+  return {
+    away: cleanTeamName(parts[0] || "Team"),
+    home: cleanTeamName(parts[1] || "Team"),
+  };
+}
+
+function TeamLogo({ team }) {
+  const [failed, setFailed] = useState(false);
+  const slug = slugTeam(team);
+  const initials = cleanTeamName(team)
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+
+  if (!slug || failed) {
+    return <div className="pod-team-fallback">{initials || "TBM"}</div>;
   }
-
-  if (game.includes(" at ")) {
-    const [away, home] = game.split(" at ");
-    return { away, home };
-  }
-
-  return { away: "Away", home: "Home" };
-}
-
-function normalizeBestBySport(data) {
-  const pick = data?.play_of_the_day || data?.overall_play;
-  const raw = data?.best_by_sport || data?.by_sport || {};
-  const cleaned = { ...raw };
-
-  if (pick?.sport) cleaned[pick.sport] = pick;
-  if (pick?.pod_sport) cleaned[pick.pod_sport] = pick;
-
-  return cleaned;
-}
-
-function getSport(play) {
-  return play?.sport || play?.pod_sport || play?.league || "Sport";
-}
-
-function getPick(play) {
-  return play?.pick || play?.recommendation || "No Pick";
-}
-
-function getBook(play) {
-  return play?.best_sportsbook || play?.sportsbook || "Best Available";
-}
-
-function getRecommendation(play) {
-  return play?.final_recommendation || play?.recommendation || "Model Play";
-}
-
-function SimpleSportCard({ sport, play }) {
-  const { away, home } = splitGame(play?.game || "");
 
   return (
-    <div className="pod-simple-sport-card">
-      <div className="pod-simple-sport-top">
-        <span>{sport}</span>
-        <strong>{getRecommendation(play)}</strong>
-      </div>
-
-      <div className="pod-simple-matchup">
-        <div>
-          <TBMTeamLogo team={away} sport={sport} size={34} />
-          <span>{away}</span>
-        </div>
-
-        <em>@</em>
-
-        <div>
-          <TBMTeamLogo team={home} sport={sport} size={34} />
-          <span>{home}</span>
-        </div>
-      </div>
-
-      <div className="pod-simple-pick">{getPick(play)}</div>
-    </div>
+    <img
+      className="pod-team-logo"
+      src={`/logos/teams/${slug}.png`}
+      alt={`${team} logo`}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
-export default function PlayOfTheDayPage() {
+function normalizeSportPlays(data) {
+  const bySport = data?.by_sport || {};
+  return Object.entries(bySport)
+    .map(([sport, play]) => ({ sport, play }))
+    .filter((item) => item.play);
+}
+
+function PlayOfTheDayPage() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_URL}/homepage`)
-      .then((response) => response.json())
-      .then((homepage) => {
-        if (homepage.play_of_the_day) {
-          setData(homepage);
-        } else {
-          setError(homepage.message || homepage.error || "No play of the day found.");
-        }
+    fetch(`${API_URL}/model/play-of-the-day`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load Play Of The Day");
+        return res.json();
       })
-      .catch(() => setError("Could not load play of the day."));
+      .then((json) => {
+        setData(json);
+        setError("");
+      })
+      .catch((err) => setError(err.message || "Unable to load data"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const pick = data?.play_of_the_day;
-  const bestBySport = useMemo(() => normalizeBestBySport(data), [data]);
-  const { away, home } = splitGame(pick?.game || "");
+  const overall = data?.overall_play || null;
+  const sportCards = useMemo(() => normalizeSportPlays(data), [data]);
 
   return (
-    <TBMPage className="pod-page-clean">
-      <header className="pod-clean-header">
-        <span>Official Pick</span>
-        <h1>Play of the Day</h1>
-      </header>
+    <main className="pod-page">
+      <section className="pod-header">
+        <div>
+          <p className="pod-eyebrow">The Betting Model</p>
+          <h1>Play Of The Day</h1>
+        </div>
+        <div className="pod-status-pill">Live Model</div>
+      </section>
 
-      {error ? (
-        <p className="pod-error">{error}</p>
-      ) : !pick ? (
-        <TBMCard className="pod-loading">Loading play of the day...</TBMCard>
-      ) : (
+      {loading && <div className="pod-state-card">Loading model card...</div>}
+      {error && <div className="pod-state-card pod-error">{error}</div>}
+
+      {!loading && !error && (
         <>
-          <TBMCard glow className="pod-clean-card">
-            <div className="pod-clean-top">
-              <div>
-                <span>Today’s POD</span>
-                <h2>{getPick(pick)}</h2>
-              </div>
+          <section className="pod-kpi-row">
+            <div className="pod-kpi">
+              <span>Featured Play</span>
+              <strong>{overall?.pick || "No Play"}</strong>
+            </div>
+            <div className="pod-kpi">
+              <span>Sport Cards</span>
+              <strong>{sportCards.length}</strong>
+            </div>
+            <div className="pod-kpi">
+              <span>Status</span>
+              <strong>{overall ? "Active" : "Waiting"}</strong>
+            </div>
+          </section>
 
-              <TBMSportsbookBadge book={getBook(pick)} />
+          <section className="pod-feature-card">
+            <div className="pod-feature-top">
+              <span className="pod-sport-badge">
+                {SPORT_META[overall?.sport]?.icon || "📊"} {overall?.sport || "Top Play"}
+              </span>
             </div>
 
-            <div className="pod-clean-matchup">
-              <div>
-                <TBMTeamLogo team={away} sport={getSport(pick)} size={58} />
-                <strong>{away}</strong>
-              </div>
+            <h2>{overall?.game || "No Play Of The Day Available"}</h2>
+            <p>{overall?.pick || "Check back after the model refreshes."}</p>
+          </section>
 
-              <em>@</em>
+          <section className="pod-section-title">
+            <h3>Best Play by Sport</h3>
+          </section>
 
-              <div>
-                <TBMTeamLogo team={home} sport={getSport(pick)} size={58} />
-                <strong>{home}</strong>
-              </div>
-            </div>
+          <section className="pod-sport-grid">
+            {sportCards.map(({ sport, play }) => {
+              const teams = splitTeams(play?.game);
+              const meta = SPORT_META[sport] || { label: sport, icon: "📊" };
 
-            <div className="pod-clean-stats">
-              <div>
-                <span>Odds</span>
-                <strong>{formatOdds(pick.best_odds ?? pick.odds)}</strong>
-              </div>
+              return (
+                <button className="pod-sport-card" key={sport} type="button">
+                  <div className="pod-sport-label">
+                    <span>{meta.icon}</span>
+                    <strong>{meta.label}</strong>
+                  </div>
 
-              <div>
-                <span>Edge</span>
-                <strong>{pick.edge ?? "N/A"}%</strong>
-              </div>
+                  <div className="pod-matchup">
+                    <TeamLogo team={teams.away} />
+                    <span className="pod-vs">VS</span>
+                    <TeamLogo team={teams.home} />
+                  </div>
 
-              <div>
-                <span>Confidence</span>
-                <strong>{pick.confidence ?? "N/A"}%</strong>
-              </div>
-
-              <div>
-                <span>Units</span>
-                <strong>{pick.units ?? "N/A"}</strong>
-              </div>
-            </div>
-
-            <div className="pod-clean-tags">
-              <span>{getSport(pick)}</span>
-              <span>{pick.market || "Market"}</span>
-              <span>{getRecommendation(pick)}</span>
-            </div>
-          </TBMCard>
-
-          <section className="pod-clean-section">
-            <div className="pod-clean-section-header">
-              <span>Sport Board</span>
-              <h2>Best Play by Sport</h2>
-            </div>
-
-            <div className="pod-simple-sport-grid">
-              {Object.entries(bestBySport).map(([sport, play]) => (
-                <SimpleSportCard key={sport} sport={sport} play={play} />
-              ))}
-            </div>
+                  <div className="pod-pick">{play?.pick || "No Pick"}</div>
+                </button>
+              );
+            })}
           </section>
         </>
       )}
-    </TBMPage>
+    </main>
   );
 }
+
+export default PlayOfTheDayPage;

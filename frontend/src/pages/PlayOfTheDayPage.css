@@ -1,289 +1,238 @@
-.pod-page-clean {
-  padding-top: 20px;
+.pod-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #f8fafc;
 }
 
-.pod-clean-header {
-  margin-bottom: 16px;
+.pod-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
-.pod-clean-header span,
-.pod-clean-top span,
-.pod-clean-section-header span {
-  display: inline-flex;
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: rgba(69, 255, 84, 0.1);
-  color: #45ff54;
-  font-size: 11px;
-  font-weight: 950;
+.pod-eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
-.pod-clean-header h1 {
-  margin: 10px 0 0;
-  font-size: clamp(34px, 5vw, 54px);
-  line-height: 0.95;
-  letter-spacing: -0.07em;
-  font-weight: 950;
+.pod-header h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1;
 }
 
-.pod-clean-card {
-  padding: 18px;
+.pod-status-pill,
+.pod-sport-badge {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.pod-clean-top {
-  display: flex;
-  justify-content: space-between;
+.pod-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
-  align-items: flex-start;
   margin-bottom: 16px;
 }
 
-.pod-clean-top h2 {
-  margin: 10px 0 0;
-  color: #f8fafc;
-  font-size: clamp(28px, 4vw, 44px);
-  line-height: 0.95;
-  letter-spacing: -0.06em;
-  font-weight: 950;
-}
-
-.pod-clean-matchup {
-  display: grid;
-  grid-template-columns: 1fr 44px 1fr;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
+.pod-kpi,
+.pod-state-card,
+.pod-feature-card,
+.pod-sport-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.96));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
   border-radius: 18px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.025);
-  margin-bottom: 14px;
 }
 
-.pod-clean-matchup > div {
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-  min-width: 0;
+.pod-kpi {
+  padding: 14px;
 }
 
-.pod-clean-matchup strong {
-  max-width: 100%;
-  color: #f8fafc;
-  font-size: 14px;
-  font-weight: 950;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pod-clean-matchup em {
-  color: #64748b;
-  font-style: normal;
-  font-weight: 950;
-  text-align: center;
-}
-
-.pod-clean-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 9px;
-  margin-bottom: 12px;
-}
-
-.pod-clean-stats div {
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 12px;
-  padding: 11px;
-  background: rgba(255, 255, 255, 0.025);
-  text-align: center;
-}
-
-.pod-clean-stats span {
+.pod-kpi span {
   display: block;
+  font-size: 12px;
   color: #94a3b8;
-  font-size: 10px;
-  font-weight: 950;
-  text-transform: uppercase;
+  margin-bottom: 6px;
 }
 
-.pod-clean-stats strong {
-  display: block;
-  margin-top: 6px;
-  color: #45ff54;
-  font-size: 17px;
-  font-weight: 950;
-}
-
-.pod-clean-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pod-clean-tags span {
-  border-radius: 999px;
-  padding: 7px 10px;
-  background: rgba(255, 255, 255, 0.035);
-  color: #cbd5e1;
-  font-size: 11px;
-  font-weight: 850;
-}
-
-.pod-clean-section {
-  margin-top: 20px;
-}
-
-.pod-clean-section-header {
-  margin-bottom: 12px;
-}
-
-.pod-clean-section-header h2 {
-  margin: 8px 0 0;
+.pod-kpi strong {
+  font-size: 18px;
   color: #f8fafc;
-  font-size: 20px;
-  font-weight: 950;
-  letter-spacing: -0.03em;
 }
 
-.pod-simple-sport-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.pod-simple-sport-card {
-  display: grid;
-  gap: 10px;
-  min-height: 136px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 15px;
-  padding: 12px;
-  background:
-    radial-gradient(circle at top left, rgba(69, 255, 84, 0.075), transparent 34%),
-    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
-}
-
-.pod-simple-sport-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.pod-simple-sport-top span {
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 950;
-  text-transform: uppercase;
-}
-
-.pod-simple-sport-top strong {
-  border-radius: 999px;
-  padding: 5px 8px;
-  background: rgba(69, 255, 84, 0.1);
-  color: #45ff54;
-  font-size: 9px;
-  font-weight: 950;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.pod-simple-matchup {
-  display: grid;
-  grid-template-columns: 1fr 20px 1fr;
-  align-items: center;
-  gap: 5px;
-}
-
-.pod-simple-matchup > div {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.pod-simple-matchup span {
-  max-width: 100%;
+.pod-state-card {
+  padding: 18px;
   color: #cbd5e1;
-  font-size: 10px;
-  font-weight: 850;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pod-simple-matchup em {
-  color: #64748b;
-  font-style: normal;
-  text-align: center;
-  font-weight: 950;
-}
-
-.pod-simple-pick {
-  border-radius: 10px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.025);
-  color: #f8fafc;
-  font-size: 13px;
-  font-weight: 950;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pod-error {
-  color: #f87171;
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.35);
 }
 
-.pod-loading {
-  padding: 18px;
-  color: #94a3b8;
+.pod-feature-card {
+  padding: 22px;
+  margin-bottom: 20px;
 }
 
-@media (max-width: 1100px) {
-  .pod-simple-sport-grid {
+.pod-feature-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.pod-feature-card h2 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.pod-feature-card p {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.pod-section-title {
+  margin: 4px 0 12px;
+}
+
+.pod-section-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.pod-sport-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pod-sport-card {
+  cursor: pointer;
+  text-align: left;
+  padding: 14px;
+  color: inherit;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.pod-sport-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.42);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 1), rgba(15, 23, 42, 0.84));
+}
+
+.pod-sport-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-bottom: 14px;
+}
+
+.pod-matchup {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pod-team-logo,
+.pod-team-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.pod-team-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: #e2e8f0;
+}
+
+.pod-vs {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: #64748b;
+}
+
+.pod-pick {
+  font-size: 15px;
+  font-weight: 900;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .pod-sport-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .pod-clean-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .pod-kpi-row {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 620px) {
-  .pod-page-clean {
-    padding: 14px;
+@media (max-width: 560px) {
+  .pod-page {
+    padding: 16px;
   }
 
-  .pod-clean-card {
-    padding: 14px;
+  .pod-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .pod-clean-top {
-    display: block;
+  .pod-header h1 {
+    font-size: 28px;
   }
 
-  .pod-clean-top .tbm-sportsbook-badge {
-    margin-top: 12px;
+  .pod-feature-card {
+    padding: 18px;
   }
 
-  .pod-clean-matchup {
+  .pod-feature-card h2 {
+    font-size: 20px;
+  }
+
+  .pod-feature-card p {
+    font-size: 18px;
+  }
+
+  .pod-sport-grid {
     grid-template-columns: 1fr;
-    padding: 13px;
   }
 
-  .pod-clean-matchup em {
-    display: none;
+  .pod-matchup {
+    grid-template-columns: 42px 1fr 42px;
   }
 
-  .pod-clean-stats,
-  .pod-simple-sport-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pod-clean-header h1 {
-    font-size: 34px;
+  .pod-team-logo,
+  .pod-team-fallback {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
   }
 }
