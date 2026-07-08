@@ -287,3 +287,52 @@
     display: none;
   }
 }
+
+
+/* POD V3 Stats Strip */
+
+.pod-metric-grid{
+display:grid;
+grid-template-columns:repeat(4,minmax(0,1fr));
+gap:12px;
+margin:18px 0;
+}
+
+.pod-metric-grid .tbm-metric{
+padding:12px;
+border-radius:14px;
+background:rgba(255,255,255,.03);
+border:1px solid rgba(255,255,255,.08);
+text-align:center;
+}
+
+.pod-metric-grid .tbm-metric-label{
+font-size:10px;
+letter-spacing:.08em;
+text-transform:uppercase;
+color:#94a3b8;
+}
+
+.pod-metric-grid .tbm-metric-value{
+margin-top:6px;
+font-size:20px;
+font-weight:900;
+color:#fff;
+}
+
+@media(max-width:900px){
+
+.pod-metric-grid{
+grid-template-columns:repeat(2,1fr);
+}
+
+}
+
+@media(max-width:600px){
+
+.pod-metric-grid{
+grid-template-columns:1fr;
+}
+
+}
+
