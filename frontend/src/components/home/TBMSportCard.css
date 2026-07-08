@@ -1,115 +1,106 @@
-.tbm-sport-card-v2 {
-  display: block;
-  min-height: 158px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 16px;
-  padding: 13px;
+.tbm-sport-card-v3 {
+  display: grid;
+  gap: 11px;
+  min-height: 145px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 15px;
+  padding: 12px;
   background:
-    radial-gradient(circle at top left, rgba(69, 255, 84, 0.08), transparent 34%),
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.075), transparent 34%),
     linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
   color: #f8fafc;
   text-decoration: none;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  transition: 0.18s ease;
 }
 
-.tbm-sport-card-v2:hover {
+.tbm-sport-card-v3:hover {
   transform: translateY(-2px);
-  border-color: rgba(69, 255, 84, 0.38);
+  border-color: rgba(69, 255, 84, 0.34);
 }
 
-.tbm-sport-card-top-v2 {
+.tbm-sport-card-v3-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.tbm-sport-card-top-v2 span {
+.tbm-sport-card-v3-head span {
   color: #94a3b8;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 950;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.tbm-sport-card-top-v2 strong {
-  border: 1px solid rgba(69, 255, 84, 0.28);
+.tbm-sport-card-v3-head strong {
   border-radius: 999px;
   padding: 5px 8px;
   background: rgba(69, 255, 84, 0.1);
   color: #45ff54;
-  font-size: 10px;
+  border: 1px solid rgba(69, 255, 84, 0.24);
+  font-size: 9px;
   font-weight: 950;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.tbm-sport-card-logos-v2 {
+.tbm-sport-card-v3-teams {
   display: grid;
-  grid-template-columns: 1fr 30px 1fr;
+  grid-template-columns: 1fr 22px 1fr;
   align-items: center;
-  justify-items: center;
   gap: 6px;
-  margin-bottom: 12px;
 }
 
-.tbm-sport-card-vs-v2 {
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 999px;
+.tbm-sport-card-v3-teams > div {
   display: grid;
-  place-items: center;
-  color: #94a3b8;
-  font-size: 9px;
-  font-weight: 950;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
 }
 
-.tbm-sport-card-pick-v2 {
+.tbm-sport-card-v3-teams span {
+  max-width: 100%;
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-sport-card-v3-teams em {
+  color: #64748b;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 950;
   text-align: center;
 }
 
-.tbm-sport-card-pick-v2 strong {
-  display: block;
+.tbm-sport-card-v3-pick {
+  min-height: 32px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.025);
   color: #f8fafc;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 950;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.tbm-sport-card-pick-v2 span {
-  display: block;
-  margin-top: 5px;
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 750;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 900px) {
-  .tbm-sport-card-v2 {
-    min-height: 138px;
-    padding: 12px;
-  }
-
-  .tbm-sport-card-logos-v2 .tbm-real-logo-shell {
-    width: 36px !important;
-    height: 36px !important;
-  }
 }
 
 @media (max-width: 620px) {
-  .tbm-sport-card-v2 {
+  .tbm-sport-card-v3 {
     min-height: 128px;
   }
 
-  .tbm-sport-card-top-v2 strong {
-    font-size: 9px;
+  .tbm-sport-card-v3-teams .tbm-real-logo-shell {
+    width: 34px !important;
+    height: 34px !important;
   }
 }
