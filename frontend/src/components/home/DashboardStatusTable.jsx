@@ -11,20 +11,15 @@ function normalizeStatus(status) {
   }));
 }
 
-function cleanStatus(value) {
-  const text = String(value || "Ready");
-  if (text.toLowerCase().includes("success")) return "Ready";
-  if (text.toLowerCase().includes("error")) return "Offline";
-  if (text.toLowerCase().includes("off")) return "Off Season";
-  return text;
-}
+function isActive(row) {
+  const text = String(row.status || row.refresh_status || row.state || "").toLowerCase();
+  const games = Number(row.games ?? row.count ?? row.play_count ?? row.total_games ?? 0);
 
-function statusClass(value) {
-  const text = String(value || "").toLowerCase();
-  if (text.includes("offline") || text.includes("error")) return "red";
-  if (text.includes("update") || text.includes("loading")) return "gold";
-  if (text.includes("off")) return "muted";
-  return "green";
+  if (text.includes("error") || text.includes("offline") || text.includes("off")) return false;
+  if (games > 0) return true;
+  if (text.includes("success") || text.includes("ready") || text.includes("active")) return true;
+
+  return false;
 }
 
 export default function DashboardStatusTable({ status }) {
@@ -35,25 +30,17 @@ export default function DashboardStatusTable({ status }) {
   }
 
   return (
-    <div className="dashboard-status-table">
-      <div className="dashboard-status-head">
-        <span>Sport</span>
-        <span>Status</span>
-        <span>Games</span>
-      </div>
-
+    <div className="dashboard-status-simple">
       {rows.map((row, index) => {
         const sport = row.sport || row.name || row.league || `Sport ${index + 1}`;
-        const games = row.games ?? row.count ?? row.play_count ?? row.total_games ?? "—";
-        const statusText = cleanStatus(row.status || row.refresh_status || row.state);
+        const active = isActive(row);
 
         return (
-          <div className="dashboard-status-row" key={`${sport}-${index}`}>
+          <div className="dashboard-status-simple-row" key={`${sport}-${index}`}>
             <strong>{sport}</strong>
-            <span className={`dashboard-status-pill ${statusClass(statusText)}`}>
-              {statusText}
+            <span className={active ? "active" : "inactive"}>
+              {active ? "Active" : "Not Active"}
             </span>
-            <em>{games}</em>
           </div>
         );
       })}
