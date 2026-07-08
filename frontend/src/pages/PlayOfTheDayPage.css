@@ -1,14 +1,14 @@
-.pod-page-v2 {
-  padding-top: 22px;
+.pod-page-clean {
+  padding-top: 20px;
 }
 
-.pod-header-v2 {
-  margin-bottom: 18px;
+.pod-clean-header {
+  margin-bottom: 16px;
 }
 
-.pod-header-v2 span,
-.pod-label,
-.pod-section-header span {
+.pod-clean-header span,
+.pod-clean-top span,
+.pod-clean-section-header span {
   display: inline-flex;
   border-radius: 999px;
   padding: 6px 10px;
@@ -20,58 +20,87 @@
   text-transform: uppercase;
 }
 
-.pod-header-v2 h1 {
-  margin: 12px 0 6px;
-  font-size: clamp(36px, 5vw, 58px);
+.pod-clean-header h1 {
+  margin: 10px 0 0;
+  font-size: clamp(34px, 5vw, 54px);
   line-height: 0.95;
   letter-spacing: -0.07em;
   font-weight: 950;
 }
 
-.pod-header-v2 p {
-  margin: 0;
-  max-width: 760px;
-  color: #94a3b8;
-  font-size: 14px;
+.pod-clean-card {
+  padding: 18px;
 }
 
-.pod-feature-card {
-  padding: 20px;
-}
-
-.pod-feature-top {
+.pod-clean-top {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
+  align-items: flex-start;
   margin-bottom: 16px;
 }
 
-.pod-feature-top h2 {
-  margin: 11px 0 5px;
+.pod-clean-top h2 {
+  margin: 10px 0 0;
   color: #f8fafc;
-  font-size: clamp(28px, 4vw, 46px);
+  font-size: clamp(28px, 4vw, 44px);
   line-height: 0.95;
   letter-spacing: -0.06em;
   font-weight: 950;
 }
 
-.pod-feature-top p {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 13px;
+.pod-clean-matchup {
+  display: grid;
+  grid-template-columns: 1fr 44px 1fr;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  margin-bottom: 14px;
 }
 
-.pod-score {
-  min-width: 96px;
-  border: 1px solid rgba(69, 255, 84, 0.28);
-  border-radius: 16px;
-  padding: 12px;
-  background: rgba(69, 255, 84, 0.08);
+.pod-clean-matchup > div {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.pod-clean-matchup strong {
+  max-width: 100%;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-clean-matchup em {
+  color: #64748b;
+  font-style: normal;
+  font-weight: 950;
   text-align: center;
-  height: fit-content;
 }
 
-.pod-score span {
+.pod-clean-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.pod-clean-stats div {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  padding: 11px;
+  background: rgba(255, 255, 255, 0.025);
+  text-align: center;
+}
+
+.pod-clean-stats span {
   display: block;
   color: #94a3b8;
   font-size: 10px;
@@ -79,67 +108,21 @@
   text-transform: uppercase;
 }
 
-.pod-score strong {
+.pod-clean-stats strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 6px;
   color: #45ff54;
-  font-size: 24px;
+  font-size: 17px;
   font-weight: 950;
 }
 
-.pod-matchup-row {
-  display: grid;
-  grid-template-columns: 1fr 48px 1fr;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 18px;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.025);
-  margin-bottom: 14px;
-}
-
-.pod-matchup-row > div {
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.pod-matchup-row span {
-  max-width: 100%;
-  color: #cbd5e1;
-  font-size: 13px;
-  font-weight: 850;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pod-matchup-row em {
-  color: #64748b;
-  font-style: normal;
-  font-weight: 950;
-  text-align: center;
-}
-
-.pod-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 9px;
-  margin-bottom: 14px;
-}
-
-.pod-signal-strip {
+.pod-clean-tags {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 9px;
-  border-top: 1px solid rgba(148, 163, 184, 0.14);
-  padding-top: 14px;
+  gap: 8px;
 }
 
-.pod-signal-strip span {
+.pod-clean-tags span {
   border-radius: 999px;
   padding: 7px 10px;
   background: rgba(255, 255, 255, 0.035);
@@ -148,29 +131,29 @@
   font-weight: 850;
 }
 
-.pod-section {
-  margin-top: 22px;
+.pod-clean-section {
+  margin-top: 20px;
 }
 
-.pod-section-header {
+.pod-clean-section-header {
   margin-bottom: 12px;
 }
 
-.pod-section-header h2 {
+.pod-clean-section-header h2 {
   margin: 8px 0 0;
   color: #f8fafc;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 950;
   letter-spacing: -0.03em;
 }
 
-.pod-sport-grid {
+.pod-simple-sport-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
-.pod-sport-card {
+.pod-simple-sport-card {
   display: grid;
   gap: 10px;
   min-height: 136px;
@@ -180,24 +163,22 @@
   background:
     radial-gradient(circle at top left, rgba(69, 255, 84, 0.075), transparent 34%),
     linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
-  color: #f8fafc;
-  text-decoration: none;
 }
 
-.pod-sport-card-top {
+.pod-simple-sport-top {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 }
 
-.pod-sport-card-top span {
+.pod-simple-sport-top span {
   color: #94a3b8;
   font-size: 10px;
   font-weight: 950;
   text-transform: uppercase;
 }
 
-.pod-sport-card-top strong {
+.pod-simple-sport-top strong {
   border-radius: 999px;
   padding: 5px 8px;
   background: rgba(69, 255, 84, 0.1);
@@ -208,21 +189,21 @@
   white-space: nowrap;
 }
 
-.pod-sport-matchup {
+.pod-simple-matchup {
   display: grid;
   grid-template-columns: 1fr 20px 1fr;
   align-items: center;
   gap: 5px;
 }
 
-.pod-sport-matchup > div {
+.pod-simple-matchup > div {
   display: grid;
   justify-items: center;
   gap: 4px;
   min-width: 0;
 }
 
-.pod-sport-matchup span {
+.pod-simple-matchup span {
   max-width: 100%;
   color: #cbd5e1;
   font-size: 10px;
@@ -232,14 +213,14 @@
   white-space: nowrap;
 }
 
-.pod-sport-matchup em {
+.pod-simple-matchup em {
   color: #64748b;
   font-style: normal;
   text-align: center;
   font-weight: 950;
 }
 
-.pod-sport-pick {
+.pod-simple-pick {
   border-radius: 10px;
   padding: 8px;
   background: rgba(255, 255, 255, 0.025);
@@ -262,77 +243,47 @@
 }
 
 @media (max-width: 1100px) {
-  .pod-metric-grid,
-  .pod-sport-grid {
+  .pod-simple-sport-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pod-clean-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 620px) {
-  .pod-feature-top {
+  .pod-page-clean {
+    padding: 14px;
+  }
+
+  .pod-clean-card {
+    padding: 14px;
+  }
+
+  .pod-clean-top {
     display: block;
   }
 
-  .pod-score {
+  .pod-clean-top .tbm-sportsbook-badge {
     margin-top: 12px;
   }
 
-  .pod-matchup-row,
-  .pod-metric-grid,
-  .pod-sport-grid {
+  .pod-clean-matchup {
+    grid-template-columns: 1fr;
+    padding: 13px;
+  }
+
+  .pod-clean-matchup em {
+    display: none;
+  }
+
+  .pod-clean-stats,
+  .pod-simple-sport-grid {
     grid-template-columns: 1fr;
   }
 
-  .pod-matchup-row em {
-    display: none;
+  .pod-clean-header h1 {
+    font-size: 34px;
   }
 }
-
-
-/* POD V3 Stats Strip */
-
-.pod-metric-grid{
-display:grid;
-grid-template-columns:repeat(4,minmax(0,1fr));
-gap:12px;
-margin:18px 0;
-}
-
-.pod-metric-grid .tbm-metric{
-padding:12px;
-border-radius:14px;
-background:rgba(255,255,255,.03);
-border:1px solid rgba(255,255,255,.08);
-text-align:center;
-}
-
-.pod-metric-grid .tbm-metric-label{
-font-size:10px;
-letter-spacing:.08em;
-text-transform:uppercase;
-color:#94a3b8;
-}
-
-.pod-metric-grid .tbm-metric-value{
-margin-top:6px;
-font-size:20px;
-font-weight:900;
-color:#fff;
-}
-
-@media(max-width:900px){
-
-.pod-metric-grid{
-grid-template-columns:repeat(2,1fr);
-}
-
-}
-
-@media(max-width:600px){
-
-.pod-metric-grid{
-grid-template-columns:1fr;
-}
-
-}
-

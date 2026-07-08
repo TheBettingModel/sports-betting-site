@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import TBMTeamLogo from "../components/logos/TBMTeamLogo";
 import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
-import { TBMPage, TBMCard, TBMMetric } from "../components/ui";
+import { TBMPage, TBMCard } from "../components/ui";
 import "./PlayOfTheDayPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -50,21 +50,21 @@ function getBook(play) {
   return play?.best_sportsbook || play?.sportsbook || "Best Available";
 }
 
-function score(play) {
-  return play?.universal_pod_score ?? play?.pod_score ?? play?.final_model_score ?? "N/A";
+function getRecommendation(play) {
+  return play?.final_recommendation || play?.recommendation || "Model Play";
 }
 
-function CompactSportPlay({ sport, play }) {
+function SimpleSportCard({ sport, play }) {
   const { away, home } = splitGame(play?.game || "");
 
   return (
-    <a className="pod-sport-card" href="/">
-      <div className="pod-sport-card-top">
+    <div className="pod-simple-sport-card">
+      <div className="pod-simple-sport-top">
         <span>{sport}</span>
-        <strong>{play?.final_recommendation || play?.recommendation || "Model Play"}</strong>
+        <strong>{getRecommendation(play)}</strong>
       </div>
 
-      <div className="pod-sport-matchup">
+      <div className="pod-simple-matchup">
         <div>
           <TBMTeamLogo team={away} sport={sport} size={34} />
           <span>{away}</span>
@@ -78,8 +78,8 @@ function CompactSportPlay({ sport, play }) {
         </div>
       </div>
 
-      <div className="pod-sport-pick">{getPick(play)}</div>
-    </a>
+      <div className="pod-simple-pick">{getPick(play)}</div>
+    </div>
   );
 }
 
@@ -105,13 +105,10 @@ export default function PlayOfTheDayPage() {
   const { away, home } = splitGame(pick?.game || "");
 
   return (
-    <TBMPage className="pod-page-v2">
-      <header className="pod-header-v2">
-        <div>
-          <span>Official Pick</span>
-          <h1>Play of the Day</h1>
-          <p>One flagship model play. Clean, simple, and updated from the same dashboard engine.</p>
-        </div>
+    <TBMPage className="pod-page-clean">
+      <header className="pod-clean-header">
+        <span>Official Pick</span>
+        <h1>Play of the Day</h1>
       </header>
 
       {error ? (
@@ -120,60 +117,68 @@ export default function PlayOfTheDayPage() {
         <TBMCard className="pod-loading">Loading play of the day...</TBMCard>
       ) : (
         <>
-          <TBMCard glow className="pod-feature-card">
-            <div className="pod-feature-top">
+          <TBMCard glow className="pod-clean-card">
+            <div className="pod-clean-top">
               <div>
-                <span className="pod-label">Today’s POD</span>
+                <span>Today’s POD</span>
                 <h2>{getPick(pick)}</h2>
-                <p>{pick.game}</p>
               </div>
 
-              <div className="pod-score">
-                <span>Score</span>
-                <strong>{score(pick)}</strong>
-              </div>
+              <TBMSportsbookBadge book={getBook(pick)} />
             </div>
 
-            <div className="pod-matchup-row">
+            <div className="pod-clean-matchup">
               <div>
                 <TBMTeamLogo team={away} sport={getSport(pick)} size={58} />
-                <span>{away}</span>
+                <strong>{away}</strong>
               </div>
 
               <em>@</em>
 
               <div>
                 <TBMTeamLogo team={home} sport={getSport(pick)} size={58} />
-                <span>{home}</span>
+                <strong>{home}</strong>
               </div>
             </div>
 
-            <div className="pod-metric-grid">
-              <TBMMetric label="Sport" value={getSport(pick)} />
-              <TBMMetric label="Market" value={pick.market || "N/A"} />
-              <TBMMetric label="Odds" value={formatOdds(pick.best_odds ?? pick.odds)} accent />
-              <TBMMetric label="Edge" value={`${pick.edge ?? "N/A"}%`} accent />
-              <TBMMetric label="Confidence" value={`${pick.confidence ?? "N/A"}%`} />
-              <TBMMetric label="Units" value={pick.units ?? "N/A"} />
+            <div className="pod-clean-stats">
+              <div>
+                <span>Odds</span>
+                <strong>{formatOdds(pick.best_odds ?? pick.odds)}</strong>
+              </div>
+
+              <div>
+                <span>Edge</span>
+                <strong>{pick.edge ?? "N/A"}%</strong>
+              </div>
+
+              <div>
+                <span>Confidence</span>
+                <strong>{pick.confidence ?? "N/A"}%</strong>
+              </div>
+
+              <div>
+                <span>Units</span>
+                <strong>{pick.units ?? "N/A"}</strong>
+              </div>
             </div>
 
-            <div className="pod-signal-strip">
-              <span>{pick.sharp_signal || "Sharp Watch"}</span>
-              <span>{pick.clv_status || "CLV Watch"}</span>
-              <span>{pick.market_intelligence_grade || "Market Grade N/A"}</span>
-              <TBMSportsbookBadge book={getBook(pick)} />
+            <div className="pod-clean-tags">
+              <span>{getSport(pick)}</span>
+              <span>{pick.market || "Market"}</span>
+              <span>{getRecommendation(pick)}</span>
             </div>
           </TBMCard>
 
-          <section className="pod-section">
-            <div className="pod-section-header">
+          <section className="pod-clean-section">
+            <div className="pod-clean-section-header">
               <span>Sport Board</span>
               <h2>Best Play by Sport</h2>
             </div>
 
-            <div className="pod-sport-grid">
+            <div className="pod-simple-sport-grid">
               {Object.entries(bestBySport).map(([sport, play]) => (
-                <CompactSportPlay key={sport} sport={sport} play={play} />
+                <SimpleSportCard key={sport} sport={sport} play={play} />
               ))}
             </div>
           </section>
