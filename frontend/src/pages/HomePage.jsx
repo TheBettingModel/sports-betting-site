@@ -4,6 +4,7 @@ import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
 import TBMSportCard from "../components/home/TBMSportCard";
 import TBMKpiRow from "../components/home/TBMKpiRow";
 import DashboardStatusTable from "../components/home/DashboardStatusTable";
+import DashboardPerformanceSnapshot from "../components/home/DashboardPerformanceSnapshot";
 import { DashboardMain } from "../components/ui";
 import "../components/home/TBMDashboardFramework.css";
 
@@ -354,21 +355,7 @@ export default function HomePage() {
             <DashboardStatusTable status={status} />
           </section>
 
-          <section style={sectionStyle}>
-            <div style={sectionHeaderStyle}>
-              <div>
-                <div style={eyebrowStyle}>Model Transparency</div>
-                <h2 style={sectionTitleStyle}>Performance Snapshot</h2>
-              </div>
-            </div>
-
-            <div style={metricGridStyle}>
-              <Metric label="Yesterday" value="Coming Soon" />
-              <Metric label="Season Units" value="Tracked Soon" accent />
-              <Metric label="Win Rate" value="Tracked Soon" />
-              <Metric label="ROI" value="Tracked Soon" accent />
-            </div>
-          </section>
+          <DashboardPerformanceSnapshot />
 
           <section id="membership" style={membershipStyle}>
             <div>
