@@ -1,67 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import TBMSportCard from "../components/home/TBMSportCard";
 import "./PlayOfTheDayPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const SPORT_META = {
-  MLB: { label: "MLB", icon: "⚾" },
-  NBA: { label: "NBA", icon: "🏀" },
-  NFL: { label: "NFL", icon: "🏈" },
-  NHL: { label: "NHL", icon: "🏒" },
-  WNBA: { label: "WNBA", icon: "🏀" },
-  NCAAF: { label: "NCAAF", icon: "🏈" },
-  Soccer: { label: "Soccer", icon: "⚽" },
+const SPORT_ROUTES = {
+  MLB: "/mlb",
+  NBA: "/nba",
+  NFL: "/nfl",
+  NHL: "/nhl",
+  WNBA: "/wnba",
+  NCAAF: "/ncaaf",
+  Soccer: "/soccer",
 };
-
-function cleanTeamName(name = "") {
-  return String(name)
-    .replace(/\s+/g, " ")
-    .replace(/^\d+\s*/, "")
-    .trim();
-}
-
-function slugTeam(name = "") {
-  return cleanTeamName(name)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function splitTeams(game = "") {
-  const text = String(game || "");
-  const parts = text.split(/\s+vs\.?\s+|\s+@\s+/i);
-  return {
-    away: cleanTeamName(parts[0] || "Team"),
-    home: cleanTeamName(parts[1] || "Team"),
-  };
-}
-
-function TeamLogo({ team }) {
-  const [failed, setFailed] = useState(false);
-  const slug = slugTeam(team);
-  const initials = cleanTeamName(team)
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
-
-  if (!slug || failed) {
-    return <div className="pod-team-fallback">{initials || "TBM"}</div>;
-  }
-
-  return (
-    <img
-      className="pod-team-logo"
-      src={`/logos/teams/${slug}.png`}
-      alt={`${team} logo`}
-      onError={() => setFailed(true)}
-    />
-  );
-}
 
 function normalizeSportPlays(data) {
   const bySport = data?.by_sport || {};
+
   return Object.entries(bySport)
     .map(([sport, play]) => ({ sport, play }))
     .filter((item) => item.play);
@@ -106,11 +61,11 @@ function PlayOfTheDayPage() {
         <>
           <section className="pod-kpi-row">
             <div className="pod-kpi">
-              <span>Featured Play</span>
+              <span>Featured</span>
               <strong>{overall?.pick || "No Play"}</strong>
             </div>
             <div className="pod-kpi">
-              <span>Sport Cards</span>
+              <span>Sports</span>
               <strong>{sportCards.length}</strong>
             </div>
             <div className="pod-kpi">
@@ -120,14 +75,9 @@ function PlayOfTheDayPage() {
           </section>
 
           <section className="pod-feature-card">
-            <div className="pod-feature-top">
-              <span className="pod-sport-badge">
-                {SPORT_META[overall?.sport]?.icon || "📊"} {overall?.sport || "Top Play"}
-              </span>
-            </div>
-
+            <div className="pod-feature-label">{overall?.sport || "Top Play"}</div>
             <h2>{overall?.game || "No Play Of The Day Available"}</h2>
-            <p>{overall?.pick || "Check back after the model refreshes."}</p>
+            <p>{overall?.pick || "Check back after model refresh."}</p>
           </section>
 
           <section className="pod-section-title">
@@ -135,27 +85,14 @@ function PlayOfTheDayPage() {
           </section>
 
           <section className="pod-sport-grid">
-            {sportCards.map(({ sport, play }) => {
-              const teams = splitTeams(play?.game);
-              const meta = SPORT_META[sport] || { label: sport, icon: "📊" };
-
-              return (
-                <button className="pod-sport-card" key={sport} type="button">
-                  <div className="pod-sport-label">
-                    <span>{meta.icon}</span>
-                    <strong>{meta.label}</strong>
-                  </div>
-
-                  <div className="pod-matchup">
-                    <TeamLogo team={teams.away} />
-                    <span className="pod-vs">VS</span>
-                    <TeamLogo team={teams.home} />
-                  </div>
-
-                  <div className="pod-pick">{play?.pick || "No Pick"}</div>
-                </button>
-              );
-            })}
+            {sportCards.map(({ sport, play }) => (
+              <TBMSportCard
+                key={sport}
+                name={sport}
+                play={play}
+                href={SPORT_ROUTES[sport] || "#"}
+              />
+            ))}
           </section>
         </>
       )}

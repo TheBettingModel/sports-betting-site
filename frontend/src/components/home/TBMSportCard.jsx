@@ -2,13 +2,20 @@ import TBMTeamLogo from "../logos/TBMTeamLogo";
 import "./TBMSportCard.css";
 
 function splitGame(game = "") {
-  if (game.includes(" vs ")) {
-    const [away, home] = game.split(" vs ");
+  const clean = String(game || "").trim();
+
+  if (clean.includes(" vs ")) {
+    const [away, home] = clean.split(" vs ");
     return { away, home };
   }
 
-  if (game.includes(" at ")) {
-    const [away, home] = game.split(" at ");
+  if (clean.includes(" at ")) {
+    const [away, home] = clean.split(" at ");
+    return { away, home };
+  }
+
+  if (clean.includes(" @ ")) {
+    const [away, home] = clean.split(" @ ");
     return { away, home };
   }
 
@@ -16,14 +23,10 @@ function splitGame(game = "") {
 }
 
 function getPick(play) {
-  return play?.pick || play?.recommendation || "No Pick";
+  return play?.pick || play?.selection || play?.recommendation || "No Pick";
 }
 
-function getRecommendation(play) {
-  return play?.final_recommendation || play?.recommendation || "Model Play";
-}
-
-export default function TBMSportCard({ name, play, href }) {
+export default function TBMSportCard({ name, play, href = "#" }) {
   if (!play) return null;
 
   const { away, home } = splitGame(play.game || "");
@@ -32,26 +35,21 @@ export default function TBMSportCard({ name, play, href }) {
     <a className="tbm-sport-card-v3" href={href}>
       <div className="tbm-sport-card-v3-head">
         <span>{name}</span>
-        <strong>{getRecommendation(play)}</strong>
       </div>
 
       <div className="tbm-sport-card-v3-teams">
         <div>
           <TBMTeamLogo team={away} sport={name} size={38} />
-          <span>{away}</span>
         </div>
 
-        <em>@</em>
+        <em>VS</em>
 
         <div>
           <TBMTeamLogo team={home} sport={name} size={38} />
-          <span>{home}</span>
         </div>
       </div>
 
-      <div className="tbm-sport-card-v3-pick">
-        {getPick(play)}
-      </div>
+      <div className="tbm-sport-card-v3-pick">{getPick(play)}</div>
     </a>
   );
 }
