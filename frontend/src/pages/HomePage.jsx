@@ -5,6 +5,8 @@ import TBMSportCard from "../components/home/TBMSportCard";
 import TBMKpiRow from "../components/home/TBMKpiRow";
 import DashboardStatusTable from "../components/home/DashboardStatusTable";
 import DashboardPerformanceSnapshot from "../components/home/DashboardPerformanceSnapshot";
+import TBMPremiumCardStack from "../components/premium/TBMPremiumCardStack";
+import TBMModelStatusCard from "../components/premium/TBMModelStatusCard";
 import { DashboardMain } from "../components/ui";
 import "../components/home/TBMDashboardFramework.css";
 
@@ -197,35 +199,22 @@ export default function HomePage() {
   const topThree = useMemo(() => (Array.isArray(podData?.top_5) ? podData.top_5.slice(0, 3) : []), [podData]);
   const flagship = podData?.overall_play || topThree[0] || summary.best_value_play || null;
 
-  const sportEntries = useMemo(() => {
+  const activeModelEntries = useMemo(() => {
+    const sports = status?.sports || {};
     const bySport = podData?.by_sport || {};
     const order = ["MLB", "Soccer", "WNBA", "NBA", "NFL", "NHL", "NCAAF", "NCAAMB", "UFC"];
 
-    return order
-      .map((name) => {
-        let play = bySport[name];
+    return order.map((name) => {
+      const modelInfo = sports[name] || {};
+      const fallbackCount = bySport[name] ? 1 : 0;
 
-        // If the overall flagship play belongs to this sport, it should be
-        // the official sport-best card too. This prevents conflicts like:
-        // POD = Argentina -2.5, Soccer best = Argentina/Cape Verde Draw.
-        if (flagship && sport(flagship) === name) {
-          play = flagship;
-        }
-
-        // Safety: never show a same-game conflicting play against the flagship.
-        if (
-          flagship &&
-          play &&
-          play.game === flagship.game &&
-          play.pick !== flagship.pick
-        ) {
-          play = flagship;
-        }
-
-        return play ? [name, play] : null;
-      })
-      .filter(Boolean);
-  }, [podData, flagship]);
+      return {
+        name,
+        count: modelInfo.play_count ?? fallbackCount,
+        healthy: Boolean(modelInfo.healthy || fallbackCount),
+      };
+    });
+  }, [status, podData]);
 
   return (
     <main style={pageStyle} className="tbm-home-v2">
@@ -284,63 +273,33 @@ export default function HomePage() {
             }
           />
 
-          <section id="top-plays" style={sectionStyle}>
-            <div style={sectionHeaderStyle}>
-              <div>
-                <div style={eyebrowStyle}>Free Preview</div>
-                <h2 style={sectionTitleStyle}>Today’s Premium Card</h2>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gap: "14px" }}>
-              {topThree.length > 0 ? (
-                topThree.map((play, index) => (
-                  <TopPlayRow
-                    key={`${play.game}-${play.pick}-${index}`}
-                    play={play}
-                    index={index}
-                  />
-                ))
-              ) : (
-                <div style={emptyStyle}>No premium preview plays available.</div>
-              )}
-
-              <div style={lockedCardStyle}>
-                <div>
-                  <h3 style={{ marginTop: 0, fontSize: "24px" }}>Full Card Locked</h3>
-                  <p style={heroTextStyle}>
-                    Free users see the flagship play and Top 3 preview. Pro members unlock the full card,
-                    sharper market intelligence, line shopping, and complete model-board access.
-                  </p>
-                </div>
-
-                <div style={lockedListStyle}>
-                  <div style={lockedPickStyle}><span>Premium Play #4+</span><strong>Locked</strong></div>
-                  <div style={lockedPickStyle}><span>Sharp Edge Report</span><strong>Pro</strong></div>
-                  <div style={lockedPickStyle}><span>Best Line Finder</span><strong>Pro</strong></div>
-                </div>
-
-                <a href="#membership" style={primaryButtonStyle}>Unlock Today’s Card</a>
-              </div>
-            </div>
-          </section>
+          <div id="top-plays">
+            <TBMPremiumCardStack
+              title="Today's Premium Card"
+              plays={topThree}
+              visibleCount={1}
+              lockedCount={2}
+            />
+          </div>
 
           <section style={sectionStyle}>
             <div style={sectionHeaderStyle}>
               <div>
-                <div style={eyebrowStyle}>Sport Boards</div>
-                <h2 style={sectionTitleStyle}>Best Play By Sport</h2>
+                <div style={eyebrowStyle}>Active Models</div>
+                <h2 style={sectionTitleStyle}>Today's Sport Boards</h2>
               </div>
             </div>
 
             <div style={sportGridStyle} className="tbm-home-sports-grid">
-              {sportEntries.length > 0 ? (
-                sportEntries.map(([name, play]) => (
-                  <SportCard key={name} name={name} play={play} />
-                ))
-              ) : (
-                <div style={emptyStyle}>No sport-by-sport plays available.</div>
-              )}
+              {activeModelEntries.map((model) => (
+                <TBMModelStatusCard
+                  key={model.name}
+                  name={model.name}
+                  count={model.count}
+                  status={model.healthy ? "Live" : "Offline"}
+                  href={sportPath(model.name)}
+                />
+              ))}
             </div>
           </section>
 
@@ -362,14 +321,14 @@ export default function HomePage() {
               <div style={eyebrowStyle}>Coming Soon</div>
               <h2 style={membershipTitleStyle}>The Betting Model Pro</h2>
               <p style={heroTextStyle}>
-                Free users will see the flagship play, Top 3 board, and market pulse. Pro members
+                Free users will see the flagship play, one premium preview, and market pulse. Pro members
                 will unlock full model boards, sharp money analysis, CLV tracking, line shopping,
                 historical analytics, live refreshes, and premium alerts.
               </p>
             </div>
 
             <div style={membershipCardsStyle}>
-              <Metric label="Free" value="Flagship + Top 3" />
+              <Metric label="Free" value="Flagship + 1 Preview" />
               <Metric label="Pro" value="Full Model Boards" accent />
               <Metric label="VIP" value="Alerts + Reports" accent />
             </div>
