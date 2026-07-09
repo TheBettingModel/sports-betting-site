@@ -32,6 +32,10 @@ function normalizeBestBySport(data) {
     .filter((item) => item.play);
 }
 
+function getScore(play) {
+  return play?.universal_pod_score ?? play?.final_model_score ?? "N/A";
+}
+
 function AutoPODPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -42,14 +46,17 @@ function AutoPODPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((json) => setData(json))
+      .then((json) => {
+        setData(json);
+        setError("");
+      })
       .catch((err) => {
         console.error("Auto POD fetch error:", err);
         setError("Failed to load Play of the Day.");
       });
   }, []);
 
-  const overallPlay = data?.overall_play;
+  const overallPlay = data?.overall_play || data?.play_of_the_day || null;
   const topFive = data?.top_5 || [];
   const sportCards = useMemo(() => normalizeBestBySport(data), [data]);
 
@@ -70,21 +77,9 @@ function AutoPODPage() {
       ) : (
         <>
           <section className="auto-pod-kpis">
-            <TBMDataCard
-              label="Featured"
-              value={overallPlay?.pick || "No Play"}
-              tone="green"
-            />
-            <TBMDataCard
-              label="Qualified Sports"
-              value={sportCards.length}
-              tone="blue"
-            />
-            <TBMDataCard
-              label="Top Score"
-              value={getScore(overallPlay)}
-              tone="gold"
-            />
+            <TBMDataCard label="Featured" value={overallPlay?.pick || "No Play"} tone="green" />
+            <TBMDataCard label="Qualified Sports" value={sportCards.length} tone="blue" />
+            <TBMDataCard label="Top Score" value={getScore(overallPlay)} tone="gold" />
           </section>
 
           <TBMHeroCard
@@ -92,7 +87,7 @@ function AutoPODPage() {
             play={overallPlay}
             scoreLabel="POD Score"
             score={getScore(overallPlay)}
-            href="/analytics"
+            href="/auto-pod"
           />
 
           <section className="auto-pod-section">
