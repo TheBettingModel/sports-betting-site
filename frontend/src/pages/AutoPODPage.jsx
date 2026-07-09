@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import TBMSportCard from "../components/home/TBMSportCard";
 import TBMHeroCard from "../components/cards/TBMHeroCard";
+import TBMDataCard from "../components/cards/TBMDataCard";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -68,18 +69,21 @@ function AutoPODPage() {
       ) : (
         <>
           <section className="auto-pod-kpis">
-            <div>
-              <span>Featured</span>
-              <strong>{overallPlay?.pick || "No Play"}</strong>
-            </div>
-            <div>
-              <span>Qualified Sports</span>
-              <strong>{sportCards.length}</strong>
-            </div>
-            <div>
-              <span>Top Score</span>
-              <strong>{getScore(overallPlay)}</strong>
-            </div>
+            <TBMDataCard
+              label="Featured"
+              value={overallPlay?.pick || "No Play"}
+              tone="green"
+            />
+            <TBMDataCard
+              label="Qualified Sports"
+              value={sportCards.length}
+              tone="blue"
+            />
+            <TBMDataCard
+              label="Top Score"
+              value={getScore(overallPlay)}
+              tone="gold"
+            />
           </section>
 
           <TBMHeroCard

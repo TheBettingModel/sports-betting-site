@@ -46,7 +46,6 @@
   margin-bottom: 16px;
 }
 
-.auto-pod-kpis div,
 .auto-pod-feature,
 .auto-pod-section,
 .auto-pod-state {
@@ -54,28 +53,6 @@
   border-radius: 18px;
   background: linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
-}
-
-.auto-pod-kpis div {
-  padding: 14px;
-}
-
-.auto-pod-kpis span {
-  display: block;
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 850;
-  margin-bottom: 6px;
-}
-
-.auto-pod-kpis strong {
-  display: block;
-  color: #f8fafc;
-  font-size: 17px;
-  font-weight: 950;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .auto-pod-feature {

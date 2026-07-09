@@ -1,0 +1,76 @@
+.tbm-data-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.055), transparent 38%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+  min-width: 0;
+}
+
+.tbm-data-card span {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 850;
+  margin-bottom: 6px;
+}
+
+.tbm-data-card strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 950;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tbm-data-card em {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tbm-data-card-green {
+  border-color: rgba(69, 255, 84, 0.28);
+}
+
+.tbm-data-card-green strong {
+  color: #45ff54;
+}
+
+.tbm-data-card-blue {
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.tbm-data-card-blue strong {
+  color: #38bdf8;
+}
+
+.tbm-data-card-gold {
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+.tbm-data-card-gold strong {
+  color: #fbbf24;
+}
+
+@media (max-width: 620px) {
+  .tbm-data-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .tbm-data-card strong {
+    font-size: 16px;
+  }
+}
