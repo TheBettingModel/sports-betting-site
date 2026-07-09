@@ -3,6 +3,7 @@ import TBMSportCard from "../components/home/TBMSportCard";
 import TBMHeroCard from "../components/cards/TBMHeroCard";
 import TBMDataCard from "../components/cards/TBMDataCard";
 import TBMTopPlaysTable from "../components/cards/TBMTopPlaysTable";
+import TBMIntelligenceGrid from "../components/cards/TBMIntelligenceGrid";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -89,6 +90,14 @@ function AutoPODPage() {
             score={getScore(overallPlay)}
             href="/auto-pod"
           />
+
+          <section className="auto-pod-section">
+            <div className="auto-pod-section-head">
+              <h2>Market Intelligence</h2>
+            </div>
+
+            <TBMIntelligenceGrid play={overallPlay} />
+          </section>
 
           <section className="auto-pod-section">
             <div className="auto-pod-section-head">
