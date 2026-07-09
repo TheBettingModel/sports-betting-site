@@ -76,7 +76,7 @@ function Badge({ children, tone = "green" }) {
   );
 }
 
-export default function TBMHeroPlayCard({ play }) {
+export default function TBMHeroPlayCard({ play, label = "Today’s Flagship Play" }) {
   if (!play) {
     return (
       <section className="tbm-hero-card empty">
@@ -99,7 +99,7 @@ export default function TBMHeroPlayCard({ play }) {
       <div className="tbm-hero-left">
         <div className="tbm-hero-kicker">
           <span>{getSport(play)}</span>
-          <strong>Today’s Flagship Play</strong>
+          <strong>{label}</strong>
         </div>
 
         <div className="tbm-hero-matchup">

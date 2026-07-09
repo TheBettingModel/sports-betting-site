@@ -1,26 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import TBMSportCard from "../components/home/TBMSportCard";
-import TBMHeroCard from "../components/cards/TBMHeroCard";
+import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
 import TBMDataCard from "../components/cards/TBMDataCard";
 import TBMTopPlaysTable from "../components/cards/TBMTopPlaysTable";
 import TBMIntelligenceGrid from "../components/cards/TBMIntelligenceGrid";
+import TBMPremiumCardStack from "../components/premium/TBMPremiumCardStack";
 import TBMPageHeader from "../components/layout/TBMPageHeader";
 import TBMSection from "../components/layout/TBMSection";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-const SPORT_ROUTES = {
-  MLB: "/mlb",
-  NBA: "/nba",
-  NFL: "/nfl",
-  NHL: "/nhl",
-  WNBA: "/wnba",
-  UFC: "/ufc",
-  Soccer: "/soccer",
-  NCAAF: "/ncaaf",
-  NCAAMB: "/ncaamb",
-};
 
 function normalizeBestBySport(data) {
   const pick = data?.play_of_the_day || data?.overall_play;
@@ -36,7 +24,7 @@ function normalizeBestBySport(data) {
 }
 
 function getScore(play) {
-  return play?.universal_pod_score ?? play?.final_model_score ?? "N/A";
+  return play?.universal_pod_score ?? play?.final_model_score ?? play?.top_play_score ?? "N/A";
 }
 
 function AutoPODPage() {
@@ -74,38 +62,42 @@ function AutoPODPage() {
       ) : (
         <>
           <section className="auto-pod-kpis">
-            <TBMDataCard label="Featured" value={overallPlay?.pick || "No Play"} tone="green" />
-            <TBMDataCard label="Qualified Sports" value={sportCards.length} tone="blue" />
-            <TBMDataCard label="Top Score" value={getScore(overallPlay)} tone="gold" />
+            <TBMDataCard label="Overall Play" value={overallPlay?.pick || "No Play"} tone="green" />
+            <TBMDataCard label="Premium Plays" value={topFive.length} tone="blue" />
+            <TBMDataCard label="POD Score" value={getScore(overallPlay)} tone="gold" />
           </section>
 
-          <TBMHeroCard
-            label="Overall Play of the Day"
+          <TBMHeroPlayCard
             play={overallPlay}
-            scoreLabel="POD Score"
-            score={getScore(overallPlay)}
-            href="/auto-pod"
+            label="Overall Play of the Day"
           />
+
+          <TBMSection title="Today's Premium Card">
+            <TBMPremiumCardStack
+              title="Premium Card Preview"
+              plays={topFive}
+              visibleCount={1}
+              lockedCount={2}
+            />
+          </TBMSection>
 
           <TBMSection title="Market Intelligence">
             <TBMIntelligenceGrid play={overallPlay} />
           </TBMSection>
 
-          <TBMSection title="Best Play by Sport">
-            <div className="auto-pod-sport-grid">
-              {sportCards.map(({ sport, play }) => (
-                <TBMSportCard
-                  key={sport}
-                  name={sport}
-                  play={play}
-                  href={SPORT_ROUTES[sport] || "#"}
-                />
-              ))}
-            </div>
-          </TBMSection>
-
           <TBMSection title="Top Plays">
             <TBMTopPlaysTable plays={topFive} />
+          </TBMSection>
+
+          <TBMSection title="Qualified Sports">
+            <div className="auto-pod-qualified-grid">
+              {sportCards.map(({ sport, play }) => (
+                <div className="auto-pod-qualified-card" key={sport}>
+                  <span>{sport}</span>
+                  <strong>{play?.pick || "Qualified Play"}</strong>
+                </div>
+              ))}
+            </div>
           </TBMSection>
         </>
       )}
