@@ -1,0 +1,66 @@
+.tbm-model-status-card {
+  min-height: 122px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 15px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  color: #f8fafc;
+  text-decoration: none;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.06), transparent 34%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  transition: 0.18s ease;
+}
+
+.tbm-model-status-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(69, 255, 84, 0.34);
+}
+
+.tbm-model-status-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tbm-model-status-top span {
+  font-size: 17px;
+}
+
+.tbm-model-status-top strong {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tbm-model-status-count {
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.tbm-model-status-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tbm-model-status-bottom em {
+  color: #94a3b8;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-model-status-bottom em.live {
+  color: #45ff54;
+}
+
+.tbm-model-status-bottom span {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 900;
+}

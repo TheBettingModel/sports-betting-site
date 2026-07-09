@@ -1,0 +1,68 @@
+.tbm-locked-card {
+  min-height: 82px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  grid-template-areas:
+    "icon title button"
+    "icon sub button";
+  align-items: center;
+  gap: 4px 12px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.06), transparent 36%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.tbm-locked-icon {
+  grid-area: icon;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(69, 255, 84, 0.1);
+  border: 1px solid rgba(69, 255, 84, 0.22);
+}
+
+.tbm-locked-card strong {
+  grid-area: title;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.tbm-locked-card span {
+  grid-area: sub;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tbm-locked-card button {
+  grid-area: button;
+  border: 1px solid rgba(69, 255, 84, 0.28);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: rgba(69, 255, 84, 0.1);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  .tbm-locked-card {
+    grid-template-columns: 34px 1fr;
+    grid-template-areas:
+      "icon title"
+      "icon sub"
+      "button button";
+  }
+
+  .tbm-locked-card button {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
