@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import TBMSportCard from "../components/home/TBMSportCard";
 import TBMHeroCard from "../components/cards/TBMHeroCard";
 import TBMDataCard from "../components/cards/TBMDataCard";
+import TBMTopPlaysTable from "../components/cards/TBMTopPlaysTable";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -116,22 +117,7 @@ function AutoPODPage() {
               <h2>Top Plays</h2>
             </div>
 
-            <div className="auto-pod-rank-list">
-              {topFive.length === 0 ? (
-                <div className="auto-pod-empty">No qualified top plays available.</div>
-              ) : (
-                topFive.map((play, index) => (
-                  <div className="auto-pod-rank-row" key={`${play.game}-${play.pick}-${index}`}>
-                    <div className="auto-pod-rank-num">#{index + 1}</div>
-                    <div>
-                      <strong>{play.pick || "N/A"}</strong>
-                      <span>{getSport(play)} — {play.game || "N/A"}</span>
-                    </div>
-                    <em>{getScore(play)}</em>
-                  </div>
-                ))
-              )}
-            </div>
+            <TBMTopPlaysTable plays={topFive} />
           </section>
         </>
       )}
