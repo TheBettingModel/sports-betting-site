@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import TBMTeamLogo from "../logos/TBMTeamLogo";
 import "./TBMSportCard.css";
 
@@ -32,7 +33,7 @@ export default function TBMSportCard({ name, play, href = "#" }) {
   const { away, home } = splitGame(play.game || "");
 
   return (
-    <a className="tbm-sport-card-v3" href={href}>
+    <Link className="tbm-sport-card-v3" to={href}>
       <div className="tbm-sport-card-v3-head">
         <span>{name}</span>
       </div>
@@ -50,6 +51,6 @@ export default function TBMSportCard({ name, play, href = "#" }) {
       </div>
 
       <div className="tbm-sport-card-v3-pick">{getPick(play)}</div>
-    </a>
+    </Link>
   );
 }
