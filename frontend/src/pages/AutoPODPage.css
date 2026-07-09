@@ -26,43 +26,27 @@
   border-color: rgba(248, 113, 113, 0.35);
 }
 
-.auto-pod-qualified-grid {
+.auto-pod-premium-list {
+  display: grid;
+  gap: 10px;
+}
+
+.auto-pod-sport-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
-.auto-pod-qualified-card {
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 14px;
-  padding: 13px;
-  background: rgba(255, 255, 255, 0.025);
-  min-width: 0;
-}
-
-.auto-pod-qualified-card span {
-  display: block;
+.auto-pod-empty {
   color: #94a3b8;
-  font-size: 10px;
-  font-weight: 950;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 7px;
-}
-
-.auto-pod-qualified-card strong {
-  display: block;
-  color: #f8fafc;
-  font-size: 13px;
-  font-weight: 950;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 8px 0;
 }
 
 @media (max-width: 980px) {
   .auto-pod-kpis,
-  .auto-pod-qualified-grid {
+  .auto-pod-sport-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -73,7 +57,7 @@
   }
 
   .auto-pod-kpis,
-  .auto-pod-qualified-grid {
+  .auto-pod-sport-grid {
     grid-template-columns: 1fr;
   }
 }
