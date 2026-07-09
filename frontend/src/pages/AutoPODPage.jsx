@@ -5,6 +5,7 @@ import TBMDataCard from "../components/cards/TBMDataCard";
 import TBMTopPlaysTable from "../components/cards/TBMTopPlaysTable";
 import TBMIntelligenceGrid from "../components/cards/TBMIntelligenceGrid";
 import TBMPageHeader from "../components/layout/TBMPageHeader";
+import TBMSection from "../components/layout/TBMSection";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -86,19 +87,11 @@ function AutoPODPage() {
             href="/auto-pod"
           />
 
-          <section className="auto-pod-section">
-            <div className="auto-pod-section-head">
-              <h2>Market Intelligence</h2>
-            </div>
-
+          <TBMSection title="Market Intelligence">
             <TBMIntelligenceGrid play={overallPlay} />
-          </section>
+          </TBMSection>
 
-          <section className="auto-pod-section">
-            <div className="auto-pod-section-head">
-              <h2>Best Play by Sport</h2>
-            </div>
-
+          <TBMSection title="Best Play by Sport">
             <div className="auto-pod-sport-grid">
               {sportCards.map(({ sport, play }) => (
                 <TBMSportCard
@@ -109,15 +102,11 @@ function AutoPODPage() {
                 />
               ))}
             </div>
-          </section>
+          </TBMSection>
 
-          <section className="auto-pod-section">
-            <div className="auto-pod-section-head">
-              <h2>Top Plays</h2>
-            </div>
-
+          <TBMSection title="Top Plays">
             <TBMTopPlaysTable plays={topFive} />
-          </section>
+          </TBMSection>
         </>
       )}
     </main>

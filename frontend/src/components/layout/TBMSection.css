@@ -1,0 +1,33 @@
+.tbm-section-v2 {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.tbm-section-v2-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.tbm-section-v2-head h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+@media (max-width: 620px) {
+  .tbm-section-v2 {
+    padding: 15px;
+    border-radius: 16px;
+  }
+
+  .tbm-section-v2-head h2 {
+    font-size: 16px;
+  }
+}
