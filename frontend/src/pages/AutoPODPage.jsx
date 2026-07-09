@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import TBMSportCard from "../components/home/TBMSportCard";
-import TBMTeamLogo from "../components/logos/TBMTeamLogo";
+import TBMHeroCard from "../components/cards/TBMHeroCard";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -28,74 +28,6 @@ function normalizeBestBySport(data) {
   return Object.entries(cleaned)
     .map(([sport, play]) => ({ sport, play }))
     .filter((item) => item.play);
-}
-
-function splitGame(game = "") {
-  const clean = String(game || "").trim();
-
-  if (clean.includes(" vs ")) {
-    const [away, home] = clean.split(" vs ");
-    return { away, home };
-  }
-
-  if (clean.includes(" at ")) {
-    const [away, home] = clean.split(" at ");
-    return { away, home };
-  }
-
-  if (clean.includes(" @ ")) {
-    const [away, home] = clean.split(" @ ");
-    return { away, home };
-  }
-
-  return { away: "Away", home: "Home" };
-}
-
-function getSport(play) {
-  return play?.pod_sport || play?.sport || "MODEL";
-}
-
-function getScore(play) {
-  return play?.universal_pod_score ?? play?.final_model_score ?? "N/A";
-}
-
-function FeaturedPODCard({ play }) {
-  if (!play) {
-    return (
-      <section className="auto-pod-feature">
-        <div className="auto-pod-label">Overall Play of the Day</div>
-        <h2>No Qualified Play</h2>
-        <p>No play met the model threshold today.</p>
-      </section>
-    );
-  }
-
-  const sport = getSport(play);
-  const { away, home } = splitGame(play.game || "");
-
-  return (
-    <section className="auto-pod-feature">
-      <div className="auto-pod-label">Overall Play of the Day</div>
-
-      <div className="auto-pod-feature-layout">
-        <div className="auto-pod-feature-main">
-          <div className="auto-pod-matchup">
-            <TBMTeamLogo team={away} sport={sport} size={54} />
-            <span>VS</span>
-            <TBMTeamLogo team={home} sport={sport} size={54} />
-          </div>
-
-          <h2>{play.pick || "N/A"}</h2>
-          <p>{sport} — {play.game || "N/A"}</p>
-        </div>
-
-        <div className="auto-pod-score-box">
-          <span>POD Score</span>
-          <strong>{getScore(play)}</strong>
-        </div>
-      </div>
-    </section>
-  );
 }
 
 function AutoPODPage() {
@@ -150,7 +82,13 @@ function AutoPODPage() {
             </div>
           </section>
 
-          <FeaturedPODCard play={overallPlay} />
+          <TBMHeroCard
+            label="Overall Play of the Day"
+            play={overallPlay}
+            scoreLabel="POD Score"
+            score={getScore(overallPlay)}
+            href="/analytics"
+          />
 
           <section className="auto-pod-section">
             <div className="auto-pod-section-head">
