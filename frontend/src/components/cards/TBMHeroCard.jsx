@@ -22,13 +22,15 @@ function splitGame(game = "") {
   return { away: "Away", home: "Home" };
 }
 
+function valueOrNA(value) {
+  return value === null || value === undefined || value === "" ? "N/A" : value;
+}
+
 export default function TBMHeroCard({
   label = "Featured Play",
   play,
-  scoreLabel = "Score",
+  scoreLabel = "POD",
   score,
-  actionLabel = "View Analysis",
-  href = "#",
 }) {
   if (!play) {
     return (
@@ -43,30 +45,33 @@ export default function TBMHeroCard({
   const sport = play?.pod_sport || play?.sport || "MODEL";
   const { away, home } = splitGame(play?.game || "");
 
+  const metrics = [
+    { label: scoreLabel, value: valueOrNA(score) },
+    { label: "Market", value: valueOrNA(play?.market) },
+    { label: "Units", value: valueOrNA(play?.units) },
+    { label: "Book", value: valueOrNA(play?.best_sportsbook || play?.sportsbook) },
+  ];
+
   return (
     <section className="tbm-hero-card">
       <div className="tbm-hero-label">{label}</div>
 
-      <div className="tbm-hero-layout">
-        <div className="tbm-hero-main">
-          <div className="tbm-hero-matchup">
-            <TBMTeamLogo team={away} sport={sport} size={58} />
-            <span>VS</span>
-            <TBMTeamLogo team={home} sport={sport} size={58} />
+      <div className="tbm-hero-matchup">
+        <TBMTeamLogo team={away} sport={sport} size={46} />
+        <span>VS</span>
+        <TBMTeamLogo team={home} sport={sport} size={46} />
+      </div>
+
+      <h2>{play?.pick || "N/A"}</h2>
+      <p>{sport} — {play?.game || "N/A"}</p>
+
+      <div className="tbm-hero-metrics">
+        {metrics.map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
           </div>
-
-          <h2>{play?.pick || "N/A"}</h2>
-          <p>{sport} — {play?.game || "N/A"}</p>
-
-          <a className="tbm-hero-action" href={href}>
-            {actionLabel}
-          </a>
-        </div>
-
-        <div className="tbm-hero-score">
-          <span>{scoreLabel}</span>
-          <strong>{score ?? "N/A"}</strong>
-        </div>
+        ))}
       </div>
     </section>
   );
