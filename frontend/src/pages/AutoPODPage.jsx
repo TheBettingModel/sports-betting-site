@@ -4,6 +4,7 @@ import TBMHeroCard from "../components/cards/TBMHeroCard";
 import TBMDataCard from "../components/cards/TBMDataCard";
 import TBMTopPlaysTable from "../components/cards/TBMTopPlaysTable";
 import TBMIntelligenceGrid from "../components/cards/TBMIntelligenceGrid";
+import TBMPageHeader from "../components/layout/TBMPageHeader";
 import "./AutoPODPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -63,13 +64,7 @@ function AutoPODPage() {
 
   return (
     <main className="auto-pod-page">
-      <section className="auto-pod-header">
-        <div>
-          <p>THE BETTING MODEL</p>
-          <h1>Play of the Day</h1>
-        </div>
-        <span>Live Model</span>
-      </section>
+      <TBMPageHeader title="Play of the Day" badge="Live Model" />
 
       {error ? (
         <div className="auto-pod-state auto-pod-error">{error}</div>
