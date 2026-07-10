@@ -1,0 +1,443 @@
+/* =========================================================
+   TBM COMPACT PLATFORM LAYOUT
+   Shared sizing and overflow protection for premium pages
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Prevent grid and flex children from forcing pages wider. */
+.tbm-sport-dashboard-header,
+.tbm-sport-dashboard-header *,
+.tbm-hero-card,
+.tbm-hero-card *,
+.tbm-section-v2,
+.tbm-section-v2 *,
+.tbm-premium-stack,
+.tbm-premium-stack *,
+.mlb-v4-page,
+.mlb-v4-page *,
+.mlb-moneyline-page,
+.mlb-moneyline-page * {
+  min-width: 0;
+}
+
+/* Shared sport-page width. */
+.mlb-v4-page,
+.mlb-moneyline-page {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-inline: 18px;
+  overflow-x: hidden;
+}
+
+/* Compact dashboard header spacing. */
+.tbm-sport-dashboard-header {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 14px;
+}
+
+.tbm-page-header-v2 {
+  margin-bottom: 14px;
+}
+
+.tbm-page-header-v2 h1 {
+  font-size: clamp(25px, 3vw, 32px);
+}
+
+/* Smaller KPI row. */
+.tbm-sport-dashboard-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.tbm-data-card {
+  min-height: 78px;
+  padding: 11px 12px;
+  border-radius: 13px;
+}
+
+.tbm-data-card span {
+  margin-bottom: 4px;
+  font-size: 10px;
+}
+
+.tbm-data-card strong {
+  font-size: 16px;
+}
+
+.tbm-data-card em {
+  margin-top: 4px;
+  font-size: 10px;
+}
+
+/* Compact shared flagship card. */
+.tbm-hero-card {
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1.45fr) minmax(245px, 0.55fr);
+  gap: 12px;
+  padding: 14px;
+  border-radius: 17px;
+  margin-bottom: 14px;
+}
+
+.tbm-hero-kicker {
+  margin-bottom: 11px;
+}
+
+.tbm-hero-matchup {
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 11px;
+}
+
+.tbm-hero-team {
+  gap: 5px;
+}
+
+.tbm-hero-team span {
+  font-size: 11px;
+}
+
+.tbm-hero-vs {
+  width: 36px;
+  height: 36px;
+  font-size: 10px;
+}
+
+.tbm-hero-pick-box {
+  padding: 12px;
+  border-radius: 13px;
+}
+
+.tbm-hero-pick-box h1 {
+  font-size: clamp(23px, 3vw, 34px);
+}
+
+.tbm-hero-pick-box strong {
+  font-size: 22px;
+}
+
+.tbm-hero-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.tbm-hero-metric,
+.tbm-hero-book-metric {
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.tbm-hero-metric strong {
+  font-size: 12px;
+}
+
+.tbm-hero-badges {
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.tbm-hero-badge {
+  min-height: 23px;
+  padding: 5px 7px;
+  font-size: 9px;
+}
+
+.tbm-hero-right {
+  gap: 8px;
+}
+
+.tbm-hero-score-card {
+  padding: 11px;
+  border-radius: 12px;
+}
+
+.tbm-hero-score-card strong {
+  font-size: 32px;
+}
+
+.tbm-hero-why {
+  padding: 11px;
+}
+
+.tbm-hero-why h3 {
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+
+.tbm-hero-why p {
+  margin: 5px 0;
+  font-size: 11px;
+}
+
+.tbm-hero-signal-grid {
+  gap: 7px;
+}
+
+/* Compact section containers. */
+.tbm-section-v2 {
+  width: 100%;
+  max-width: 100%;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.tbm-section-v2-head {
+  margin-bottom: 11px;
+}
+
+.tbm-section-v2-head h2 {
+  font-size: 16px;
+}
+
+/* Remove unnecessary second outer-card feeling. */
+.tbm-section-v2 .tbm-premium-stack {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tbm-premium-stack {
+  width: 100%;
+  max-width: 100%;
+}
+
+.tbm-premium-stack-head {
+  margin-bottom: 10px;
+}
+
+.tbm-premium-stack-head h2 {
+  font-size: 16px;
+}
+
+.tbm-premium-stack-list {
+  gap: 8px;
+}
+
+/* Compact sport navigation. */
+.tbm-sport-dashboard-navigation {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tbm-sport-dashboard-navigation-link {
+  min-height: 52px;
+  padding: 9px 10px;
+  border-radius: 12px;
+}
+
+.tbm-sport-dashboard-navigation-link span {
+  font-size: 12px;
+}
+
+.tbm-sport-dashboard-navigation-link small {
+  font-size: 9px;
+}
+
+/* MLB Overview ranked cards. */
+.mlb-overview-ranked-shell {
+  width: 100%;
+  max-width: 100%;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.mlb-overview-ranked-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+/* MLB Moneyline cards. */
+.mlb-moneyline-card-grid {
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+/* Shared matchup card sizing. */
+.tbm-sport-card-v3 {
+  width: 100%;
+  max-width: 100%;
+  min-height: 116px;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 13px;
+  overflow: hidden;
+}
+
+.tbm-sport-card-v3-head {
+  min-height: 14px;
+}
+
+.tbm-sport-card-v3-teams {
+  grid-template-columns: minmax(0, 1fr) 27px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.tbm-sport-card-v3-pick {
+  min-height: 29px;
+  padding: 6px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+/* Existing MLB command center must fit the available content width. */
+.mlb-command-center-v6 {
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.65fr);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.mlb-command-main-v6,
+.mlb-command-side-v6 {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Scroll wide data boards internally instead of widening the page. */
+.mlb-v4-table,
+.mlb-price-board,
+.mlb-line-card,
+.mlb-heat-card,
+.mlb-intel-card,
+.mlb-pitcher-center,
+.mlb-weather-card,
+.mlb-sharp-card {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .mlb-v4-page,
+  .mlb-moneyline-page {
+    padding-inline: 14px;
+  }
+
+  .tbm-hero-card {
+    grid-template-columns: minmax(0, 1.25fr) minmax(225px, 0.75fr);
+  }
+
+  .mlb-overview-ranked-grid,
+  .mlb-moneyline-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mlb-command-center-v6 {
+    grid-template-columns: minmax(0, 1fr) minmax(230px, 0.55fr);
+  }
+}
+
+/* Small tablet */
+@media (max-width: 860px) {
+  .tbm-sport-dashboard-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tbm-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-hero-right {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tbm-hero-why {
+    grid-column: 1 / -1;
+  }
+
+  .tbm-sport-dashboard-navigation {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mlb-overview-ranked-grid,
+  .mlb-moneyline-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mlb-command-center-v6 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile */
+@media (max-width: 580px) {
+  .mlb-v4-page,
+  .mlb-moneyline-page {
+    padding-inline: 10px;
+  }
+
+  .tbm-sport-dashboard-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .tbm-data-card {
+    min-height: 70px;
+    padding: 9px;
+  }
+
+  .tbm-data-card strong {
+    font-size: 14px;
+  }
+
+  .tbm-hero-card {
+    padding: 11px;
+  }
+
+  .tbm-hero-matchup {
+    grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  }
+
+  .tbm-hero-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tbm-hero-right {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-hero-why {
+    grid-column: auto;
+  }
+
+  .tbm-sport-dashboard-navigation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mlb-overview-ranked-grid,
+  .mlb-moneyline-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-section-v2 {
+    padding: 11px;
+  }
+}
