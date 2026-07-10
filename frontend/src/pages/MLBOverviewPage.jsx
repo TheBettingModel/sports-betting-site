@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import MLBTabs from "../components/MLBTabs";
 import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
 import { TBMPage, TBMCard } from "../components/ui";
+import TBMSportDashboardHeader from "../components/sports/TBMSportDashboardHeader";
 import MLBIntelligenceCenter from "../components/mlb/MLBIntelligenceCenter";
 import MLBSlateCommandBar from "../components/mlb/MLBSlateCommandBar";
 import MLBPitcherMatchupCenter from "../components/mlb/MLBPitcherMatchupCenter";
@@ -15,108 +16,101 @@ import MLBPerformanceMiniDashboard from "../components/mlb/MLBPerformanceMiniDas
 const API_URL = import.meta.env.VITE_API_URL;
 
 function formatOdds(value) {
-  if (value === null || value === undefined || value === "") return "N/A";
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+
   const num = Number(value);
-  if (Number.isNaN(num)) return value;
+
+  if (Number.isNaN(num)) {
+    return value;
+  }
+
   return num > 0 ? `+${num}` : `${num}`;
 }
 
-function avgEdge(plays) {
-  const values = plays.map((p) => Number(p.edge)).filter(Number.isFinite);
-  if (!values.length) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
+function averageValue(plays, key) {
+  const values = plays
+    .map((play) => Number(play?.[key]))
+    .filter(Number.isFinite);
 
-function avgConfidence(plays) {
-  const values = plays.map((p) => Number(p.confidence)).filter(Number.isFinite);
-  if (!values.length) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
+  if (!values.length) {
+    return 0;
+  }
+
+  return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
 function countMarket(plays, market) {
-  return plays.filter((p) => String(p.market || "").toLowerCase().includes(market)).length;
-}
+  const search = String(market || "").toLowerCase();
 
-function sharpCount(plays) {
-  return plays.filter((p) =>
-    String(p.sharp_signal || p.sharp_book_signal || "").toLowerCase().includes("sharp")
+  return plays.filter((play) =>
+    String(play?.market || "").toLowerCase().includes(search)
   ).length;
 }
 
+function sharpCount(plays) {
+  return plays.filter((play) => {
+    const signal = String(
+      play?.sharp_signal ||
+        play?.sharp_book_signal ||
+        play?.market_intelligence_signal ||
+        ""
+    ).toLowerCase();
+
+    return signal.includes("sharp") || signal.includes("strong");
+  }).length;
+}
+
 function getBook(play) {
-  return play?.best_sportsbook || play?.sportsbook || "Best Available";
+  return (
+    play?.best_sportsbook ||
+    play?.best_book ||
+    play?.sportsbook ||
+    "Best Available"
+  );
 }
 
 function topMarket(plays) {
-  if (!plays.length) return "N/A";
-  const counts = plays.reduce((acc, play) => {
-    const key = play.overview_market || play.market || "Unknown";
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
+  if (!plays.length) {
+    return "N/A";
+  }
+
+  const counts = plays.reduce((accumulator, play) => {
+    const market = play?.overview_market || play?.market || "Unknown";
+    accumulator[market] = (accumulator[market] || 0) + 1;
+    return accumulator;
   }, {});
-  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
+
+  return (
+    Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A"
+  );
 }
 
 function marketBadgeClass(market = "") {
-  const value = market.toLowerCase();
+  const value = String(market).toLowerCase();
+
   if (value.includes("moneyline")) return "blue";
   if (value.includes("run")) return "green";
   if (value.includes("total")) return "purple";
   if (value.includes("first") || value.includes("f5")) return "orange";
   if (value.includes("nrfi") || value.includes("yrfi")) return "gold";
+
   return "green";
 }
 
 function gameShort(game = "") {
-  return String(game)
-    .replace(" vs ", " @ ")
-    .replace(" at ", " @ ");
+  return String(game).replace(" vs ", " @ ").replace(" at ", " @ ");
 }
 
-function SnapshotRow({ label, value }) {
-  return (
-    <div className="mlb-v4-snapshot-row">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function MarketRow({ label, value, max, href, tone }) {
-  const pct = Math.min(100, Math.max(7, (Number(value || 0) / Math.max(max, 1)) * 100));
-
-  return (
-    <a href={href} className="mlb-v4-market-row">
-      <span>{label}</span>
-      <div>
-        <i className={tone} style={{ width: `${pct}%` }} />
-      </div>
-      <strong>{value}</strong>
-      <em>›</em>
-    </a>
-  );
-}
-
-function EdgeDriver({ title, desc, status = "Strong", tone = "green" }) {
-  return (
-    <div className="mlb-v4-driver">
-      <div className={`mlb-v4-driver-icon ${tone}`}>▮</div>
-      <div>
-        <strong>{title}</strong>
-        <span>{desc}</span>
-      </div>
-      <em className={tone}>{status}</em>
-    </div>
-  );
-}
-
-function RoadmapRow({ title, status, done = false }) {
-  return (
-    <div className="mlb-v4-roadmap-row">
-      <span className={done ? "done" : ""}>{done ? "✓" : "○"}</span>
-      <strong>{title}</strong>
-      <em>{status}</em>
-    </div>
+function playScore(play) {
+  return Number(
+    play?.universal_pod_score ??
+      play?.pod_score ??
+      play?.final_model_score ??
+      play?.top_play_score ??
+      play?.edge ??
+      0
   );
 }
 
@@ -126,8 +120,9 @@ function TopPlayTable({ plays }) {
       <div className="mlb-v4-panel-title">
         <div>
           <span>MLB Edge Board</span>
-          <h2>Ranked by Edge</h2>
+          <h2>Ranked Model Plays</h2>
         </div>
+
         <a href="/mlb-model">Full Board ↗</a>
       </div>
 
@@ -146,39 +141,65 @@ function TopPlayTable({ plays }) {
 
         {plays.length > 0 ? (
           plays.map((play, index) => (
-            <div className="mlb-v4-table-row" key={`${play.game}-${play.pick}-${index}`}>
+            <div
+              className="mlb-v4-table-row"
+              key={`${play?.game}-${play?.pick}-${index}`}
+            >
               <div className="rank">{index + 1}</div>
 
               <div className="game">
-                <strong>{gameShort(play.game)}</strong>
+                <strong>{gameShort(play?.game)}</strong>
                 <span>MLB</span>
               </div>
 
               <div className="pick">
-                <strong>{play.pick || play.recommendation}</strong>
-                <span>{play.market || play.overview_market || "Market"}</span>
-              </div>
-
-              <div>
-                <span className={`mlb-v4-market-pill ${marketBadgeClass(play.overview_market || play.market)}`}>
-                  {play.overview_market || play.market || "MLB"}
+                <strong>
+                  {play?.pick || play?.recommendation || "No Pick"}
+                </strong>
+                <span>
+                  {play?.market || play?.overview_market || "Market"}
                 </span>
               </div>
 
-              <div className="odds">{formatOdds(play.best_odds ?? play.odds)}</div>
-              <div className="edge">{play.edge ?? "N/A"}%</div>
-
-              <div className="confidence">
-                <strong>{play.confidence ?? "N/A"}%</strong>
-                <i style={{ width: `${Math.min(100, Number(play.confidence) || 0)}%` }} />
+              <div>
+                <span
+                  className={`mlb-v4-market-pill ${marketBadgeClass(
+                    play?.overview_market || play?.market
+                  )}`}
+                >
+                  {play?.overview_market || play?.market || "MLB"}
+                </span>
               </div>
 
-              <div className="units">{play.units ?? "N/A"}</div>
-              <div><TBMSportsbookBadge book={getBook(play)} /></div>
+              <div className="odds">
+                {formatOdds(play?.best_odds ?? play?.odds)}
+              </div>
+
+              <div className="edge">{play?.edge ?? "N/A"}%</div>
+
+              <div className="confidence">
+                <strong>{play?.confidence ?? "N/A"}%</strong>
+                <i
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.max(0, Number(play?.confidence) || 0)
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              <div className="units">{play?.units ?? "N/A"}</div>
+
+              <div>
+                <TBMSportsbookBadge book={getBook(play)} />
+              </div>
             </div>
           ))
         ) : (
-          <div className="mlb-v4-empty">No MLB plays available.</div>
+          <div className="mlb-v4-empty">
+            No MLB plays are currently available.
+          </div>
         )}
       </div>
     </TBMCard>
@@ -189,11 +210,15 @@ export default function MLBOverviewPage() {
   const [fullGame, setFullGame] = useState([]);
   const [f5, setF5] = useState([]);
   const [nrfi, setNrfi] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     async function loadMLB() {
       try {
+        setLoading(true);
         setError("");
 
         const [fullRes, f5Res, nrfiRes] = await Promise.all([
@@ -202,79 +227,190 @@ export default function MLBOverviewPage() {
           fetch(`${API_URL}/model/mlb/nrfi/today`),
         ]);
 
+        if (!fullRes.ok || !f5Res.ok || !nrfiRes.ok) {
+          throw new Error("One or more MLB endpoints failed.");
+        }
+
         const [fullData, f5Data, nrfiData] = await Promise.all([
           fullRes.json(),
           f5Res.json(),
           nrfiRes.json(),
         ]);
 
-        setFullGame(Array.isArray(fullData.plays) ? fullData.plays : []);
-        setF5(Array.isArray(f5Data.plays) ? f5Data.plays : []);
-        setNrfi(Array.isArray(nrfiData.plays) ? nrfiData.plays : []);
+        if (!active) {
+          return;
+        }
+
+        setFullGame(
+          Array.isArray(fullData?.plays) ? fullData.plays : []
+        );
+
+        setF5(
+          Array.isArray(f5Data?.plays) ? f5Data.plays : []
+        );
+
+        setNrfi(
+          Array.isArray(nrfiData?.plays) ? nrfiData.plays : []
+        );
       } catch (err) {
         console.error("MLB overview fetch error:", err);
-        setError("Failed to load MLB overview.");
+
+        if (active) {
+          setError("Failed to load the MLB overview.");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     loadMLB();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const allPlays = useMemo(() => {
-    return [
-      ...fullGame.map((p) => ({ ...p, sport: "MLB", overview_market: p.market || "Full Game" })),
-      ...f5.map((p) => ({ ...p, sport: "MLB", overview_market: p.market || "First 5" })),
-      ...nrfi.map((p) => ({ ...p, sport: "MLB", overview_market: p.market || "NRFI/YRFI" })),
-    ];
-  }, [fullGame, f5, nrfi]);
+  const allPlays = useMemo(
+    () => [
+      ...fullGame.map((play) => ({
+        ...play,
+        sport: "MLB",
+        overview_market: play?.market || "Full Game",
+      })),
+      ...f5.map((play) => ({
+        ...play,
+        sport: "MLB",
+        overview_market: play?.market || "First 5",
+      })),
+      ...nrfi.map((play) => ({
+        ...play,
+        sport: "MLB",
+        overview_market: play?.market || "NRFI/YRFI",
+      })),
+    ],
+    [fullGame, f5, nrfi]
+  );
 
-  const topPlays = useMemo(() => {
-    return [...allPlays]
-      .sort((a, b) => (Number(b.edge) || 0) - (Number(a.edge) || 0))
-      .slice(0, 5);
-  }, [allPlays]);
+  const topPlays = useMemo(
+    () =>
+      [...allPlays]
+        .sort((a, b) => playScore(b) - playScore(a))
+        .slice(0, 5),
+    [allPlays]
+  );
+
+  const flagshipPlay = topPlays[0] || null;
 
   const moneylineCount = countMarket(fullGame, "moneyline");
   const runLineCount = countMarket(fullGame, "run");
   const totalsCount = countMarket(fullGame, "total");
-  const maxMarketCount = Math.max(moneylineCount, runLineCount, totalsCount, f5.length, nrfi.length, 1);
+
+  const metrics = useMemo(
+    () => [
+      {
+        label: "Today's Plays",
+        value: allPlays.length,
+        sub: "All qualified MLB markets",
+        tone: "green",
+      },
+      {
+        label: "Average Edge",
+        value: `${averageValue(allPlays, "edge").toFixed(2)}%`,
+        sub: `${averageValue(allPlays, "confidence").toFixed(
+          1
+        )}% average confidence`,
+        tone: "blue",
+      },
+      {
+        label: "Sharp Signals",
+        value: sharpCount(allPlays),
+        sub: "Qualified market signals",
+        tone: "gold",
+      },
+      {
+        label: "Top Market",
+        value: topMarket(allPlays),
+        sub: "Most active model market",
+        tone: "default",
+      },
+    ],
+    [allPlays]
+  );
+
+  const navigation = useMemo(
+    () => [
+      {
+        label: "Moneyline",
+        meta: `${moneylineCount} plays`,
+        href: "/mlb-model",
+      },
+      {
+        label: "Run Line",
+        meta: `${runLineCount} plays`,
+        href: "/mlb-model",
+      },
+      {
+        label: "Totals",
+        meta: `${totalsCount} plays`,
+        href: "/mlb-totals",
+      },
+      {
+        label: "First 5",
+        meta: `${f5.length} plays`,
+        href: "/mlb-f5",
+      },
+      {
+        label: "NRFI / YRFI",
+        meta: `${nrfi.length} plays`,
+        href: "/mlb-nrfi",
+      },
+    ],
+    [
+      moneylineCount,
+      runLineCount,
+      totalsCount,
+      f5.length,
+      nrfi.length,
+    ]
+  );
 
   return (
     <TBMPage className="mlb-v4-page">
-      <section className="mlb-v4-hero">
-        <div>
-          <span className="mlb-v4-eyebrow">MLB Overview</span>
-          <h1>MLB Dashboard</h1>
-          <p>
-            Your complete MLB command center. Real-time model edges across every market
-            with sharp signals, line value, situational advantages, and pricing intelligence.
-          </p>
-        </div>
-
-        <TBMCard className="mlb-v4-snapshot">
-          <div className="mlb-v4-snapshot-title">
-            <h2>Live Pulse</h2>
-            <strong>● Live</strong>
-          </div>
-          <SnapshotRow label="Total Plays" value={allPlays.length} />
-          <SnapshotRow label="Avg Edge" value={`${avgEdge(allPlays).toFixed(2)}%`} />
-          <SnapshotRow label="Sharp Signals" value={sharpCount(allPlays)} />
-          <SnapshotRow label="Top Market" value={topMarket(allPlays)} />
-        </TBMCard>
-      </section>
+      <TBMSportDashboardHeader
+        sport="MLB"
+        title="MLB Dashboard"
+        badge={loading ? "Loading Model" : "Premium Dashboard"}
+        flagshipPlay={flagshipPlay}
+        topPlays={topPlays}
+        metrics={metrics}
+        navigation={navigation}
+        premiumTitle="Today's Premium MLB Card"
+      />
 
       <MLBTabs />
 
-      {error && <p className="mlb-v4-error">{error}</p>}
+      {error ? <p className="mlb-v4-error">{error}</p> : null}
 
-      <MLBSlateCommandBar plays={allPlays} f5Count={f5.length} nrfiCount={nrfi.length} />
+      <MLBSlateCommandBar
+        plays={allPlays}
+        f5Count={f5.length}
+        nrfiCount={nrfi.length}
+      />
 
       <TopPlayTable plays={topPlays} />
 
       <section className="mlb-command-center-v6">
         <div className="mlb-command-main-v6">
           <MLBIntelligenceCenter plays={allPlays} />
-          <MLBMarketHeatMap fullGame={fullGame} f5={f5} nrfi={nrfi} />
+
+          <MLBMarketHeatMap
+            fullGame={fullGame}
+            f5={f5}
+            nrfi={nrfi}
+          />
+
           <MLBSportsbookPriceBoard plays={allPlays} />
         </div>
 
@@ -283,11 +419,9 @@ export default function MLBOverviewPage() {
           <MLBPitcherMatchupCenter plays={allPlays} />
           <MLBWeatherParkCenter plays={allPlays} />
           <MLBLineMovementTracker plays={allPlays} />
-
           <MLBPerformanceMiniDashboard />
         </aside>
       </section>
-
     </TBMPage>
   );
 }
