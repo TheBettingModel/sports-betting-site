@@ -1,229 +1,254 @@
 import { useEffect, useMemo, useState } from "react";
 import MLBTabs from "../components/MLBTabs";
-import TBMTeamLogo from "../components/logos/TBMTeamLogo";
-import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
-import { TBMPage, TBMCard, TBMBadge, TBMMetric, TBMGrid } from "../components/ui";
+import TBMSportCard from "../components/home/TBMSportCard";
+import TBMSportDashboardHeader from "../components/sports/TBMSportDashboardHeader";
+import TBMSection from "../components/layout/TBMSection";
+import { TBMPage } from "../components/ui";
+import "./MLBRunLinePage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-function formatOdds(value) {
-  if (value === null || value === undefined || value === "") return "N/A";
-  const num = Number(value);
-  if (Number.isNaN(num)) return value;
-  return num > 0 ? `+${num}` : `${num}`;
-}
+function averageValue(plays, key) {
+  const values = plays
+    .map((play) => Number(play?.[key]))
+    .filter(Number.isFinite);
 
-function splitGame(game = "") {
-  if (game.includes(" vs ")) {
-    const [away, home] = game.split(" vs ");
-    return { away, home };
+  if (!values.length) {
+    return 0;
   }
 
-  if (game.includes(" at ")) {
-    const [away, home] = game.split(" at ");
-    return { away, home };
-  }
-
-  return { away: "Away", home: "Home" };
+  return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-function getBook(play) {
-  return play?.best_sportsbook || play?.sportsbook || "Best Available";
+function getPlayScore(play) {
+  return Number(
+    play?.universal_pod_score ??
+      play?.pod_score ??
+      play?.final_model_score ??
+      play?.top_play_score ??
+      play?.edge ??
+      0
+  );
 }
 
-function getRecommendationTone(recommendation) {
-  if (recommendation === "Play") return "green";
-  if (recommendation === "Lean") return "gold";
-  if (recommendation === "Pass") return "red";
-  return "dark";
+function hasSharpSignal(play) {
+  const value = String(
+    play?.sharp_signal ||
+      play?.sharp_book_signal ||
+      play?.market_intelligence_signal ||
+      ""
+  ).toLowerCase();
+
+  return value.includes("sharp") || value.includes("strong");
 }
 
-function avgValue(plays, key) {
-  if (!plays.length) return 0;
-  const values = plays.map((play) => Number(play?.[key])).filter(Number.isFinite);
-  if (!values.length) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-function MLBPlayCard({ play, label, featured = false }) {
-  const { away, home } = splitGame(play.game);
+function isRunLinePlay(play) {
+  const market = String(play?.market || "").toLowerCase();
+  const pick = String(
+    play?.pick || play?.recommendation || ""
+  ).toLowerCase();
 
   return (
-    <TBMCard glow={featured} className="mlb-v3-play-card">
-      <div className="mlb-v3-card-top">
-        <div>
-          {label && <TBMBadge tone={featured ? "green" : "blue"}>{label}</TBMBadge>}
-          <h2>{play.pick || play.recommendation}</h2>
-          <p>{play.game}</p>
-        </div>
-
-        <TBMSportsbookBadge book={getBook(play)} />
-      </div>
-
-      <div className="mlb-v3-matchup">
-        <div>
-          <TBMTeamLogo team={away} sport="MLB" size={54} />
-          <span>{away}</span>
-        </div>
-
-        <strong>VS</strong>
-
-        <div>
-          <TBMTeamLogo team={home} sport="MLB" size={54} />
-          <span>{home}</span>
-        </div>
-      </div>
-
-      <div className="mlb-v3-metrics">
-        <TBMMetric label="Market" value={play.market || "N/A"} />
-        <TBMMetric label="Odds" value={formatOdds(play.odds)} accent />
-        <TBMMetric label="Edge" value={`${play.edge ?? "N/A"}%`} accent />
-        <TBMMetric label="Confidence" value={`${play.confidence ?? "N/A"}%`} />
-        <TBMMetric label="Units" value={play.units ?? "N/A"} />
-        <TBMMetric label="CLV" value={play.clv_status || "N/A"} />
-      </div>
-
-      <div className="mlb-v3-signals">
-        <div>
-          <span>Market</span>
-          <strong>{play.sharp_signal || "N/A"}</strong>
-          <small>{play.market_timing_signal || "Timing N/A"}</small>
-        </div>
-
-        <div>
-          <span>Pitching</span>
-          <strong>{play.starting_pitcher || play.away_starter || "N/A"}</strong>
-          <small>Rating {play.pitcher_rating || play.combined_pitcher_rating || "N/A"}</small>
-        </div>
-
-        <div>
-          <span>Offense</span>
-          <strong>{play.lineup_status || "N/A"}</strong>
-          <small>Power {play.statcast_power_rating || "N/A"}</small>
-        </div>
-
-        <div>
-          <span>Risk</span>
-          <strong>{play.weather_risk || "N/A"}</strong>
-          <small>{play.ballpark || "Park N/A"}</small>
-        </div>
-      </div>
-
-      <div className="mlb-v3-footer">
-        <TBMBadge tone={getRecommendationTone(play.recommendation)}>
-          {play.recommendation || "Model Play"}
-        </TBMBadge>
-        <p>{play.reason || play.sharp_reason || "No model reason available."}</p>
-      </div>
-    </TBMCard>
+    market.includes("run line") ||
+    market.includes("runline") ||
+    pick.includes("+1.5") ||
+    pick.includes("-1.5")
   );
 }
 
 export default function MLBRunLinePage() {
   const [plays, setPlays] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
+    const timer = window.setTimeout(() => controller.abort(), 30000);
 
-    setError("");
+    async function loadRunLinePlays() {
+      try {
+        setLoading(true);
+        setError("");
 
-    fetch(`${API_URL}/model/mlb/today`, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data.plays)) {
-          setPlays(data.plays);
-        } else {
-          setError(data.error || "Failed to load MLB model.");
+        const response = await fetch(`${API_URL}/model/mlb/today`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         }
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        console.error("MLB model fetch error:", err);
-        setError("Failed to load MLB model.");
-      })
-      .finally(() => clearTimeout(timer));
+
+        const data = await response.json();
+
+        setPlays(Array.isArray(data?.plays) ? data.plays : []);
+      } catch (err) {
+        if (err?.name === "AbortError") {
+          return;
+        }
+
+        console.error("MLB Run Line fetch error:", err);
+        setError("Failed to load the MLB Run Line model.");
+      } finally {
+        window.clearTimeout(timer);
+        setLoading(false);
+      }
+    }
+
+    loadRunLinePlays();
 
     return () => {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       controller.abort();
     };
   }, []);
 
-  const filteredPlays = useMemo(() => {
-    return [...plays]
-      .filter((play) => play.market === "Run Line")
-      .sort((a, b) => (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0));
-  }, [plays]);
+  const filteredPlays = useMemo(
+    () =>
+      plays
+        .filter(isRunLinePlay)
+        .map((play) => ({
+          ...play,
+          sport: "MLB",
+          market: play?.market || "Run Line",
+        }))
+        .sort((a, b) => getPlayScore(b) - getPlayScore(a)),
+    [plays]
+  );
 
-  const topPlay = filteredPlays[0];
-  const avgEdge = avgValue(filteredPlays, "edge");
-  const avgConfidence = avgValue(filteredPlays, "confidence");
-  const playCount = filteredPlays.length;
-  const sharpCount = filteredPlays.filter((play) =>
-    String(play.sharp_signal || "").toLowerCase().includes("sharp")
-  ).length;
+  const topPlays = useMemo(
+    () => filteredPlays.slice(0, 5),
+    [filteredPlays]
+  );
+
+  const flagshipPlay = topPlays[0] || null;
+
+  const averageEdge = averageValue(filteredPlays, "edge");
+  const averageConfidence = averageValue(
+    filteredPlays,
+    "confidence"
+  );
+  const sharpSignals = filteredPlays.filter(hasSharpSignal).length;
+
+  const metrics = useMemo(
+    () => [
+      {
+        label: "Run Line Plays",
+        value: filteredPlays.length,
+        sub: "Qualified MLB spreads",
+        tone: "green",
+      },
+      {
+        label: "Average Edge",
+        value: `${averageEdge.toFixed(2)}%`,
+        sub: "Across today's board",
+        tone: "blue",
+      },
+      {
+        label: "Avg Confidence",
+        value: `${averageConfidence.toFixed(0)}%`,
+        sub: "Model confidence",
+        tone: "gold",
+      },
+      {
+        label: "Sharp Signals",
+        value: sharpSignals,
+        sub: "Market-supported plays",
+        tone: "default",
+      },
+    ],
+    [
+      filteredPlays.length,
+      averageEdge,
+      averageConfidence,
+      sharpSignals,
+    ]
+  );
+
+  const navigation = useMemo(
+    () => [
+      {
+        label: "Overview",
+        meta: "MLB command center",
+        href: "/mlb-overview",
+      },
+      {
+        label: "Moneyline",
+        meta: "Straight winners",
+        href: "/mlb-model",
+      },
+      {
+        label: "Run Line",
+        meta: `${filteredPlays.length} plays`,
+        href: "/mlb-runline",
+      },
+      {
+        label: "Totals",
+        meta: "Full-game totals",
+        href: "/mlb-totals",
+      },
+      {
+        label: "First 5",
+        meta: "Early-game markets",
+        href: "/mlb-f5",
+      },
+      {
+        label: "NRFI / YRFI",
+        meta: "First-inning markets",
+        href: "/mlb-nrfi",
+      },
+    ],
+    [filteredPlays.length]
+  );
 
   return (
-    <TBMPage className="mlb-v3-page">
-      <div className="mlb-v3-header">
-        <div>
-          <span>MLB Model</span>
-          <h1>MLB Run Line Dashboard</h1>
-          <p>
-            Pitching, bullpen, lineup quality, Statcast, weather, sharp action,
-            CLV, sportsbook pricing, and market timing.
-          </p>
-        </div>
-      </div>
+    <TBMPage className="mlb-runline-page">
+      <TBMSportDashboardHeader
+        sport="MLB"
+        title="MLB Run Line Dashboard"
+        badge={loading ? "Loading Model" : "Premium Dashboard"}
+        flagshipPlay={flagshipPlay}
+        topPlays={topPlays}
+        metrics={metrics}
+        navigation={navigation}
+        premiumTitle="Today's Premium Run Line Card"
+      />
 
       <MLBTabs />
 
-      <TBMGrid columns={4} className="mlb-v3-kpis">
-        <TBMMetric label="Run Line Plays" value={playCount} />
-        <TBMMetric label="Average Edge" value={`${avgEdge.toFixed(2)}%`} accent />
-        <TBMMetric label="Average Confidence" value={`${avgConfidence.toFixed(0)}%`} />
-        <TBMMetric label="Sharp Signals" value={sharpCount} accent />
-      </TBMGrid>
-
       {error ? (
-        <p className="mlb-v3-error">{error}</p>
-      ) : filteredPlays.length === 0 ? (
-        <TBMCard className="mlb-v3-empty">No MLB run line plays available.</TBMCard>
-      ) : (
-        <>
-          {topPlay && (
-            <section className="mlb-v3-section">
-              <div className="mlb-v3-section-header">
-                <span>Top Play</span>
-                <h2>Best MLB Run Line Edge</h2>
-              </div>
-              <MLBPlayCard play={topPlay} label="Top Run Line Play" featured />
-            </section>
-          )}
+        <div className="mlb-runline-state mlb-runline-error">
+          {error}
+        </div>
+      ) : null}
 
-          <section className="mlb-v3-section">
-            <div className="mlb-v3-section-header">
-              <span>Model Board</span>
-              <h2>All MLB Run Line Plays</h2>
-            </div>
-
-            <div className="mlb-v3-play-grid">
+      {!loading && !error ? (
+        <TBMSection title="All MLB Run Line Plays">
+          {filteredPlays.length > 0 ? (
+            <div className="mlb-runline-card-grid">
               {filteredPlays.map((play, index) => (
-                <MLBPlayCard
-                  key={`${play.game}-${play.pick || play.recommendation}-${index}`}
-                  play={play}
-                  label={index < 3 ? "Top Play" : null}
-                />
+                <div
+                  className="mlb-runline-card-shell"
+                  key={`${play?.game}-${play?.pick}-${index}`}
+                >
+                  <span className="mlb-runline-rank">
+                    {index + 1}
+                  </span>
+
+                  <TBMSportCard
+                    name="MLB"
+                    play={play}
+                    href="/mlb-runline"
+                  />
+                </div>
               ))}
             </div>
-          </section>
-        </>
-      )}
+          ) : (
+            <div className="mlb-runline-state">
+              No qualified MLB Run Line plays are currently available.
+            </div>
+          )}
+        </TBMSection>
+      ) : null}
     </TBMPage>
   );
 }
