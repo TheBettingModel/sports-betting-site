@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MLBTabs from "../components/MLBTabs";
-import TBMSportsbookBadge from "../components/logos/TBMSportsbookBadge";
-import { TBMPage, TBMCard } from "../components/ui";
+import TBMSportCard from "../components/home/TBMSportCard";
+import { TBMPage } from "../components/ui";
 import TBMSportDashboardHeader from "../components/sports/TBMSportDashboardHeader";
 import MLBIntelligenceCenter from "../components/mlb/MLBIntelligenceCenter";
 import MLBSlateCommandBar from "../components/mlb/MLBSlateCommandBar";
@@ -12,6 +12,7 @@ import MLBWeatherParkCenter from "../components/mlb/MLBWeatherParkCenter";
 import MLBSportsbookPriceBoard from "../components/mlb/MLBSportsbookPriceBoard";
 import MLBLineMovementTracker from "../components/mlb/MLBLineMovementTracker";
 import MLBPerformanceMiniDashboard from "../components/mlb/MLBPerformanceMiniDashboard";
+import "./MLBOverviewPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -114,95 +115,45 @@ function playScore(play) {
   );
 }
 
-function TopPlayTable({ plays }) {
+function RankedPlayCards({ plays }) {
   return (
-    <TBMCard className="mlb-v4-top-table">
-      <div className="mlb-v4-panel-title">
-        <div>
-          <span>MLB Edge Board</span>
-          <h2>Ranked Model Plays</h2>
+    <section className="mlb-overview-ranked-section">
+      <div className="mlb-overview-ranked-shell">
+        <div className="mlb-overview-ranked-header">
+          <div>
+            <span>MLB Edge Board</span>
+            <h2>Ranked Model Plays</h2>
+          </div>
+
+          <a href="/mlb-model">View Full Board →</a>
         </div>
 
-        <a href="/mlb-model">Full Board ↗</a>
-      </div>
-
-      <div className="mlb-v4-table">
-        <div className="mlb-v4-table-head">
-          <span>#</span>
-          <span>Game</span>
-          <span>Pick</span>
-          <span>Market</span>
-          <span>Odds</span>
-          <span>Edge</span>
-          <span>Conf.</span>
-          <span>Units</span>
-          <span>Best Book</span>
-        </div>
-
-        {plays.length > 0 ? (
-          plays.map((play, index) => (
-            <div
-              className="mlb-v4-table-row"
-              key={`${play?.game}-${play?.pick}-${index}`}
-            >
-              <div className="rank">{index + 1}</div>
-
-              <div className="game">
-                <strong>{gameShort(play?.game)}</strong>
-                <span>MLB</span>
-              </div>
-
-              <div className="pick">
-                <strong>
-                  {play?.pick || play?.recommendation || "No Pick"}
-                </strong>
-                <span>
-                  {play?.market || play?.overview_market || "Market"}
+        <div className="mlb-overview-ranked-grid">
+          {plays.length > 0 ? (
+            plays.map((play, index) => (
+              <div
+                className="mlb-overview-ranked-card-wrap"
+                key={`${play?.game}-${play?.pick}-${index}`}
+              >
+                <span className="mlb-overview-ranked-number">
+                  {index + 1}
                 </span>
-              </div>
 
-              <div>
-                <span
-                  className={`mlb-v4-market-pill ${marketBadgeClass(
-                    play?.overview_market || play?.market
-                  )}`}
-                >
-                  {play?.overview_market || play?.market || "MLB"}
-                </span>
-              </div>
-
-              <div className="odds">
-                {formatOdds(play?.best_odds ?? play?.odds)}
-              </div>
-
-              <div className="edge">{play?.edge ?? "N/A"}%</div>
-
-              <div className="confidence">
-                <strong>{play?.confidence ?? "N/A"}%</strong>
-                <i
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.max(0, Number(play?.confidence) || 0)
-                    )}%`,
-                  }}
+                <TBMSportCard
+                  name="MLB"
+                  play={play}
+                  href="/mlb-model"
                 />
               </div>
-
-              <div className="units">{play?.units ?? "N/A"}</div>
-
-              <div>
-                <TBMSportsbookBadge book={getBook(play)} />
-              </div>
+            ))
+          ) : (
+            <div className="mlb-overview-ranked-empty">
+              No qualified MLB plays are currently available.
             </div>
-          ))
-        ) : (
-          <div className="mlb-v4-empty">
-            No MLB plays are currently available.
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </TBMCard>
+    </section>
   );
 }
 
@@ -399,7 +350,7 @@ export default function MLBOverviewPage() {
         nrfiCount={nrfi.length}
       />
 
-      <TopPlayTable plays={topPlays} />
+      <RankedPlayCards plays={topPlays} />
 
       <section className="mlb-command-center-v6">
         <div className="mlb-command-main-v6">
