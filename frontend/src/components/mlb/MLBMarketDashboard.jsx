@@ -4,6 +4,7 @@ import TBMSportCard from "../home/TBMSportCard";
 import TBMSportDashboardHeader from "../sports/TBMSportDashboardHeader";
 import TBMSection from "../layout/TBMSection";
 import { TBMPage } from "../ui";
+import MLBCommandCenter from "./MLBCommandCenter";
 import "./MLBMarketDashboard.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -275,6 +276,12 @@ export default function MLBMarketDashboard({
       />
 
       <MLBTabs />
+
+      <MLBCommandCenter
+        plays={filteredPlays}
+        marketLabel={marketLabel}
+        loading={loading}
+      />
 
       {error ? (
         <div className="mlb-market-dashboard-state mlb-market-dashboard-error">
