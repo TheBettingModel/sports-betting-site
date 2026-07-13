@@ -16,20 +16,6 @@ import "./MLBOverviewPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-function formatOdds(value) {
-  if (value === null || value === undefined || value === "") {
-    return "N/A";
-  }
-
-  const num = Number(value);
-
-  if (Number.isNaN(num)) {
-    return value;
-  }
-
-  return num > 0 ? `+${num}` : `${num}`;
-}
-
 function averageValue(plays, key) {
   const values = plays
     .map((play) => Number(play?.[key]))
@@ -63,15 +49,6 @@ function sharpCount(plays) {
   }).length;
 }
 
-function getBook(play) {
-  return (
-    play?.best_sportsbook ||
-    play?.best_book ||
-    play?.sportsbook ||
-    "Best Available"
-  );
-}
-
 function topMarket(plays) {
   if (!plays.length) {
     return "N/A";
@@ -86,22 +63,6 @@ function topMarket(plays) {
   return (
     Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A"
   );
-}
-
-function marketBadgeClass(market = "") {
-  const value = String(market).toLowerCase();
-
-  if (value.includes("moneyline")) return "blue";
-  if (value.includes("run")) return "green";
-  if (value.includes("total")) return "purple";
-  if (value.includes("first") || value.includes("f5")) return "orange";
-  if (value.includes("nrfi") || value.includes("yrfi")) return "gold";
-
-  return "green";
-}
-
-function gameShort(game = "") {
-  return String(game).replace(" vs ", " @ ").replace(" at ", " @ ");
 }
 
 function playScore(play) {
@@ -300,7 +261,7 @@ export default function MLBOverviewPage() {
       {
         label: "Run Line",
         meta: `${runLineCount} plays`,
-        href: "/mlb-model",
+        href: "/mlb-runline",
       },
       {
         label: "Totals",

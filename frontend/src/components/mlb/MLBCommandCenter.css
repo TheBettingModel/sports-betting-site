@@ -1,0 +1,289 @@
+.mlb-command-center {
+  width: 100%;
+  margin: 12px 0 18px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(69, 255, 84, 0.035),
+      transparent 34%
+    ),
+    rgba(5, 11, 18, 0.88);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+}
+
+.mlb-command-center,
+.mlb-command-center * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mlb-command-center-heading {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.11);
+}
+
+.mlb-command-center-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #45ff54;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mlb-command-center-heading h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.mlb-command-center-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(69, 255, 84, 0.18);
+  border-radius: 999px;
+  background: rgba(69, 255, 84, 0.055);
+  color: #b7ffc0;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mlb-command-center-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #45ff54;
+  box-shadow: 0 0 9px rgba(69, 255, 84, 0.8);
+}
+
+.mlb-command-center-status.is-loading {
+  border-color: rgba(96, 165, 250, 0.2);
+  background: rgba(96, 165, 250, 0.06);
+  color: #bfdbfe;
+}
+
+.mlb-command-center-status.is-loading i {
+  background: #60a5fa;
+  box-shadow: 0 0 9px rgba(96, 165, 250, 0.75);
+  animation: mlb-command-pulse 1.2s ease-in-out infinite;
+}
+
+.mlb-command-center-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.mlb-command-center-item {
+  position: relative;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 11px 12px;
+  border-right: 1px solid rgba(148, 163, 184, 0.09);
+}
+
+.mlb-command-center-item:last-child {
+  border-right: 0;
+}
+
+.mlb-command-center-item::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 2px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.mlb-command-center-item.tone-green::before {
+  background: #45ff54;
+}
+
+.mlb-command-center-item.tone-blue::before {
+  background: #60a5fa;
+}
+
+.mlb-command-center-item.tone-gold::before {
+  background: #fbbf24;
+}
+
+.mlb-command-center-item.tone-neutral::before {
+  background: #64748b;
+}
+
+.mlb-command-center-label {
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mlb-command-center-value {
+  display: block;
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-command-center-item.tone-green .mlb-command-center-value {
+  color: #a7f3b0;
+}
+
+.mlb-command-center-item.tone-blue .mlb-command-center-value {
+  color: #bfdbfe;
+}
+
+.mlb-command-center-item.tone-gold .mlb-command-center-value {
+  color: #fde68a;
+}
+
+.mlb-command-center-detail {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes mlb-command-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 1180px) {
+  .mlb-command-center-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mlb-command-center-item {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:nth-child(4n) {
+    border-right: 0;
+  }
+
+  .mlb-command-center-item:nth-last-child(-n + 3) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .mlb-command-center {
+    margin: 10px 0 15px;
+    border-radius: 14px;
+  }
+
+  .mlb-command-center-heading {
+    min-height: 50px;
+    padding: 10px 12px;
+  }
+
+  .mlb-command-center-heading h2 {
+    font-size: 13px;
+  }
+
+  .mlb-command-center-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mlb-command-center-item {
+    min-height: 72px;
+    padding: 10px 11px;
+    border-right: 1px solid rgba(148, 163, 184, 0.09);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:nth-child(4n) {
+    border-right: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .mlb-command-center-item:nth-last-child(-n + 3) {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:last-child {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .mlb-command-center-heading {
+    gap: 10px;
+  }
+
+  .mlb-command-center-status {
+    min-height: 26px;
+    padding-inline: 8px;
+    font-size: 8px;
+  }
+
+  .mlb-command-center-item {
+    min-height: 69px;
+    padding: 9px 10px;
+  }
+
+  .mlb-command-center-value {
+    font-size: 12px;
+  }
+
+  .mlb-command-center-detail {
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mlb-command-center-status.is-loading i {
+    animation: none;
+  }
+}
