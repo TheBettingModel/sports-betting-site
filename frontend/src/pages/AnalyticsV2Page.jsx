@@ -1,256 +1,565 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { TBMPage } from "../components/ui";
+import "./AnalyticsV2Page.css";
 
-function AnalyticsV2Page() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
+const API_URL = import.meta.env.VITE_API_URL;
+const REFRESH_INTERVAL_MS = 60000;
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
-  useEffect(() => {
-    setError("");
-
-    fetch(`${API_URL}/model/analytics/v2`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((json) => setData(json))
-      .catch((err) => {
-        console.error("Analytics v2 fetch error:", err);
-        setError("Failed to load Analytics Dashboard.");
-      });
-  }, [API_URL]);
-
-  const summary = data?.graded_summary || data?.summary || {};
-  const actionable = data?.actionable_summary || {};
-
-  return (
-    <div style={pageStyle}>
-      <h1 style={titleStyle}>Model Analytics</h1>
-
-      <p style={subtitleStyle}>
-        Historical performance dashboard powered by graded model history,
-        market intelligence, final ratings, CLV, sharp signals, and model versions.
-      </p>
-
-      {error ? (
-        <p style={{ color: "#f87171" }}>{error}</p>
-      ) : !data ? (
-        <p>Loading analytics...</p>
-      ) : data.error ? (
-        <p style={{ color: "#f87171" }}>{data.error}</p>
-      ) : (
-        <>
-          <section style={summaryGridStyle}>
-            <MetricCard label="Net Units" value={summary.units ?? 0} />
-            <MetricCard label="Win Rate" value={`${summary.win_rate ?? 0}%`} />
-            <MetricCard label="ROI" value={`${summary.roi ?? 0}%`} />
-            <MetricCard label="Graded Plays" value={summary.graded ?? 0} />
-            <MetricCard label="Pending Plays" value={data?.summary?.pending ?? 0} />
-            <MetricCard label="Actionable Units" value={actionable.units ?? 0} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Performance by Sport</h2>
-            <PerformanceTable data={data.by_sport} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Performance by Market</h2>
-            <PerformanceTable data={data.by_market} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Performance by Final Rating</h2>
-            <PerformanceTable data={data.by_final_recommendation} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Performance by Final Tier</h2>
-            <PerformanceTable data={data.by_final_model_tier} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Market Intelligence Grades</h2>
-            <PerformanceTable data={data.by_market_intelligence_grade} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Edge Buckets</h2>
-            <PerformanceTable data={data.edge_buckets} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Confidence Buckets</h2>
-            <PerformanceTable data={data.confidence_buckets} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Sportsbook Performance</h2>
-            <PerformanceTable data={data.by_sportsbook} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Sharp Signal Performance</h2>
-            <PerformanceTable data={data.by_sharp_signal} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>CLV Performance</h2>
-            <PerformanceTable data={data.by_clv_status} />
-          </section>
-
-          <section style={sectionStyle}>
-            <h2>Model Version Performance</h2>
-            <PerformanceTable data={data.by_model_version} />
-          </section>
-        </>
-      )}
-    </div>
-  );
+function numberValue(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function MetricCard({ label, value }) {
-  const positive =
-    typeof value === "number"
-      ? value > 0
-      : String(value).startsWith("+") || (!String(value).startsWith("-") && String(value) !== "0");
-
-  return (
-    <div style={metricCardStyle}>
-      <p style={metricLabelStyle}>{label}</p>
-      <h2 style={{ ...metricValueStyle, color: positive ? "#22c55e" : "#f87171" }}>
-        {value}
-      </h2>
-    </div>
-  );
+function formatUnits(value) {
+  const units = numberValue(value);
+  return `${units > 0 ? "+" : ""}${units.toFixed(2)}U`;
 }
 
-function PerformanceTable({ data }) {
-  if (!data || Object.keys(data).length === 0) {
-    return <p style={mutedStyle}>No data available.</p>;
+function formatPercent(value) {
+  return `${numberValue(value).toFixed(1)}%`;
+}
+
+function formatTimestamp(value) {
+  if (!value) {
+    return "Not updated";
   }
 
-  return (
-    <div style={tableWrapStyle}>
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            <th style={thStyle}>Category</th>
-            <th style={thStyle}>Graded</th>
-            <th style={thStyle}>W-L</th>
-            <th style={thStyle}>Win %</th>
-            <th style={thStyle}>Units</th>
-            <th style={thStyle}>ROI</th>
-            <th style={thStyle}>Pending</th>
-          </tr>
-        </thead>
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(value);
+}
 
-        <tbody>
-          {Object.entries(data).map(([key, value]) => (
-            <tr key={key}>
-              <td style={tdStyle}>{key}</td>
-              <td style={tdStyle}>{value.graded ?? 0}</td>
-              <td style={tdStyle}>
-                {(value.wins ?? 0)}-{(value.losses ?? 0)}
-              </td>
-              <td style={tdStyle}>{value.win_rate ?? 0}%</td>
-              <td
-                style={{
-                  ...tdStyle,
-                  color: Number(value.units || 0) >= 0 ? "#22c55e" : "#f87171",
-                  fontWeight: "bold",
-                }}
-              >
-                {value.units ?? 0}
-              </td>
-              <td style={tdStyle}>{value.roi ?? 0}%</td>
-              <td style={tdStyle}>{value.pending ?? 0}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+function buildRecord(summary = {}) {
+  const wins = numberValue(summary?.wins);
+  const losses = numberValue(summary?.losses);
+  const pushes = numberValue(summary?.pushes);
+
+  return pushes > 0
+    ? `${wins}-${losses}-${pushes}`
+    : `${wins}-${losses}`;
+}
+
+function getGradedCount(summary = {}) {
+  return (
+    numberValue(summary?.graded) ||
+    numberValue(summary?.wins) + numberValue(summary?.losses)
+  );
+}
+
+function normalizeRows(data = {}) {
+  return Object.entries(data || {})
+    .filter(([, value]) => value && typeof value === "object")
+    .sort((a, b) => {
+      const gradedDifference =
+        getGradedCount(b[1]) - getGradedCount(a[1]);
+
+      if (gradedDifference !== 0) {
+        return gradedDifference;
+      }
+
+      return numberValue(b[1]?.units) - numberValue(a[1]?.units);
+    });
+}
+
+function getTone(value, type = "number") {
+  const numeric = numberValue(value);
+
+  if (type === "neutral") {
+    return "neutral";
+  }
+
+  if (numeric > 0) {
+    return "positive";
+  }
+
+  if (numeric < 0) {
+    return "negative";
+  }
+
+  return "neutral";
+}
+
+function AnalyticsKpi({
+  label,
+  value,
+  detail,
+  tone = "neutral",
+}) {
+  return (
+    <div className={`analytics-v2-kpi tone-${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
     </div>
   );
 }
 
-const pageStyle = {
-  backgroundColor: "#020617",
-  color: "white",
-  minHeight: "100vh",
-  padding: "32px",
-};
+function PerformanceTable({
+  title,
+  eyebrow = "Historical Performance",
+  description,
+  data,
+  compact = false,
+}) {
+  const rows = normalizeRows(data);
 
-const titleStyle = {
-  fontSize: "42px",
-  marginBottom: "10px",
-};
+  return (
+    <section
+      className={`analytics-v2-panel ${
+        compact ? "is-compact" : ""
+      }`}
+    >
+      <div className="analytics-v2-panel-header">
+        <div>
+          <span>{eyebrow}</span>
+          <h2>{title}</h2>
+        </div>
 
-const subtitleStyle = {
-  color: "#9ca3af",
-  maxWidth: "950px",
-  lineHeight: "1.6",
-  marginBottom: "30px",
-};
+        {description ? <p>{description}</p> : null}
+      </div>
 
-const summaryGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "18px",
-  marginBottom: "34px",
-};
+      {rows.length > 0 ? (
+        <div className="analytics-v2-table-wrap">
+          <table className="analytics-v2-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Record</th>
+                <th>Win Rate</th>
+                <th>Units</th>
+                <th>ROI</th>
+                <th>Graded</th>
+              </tr>
+            </thead>
 
-const metricCardStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "16px",
-  padding: "20px",
-};
+            <tbody>
+              {rows.map(([name, stats]) => {
+                const units = numberValue(stats?.units);
+                const roi = numberValue(stats?.roi);
 
-const metricLabelStyle = {
-  color: "#9ca3af",
-  marginBottom: "8px",
-  fontWeight: "bold",
-};
+                return (
+                  <tr key={name}>
+                    <td>
+                      <strong>{name || "Unclassified"}</strong>
+                    </td>
 
-const metricValueStyle = {
-  fontSize: "30px",
-  margin: 0,
-};
+                    <td>{buildRecord(stats)}</td>
 
-const sectionStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "16px",
-  padding: "22px",
-  marginBottom: "24px",
-};
+                    <td>{formatPercent(stats?.win_rate)}</td>
 
-const tableWrapStyle = {
-  overflowX: "auto",
-};
+                    <td
+                      className={
+                        units >= 0 ? "is-positive" : "is-negative"
+                      }
+                    >
+                      {formatUnits(units)}
+                    </td>
 
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: "720px",
-};
+                    <td
+                      className={
+                        roi >= 0 ? "is-positive" : "is-negative"
+                      }
+                    >
+                      {formatPercent(roi)}
+                    </td>
 
-const thStyle = {
-  textAlign: "left",
-  padding: "12px",
-  color: "#9ca3af",
-  borderBottom: "1px solid #374151",
-  fontSize: "14px",
-};
+                    <td>{getGradedCount(stats)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="analytics-v2-empty">
+          No graded performance data is available for this category yet.
+        </div>
+      )}
+    </section>
+  );
+}
 
-const tdStyle = {
-  padding: "12px",
-  borderBottom: "1px solid #1f2937",
-};
+export default function AnalyticsV2Page() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [nextRefreshSeconds, setNextRefreshSeconds] = useState(60);
 
-const mutedStyle = {
-  color: "#9ca3af",
-};
+  const activeControllerRef = useRef(null);
+  const refreshDeadlineRef = useRef(
+    Date.now() + REFRESH_INTERVAL_MS
+  );
 
-export default AnalyticsV2Page;
+  const loadAnalytics = useCallback(async ({ silent = false } = {}) => {
+    if (activeControllerRef.current) {
+      activeControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    activeControllerRef.current = controller;
+
+    try {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/model/analytics/v2?ts=${Date.now()}`,
+        {
+          signal: controller.signal,
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+
+      if (json?.error) {
+        throw new Error(json.error);
+      }
+
+      setData(json);
+      setLastUpdated(new Date());
+
+      refreshDeadlineRef.current =
+        Date.now() + REFRESH_INTERVAL_MS;
+
+      setNextRefreshSeconds(
+        Math.round(REFRESH_INTERVAL_MS / 1000)
+      );
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        return;
+      }
+
+      console.error("Analytics v2 fetch error:", err);
+      setError(
+        "Analytics could not be refreshed. Existing data remains visible."
+      );
+    } finally {
+      if (activeControllerRef.current === controller) {
+        activeControllerRef.current = null;
+      }
+
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAnalytics();
+
+    const refreshTimer = window.setInterval(() => {
+      loadAnalytics({ silent: true });
+    }, REFRESH_INTERVAL_MS);
+
+    const countdownTimer = window.setInterval(() => {
+      const seconds = Math.max(
+        0,
+        Math.ceil(
+          (refreshDeadlineRef.current - Date.now()) / 1000
+        )
+      );
+
+      setNextRefreshSeconds(seconds);
+    }, 1000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadAnalytics({ silent: true });
+      }
+    };
+
+    const handleWindowFocus = () => {
+      loadAnalytics({ silent: true });
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+      window.clearInterval(countdownTimer);
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+      window.removeEventListener("focus", handleWindowFocus);
+
+      if (activeControllerRef.current) {
+        activeControllerRef.current.abort();
+      }
+    };
+  }, [loadAnalytics]);
+
+  const overallSummary = useMemo(
+    () => data?.graded_summary || data?.summary || {},
+    [data]
+  );
+
+  const actionableSummary = useMemo(
+    () => data?.actionable_summary || {},
+    [data]
+  );
+
+  const allSummary = useMemo(
+    () => data?.summary || {},
+    [data]
+  );
+
+  const overallUnits = numberValue(overallSummary?.units);
+  const actionableUnits = numberValue(
+    actionableSummary?.units
+  );
+
+  const overallRoi = numberValue(overallSummary?.roi);
+  const gradedCount = getGradedCount(overallSummary);
+  const pendingCount = numberValue(allSummary?.pending);
+
+  const kpis = [
+    {
+      label: "Overall Record",
+      value: buildRecord(overallSummary),
+      detail: `${gradedCount} graded model plays`,
+      tone: "neutral",
+    },
+    {
+      label: "Net Units",
+      value: formatUnits(overallUnits),
+      detail: "Across all graded plays",
+      tone: getTone(overallUnits),
+    },
+    {
+      label: "Win Rate",
+      value: formatPercent(overallSummary?.win_rate),
+      detail: "Wins across graded decisions",
+      tone: "blue",
+    },
+    {
+      label: "ROI",
+      value: formatPercent(overallRoi),
+      detail: "Historical graded return",
+      tone: getTone(overallRoi),
+    },
+    {
+      label: "Actionable Units",
+      value: formatUnits(actionableUnits),
+      detail: "Play and Lean recommendations",
+      tone: getTone(actionableUnits),
+    },
+    {
+      label: "Pending Plays",
+      value: pendingCount,
+      detail: "Awaiting final grading",
+      tone: "gold",
+    },
+  ];
+
+  return (
+    <TBMPage className="analytics-v2-page">
+      <header className="analytics-v2-hero">
+        <div className="analytics-v2-hero-copy">
+          <span>The Betting Model</span>
+          <h1>Analytics Dashboard</h1>
+          <p>
+            Live historical performance across sports, markets,
+            recommendations, model ratings, edge ranges, confidence,
+            sportsbooks, sharp signals and closing-line value.
+          </p>
+        </div>
+
+        <div className="analytics-v2-refresh-panel">
+          <div className="analytics-v2-live-status">
+            <i aria-hidden="true" />
+            {refreshing ? "Refreshing" : "Live Analytics"}
+          </div>
+
+          <span>Last updated</span>
+          <strong>{formatTimestamp(lastUpdated)}</strong>
+
+          <small>
+            Auto-refresh in {nextRefreshSeconds}s
+          </small>
+
+          <button
+            type="button"
+            onClick={() => loadAnalytics({ silent: true })}
+            disabled={loading || refreshing}
+          >
+            {refreshing ? "Refreshing..." : "Refresh Now"}
+          </button>
+        </div>
+      </header>
+
+      {error ? (
+        <div className="analytics-v2-alert">
+          {error}
+        </div>
+      ) : null}
+
+      {loading && !data ? (
+        <div className="analytics-v2-state">
+          Loading historical analytics...
+        </div>
+      ) : null}
+
+      {!loading && !data && !error ? (
+        <div className="analytics-v2-state">
+          Analytics data is not currently available.
+        </div>
+      ) : null}
+
+      {data ? (
+        <>
+          <section className="analytics-v2-kpi-grid">
+            {kpis.map((item) => (
+              <AnalyticsKpi key={item.label} {...item} />
+            ))}
+          </section>
+
+          <section className="analytics-v2-summary-strip">
+            <div>
+              <span>All Tracked Plays</span>
+              <strong>{numberValue(allSummary?.total)}</strong>
+              <small>
+                Includes pending and graded records
+              </small>
+            </div>
+
+            <div>
+              <span>Graded Plays</span>
+              <strong>{gradedCount}</strong>
+              <small>
+                Used in performance calculations
+              </small>
+            </div>
+
+            <div>
+              <span>Actionable Record</span>
+              <strong>{buildRecord(actionableSummary)}</strong>
+              <small>
+                Play and Lean recommendations
+              </small>
+            </div>
+
+            <div>
+              <span>Analytics Engine</span>
+              <strong>
+                {data?.model_version || "Historical Analytics V2"}
+              </strong>
+              <small>Database-backed reporting</small>
+            </div>
+          </section>
+
+          <div className="analytics-v2-primary-grid">
+            <PerformanceTable
+              title="Performance by Sport"
+              description="Which sports are producing the strongest historical results."
+              data={data?.by_sport}
+            />
+
+            <PerformanceTable
+              title="Performance by Market"
+              description="Moneyline, spreads, totals, First 5 and other tracked markets."
+              data={data?.by_market}
+            />
+          </div>
+
+          <div className="analytics-v2-primary-grid">
+            <PerformanceTable
+              title="Edge Buckets"
+              description="Historical performance grouped by projected model edge."
+              data={data?.edge_buckets}
+            />
+
+            <PerformanceTable
+              title="Confidence Buckets"
+              description="Results grouped by the model confidence range."
+              data={data?.confidence_buckets}
+            />
+          </div>
+
+          <PerformanceTable
+            title="Final Recommendation Performance"
+            description="Historical results across the final actionable recommendation."
+            data={data?.by_final_recommendation}
+          />
+
+          <div className="analytics-v2-primary-grid">
+            <PerformanceTable
+              title="Final Model Tiers"
+              description="Performance by the model's final quality tier."
+              data={data?.by_final_model_tier}
+              compact
+            />
+
+            <PerformanceTable
+              title="Market Intelligence Grades"
+              description="Results grouped by market intelligence quality."
+              data={data?.by_market_intelligence_grade}
+              compact
+            />
+          </div>
+
+          <div className="analytics-v2-primary-grid">
+            <PerformanceTable
+              title="Sportsbook Performance"
+              description="Historical results by tracked sportsbook."
+              data={data?.by_sportsbook}
+              compact
+            />
+
+            <PerformanceTable
+              title="Sharp Signal Performance"
+              description="Results grouped by sharp-market signal."
+              data={data?.by_sharp_signal}
+              compact
+            />
+          </div>
+
+          <div className="analytics-v2-primary-grid">
+            <PerformanceTable
+              title="CLV Performance"
+              description="Historical results grouped by closing-line value status."
+              data={data?.by_clv_status}
+              compact
+            />
+
+            <PerformanceTable
+              title="Steam Strength"
+              description="Performance grouped by detected steam movement."
+              data={data?.by_steam_strength}
+              compact
+            />
+          </div>
+
+          <PerformanceTable
+            title="Model Version Performance"
+            description="Historical performance by the model version that created each play."
+            data={data?.by_model_version}
+          />
+        </>
+      ) : null}
+    </TBMPage>
+  );
+}
