@@ -3,6 +3,7 @@ import MLBMarketDashboard from "../components/mlb/MLBMarketDashboard";
 export default function MLBTotalsPage() {
   return (
     <MLBMarketDashboard
+      endpoint="/model/mlb/today"
       marketKey="totals"
       marketLabel="Totals"
       title="MLB Totals Dashboard"

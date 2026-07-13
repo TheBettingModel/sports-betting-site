@@ -40,7 +40,12 @@ function hasSharpSignal(play) {
       ""
   ).toLowerCase();
 
-  return value.includes("sharp") || value.includes("strong");
+  return (
+    value.includes("sharp") ||
+    value.includes("strong") ||
+    value.includes("steam") ||
+    value.includes("aligned")
+  );
 }
 
 function normalize(value) {
@@ -91,7 +96,39 @@ function isTotalPlay(play) {
   );
 }
 
+function isFirstFivePlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market.includes("first 5") ||
+    market.includes("first five") ||
+    market.includes("f5") ||
+    pick.includes("first 5") ||
+    pick.includes("first five") ||
+    pick.includes("f5")
+  );
+}
+
+function isFirstInningPlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market.includes("nrfi") ||
+    market.includes("yrfi") ||
+    market.includes("first inning") ||
+    pick.includes("nrfi") ||
+    pick.includes("yrfi") ||
+    pick.includes("first inning")
+  );
+}
+
 function matchesMarket(play, marketKey) {
+  if (!marketKey || marketKey === "all") {
+    return true;
+  }
+
   if (marketKey === "moneyline") {
     return isMoneylinePlay(play);
   }
@@ -104,11 +141,19 @@ function matchesMarket(play, marketKey) {
     return isTotalPlay(play);
   }
 
-  return false;
+  if (marketKey === "f5") {
+    return isFirstFivePlay(play);
+  }
+
+  if (marketKey === "nrfi") {
+    return isFirstInningPlay(play);
+  }
+
+  return true;
 }
 
 function buildNavigation(activeRoute, playCount) {
-  const navigation = [
+  return [
     {
       label: "Overview",
       meta: "MLB command center",
@@ -116,36 +161,50 @@ function buildNavigation(activeRoute, playCount) {
     },
     {
       label: "Moneyline",
-      meta: activeRoute === "/mlb-model" ? `${playCount} plays` : "Straight winners",
+      meta:
+        activeRoute === "/mlb-model"
+          ? `${playCount} plays`
+          : "Straight winners",
       href: "/mlb-model",
     },
     {
       label: "Run Line",
-      meta: activeRoute === "/mlb-runline" ? `${playCount} plays` : "Run spreads",
+      meta:
+        activeRoute === "/mlb-runline"
+          ? `${playCount} plays`
+          : "Run spreads",
       href: "/mlb-runline",
     },
     {
       label: "Totals",
-      meta: activeRoute === "/mlb-totals" ? `${playCount} plays` : "Game totals",
+      meta:
+        activeRoute === "/mlb-totals"
+          ? `${playCount} plays`
+          : "Game totals",
       href: "/mlb-totals",
     },
     {
       label: "First 5",
-      meta: "Early-game markets",
+      meta:
+        activeRoute === "/mlb-f5"
+          ? `${playCount} plays`
+          : "Early-game markets",
       href: "/mlb-f5",
     },
     {
       label: "NRFI / YRFI",
-      meta: "First-inning markets",
+      meta:
+        activeRoute === "/mlb-nrfi"
+          ? `${playCount} plays`
+          : "First-inning markets",
       href: "/mlb-nrfi",
     },
   ];
-
-  return navigation;
 }
 
 export default function MLBMarketDashboard({
-  marketKey,
+  endpoint = "/model/mlb/today",
+  marketKey = "all",
   marketLabel,
   title,
   premiumTitle,
@@ -165,7 +224,7 @@ export default function MLBMarketDashboard({
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_URL}/model/mlb/today`, {
+        const response = await fetch(`${API_URL}${endpoint}`, {
           signal: controller.signal,
         });
 
@@ -175,7 +234,16 @@ export default function MLBMarketDashboard({
 
         const data = await response.json();
 
-        setPlays(Array.isArray(data?.plays) ? data.plays : []);
+        if (!Array.isArray(data?.plays)) {
+          setPlays([]);
+          setError(
+            data?.error ||
+              `The MLB ${marketLabel} model returned an invalid response.`
+          );
+          return;
+        }
+
+        setPlays(data.plays);
       } catch (err) {
         if (err?.name === "AbortError") {
           return;
@@ -195,7 +263,7 @@ export default function MLBMarketDashboard({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [marketLabel]);
+  }, [endpoint, marketLabel]);
 
   const filteredPlays = useMemo(
     () =>

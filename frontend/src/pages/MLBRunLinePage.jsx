@@ -3,6 +3,7 @@ import MLBMarketDashboard from "../components/mlb/MLBMarketDashboard";
 export default function MLBRunLinePage() {
   return (
     <MLBMarketDashboard
+      endpoint="/model/mlb/today"
       marketKey="runline"
       marketLabel="Run Line"
       title="MLB Run Line Dashboard"
