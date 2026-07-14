@@ -3752,7 +3752,7 @@ def get_play_of_the_day():
 
 
 @app.get("/model/analytics/v2")
-def model_analytics_v2():
+def model_analytics_v2(sport: str = None):
     db = SessionLocal()
 
     def safe_float(value, default=0):
@@ -3895,7 +3895,25 @@ def model_analytics_v2():
         return {k: summarize(v) for k, v in buckets.items()}
 
     try:
-        records = db.query(ModelPlayHistory).all()
+        all_records = db.query(ModelPlayHistory).all()
+
+        available_sports = sorted({
+            str(record.sport or "").strip().upper()
+            for record in all_records
+            if str(record.sport or "").strip()
+        })
+
+        selected_sport = str(sport or "").strip().upper()
+
+        if selected_sport and selected_sport != "ALL":
+            records = [
+                record
+                for record in all_records
+                if str(record.sport or "").strip().upper() == selected_sport
+            ]
+        else:
+            selected_sport = ""
+            records = all_records
 
         graded_records = [
             r for r in records
@@ -3908,6 +3926,9 @@ def model_analytics_v2():
         ]
 
         return {
+            "selected_sport": selected_sport or "ALL",
+            "available_sports": available_sports,
+
             "summary": summarize(records),
             "graded_summary": summarize(graded_records),
             "actionable_summary": summarize(actionable_records),
@@ -3933,6 +3954,11 @@ def model_analytics_v2():
                 "Analytics v2 uses ModelPlayHistory.",
                 "Only graded plays are used in grouped performance sections.",
                 "Pending plays are included only in the top-level summary.",
+                (
+                    f"Analytics filtered to {selected_sport}."
+                    if selected_sport
+                    else "Analytics include all sports."
+                ),
             ],
             "model_version": "historical_analytics_v2",
         }

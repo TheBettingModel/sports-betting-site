@@ -16,9 +16,8 @@
 .analytics-v2-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px;
-  align-items: stretch;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .analytics-v2-hero-copy,
@@ -42,17 +41,17 @@
   padding: 20px;
 }
 
-.analytics-v2-hero-copy > span {
+.analytics-v2-hero-copy > span,
+.analytics-v2-panel-header span {
   color: #45ff54;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 950;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 .analytics-v2-hero-copy h1 {
   margin: 7px 0 9px;
-  color: #f8fafc;
   font-size: clamp(30px, 4vw, 47px);
   font-weight: 950;
   letter-spacing: -0.052em;
@@ -64,7 +63,6 @@
   margin: 0;
   color: #94a3b8;
   font-size: 12px;
-  font-weight: 650;
   line-height: 1.55;
 }
 
@@ -80,11 +78,9 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 5px;
   color: #8dff98;
   font-size: 9px;
   font-weight: 950;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -96,24 +92,23 @@
   box-shadow: 0 0 8px rgba(69, 255, 84, 0.75);
 }
 
-.analytics-v2-refresh-panel > span {
+.analytics-v2-refresh-panel > span,
+.analytics-v2-context-bar span,
+.analytics-v2-summary-strip span {
   color: #64748b;
   font-size: 8px;
   font-weight: 950;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .analytics-v2-refresh-panel > strong {
-  color: #f8fafc;
   font-size: 15px;
-  font-weight: 950;
 }
 
 .analytics-v2-refresh-panel > small {
   color: #64748b;
   font-size: 9px;
-  font-weight: 750;
 }
 
 .analytics-v2-refresh-panel button {
@@ -129,30 +124,98 @@
   text-transform: uppercase;
 }
 
-.analytics-v2-refresh-panel button:hover:not(:disabled) {
-  background: rgba(69, 255, 84, 0.15);
+.analytics-v2-sport-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
-.analytics-v2-refresh-panel button:disabled {
-  cursor: wait;
-  opacity: 0.65;
+.analytics-v2-sport-filter button {
+  flex: 0 0 auto;
+  min-width: 94px;
+  min-height: 52px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: rgba(8, 17, 26, 0.84);
+  color: #94a3b8;
+  cursor: pointer;
+  text-align: left;
+}
+
+.analytics-v2-sport-filter button span {
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.analytics-v2-sport-filter button small {
+  color: #64748b;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.analytics-v2-sport-filter button.is-active {
+  border-color: rgba(69, 255, 84, 0.32);
+  background: rgba(69, 255, 84, 0.08);
+}
+
+.analytics-v2-sport-filter button.is-active span {
+  color: #8dff98;
+}
+
+.analytics-v2-context-bar {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.11);
+  border-radius: 13px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.analytics-v2-context-bar strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.analytics-v2-context-bar p {
+  max-width: 600px;
+  margin: 0;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.4;
+  text-align: right;
 }
 
 .analytics-v2-alert,
-.analytics-v2-state {
-  margin-bottom: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
+.analytics-v2-state,
+.analytics-v2-empty {
+  border: 1px dashed rgba(148, 163, 184, 0.15);
   border-radius: 13px;
   padding: 14px;
   color: #94a3b8;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-align: center;
 }
 
 .analytics-v2-alert {
+  margin-bottom: 12px;
+  border-style: solid;
   border-color: rgba(251, 191, 36, 0.24);
-  background: rgba(120, 53, 15, 0.1);
   color: #fde68a;
 }
 
@@ -160,7 +223,6 @@
   min-height: 120px;
   display: grid;
   place-items: center;
-  border-style: dashed;
 }
 
 .analytics-v2-kpi-grid {
@@ -179,7 +241,6 @@
   border-radius: 14px;
   padding: 13px;
   background: rgba(8, 17, 26, 0.88);
-  overflow: hidden;
 }
 
 .analytics-v2-kpi::before {
@@ -213,17 +274,14 @@
   color: #64748b;
   font-size: 8px;
   font-weight: 950;
-  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .analytics-v2-kpi > strong {
   margin-top: 7px;
   overflow: hidden;
-  color: #f8fafc;
   font-size: 19px;
   font-weight: 950;
-  letter-spacing: -0.035em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -248,7 +306,6 @@
   margin-top: 5px;
   color: #64748b;
   font-size: 8px;
-  font-weight: 700;
   line-height: 1.3;
 }
 
@@ -269,18 +326,9 @@
   background: rgba(255, 255, 255, 0.021);
 }
 
-.analytics-v2-summary-strip span {
-  color: #64748b;
-  font-size: 8px;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .analytics-v2-summary-strip strong {
   margin-top: 5px;
   overflow: hidden;
-  color: #f8fafc;
   font-size: 15px;
   font-weight: 950;
   text-overflow: ellipsis;
@@ -291,7 +339,6 @@
   margin-top: 4px;
   color: #64748b;
   font-size: 8px;
-  font-weight: 700;
 }
 
 .analytics-v2-primary-grid {
@@ -322,17 +369,8 @@
   margin-bottom: 11px;
 }
 
-.analytics-v2-panel-header span {
-  color: #45ff54;
-  font-size: 8px;
-  font-weight: 950;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-
 .analytics-v2-panel-header h2 {
   margin: 4px 0 0;
-  color: #f8fafc;
   font-size: 15px;
   font-weight: 950;
 }
@@ -342,7 +380,6 @@
   margin: 0;
   color: #64748b;
   font-size: 8px;
-  font-weight: 700;
   line-height: 1.35;
   text-align: right;
 }
@@ -369,7 +406,6 @@
   color: #64748b;
   font-size: 7px;
   font-weight: 950;
-  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
@@ -381,7 +417,6 @@
 
 .analytics-v2-table td strong {
   color: #f8fafc;
-  font-weight: 900;
 }
 
 .analytics-v2-table td.is-positive {
@@ -402,13 +437,6 @@
   min-height: 72px;
   display: grid;
   place-items: center;
-  border: 1px dashed rgba(148, 163, 184, 0.14);
-  border-radius: 12px;
-  padding: 13px;
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 750;
-  text-align: center;
 }
 
 @media (max-width: 1100px) {
@@ -424,16 +452,6 @@
 
   .analytics-v2-hero {
     grid-template-columns: 1fr;
-  }
-
-  .analytics-v2-refresh-panel {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-  }
-
-  .analytics-v2-live-status,
-  .analytics-v2-refresh-panel button {
-    grid-column: 1 / -1;
   }
 
   .analytics-v2-summary-strip {
@@ -454,13 +472,17 @@
     padding: 16px;
   }
 
-  .analytics-v2-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .analytics-v2-context-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .analytics-v2-kpi {
-    min-height: 90px;
-    padding: 11px;
+  .analytics-v2-context-bar p {
+    text-align: left;
+  }
+
+  .analytics-v2-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .analytics-v2-summary-strip {

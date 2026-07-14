@@ -1,9 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useSearchParams } from "react-router-dom";
 import { TBMPage } from "../components/ui";
 import "./AnalyticsV2Page.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const REFRESH_INTERVAL_MS = 60000;
+
+const SPORT_ORDER = [
+  "MLB",
+  "NBA",
+  "NFL",
+  "NHL",
+  "WNBA",
+  "NCAAF",
+  "NCAAMB",
+  "SOCCER",
+  "UFC",
+];
 
 function numberValue(value, fallback = 0) {
   const parsed = Number(value);
@@ -29,6 +48,16 @@ function formatTimestamp(value) {
     minute: "2-digit",
     second: "2-digit",
   }).format(value);
+}
+
+function displaySport(value) {
+  const sport = String(value || "").toUpperCase();
+
+  if (sport === "SOCCER") {
+    return "Soccer";
+  }
+
+  return sport;
 }
 
 function buildRecord(summary = {}) {
@@ -64,11 +93,11 @@ function normalizeRows(data = {}) {
 }
 
 function getTone(value, type = "number") {
-  const numeric = numberValue(value);
-
   if (type === "neutral") {
     return "neutral";
   }
+
+  const numeric = numberValue(value);
 
   if (numeric > 0) {
     return "positive";
@@ -101,16 +130,11 @@ function PerformanceTable({
   eyebrow = "Historical Performance",
   description,
   data,
-  compact = false,
 }) {
   const rows = normalizeRows(data);
 
   return (
-    <section
-      className={`analytics-v2-panel ${
-        compact ? "is-compact" : ""
-      }`}
-    >
+    <section className="analytics-v2-panel">
       <div className="analytics-v2-panel-header">
         <div>
           <span>{eyebrow}</span>
@@ -146,7 +170,6 @@ function PerformanceTable({
                     </td>
 
                     <td>{buildRecord(stats)}</td>
-
                     <td>{formatPercent(stats?.win_rate)}</td>
 
                     <td
@@ -181,7 +204,47 @@ function PerformanceTable({
   );
 }
 
+function SportFilter({
+  sports,
+  selectedSport,
+  onSelect,
+}) {
+  return (
+    <nav
+      className="analytics-v2-sport-filter"
+      aria-label="Analytics sport filter"
+    >
+      <button
+        type="button"
+        className={selectedSport === "ALL" ? "is-active" : ""}
+        onClick={() => onSelect("ALL")}
+      >
+        <span>All Sports</span>
+        <small>Platform</small>
+      </button>
+
+      {sports.map((sport) => (
+        <button
+          type="button"
+          key={sport}
+          className={selectedSport === sport ? "is-active" : ""}
+          onClick={() => onSelect(sport)}
+        >
+          <span>{displaySport(sport)}</span>
+          <small>Model</small>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 export default function AnalyticsV2Page() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const selectedSport = String(
+    searchParams.get("sport") || "ALL"
+  ).toUpperCase();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -194,71 +257,83 @@ export default function AnalyticsV2Page() {
     Date.now() + REFRESH_INTERVAL_MS
   );
 
-  const loadAnalytics = useCallback(async ({ silent = false } = {}) => {
-    if (activeControllerRef.current) {
-      activeControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    activeControllerRef.current = controller;
-
-    try {
-      if (silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+  const loadAnalytics = useCallback(
+    async ({ silent = false } = {}) => {
+      if (activeControllerRef.current) {
+        activeControllerRef.current.abort();
       }
 
-      setError("");
+      const controller = new AbortController();
+      activeControllerRef.current = controller;
 
-      const response = await fetch(
-        `${API_URL}/model/analytics/v2?ts=${Date.now()}`,
-        {
-          signal: controller.signal,
-          cache: "no-store",
-          headers: {
-            Accept: "application/json",
-          },
+      try {
+        if (silent) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
         }
-      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        setError("");
+
+        const params = new URLSearchParams({
+          ts: String(Date.now()),
+        });
+
+        if (selectedSport !== "ALL") {
+          params.set("sport", selectedSport);
+        }
+
+        const response = await fetch(
+          `${API_URL}/model/analytics/v2?${params.toString()}`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const json = await response.json();
+
+        if (json?.error) {
+          throw new Error(json.error);
+        }
+
+        setData(json);
+        setLastUpdated(new Date());
+
+        refreshDeadlineRef.current =
+          Date.now() + REFRESH_INTERVAL_MS;
+
+        setNextRefreshSeconds(
+          Math.round(REFRESH_INTERVAL_MS / 1000)
+        );
+      } catch (err) {
+        if (err?.name === "AbortError") {
+          return;
+        }
+
+        console.error("Analytics v2 fetch error:", err);
+
+        setError(
+          "Analytics could not be refreshed. Existing data remains visible."
+        );
+      } finally {
+        if (activeControllerRef.current === controller) {
+          activeControllerRef.current = null;
+        }
+
+        setLoading(false);
+        setRefreshing(false);
       }
-
-      const json = await response.json();
-
-      if (json?.error) {
-        throw new Error(json.error);
-      }
-
-      setData(json);
-      setLastUpdated(new Date());
-
-      refreshDeadlineRef.current =
-        Date.now() + REFRESH_INTERVAL_MS;
-
-      setNextRefreshSeconds(
-        Math.round(REFRESH_INTERVAL_MS / 1000)
-      );
-    } catch (err) {
-      if (err?.name === "AbortError") {
-        return;
-      }
-
-      console.error("Analytics v2 fetch error:", err);
-      setError(
-        "Analytics could not be refreshed. Existing data remains visible."
-      );
-    } finally {
-      if (activeControllerRef.current === controller) {
-        activeControllerRef.current = null;
-      }
-
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+    },
+    [selectedSport]
+  );
 
   useEffect(() => {
     loadAnalytics();
@@ -278,22 +353,18 @@ export default function AnalyticsV2Page() {
       setNextRefreshSeconds(seconds);
     }, 1000);
 
-    const handleVisibilityChange = () => {
+    const refreshVisibleDashboard = () => {
       if (document.visibilityState === "visible") {
         loadAnalytics({ silent: true });
       }
     };
 
-    const handleWindowFocus = () => {
-      loadAnalytics({ silent: true });
-    };
-
     document.addEventListener(
       "visibilitychange",
-      handleVisibilityChange
+      refreshVisibleDashboard
     );
 
-    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("focus", refreshVisibleDashboard);
 
     return () => {
       window.clearInterval(refreshTimer);
@@ -301,10 +372,13 @@ export default function AnalyticsV2Page() {
 
       document.removeEventListener(
         "visibilitychange",
-        handleVisibilityChange
+        refreshVisibleDashboard
       );
 
-      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener(
+        "focus",
+        refreshVisibleDashboard
+      );
 
       if (activeControllerRef.current) {
         activeControllerRef.current.abort();
@@ -312,20 +386,35 @@ export default function AnalyticsV2Page() {
     };
   }, [loadAnalytics]);
 
-  const overallSummary = useMemo(
-    () => data?.graded_summary || data?.summary || {},
-    [data]
-  );
+  const availableSports = useMemo(() => {
+    const backendSports = Array.isArray(data?.available_sports)
+      ? data.available_sports.map((sport) =>
+          String(sport).toUpperCase()
+        )
+      : [];
 
-  const actionableSummary = useMemo(
-    () => data?.actionable_summary || {},
-    [data]
-  );
+    return [...new Set(backendSports)].sort((a, b) => {
+      const aIndex = SPORT_ORDER.indexOf(a);
+      const bIndex = SPORT_ORDER.indexOf(b);
 
-  const allSummary = useMemo(
-    () => data?.summary || {},
-    [data]
-  );
+      const safeA = aIndex === -1 ? 999 : aIndex;
+      const safeB = bIndex === -1 ? 999 : bIndex;
+
+      if (safeA !== safeB) {
+        return safeA - safeB;
+      }
+
+      return a.localeCompare(b);
+    });
+  }, [data]);
+
+  const overallSummary =
+    data?.graded_summary || data?.summary || {};
+
+  const actionableSummary =
+    data?.actionable_summary || {};
+
+  const allSummary = data?.summary || {};
 
   const overallUnits = numberValue(overallSummary?.units);
   const actionableUnits = numberValue(
@@ -336,9 +425,23 @@ export default function AnalyticsV2Page() {
   const gradedCount = getGradedCount(overallSummary);
   const pendingCount = numberValue(allSummary?.pending);
 
+  const dashboardLabel =
+    selectedSport === "ALL"
+      ? "All Sports"
+      : displaySport(selectedSport);
+
+  const handleSportSelect = (sport) => {
+    if (sport === "ALL") {
+      setSearchParams({});
+      return;
+    }
+
+    setSearchParams({ sport });
+  };
+
   const kpis = [
     {
-      label: "Overall Record",
+      label: `${dashboardLabel} Record`,
       value: buildRecord(overallSummary),
       detail: `${gradedCount} graded model plays`,
       tone: "neutral",
@@ -346,7 +449,7 @@ export default function AnalyticsV2Page() {
     {
       label: "Net Units",
       value: formatUnits(overallUnits),
-      detail: "Across all graded plays",
+      detail: `Across ${dashboardLabel.toLowerCase()}`,
       tone: getTone(overallUnits),
     },
     {
@@ -383,8 +486,8 @@ export default function AnalyticsV2Page() {
           <h1>Analytics Dashboard</h1>
           <p>
             Live historical performance across sports, markets,
-            recommendations, model ratings, edge ranges, confidence,
-            sportsbooks, sharp signals and closing-line value.
+            recommendations, edge ranges, confidence, sportsbooks,
+            sharp signals and closing-line value.
           </p>
         </div>
 
@@ -396,10 +499,7 @@ export default function AnalyticsV2Page() {
 
           <span>Last updated</span>
           <strong>{formatTimestamp(lastUpdated)}</strong>
-
-          <small>
-            Auto-refresh in {nextRefreshSeconds}s
-          </small>
+          <small>Auto-refresh in {nextRefreshSeconds}s</small>
 
           <button
             type="button"
@@ -411,21 +511,32 @@ export default function AnalyticsV2Page() {
         </div>
       </header>
 
-      {error ? (
-        <div className="analytics-v2-alert">
-          {error}
+      <SportFilter
+        sports={availableSports}
+        selectedSport={selectedSport}
+        onSelect={handleSportSelect}
+      />
+
+      <div className="analytics-v2-context-bar">
+        <div>
+          <span>Current View</span>
+          <strong>{dashboardLabel} Analytics</strong>
         </div>
+
+        <p>
+          {selectedSport === "ALL"
+            ? "Platform-wide performance across every tracked sport."
+            : `Every table below is filtered to ${dashboardLabel} before calculations are performed.`}
+        </p>
+      </div>
+
+      {error ? (
+        <div className="analytics-v2-alert">{error}</div>
       ) : null}
 
       {loading && !data ? (
         <div className="analytics-v2-state">
-          Loading historical analytics...
-        </div>
-      ) : null}
-
-      {!loading && !data && !error ? (
-        <div className="analytics-v2-state">
-          Analytics data is not currently available.
+          Loading {dashboardLabel} analytics...
         </div>
       ) : null}
 
@@ -441,25 +552,19 @@ export default function AnalyticsV2Page() {
             <div>
               <span>All Tracked Plays</span>
               <strong>{numberValue(allSummary?.total)}</strong>
-              <small>
-                Includes pending and graded records
-              </small>
+              <small>Pending and graded records</small>
             </div>
 
             <div>
               <span>Graded Plays</span>
               <strong>{gradedCount}</strong>
-              <small>
-                Used in performance calculations
-              </small>
+              <small>Used in performance calculations</small>
             </div>
 
             <div>
               <span>Actionable Record</span>
               <strong>{buildRecord(actionableSummary)}</strong>
-              <small>
-                Play and Lean recommendations
-              </small>
+              <small>Play and Lean recommendations</small>
             </div>
 
             <div>
@@ -471,53 +576,53 @@ export default function AnalyticsV2Page() {
             </div>
           </section>
 
-          <div className="analytics-v2-primary-grid">
+          {selectedSport === "ALL" ? (
             <PerformanceTable
               title="Performance by Sport"
-              description="Which sports are producing the strongest historical results."
+              description="Platform comparison across every tracked sport."
               data={data?.by_sport}
+            />
+          ) : null}
+
+          <div className="analytics-v2-primary-grid">
+            <PerformanceTable
+              title={`${dashboardLabel} Market Performance`}
+              description="Results across the markets tracked in this view."
+              data={data?.by_market}
             />
 
             <PerformanceTable
-              title="Performance by Market"
-              description="Moneyline, spreads, totals, First 5 and other tracked markets."
-              data={data?.by_market}
+              title="Edge Buckets"
+              description="Performance grouped by projected model edge."
+              data={data?.edge_buckets}
             />
           </div>
 
           <div className="analytics-v2-primary-grid">
             <PerformanceTable
-              title="Edge Buckets"
-              description="Historical performance grouped by projected model edge."
-              data={data?.edge_buckets}
+              title="Confidence Buckets"
+              description="Results grouped by model confidence."
+              data={data?.confidence_buckets}
             />
 
             <PerformanceTable
-              title="Confidence Buckets"
-              description="Results grouped by the model confidence range."
-              data={data?.confidence_buckets}
+              title="Final Recommendations"
+              description="Results by final actionable recommendation."
+              data={data?.by_final_recommendation}
             />
           </div>
-
-          <PerformanceTable
-            title="Final Recommendation Performance"
-            description="Historical results across the final actionable recommendation."
-            data={data?.by_final_recommendation}
-          />
 
           <div className="analytics-v2-primary-grid">
             <PerformanceTable
               title="Final Model Tiers"
-              description="Performance by the model's final quality tier."
+              description="Performance by final quality tier."
               data={data?.by_final_model_tier}
-              compact
             />
 
             <PerformanceTable
               title="Market Intelligence Grades"
               description="Results grouped by market intelligence quality."
               data={data?.by_market_intelligence_grade}
-              compact
             />
           </div>
 
@@ -526,36 +631,32 @@ export default function AnalyticsV2Page() {
               title="Sportsbook Performance"
               description="Historical results by tracked sportsbook."
               data={data?.by_sportsbook}
-              compact
             />
 
             <PerformanceTable
               title="Sharp Signal Performance"
               description="Results grouped by sharp-market signal."
               data={data?.by_sharp_signal}
-              compact
             />
           </div>
 
           <div className="analytics-v2-primary-grid">
             <PerformanceTable
               title="CLV Performance"
-              description="Historical results grouped by closing-line value status."
+              description="Results grouped by closing-line value status."
               data={data?.by_clv_status}
-              compact
             />
 
             <PerformanceTable
               title="Steam Strength"
-              description="Performance grouped by detected steam movement."
+              description="Performance grouped by steam movement."
               data={data?.by_steam_strength}
-              compact
             />
           </div>
 
           <PerformanceTable
             title="Model Version Performance"
-            description="Historical performance by the model version that created each play."
+            description={`Model-version performance for ${dashboardLabel}.`}
             data={data?.by_model_version}
           />
         </>
