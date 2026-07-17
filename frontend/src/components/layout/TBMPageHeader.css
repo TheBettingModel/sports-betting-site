@@ -1,36 +1,83 @@
 .tbm-page-header-v2 {
+  position: relative;
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 20px;
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-.tbm-page-header-v2 p {
-  margin: 0 0 4px;
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 950;
-  letter-spacing: 0.14em;
+.tbm-page-header-v2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 72px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #45ff54,
+    rgba(69, 255, 84, 0)
+  );
+}
+
+.tbm-page-header-v2__copy {
+  min-width: 0;
+}
+
+.tbm-page-header-v2__eyebrow {
+  margin: 0 0 5px;
+  color: #8fa2b7;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
-.tbm-page-header-v2 h1 {
+.tbm-page-header-v2__title {
   margin: 0;
   color: #f8fafc;
-  font-size: 34px;
-  line-height: 1;
+  font-size: clamp(27px, 3vw, 38px);
   font-weight: 950;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-wrap: balance;
 }
 
-.tbm-page-header-v2 span {
-  border: 1px solid rgba(69, 255, 84, 0.28);
-  background: rgba(69, 255, 84, 0.1);
-  color: #45ff54;
+.tbm-page-header-v2__status {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.24);
   border-radius: 999px;
-  padding: 7px 11px;
-  font-size: 11px;
-  font-weight: 950;
+  background: rgba(69, 255, 84, 0.065);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.tbm-page-header-v2__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #45ff54;
+  box-shadow:
+    0 0 0 4px rgba(69, 255, 84, 0.1),
+    0 0 12px rgba(69, 255, 84, 0.48);
+}
+
+.tbm-page-header-v2__status-label {
+  color: #8cff96;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -39,9 +86,18 @@
   .tbm-page-header-v2 {
     align-items: flex-start;
     flex-direction: column;
+    gap: 11px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
   }
 
-  .tbm-page-header-v2 h1 {
-    font-size: 28px;
+  .tbm-page-header-v2__title {
+    font-size: clamp(25px, 9vw, 31px);
+    line-height: 1.02;
+  }
+
+  .tbm-page-header-v2__status {
+    min-height: 28px;
+    padding: 5px 9px;
   }
 }

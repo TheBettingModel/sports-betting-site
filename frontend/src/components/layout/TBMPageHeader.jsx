@@ -6,12 +6,27 @@ export default function TBMPageHeader({
   badge = "Live Model",
 }) {
   return (
-    <section className="tbm-page-header-v2">
-      <div>
-        <p>{eyebrow}</p>
-        <h1>{title}</h1>
+    <header className="tbm-page-header-v2">
+      <div className="tbm-page-header-v2__copy">
+        {eyebrow ? (
+          <p className="tbm-page-header-v2__eyebrow">{eyebrow}</p>
+        ) : null}
+
+        <h1 className="tbm-page-header-v2__title">{title}</h1>
       </div>
-      {badge ? <span>{badge}</span> : null}
-    </section>
+
+      {badge ? (
+        <div className="tbm-page-header-v2__status" aria-label={badge}>
+          <span
+            className="tbm-page-header-v2__status-dot"
+            aria-hidden="true"
+          />
+
+          <span className="tbm-page-header-v2__status-label">
+            {badge}
+          </span>
+        </div>
+      ) : null}
+    </header>
   );
 }

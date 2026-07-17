@@ -1,0 +1,5000 @@
+===================================================
+TBM FRONTEND AUDIT
+Generated: Fri Jul 17 19:17:33 UTC 2026
+===================================================
+
+
+========== DIRECTORY ==========
+frontend/src
+frontend/src/App.css
+frontend/src/App.jsx
+frontend/src/MLBF5ModelPage.jsx
+frontend/src/assets
+frontend/src/assets/hero.png
+frontend/src/assets/react.svg
+frontend/src/assets/vite.svg
+frontend/src/components
+frontend/src/components/MLBTabs.css
+frontend/src/components/MLBTabs.jsx
+frontend/src/components/NCAAFTabs.jsx
+frontend/src/components/NFLTabs.jsx
+frontend/src/components/NHLTabs.jsx
+frontend/src/components/WNBATabs.jsx
+frontend/src/components/cards
+frontend/src/components/cards/TBMDataCard.css
+frontend/src/components/cards/TBMDataCard.jsx
+frontend/src/components/cards/TBMIntelligenceGrid.css
+frontend/src/components/cards/TBMIntelligenceGrid.jsx
+frontend/src/components/cards/TBMPlayCard.css
+frontend/src/components/cards/TBMPlayCard.jsx
+frontend/src/components/cards/TBMTopPlaysTable.css
+frontend/src/components/cards/TBMTopPlaysTable.jsx
+frontend/src/components/home
+frontend/src/components/home/DashboardPerformanceSnapshot.css
+frontend/src/components/home/DashboardPerformanceSnapshot.jsx
+frontend/src/components/home/DashboardStatusTable.css
+frontend/src/components/home/DashboardStatusTable.jsx
+frontend/src/components/home/TBMDashboardFramework.css
+frontend/src/components/home/TBMHeroPlayCard.css
+frontend/src/components/home/TBMHeroPlayCard.jsx
+frontend/src/components/home/TBMKpiRow.css
+frontend/src/components/home/TBMKpiRow.jsx
+frontend/src/components/home/TBMSportCard.css
+frontend/src/components/home/TBMSportCard.jsx
+frontend/src/components/home/TBMTopPlayRow.css
+frontend/src/components/home/TBMTopPlayRow.jsx
+frontend/src/components/layout
+frontend/src/components/layout/TBMAppShell.css
+frontend/src/components/layout/TBMAppShell.jsx
+frontend/src/components/layout/TBMPageHeader.css
+frontend/src/components/layout/TBMPageHeader.jsx
+frontend/src/components/layout/TBMSection.css
+frontend/src/components/layout/TBMSection.jsx
+frontend/src/components/layout/TBMShell.css
+frontend/src/components/layout/TBMShell.jsx
+frontend/src/components/logos
+frontend/src/components/logos/TBMLeagueIcon.css
+frontend/src/components/logos/TBMLeagueIcon.jsx
+frontend/src/components/logos/TBMSportsbookBadge.css
+frontend/src/components/logos/TBMSportsbookBadge.jsx
+frontend/src/components/logos/TBMTeamLogo.css
+frontend/src/components/logos/TBMTeamLogo.jsx
+frontend/src/components/mlb
+frontend/src/components/mlb/MLBCommandCenter.css
+frontend/src/components/mlb/MLBCommandCenter.jsx
+frontend/src/components/mlb/MLBIntelligenceCenter.css
+frontend/src/components/mlb/MLBIntelligenceCenter.jsx
+frontend/src/components/mlb/MLBLineMovementTracker.css
+frontend/src/components/mlb/MLBLineMovementTracker.jsx
+frontend/src/components/mlb/MLBMarketDashboard.css
+frontend/src/components/mlb/MLBMarketDashboard.jsx
+frontend/src/components/mlb/MLBMarketHeatMap.css
+frontend/src/components/mlb/MLBMarketHeatMap.jsx
+frontend/src/components/mlb/MLBPerformanceMiniDashboard.css
+frontend/src/components/mlb/MLBPerformanceMiniDashboard.jsx
+frontend/src/components/mlb/MLBPitcherMatchupCenter.css
+frontend/src/components/mlb/MLBPitcherMatchupCenter.jsx
+frontend/src/components/mlb/MLBSharpMoneyMeter.css
+frontend/src/components/mlb/MLBSharpMoneyMeter.jsx
+frontend/src/components/mlb/MLBSlateCommandBar.css
+frontend/src/components/mlb/MLBSlateCommandBar.jsx
+frontend/src/components/mlb/MLBSportsbookPriceBoard.css
+frontend/src/components/mlb/MLBSportsbookPriceBoard.jsx
+frontend/src/components/mlb/MLBWeatherParkCenter.css
+frontend/src/components/mlb/MLBWeatherParkCenter.jsx
+frontend/src/components/premium
+frontend/src/components/premium/TBMLockedCard.css
+frontend/src/components/premium/TBMLockedCard.jsx
+frontend/src/components/premium/TBMModelStatusCard.css
+frontend/src/components/premium/TBMModelStatusCard.jsx
+frontend/src/components/premium/TBMPremiumCardStack.css
+frontend/src/components/premium/TBMPremiumCardStack.jsx
+frontend/src/components/sports
+frontend/src/components/sports/TBMSportDashboardHeader.css
+frontend/src/components/sports/TBMSportDashboardHeader.jsx
+frontend/src/components/ui
+frontend/src/components/ui/Badge
+frontend/src/components/ui/Card
+frontend/src/components/ui/Dashboard
+frontend/src/components/ui/Layout
+frontend/src/components/ui/Metric
+frontend/src/components/ui/Section
+frontend/src/components/ui/index.js
+frontend/src/index.css
+frontend/src/main.jsx
+frontend/src/pages
+frontend/src/pages/AddPickPage.jsx
+frontend/src/pages/AdminPage.jsx
+frontend/src/pages/AnalyticsV2Page.css
+frontend/src/pages/AnalyticsV2Page.jsx
+frontend/src/pages/AutoPODPage.css
+frontend/src/pages/AutoPODPage.jsx
+frontend/src/pages/DashboardPage.jsx
+frontend/src/pages/HomePage.backup.jsx
+frontend/src/pages/HomePage.jsx
+frontend/src/pages/LiveOddsPage.jsx
+frontend/src/pages/MLBF5ModelPage.jsx
+frontend/src/pages/MLBF5Page.jsx
+frontend/src/pages/MLBModelBoardPage.jsx
+frontend/src/pages/MLBNRFIPage.jsx
+frontend/src/pages/MLBOverviewPage.css
+frontend/src/pages/MLBOverviewPage.jsx
+frontend/src/pages/MLBRunLinePage.jsx
+frontend/src/pages/MLBTotalsPage.jsx
+frontend/src/pages/ModelBoardPage.jsx
+frontend/src/pages/ModelPerformancePage.css
+frontend/src/pages/ModelPerformancePage.jsx
+frontend/src/pages/NBAFirstQuarterPage.jsx
+frontend/src/pages/NBATotalsPage.jsx
+frontend/src/pages/NCAAFModelPage.jsx
+frontend/src/pages/NCAAMBModelPage.jsx
+frontend/src/pages/NFLModelPage.jsx
+frontend/src/pages/NHLModelPage.jsx
+frontend/src/pages/PlayOfTheDayPage.css
+frontend/src/pages/PlayOfTheDayPage.jsx
+frontend/src/pages/ResultsPage.jsx
+frontend/src/pages/SavedPicksPage.jsx
+frontend/src/pages/SharpMarketPage.jsx
+frontend/src/pages/SoccerModelPage.jsx
+frontend/src/pages/UFCModelPage.jsx
+frontend/src/pages/WNBAModelPage.jsx
+frontend/src/styles
+frontend/src/styles/tbm-badges.css
+frontend/src/styles/tbm-cards.css
+frontend/src/styles/tbm-compact-layout.css
+frontend/src/styles/tbm-layout.css
+frontend/src/styles/tbm-mobile.css
+frontend/src/styles/tbm-theme.css
+frontend/src/tbm
+frontend/src/tbm/TBMBadge.jsx
+frontend/src/tbm/TBMCard.jsx
+frontend/src/tbm/TBMLogo.jsx
+frontend/src/tbm/TBMMetric.jsx
+frontend/src/tbm/TBMPlayCard.jsx
+frontend/src/tbm/TBMSection.jsx
+frontend/src/tbm/index.js
+frontend/src/utils
+frontend/src/utils/logoEngine.js
+frontend/src/utils/teamLogoEngine.js
+
+
+========== ROUTES ==========
+import UFCModelPage from "./pages/UFCModelPage";
+import NCAAMBModelPage from "./pages/NCAAMBModelPage";
+import { useState } from "react";
+import { Routes, Route, Link } from "react-router-dom";
+
+import HomePage from "./pages/HomePage";
+import ModelBoardPage from "./pages/ModelBoardPage";
+import NBATotalsPage from "./pages/NBATotalsPage";
+import NBAFirstQuarterPage from "./pages/NBAFirstQuarterPage";
+
+import MLBOverviewPage from "./pages/MLBOverviewPage";
+import MLBModelBoardPage from "./pages/MLBModelBoardPage";
+import MLBRunLinePage from "./pages/MLBRunLinePage";
+import MLBF5Page from "./pages/MLBF5ModelPage";
+import MLBNRFIPage from "./pages/MLBNRFIPage";
+import MLBTotalsPage from "./pages/MLBTotalsPage";
+import NFLModelPage from "./pages/NFLModelPage";
+import WNBAModelPage from "./pages/WNBAModelPage";
+import NHLModelPage from "./pages/NHLModelPage";
+import NCAAFModelPage from "./pages/NCAAFModelPage";
+
+import ModelPerformancePage from "./pages/ModelPerformancePage";
+import AnalyticsV2Page from "./pages/AnalyticsV2Page";
+import AutoPODPage from "./pages/AutoPODPage";
+import AdminPage from "./pages/AdminPage";
+
+import SoccerModelPage from "./pages/SoccerModelPage";
+import TBMAppShell from "./components/layout/TBMAppShell";
+
+function App() {
+  const [openDropdown, setOpenDropdown] = useState(null);
+
+  const toggleDropdown = (name) => {
+    setOpenDropdown(openDropdown === name ? null : name);
+  };
+
+  const closeDropdown = () => {
+    setOpenDropdown(null);
+  };
+
+  return (
+    <TBMAppShell>
+
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/auto-pod" element={<AutoPODPage />} />
+        <Route path="/model-performance" element={<ModelPerformancePage />} />
+        <Route path="/analytics" element={<AnalyticsV2Page />} />
+
+        <Route path="/model-board" element={<ModelBoardPage />} />
+        <Route path="/nba-totals" element={<NBATotalsPage />} />
+        <Route path="/nba-1q" element={<NBAFirstQuarterPage />} />
+
+        <Route path="/mlb-overview" element={<MLBOverviewPage />} />
+        <Route path="/mlb-model" element={<MLBModelBoardPage />} />
+        <Route path="/mlb-runline" element={<MLBRunLinePage />} />
+        <Route path="/mlb-f5" element={<MLBF5Page />} />
+        <Route path="/mlb-nrfi" element={<MLBNRFIPage />} />
+        <Route path="/mlb-totals" element={<MLBTotalsPage />} />
+
+        <Route path="/soccer-model" element={<SoccerModelPage />} />
+
+        <Route path="/nfl-model" element={<NFLModelPage />} />
+        <Route
+          path="/nfl-moneyline"
+          element={<NFLModelPage marketFilter="Moneyline" title="NFL Moneyline Model" />}
+        />
+        <Route
+          path="/nfl-spread"
+          element={<NFLModelPage marketFilter="Spread" title="NFL Spread Model" />}
+        />
+        <Route
+          path="/nfl-totals"
+          element={<NFLModelPage marketFilter="Total" title="NFL Totals Model" />}
+        />
+
+        <Route path="/wnba-model" element={<WNBAModelPage />} />
+        <Route
+          path="/wnba-moneyline"
+          element={<WNBAModelPage marketFilter="Moneyline" title="WNBA Moneyline Model" />}
+        />
+        <Route
+          path="/wnba-spread"
+          element={<WNBAModelPage marketFilter="Spread" title="WNBA Spread Model" />}
+        />
+        <Route
+          path="/wnba-totals"
+          element={<WNBAModelPage marketFilter="Total" title="WNBA Totals Model" />}
+        />
+
+        <Route path="/nhl-model" element={<NHLModelPage />} />
+
+        <Route
+          path="/nhl-puckline"
+          element={<NHLModelPage marketFilter="Puck Line" title="NHL Puck Line Model" />}
+        />
+
+        <Route
+          path="/nhl-totals"
+          element={<NHLModelPage marketFilter="Total" title="NHL Total Model" />}
+        />
+
+        <Route path="/ncaaf-model" element={<NCAAFModelPage />} />
+
+        <Route
+          path="/ncaaf-spread"
+          element={<NCAAFModelPage marketFilter="Spread" title="NCAA Football Spread Model" />}
+        />
+
+        <Route
+          path="/ncaaf-totals"
+          element={<NCAAFModelPage marketFilter="Total" title="NCAA Football Total Model" />}
+        />
+
+        <Route path="/admin" element={<AdminPage />} />
+      
+          <Route path="/model/ncaamb" element={<NCAAMBModelPage />} />
+          <Route path="/model/ufc" element={<UFCModelPage />} />
+
+        </Routes>
+    </TBMAppShell>
+  );
+}
+
+const appStyle = {
+  backgroundColor: "#0b0b0b",
+  minHeight: "100vh",
+  color: "white",
+};
+
+const navStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "24px",
+  padding: "18px 30px",
+  borderBottom: "1px solid #1f2937",
+  backgroundColor: "#111827",
+  position: "sticky",
+  top: 0,
+  zIndex: 1000,
+};
+
+const logoStyle = {
+  fontSize: "22px",
+  fontWeight: "800",
+  marginRight: "12px",
+  color: "white",
+  textDecoration: "none",
+};
+
+const leftNavStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "18px",
+};
+
+const rightNavStyle = {
+  marginLeft: "auto",
+  display: "flex",
+  alignItems: "center",
+  gap: "18px",
+};
+
+const linkStyle = {
+  color: "white",
+  textDecoration: "none",
+  cursor: "pointer",
+  fontSize: "15px",
+  fontWeight: "600",
+};
+
+const adminLinkStyle = {
+  color: "#f87171",
+  textDecoration: "none",
+  cursor: "pointer",
+  fontSize: "15px",
+  fontWeight: "700",
+};
+
+const dropdownStyle = {
+  position: "relative",
+};
+
+const dropdownButtonStyle = {
+  background: "transparent",
+  border: "none",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "15px",
+  fontWeight: "600",
+  padding: 0,
+};
+
+const dropdownMenuStyle = {
+  position: "absolute",
+  top: "32px",
+  left: 0,
+  backgroundColor: "#111827",
+  minWidth: "220px",
+  border: "1px solid #374151",
+  borderRadius: "14px",
+  padding: "10px 0",
+  zIndex: 1000,
+  boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
+};
+
+const dropdownDividerStyle = {
+  height: "1px",
+  backgroundColor: "#374151",
+  margin: "8px 0",
+};
+
+const dropdownLinkStyle = {
+  display: "block",
+  color: "white",
+  textDecoration: "none",
+  padding: "10px 14px",
+  fontSize: "14px",
+};
+
+const comingSoonStyle = {
+  color: "#6b7280",
+  padding: "10px 14px",
+  fontSize: "14px",
+};
+
+export default App;
+
+========== COMPONENTS ==========
+
+
+##################################################
+frontend/src/components/premium/TBMPremiumCardStack.jsx
+##################################################
+import TBMTopPlayRow from "../home/TBMTopPlayRow";
+import TBMLockedCard from "./TBMLockedCard";
+import "./TBMPremiumCardStack.css";
+
+export default function TBMPremiumCardStack({
+  title = "Today's Premium Card",
+  plays = [],
+  visibleCount = 1,
+  lockedCount = 2,
+}) {
+  const visiblePlays = Array.isArray(plays) ? plays.slice(0, visibleCount) : [];
+  const locks = Array.from({ length: lockedCount });
+
+  return (
+    <section className="tbm-premium-stack">
+      <div className="tbm-premium-stack-head">
+        <div>
+          <span>Premium Preview</span>
+          <h2>{title}</h2>
+        </div>
+        <strong>Members Only</strong>
+      </div>
+
+      <div className="tbm-premium-stack-list">
+        {visiblePlays.length > 0 ? (
+          visiblePlays.map((play, index) => (
+            <TBMTopPlayRow
+              key={`${play?.game}-${play?.pick}-${index}`}
+              play={play}
+              index={index}
+            />
+          ))
+        ) : (
+          <TBMLockedCard title="Premium Card Loading" subtitle="No public play available yet" />
+        )}
+
+        {locks.map((_, index) => (
+          <TBMLockedCard key={`locked-${index}`} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+
+##################################################
+frontend/src/components/premium/TBMLockedCard.jsx
+##################################################
+import "./TBMLockedCard.css";
+
+export default function TBMLockedCard({
+  title = "Premium Pick",
+  subtitle = "Unlock Full Card",
+  cta = "Become a Member",
+}) {
+  return (
+    <div className="tbm-locked-card">
+      <div className="tbm-locked-icon">🔒</div>
+      <strong>{title}</strong>
+      <span>{subtitle}</span>
+      <button type="button">{cta}</button>
+    </div>
+  );
+}
+
+
+##################################################
+frontend/src/components/premium/TBMModelStatusCard.css
+##################################################
+.tbm-model-status-card {
+  min-height: 122px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 15px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  color: #f8fafc;
+  text-decoration: none;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.06), transparent 34%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  transition: 0.18s ease;
+}
+
+.tbm-model-status-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(69, 255, 84, 0.34);
+}
+
+.tbm-model-status-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tbm-model-status-top span {
+  font-size: 17px;
+}
+
+.tbm-model-status-top strong {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tbm-model-status-count {
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.tbm-model-status-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tbm-model-status-bottom em {
+  color: #94a3b8;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.tbm-model-status-bottom em.live {
+  color: #45ff54;
+}
+
+.tbm-model-status-bottom span {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+
+##################################################
+frontend/src/components/premium/TBMModelStatusCard.jsx
+##################################################
+import { Link } from "react-router-dom";
+import "./TBMModelStatusCard.css";
+
+function sportEmoji(name) {
+  return {
+    MLB: "⚾",
+    NBA: "🏀",
+    NFL: "🏈",
+    NHL: "🏒",
+    WNBA: "🏀",
+    NCAAF: "🏈",
+    NCAAMB: "🏀",
+    Soccer: "⚽",
+    UFC: "🥊",
+  }[name] || "📊";
+}
+
+export default function TBMModelStatusCard({
+  name,
+  count = 0,
+  status = "Live",
+  href = "#",
+}) {
+  const live = Number(count) > 0;
+
+  return (
+    <Link className="tbm-model-status-card" to={href}>
+      <div className="tbm-model-status-top">
+        <span>{sportEmoji(name)}</span>
+        <strong>{name}</strong>
+      </div>
+
+      <div className="tbm-model-status-count">
+        {live ? `${count} Plays Ready` : "No Games"}
+      </div>
+
+      <div className="tbm-model-status-bottom">
+        <em className={live ? "live" : ""}>{live ? status : "Offline"}</em>
+        <span>Open →</span>
+      </div>
+    </Link>
+  );
+}
+
+
+##################################################
+frontend/src/components/premium/TBMLockedCard.css
+##################################################
+.tbm-locked-card {
+  min-height: 82px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  grid-template-areas:
+    "icon title button"
+    "icon sub button";
+  align-items: center;
+  gap: 4px 12px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.06), transparent 36%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.tbm-locked-icon {
+  grid-area: icon;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(69, 255, 84, 0.1);
+  border: 1px solid rgba(69, 255, 84, 0.22);
+}
+
+.tbm-locked-card strong {
+  grid-area: title;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.tbm-locked-card span {
+  grid-area: sub;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tbm-locked-card button {
+  grid-area: button;
+  border: 1px solid rgba(69, 255, 84, 0.28);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: rgba(69, 255, 84, 0.1);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  .tbm-locked-card {
+    grid-template-columns: 34px 1fr;
+    grid-template-areas:
+      "icon title"
+      "icon sub"
+      "button button";
+  }
+
+  .tbm-locked-card button {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
+
+##################################################
+frontend/src/components/premium/TBMPremiumCardStack.css
+##################################################
+.tbm-premium-stack {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  padding: 18px;
+  background: linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  color: #f8fafc;
+}
+
+.tbm-premium-stack-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tbm-premium-stack-head span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.tbm-premium-stack-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.tbm-premium-stack-head > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(69, 255, 84, 0.1);
+  border: 1px solid rgba(69, 255, 84, 0.24);
+  color: #45ff54;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tbm-premium-stack-list {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 620px) {
+  .tbm-premium-stack {
+    padding: 15px;
+  }
+
+  .tbm-premium-stack-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBCommandCenter.css
+##################################################
+.mlb-command-center {
+  width: 100%;
+  margin: 12px 0 18px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(69, 255, 84, 0.035),
+      transparent 34%
+    ),
+    rgba(5, 11, 18, 0.88);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+}
+
+.mlb-command-center,
+.mlb-command-center * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mlb-command-center-heading {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.11);
+}
+
+.mlb-command-center-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #45ff54;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mlb-command-center-heading h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.mlb-command-center-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(69, 255, 84, 0.18);
+  border-radius: 999px;
+  background: rgba(69, 255, 84, 0.055);
+  color: #b7ffc0;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mlb-command-center-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #45ff54;
+  box-shadow: 0 0 9px rgba(69, 255, 84, 0.8);
+}
+
+.mlb-command-center-status.is-loading {
+  border-color: rgba(96, 165, 250, 0.2);
+  background: rgba(96, 165, 250, 0.06);
+  color: #bfdbfe;
+}
+
+.mlb-command-center-status.is-loading i {
+  background: #60a5fa;
+  box-shadow: 0 0 9px rgba(96, 165, 250, 0.75);
+  animation: mlb-command-pulse 1.2s ease-in-out infinite;
+}
+
+.mlb-command-center-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.mlb-command-center-item {
+  position: relative;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 11px 12px;
+  border-right: 1px solid rgba(148, 163, 184, 0.09);
+}
+
+.mlb-command-center-item:last-child {
+  border-right: 0;
+}
+
+.mlb-command-center-item::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 2px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.mlb-command-center-item.tone-green::before {
+  background: #45ff54;
+}
+
+.mlb-command-center-item.tone-blue::before {
+  background: #60a5fa;
+}
+
+.mlb-command-center-item.tone-gold::before {
+  background: #fbbf24;
+}
+
+.mlb-command-center-item.tone-neutral::before {
+  background: #64748b;
+}
+
+.mlb-command-center-label {
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.mlb-command-center-value {
+  display: block;
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-command-center-item.tone-green .mlb-command-center-value {
+  color: #a7f3b0;
+}
+
+.mlb-command-center-item.tone-blue .mlb-command-center-value {
+  color: #bfdbfe;
+}
+
+.mlb-command-center-item.tone-gold .mlb-command-center-value {
+  color: #fde68a;
+}
+
+.mlb-command-center-detail {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes mlb-command-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 1180px) {
+  .mlb-command-center-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mlb-command-center-item {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:nth-child(4n) {
+    border-right: 0;
+  }
+
+  .mlb-command-center-item:nth-last-child(-n + 3) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .mlb-command-center {
+    margin: 10px 0 15px;
+    border-radius: 14px;
+  }
+
+  .mlb-command-center-heading {
+    min-height: 50px;
+    padding: 10px 12px;
+  }
+
+  .mlb-command-center-heading h2 {
+    font-size: 13px;
+  }
+
+  .mlb-command-center-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mlb-command-center-item {
+    min-height: 72px;
+    padding: 10px 11px;
+    border-right: 1px solid rgba(148, 163, 184, 0.09);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:nth-child(4n) {
+    border-right: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .mlb-command-center-item:nth-last-child(-n + 3) {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  }
+
+  .mlb-command-center-item:last-child {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .mlb-command-center-heading {
+    gap: 10px;
+  }
+
+  .mlb-command-center-status {
+    min-height: 26px;
+    padding-inline: 8px;
+    font-size: 8px;
+  }
+
+  .mlb-command-center-item {
+    min-height: 69px;
+    padding: 9px 10px;
+  }
+
+  .mlb-command-center-value {
+    font-size: 12px;
+  }
+
+  .mlb-command-center-detail {
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mlb-command-center-status.is-loading i {
+    animation: none;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBPitcherMatchupCenter.css
+##################################################
+.mlb-pitcher-center {
+  padding: 18px;
+  margin-top: 22px;
+}
+
+.mlb-pitcher-title {
+  margin-bottom: 14px;
+}
+
+.mlb-pitcher-title span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-pitcher-title h2 {
+  margin: 6px 0 0;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.mlb-pitcher-list {
+  display: grid;
+  gap: 11px;
+}
+
+.mlb-pitcher-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(360px, 0.95fr);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 15px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-pitcher-rank {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+  font-weight: 950;
+}
+
+.mlb-pitcher-info {
+  min-width: 0;
+}
+
+.mlb-pitcher-info strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-pitcher-info span {
+  display: block;
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-pitcher-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.mlb-pitcher-metrics div {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 11px;
+  padding: 9px;
+  background: rgba(255,255,255,.02);
+}
+
+.mlb-pitcher-metrics span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-pitcher-metrics strong {
+  display: block;
+  margin-top: 5px;
+  color: #45ff54;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.mlb-pitcher-empty {
+  color: #94a3b8;
+  padding: 14px;
+}
+
+@media (max-width: 950px) {
+  .mlb-pitcher-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-pitcher-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBLineMovementTracker.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBLineMovementTracker.css";
+
+function fmtOdds(v) {
+  if (v === null || v === undefined || v === "") return "N/A";
+  const n = Number(v);
+  if (Number.isNaN(n)) return v;
+  return n > 0 ? `+${n}` : `${n}`;
+}
+
+function movementRows(plays = []) {
+  return [...plays]
+    .filter((p) => p.opening_odds || p.open_odds || p.current_odds || p.line_movement_signal)
+    .slice(0, 7);
+}
+
+export default function MLBLineMovementTracker({ plays = [] }) {
+  const rows = movementRows(plays);
+
+  return (
+    <TBMCard className="mlb-line-card">
+      <div className="mlb-line-header">
+        <div>
+          <span>Line Movement Tracker</span>
+          <h2>Opening line vs current market</h2>
+        </div>
+        <strong>Live</strong>
+      </div>
+
+      <div className="mlb-line-list">
+        {rows.length > 0 ? (
+          rows.map((play, index) => {
+            const open = play.opening_odds ?? play.open_odds;
+            const current = play.current_odds ?? play.best_odds ?? play.odds;
+
+            return (
+              <div className="mlb-line-row" key={`${play.game}-${play.pick}-${index}`}>
+                <div className="mlb-line-game">
+                  <strong>{play.pick || play.game}</strong>
+                  <span>{play.game}</span>
+                </div>
+
+                <div className="mlb-line-move">
+                  <span>{fmtOdds(open)}</span>
+                  <i />
+                  <strong>{fmtOdds(current)}</strong>
+                </div>
+
+                <em>{play.line_movement_signal || play.market_timing_signal || "Movement Watch"}</em>
+              </div>
+            );
+          })
+        ) : (
+          <div className="mlb-line-empty">No line movement data available yet.</div>
+        )}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBWeatherParkCenter.css
+##################################################
+.mlb-weather-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-weather-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-weather-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-weather-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.mlb-weather-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  height: fit-content;
+}
+
+.mlb-weather-table {
+  overflow-x: auto;
+}
+
+.mlb-weather-head,
+.mlb-weather-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 100px 100px 120px;
+  gap: 14px;
+  align-items: center;
+  min-width: 860px;
+}
+
+.mlb-weather-head {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.mlb-weather-head span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-weather-row {
+  min-height: 58px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.mlb-weather-row strong {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.mlb-weather-row span {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.mlb-weather-row em {
+  color: #45ff54;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.mlb-weather-row small {
+  border-radius: 999px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,.035);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 850;
+  width: fit-content;
+}
+
+.mlb-weather-empty {
+  color: #94a3b8;
+  padding: 12px;
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBSlateCommandBar.css
+##################################################
+.mlb-slate-command {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  margin: 18px 0;
+  border-color: rgba(69, 255, 84, 0.32);
+}
+
+.mlb-slate-command-left span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mlb-slate-command-left strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fafc;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.mlb-slate-command-left small {
+  display: block;
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mlb-slate-command-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mlb-slate-command-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 13px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-slate-command-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-slate-command-grid strong {
+  display: block;
+  margin-top: 7px;
+  color: #45ff54;
+  font-size: 16px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1150px) {
+  .mlb-slate-command {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-slate-command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .mlb-slate-command-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBSlateCommandBar.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBSlateCommandBar.css";
+
+function value(v, fallback = "N/A") {
+  return v === null || v === undefined || v === "" ? fallback : v;
+}
+
+function avg(plays, key) {
+  const values = plays.map((p) => Number(p?.[key])).filter(Number.isFinite);
+  if (!values.length) return 0;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function bestEdge(plays) {
+  return [...plays].sort((a, b) => (Number(b.edge) || 0) - (Number(a.edge) || 0))[0];
+}
+
+export default function MLBSlateCommandBar({ plays = [], f5Count = 0, nrfiCount = 0 }) {
+  const top = bestEdge(plays);
+
+  return (
+    <TBMCard className="mlb-slate-command">
+      <div className="mlb-slate-command-left">
+        <span>Live Slate Command Center</span>
+        <strong>{plays.length} MLB Opportunities</strong>
+        <small>Full game, run line, totals, first five, and NRFI/YRFI markets</small>
+      </div>
+
+      <div className="mlb-slate-command-grid">
+        <div>
+          <span>Best Edge</span>
+          <strong>{value(top?.edge)}%</strong>
+        </div>
+
+        <div>
+          <span>Avg Confidence</span>
+          <strong>{avg(plays, "confidence").toFixed(0)}%</strong>
+        </div>
+
+        <div>
+          <span>F5 Plays</span>
+          <strong>{f5Count}</strong>
+        </div>
+
+        <div>
+          <span>NRFI/YRFI</span>
+          <strong>{nrfiCount}</strong>
+        </div>
+
+        <div>
+          <span>Top Book</span>
+          <strong>{value(top?.best_sportsbook || top?.sportsbook)}</strong>
+        </div>
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBSportsbookPriceBoard.jsx
+##################################################
+import { TBMCard } from "../ui";
+import TBMSportsbookBadge from "../logos/TBMSportsbookBadge";
+import "./MLBSportsbookPriceBoard.css";
+
+function value(v, fallback = "N/A") {
+  return v === null || v === undefined || v === "" ? fallback : v;
+}
+
+function fmtOdds(v) {
+  if (v === null || v === undefined || v === "") return "N/A";
+  const n = Number(v);
+  if (Number.isNaN(n)) return v;
+  return n > 0 ? `+${n}` : `${n}`;
+}
+
+function bestPricePlays(plays = []) {
+  return [...plays]
+    .filter((p) => p.best_sportsbook || p.best_odds || p.line_shop_value)
+    .sort((a, b) => (Number(b.line_shop_value) || 0) - (Number(a.line_shop_value) || 0))
+    .slice(0, 6);
+}
+
+export default function MLBSportsbookPriceBoard({ plays = [] }) {
+  const rows = bestPricePlays(plays);
+
+  return (
+    <TBMCard className="mlb-price-card">
+      <div className="mlb-price-header">
+        <div>
+          <span>Sportsbook Price Board</span>
+          <h2>Best available lines</h2>
+        </div>
+        <strong>Shop Lines</strong>
+      </div>
+
+      <div className="mlb-price-table">
+        <div className="mlb-price-head">
+          <span>Pick</span>
+          <span>Best Book</span>
+          <span>Best Odds</span>
+          <span>Worst Odds</span>
+          <span>Value</span>
+        </div>
+
+        {rows.length > 0 ? (
+          rows.map((play, index) => (
+            <div className="mlb-price-row" key={`${play.game}-${play.pick}-${index}`}>
+              <div>
+                <strong>{value(play.pick)}</strong>
+                <span>{value(play.game)}</span>
+              </div>
+
+              <TBMSportsbookBadge book={play.best_sportsbook || play.sportsbook} />
+
+              <em className="best">{fmtOdds(play.best_odds || play.odds)}</em>
+              <em>{fmtOdds(play.worst_odds)}</em>
+              <small>{value(play.line_shop_value)}</small>
+            </div>
+          ))
+        ) : (
+          <div className="mlb-price-empty">No sportsbook comparison data available.</div>
+        )}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBCommandCenter.jsx
+##################################################
+import { useMemo } from "react";
+import "./MLBCommandCenter.css";
+
+function normalize(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function numericValue(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatPercent(value, digits = 2) {
+  const parsed = numericValue(value);
+
+  if (parsed === null) {
+    return "0.00%";
+  }
+
+  return `${parsed.toFixed(digits)}%`;
+}
+
+function formatBook(value) {
+  const book = String(value || "").trim();
+  return book || "Best Available";
+}
+
+function getGameKey(play, index) {
+  const game =
+    play?.game ||
+    play?.matchup ||
+    play?.event ||
+    play?.event_name ||
+    play?.name;
+
+  if (game) {
+    return normalize(game);
+  }
+
+  const away =
+    play?.away_team ||
+    play?.away ||
+    play?.visitor_team ||
+    play?.visitor;
+
+  const home =
+    play?.home_team ||
+    play?.home ||
+    play?.host_team ||
+    play?.host;
+
+  if (away || home) {
+    return `${normalize(away)}-${normalize(home)}`;
+  }
+
+  return `play-${index}`;
+}
+
+function getOdds(play) {
+  const candidates = [
+    play?.best_odds,
+    play?.odds,
+    play?.american_odds,
+    play?.price,
+    play?.line_odds,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = numericValue(candidate);
+
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function getPickText(play) {
+  return normalize(
+    play?.pick ||
+      play?.recommendation ||
+      play?.selection ||
+      play?.bet ||
+      ""
+  );
+}
+
+function isFavoritePlay(play) {
+  const odds = getOdds(play);
+
+  if (odds !== null) {
+    return odds < 0;
+  }
+
+  const pick = getPickText(play);
+
+  return (
+    pick.includes(" -1.5") ||
+    pick.includes("-1.5") ||
+    pick.includes(" favorite")
+  );
+}
+
+function isUnderdogPlay(play) {
+  const odds = getOdds(play);
+
+  if (odds !== null) {
+    return odds > 0;
+  }
+
+  const pick = getPickText(play);
+
+  return (
+    pick.includes(" +1.5") ||
+    pick.includes("+1.5") ||
+    pick.includes(" underdog")
+  );
+}
+
+function getSlateBias(plays) {
+  const favorites = plays.filter(isFavoritePlay).length;
+  const underdogs = plays.filter(isUnderdogPlay).length;
+
+  if (!favorites && !underdogs) {
+    return {
+      value: "Balanced",
+      tone: "neutral",
+      detail: "No price bias",
+    };
+  }
+
+  if (favorites > underdogs) {
+    return {
+      value: "Favorites",
+      tone: "blue",
+      detail: `${favorites} favorite plays`,
+    };
+  }
+
+  if (underdogs > favorites) {
+    return {
+      value: "Underdogs",
+      tone: "green",
+      detail: `${underdogs} plus-money plays`,
+    };
+  }
+
+  return {
+    value: "Balanced",
+    tone: "neutral",
+    detail: `${favorites}-${underdogs} split`,
+  };
+}
+
+function getSharpSignal(play) {
+  return normalize(
+    play?.sharp_signal ||
+      play?.sharp_book_signal ||
+      play?.market_intelligence_signal ||
+      play?.sharp_status ||
+      ""
+  );
+}
+
+function hasPositiveSharpSignal(play) {
+  const signal = getSharpSignal(play);
+
+  return (
+    signal.includes("sharp") ||
+    signal.includes("strong") ||
+    signal.includes("aligned") ||
+    signal.includes("steam") ||
+    signal.includes("positive")
+  );
+}
+
+function hasNegativeSharpSignal(play) {
+  const signal = getSharpSignal(play);
+
+  return (
+    signal.includes("fade") ||
+    signal.includes("negative") ||
+    signal.includes("conflict") ||
+    signal.includes("reverse")
+  );
+}
+
+function getSharpBias(plays) {
+  const supported = plays.filter(hasPositiveSharpSignal).length;
+  const opposed = plays.filter(hasNegativeSharpSignal).length;
+
+  if (!supported && !opposed) {
+    return {
+      value: "Neutral",
+      tone: "neutral",
+      detail: "No major signal",
+    };
+  }
+
+  if (supported > opposed) {
+    return {
+      value: "Model-Aligned",
+      tone: "green",
+      detail: `${supported} supported plays`,
+    };
+  }
+
+  if (opposed > supported) {
+    return {
+      value: "Mixed",
+      tone: "gold",
+      detail: `${opposed} conflict signals`,
+    };
+  }
+
+  return {
+    value: "Balanced",
+    tone: "neutral",
+    detail: `${supported}-${opposed} split`,
+  };
+}
+
+function isOverPlay(play) {
+  const pick = getPickText(play);
+
+  return (
+    pick.startsWith("over ") ||
+    pick.includes(" over ") ||
+    normalize(play?.side) === "over"
+  );
+}
+
+function isUnderPlay(play) {
+  const pick = getPickText(play);
+
+  return (
+    pick.startsWith("under ") ||
+    pick.includes(" under ") ||
+    normalize(play?.side) === "under"
+  );
+}
+
+function getWeatherText(play) {
+  return normalize(
+    play?.weather_bias ||
+      play?.weather_signal ||
+      play?.weather_edge ||
+      play?.weather_impact ||
+      play?.weather_note ||
+      ""
+  );
+}
+
+function getTotalsBias(plays) {
+  let overScore = 0;
+  let underScore = 0;
+
+  plays.forEach((play) => {
+    if (isOverPlay(play)) {
+      overScore += 1;
+    }
+
+    if (isUnderPlay(play)) {
+      underScore += 1;
+    }
+
+    const weather = getWeatherText(play);
+
+    if (
+      weather.includes("over") ||
+      weather.includes("hitter") ||
+      weather.includes("wind out") ||
+      weather.includes("offense")
+    ) {
+      overScore += 1;
+    }
+
+    if (
+      weather.includes("under") ||
+      weather.includes("pitcher") ||
+      weather.includes("wind in") ||
+      weather.includes("suppression")
+    ) {
+      underScore += 1;
+    }
+  });
+
+  if (!overScore && !underScore) {
+    return {
+      value: "Neutral",
+      tone: "neutral",
+      detail: "No totals lean",
+    };
+  }
+
+  if (overScore > underScore) {
+    return {
+      value: "Over Lean",
+      tone: "gold",
+      detail: `${overScore} over signals`,
+    };
+  }
+
+  if (underScore > overScore) {
+    return {
+      value: "Under Lean",
+      tone: "blue",
+      detail: `${underScore} under signals`,
+    };
+  }
+
+  return {
+    value: "Balanced",
+    tone: "neutral",
+    detail: `${overScore}-${underScore} split`,
+  };
+}
+
+function getBestEdgePlay(plays) {
+  return [...plays].sort(
+    (a, b) => (numericValue(b?.edge) || 0) - (numericValue(a?.edge) || 0)
+  )[0] || null;
+}
+
+function getAverageEdge(plays) {
+  const edges = plays
+    .map((play) => numericValue(play?.edge))
+    .filter((value) => value !== null);
+
+  if (!edges.length) {
+    return 0;
+  }
+
+  return edges.reduce((total, edge) => total + edge, 0) / edges.length;
+}
+
+function getBestBook(play) {
+  return (
+    play?.best_sportsbook ||
+    play?.best_book ||
+    play?.sportsbook ||
+    play?.book ||
+    ""
+  );
+}
+
+function buildBookFrequency(plays) {
+  const frequency = new Map();
+
+  plays.forEach((play) => {
+    const book = getBestBook(play);
+
+    if (!book) {
+      return;
+    }
+
+    frequency.set(book, (frequency.get(book) || 0) + 1);
+  });
+
+  return [...frequency.entries()].sort((a, b) => b[1] - a[1])[0] || null;
+}
+
+function MetricItem({ label, value, detail, tone = "neutral" }) {
+  return (
+    <div className={`mlb-command-center-item tone-${tone}`}>
+      <span className="mlb-command-center-label">{label}</span>
+      <strong className="mlb-command-center-value">{value}</strong>
+      <small className="mlb-command-center-detail">{detail}</small>
+    </div>
+  );
+}
+
+export default function MLBCommandCenter({
+  plays = [],
+  marketLabel = "Market",
+  loading = false,
+}) {
+  const data = useMemo(() => {
+    const safePlays = Array.isArray(plays) ? plays : [];
+
+    const gameCount = new Set(
+      safePlays.map((play, index) => getGameKey(play, index))
+    ).size;
+
+    const slateBias = getSlateBias(safePlays);
+    const sharpBias = getSharpBias(safePlays);
+    const totalsBias = getTotalsBias(safePlays);
+    const bestEdgePlay = getBestEdgePlay(safePlays);
+    const averageEdge = getAverageEdge(safePlays);
+    const topBook = buildBookFrequency(safePlays);
+
+    return {
+      gameCount,
+      playCount: safePlays.length,
+      slateBias,
+      sharpBias,
+      totalsBias,
+
+
+##################################################
+frontend/src/components/mlb/MLBWeatherParkCenter.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBWeatherParkCenter.css";
+
+function value(v, fallback = "N/A") {
+  return v === null || v === undefined || v === "" ? fallback : v;
+}
+
+function weatherPlays(plays = []) {
+  return [...plays]
+    .filter((p) => p.weather_risk || p.ballpark || p.run_factor || p.hr_factor)
+    .sort((a, b) => (Number(b.edge) || 0) - (Number(a.edge) || 0))
+    .slice(0, 5);
+}
+
+export default function MLBWeatherParkCenter({ plays = [] }) {
+  const rows = weatherPlays(plays);
+
+  return (
+    <TBMCard className="mlb-weather-card">
+      <div className="mlb-weather-header">
+        <div>
+          <span>Weather & Park Center</span>
+          <h2>Run environment impact</h2>
+        </div>
+        <strong>{rows.length} Games</strong>
+      </div>
+
+      <div className="mlb-weather-table">
+        <div className="mlb-weather-head">
+          <span>Game</span>
+          <span>Park</span>
+          <span>Run Factor</span>
+          <span>HR Factor</span>
+          <span>Risk</span>
+        </div>
+
+        {rows.length > 0 ? (
+          rows.map((play, index) => (
+            <div className="mlb-weather-row" key={`${play.game}-${index}`}>
+              <strong>{value(play.game)}</strong>
+              <span>{value(play.ballpark)}</span>
+              <em>{value(play.run_factor)}</em>
+              <em>{value(play.hr_factor)}</em>
+              <small>{value(play.weather_risk)}</small>
+            </div>
+          ))
+        ) : (
+          <div className="mlb-weather-empty">No weather or park data available.</div>
+        )}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBSharpMoneyMeter.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBSharpMoneyMeter.css";
+
+function score(play) {
+  return Number(play?.sharp_score || play?.sharp_book_score || 0);
+}
+
+function getSharpPlays(plays = []) {
+  return [...plays]
+    .filter((p) =>
+      String(p.sharp_signal || p.sharp_book_signal || "").toLowerCase().includes("sharp") ||
+      score(p) > 0
+    )
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, 5);
+}
+
+export default function MLBSharpMoneyMeter({ plays = [] }) {
+  const sharpPlays = getSharpPlays(plays);
+  const meter = Math.min(100, Math.max(8, sharpPlays.length * 18));
+
+  return (
+    <TBMCard className="mlb-sharp-card">
+      <div className="mlb-sharp-header">
+        <div>
+          <span>Sharp Money Meter</span>
+          <h2>Respected market activity</h2>
+        </div>
+        <strong>{sharpPlays.length} Signals</strong>
+      </div>
+
+      <div className="mlb-sharp-meter">
+        <div className="mlb-sharp-track">
+          <i style={{ width: `${meter}%` }} />
+        </div>
+        <div className="mlb-sharp-scale">
+          <span>Low</span>
+          <span>Moderate</span>
+          <span>Heavy</span>
+        </div>
+      </div>
+
+      <div className="mlb-sharp-list">
+        {sharpPlays.length > 0 ? (
+          sharpPlays.map((play, index) => (
+            <div className="mlb-sharp-row" key={`${play.game}-${play.pick}-${index}`}>
+              <div>
+                <strong>{play.pick || play.game}</strong>
+                <span>{play.game}</span>
+              </div>
+              <em>{play.sharp_signal || play.sharp_book_signal || "Sharp Watch"}</em>
+            </div>
+          ))
+        ) : (
+          <div className="mlb-sharp-empty">No major sharp money signals yet.</div>
+        )}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBSportsbookPriceBoard.css
+##################################################
+.mlb-price-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-price-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-price-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-price-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.mlb-price-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  height: fit-content;
+  text-transform: uppercase;
+}
+
+.mlb-price-table {
+  overflow-x: auto;
+}
+
+.mlb-price-head,
+.mlb-price-row {
+  display: grid;
+  grid-template-columns: 1.5fr 150px 100px 100px 90px;
+  gap: 14px;
+  align-items: center;
+  min-width: 860px;
+}
+
+.mlb-price-head {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.mlb-price-head span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-price-row {
+  min-height: 62px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.mlb-price-row strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.mlb-price-row span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.mlb-price-row em {
+  color: #cbd5e1;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.mlb-price-row em.best {
+  color: #45ff54;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.mlb-price-row small {
+  color: #facc15;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.mlb-price-empty {
+  color: #94a3b8;
+  padding: 12px;
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBPerformanceMiniDashboard.css
+##################################################
+.mlb-performance-mini {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-performance-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-performance-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-performance-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.mlb-performance-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  height: fit-content;
+  text-transform: uppercase;
+}
+
+.mlb-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mlb-performance-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255,255,255,.025);
+}
+
+.mlb-performance-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-performance-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fafc;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.mlb-performance-grid small {
+  display: block;
+  margin-top: 6px;
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+@media (max-width: 900px) {
+  .mlb-performance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .mlb-performance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBMarketHeatMap.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBMarketHeatMap.css";
+
+function countMarket(plays, match) {
+  return plays.filter((p) =>
+    String(p.market || p.overview_market || "").toLowerCase().includes(match)
+  ).length;
+}
+
+function avgEdge(plays) {
+  const values = plays.map((p) => Number(p.edge)).filter(Number.isFinite);
+  if (!values.length) return 0;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function MarketHeatRow({ label, count, edge, max, tone }) {
+  const width = Math.min(100, Math.max(8, (count / Math.max(max, 1)) * 100));
+
+  return (
+    <div className="mlb-heat-row">
+      <div className="mlb-heat-label">
+        <strong>{label}</strong>
+        <span>{count} plays</span>
+      </div>
+
+      <div className="mlb-heat-bar">
+        <i className={tone} style={{ width: `${width}%` }} />
+      </div>
+
+      <div className="mlb-heat-edge">
+        <strong>{edge.toFixed(2)}%</strong>
+        <span>Avg Edge</span>
+      </div>
+    </div>
+  );
+}
+
+export default function MLBMarketHeatMap({ fullGame = [], f5 = [], nrfi = [] }) {
+  const moneyline = fullGame.filter((p) => String(p.market || "").toLowerCase().includes("moneyline"));
+  const runline = fullGame.filter((p) => String(p.market || "").toLowerCase().includes("run"));
+  const totals = fullGame.filter((p) => String(p.market || "").toLowerCase().includes("total"));
+
+  const rows = [
+    { label: "Moneyline", plays: moneyline, tone: "blue" },
+    { label: "Run Line", plays: runline, tone: "green" },
+    { label: "Totals", plays: totals, tone: "purple" },
+    { label: "First 5", plays: f5, tone: "orange" },
+    { label: "NRFI / YRFI", plays: nrfi, tone: "gold" },
+  ];
+
+  const max = Math.max(...rows.map((row) => row.plays.length), 1);
+
+  return (
+    <TBMCard className="mlb-heat-card">
+      <div className="mlb-heat-header">
+        <div>
+          <span>Market Heat Map</span>
+          <h2>Where the MLB board is strongest</h2>
+        </div>
+        <strong>Live</strong>
+      </div>
+
+      <div className="mlb-heat-list">
+        {rows.map((row) => (
+          <MarketHeatRow
+            key={row.label}
+            label={row.label}
+            count={row.plays.length}
+            edge={avgEdge(row.plays)}
+            max={max}
+            tone={row.tone}
+          />
+        ))}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBMarketDashboard.jsx
+##################################################
+import { useEffect, useMemo, useState } from "react";
+import MLBTabs from "../MLBTabs";
+import TBMSportCard from "../home/TBMSportCard";
+import TBMSportDashboardHeader from "../sports/TBMSportDashboardHeader";
+import TBMSection from "../layout/TBMSection";
+import { TBMPage } from "../ui";
+import MLBCommandCenter from "./MLBCommandCenter";
+import "./MLBMarketDashboard.css";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+function averageValue(plays, key) {
+  const values = plays
+    .map((play) => Number(play?.[key]))
+    .filter(Number.isFinite);
+
+  if (!values.length) {
+    return 0;
+  }
+
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function getPlayScore(play) {
+  return Number(
+    play?.universal_pod_score ??
+      play?.pod_score ??
+      play?.final_model_score ??
+      play?.top_play_score ??
+      play?.edge ??
+      0
+  );
+}
+
+function hasSharpSignal(play) {
+  const value = String(
+    play?.sharp_signal ||
+      play?.sharp_book_signal ||
+      play?.market_intelligence_signal ||
+      ""
+  ).toLowerCase();
+
+  return (
+    value.includes("sharp") ||
+    value.includes("strong") ||
+    value.includes("steam") ||
+    value.includes("aligned")
+  );
+}
+
+function normalize(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function isMoneylinePlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market === "moneyline" ||
+    market === "ml" ||
+    market.includes("moneyline") ||
+    pick.endsWith(" ml") ||
+    pick.includes(" moneyline")
+  );
+}
+
+function isRunLinePlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market === "run line" ||
+    market === "runline" ||
+    market.includes("run line") ||
+    market.includes("runline") ||
+    pick.includes("+1.5") ||
+    pick.includes("-1.5")
+  );
+}
+
+function isTotalPlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market === "total" ||
+    market === "totals" ||
+    market.includes("total") ||
+    pick.startsWith("over ") ||
+    pick.startsWith("under ") ||
+    pick.includes(" over ") ||
+    pick.includes(" under ")
+  );
+}
+
+function isFirstFivePlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market.includes("first 5") ||
+    market.includes("first five") ||
+    market.includes("f5") ||
+    pick.includes("first 5") ||
+    pick.includes("first five") ||
+    pick.includes("f5")
+  );
+}
+
+function isFirstInningPlay(play) {
+  const market = normalize(play?.market);
+  const pick = normalize(play?.pick || play?.recommendation);
+
+  return (
+    market.includes("nrfi") ||
+    market.includes("yrfi") ||
+    market.includes("first inning") ||
+    pick.includes("nrfi") ||
+    pick.includes("yrfi") ||
+    pick.includes("first inning")
+  );
+}
+
+function matchesMarket(play, marketKey) {
+  if (!marketKey || marketKey === "all") {
+    return true;
+  }
+
+  if (marketKey === "moneyline") {
+    return isMoneylinePlay(play);
+  }
+
+  if (marketKey === "runline") {
+    return isRunLinePlay(play);
+  }
+
+  if (marketKey === "totals") {
+    return isTotalPlay(play);
+  }
+
+  if (marketKey === "f5") {
+    return isFirstFivePlay(play);
+  }
+
+  if (marketKey === "nrfi") {
+    return isFirstInningPlay(play);
+  }
+
+  return true;
+}
+
+function buildNavigation(activeRoute, playCount) {
+  return [
+    {
+      label: "Overview",
+      meta: "MLB command center",
+      href: "/mlb-overview",
+    },
+    {
+      label: "Moneyline",
+      meta:
+        activeRoute === "/mlb-model"
+          ? `${playCount} plays`
+          : "Straight winners",
+      href: "/mlb-model",
+    },
+    {
+      label: "Run Line",
+      meta:
+        activeRoute === "/mlb-runline"
+          ? `${playCount} plays`
+          : "Run spreads",
+      href: "/mlb-runline",
+    },
+    {
+      label: "Totals",
+      meta:
+        activeRoute === "/mlb-totals"
+          ? `${playCount} plays`
+          : "Game totals",
+      href: "/mlb-totals",
+    },
+    {
+      label: "First 5",
+      meta:
+        activeRoute === "/mlb-f5"
+          ? `${playCount} plays`
+          : "Early-game markets",
+      href: "/mlb-f5",
+    },
+    {
+      label: "NRFI / YRFI",
+      meta:
+        activeRoute === "/mlb-nrfi"
+          ? `${playCount} plays`
+          : "First-inning markets",
+      href: "/mlb-nrfi",
+    },
+  ];
+}
+
+export default function MLBMarketDashboard({
+  endpoint = "/model/mlb/today",
+  marketKey = "all",
+  marketLabel,
+  title,
+  premiumTitle,
+  route,
+  emptyMessage,
+}) {
+  const [plays, setPlays] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 30000);
+
+    async function loadPlays() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(`${API_URL}${endpoint}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data?.plays)) {
+          setPlays([]);
+          setError(
+            data?.error ||
+              `The MLB ${marketLabel} model returned an invalid response.`
+          );
+          return;
+        }
+
+        setPlays(data.plays);
+      } catch (err) {
+        if (err?.name === "AbortError") {
+          return;
+        }
+
+        console.error(`MLB ${marketLabel} fetch error:`, err);
+        setError(`Failed to load the MLB ${marketLabel} model.`);
+      } finally {
+        window.clearTimeout(timer);
+        setLoading(false);
+      }
+    }
+
+    loadPlays();
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [endpoint, marketLabel]);
+
+  const filteredPlays = useMemo(
+    () =>
+      plays
+        .filter((play) => matchesMarket(play, marketKey))
+        .map((play) => ({
+          ...play,
+          sport: "MLB",
+          market: play?.market || marketLabel,
+        }))
+        .sort((a, b) => getPlayScore(b) - getPlayScore(a)),
+    [plays, marketKey, marketLabel]
+  );
+
+  const topPlays = useMemo(
+    () => filteredPlays.slice(0, 5),
+    [filteredPlays]
+  );
+
+  const flagshipPlay = topPlays[0] || null;
+
+  const averageEdge = averageValue(filteredPlays, "edge");
+  const averageConfidence = averageValue(filteredPlays, "confidence");
+  const sharpSignals = filteredPlays.filter(hasSharpSignal).length;
+
+  const metrics = useMemo(
+    () => [
+      {
+        label: `${marketLabel} Plays`,
+        value: filteredPlays.length,
+        sub: `Qualified MLB ${marketLabel.toLowerCase()} plays`,
+        tone: "green",
+      },
+      {
+        label: "Average Edge",
+        value: `${averageEdge.toFixed(2)}%`,
+        sub: "Across today's board",
+        tone: "blue",
+      },
+      {
+        label: "Avg Confidence",
+        value: `${averageConfidence.toFixed(0)}%`,
+        sub: "Model confidence",
+        tone: "gold",
+      },
+      {
+        label: "Sharp Signals",
+        value: sharpSignals,
+        sub: "Market-supported plays",
+        tone: "default",
+      },
+    ],
+    [
+      filteredPlays.length,
+      averageEdge,
+      averageConfidence,
+      sharpSignals,
+      marketLabel,
+    ]
+  );
+
+  const navigation = useMemo(
+    () => buildNavigation(route, filteredPlays.length),
+    [route, filteredPlays.length]
+  );
+
+  return (
+    <TBMPage className="mlb-market-dashboard-page">
+      <TBMSportDashboardHeader
+        sport="MLB"
+        title={title}
+        badge={loading ? "Loading Model" : "Premium Dashboard"}
+        flagshipPlay={flagshipPlay}
+        topPlays={topPlays}
+        metrics={metrics}
+        navigation={navigation}
+        premiumTitle={premiumTitle}
+      />
+
+      <MLBTabs />
+
+      <MLBCommandCenter
+        plays={filteredPlays}
+        marketLabel={marketLabel}
+        loading={loading}
+      />
+
+      {error ? (
+        <div className="mlb-market-dashboard-state mlb-market-dashboard-error">
+          {error}
+        </div>
+      ) : null}
+
+      {!loading && !error ? (
+        <TBMSection title={`All MLB ${marketLabel} Plays`}>
+          {filteredPlays.length > 0 ? (
+            <div className="mlb-market-dashboard-grid">
+              {filteredPlays.map((play, index) => (
+                <div
+                  className="mlb-market-dashboard-card-shell"
+                  key={`${play?.game}-${play?.pick}-${index}`}
+                >
+                  <span className="mlb-market-dashboard-rank">
+                    {index + 1}
+                  </span>
+
+                  <TBMSportCard
+                    name="MLB"
+                    play={play}
+                    href={route}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mlb-market-dashboard-state">
+              {emptyMessage}
+            </div>
+          )}
+        </TBMSection>
+      ) : null}
+    </TBMPage>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBMarketHeatMap.css
+##################################################
+.mlb-heat-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-heat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-heat-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-heat-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.mlb-heat-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-heat-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mlb-heat-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 15px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-heat-label strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.mlb-heat-label span,
+.mlb-heat-edge span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mlb-heat-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.13);
+  overflow: hidden;
+}
+
+.mlb-heat-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(69, 255, 84, 0.35);
+}
+
+.mlb-heat-bar i.blue { background: #3b82f6; }
+.mlb-heat-bar i.green { background: #45ff54; }
+.mlb-heat-bar i.purple { background: #8b5cf6; }
+.mlb-heat-bar i.orange { background: #f97316; }
+.mlb-heat-bar i.gold { background: #facc15; }
+
+.mlb-heat-edge {
+  text-align: right;
+}
+
+.mlb-heat-edge strong {
+  display: block;
+  color: #45ff54;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+@media (max-width: 760px) {
+  .mlb-heat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-heat-edge {
+    text-align: left;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBMarketDashboard.css
+##################################################
+.mlb-market-dashboard-page {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-inline: 18px;
+  overflow-x: hidden;
+}
+
+.mlb-market-dashboard-page,
+.mlb-market-dashboard-page * {
+  min-width: 0;
+}
+
+.mlb-market-dashboard-grid {
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.mlb-market-dashboard-card-shell {
+  position: relative;
+  min-width: 0;
+}
+
+.mlb-market-dashboard-rank {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  z-index: 3;
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(69, 255, 84, 0.24);
+  border-radius: 999px;
+  background: rgba(3, 8, 13, 0.94);
+  color: #45ff54;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.mlb-market-dashboard-state {
+  min-height: 92px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.mlb-market-dashboard-error {
+  min-height: auto;
+  margin-bottom: 16px;
+  border-style: solid;
+  border-color: rgba(248, 113, 113, 0.34);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.12);
+}
+
+@media (max-width: 1100px) {
+  .mlb-market-dashboard-page {
+    padding-inline: 14px;
+  }
+
+  .mlb-market-dashboard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .mlb-market-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .mlb-market-dashboard-page {
+    padding-inline: 10px;
+  }
+
+  .mlb-market-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBPitcherMatchupCenter.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBPitcherMatchupCenter.css";
+
+function value(v, fallback = "N/A") {
+  return v === null || v === undefined || v === "" ? fallback : v;
+}
+
+function topPitcherEdges(plays = []) {
+  return [...plays]
+    .sort((a, b) => {
+      const bScore = Number(b.pitcher_rating_diff || b.pitcher_rating || b.combined_pitcher_rating || 0);
+      const aScore = Number(a.pitcher_rating_diff || a.pitcher_rating || a.combined_pitcher_rating || 0);
+      return bScore - aScore;
+    })
+    .slice(0, 4);
+}
+
+export default function MLBPitcherMatchupCenter({ plays = [] }) {
+  const edges = topPitcherEdges(plays);
+
+  return (
+    <TBMCard className="mlb-pitcher-center">
+      <div className="mlb-pitcher-title">
+        <span>Pitcher Matchup Center</span>
+        <h2>Top starter advantages today</h2>
+      </div>
+
+      <div className="mlb-pitcher-list">
+        {edges.length > 0 ? (
+          edges.map((play, index) => (
+            <div className="mlb-pitcher-row" key={`${play.game}-${play.pick}-${index}`}>
+              <div className="mlb-pitcher-rank">{index + 1}</div>
+
+              <div className="mlb-pitcher-info">
+                <strong>{value(play.starting_pitcher || play.away_starter || play.home_starter)}</strong>
+                <span>{value(play.game)}</span>
+              </div>
+
+              <div className="mlb-pitcher-metrics">
+                <div>
+                  <span>Rating</span>
+                  <strong>{value(play.pitcher_rating || play.combined_pitcher_rating)}</strong>
+                </div>
+                <div>
+                  <span>Diff</span>
+                  <strong>{value(play.pitcher_rating_diff)}</strong>
+                </div>
+                <div>
+                  <span>Edge</span>
+                  <strong>{value(play.edge)}%</strong>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="mlb-pitcher-empty">No pitcher matchup data available.</div>
+        )}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBLineMovementTracker.css
+##################################################
+.mlb-line-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-line-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-line-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-line-header h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.mlb-line-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  height: fit-content;
+  text-transform: uppercase;
+}
+
+.mlb-line-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mlb-line-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 220px 160px;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  padding: 13px;
+  background: rgba(255,255,255,.025);
+}
+
+.mlb-line-game {
+  min-width: 0;
+}
+
+.mlb-line-game strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-line-game span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-line-move {
+  display: grid;
+  grid-template-columns: 1fr 44px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.mlb-line-move span,
+.mlb-line-move strong {
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.035);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.mlb-line-move span {
+  color: #cbd5e1;
+}
+
+.mlb-line-move strong {
+  color: #45ff54;
+}
+
+.mlb-line-move i {
+  height: 2px;
+  background: linear-gradient(90deg, rgba(148,163,184,.3), #45ff54);
+  border-radius: 999px;
+}
+
+.mlb-line-row em {
+  color: #facc15;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 950;
+  text-align: right;
+}
+
+.mlb-line-empty {
+  color: #94a3b8;
+  padding: 12px;
+}
+
+@media (max-width: 950px) {
+  .mlb-line-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-line-row em {
+    text-align: left;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBSharpMoneyMeter.css
+##################################################
+.mlb-sharp-card {
+  padding: 20px;
+  margin-top: 22px;
+}
+
+.mlb-sharp-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mlb-sharp-header span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-sharp-header h2 {
+  margin: 6px 0 0;
+  font-size: 21px;
+  font-weight: 950;
+}
+
+.mlb-sharp-header > strong {
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid rgba(69, 255, 84, 0.3);
+  background: rgba(69, 255, 84, 0.09);
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.mlb-sharp-meter {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255,255,255,.025);
+  margin-bottom: 14px;
+}
+
+.mlb-sharp-track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.13);
+  overflow: hidden;
+}
+
+.mlb-sharp-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #facc15, #ef4444);
+}
+
+.mlb-sharp-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.mlb-sharp-scale span {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.mlb-sharp-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mlb-sharp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.mlb-sharp-row strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.mlb-sharp-row span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mlb-sharp-row em {
+  align-self: center;
+  color: #45ff54;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 950;
+  text-align: right;
+}
+
+.mlb-sharp-empty {
+  color: #94a3b8;
+  padding: 12px;
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBIntelligenceCenter.css
+##################################################
+.mlb-intel-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.mlb-intel-card {
+  padding: 18px;
+}
+
+.mlb-intel-card.wide {
+  grid-column: span 2;
+}
+
+.mlb-intel-title {
+  margin-bottom: 14px;
+}
+
+.mlb-intel-title span {
+  color: #45ff54;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mlb-intel-title h2 {
+  margin: 6px 0 0;
+  font-size: 19px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.mlb-intel-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mlb-intel-signal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 13px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mlb-intel-signal-row span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-intel-signal-row strong {
+  display: block;
+  margin-top: 4px;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-intel-signal-row small {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mlb-intel-signal-row em {
+  color: #45ff54;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 950;
+  text-align: right;
+}
+
+.mlb-intel-books,
+.mlb-intel-opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mlb-intel-book-row,
+.mlb-intel-opportunity-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 13px;
+  padding: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.mlb-intel-book-row span {
+  display: block;
+  margin-top: 9px;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.mlb-intel-opportunity-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mlb-intel-opportunity-grid strong {
+  display: block;
+  margin-top: 7px;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+@media (max-width: 1300px) {
+  .mlb-intel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mlb-intel-card.wide {
+    grid-column: span 2;
+  }
+
+  .mlb-intel-books,
+  .mlb-intel-opportunity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .mlb-intel-grid,
+  .mlb-intel-books,
+  .mlb-intel-opportunity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mlb-intel-card.wide {
+    grid-column: span 1;
+  }
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBIntelligenceCenter.jsx
+##################################################
+import { TBMCard } from "../ui";
+import TBMSportsbookBadge from "../logos/TBMSportsbookBadge";
+import "./MLBIntelligenceCenter.css";
+
+function value(v, fallback = "N/A") {
+  return v === null || v === undefined || v === "" ? fallback : v;
+}
+
+function topByEdge(plays = []) {
+  return [...plays].sort((a, b) => (Number(b.edge) || 0) - (Number(a.edge) || 0))[0];
+}
+
+function topSharp(plays = []) {
+  return plays.find((p) =>
+    String(p.sharp_signal || p.sharp_book_signal || "").toLowerCase().includes("sharp")
+  ) || topByEdge(plays);
+}
+
+function SignalRow({ label, play, metric }) {
+  return (
+    <div className="mlb-intel-signal-row">
+      <div>
+        <span>{label}</span>
+        <strong>{value(play?.pick || play?.game)}</strong>
+        <small>{value(play?.game)}</small>
+      </div>
+      <em>{value(metric)}</em>
+    </div>
+  );
+}
+
+function BookRow({ book, label }) {
+  return (
+    <div className="mlb-intel-book-row">
+      <TBMSportsbookBadge book={book} />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+export default function MLBIntelligenceCenter({ plays = [] }) {
+  const bestEdge = topByEdge(plays);
+  const sharp = topSharp(plays);
+
+  return (
+    <section className="mlb-intel-grid">
+      <TBMCard className="mlb-intel-card">
+        <div className="mlb-intel-title">
+          <span>Live Line Movement</span>
+          <h2>Market movers</h2>
+        </div>
+
+        <div className="mlb-intel-list">
+          <SignalRow label="Best Edge" play={bestEdge} metric={`${value(bestEdge?.edge)}%`} />
+          <SignalRow label="CLV" play={bestEdge} metric={bestEdge?.clv_status} />
+          <SignalRow label="Timing" play={bestEdge} metric={bestEdge?.market_timing_signal} />
+        </div>
+      </TBMCard>
+
+      <TBMCard className="mlb-intel-card">
+        <div className="mlb-intel-title">
+          <span>Sharp Money Tracker</span>
+          <h2>Respected money signals</h2>
+        </div>
+
+        <div className="mlb-intel-list">
+          <SignalRow label="Sharp Signal" play={sharp} metric={sharp?.sharp_signal || sharp?.sharp_book_signal} />
+          <SignalRow label="Best Edge" play={bestEdge} metric={`${value(bestEdge?.edge)}%`} />
+          <SignalRow label="Book" play={sharp} metric={sharp?.best_sportsbook || sharp?.sportsbook} />
+        </div>
+      </TBMCard>
+
+      <TBMCard className="mlb-intel-card">
+        <div className="mlb-intel-title">
+          <span>Pitcher Matchup Center</span>
+          <h2>Starter and bullpen edge</h2>
+        </div>
+
+        <div className="mlb-intel-list">
+          <SignalRow label="Pitcher Edge" play={bestEdge} metric={bestEdge?.pitcher_rating_diff || bestEdge?.pitcher_rating} />
+          <SignalRow label="Starter" play={bestEdge} metric={bestEdge?.starting_pitcher || bestEdge?.away_starter} />
+          <SignalRow label="Bullpen" play={bestEdge} metric={bestEdge?.high_leverage_risk || bestEdge?.bullpen_status} />
+        </div>
+      </TBMCard>
+
+      <TBMCard className="mlb-intel-card">
+        <div className="mlb-intel-title">
+          <span>Weather & Park Center</span>
+          <h2>Run environment watch</h2>
+        </div>
+
+        <div className="mlb-intel-list">
+          <SignalRow label="Weather" play={bestEdge} metric={bestEdge?.weather_risk} />
+          <SignalRow label="Ballpark" play={bestEdge} metric={bestEdge?.ballpark} />
+          <SignalRow label="Run Factor" play={bestEdge} metric={bestEdge?.run_factor} />
+        </div>
+      </TBMCard>
+
+      <TBMCard className="mlb-intel-card wide">
+        <div className="mlb-intel-title">
+          <span>Sportsbook Comparison</span>
+          <h2>Where to shop first</h2>
+        </div>
+
+        <div className="mlb-intel-books">
+          <BookRow book="FanDuel" label="Top prices" />
+          <BookRow book="DraftKings" label="Alt markets" />
+          <BookRow book="BetMGM" label="Run line value" />
+          <BookRow book="Caesars" label="CLV opportunities" />
+          <BookRow book="ESPN BET" label="Line discrepancy watch" />
+        </div>
+      </TBMCard>
+
+      <TBMCard className="mlb-intel-card wide">
+        <div className="mlb-intel-title">
+          <span>Today’s Opportunity Map</span>
+          <h2>What to monitor next</h2>
+        </div>
+
+        <div className="mlb-intel-opportunity-grid">
+          <div><span>Bet Now</span><strong>{value(bestEdge?.market_timing_signal || "Best Edge")}</strong></div>
+          <div><span>Watch</span><strong>{value(sharp?.sharp_signal || "Sharp Money")}</strong></div>
+          <div><span>Shop</span><strong>{value(bestEdge?.best_sportsbook || bestEdge?.sportsbook || "Best Line")}</strong></div>
+          <div><span>Risk</span><strong>{value(bestEdge?.weather_risk || "Weather / Bullpen")}</strong></div>
+        </div>
+      </TBMCard>
+    </section>
+  );
+}
+
+
+##################################################
+frontend/src/components/mlb/MLBPerformanceMiniDashboard.jsx
+##################################################
+import { TBMCard } from "../ui";
+import "./MLBPerformanceMiniDashboard.css";
+
+export default function MLBPerformanceMiniDashboard() {
+  const items = [
+    { label: "Season Units", value: "Tracked Soon", sub: "Model ledger" },
+    { label: "Win Rate", value: "Tracked Soon", sub: "By MLB market" },
+    { label: "ROI", value: "Tracked Soon", sub: "All MLB plays" },
+    { label: "CLV Hit Rate", value: "Tracked Soon", sub: "Closing value" },
+  ];
+
+  return (
+    <TBMCard className="mlb-performance-mini">
+      <div className="mlb-performance-header">
+        <div>
+          <span>Performance Center</span>
+          <h2>MLB model transparency</h2>
+        </div>
+        <strong>Coming Soon</strong>
+      </div>
+
+      <div className="mlb-performance-grid">
+        {items.map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.sub}</small>
+          </div>
+        ))}
+      </div>
+    </TBMCard>
+  );
+}
+
+
+##################################################
+frontend/src/components/home/DashboardStatusTable.jsx
+##################################################
+import "./DashboardStatusTable.css";
+
+const SPORTS = ["MLB", "NBA", "NFL", "NHL", "WNBA", "Soccer", "NCAAF", "NCAAMB", "UFC"];
+
+function getActiveSports(status) {
+  if (!status) return [];
+
+  if (Array.isArray(status.active_sports)) return status.active_sports.map(String);
+
+  if (status.platform && Array.isArray(status.platform.active_sports)) {
+    return status.platform.active_sports.map(String);
+  }
+
+  if (Array.isArray(status.sports)) {
+    return status.sports
+      .filter((sport) => sport.active || sport.status === "success" || sport.status === "active")
+      .map((sport) => String(sport.sport || sport.name || sport.league));
+  }
+
+  return [];
+}
+
+export default function DashboardStatusTable({ status }) {
+  const activeSports = getActiveSports(status).map((sport) => sport.toLowerCase());
+
+  return (
+    <div className="dashboard-status-simple">
+      {SPORTS.map((sport) => {
+        const active = activeSports.includes(sport.toLowerCase());
+
+        return (
+          <div className="dashboard-status-simple-row" key={sport}>
+            <strong>{sport}</strong>
+            <span className={active ? "active" : "inactive"}>
+              {active ? "Active" : "Not Active"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+##################################################
+frontend/src/components/home/TBMTopPlayRow.css
+##################################################
+.tbm-top-play-row-v2 {
+  display: grid;
+  grid-template-columns: 40px 1.55fr 1.25fr 90px 110px 100px 130px 80px 80px;
+  align-items: center;
+  gap: 14px;
+  min-height: 78px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.tbm-top-play-row-v2:hover {
+  background: rgba(69, 255, 84, 0.035);
+}
+
+.tbm-top-rank {
+  color: #cbd5e1;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.tbm-top-matchup {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.tbm-top-logos {
+  display: flex;
+  align-items: center;
+}
+
+.tbm-top-logos .tbm-real-logo-shell + .tbm-real-logo-shell {
+  margin-left: -10px;
+}
+
+.tbm-top-matchup strong,
+.tbm-top-pick strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-top-matchup span,
+.tbm-top-pick span {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.tbm-top-odds {
+  justify-self: start;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: rgba(37, 99, 235, 0.15);
+  color: #93c5fd;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-top-score,
+.tbm-top-grade {
+  justify-self: start;
+  border: 1px solid rgba(69, 255, 84, 0.26);
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-top-edge {
+  color: #45ff54;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.tbm-top-book {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.tbm-top-conf {
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+@media (max-width: 1100px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 32px 1fr 1fr 80px;
+  }
+
+  .tbm-top-score,
+  .tbm-top-edge,
+  .tbm-top-book,
+  .tbm-top-grade,
+  .tbm-top-conf {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 1fr;
+  }
+
+  .tbm-top-rank {
+    display: none;
+  }
+}
+
+.tbm-top-matchup > div:last-child {
+  min-width: 0;
+}
+
+.tbm-top-matchup strong {
+  max-width: 100%;
+  line-height: 1.2;
+}
+
+.tbm-top-pick {
+  min-width: 0;
+}
+
+.tbm-top-play-row-v2 {
+  overflow: hidden;
+}
+
+@media (max-width: 1280px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 78px;
+  }
+}
+
+.tbm-top-matchup > div:last-child {
+  min-width: 0;
+}
+
+.tbm-top-matchup strong {
+  max-width: 100%;
+  line-height: 1.2;
+}
+
+.tbm-top-pick {
+  min-width: 0;
+}
+
+.tbm-top-play-row-v2 {
+  overflow: hidden;
+}
+
+@media (max-width: 1280px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 36px minmax(0, 1.4fr) minmax(0, 1fr) 78px;
+  }
+}
+
+.tbm-top-play-row-v2 {
+  min-height: 68px;
+  padding: 12px 14px;
+}
+
+.tbm-top-odds,
+.tbm-top-score,
+.tbm-top-grade {
+  padding: 6px 9px;
+  font-size: 13px;
+}
+
+.tbm-top-edge,
+.tbm-top-book,
+.tbm-top-conf {
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .tbm-top-play-row-v2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .tbm-top-rank {
+    display: none;
+  }
+
+  .tbm-top-odds,
+  .tbm-top-score,
+  .tbm-top-edge,
+  .tbm-top-book,
+  .tbm-top-grade,
+  .tbm-top-conf {
+    display: inline-flex;
+    width: fit-content;
+  }
+}
+
+
+##################################################
+frontend/src/components/home/DashboardPerformanceSnapshot.jsx
+##################################################
+import { useEffect, useMemo, useState } from "react";
+import "./DashboardPerformanceSnapshot.css";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+function numeric(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function record(summary = {}) {
+  const wins = numeric(summary.wins);
+  const losses = numeric(summary.losses);
+  const pushes = numeric(summary.pushes);
+
+  return pushes ? `${wins}-${losses}-${pushes}` : `${wins}-${losses}`;
+}
+
+function units(value) {
+  const amount = numeric(value);
+  return `${amount > 0 ? "+" : ""}${amount.toFixed(2)}U`;
+}
+
+function percentage(value) {
+  return `${numeric(value).toFixed(1)}%`;
+}
+
+function calculateRoi(summary = {}) {
+  if (summary.roi !== undefined && summary.roi !== null) {
+    return numeric(summary.roi);
+  }
+
+  const graded =
+    numeric(summary.graded) ||
+    numeric(summary.wins) + numeric(summary.losses);
+
+  return graded ? (numeric(summary.units) / graded) * 100 : 0;
+}
+
+export default function DashboardPerformanceSnapshot() {
+  const [performance, setPerformance] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 20000);
+
+    fetch(`${API_URL}/model/performance`, {
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setPerformance(data);
+        setError("");
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.error("Performance snapshot error:", err);
+          setError("Performance unavailable");
+        }
+      })
+      .finally(() => {
+        window.clearTimeout(timer);
+        setLoading(false);
+      });
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, []);
+
+  const summary = useMemo(
+    () =>
+      performance?.summary ||
+      performance?.actionable_summary ||
+      performance?.graded_summary ||
+      performance?.all_graded ||
+      {},
+    [performance]
+  );
+
+  const graded =
+    numeric(summary.graded) ||
+    numeric(summary.wins) + numeric(summary.losses);
+
+  const roi = calculateRoi(summary);
+
+  return (
+    <section className="dashboard-performance-card">
+      <div className="dashboard-performance-header">
+        <div>
+          <span>Performance</span>
+          <h2>Model Snapshot</h2>
+        </div>
+
+        <a href="/model-performance">
+          {loading ? "Updating" : "View Dashboard"}
+        </a>
+      </div>
+
+      {error ? (
+        <div className="dashboard-performance-message">
+          {error}
+        </div>
+      ) : (
+        <>
+          <div className="dashboard-performance-grid">
+            <div>
+              <span>Record</span>
+              <strong>{loading ? "—" : record(summary)}</strong>
+            </div>
+
+            <div>
+              <span>Units</span>
+              <strong
+                className={
+                  numeric(summary.units) >= 0
+                    ? "is-positive"
+                    : "is-negative"
+                }
+              >
+                {loading ? "—" : units(summary.units)}
+              </strong>
+            </div>
+
+            <div>
+              <span>Win Rate</span>
+              <strong>
+                {loading ? "—" : percentage(summary.win_rate)}
+              </strong>
+            </div>
+
+            <div>
+              <span>ROI</span>
+              <strong
+                className={roi >= 0 ? "is-positive" : "is-negative"}
+              >
+                {loading ? "—" : percentage(roi)}
+              </strong>
+            </div>
+          </div>
+
+          {!loading && graded === 0 ? (
+            <p className="dashboard-performance-note">
+              Performance will populate as saved model plays are graded.
+            </p>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
+
+
+##################################################
+frontend/src/components/home/DashboardStatusTable.css
+##################################################
+.dashboard-status-simple {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-status-simple-row {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.dashboard-status-simple-row strong {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.dashboard-status-simple-row span {
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.dashboard-status-simple-row span.active {
+  background: rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+  border: 1px solid rgba(69, 255, 84, 0.25);
+}
+
+.dashboard-status-simple-row span.inactive {
+  background: rgba(148, 163, 184, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.dashboard-status-empty {
+  color: #94a3b8;
+  padding: 14px;
+}
+
+
+##################################################
+frontend/src/components/home/DashboardPerformanceSnapshot.css
+##################################################
+.dashboard-performance-card {
+  width: 100%;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.07), transparent 34%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-performance-card,
+.dashboard-performance-card * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.dashboard-performance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.dashboard-performance-header span {
+  color: #45ff54;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-performance-header h2 {
+  margin: 5px 0 0;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.dashboard-performance-header a {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(69, 255, 84, 0.24);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: rgba(69, 255, 84, 0.08);
+  color: #45ff54;
+  font-size: 9px;
+  font-weight: 950;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dashboard-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.dashboard-performance-grid > div {
+  min-height: 68px;
+  display: grid;
+  align-content: center;
+  padding: 11px;
+  border: 1px solid rgba(148, 163, 184, 0.11);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.dashboard-performance-grid span {
+  color: #64748b;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dashboard-performance-grid strong {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.dashboard-performance-grid strong.is-positive {
+  color: #8dff98;
+}
+
+.dashboard-performance-grid strong.is-negative {
+  color: #fca5a5;
+}
+
+.dashboard-performance-note {
+  margin: 11px 0 0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.dashboard-performance-message {
+  padding: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  border-radius: 12px;
+  background: rgba(127, 29, 29, 0.11);
+  color: #fecaca;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 800px) {
+  .dashboard-performance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-performance-card {
+    padding: 14px;
+  }
+}
+
+
+##################################################
+frontend/src/components/home/TBMHeroPlayCard.jsx
+##################################################
+import "./TBMHeroPlayCard.css";
+import TBMSportsbookBadge from "../logos/TBMSportsbookBadge";
+import TBMTeamLogo from "../logos/TBMTeamLogo";
+
+function formatOdds(value) {
+  if (value === null || value === undefined || value === "") return "N/A";
+  const num = Number(value);
+  if (Number.isNaN(num)) return value;
+  return num > 0 ? `+${num}` : `${num}`;
+}
+
+function getScore(play) {
+  return Number(
+    play?.universal_pod_score ??
+    play?.pod_score ??
+    play?.final_model_score ??
+    play?.top_play_score ??
+    0
+  );
+}
+
+function getSport(play) {
+  return play?.pod_sport || play?.sport || play?.league || "TBM";
+}
+
+function getBook(play) {
+  return play?.best_sportsbook || play?.best_book || play?.sportsbook || "Best Available";
+}
+
+function getOdds(play) {
+  return play?.best_odds ?? play?.odds;
+}
+
+function getRecommendation(play) {
+  return play?.final_recommendation || play?.recommendation || "Model Play";
+}
+
+function getTier(play) {
+  return play?.final_model_tier || play?.universal_pod_tier || play?.market_intelligence_grade || "Premium";
+}
+
+function splitGame(game = "") {
+  if (game.includes(" vs ")) {
+    const [away, home] = game.split(" vs ");
+    return { away, home };
+  }
+
+  if (game.includes(" at ")) {
+    const [away, home] = game.split(" at ");
+    return { away, home };
+  }
+
+  return { away: "Away", home: "Home" };
+}
+
+function TeamLogo({ team, sport }) {
+  return <TBMTeamLogo team={team} sport={sport} size={62} />;
+}
+
+function HeroMetric({ label, value, accent }) {
+  return (
+    <div className="tbm-hero-metric">
+      <span>{label}</span>
+      <strong className={accent ? "accent" : ""}>{value ?? "N/A"}</strong>
+    </div>
+  );
+}
+
+function Badge({ children, tone = "green" }) {
+  if (!children) return null;
+
+  return (
+    <span className={`tbm-hero-badge ${tone}`}>
+      {children}
+    </span>
+  );
+}
+
+export default function TBMHeroPlayCard({ play, label = "Today’s Flagship Play" }) {
+  if (!play) {
+    return (
+      <section className="tbm-hero-card empty">
+        <h2>No flagship play available.</h2>
+        <p>The model has not generated a Play of the Day yet.</p>
+      </section>
+    );
+  }
+
+  const { away, home } = splitGame(play.game || "");
+  const score = getScore(play);
+  const reasons =
+    play.final_rating_reasons ||
+    play.market_intelligence_reasons ||
+    play.universal_pod_reasons ||
+    [];
+
+  return (
+    <section className="tbm-hero-card">
+      <div className="tbm-hero-left">
+        <div className="tbm-hero-kicker">
+          <span>{getSport(play)}</span>
+          <strong>{label}</strong>
+        </div>
+
+        <div className="tbm-hero-matchup">
+          <div className="tbm-hero-team">
+            <TeamLogo team={away} sport={getSport(play)} />
+            <span>{away}</span>
+          </div>
+
+          <div className="tbm-hero-vs">VS</div>
+
+          <div className="tbm-hero-team">
+            <TeamLogo team={home} sport={getSport(play)} />
+            <span>{home}</span>
+          </div>
+        </div>
+
+        <div className="tbm-hero-pick-box">
+          <span>Official Pick</span>
+          <h1>{play.pick}</h1>
+          <div>
+            <strong>{formatOdds(getOdds(play))}</strong>
+            <em>{play.market || "Market"}</em>
+          </div>
+        </div>
+
+        <div className="tbm-hero-metrics">
+          <HeroMetric label="Edge" value={`${play.edge ?? "N/A"}%`} accent />
+          <HeroMetric label="Confidence" value={`${play.confidence ?? "N/A"}%`} accent />
+          <HeroMetric label="Units" value={play.units ?? "N/A"} />
+          <HeroMetric label="POD Score" value={score ? score.toFixed(2) : "N/A"} accent />
+          <div className="tbm-hero-book-metric"><span>Book</span><TBMSportsbookBadge book={getBook(play)} /></div>
+          <HeroMetric label="Tier" value={getTier(play)} />
+        </div>
+
+        <div className="tbm-hero-badges">
+          <Badge tone="green">{getRecommendation(play)}</Badge>
+          <Badge tone="blue">{play.clv_status || play.live_clv_grade || "CLV"}</Badge>
+          <Badge tone="purple">{play.sharp_signal || play.sharp_book_signal || "Sharp"}</Badge>
+          <Badge tone="gold">{play.market_intelligence_grade || "Market Grade"}</Badge>
+        </div>
+      </div>
+
+      <aside className="tbm-hero-right">
+        <div className="tbm-hero-score-card">
+          <span>POD SCORE</span>
+          <strong>{score ? score.toFixed(2) : "N/A"}</strong>
+          <small>{getTier(play)}</small>
+        </div>
+
+        <div className="tbm-hero-why">
+          <h3>Why The Model Likes It</h3>
+
+          {Array.isArray(reasons) && reasons.length > 0 ? (
+            reasons.slice(0, 4).map((reason, index) => (
+              <p key={index}>✓ {reason}</p>
+            ))
+          ) : (
+            <p>{play.reason || play.sharp_reason || "No model reason available."}</p>
+          )}
+        </div>
+
+        <div className="tbm-hero-signal-grid">
+          <div>
+            <span>CLV</span>
+            <strong>{play.clv_status || "N/A"}</strong>
+          </div>
+          <div>
+            <span>Steam</span>
+            <strong>{play.steam_strength || play.line_movement_signal || "N/A"}</strong>
+          </div>
+          <div>
+            <span>Line Value</span>
+            <strong>{play.line_shop_value ?? "N/A"}</strong>
+          </div>
+          <div>
+            <span>Book</span>
+            <TBMSportsbookBadge book={getBook(play)} />
+          </div>
+        </div>
+      </aside>
+    </section>
+  );
+}
+
+
+##################################################
+frontend/src/components/home/TBMSportCard.jsx
+##################################################
+import { Link } from "react-router-dom";
+import TBMTeamLogo from "../logos/TBMTeamLogo";
+import "./TBMSportCard.css";
+
+function cleanText(value, fallback = "N/A") {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function splitGame(game = "") {
+  const clean = String(game || "").trim();
+
+  const separators = [" vs ", " at ", " @ "];
+
+  for (const separator of separators) {
+    if (clean.includes(separator)) {
+      const [away, home] = clean.split(separator);
+
+      return {
+        away: cleanText(away, "Away"),
+        home: cleanText(home, "Home"),
+      };
+    }
+  }
+
+  return {
+    away: clean || "Away",
+    home: "Home",
+  };
+}
+
+function getPick(play) {
+  return cleanText(
+    play?.pick ||
+      play?.selection ||
+      play?.bet ||
+      play?.recommendation,
+    "No Pick"
+  );
+}
+
+function getMarket(play) {
+  return cleanText(
+    play?.market ||
+      play?.market_type ||
+      play?.bet_type,
+    "Model Play"
+  );
+}
+
+function getBook(play) {
+  return cleanText(
+    play?.best_sportsbook ||
+      play?.best_book ||
+      play?.sportsbook ||
+      play?.book,
+    "Best Available"
+  );
+}
+
+function getOdds(play) {
+  const raw =
+    play?.best_odds ??
+    play?.odds ??
+    play?.american_odds ??
+    play?.price;
+
+  if (raw === null || raw === undefined || raw === "") {
+    return "";
+  }
+
+  const numeric = Number(raw);
+
+  if (!Number.isFinite(numeric)) {
+    return String(raw);
+  }
+
+  return numeric > 0 ? `+${numeric}` : `${numeric}`;
+}
+
+function getEdge(play) {
+  const edge = Number(play?.edge);
+
+  if (!Number.isFinite(edge)) {
+    return "N/A";
+  }
+
+  return `${edge.toFixed(2)}%`;
+}
+
+function getRecommendation(play) {
+  const value = cleanText(
+    play?.final_recommendation ||
+      play?.recommendation ||
+      play?.tier,
+    "Model Play"
+  );
+
+  return value;
+}
+
+function getRecommendationTone(recommendation = "") {
+  const value = String(recommendation).toLowerCase();
+
+  if (
+    value.includes("elite") ||
+    value.includes("best bet") ||
+    value.includes("top play")
+  ) {
+    return "elite";
+  }
+
+  if (
+    value.includes("play") ||
+    value.includes("strong")
+  ) {
+    return "play";
+  }
+
+  if (value.includes("lean")) {
+    return "lean";
+  }
+
+  if (value.includes("pass")) {
+    return "pass";
+  }
+
+  return "default";
+}
+
+export default function TBMSportCard({
+  name,
+  play,
+  href = "#",
+}) {
+  if (!play) {
+    return null;
+  }
+
+  const sport = cleanText(name || play?.sport, "Sport");
+  const { away, home } = splitGame(
+    play?.game ||
+      play?.matchup ||
+      play?.event_name ||
+      ""
+  );
+
+  const pick = getPick(play);
+  const market = getMarket(play);
+  const edge = getEdge(play);
+  const book = getBook(play);
+  const odds = getOdds(play);
+  const recommendation = getRecommendation(play);
+  const recommendationTone = getRecommendationTone(recommendation);
+
+  const bestPrice = odds ? `${book} ${odds}` : book;
+
+  return (
+    <Link
+      className="tbm-sport-card-v3"
+      to={href}
+      aria-label={`${sport}: ${away} versus ${home}, pick ${pick}`}
+    >
+      <div className="tbm-sport-card-v3-head">
+        <span className="tbm-sport-card-v3-sport">
+          {sport}
+        </span>
+
+        <span
+          className={`tbm-sport-card-v3-recommendation tone-${recommendationTone}`}
+        >
+          {recommendation}
+        </span>
+      </div>
+
+      <div className="tbm-sport-card-v3-teams">
+        <div className="tbm-sport-card-v3-team">
+          <TBMTeamLogo
+            team={away}
+            sport={sport}
+            size={42}
+          />
+
+          <span title={away}>{away}</span>
+        </div>
+
+        <em>VS</em>
+
+        <div className="tbm-sport-card-v3-team">
+          <TBMTeamLogo
+            team={home}
+            sport={sport}
+            size={42}
+          />
+
+          <span title={home}>{home}</span>
+        </div>
+      </div>
+
+      <div className="tbm-sport-card-v3-pick">
+        <span>Model Pick</span>
+        <strong title={pick}>{pick}</strong>
+      </div>
+
+      <div className="tbm-sport-card-v3-details">
+        <div>
+          <span>Market</span>
+          <strong title={market}>{market}</strong>
+        </div>
+
+        <div>
+          <span>Edge</span>
+          <strong className="is-edge">{edge}</strong>
+        </div>
+
+        <div>
+          <span>Best Price</span>
+          <strong title={bestPrice}>{bestPrice}</strong>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+
+##################################################
+frontend/src/components/home/TBMSportCard.css
+##################################################
+.tbm-sport-card-v3 {
+  width: 100%;
+  min-width: 0;
+  min-height: 210px;
+  display: grid;
+  grid-template-rows: auto auto auto auto;
+  gap: 11px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 15px;
+  padding: 12px;
+  background:
+    radial-gradient(
+      circle at 12% 0%,
+      rgba(69, 255, 84, 0.07),
+      transparent 34%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(12, 24, 34, 0.97),
+      rgba(3, 8, 13, 0.99)
+    );
+  color: #f8fafc;
+  text-decoration: none;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.tbm-sport-card-v3,
+.tbm-sport-card-v3 * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.tbm-sport-card-v3:hover {
+  transform: translateY(-2px);
+  border-color: rgba(69, 255, 84, 0.32);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(69, 255, 84, 0.04);
+}
+
+.tbm-sport-card-v3:focus-visible {
+  outline: 2px solid #45ff54;
+  outline-offset: 3px;
+}
+
+.tbm-sport-card-v3-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tbm-sport-card-v3-sport {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.tbm-sport-card-v3-recommendation {
+  max-width: 58%;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  padding: 0 8px;
+  background: rgba(148, 163, 184, 0.06);
+  color: #cbd5e1;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tbm-sport-card-v3-recommendation.tone-elite {
+  border-color: rgba(69, 255, 84, 0.28);
+  background: rgba(69, 255, 84, 0.09);
+  color: #8dff98;
+}
+
+.tbm-sport-card-v3-recommendation.tone-play {
+  border-color: rgba(96, 165, 250, 0.25);
+  background: rgba(96, 165, 250, 0.08);
+  color: #bfdbfe;
+}
+
+.tbm-sport-card-v3-recommendation.tone-lean {
+  border-color: rgba(251, 191, 36, 0.26);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+.tbm-sport-card-v3-recommendation.tone-pass {
+  border-color: rgba(148, 163, 184, 0.14);
+  background: rgba(148, 163, 184, 0.045);
+  color: #94a3b8;
+}
+
+.tbm-sport-card-v3-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.tbm-sport-card-v3-team {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tbm-sport-card-v3-team span {
+  width: 100%;
+  overflow: hidden;
+  color: #cbd5e1;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-sport-card-v3-teams em {
+  color: #475569;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.tbm-sport-card-v3-pick {
+  min-height: 49px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  border: 1px solid rgba(69, 255, 84, 0.11);
+  border-radius: 11px;
+  padding: 8px 10px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(69, 255, 84, 0.045),
+      rgba(255, 255, 255, 0.018)
+    );
+  text-align: center;
+}
+
+.tbm-sport-card-v3-pick span {
+  color: #64748b;
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.tbm-sport-card-v3-pick strong {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-sport-card-v3-details {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(62px, 0.65fr)
+    minmax(0, 1.35fr);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding-top: 10px;
+}
+
+.tbm-sport-card-v3-details > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 0 9px;
+  border-right: 1px solid rgba(148, 163, 184, 0.09);
+}
+
+.tbm-sport-card-v3-details > div:first-child {
+  padding-left: 0;
+}
+
+.tbm-sport-card-v3-details > div:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.tbm-sport-card-v3-details span {
+  color: #64748b;
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.tbm-sport-card-v3-details strong {
+  display: block;
+  overflow: hidden;
+  color: #cbd5e1;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tbm-sport-card-v3-details strong.is-edge {
+  color: #8dff98;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+@media (max-width: 820px) {
+  .tbm-sport-card-v3 {
+    min-height: 202px;
+  }
+}
+
+@media (max-width: 620px) {
+  .tbm-sport-card-v3 {
+    min-height: 196px;
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .tbm-sport-card-v3-teams {
+    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
+  }
+
+  .tbm-sport-card-v3-teams .tbm-real-logo-shell {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .tbm-sport-card-v3-pick {
+    min-height: 46px;
+  }
+
+  .tbm-sport-card-v3-pick strong {
+    font-size: 13px;
+  }
+
+  .tbm-sport-card-v3-details > div {
+    padding-inline: 7px;
+  }
+}
+
+@media (max-width: 380px) {
+  .tbm-sport-card-v3-recommendation {
+    max-width: 54%;
+    padding-inline: 7px;
+  }
+
+  .tbm-sport-card-v3-details {
+    grid-template-columns: minmax(0, 1fr) minmax(54px, 0.7fr);
+    gap: 0;
+  }
+
+  .tbm-sport-card-v3-details > div:nth-child(2) {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .tbm-sport-card-v3-details > div:last-child {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    border-top: 1px solid rgba(148, 163, 184, 0.08);
+    padding: 8px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tbm-sport-card-v3 {
+    transition: none;
+  }
+
+  .tbm-sport-card-v3:hover {
+    transform: none;
+  }
+}
+
+
+##################################################
+frontend/src/components/home/TBMKpiRow.css
+##################################################
+.tbm-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.tbm-kpi-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  padding: 15px;
+  background:
+    radial-gradient(circle at top left, rgba(69, 255, 84, 0.08), transparent 34%),
+    linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.28);
+}
+
+.tbm-kpi-card span {
+  display: block;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tbm-kpi-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fafc;
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.tbm-kpi-card small {
+  display: block;
+  margin-top: 7px;
+  color: #45ff54;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.tbm-kpi-card.blue small {
+  color: #93c5fd;
+}
+
+.tbm-kpi-card.gold small {
+  color: #fbbf24;
+}
+
+@media (max-width: 1180px) {
+  .tbm-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .tbm-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}

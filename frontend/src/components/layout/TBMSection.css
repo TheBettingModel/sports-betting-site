@@ -1,33 +1,107 @@
 .tbm-section-v2 {
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(12, 24, 34, 0.96), rgba(3, 8, 13, 0.98));
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
-  padding: 18px;
-  margin-bottom: 18px;
+  position: relative;
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.018),
+      transparent 34%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(10, 20, 29, 0.97),
+      rgba(3, 8, 13, 0.985)
+    );
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.tbm-section-v2::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(69, 255, 84, 0.16),
+    transparent
+  );
+  pointer-events: none;
 }
 
 .tbm-section-v2-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 9px;
+  min-width: 0;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.tbm-section-v2-head__marker {
+  flex: 0 0 auto;
+  width: 3px;
+  height: 18px;
+  border-radius: 999px;
+  background: #45ff54;
+  box-shadow: 0 0 12px rgba(69, 255, 84, 0.32);
 }
 
 .tbm-section-v2-head h2 {
+  min-width: 0;
   margin: 0;
-  color: #f8fafc;
-  font-size: 18px;
-  font-weight: 950;
+  color: #f1f5f9;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.tbm-section-v2-body {
+  min-width: 0;
+}
+
+.tbm-section-v2-body > :first-child {
+  margin-top: 0;
+}
+
+.tbm-section-v2-body > :last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 620px) {
   .tbm-section-v2 {
-    padding: 15px;
-    border-radius: 16px;
+    margin-bottom: 14px;
+    padding: 13px;
+    border-radius: 14px;
+  }
+
+  .tbm-section-v2::before {
+    left: 14px;
+    right: 14px;
+  }
+
+  .tbm-section-v2-head {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 9px;
+  }
+
+  .tbm-section-v2-head__marker {
+    height: 16px;
   }
 
   .tbm-section-v2-head h2 {
-    font-size: 16px;
+    font-size: 15px;
   }
 }
