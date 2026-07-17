@@ -10544,7 +10544,7 @@ def model_play_of_the_day_v2():
             )
 
         prepared["sport_card_status"] = (
-            "Official Dashboard Top Play"
+            "Sport Dashboard Top Play"
         )
 
         return prepared
@@ -10582,22 +10582,17 @@ def model_play_of_the_day_v2():
             ]
 
             ranked_plays.sort(
-                key=lambda play: (
-                    float(
-                        play.get("final_model_score")
-                        or play.get("final_rating")
-                        or play.get("confidence")
-                        or 0
-                    ),
-                    float(
-                        play.get("edge")
-                        or 0
-                    ),
+                key=lambda play: float(
+                    play.get("edge")
+                    or 0
                 ),
                 reverse=True,
             )
 
             if ranked_plays:
+                ranked_plays[0]["sport_card_status"] = (
+                    "Dashboard Ranked Top Play"
+                )
                 return ranked_plays[0]
 
         return None
