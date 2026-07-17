@@ -6780,26 +6780,22 @@ def get_universal_pod_candidates_from_cache(sport_cache_keys):
                 if isinstance(cached_plays, list):
                     plays.extend(cached_plays)
 
+            available = []
             qualified = []
 
-            for play in plays:
-                play = dict(play)
+            for raw_play in plays:
+                if not isinstance(raw_play, dict):
+                    continue
+
+                play = dict(raw_play)
                 play["pod_sport"] = sport
+                play["sport"] = play.get("sport") or sport
 
                 if not play.get("final_recommendation"):
                     play.update(get_universal_final_rating(play))
 
                 if not play.get("universal_pod_score"):
                     play.update(get_universal_pod_score(play))
-
-                final_recommendation = str(
-                    play.get("final_recommendation")
-                    or play.get("recommendation")
-                    or ""
-                )
-
-                if final_recommendation not in ["Elite Play", "Play", "Lean"]:
-                    continue
 
                 if not is_pod_price_allowed(play):
                     play["pod_excluded"] = True
@@ -6808,18 +6804,53 @@ def get_universal_pod_candidates_from_cache(sport_cache_keys):
                     )
                     continue
 
-                qualified.append(play)
-                all_candidates.append(play)
+                available.append(play)
 
+                final_recommendation = str(
+                    play.get("final_recommendation")
+                    or play.get("recommendation")
+                    or ""
+                ).strip()
+
+                if final_recommendation in [
+                    "Elite Play",
+                    "Play",
+                    "Lean",
+                ]:
+                    qualified.append(play)
+                    all_candidates.append(play)
+
+            available = dedupe_universal_candidates(available)
             qualified = dedupe_universal_candidates(qualified)
+
+            available = sorted(
+                available,
+                key=lambda x: float(
+                    x.get("universal_pod_score", 0) or 0
+                ),
+                reverse=True,
+            )
 
             qualified = sorted(
                 qualified,
-                key=lambda x: x.get("universal_pod_score", 0),
-                reverse=True
+                key=lambda x: float(
+                    x.get("universal_pod_score", 0) or 0
+                ),
+                reverse=True,
             )
 
-            by_sport[sport] = qualified[0] if qualified else None
+            if qualified:
+                best_play = dict(qualified[0])
+                best_play["sport_card_status"] = "Qualified Play"
+                by_sport[sport] = best_play
+            elif available:
+                best_play = dict(available[0])
+                best_play["sport_card_status"] = (
+                    "Best Available — No Qualified Play"
+                )
+                by_sport[sport] = best_play
+            else:
+                by_sport[sport] = None
 
         except Exception as e:
             errors[sport] = str(e)
@@ -6829,8 +6860,10 @@ def get_universal_pod_candidates_from_cache(sport_cache_keys):
 
     all_candidates = sorted(
         all_candidates,
-        key=lambda x: x.get("universal_pod_score", 0),
-        reverse=True
+        key=lambda x: float(
+            x.get("universal_pod_score", 0) or 0
+        ),
+        reverse=True,
     )
 
     return {
@@ -10483,8 +10516,39 @@ def model_status():
 
 @app.get("/model/play-of-the-day-v2")
 def model_play_of_the_day_v2():
+    cache_hydration = {}
+    hydration_errors = {}
+
+    if not get_cache("wnba_model"):
+        try:
+            response = model_wnba_today()
+            wnba_plays = response.get("plays", [])
+
+            cache_hydration["WNBA"] = {
+                "hydrated": True,
+                "play_count": len(wnba_plays),
+            }
+        except Exception as e:
+            hydration_errors["WNBA"] = str(e)
+
+    if not get_cache("soccer_model"):
+        try:
+            response = model_soccer_today(force_refresh=False)
+            soccer_plays = response.get("plays", [])
+
+            cache_hydration["Soccer"] = {
+                "hydrated": True,
+                "play_count": len(soccer_plays),
+            }
+        except Exception as e:
+            hydration_errors["Soccer"] = str(e)
+
     sport_cache_keys = {
-        "MLB": ["mlb_model", "mlb_f5_model", "mlb_nrfi_model"],
+        "MLB": [
+            "mlb_model",
+            "mlb_f5_model",
+            "mlb_nrfi_model",
+        ],
         "NBA": ["nba_model"],
         "NFL": ["nfl_model"],
         "WNBA": ["wnba_model"],
@@ -10503,20 +10567,40 @@ def model_play_of_the_day_v2():
     by_sport = pipeline.get("by_sport", {})
     errors = pipeline.get("errors", {})
 
-    all_candidates = remove_same_game_pod_conflicts(all_candidates)
+    all_candidates = remove_same_game_pod_conflicts(
+        all_candidates
+    )
 
-    overall_play = all_candidates[0] if all_candidates else None
+    overall_play = (
+        all_candidates[0]
+        if all_candidates
+        else None
+    )
+
+    active_by_sport = {
+        sport: play
+        for sport, play in by_sport.items()
+        if play is not None
+    }
 
     return {
         "overall_play": overall_play,
         "top_5": all_candidates[:5],
-        "by_sport": by_sport,
+        "by_sport": active_by_sport,
         "candidate_count": len(all_candidates),
+        "active_sport_count": len(active_by_sport),
+        "active_sports": list(active_by_sport.keys()),
+        "cache_hydration": cache_hydration,
+        "hydration_errors": hydration_errors,
         "errors": errors,
-        "model_version": "universal_pod_v3_price_safe_deduped",
+        "model_version": (
+            "universal_pod_v4_cache_hydrated"
+        ),
         "note": (
-            "Uses cached model outputs, excludes heavy favorite POD prices, "
-            "and dedupes multiple plays from the same game/side."
+            "Hydrates active WNBA and Soccer caches, "
+            "excludes heavy favorite POD prices, "
+            "dedupes conflicting plays, and returns the "
+            "best available play for every active sport."
         ),
     }
 
