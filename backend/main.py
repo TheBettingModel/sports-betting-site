@@ -10518,30 +10518,145 @@ def model_status():
 def model_play_of_the_day_v2():
     cache_hydration = {}
     hydration_errors = {}
+    canonical_sport_plays = {}
 
-    if not get_cache("wnba_model"):
-        try:
-            response = model_wnba_today()
-            wnba_plays = response.get("plays", [])
+    def prepare_canonical_play(play, sport):
+        if not isinstance(play, dict):
+            return None
 
-            cache_hydration["WNBA"] = {
-                "hydrated": True,
-                "play_count": len(wnba_plays),
-            }
-        except Exception as e:
-            hydration_errors["WNBA"] = str(e)
+        prepared = dict(play)
 
-    if not get_cache("soccer_model"):
-        try:
-            response = model_soccer_today(force_refresh=False)
-            soccer_plays = response.get("plays", [])
+        prepared["pod_sport"] = sport
+        prepared["sport"] = (
+            prepared.get("sport")
+            or prepared.get("league")
+            or sport
+        )
 
-            cache_hydration["Soccer"] = {
-                "hydrated": True,
-                "play_count": len(soccer_plays),
-            }
-        except Exception as e:
-            hydration_errors["Soccer"] = str(e)
+        if not prepared.get("final_recommendation"):
+            prepared.update(
+                get_universal_final_rating(prepared)
+            )
+
+        if not prepared.get("universal_pod_score"):
+            prepared.update(
+                get_universal_pod_score(prepared)
+            )
+
+        prepared["sport_card_status"] = (
+            "Official Dashboard Top Play"
+        )
+
+        return prepared
+
+    def extract_dashboard_top_play(response, sport):
+        if not isinstance(response, dict):
+            return None
+
+        top_play = (
+            response.get("top_play")
+            or response.get("best_play")
+            or response.get("play_of_the_day")
+            or response.get("overall_play")
+        )
+
+        if isinstance(top_play, dict):
+            return prepare_canonical_play(
+                top_play,
+                sport,
+            )
+
+        plays = response.get("plays")
+
+        if isinstance(plays, list) and plays:
+            ranked_plays = [
+                prepare_canonical_play(play, sport)
+                for play in plays
+                if isinstance(play, dict)
+            ]
+
+            ranked_plays = [
+                play
+                for play in ranked_plays
+                if play is not None
+            ]
+
+            ranked_plays.sort(
+                key=lambda play: (
+                    float(
+                        play.get("final_model_score")
+                        or play.get("final_rating")
+                        or play.get("confidence")
+                        or 0
+                    ),
+                    float(
+                        play.get("edge")
+                        or 0
+                    ),
+                ),
+                reverse=True,
+            )
+
+            if ranked_plays:
+                return ranked_plays[0]
+
+        return None
+
+    try:
+        wnba_response = model_wnba_today()
+
+        wnba_plays = (
+            wnba_response.get("plays", [])
+            if isinstance(wnba_response, dict)
+            else []
+        )
+
+        cache_hydration["WNBA"] = {
+            "hydrated": True,
+            "play_count": len(wnba_plays),
+        }
+
+        canonical_wnba_play = extract_dashboard_top_play(
+            wnba_response,
+            "WNBA",
+        )
+
+        if canonical_wnba_play:
+            canonical_sport_plays["WNBA"] = (
+                canonical_wnba_play
+            )
+
+    except Exception as e:
+        hydration_errors["WNBA"] = str(e)
+
+    try:
+        soccer_response = model_soccer_today(
+            force_refresh=False
+        )
+
+        soccer_plays = (
+            soccer_response.get("plays", [])
+            if isinstance(soccer_response, dict)
+            else []
+        )
+
+        cache_hydration["Soccer"] = {
+            "hydrated": True,
+            "play_count": len(soccer_plays),
+        }
+
+        canonical_soccer_play = extract_dashboard_top_play(
+            soccer_response,
+            "Soccer",
+        )
+
+        if canonical_soccer_play:
+            canonical_sport_plays["Soccer"] = (
+                canonical_soccer_play
+            )
+
+    except Exception as e:
+        hydration_errors["Soccer"] = str(e)
 
     sport_cache_keys = {
         "MLB": [
@@ -10563,12 +10678,32 @@ def model_play_of_the_day_v2():
         sport_cache_keys
     )
 
-    all_candidates = pipeline.get("all_candidates", [])
-    by_sport = pipeline.get("by_sport", {})
-    errors = pipeline.get("errors", {})
+    all_candidates = pipeline.get(
+        "all_candidates",
+        [],
+    )
+
+    by_sport = pipeline.get(
+        "by_sport",
+        {},
+    )
+
+    errors = pipeline.get(
+        "errors",
+        {},
+    )
 
     all_candidates = remove_same_game_pod_conflicts(
         all_candidates
+    )
+
+    all_candidates = sorted(
+        all_candidates,
+        key=lambda play: float(
+            play.get("universal_pod_score", 0)
+            or 0
+        ),
+        reverse=True,
     )
 
     overall_play = (
@@ -10577,10 +10712,15 @@ def model_play_of_the_day_v2():
         else None
     )
 
+    for sport, canonical_play in (
+        canonical_sport_plays.items()
+    ):
+        by_sport[sport] = canonical_play
+
     active_by_sport = {
         sport: play
         for sport, play in by_sport.items()
-        if play is not None
+        if isinstance(play, dict)
     }
 
     return {
@@ -10588,19 +10728,26 @@ def model_play_of_the_day_v2():
         "top_5": all_candidates[:5],
         "by_sport": active_by_sport,
         "candidate_count": len(all_candidates),
-        "active_sport_count": len(active_by_sport),
-        "active_sports": list(active_by_sport.keys()),
+        "active_sport_count": len(
+            active_by_sport
+        ),
+        "active_sports": list(
+            active_by_sport.keys()
+        ),
+        "canonical_sport_plays": list(
+            canonical_sport_plays.keys()
+        ),
         "cache_hydration": cache_hydration,
         "hydration_errors": hydration_errors,
         "errors": errors,
         "model_version": (
-            "universal_pod_v4_cache_hydrated"
+            "universal_pod_v5_dashboard_aligned"
         ),
         "note": (
-            "Hydrates active WNBA and Soccer caches, "
-            "excludes heavy favorite POD prices, "
-            "dedupes conflicting plays, and returns the "
-            "best available play for every active sport."
+            "Overall and Top 5 plays use universal "
+            "cross-sport rankings. Best Play by Sport "
+            "uses each sport dashboard's official "
+            "top play."
         ),
     }
 
