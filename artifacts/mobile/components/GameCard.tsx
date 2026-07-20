@@ -12,6 +12,8 @@ const SPORT_COLORS: Record<string, string> = {
   MLB: '#0EA5E9',
   NHL: '#8B5CF6',
   Soccer: '#22C55E',
+  UFC: '#DC2626',
+  WNBA: '#FF6900',
 };
 
 function fmtOdds(odds: number): string {
