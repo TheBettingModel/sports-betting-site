@@ -97,6 +97,8 @@ export async function refreshAll(): Promise<{
       .onConflictDoUpdate({
         target: gamesTable.id,
         set: {
+          gameDate: game.gameDate,
+          gameTime: game.gameTime,
           status: game.status,
           homeScore: game.homeScore ?? null,
           awayScore: game.awayScore ?? null,
@@ -158,7 +160,16 @@ router.get("/games/today", resolveSubscriberStatus, async (req, res): Promise<vo
     }
   }
 
-  const today = new Date().toISOString().split("T")[0]!;
+  // Use US Eastern time for the "sports day" — games at 8 PM ET fall on the
+  // same calendar day as the afternoon slate, even though they're UTC+1 day.
+  const today = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
   const { sport } = req.query;
   const isSubscribed = req.subscriberStatus?.isSubscribed === true;
 

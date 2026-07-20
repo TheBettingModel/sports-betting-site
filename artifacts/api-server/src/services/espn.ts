@@ -1,5 +1,21 @@
 import { logger } from "../lib/logger";
 
+/**
+ * Returns the YYYY-MM-DD date in US Eastern time (America/New_York).
+ * US sports leagues schedule games in Eastern time, so a game at 8 PM ET
+ * is "today" even if it falls on the next UTC calendar day.
+ */
+function toEasternDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(date)
+    .replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
+}
+
 const ESPN_SPORT_PATHS: Record<string, string> = {
   NFL: "football/nfl",
   NCAAF: "football/college-football",
@@ -141,7 +157,7 @@ async function fetchSportGames(sport: string): Promise<FetchedGame[]> {
       if (!home || !away) continue;
 
       const eventDate = new Date(event.date);
-      const gameDate = eventDate.toISOString().split("T")[0] ?? "";
+      const gameDate = toEasternDate(eventDate);
 
       games.push({
         espnId: `${sport}-${event.id}`,
@@ -232,7 +248,7 @@ export async function fetchAllSportsDetailed(): Promise<SportFetchResult[]> {
           if (!home || !away) continue;
 
           const eventDate = new Date(event.date);
-          const gameDate = eventDate.toISOString().split("T")[0] ?? "";
+          const gameDate = toEasternDate(eventDate);
 
           games.push({
             espnId: `${sport}-${event.id}`,
