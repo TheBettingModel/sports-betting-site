@@ -1,4 +1,4 @@
-export type Sport = 'NFL' | 'NBA' | 'MLB' | 'NHL' | 'Soccer' | 'UFC' | 'WNBA';
+export type Sport = 'NFL' | 'NCAAF' | 'NBA' | 'NCAAB' | 'MLB' | 'NHL' | 'Soccer' | 'UFC' | 'WNBA';
 export type ValueRating = 'Strong Buy' | 'Buy' | 'Neutral' | 'Fade';
 export type ConfidenceLevel = 'High' | 'Medium' | 'Low';
 

@@ -7,7 +7,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 
-const SPORTS = ["NFL", "NBA", "MLB", "NHL", "WNBA", "Soccer", "UFC"] as const;
+const SPORTS = ["NFL", "NCAAF", "NBA", "NCAAB", "MLB", "NHL", "WNBA", "Soccer", "UFC"] as const;
 
 const SEED_MARKETS = [
   { slug: "moneyline", name: "Moneyline" },

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { Sport } from '@/data/mockGames';
 
-export const SPORTS: Sport[] = ['NFL', 'NBA', 'MLB', 'NHL', 'Soccer', 'UFC', 'WNBA'];
+export const SPORTS: Sport[] = ['NFL', 'NCAAF', 'NBA', 'NCAAB', 'MLB', 'NHL', 'Soccer', 'UFC', 'WNBA'];
 
 type FilterSport = Sport | 'All';
 

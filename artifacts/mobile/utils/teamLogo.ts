@@ -2,7 +2,9 @@ import type { Sport } from '@/data/mockGames';
 
 const SPORT_SLUG: Record<Sport, string | null> = {
   NFL: 'nfl',
+  NCAAF: 'ncaa', // college football — ESPN CDN uses ncaa path with team abbr
   NBA: 'nba',
+  NCAAB: 'ncaa', // college basketball — same ncaa path
   MLB: 'mlb',
   NHL: 'nhl',
   WNBA: 'wnba',

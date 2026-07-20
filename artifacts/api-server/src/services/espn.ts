@@ -2,7 +2,9 @@ import { logger } from "../lib/logger";
 
 const ESPN_SPORT_PATHS: Record<string, string> = {
   NFL: "football/nfl",
+  NCAAF: "football/college-football",
   NBA: "basketball/nba",
+  NCAAB: "basketball/mens-college-basketball",
   MLB: "baseball/mlb",
   NHL: "hockey/nhl",
   WNBA: "basketball/wnba",
