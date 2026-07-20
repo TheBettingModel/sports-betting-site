@@ -1,57 +1,57 @@
 /**
- * TheBettingModel – dark sports-analytics theme.
- * Both light and dark resolve to the same dark palette so the app
- * always looks dark regardless of the device's system setting.
+ * TheBettingModel – white & green theme.
+ * Lime green (#84CC16) matches the logo's accent colour.
+ * Both light and dark resolve to the same light palette.
  */
 
 const palette = {
-  text: '#FFFFFF',
-  tint: '#F59E0B',
+  text: '#0F172A',
+  tint: '#84CC16',
 
   // Core surfaces
-  background: '#080B14',
-  foreground: '#FFFFFF',
+  background: '#FFFFFF',
+  foreground: '#0F172A',
 
   // Cards / elevated surfaces
-  card: '#111827',
-  cardForeground: '#FFFFFF',
+  card: '#F8FAFC',
+  cardForeground: '#0F172A',
 
-  // Primary — amber/gold
-  primary: '#F59E0B',
-  primaryForeground: '#080B14',
+  // Primary — lime green (logo colour)
+  primary: '#84CC16',
+  primaryForeground: '#FFFFFF',
 
-  // Secondary — dark gray
-  secondary: '#1F2937',
-  secondaryForeground: '#F9FAFB',
+  // Secondary — light slate
+  secondary: '#F1F5F9',
+  secondaryForeground: '#0F172A',
 
   // Muted
-  muted: '#1F2937',
-  mutedForeground: '#6B7280',
+  muted: '#F1F5F9',
+  mutedForeground: '#64748B',
 
   // Accent
-  accent: '#F59E0B',
-  accentForeground: '#080B14',
+  accent: '#84CC16',
+  accentForeground: '#FFFFFF',
 
   // Destructive
   destructive: '#EF4444',
   destructiveForeground: '#FFFFFF',
 
   // Borders and inputs
-  border: '#1F2937',
-  input: '#1F2937',
+  border: '#E2E8F0',
+  input: '#E2E8F0',
 
   // Semantic win / loss
-  win: '#10B981',
+  win: '#16A34A',
   loss: '#EF4444',
-  winBg: '#052E16',
-  lossBg: '#450A0A',
+  winBg: '#DCFCE7',
+  lossBg: '#FEE2E2',
 
-  // Gold accent
-  gold: '#F59E0B',
-  goldBg: '#451A03',
+  // Green accent (replaces gold)
+  gold: '#84CC16',
+  goldBg: '#ECFCCB',
 
   // Surface variants
-  surface: '#0D1421',
+  surface: '#F8FAFC',
 };
 
 const colors = {
