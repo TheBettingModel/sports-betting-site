@@ -1,0 +1,622 @@
+🔍️ Scanning for pods...
+> pod install
+Using Expo modules
+[34m[Expo] [0mEnabling modular headers for pod [32mExpoModulesCore[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mGoogleSignIn[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mGoogleUtilities[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRecaptchaInterop[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-Core[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-RCTFabric[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReactCodegen[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRCTRequired[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRCTTypeSafety[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReactCommon[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-NativeModulesApple[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mYoga[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-Fabric[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-graphics[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-utils[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-featureflags[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-debug[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-ImageManager[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-rendererdebug[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-jsi[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-renderercss[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mhermes-engine[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mglog[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mboost[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mDoubleConversion[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mfast_float[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mfmt[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRCT-Folly[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSocketRocket[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-RCTAppDelegate[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReactAppDependencyProvider[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImage[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImageAVIFCoder[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImageSVGCoder[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImageWebPCoder[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mlibavif[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRNScreens[0m
+Found 10 modules for target `TheBettingModel`
+link_native_modules! {:ios_packages=>[{:configurations=>[], :name=>"react-native-purchases", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-purchases@10.4.3_react-native-web@0.21.2_react-dom@19.1.0_react@19.1.0__re_3fa1f6c0a1d3b29d5b84a4b401270af4/node_modules/react-native-purchases", :path=>"../../../node_modules/.pnpm/react-native-purchases@10.4.3_react-native-web@0.21.2_react-dom@19.1.0_react@19.1.0__re_3fa1f6c0a1d3b29d5b84a4b401270af4/node_modules/react-native-purchases", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-purchases@10.4.3_react-native-web@0.21.2_react-dom@19.1.0_react@19.1.0__re_3fa1f6c0a1d3b29d5b84a4b401270af4/node_modules/react-native-purchases/RNPurchases.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"expo", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/expo@54.0.36_@babel+core@7.29.7_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_72b41081e8350cdbb34a113a60cc7707/node_modules/expo", :path=>"../../../node_modules/.pnpm/expo@54.0.36_@babel+core@7.29.7_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_72b41081e8350cdbb34a113a60cc7707/node_modules/expo", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/expo@54.0.36_@babel+core@7.29.7_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_72b41081e8350cdbb34a113a60cc7707/node_modules/expo/Expo.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"@react-native-async-storage/async-storage", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_patch_hash=545a8e52_42a4f16ad7848bff53bcc986f58d692b/node_modules/@react-native-async-storage/async-storage", :path=>"../../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_patch_hash=545a8e52_42a4f16ad7848bff53bcc986f58d692b/node_modules/@react-native-async-storage/async-storage", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_patch_hash=545a8e52_42a4f16ad7848bff53bcc986f58d692b/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-gesture-handler", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58_4b4e43d5e24049f517859af73e2ccd22/node_modules/react-native-gesture-handler", :path=>"../../../node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58_4b4e43d5e24049f517859af73e2ccd22/node_modules/react-native-gesture-handler", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58_4b4e43d5e24049f517859af73e2ccd22/node_modules/react-native-gesture-handler/RNGestureHandler.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-keyboard-controller", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native-reanimated@4.1.7_react-native-work_09e6749b080778da477cddcc43db8b91/node_modules/react-native-keyboard-controller", :path=>"../../../node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native-reanimated@4.1.7_react-native-work_09e6749b080778da477cddcc43db8b91/node_modules/react-native-keyboard-controller", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native-reanimated@4.1.7_react-native-work_09e6749b080778da477cddcc43db8b91/node_modules/react-native-keyboard-controller/react-native-keyboard-controller.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-reanimated", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_85af405482537184f4dc2be180457658/node_modules/react-native-reanimated", :path=>"../../../node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_85af405482537184f4dc2be180457658/node_modules/react-native-reanimated", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_85af405482537184f4dc2be180457658/node_modules/react-native-reanimated/RNReanimated.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-safe-area-context", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d5_e8769addb575de540439119e58219f0c/node_modules/react-native-safe-area-context", :path=>"../../../node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d5_e8769addb575de540439119e58219f0c/node_modules/react-native-safe-area-context", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d5_e8769addb575de540439119e58219f0c/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-screens", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b_8739ed4534e082bc4d957f714a24d0d7/node_modules/react-native-screens", :path=>"../../../node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b_8739ed4534e082bc4d957f714a24d0d7/node_modules/react-native-screens", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b_8739ed4534e082bc4d957f714a24d0d7/node_modules/react-native-screens/RNScreens.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-svg", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-svg@15.12.1_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de_02b686b0c4a8ad1b6a5cfb70146f2d37/node_modules/react-native-svg", :path=>"../../../node_modules/.pnpm/react-native-svg@15.12.1_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de_02b686b0c4a8ad1b6a5cfb70146f2d37/node_modules/react-native-svg", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-svg@15.12.1_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de_02b686b0c4a8ad1b6a5cfb70146f2d37/node_modules/react-native-svg/RNSVG.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-worklets", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.29.7_react-native@0.81.5_patch_hash=545a8e52a_bee98ebbd57011369dafe285ba109dd6/node_modules/react-native-worklets", :path=>"../../../node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.29.7_react-native@0.81.5_patch_hash=545a8e52a_bee98ebbd57011369dafe285ba109dd6/node_modules/react-native-worklets", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.29.7_react-native@0.81.5_patch_hash=545a8e52a_bee98ebbd57011369dafe285ba109dd6/node_modules/react-native-worklets/RNWorklets.podspec", :script_phases=>[]}], :ios_project_root_path=>"/Users/expo/workingdir/build/artifacts/mobile/ios", :react_native_path=>"../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native"}
+Auto-linking React Native modules for target `TheBettingModel`: RNCAsyncStorage, RNGestureHandler, RNPurchases, RNReanimated, RNSVG, RNScreens, RNWorklets, react-native-keyboard-controller, and react-native-safe-area-context
+Framework build type is static library
+[32m[ReactNativeDependencies] Setting up ReactNativeDependencies...[0m
+[32m[ReactNativeDependencies] Building from source: false[0m
+[32m[ReactNativeDependencies] Using release tarball[0m
+[32m[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz[0m
+[32m[ReactNativeDependencies] Source: {:http=>"https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz"}[0m
+[32m[ReactNativeCore] Setting up ReactNativeCore...[0m
+[32m[ReactNativeCore] Building from source: false[0m
+[32m[ReactNativeCore] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-core-debug.tar.gz[0m
+[32m[ReactNativeCore] Source: {:http=>"https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-core-debug.tar.gz"}[0m
+Configuring the target with the New Architecture
+[32m[ReactNativeCore] Using React Native Core and React Native Dependencies prebuilt versions.[0m
+[36m[1m[Codegen][0m Analyzing /Users/expo/workingdir/build/artifacts/mobile/package.json[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+[36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+[36m[1m[Codegen][0m Found @react-native-async-storage/async-storage[0m
+[36m[1m[Codegen][0m Found react-native-gesture-handler[0m
+[36m[1m[Codegen][0m Found react-native-keyboard-controller[0m
+[36m[1m[Codegen][0m Found react-native-reanimated[0m
+[36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+[36m[1m[Codegen][0m Found react-native-screens[0m
+[36m[1m[Codegen][0m Found react-native-svg[0m
+[36m[1m[Codegen][0m Found react-native-worklets[0m
+[36m[1m[Codegen][0m Processing rnasyncstorage[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage[0m
+[36m[1m[Codegen][0m Processing rngesturehandler_codegen[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rngesturehandler_codegen[0m
+[36m[1m[Codegen][0m Processing reactnativekeyboardcontroller[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for reactnativekeyboardcontroller[0m
+[36m[1m[Codegen][0m Processing rnreanimated[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnreanimated[0m
+[36m[1m[Codegen][0m Processing safeareacontext[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+[36m[1m[Codegen][0m Processing rnscreens[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for rnscreens[0m
+[36m[1m[Codegen][0m Processing rnsvg[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnsvg[0m
+[36m[1m[Codegen][0m Processing rnworklets[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnworklets[0m
+[36m[1m[Codegen][0m Generating Native Code for rnasyncstorage - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rngesturehandler_codegen - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for reactnativekeyboardcontroller - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnreanimated - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnscreens - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnsvg - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnworklets - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTModuleProviders.h[0m
+[36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTAppDependencyProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTAppDependencyProvider.mm[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/ReactAppDependencyProvider.podspec[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/ReactCodegen.podspec[0m
+[36m[1m[Codegen][0m [33mDone.[0m
+Analyzing dependencies
+Fetching podspec for `React-Core-prebuilt` from `../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/React-Core-prebuilt.podspec`
+[32m[ReactNativeCore] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-core-debug.tar.gz[0m
+Fetching podspec for `ReactNativeDependencies` from `../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`
+[32m[ReactNativeDependencies] Using release tarball[0m
+[32m[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz[0m
+Fetching podspec for `hermes-engine` from `../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
+[33m[Hermes] Using release tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-hermes-ios-debug.tar.gz[0m
+Adding spec repo `trunk` with CDN `https://cdn.cocoapods.org/`
+Downloading dependencies
+Installing AppAuth (2.1.0)
+Installing AppCheckCore (11.3.1)
+Installing ClerkGoogleSignIn (3.7.8)
+Installing EXApplication (7.0.8)
+Installing EXConstants (18.0.13)
+Installing EXImageLoader (6.0.0)
+Installing EXNotifications (0.32.17)
+Installing Expo (54.0.36)
+Installing ExpoAsset (12.0.13)
+Installing ExpoBlur (15.0.8)
+Installing ExpoCrypto (15.0.9)
+Installing ExpoFileSystem (19.0.23)
+Installing ExpoFont (14.0.12)
+Installing ExpoHaptics (15.0.8)
+Installing ExpoHead (6.0.24)
+Installing ExpoImage (3.0.11)
+Installing ExpoImagePicker (17.0.11)
+Installing ExpoKeepAwake (15.0.8)
+Installing ExpoLinearGradient (15.0.8)
+Installing ExpoLinking (8.0.12)
+Installing ExpoLocation (19.0.8)
+Installing ExpoModulesCore (3.0.30)
+Installing ExpoSecureStore (15.0.8)
+Installing ExpoSplashScreen (31.0.13)
+Installing ExpoSymbols (1.0.8)
+Installing ExpoSystemUI (6.0.9)
+Installing ExpoWebBrowser (15.0.11)
+Installing FBLazyVector (0.81.5)
+Installing GTMAppAuth (5.0.0)
+Installing GTMSessionFetcher (3.5.0)
+Installing GoogleSignIn (9.2.0)
+Installing GoogleUtilities (8.1.2)
+Installing PromisesObjC (2.4.1)
+Installing PromisesSwift (2.4.1)
+Installing PurchasesHybridCommon (18.21.0)
+Installing RCTDeprecation (0.81.5)
+Installing RCTRequired (0.81.5)
+Installing RCTTypeSafety (0.81.5)
+Installing RNCAsyncStorage (2.2.0)
+Installing RNGestureHandler (2.28.0)
+Installing RNPurchases (10.4.3)
+Installing RNReanimated (4.1.7)
+Installing RNSVG (15.12.1)
+Installing RNScreens (4.16.0)
+Installing RNWorklets (0.5.1)
+Installing React (0.81.5)
+Installing React-Core (0.81.5)
+Installing React-Core-prebuilt (0.81.5)
+Installing React-CoreModules (0.81.5)
+Installing React-Fabric (0.81.5)
+Installing React-FabricComponents (0.81.5)
+Installing React-FabricImage (0.81.5)
+Installing React-ImageManager (0.81.5)
+Installing React-Mapbuffer (0.81.5)
+Installing React-NativeModulesApple (0.81.5)
+Installing React-RCTActionSheet (0.81.5)
+Installing React-RCTAnimation (0.81.5)
+Installing React-RCTAppDelegate (0.81.5)
+Installing React-RCTBlob (0.81.5)
+Installing React-RCTFBReactNativeSpec (0.81.5)
+Installing React-RCTFabric (0.81.5)
+Installing React-RCTImage (0.81.5)
+Installing React-RCTLinking (0.81.5)
+Installing React-RCTNetwork (0.81.5)
+Installing React-RCTRuntime (0.81.5)
+Installing React-RCTSettings (0.81.5)
+Installing React-RCTText (0.81.5)
+Installing React-RCTVibration (0.81.5)
+Installing React-RuntimeApple (0.81.5)
+Installing React-RuntimeCore (0.81.5)
+Installing React-RuntimeHermes (0.81.5)
+Installing React-callinvoker (0.81.5)
+Installing React-cxxreact (0.81.5)
+Installing React-debug (0.81.5)
+Installing React-defaultsnativemodule (0.81.5)
+Installing React-domnativemodule (0.81.5)
+Installing React-featureflags (0.81.5)
+Installing React-featureflagsnativemodule (0.81.5)
+Installing React-graphics (0.81.5)
+Installing React-hermes (0.81.5)
+Installing React-idlecallbacksnativemodule (0.81.5)
+Installing React-jserrorhandler (0.81.5)
+Installing React-jsi (0.81.5)
+Installing React-jsiexecutor (0.81.5)
+Installing React-jsinspector (0.81.5)
+Installing React-jsinspectorcdp (0.81.5)
+Installing React-jsinspectornetwork (0.81.5)
+Installing React-jsinspectortracing (0.81.5)
+Installing React-jsitooling (0.81.5)
+Installing React-jsitracing (0.81.5)
+Installing React-logger (0.81.5)
+Installing React-microtasksnativemodule (0.81.5)
+Installing React-oscompat (0.81.5)
+Installing React-perflogger (0.81.5)
+Installing React-performancetimeline (0.81.5)
+Installing React-rendererconsistency (0.81.5)
+Installing React-renderercss (0.81.5)
+Installing React-rendererdebug (0.81.5)
+Installing React-runtimeexecutor (0.81.5)
+Installing React-runtimescheduler (0.81.5)
+Installing React-timing (0.81.5)
+Installing React-utils (0.81.5)
+Installing ReactAppDependencyProvider (0.81.5)
+Installing ReactCodegen (0.81.5)
+Installing ReactCommon (0.81.5)
+Installing ReactNativeDependencies (0.81.5)
+Installing RecaptchaInterop (101.0.0)
+Installing RevenueCat (5.80.3)
+Installing SDWebImage (5.21.7)
+Installing SDWebImageAVIFCoder (0.11.1)
+Installing SDWebImageSVGCoder (1.7.0)
+Installing SDWebImageWebPCoder (0.14.6)
+Installing Yoga (0.0.0)
+Installing hermes-engine (0.81.5)
+Installing libavif (1.0.0)
+Installing libdav1d (1.2.0)
+Installing libwebp (1.5.0)
+Installing react-native-keyboard-controller (1.18.5)
+Installing react-native-safe-area-context (5.6.2)
+Generating Pods project
+Setting USE_HERMES build settings
+Setting REACT_NATIVE_PATH build settings
+Setting SWIFT_ACTIVE_COMPILATION_CONDITIONS build settings
+[Ccache]: Ccache found at /opt/homebrew/bin/ccache
+[Ccache]: Pass ':ccache_enabled => true' to 'react_native_post_install' in your Podfile or set environment variable 'USE_CCACHE=1' to increase the speed of subsequent builds
+Setting SWIFT_ENABLE_EXPLICIT_MODULES build settings
+[SPM] Cleaning old SPM dependencies from Pods project
+[SPM] Adding SPM dependencies to Pods project
+[SPM] Adding SPM dependency on product ["ClerkKit", "ClerkKitUI"]
+[SPM]  Adding workaround for Swift package not found issue
+[!] An error occurred while processing the post-install hook of the Podfile.
+
+undefined method `build_configurations' for nil:NilClass
+
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:34:in `block (2 levels) in apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:23:in `each'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:23:in `block in apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:22:in `each'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:22:in `apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/react_native_pods.rb:507:in `react_native_post_install'
+/Users/expo/workingdir/build/artifacts/mobile/ios/Podfile:56:in `block (3 levels) in from_ruby'
+/Users/expo/.gems/arm64/gems/cocoapods-core-1.16.2/lib/cocoapods-core/podfile.rb:196:in `post_install!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1013:in `run_podfile_post_install_hook'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1001:in `block in run_podfile_post_install_hooks'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:149:in `message'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1000:in `run_podfile_post_install_hooks'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:337:in `block (2 levels) in create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/pods_project_writer.rb:61:in `write!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:336:in `block in create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:64:in `section'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:315:in `create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:307:in `generate_pods_project'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:183:in `integrate'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:170:in `install!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in `run'
+/Users/expo/.gems/arm64/gems/claide-1.1.0/lib/claide/command.rb:334:in `run'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in `run'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/bin/pod:55:in `<top (required)>'
+/opt/homebrew/Cellar/ruby@3.2/3.2.9/lib/ruby/3.2.0/rubygems.rb:319:in `load'
+/opt/homebrew/Cellar/ruby@3.2/3.2.9/lib/ruby/3.2.0/rubygems.rb:319:in `activate_and_load_bin_path'
+/Users/expo/.gems/arm64/bin/pod:25:in `<main>'
+Couldn't install Pods. Updating the Pods project and trying again...
+> pod install --repo-update
+Using Expo modules
+[34m[Expo] [0mEnabling modular headers for pod [32mExpoModulesCore[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mGoogleSignIn[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mGoogleUtilities[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRecaptchaInterop[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-Core[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-RCTFabric[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReactCodegen[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRCTRequired[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRCTTypeSafety[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReactCommon[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-NativeModulesApple[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mYoga[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-Fabric[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-graphics[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-utils[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-featureflags[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-debug[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-ImageManager[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-rendererdebug[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-jsi[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-renderercss[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mhermes-engine[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mglog[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mboost[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mDoubleConversion[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mfast_float[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mfmt[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRCT-Folly[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSocketRocket[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReact-RCTAppDelegate[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mReactAppDependencyProvider[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImage[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImageAVIFCoder[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImageSVGCoder[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mSDWebImageWebPCoder[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mlibavif[0m
+[34m[Expo] [0mEnabling modular headers for pod [32mRNScreens[0m
+Found 10 modules for target `TheBettingModel`
+link_native_modules! {:ios_packages=>[{:configurations=>[], :name=>"react-native-purchases", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-purchases@10.4.3_react-native-web@0.21.2_react-dom@19.1.0_react@19.1.0__re_3fa1f6c0a1d3b29d5b84a4b401270af4/node_modules/react-native-purchases", :path=>"../../../node_modules/.pnpm/react-native-purchases@10.4.3_react-native-web@0.21.2_react-dom@19.1.0_react@19.1.0__re_3fa1f6c0a1d3b29d5b84a4b401270af4/node_modules/react-native-purchases", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-purchases@10.4.3_react-native-web@0.21.2_react-dom@19.1.0_react@19.1.0__re_3fa1f6c0a1d3b29d5b84a4b401270af4/node_modules/react-native-purchases/RNPurchases.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"expo", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/expo@54.0.36_@babel+core@7.29.7_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_72b41081e8350cdbb34a113a60cc7707/node_modules/expo", :path=>"../../../node_modules/.pnpm/expo@54.0.36_@babel+core@7.29.7_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_72b41081e8350cdbb34a113a60cc7707/node_modules/expo", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/expo@54.0.36_@babel+core@7.29.7_@expo+metro-runtime@6.1.2_expo-router@6.0.24_react-nati_72b41081e8350cdbb34a113a60cc7707/node_modules/expo/Expo.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"@react-native-async-storage/async-storage", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_patch_hash=545a8e52_42a4f16ad7848bff53bcc986f58d692b/node_modules/@react-native-async-storage/async-storage", :path=>"../../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_patch_hash=545a8e52_42a4f16ad7848bff53bcc986f58d692b/node_modules/@react-native-async-storage/async-storage", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.81.5_patch_hash=545a8e52_42a4f16ad7848bff53bcc986f58d692b/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-gesture-handler", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58_4b4e43d5e24049f517859af73e2ccd22/node_modules/react-native-gesture-handler", :path=>"../../../node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58_4b4e43d5e24049f517859af73e2ccd22/node_modules/react-native-gesture-handler", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58_4b4e43d5e24049f517859af73e2ccd22/node_modules/react-native-gesture-handler/RNGestureHandler.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-keyboard-controller", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native-reanimated@4.1.7_react-native-work_09e6749b080778da477cddcc43db8b91/node_modules/react-native-keyboard-controller", :path=>"../../../node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native-reanimated@4.1.7_react-native-work_09e6749b080778da477cddcc43db8b91/node_modules/react-native-keyboard-controller", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-keyboard-controller@1.18.5_react-native-reanimated@4.1.7_react-native-work_09e6749b080778da477cddcc43db8b91/node_modules/react-native-keyboard-controller/react-native-keyboard-controller.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-reanimated", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_85af405482537184f4dc2be180457658/node_modules/react-native-reanimated", :path=>"../../../node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_85af405482537184f4dc2be180457658/node_modules/react-native-reanimated", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_85af405482537184f4dc2be180457658/node_modules/react-native-reanimated/RNReanimated.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-safe-area-context", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d5_e8769addb575de540439119e58219f0c/node_modules/react-native-safe-area-context", :path=>"../../../node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d5_e8769addb575de540439119e58219f0c/node_modules/react-native-safe-area-context", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d5_e8769addb575de540439119e58219f0c/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-screens", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b_8739ed4534e082bc4d957f714a24d0d7/node_modules/react-native-screens", :path=>"../../../node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b_8739ed4534e082bc4d957f714a24d0d7/node_modules/react-native-screens", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b_8739ed4534e082bc4d957f714a24d0d7/node_modules/react-native-screens/RNScreens.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-svg", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-svg@15.12.1_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de_02b686b0c4a8ad1b6a5cfb70146f2d37/node_modules/react-native-svg", :path=>"../../../node_modules/.pnpm/react-native-svg@15.12.1_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de_02b686b0c4a8ad1b6a5cfb70146f2d37/node_modules/react-native-svg", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-svg@15.12.1_react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de_02b686b0c4a8ad1b6a5cfb70146f2d37/node_modules/react-native-svg/RNSVG.podspec", :script_phases=>[]}, {:configurations=>[], :name=>"react-native-worklets", :root=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.29.7_react-native@0.81.5_patch_hash=545a8e52a_bee98ebbd57011369dafe285ba109dd6/node_modules/react-native-worklets", :path=>"../../../node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.29.7_react-native@0.81.5_patch_hash=545a8e52a_bee98ebbd57011369dafe285ba109dd6/node_modules/react-native-worklets", :podspec_path=>"/Users/expo/workingdir/build/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.29.7_react-native@0.81.5_patch_hash=545a8e52a_bee98ebbd57011369dafe285ba109dd6/node_modules/react-native-worklets/RNWorklets.podspec", :script_phases=>[]}], :ios_project_root_path=>"/Users/expo/workingdir/build/artifacts/mobile/ios", :react_native_path=>"../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native"}
+Auto-linking React Native modules for target `TheBettingModel`: RNCAsyncStorage, RNGestureHandler, RNPurchases, RNReanimated, RNSVG, RNScreens, RNWorklets, react-native-keyboard-controller, and react-native-safe-area-context
+Framework build type is static library
+[32m[ReactNativeDependencies] Setting up ReactNativeDependencies...[0m
+[32m[ReactNativeDependencies] Building from source: false[0m
+[32m[ReactNativeDependencies] Using release tarball[0m
+[32m[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz[0m
+[32m[ReactNativeDependencies] Source: {:http=>"https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz"}[0m
+[32m[ReactNativeCore] Setting up ReactNativeCore...[0m
+[32m[ReactNativeCore] Building from source: false[0m
+[32m[ReactNativeCore] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-core-debug.tar.gz[0m
+[32m[ReactNativeCore] Source: {:http=>"https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-core-debug.tar.gz"}[0m
+Configuring the target with the New Architecture
+[32m[ReactNativeCore] Using React Native Core and React Native Dependencies prebuilt versions.[0m
+[36m[1m[Codegen][0m Analyzing /Users/expo/workingdir/build/artifacts/mobile/package.json[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+[36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+[36m[1m[Codegen][0m Found @react-native-async-storage/async-storage[0m
+[36m[1m[Codegen][0m Found react-native-gesture-handler[0m
+[36m[1m[Codegen][0m Found react-native-keyboard-controller[0m
+[36m[1m[Codegen][0m Found react-native-reanimated[0m
+[36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+[36m[1m[Codegen][0m Found react-native-screens[0m
+[36m[1m[Codegen][0m Found react-native-svg[0m
+[36m[1m[Codegen][0m Found react-native-worklets[0m
+[36m[1m[Codegen][0m Processing rnasyncstorage[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage[0m
+[36m[1m[Codegen][0m Processing rngesturehandler_codegen[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rngesturehandler_codegen[0m
+[36m[1m[Codegen][0m Processing reactnativekeyboardcontroller[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for reactnativekeyboardcontroller[0m
+[36m[1m[Codegen][0m Processing rnreanimated[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnreanimated[0m
+[36m[1m[Codegen][0m Processing safeareacontext[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+[36m[1m[Codegen][0m Processing rnscreens[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for rnscreens[0m
+[36m[1m[Codegen][0m Processing rnsvg[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnsvg[0m
+[36m[1m[Codegen][0m Processing rnworklets[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnworklets[0m
+[36m[1m[Codegen][0m Generating Native Code for rnasyncstorage - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rngesturehandler_codegen - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for reactnativekeyboardcontroller - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnreanimated - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnscreens - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnsvg - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnworklets - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTModuleProviders.h[0m
+[36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTAppDependencyProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/RCTAppDependencyProvider.mm[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/ReactAppDependencyProvider.podspec[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/expo/workingdir/build/artifacts/mobile/ios/build/generated/ios/ReactCodegen.podspec[0m
+[36m[1m[Codegen][0m [33mDone.[0m
+[32m[ReactNativeDependencies] Using release tarball[0m
+[32m[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz[0m
+Updating local specs repositories
+Analyzing dependencies
+Fetching podspec for `React-Core-prebuilt` from `../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/React-Core-prebuilt.podspec`
+[32m[ReactNativeCore] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-core-debug.tar.gz[0m
+Fetching podspec for `ReactNativeDependencies` from `../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`
+[32m[ReactNativeDependencies] Using release tarball[0m
+[32m[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-reactnative-dependencies-debug.tar.gz[0m
+Fetching podspec for `hermes-engine` from `../../../node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
+[33m[Hermes] Using release tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-hermes-ios-debug.tar.gz[0m
+Downloading dependencies
+[32mInstalling AppAuth (2.1.0)[0m
+[32mInstalling AppCheckCore (11.3.1)[0m
+[32mInstalling ClerkGoogleSignIn (3.7.8)[0m
+[32mInstalling EXApplication (7.0.8)[0m
+[32mInstalling EXConstants (18.0.13)[0m
+[32mInstalling EXImageLoader (6.0.0)[0m
+[32mInstalling EXNotifications (0.32.17)[0m
+[32mInstalling Expo (54.0.36)[0m
+[32mInstalling ExpoAsset (12.0.13)[0m
+[32mInstalling ExpoBlur (15.0.8)[0m
+[32mInstalling ExpoCrypto (15.0.9)[0m
+[32mInstalling ExpoFileSystem (19.0.23)[0m
+[32mInstalling ExpoFont (14.0.12)[0m
+[32mInstalling ExpoHaptics (15.0.8)[0m
+[32mInstalling ExpoHead (6.0.24)[0m
+[32mInstalling ExpoImage (3.0.11)[0m
+[32mInstalling ExpoImagePicker (17.0.11)[0m
+[32mInstalling ExpoKeepAwake (15.0.8)[0m
+[32mInstalling ExpoLinearGradient (15.0.8)[0m
+[32mInstalling ExpoLinking (8.0.12)[0m
+[32mInstalling ExpoLocation (19.0.8)[0m
+[32mInstalling ExpoModulesCore (3.0.30)[0m
+[32mInstalling ExpoSecureStore (15.0.8)[0m
+[32mInstalling ExpoSplashScreen (31.0.13)[0m
+[32mInstalling ExpoSymbols (1.0.8)[0m
+[32mInstalling ExpoSystemUI (6.0.9)[0m
+[32mInstalling ExpoWebBrowser (15.0.11)[0m
+[32mInstalling FBLazyVector (0.81.5)[0m
+[32mInstalling GTMAppAuth (5.0.0)[0m
+[32mInstalling GTMSessionFetcher (3.5.0)[0m
+[32mInstalling GoogleSignIn (9.2.0)[0m
+[32mInstalling GoogleUtilities (8.1.2)[0m
+[32mInstalling PromisesObjC (2.4.1)[0m
+[32mInstalling PromisesSwift (2.4.1)[0m
+[32mInstalling PurchasesHybridCommon (18.21.0)[0m
+[32mInstalling RCTDeprecation (0.81.5)[0m
+[32mInstalling RCTRequired (0.81.5)[0m
+[32mInstalling RCTTypeSafety (0.81.5)[0m
+[32mInstalling RNCAsyncStorage (2.2.0)[0m
+[32mInstalling RNGestureHandler (2.28.0)[0m
+[32mInstalling RNPurchases (10.4.3)[0m
+[32mInstalling RNReanimated (4.1.7)[0m
+[32mInstalling RNSVG (15.12.1)[0m
+[32mInstalling RNScreens (4.16.0)[0m
+[32mInstalling RNWorklets (0.5.1)[0m
+[32mInstalling React (0.81.5)[0m
+[32mInstalling React-Core (0.81.5)[0m
+[32mInstalling React-Core-prebuilt (0.81.5)[0m
+[32mInstalling React-CoreModules (0.81.5)[0m
+[32mInstalling React-Fabric (0.81.5)[0m
+[32mInstalling React-FabricComponents (0.81.5)[0m
+[32mInstalling React-FabricImage (0.81.5)[0m
+[32mInstalling React-ImageManager (0.81.5)[0m
+[32mInstalling React-Mapbuffer (0.81.5)[0m
+[32mInstalling React-NativeModulesApple (0.81.5)[0m
+[32mInstalling React-RCTActionSheet (0.81.5)[0m
+[32mInstalling React-RCTAnimation (0.81.5)[0m
+[32mInstalling React-RCTAppDelegate (0.81.5)[0m
+[32mInstalling React-RCTBlob (0.81.5)[0m
+[32mInstalling React-RCTFBReactNativeSpec (0.81.5)[0m
+[32mInstalling React-RCTFabric (0.81.5)[0m
+[32mInstalling React-RCTImage (0.81.5)[0m
+[32mInstalling React-RCTLinking (0.81.5)[0m
+[32mInstalling React-RCTNetwork (0.81.5)[0m
+[32mInstalling React-RCTRuntime (0.81.5)[0m
+[32mInstalling React-RCTSettings (0.81.5)[0m
+[32mInstalling React-RCTText (0.81.5)[0m
+[32mInstalling React-RCTVibration (0.81.5)[0m
+[32mInstalling React-RuntimeApple (0.81.5)[0m
+[32mInstalling React-RuntimeCore (0.81.5)[0m
+[32mInstalling React-RuntimeHermes (0.81.5)[0m
+[32mInstalling React-callinvoker (0.81.5)[0m
+[32mInstalling React-cxxreact (0.81.5)[0m
+[32mInstalling React-debug (0.81.5)[0m
+[32mInstalling React-defaultsnativemodule (0.81.5)[0m
+[32mInstalling React-domnativemodule (0.81.5)[0m
+[32mInstalling React-featureflags (0.81.5)[0m
+[32mInstalling React-featureflagsnativemodule (0.81.5)[0m
+[32mInstalling React-graphics (0.81.5)[0m
+[32mInstalling React-hermes (0.81.5)[0m
+[32mInstalling React-idlecallbacksnativemodule (0.81.5)[0m
+[32mInstalling React-jserrorhandler (0.81.5)[0m
+[32mInstalling React-jsi (0.81.5)[0m
+[32mInstalling React-jsiexecutor (0.81.5)[0m
+[32mInstalling React-jsinspector (0.81.5)[0m
+[32mInstalling React-jsinspectorcdp (0.81.5)[0m
+[32mInstalling React-jsinspectornetwork (0.81.5)[0m
+[32mInstalling React-jsinspectortracing (0.81.5)[0m
+[32mInstalling React-jsitooling (0.81.5)[0m
+[32mInstalling React-jsitracing (0.81.5)[0m
+[32mInstalling React-logger (0.81.5)[0m
+[32mInstalling React-microtasksnativemodule (0.81.5)[0m
+[32mInstalling React-oscompat (0.81.5)[0m
+[32mInstalling React-perflogger (0.81.5)[0m
+[32mInstalling React-performancetimeline (0.81.5)[0m
+[32mInstalling React-rendererconsistency (0.81.5)[0m
+[32mInstalling React-renderercss (0.81.5)[0m
+[32mInstalling React-rendererdebug (0.81.5)[0m
+[32mInstalling React-runtimeexecutor (0.81.5)[0m
+[32mInstalling React-runtimescheduler (0.81.5)[0m
+[32mInstalling React-timing (0.81.5)[0m
+[32mInstalling React-utils (0.81.5)[0m
+[32mInstalling ReactAppDependencyProvider (0.81.5)[0m
+[32mInstalling ReactCodegen (0.81.5)[0m
+[32mInstalling ReactCommon (0.81.5)[0m
+[32mInstalling ReactNativeDependencies (0.81.5)[0m
+[32mInstalling RecaptchaInterop (101.0.0)[0m
+[32mInstalling RevenueCat (5.80.3)[0m
+[32mInstalling SDWebImage (5.21.7)[0m
+[32mInstalling SDWebImageAVIFCoder (0.11.1)[0m
+[32mInstalling SDWebImageSVGCoder (1.7.0)[0m
+[32mInstalling SDWebImageWebPCoder (0.14.6)[0m
+[32mInstalling Yoga (0.0.0)[0m
+[32mInstalling hermes-engine (0.81.5)[0m
+[32mInstalling libavif (1.0.0)[0m
+[32mInstalling libdav1d (1.2.0)[0m
+[32mInstalling libwebp (1.5.0)[0m
+[32mInstalling react-native-keyboard-controller (1.18.5)[0m
+[32mInstalling react-native-safe-area-context (5.6.2)[0m
+Generating Pods project
+Setting USE_HERMES build settings
+Setting REACT_NATIVE_PATH build settings
+Setting SWIFT_ACTIVE_COMPILATION_CONDITIONS build settings
+[Ccache]: Ccache found at /opt/homebrew/bin/ccache
+[Ccache]: Pass ':ccache_enabled => true' to 'react_native_post_install' in your Podfile or set environment variable 'USE_CCACHE=1' to increase the speed of subsequent builds
+Setting SWIFT_ENABLE_EXPLICIT_MODULES build settings
+[SPM] Cleaning old SPM dependencies from Pods project
+[SPM] Adding SPM dependencies to Pods project
+[SPM] Adding SPM dependency on product ["ClerkKit", "ClerkKitUI"]
+[SPM]  Adding workaround for Swift package not found issue
+[31m[!] An error occurred while processing the post-install hook of the Podfile.
+
+undefined method `build_configurations' for nil:NilClass
+
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:34:in `block (2 levels) in apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:23:in `each'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:23:in `block in apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:22:in `each'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:22:in `apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/react_native_pods.rb:507:in `react_native_post_install'
+/Users/expo/workingdir/build/artifacts/mobile/ios/Podfile:56:in `block (3 levels) in from_ruby'
+/Users/expo/.gems/arm64/gems/cocoapods-core-1.16.2/lib/cocoapods-core/podfile.rb:196:in `post_install!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1013:in `run_podfile_post_install_hook'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1001:in `block in run_podfile_post_install_hooks'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:149:in `message'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1000:in `run_podfile_post_install_hooks'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:337:in `block (2 levels) in create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/pods_project_writer.rb:61:in `write!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:336:in `block in create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:64:in `section'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:315:in `create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:307:in `generate_pods_project'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:183:in `integrate'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:170:in `install!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in `run'
+/Users/expo/.gems/arm64/gems/claide-1.1.0/lib/claide/command.rb:334:in `run'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in `run'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/bin/pod:55:in `<top (required)>'
+/opt/homebrew/Cellar/ruby@3.2/3.2.9/lib/ruby/3.2.0/rubygems.rb:319:in `load'
+/opt/homebrew/Cellar/ruby@3.2/3.2.9/lib/ruby/3.2.0/rubygems.rb:319:in `activate_and_load_bin_path'
+/Users/expo/.gems/arm64/bin/pod:25:in `<main>'[0m
+Couldn't install Pods. Updating the Pods project and trying again...
+Command `pod install` failed.
+└─ Cause: An error occurred while processing the post-install hook of the Podfile.
+
+undefined method `build_configurations' for nil:NilClass
+
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:34:in `block (2 levels) in apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:23:in `each'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:23:in `block in apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:22:in `each'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/cocoapods/spm.rb:22:in `apply_on_post_install'
+/Users/expo/workingdir/build/node_modules/.pnpm/react-native@0.81.5_patch_hash=545a8e52a494c4ed2d58f5d42f3b0de018f3551fb58a4974389982e0_a5b2b1701c79826cde6f67125296b9b0/node_modules/react-native/scripts/react_native_pods.rb:507:in `react_native_post_install'
+/Users/expo/workingdir/build/artifacts/mobile/ios/Podfile:56:in `block (3 levels) in from_ruby'
+/Users/expo/.gems/arm64/gems/cocoapods-core-1.16.2/lib/cocoapods-core/podfile.rb:196:in `post_install!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1013:in `run_podfile_post_install_hook'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1001:in `block in run_podfile_post_install_hooks'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:149:in `message'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:1000:in `run_podfile_post_install_hooks'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:337:in `block (2 levels) in create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/pods_project_generator/pods_project_writer.rb:61:in `write!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:336:in `block in create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:64:in `section'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:315:in `create_and_save_projects'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:307:in `generate_pods_project'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:183:in `integrate'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:170:in `install!'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in `run'
+/Users/expo/.gems/arm64/gems/claide-1.1.0/lib/claide/command.rb:334:in `run'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in `run'
+/Users/expo/.gems/arm64/gems/cocoapods-1.16.2/bin/pod:55:in `<top (required)>'
+/opt/homebrew/Cellar/ruby@3.2/3.2.9/lib/ruby/3.2.0/rubygems.rb:319:in `load'
+/opt/homebrew/Cellar/ruby@3.2/3.2.9/lib/ruby/3.2.0/rubygems.rb:319:in `activate_and_load_bin_path'
+/Users/expo/.gems/arm64/bin/pod:25:in `<main>'[0m
+
+pod install --repo-update --ansi exited with non-zero code: 1
+/bin/bash -eo pipefail /var/folders/5_/4knlryn57n39p2c_jw8567z00000gn/T/eas-build/55eb31d0-e5d1-4368-a65a-ab844f7af5d1/steps/step-014/scripts/2f1f924e-4fc1-43fb-8097-588585702b35.sh exited with non-zero code: 1
