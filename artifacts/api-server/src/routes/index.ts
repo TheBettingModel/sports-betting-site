@@ -7,6 +7,7 @@ import modelRegistryRouter from "./model-registry";
 import featuresRouter from "./features";
 import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
+import pushTokensRouter from "./push-tokens";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(modelRegistryRouter);
 router.use(featuresRouter);
 router.use(adminRouter);
 router.use(webhooksRouter);
+router.use(pushTokensRouter);
 
 export default router;

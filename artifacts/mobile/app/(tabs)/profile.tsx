@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useSubscription } from '@/lib/revenuecat';
 import PaywallModal from '@/app/paywall';
 import Purchases from 'react-native-purchases';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -21,6 +22,10 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [paywallOpen, setPaywallOpen] = useState(false);
   const { isSubscribed, restore } = useSubscription();
+  const { enableNotifications, disableNotifications, getNotificationsEnabled } = usePushNotifications();
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const { data: statsData } = useGetModelStats();
   const { data: gamesData } = useGetGamesToday();
@@ -54,8 +59,53 @@ export default function ProfileScreen() {
   const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
   const initials = displayName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
 
+  // Load current notification state
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    getNotificationsEnabled().then(setNotificationsEnabled);
+  }, [getNotificationsEnabled]);
+
+  // Auto-enable notifications after subscription (prompt on Pro upgrade)
+  useEffect(() => {
+    if (!isSubscribed || Platform.OS === 'web') return;
+    getNotificationsEnabled().then((enabled) => {
+      if (!enabled) {
+        // Silently attempt to enable; the system permission prompt will appear
+        enableNotifications()
+          .then((granted) => setNotificationsEnabled(granted))
+          .catch(() => {/* non-fatal */});
+      }
+    });
+  }, [isSubscribed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleNotificationsToggle = useCallback(async (value: boolean) => {
+    if (!isSubscribed) {
+      setPaywallOpen(true);
+      return;
+    }
+    setNotificationsLoading(true);
+    await Haptics.selectionAsync();
+    try {
+      if (value) {
+        const granted = await enableNotifications();
+        setNotificationsEnabled(granted);
+      } else {
+        await disableNotifications();
+        setNotificationsEnabled(false);
+      }
+    } catch {
+      // Non-fatal — leave toggle state as-is
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [isSubscribed, enableNotifications, disableNotifications]);
+
   const handleSignOut = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Deregister push token on sign-out so we don't notify a signed-out device
+    if (Platform.OS !== 'web') {
+      try { await disableNotifications(); } catch { /* non-fatal */ }
+    }
     await signOut();
     router.replace('/(auth)/sign-in');
   };
@@ -240,8 +290,34 @@ export default function ProfileScreen() {
       {/* Settings */}
       <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>SETTINGS</Text>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+        {/* Notifications toggle — interactive */}
+        <View style={styles.settingsRow}>
+          <View style={styles.settingsLeft}>
+            <Feather name="bell" size={16} color={notificationsEnabled ? colors.primary : colors.mutedForeground} />
+            <View>
+              <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Daily Pick Alerts</Text>
+              {Platform.OS !== 'web' && (
+                <Text style={[styles.settingsSubLabel, { color: colors.mutedForeground }]}>
+                  {isSubscribed
+                    ? 'Notify when Strong Buy picks drop'
+                    : 'Pro feature'}
+                </Text>
+              )}
+            </View>
+          </View>
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={handleNotificationsToggle}
+            disabled={notificationsLoading || Platform.OS === 'web'}
+            trackColor={{ false: colors.border, true: colors.primary + 'AA' }}
+            thumbColor={notificationsEnabled ? colors.primary : colors.mutedForeground}
+            ios_backgroundColor={colors.border}
+          />
+        </View>
+
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
         {[
-          { icon: 'bell' as const, label: 'Notifications', value: 'On' },
           { icon: 'dollar-sign' as const, label: 'Odds Format', value: 'American' },
           { icon: 'info' as const, label: 'App Version', value: '1.0.0' },
         ].map((row, i, arr) => (
@@ -323,6 +399,7 @@ const styles = StyleSheet.create({
   },
   settingsLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   settingsLabel: { fontSize: 15, fontFamily: 'Inter_400Regular' },
+  settingsSubLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
   settingsRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   settingsVal: { fontSize: 14, fontFamily: 'Inter_400Regular' },
 });

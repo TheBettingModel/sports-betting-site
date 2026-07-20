@@ -13,8 +13,8 @@
  */
 
 import cron from "node-cron";
-import { eq, and, desc, ne } from "drizzle-orm";
-import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable } from "@workspace/db";
+import { eq, and, desc, ne, gte } from "drizzle-orm";
+import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
@@ -23,6 +23,10 @@ import { runAnalytics } from "./analytics";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
+import { sendStrongBuyNotification } from "./pushNotifications";
+
+// Track the last date we sent a Strong Buy notification so we only fire once per day
+let lastNotificationDate: string | null = null;
 
 // ── Active-job guard ──────────────────────────────────────────────────────────
 
@@ -191,6 +195,56 @@ async function autoResolveSportAlerts(
   }
 }
 
+// ── Push notification helper ──────────────────────────────────────────────────
+
+/**
+ * Query for Strong Buy picks published today and send a push notification
+ * to Pro subscribers. Fires at most once per calendar day (UTC) to avoid
+ * re-notifying on every 30-minute odds-ingestion run.
+ */
+async function maybeSendStrongBuyNotification(): Promise<void> {
+  const todayUtc = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  if (lastNotificationDate === todayUtc) {
+    return; // already sent today
+  }
+
+  // Find all Strong Buy picks published today
+  const startOfDay = new Date(`${todayUtc}T00:00:00.000Z`);
+  const strongBuys = await db
+    .select({
+      id: publishedPicksTable.id,
+      gameId: publishedPicksTable.gameId,
+      sport: publishedPicksTable.sport,
+    })
+    .from(publishedPicksTable)
+    .where(
+      and(
+        eq(publishedPicksTable.recommendation, "Strong Buy"),
+        gte(publishedPicksTable.publishedAt, startOfDay),
+      ),
+    );
+
+  if (strongBuys.length === 0) return;
+
+  // Build a simple summary for the notification body
+  const sportCounts: Record<string, number> = {};
+  for (const pick of strongBuys) {
+    sportCounts[pick.sport] = (sportCounts[pick.sport] ?? 0) + 1;
+  }
+  const topSport = Object.entries(sportCounts).sort(([, a], [, b]) => b - a)[0];
+  const topPick = topSport
+    ? `${topSport[1]} in ${topSport[0]}${Object.keys(sportCounts).length > 1 ? ` + ${Object.keys(sportCounts).length - 1} more sport${Object.keys(sportCounts).length > 2 ? "s" : ""}` : ""}`
+    : undefined;
+
+  try {
+    await sendStrongBuyNotification(strongBuys.length, topPick);
+    lastNotificationDate = todayUtc; // mark sent for today
+  } catch (err) {
+    logger.error({ err }, "Scheduler: failed to send Strong Buy push notification");
+    // Don't set lastNotificationDate so we retry on the next run
+  }
+}
+
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 
 async function runOddsIngestion(): Promise<void> {
@@ -261,6 +315,9 @@ async function runOddsIngestion(): Promise<void> {
     // Check for data quality issues after recording this run's counts.
     // Pass runId so the query excludes the just-written row and avoids double-counting.
     await checkAndRaiseSportAlerts(runId, sportCounts);
+
+    // Send push notifications for Strong Buy picks — once per calendar day only.
+    await maybeSendStrongBuyNotification();
 
     logger.info({ processed, sportCounts }, "Scheduler: odds-ingestion complete");
   } catch (err) {
