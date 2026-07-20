@@ -1,8 +1,18 @@
 import React, { useMemo } from 'react';
-import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useSports, SPORTS } from '@/context/SportsContext';
+import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
+import { mapApiGame } from '@/utils/gameAdapter';
 import { MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
 import { SportFilter } from '@/components/SportFilter';
@@ -13,9 +23,20 @@ export default function GamesScreen() {
   const insets = useSafeAreaInsets();
   const { selectedSport } = useSports();
 
+  const { data, isLoading, refetch } = useGetGamesToday();
+  const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
+    mutation: { onSuccess: () => refetch() },
+  });
+
+  const allGames: Game[] = useMemo(() => {
+    if (data?.games && data.games.length > 0) return data.games.map(mapApiGame);
+    if (!isLoading) return MOCK_GAMES;
+    return [];
+  }, [data, isLoading]);
+
   const filtered = useMemo(
-    () => (selectedSport === 'All' ? MOCK_GAMES : MOCK_GAMES.filter(g => g.sport === selectedSport)),
-    [selectedSport],
+    () => (selectedSport === 'All' ? allGames : allGames.filter(g => g.sport === selectedSport)),
+    [allGames, selectedSport],
   );
 
   // Group by sport when showing all
@@ -23,24 +44,38 @@ export default function GamesScreen() {
     if (selectedSport !== 'All') return null;
     return SPORTS.map(sport => ({
       sport,
-      games: MOCK_GAMES.filter(g => g.sport === sport),
+      games: allGames.filter(g => g.sport === sport),
     })).filter(s => s.games.length > 0);
-  }, [selectedSport]);
+  }, [allGames, selectedSport]);
+
+  const refreshControl = (
+    <RefreshControl
+      refreshing={isRefreshing}
+      onRefresh={() => triggerRefresh()}
+      tintColor={colors.primary}
+      colors={[colors.primary]}
+    />
+  );
 
   const ListHeader = () => (
     <View style={{ backgroundColor: colors.background }}>
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>Games</Text>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          {filtered.length} games · Model projections
+          {isLoading ? 'Loading…' : `${filtered.length} games · Model projections`}
         </Text>
       </View>
       <SportFilter />
+      {isLoading && (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Fetching live data…</Text>
+        </View>
+      )}
     </View>
   );
 
   if (sections) {
-    // All sports – render sections manually
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <FlatList
@@ -48,6 +83,7 @@ export default function GamesScreen() {
           keyExtractor={item => item.sport}
           ListHeaderComponent={<ListHeader />}
           showsVerticalScrollIndicator={false}
+          refreshControl={refreshControl}
           contentContainerStyle={{
             paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
           }}
@@ -79,15 +115,18 @@ export default function GamesScreen() {
         renderItem={({ item }: { item: Game }) => <GameCard game={item} />}
         ListHeaderComponent={<ListHeader />}
         showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
         contentContainerStyle={{
           paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
         }}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              No games for this sport
-            </Text>
-          </View>
+          !isLoading ? (
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                No games for this sport
+              </Text>
+            </View>
+          ) : null
         }
       />
     </View>
@@ -112,6 +151,8 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 4 },
   title: { fontSize: 28, fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  loadingText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   sportHeader: {
     flexDirection: 'row',
     alignItems: 'center',

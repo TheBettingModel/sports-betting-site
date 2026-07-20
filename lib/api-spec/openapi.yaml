@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: games
+    description: Game data with model projections
+  - name: model
+    description: Model learning stats
 paths:
   /healthz:
     get:
@@ -24,6 +28,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /games/today:
+    get:
+      operationId: getGamesToday
+      tags: [games]
+      summary: Get today's games with model projections
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Today's games with projections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GamesTodayResponse"
+
+  /games/refresh:
+    post:
+      operationId: refreshGames
+      tags: [games]
+      summary: Pull fresh game data from ESPN and run model update
+      responses:
+        "200":
+          description: Refresh completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResponse"
+
+  /model/stats:
+    get:
+      operationId: getModelStats
+      tags: [model]
+      summary: Get model learning accuracy stats per sport
+      responses:
+        "200":
+          description: Model accuracy stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelStatsResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +84,162 @@ components:
       required:
         - status
 
+    GameProjection:
+      type: object
+      properties:
+        id:
+          type: string
+        sport:
+          type: string
+        homeTeamAbbr:
+          type: string
+        homeTeamName:
+          type: string
+        homeTeamRecord:
+          type: string
+        awayTeamAbbr:
+          type: string
+        awayTeamName:
+          type: string
+        awayTeamRecord:
+          type: string
+        gameTime:
+          type: string
+        gameDate:
+          type: string
+        status:
+          type: string
+        homeScore:
+          type: integer
+          nullable: true
+        awayScore:
+          type: integer
+          nullable: true
+        homeWinPct:
+          type: integer
+        confidence:
+          type: string
+        projectedSpread:
+          type: number
+        projectedTotal:
+          type: number
+        valueRating:
+          type: string
+        modelScore:
+          type: integer
+        edge:
+          type: number
+        vegasSpread:
+          type: number
+        vegasTotal:
+          type: number
+        vegasHomeOdds:
+          type: integer
+        vegasAwayOdds:
+          type: integer
+        predictionCorrect:
+          type: boolean
+          nullable: true
+      required:
+        - id
+        - sport
+        - homeTeamAbbr
+        - homeTeamName
+        - homeTeamRecord
+        - awayTeamAbbr
+        - awayTeamName
+        - awayTeamRecord
+        - gameTime
+        - gameDate
+        - status
+        - homeWinPct
+        - confidence
+        - projectedSpread
+        - projectedTotal
+        - valueRating
+        - modelScore
+        - edge
+        - vegasSpread
+        - vegasTotal
+        - vegasHomeOdds
+        - vegasAwayOdds
+
+    GamesTodayResponse:
+      type: object
+      properties:
+        games:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameProjection"
+        lastUpdated:
+          type: string
+        totalGames:
+          type: integer
+      required:
+        - games
+        - lastUpdated
+        - totalGames
+
+    RefreshResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        gamesUpdated:
+          type: integer
+        sportsRefreshed:
+          type: array
+          items:
+            type: string
+      required:
+        - message
+        - gamesUpdated
+        - sportsRefreshed
+
+    ModelSportStat:
+      type: object
+      properties:
+        sport:
+          type: string
+        accuracyRate:
+          type: number
+        totalPredictions:
+          type: integer
+        correctPredictions:
+          type: integer
+        strongBuyAccuracy:
+          type: number
+        buyAccuracy:
+          type: number
+        confidenceMultiplier:
+          type: number
+        lastLearnedAt:
+          type: string
+          nullable: true
+      required:
+        - sport
+        - accuracyRate
+        - totalPredictions
+        - correctPredictions
+        - strongBuyAccuracy
+        - buyAccuracy
+        - confidenceMultiplier
+
+    ModelStatsResponse:
+      type: object
+      properties:
+        stats:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelSportStat"
+        overallAccuracy:
+          type: number
+        totalPredictions:
+          type: integer
+        dataAsOf:
+          type: string
+      required:
+        - stats
+        - overallAccuracy
+        - totalPredictions
+        - dataAsOf

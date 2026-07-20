@@ -5,6 +5,10 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SportsProvider } from '@/context/SportsContext';
+import { setBaseUrl } from '@workspace/api-client-react';
+
+// Point the API client at this repl's dev domain
+setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 import {
   Inter_400Regular,
   Inter_500Medium,

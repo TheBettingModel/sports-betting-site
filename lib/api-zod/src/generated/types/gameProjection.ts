@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface GameProjection {
   id: string;
@@ -36,38 +33,3 @@ export interface GameProjection {
   vegasAwayOdds: number;
   predictionCorrect?: boolean | null;
 }
-
-export interface GamesTodayResponse {
-  games: GameProjection[];
-  lastUpdated: string;
-  totalGames: number;
-}
-
-export interface RefreshResponse {
-  message: string;
-  gamesUpdated: number;
-  sportsRefreshed: string[];
-}
-
-export interface ModelSportStat {
-  sport: string;
-  accuracyRate: number;
-  totalPredictions: number;
-  correctPredictions: number;
-  strongBuyAccuracy: number;
-  buyAccuracy: number;
-  confidenceMultiplier: number;
-  lastLearnedAt?: string | null;
-}
-
-export interface ModelStatsResponse {
-  stats: ModelSportStat[];
-  overallAccuracy: number;
-  totalPredictions: number;
-  dataAsOf: string;
-}
-
-export type GetGamesTodayParams = {
-sport?: string;
-};
-

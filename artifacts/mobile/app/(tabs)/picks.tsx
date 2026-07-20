@@ -1,22 +1,43 @@
 import React, { useMemo } from 'react';
-import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
+import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
+import { mapApiGame } from '@/utils/gameAdapter';
 import { getBestPicks } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
-import type { Game, ValueRating } from '@/data/mockGames';
-
-const RATING_ORDER: ValueRating[] = ['Strong Buy', 'Buy'];
+import type { Game } from '@/data/mockGames';
 
 export default function PicksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
-  const picks = useMemo(() => getBestPicks(), []);
+  const { data, isLoading, refetch } = useGetGamesToday();
+  const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
+    mutation: { onSuccess: () => refetch() },
+  });
+
+  const picks: Game[] = useMemo(() => {
+    if (data?.games && data.games.length > 0) {
+      return data.games
+        .map(mapApiGame)
+        .filter(g => g.projection.valueRating === 'Strong Buy' || g.projection.valueRating === 'Buy')
+        .sort((a, b) => b.projection.modelScore - a.projection.modelScore);
+    }
+    if (!isLoading) return getBestPicks();
+    return [];
+  }, [data, isLoading]);
 
   const strongBuys = picks.filter(p => p.projection.valueRating === 'Strong Buy');
   const buys = picks.filter(p => p.projection.valueRating === 'Buy');
-
   const avgScore =
     picks.length > 0
       ? Math.round(picks.reduce((s, p) => s + p.projection.modelScore, 0) / picks.length)
@@ -31,6 +52,14 @@ export default function PicksScreen() {
         contentContainerStyle={{
           paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => triggerRefresh()}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
         renderItem={({ item }: { item: Game }) => <GameCard game={item} />}
         ListHeaderComponent={
           <View style={{ backgroundColor: colors.background }}>
@@ -38,9 +67,18 @@ export default function PicksScreen() {
             <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
               <Text style={[styles.title, { color: colors.foreground }]}>Model Picks</Text>
               <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-                Best value bets today · {picks.length} picks
+                {isLoading ? 'Loading…' : `Best value bets today · ${picks.length} picks`}
               </Text>
             </View>
+
+            {isLoading && (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+                  Fetching live picks…
+                </Text>
+              </View>
+            )}
 
             {/* Summary strip */}
             <View style={[styles.summaryStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -60,7 +98,6 @@ export default function PicksScreen() {
               </View>
             </View>
 
-            {/* Section labels */}
             {strongBuys.length > 0 && (
               <Text style={[styles.sectionLabel, { color: colors.gold }]}>
                 STRONG BUY · {strongBuys.length}
@@ -69,11 +106,13 @@ export default function PicksScreen() {
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              No strong picks identified today
-            </Text>
-          </View>
+          !isLoading ? (
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                No strong picks identified today
+              </Text>
+            </View>
+          ) : null
         }
       />
     </View>
@@ -85,6 +124,8 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 12 },
   title: { fontSize: 28, fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 4, marginBottom: 8 },
+  loadingText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   summaryStrip: {
     marginHorizontal: 16,
     marginBottom: 16,
