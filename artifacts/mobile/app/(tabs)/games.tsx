@@ -147,7 +147,9 @@ export default function GamesScreen() {
 function sportColor(sport: Sport): string {
   const map: Record<Sport, string> = {
     NFL: '#4F46E5',
+    NCAAF: '#7C3AED',
     NBA: '#EA580C',
+    NCAAB: '#B45309',
     MLB: '#0EA5E9',
     NHL: '#8B5CF6',
     Soccer: '#22C55E',
