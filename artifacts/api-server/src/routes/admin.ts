@@ -209,33 +209,42 @@ router.get("/admin/automation", async (req, res): Promise<void> => {
 // ── Alerts ────────────────────────────────────────────────────────────────────
 
 router.get("/admin/alerts", async (req, res): Promise<void> => {
-  const resolved = req.query.resolved === "true";
+  const resolvedParam = req.query.resolved as string | undefined;
+  // "all" returns both resolved and active; "true"/"false" filter accordingly
+  const resolvedAll = resolvedParam === "all";
+  const resolved = resolvedParam === "true";
   const sport = req.query.sport as string | undefined;
 
   const [driftAlerts, dqAlerts] = await Promise.all([
     db
       .select()
       .from(modelDriftAlertsTable)
-      .where(eq(modelDriftAlertsTable.isResolved, resolved))
+      .where(resolvedAll ? undefined : eq(modelDriftAlertsTable.isResolved, resolved))
       .orderBy(desc(modelDriftAlertsTable.createdAt))
-      .limit(100),
+      .limit(200),
     db
       .select()
       .from(dataQualityAlertsTable)
       .where(
         and(
-          eq(dataQualityAlertsTable.isResolved, resolved),
+          resolvedAll ? undefined : eq(dataQualityAlertsTable.isResolved, resolved),
           sport ? eq(dataQualityAlertsTable.sport, sport) : undefined,
         ),
       )
       .orderBy(desc(dataQualityAlertsTable.createdAt))
-      .limit(100),
+      .limit(200),
   ]);
+
+  const activeCount = resolvedAll
+    ? driftAlerts.filter((a) => !a.isResolved).length + dqAlerts.filter((a) => !a.isResolved).length
+    : resolved
+      ? 0
+      : driftAlerts.length + dqAlerts.length;
 
   res.json({
     drift: { alerts: driftAlerts, count: driftAlerts.length },
     dataQuality: { alerts: dqAlerts, count: dqAlerts.length },
-    totalActive: resolved ? 0 : driftAlerts.length + dqAlerts.length,
+    totalActive: activeCount,
   });
 });
 

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@replit/connectors-sdk": "*",
-    "@replit/revenuecat-sdk": "*"
+    "@replit/revenuecat-sdk": "*",
+    "@workspace/db": "workspace:*"
   }
 }

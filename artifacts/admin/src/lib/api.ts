@@ -69,6 +69,10 @@ export const adminApi = {
     api.get<AlertsResult>(
       `/admin/alerts?resolved=${resolved}${sport ? `&sport=${sport}` : ""}`,
     ),
+  alertsAll: (sport?: string) =>
+    api.get<AlertsResult>(
+      `/admin/alerts?resolved=all${sport ? `&sport=${sport}` : ""}`,
+    ),
   resolveAlert: (type: "drift" | "dq", id: number, resolvedBy = "admin") =>
     api.post(`/admin/alerts/${type}/${id}/resolve`, { resolvedBy }),
   backtests: (modelVersionId?: number) =>
@@ -188,6 +192,7 @@ export interface DQAlert {
   description: string;
   isResolved: boolean;
   resolvedAt?: string | null;
+  resolvedBy?: string | null;
   createdAt: string;
 }
 

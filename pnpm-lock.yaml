@@ -809,6 +809,9 @@ importers:
       '@replit/revenuecat-sdk':
         specifier: '*'
         version: 5.0.0(typescript@5.9.3)
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../lib/db
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
