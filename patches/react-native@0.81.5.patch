@@ -1,0 +1,12 @@
+diff --git a/scripts/cocoapods/spm.rb b/scripts/cocoapods/spm.rb
+index 0b132076169b5d1c9757523439fad46edf7f59e0..18ff19f7905fb24d15fe97e700927934d60a71c2 100644
+--- a/scripts/cocoapods/spm.rb
++++ b/scripts/cocoapods/spm.rb
+@@ -66,6 +66,7 @@ class SPMManager
+   end
+ 
+   def add_spm_to_target(project, target, url, requirement, products)
++    return if target.nil? # Guard: pod target not found in Pods project (e.g. @clerk/expo ClerkGoogleSignIn)
+     pkg_class = Xcodeproj::Project::Object::XCRemoteSwiftPackageReference
+     ref_class = Xcodeproj::Project::Object::XCSwiftPackageProductDependency
+     pkg = project.root_object.package_references.find { |p| p.class == pkg_class && p.repositoryURL == url }

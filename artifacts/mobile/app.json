@@ -39,7 +39,8 @@
           "color": "#84CC16",
           "defaultChannel": "picks"
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
