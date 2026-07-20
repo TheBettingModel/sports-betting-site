@@ -1,239 +1,374 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import WNBATabs from "../components/WNBATabs";
+import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
+import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
+import TBMDataCard from "../components/cards/TBMDataCard";
+import TBMPageHeader from "../components/layout/TBMPageHeader";
+import TBMSection from "../components/layout/TBMSection";
+import "./WNBAModelPage.css";
 
-function WNBAModelPage({ marketFilter = "All", title = "WNBA Moneyline Model" }) {
-  const [plays, setPlays] = useState([]);
-  const [error, setError] = useState("");
+const API_URL = import.meta.env.VITE_API_URL;
 
-  const API_URL = import.meta.env.VITE_API_URL;
+function normalizeMarket(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
+function marketMatches(play, marketFilter) {
+  if (!marketFilter || marketFilter === "All") {
+    return true;
+  }
 
-    setError("");
+  const playMarket = normalizeMarket(play?.market);
+  const targetMarket = normalizeMarket(marketFilter);
 
-    fetch(`${API_URL}/model/wnba/today`, {
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data.plays)) {
-          setPlays(data.plays);
-        } else {
-          setError(data.error || "Failed to load WNBA model.");
-        }
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        console.error("WNBA model fetch error:", err);
-        setError("Failed to load WNBA model.");
-      })
-      .finally(() => clearTimeout(timer));
+  if (targetMarket === "moneyline") {
+    return playMarket.includes("moneyline") || playMarket === "ml";
+  }
 
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [API_URL]);
+  if (targetMarket === "spread") {
+    return playMarket.includes("spread") || playMarket.includes("point");
+  }
 
-  const sortedPlays = useMemo(() => {
-    return [...plays].sort((a, b) => {
-      return (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0);
-    });
-  }, [plays]);
+  if (targetMarket === "total") {
+    return (
+      playMarket.includes("total") ||
+      playMarket.includes("over") ||
+      playMarket.includes("under")
+    );
+  }
 
-  const filteredPlays = useMemo(() => {
-    if (marketFilter === "All") return sortedPlays;
+  return playMarket === targetMarket;
+}
 
-    return sortedPlays.filter((play) => play.market === marketFilter);
-  }, [sortedPlays, marketFilter]);
+function getEdge(play) {
+  const value = Number(play?.edge);
+  return Number.isFinite(value) ? value : 0;
+}
 
-  const topPlay = filteredPlays[0];
+function getConfidence(play) {
+  const value = Number(play?.confidence);
+  return Number.isFinite(value) ? value : 0;
+}
 
-  const getBadgeColor = (recommendation) => {
-    if (recommendation === "Play") return "#16a34a";
-    if (recommendation === "Lean") return "#f59e0b";
-    return "#6b7280";
-  };
+function getOdds(play) {
+  return play?.best_odds ?? play?.odds ?? null;
+}
 
-  const renderCard = (play, index, label = null, featured = false) => (
-    <div
-      key={`${play.game}-${play.pick}-${index}`}
-      style={{
-        backgroundColor: "#111827",
-        border: featured ? "2px solid #22c55e" : "1px solid #374151",
-        borderRadius: "16px",
-        padding: "24px",
-        boxShadow: featured ? "0 0 18px rgba(34, 197, 94, 0.35)" : "none",
-      }}
-    >
-      {label && <div style={labelStyle}>{label}</div>}
+function formatOdds(value) {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
 
-      <h2 style={{ fontSize: "24px", marginBottom: "8px" }}>
-        {play.game}
-      </h2>
+  const number = Number(value);
 
-      <h3 style={{ fontSize: "20px", color: "#facc15", marginBottom: "12px" }}>
-        {play.pick}
-      </h3>
+  if (!Number.isFinite(number)) {
+    return String(value);
+  }
 
-      <div style={badgeWrapStyle}>
-        <span style={badgeStyle}>Market: {play.market || "N/A"}</span>
-        <span style={badgeStyle}>Odds: {play.odds || "N/A"}</span>
-        <span style={badgeStyle}>Edge: {play.edge ?? "N/A"}%</span>
-        <span style={badgeStyle}>Confidence: {play.confidence ?? "N/A"}</span>
-        <span style={badgeStyle}>Units: {play.units ?? "N/A"}</span>
+  return number > 0 ? `+${number}` : String(number);
+}
 
-        <span
-          style={{
-            ...badgeStyle,
-            backgroundColor: getBadgeColor(play.recommendation),
-          }}
-        >
-          {play.recommendation || "N/A"}
-        </span>
-      </div>
+function average(values) {
+  const validValues = values.filter(Number.isFinite);
 
-      <div style={signalGridStyle}>
-        <div>
-          <h4>📈 Market</h4>
-          <p>Sharp: {play.sharp_signal || "N/A"}</p>
-          <p>Sharp Book: {play.sharp_book_signal || "N/A"}</p>
-          <p>Strength: {play.market_strength || "N/A"}</p>
-        </div>
-
-        <div>
-          <h4>🏀 Ratings</h4>
-          <p>Team: {play.team_rating ?? "N/A"}</p>
-          <p>Opponent: {play.opponent_rating ?? "N/A"}</p>
-          <p>Diff: {play.rating_diff ?? "N/A"}</p>
-        </div>
-
-        <div>
-          <h4>🏠 Situation</h4>
-          <p>Home Court: {play.home_court_adjustment ?? "N/A"}</p>
-          <p>Price Adj: {play.price_adjustment ?? "N/A"}</p>
-          <p>Version: {play.model_version || "N/A"}</p>
-        </div>
-
-        <div>
-          <h4>📚 Sportsbook</h4>
-          <p>Book: {play.sportsbook || "N/A"}</p>
-          <p>Book Score: {play.sharp_book_score ?? "N/A"}</p>
-          <p>Profile: {play.price_profile || "N/A"}</p>
-        </div>
-      </div>
-
-      <p style={reasonStyle}>
-        {play.reason || play.sharp_reason || "No model reason available."}
-      </p>
-    </div>
-  );
+  if (!validValues.length) {
+    return 0;
+  }
 
   return (
-    <div style={pageStyle}>
-      <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
-        {title}
-      </h1>
-
-      <WNBATabs />
-
-      <p style={subtitleStyle}>
-        WNBA model powered by market odds, team ratings, home-court adjustment,
-        sportsbook weighting, sharp signals, and price value.
-      </p>
-
-      {error ? (
-        <p style={{ color: "#f87171" }}>{error}</p>
-      ) : filteredPlays.length === 0 ? (
-        <p>No WNBA plays available right now.</p>
-      ) : (
-        <>
-          {topPlay && (
-            <section style={{ marginBottom: "45px" }}>
-              <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-                Top WNBA Play
-              </h2>
-              {renderCard(topPlay, 0, "Top WNBA Play", true)}
-            </section>
-          )}
-
-          <section>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-              WNBA Plays
-            </h2>
-
-            <div style={{ display: "grid", gap: "24px" }}>
-              {filteredPlays.map((play, index) =>
-                renderCard(play, index, index < 3 ? "Top Play" : null)
-              )}
-            </div>
-          </section>
-        </>
-      )}
-    </div>
+    validValues.reduce((sum, value) => sum + value, 0) /
+    validValues.length
   );
 }
 
-const pageStyle = {
-  padding: "30px",
-  backgroundColor: "#0b0b0b",
-  minHeight: "100vh",
-  color: "white",
-};
+function getRecommendation(play) {
+  return String(
+    play?.final_recommendation || play?.recommendation || ""
+  ).trim();
+}
 
-const subtitleStyle = {
-  color: "#9ca3af",
-  marginBottom: "30px",
-  maxWidth: "850px",
-  lineHeight: "1.6",
-};
+function isQualifiedPlay(play) {
+  const recommendation = getRecommendation(play).toLowerCase();
 
-const labelStyle = {
-  backgroundColor: "#22c55e",
-  color: "black",
-  padding: "6px 10px",
-  borderRadius: "8px",
-  display: "inline-block",
-  marginBottom: "16px",
-  fontWeight: "bold",
-  fontSize: "14px",
-};
+  return (
+    recommendation === "play" ||
+    recommendation === "best bet" ||
+    recommendation === "strong play"
+  );
+}
 
-const badgeWrapStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "10px",
-  marginBottom: "20px",
-};
+function getLastUpdated(data) {
+  const raw =
+    data?.last_updated ||
+    data?.updated_at ||
+    data?.generated_at;
 
-const badgeStyle = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: "999px",
-  fontSize: "14px",
-  fontWeight: "bold",
-};
+  if (!raw) {
+    return "Live";
+  }
 
-const signalGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "16px",
-  backgroundColor: "#020617",
-  padding: "18px",
-  borderRadius: "12px",
-  marginBottom: "18px",
-};
+  const date = new Date(raw);
 
-const reasonStyle = {
-  color: "#d1d5db",
-  lineHeight: "1.6",
-};
+  if (Number.isNaN(date.getTime())) {
+    return "Live";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function WNBAModelPage({
+  marketFilter = "All",
+  title = "WNBA Model Dashboard",
+}) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadWNBA = useCallback(async ({ silent = false } = {}) => {
+    const controller = new AbortController();
+
+    const timeout = window.setTimeout(() => {
+      controller.abort();
+    }, 30000);
+
+    try {
+      if (!silent) {
+        setRefreshing(true);
+      }
+
+      const response = await fetch(`${API_URL}/model/wnba/today`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`WNBA request failed: HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+
+      setData(json);
+      setError("");
+    } catch (requestError) {
+      if (requestError?.name !== "AbortError") {
+        console.error("WNBA model fetch error:", requestError);
+        setError("The WNBA dashboard could not be loaded.");
+      }
+    } finally {
+      window.clearTimeout(timeout);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWNBA();
+
+    const interval = window.setInterval(() => {
+      loadWNBA({ silent: true });
+    }, 120000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadWNBA]);
+
+  const allPlays = useMemo(() => {
+    return Array.isArray(data?.plays)
+      ? data.plays.filter(
+          (play) => play && typeof play === "object"
+        )
+      : [];
+  }, [data]);
+
+  const filteredPlays = useMemo(() => {
+    return allPlays
+      .filter((play) => marketMatches(play, marketFilter))
+      .sort((a, b) => getEdge(b) - getEdge(a));
+  }, [allPlays, marketFilter]);
+
+  const canonicalTopPlay = useMemo(() => {
+    const backendTopPlay = data?.top_play;
+
+    if (
+      backendTopPlay &&
+      typeof backendTopPlay === "object" &&
+      marketMatches(backendTopPlay, marketFilter)
+    ) {
+      return backendTopPlay;
+    }
+
+    return filteredPlays[0] || null;
+  }, [data, filteredPlays, marketFilter]);
+
+  const averageEdge = useMemo(() => {
+    return average(filteredPlays.map(getEdge));
+  }, [filteredPlays]);
+
+  const averageConfidence = useMemo(() => {
+    return average(filteredPlays.map(getConfidence));
+  }, [filteredPlays]);
+
+  const qualifiedCount = useMemo(() => {
+    return filteredPlays.filter(isQualifiedPlay).length;
+  }, [filteredPlays]);
+
+  const displayMarket =
+    marketFilter === "All" ? "All Markets" : marketFilter;
+
+  return (
+    <main className="wnba-v2-page">
+      <TBMPageHeader
+        title={title}
+        badge="WNBA Model"
+      />
+
+      <section className="wnba-v2-status">
+        <div className="wnba-v2-status-live">
+          <i />
+
+          <div>
+            <strong>WNBA Model Live</strong>
+            <span>Ranked by model edge</span>
+          </div>
+        </div>
+
+        <div className="wnba-v2-status-actions">
+          <span>{displayMarket}</span>
+
+          <span>
+            Updated {getLastUpdated(data)}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => loadWNBA()}
+            disabled={refreshing}
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+      </section>
+
+      <WNBATabs />
+
+      {error && !data ? (
+        <section className="wnba-v2-state wnba-v2-error">
+          <strong>Unable to load WNBA model</strong>
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={() => loadWNBA()}
+          >
+            Try Again
+          </button>
+        </section>
+      ) : !data ? (
+        <section className="wnba-v2-state">
+          <strong>Loading WNBA model</strong>
+
+          <span>
+            Pulling today’s games, market prices and model edges.
+          </span>
+        </section>
+      ) : (
+        <>
+          {error ? (
+            <div className="wnba-v2-warning">
+              {error} Showing the most recently loaded results.
+            </div>
+          ) : null}
+
+          <section className="wnba-v2-kpis">
+            <TBMDataCard
+              label="Available Plays"
+              value={filteredPlays.length}
+              tone="blue"
+            />
+
+            <TBMDataCard
+              label="Qualified Plays"
+              value={qualifiedCount}
+              tone="green"
+            />
+
+            <TBMDataCard
+              label="Average Edge"
+              value={`${averageEdge.toFixed(2)}%`}
+              tone="green"
+            />
+
+            <TBMDataCard
+              label="Average Confidence"
+              value={`${averageConfidence.toFixed(1)}%`}
+              tone="gold"
+            />
+          </section>
+
+          <section className="wnba-v2-hero">
+            <div className="wnba-v2-section-label">
+              <div>
+                <span>Official WNBA Top Play</span>
+                <strong>Canonical dashboard selection</strong>
+              </div>
+
+              {canonicalTopPlay ? (
+                <em>{formatOdds(getOdds(canonicalTopPlay))}</em>
+              ) : null}
+            </div>
+
+            <TBMHeroPlayCard play={canonicalTopPlay} />
+          </section>
+
+          <TBMSection title="WNBA Edge Board">
+            <div className="wnba-v2-board-heading">
+              <span>
+                Compact rankings across {displayMarket.toLowerCase()}
+              </span>
+
+              <strong>{filteredPlays.length} Plays</strong>
+            </div>
+
+            <div className="wnba-v2-play-list">
+              {filteredPlays.length > 0 ? (
+                filteredPlays.map((play, index) => (
+                  <TBMTopPlayRow
+                    key={`${play?.game || "game"}-${play?.pick || "pick"}-${index}`}
+                    play={{
+                      ...play,
+                      sport: play?.sport || "WNBA",
+                    }}
+                    index={index}
+                  />
+                ))
+              ) : (
+                <div className="wnba-v2-empty">
+                  <strong>No WNBA plays available</strong>
+
+                  <span>
+                    The current slate has no plays for this market filter.
+                  </span>
+                </div>
+              )}
+            </div>
+          </TBMSection>
+
+          <footer className="wnba-v2-footer">
+            <span>
+              Top play: {canonicalTopPlay?.pick || "No Play"}
+            </span>
+
+            <span>
+              Model: {data?.model_version || "WNBA Universal Model"}
+            </span>
+          </footer>
+        </>
+      )}
+    </main>
+  );
+}
 
 export default WNBAModelPage;
