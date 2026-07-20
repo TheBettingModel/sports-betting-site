@@ -1,8 +1,30 @@
 diff --git a/scripts/cocoapods/spm.rb b/scripts/cocoapods/spm.rb
-index 0b132076169b5d1c9757523439fad46edf7f59e0..18ff19f7905fb24d15fe97e700927934d60a71c2 100644
+index 0b132076169b5d1c9757523439fad46edf7f59e0..6f023eb475a2527c25bf0c8af50d6994dc327bb7 100644
 --- a/scripts/cocoapods/spm.rb
 +++ b/scripts/cocoapods/spm.rb
-@@ -66,6 +66,7 @@ class SPMManager
+@@ -29,13 +29,15 @@ class SPMManager
+           spm_spec[:requirement],
+           spm_spec[:products]
+         )
+-        log " Adding workaround for Swift package not found issue"
+         target = project.targets.find { |t| t.name == pod_name}
+-        target.build_configurations.each do |config|
+-          target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'] ||= ['$(inherited)']
+-          search_path = '${SYMROOT}/${CONFIGURATION}${EFFECTIVE_PLATFORM_NAME}/'
+-          unless target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].include?(search_path)
+-            target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].push(search_path)
++        unless target.nil?
++          log " Adding workaround for Swift package not found issue"
++          target.build_configurations.each do |config|
++            target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'] ||= ['$(inherited)']
++            search_path = '${SYMROOT}/${CONFIGURATION}${EFFECTIVE_PLATFORM_NAME}/'
++            unless target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].include?(search_path)
++              target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].push(search_path)
++            end
+           end
+         end
+       end
+@@ -66,6 +68,7 @@ class SPMManager
    end
  
    def add_spm_to_target(project, target, url, requirement, products)
