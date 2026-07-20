@@ -14,9 +14,12 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.thebettingmodel.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.thebettingmodel.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

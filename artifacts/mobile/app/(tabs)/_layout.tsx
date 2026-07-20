@@ -3,7 +3,6 @@ import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Redirect, Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
@@ -140,6 +139,6 @@ export default function TabLayout() {
   // Not signed in — redirect to auth
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
 
-  if (isLiquidGlassAvailable()) return <NativeTabLayout />;
+  if (Platform.OS === 'ios') return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }
