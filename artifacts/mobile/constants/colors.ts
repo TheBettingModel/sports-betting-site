@@ -1,57 +1,56 @@
 /**
- * TheBettingModel – white & green theme.
- * Lime green (#84CC16) matches the logo's accent colour.
- * Both light and dark resolve to the same light palette.
+ * TheBettingModel – black & green theme.
+ * Lime green (#84CC16) matches the logo. Black background.
  */
 
 const palette = {
-  text: '#0F172A',
+  text: '#FFFFFF',
   tint: '#84CC16',
 
   // Core surfaces
-  background: '#FFFFFF',
-  foreground: '#0F172A',
+  background: '#000000',
+  foreground: '#FFFFFF',
 
   // Cards / elevated surfaces
-  card: '#F8FAFC',
-  cardForeground: '#0F172A',
+  card: '#111111',
+  cardForeground: '#FFFFFF',
 
   // Primary — lime green (logo colour)
   primary: '#84CC16',
-  primaryForeground: '#FFFFFF',
+  primaryForeground: '#000000',
 
-  // Secondary — light slate
-  secondary: '#F1F5F9',
-  secondaryForeground: '#0F172A',
+  // Secondary
+  secondary: '#1A1A1A',
+  secondaryForeground: '#F9FAFB',
 
   // Muted
-  muted: '#F1F5F9',
-  mutedForeground: '#64748B',
+  muted: '#1A1A1A',
+  mutedForeground: '#6B7280',
 
   // Accent
   accent: '#84CC16',
-  accentForeground: '#FFFFFF',
+  accentForeground: '#000000',
 
   // Destructive
   destructive: '#EF4444',
   destructiveForeground: '#FFFFFF',
 
   // Borders and inputs
-  border: '#E2E8F0',
-  input: '#E2E8F0',
+  border: '#222222',
+  input: '#222222',
 
   // Semantic win / loss
-  win: '#16A34A',
+  win: '#84CC16',
   loss: '#EF4444',
-  winBg: '#DCFCE7',
-  lossBg: '#FEE2E2',
+  winBg: '#1A2600',
+  lossBg: '#2D0A0A',
 
-  // Green accent (replaces gold)
+  // Green accent (logo lime)
   gold: '#84CC16',
-  goldBg: '#ECFCCB',
+  goldBg: '#1A2600',
 
   // Surface variants
-  surface: '#F8FAFC',
+  surface: '#0A0A0A',
 };
 
 const colors = {
