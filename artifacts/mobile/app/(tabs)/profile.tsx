@@ -234,10 +234,11 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {(statsData?.stats ?? []).length > 0 && (
+        {(statsData?.stats ?? []).filter(w => w.totalPredictions > 0).length > 0 && (
           <>
             <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-            {statsData!.stats.map((w, i, arr) => (
+            <Text style={[styles.statSectionLabel, { color: colors.mutedForeground }]}>ALL-TIME BY SPORT</Text>
+            {statsData!.stats.filter(w => w.totalPredictions > 0).map((w, i, arr) => (
               <View key={w.sport}>
                 <View style={styles.sportStatRow}>
                   <Text style={[styles.statLabel, { color: colors.foreground }]}>{w.sport}</Text>
@@ -383,6 +384,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 16,
   },
   sportStatRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statSectionLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   statAccuracy: { fontSize: 15, fontFamily: 'Inter_700Bold', minWidth: 38, textAlign: 'right' },
   topSportBanner: { paddingVertical: 10, paddingHorizontal: 16 },
   topSportText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
