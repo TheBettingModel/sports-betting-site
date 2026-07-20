@@ -7,7 +7,7 @@ import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
 import { runGrading } from "../services/grading-runner";
 import { logger } from "../lib/logger";
-import { resolveSubscriberStatus } from "../middleware/requireSubscriber";
+import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
 
 type AnyGame = Record<string, unknown>;
 
@@ -151,7 +151,7 @@ export async function refreshAll(): Promise<{
  *     The free quota is global — not per-sport — so repeatedly querying
  *     with ?sport= cannot be used to extract additional premium picks.
  */
-router.get("/games/today", resolveSubscriberStatus, async (req, res): Promise<void> => {
+router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
   if (isStale()) {
     try {
       await refreshAll();
