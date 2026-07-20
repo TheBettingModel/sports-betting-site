@@ -401,6 +401,12 @@ export const schedulerJobs = {
 };
 
 /**
+ * Exported for testing only. Do not call directly in production code.
+ * @internal
+ */
+export { checkAndRaiseSportAlerts as _checkAndRaiseSportAlerts };
+
+/**
  * Get recent automation run history.
  */
 export async function getAutomationRuns(limit = 50) {
