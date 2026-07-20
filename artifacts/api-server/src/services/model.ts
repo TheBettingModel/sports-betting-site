@@ -84,9 +84,13 @@ export function computeProjection(
   const homeWinPct = Math.round(prob * 100);
   const deviation = Math.abs(homeWinPct - 50);
 
-  // Vegas estimated line (slightly different from model)
+  // Vegas estimated line — modelled as a naive market that uses only
+  // raw win-rate differential without home advantage or learned weights.
+  // This creates a genuine model-vs-market spread: the edge measures
+  // how much the model's informed view diverges from the naive market.
+  const naiveMarketProb = 0.5 + (homeWinRate - awayWinRate) * 0.3;
   const vegasNoise = ((hashCode(gameId + "v") % 7) - 3) * 0.01;
-  const vegasProb = Math.max(0.1, Math.min(0.9, prob + vegasNoise));
+  const vegasProb = Math.max(0.1, Math.min(0.9, naiveMarketProb + vegasNoise));
   const vegasHomeOdds = impliedToAmerican(vegasProb);
   const vegasAwayOdds = impliedToAmerican(1 - vegasProb);
   const vegasImplied = americanToImplied(vegasHomeOdds);
