@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -32,9 +32,11 @@ export default function ProfileScreen() {
     >
       {/* Brand header */}
       <View style={styles.brandRow}>
-        <View style={[styles.logoBox, { backgroundColor: colors.gold, borderRadius: colors.radius }]}>
-          <Text style={[styles.logoText, { color: colors.primaryForeground }]}>TBM</Text>
-        </View>
+        <Image
+          source={require('@/assets/images/icon.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <View style={styles.brandText}>
           <Text style={[styles.brandName, { color: colors.foreground }]}>TheBettingModel</Text>
           <Text style={[styles.brandSub, { color: colors.mutedForeground }]}>AI-Powered Sports Analytics</Text>
@@ -128,8 +130,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
-  logoBox: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-  logoText: { fontSize: 18, fontFamily: 'Inter_700Bold' },
+  logoImage: { width: 56, height: 56, borderRadius: 12 },
   brandText: { flex: 1, gap: 2 },
   brandName: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   brandSub: { fontSize: 12, fontFamily: 'Inter_400Regular' },
