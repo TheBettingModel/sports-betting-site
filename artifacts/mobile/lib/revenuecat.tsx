@@ -3,10 +3,16 @@ import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
+import { useAuth } from "@clerk/expo";
 
 const REVENUECAT_TEST_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
+
+// Comma-separated list of Clerk user IDs that always have Pro access (app owners/admins)
+const ADMIN_USER_IDS = new Set(
+  (process.env.EXPO_PUBLIC_ADMIN_USER_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+);
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "pro";
 
@@ -37,6 +43,10 @@ export function initializeRevenueCat(userId?: string) {
 }
 
 function useSubscriptionContext() {
+  const { userId } = useAuth();
+
+  const isAdmin = !!userId && ADMIN_USER_IDS.has(userId);
+
   const customerInfoQuery = useQuery({
     queryKey: ["revenuecat", "customer-info"],
     queryFn: () => Purchases.getCustomerInfo(),
@@ -62,13 +72,17 @@ function useSubscriptionContext() {
     onSuccess: () => customerInfoQuery.refetch(),
   });
 
-  const isSubscribed =
+  const rcSubscribed =
     customerInfoQuery.data?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
+
+  // Admins always have Pro access regardless of RevenueCat status
+  const isSubscribed = isAdmin || rcSubscribed;
 
   return {
     customerInfo: customerInfoQuery.data,
     offerings: offeringsQuery.data,
     isSubscribed,
+    isAdmin,
     isLoading: customerInfoQuery.isLoading || offeringsQuery.isLoading,
     purchase: purchaseMutation.mutateAsync,
     restore: restoreMutation.mutateAsync,
