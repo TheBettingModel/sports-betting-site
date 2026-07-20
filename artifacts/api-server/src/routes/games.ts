@@ -4,6 +4,8 @@ import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
 import { runLearning } from "../services/learning";
+import { processGameSnapshot } from "../services/snapshot";
+import { runGrading } from "../services/grading-runner";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -20,6 +22,7 @@ function isStale(): boolean {
 export async function refreshAll(): Promise<{
   gamesUpdated: number;
   sportsRefreshed: string[];
+  picksGraded: number;
 }> {
   const [fetchedGames, weights] = await Promise.all([
     fetchAllSports(),
@@ -41,6 +44,7 @@ export async function refreshAll(): Promise<{
       w,
     );
 
+    // Upsert the games table (existing behaviour — unchanged)
     await db
       .insert(gamesTable)
       .values({
@@ -81,13 +85,25 @@ export async function refreshAll(): Promise<{
         },
       });
 
+    // Snapshot pipeline: odds, predictions, results, closing lines
+    await processGameSnapshot(game, proj);
+
     upserted++;
     sports.add(game.sport);
   }
 
+  // EMA learning pass (keeps confidenceMultiplier up to date)
+  await runLearning();
+
+  // Grade any picks that now have a completed game result
+  const picksGraded = await runGrading();
+
   lastRefreshedAt = new Date();
-  logger.info({ upserted, sports: [...sports] }, "Games refresh complete");
-  return { gamesUpdated: upserted, sportsRefreshed: [...sports] };
+  logger.info(
+    { upserted, sports: [...sports], picksGraded },
+    "Games refresh complete",
+  );
+  return { gamesUpdated: upserted, sportsRefreshed: [...sports], picksGraded };
 }
 
 /**
@@ -99,7 +115,6 @@ router.get("/games/today", async (req, res): Promise<void> => {
   if (isStale()) {
     try {
       await refreshAll();
-      await runLearning();
     } catch (err) {
       req.log.warn({ err }, "Auto-refresh failed; serving cached data");
     }
@@ -128,11 +143,10 @@ router.get("/games/today", async (req, res): Promise<void> => {
 
 /**
  * POST /api/games/refresh
- * Manually trigger an ESPN pull + model update.
+ * Manually trigger an ESPN pull + model update + grading pass.
  */
 router.post("/games/refresh", async (req, res): Promise<void> => {
   const result = await refreshAll();
-  await runLearning();
   res.json({ message: "Refresh complete", ...result });
 });
 
