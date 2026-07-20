@@ -1,240 +1,530 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import NFLTabs from "../components/NFLTabs";
+import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
+import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
+import TBMDataCard from "../components/cards/TBMDataCard";
+import TBMPageHeader from "../components/layout/TBMPageHeader";
+import TBMSection from "../components/layout/TBMSection";
+import "./NFLModelPage.css";
 
-function NFLModelPage({ marketFilter = "All", title = "NFL Moneyline Model" }) {
-  const [plays, setPlays] = useState([]);
-  const [error, setError] = useState("");
+const API_URL = import.meta.env.VITE_API_URL;
 
-  const API_URL = import.meta.env.VITE_API_URL;
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
+function getMarket(play) {
+  return normalizeText(play?.market);
+}
 
-    setError("");
+function marketMatches(play, marketFilter) {
+  if (!marketFilter || marketFilter === "All") {
+    return true;
+  }
 
-    fetch(`${API_URL}/model/nfl/today`, {
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data.plays)) {
-          setPlays(data.plays);
-        } else {
-          setError(data.error || "Failed to load NFL model.");
-        }
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        console.error("NFL model fetch error:", err);
-        setError("Failed to load NFL model.");
-      })
-      .finally(() => clearTimeout(timer));
+  const playMarket = getMarket(play);
+  const targetMarket = normalizeText(marketFilter);
 
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [API_URL]);
+  if (targetMarket === "moneyline") {
+    return (
+      playMarket.includes("moneyline") ||
+      playMarket === "ml"
+    );
+  }
 
-  const sortedPlays = useMemo(() => {
-    return [...plays].sort((a, b) => {
-      return (parseFloat(b.edge) || 0) - (parseFloat(a.edge) || 0);
-    });
-  }, [plays]);
+  if (targetMarket === "spread") {
+    return (
+      playMarket.includes("spread") ||
+      playMarket.includes("point spread")
+    );
+  }
 
-  const filteredPlays = useMemo(() => {
-    if (marketFilter === "All") return sortedPlays;
+  if (targetMarket === "total") {
+    return (
+      playMarket.includes("total") ||
+      playMarket.includes("over") ||
+      playMarket.includes("under")
+    );
+  }
 
-    return sortedPlays.filter((play) => play.market === marketFilter);
-  }, [sortedPlays, marketFilter]);
+  return playMarket === targetMarket;
+}
 
-  const topPlay = filteredPlays[0];
+function getEdge(play) {
+  const value = Number.parseFloat(play?.edge);
+  return Number.isFinite(value) ? value : 0;
+}
 
-  const getBadgeColor = (recommendation) => {
-    if (recommendation === "Play") return "#16a34a";
-    if (recommendation === "Lean") return "#f59e0b";
-    return "#6b7280";
-  };
+function getConfidence(play) {
+  const value = Number.parseFloat(play?.confidence);
+  return Number.isFinite(value) ? value : 0;
+}
 
-  const renderCard = (play, index, label = null, featured = false) => (
-    <div
-      key={`${play.game}-${play.pick}-${index}`}
-      style={{
-        backgroundColor: "#111827",
-        border: featured ? "2px solid #22c55e" : "1px solid #374151",
-        borderRadius: "16px",
-        padding: "24px",
-        boxShadow: featured ? "0 0 18px rgba(34, 197, 94, 0.35)" : "none",
-      }}
-    >
-      {label && <div style={labelStyle}>{label}</div>}
-
-      <h2 style={{ fontSize: "24px", marginBottom: "8px" }}>
-        {play.game}
-      </h2>
-
-      <h3 style={{ fontSize: "20px", color: "#facc15", marginBottom: "12px" }}>
-        {play.pick}
-      </h3>
-
-      <div style={badgeWrapStyle}>
-        <span style={badgeStyle}>Market: {play.market || "N/A"}</span>
-        <span style={badgeStyle}>Odds: {play.odds || "N/A"}</span>
-        <span style={badgeStyle}>Edge: {play.edge ?? "N/A"}%</span>
-        <span style={badgeStyle}>Confidence: {play.confidence ?? "N/A"}</span>
-        <span style={badgeStyle}>Units: {play.units ?? "N/A"}</span>
-        <span style={badgeStyle}>POD Score: {play.auto_pod_score ?? "N/A"}</span>
-
-        <span
-          style={{
-            ...badgeStyle,
-            backgroundColor: getBadgeColor(play.recommendation),
-          }}
-        >
-          {play.recommendation || "N/A"}
-        </span>
-      </div>
-
-      <div style={signalGridStyle}>
-        <div>
-          <h4>📈 Market</h4>
-          <p>Sharp: {play.sharp_signal || "N/A"}</p>
-          <p>CLV: {play.clv_status || "N/A"}</p>
-          <p>Timing: {play.market_timing_signal || "N/A"}</p>
-        </div>
-
-        <div>
-          <h4>🏈 Ratings</h4>
-          <p>Team: {play.team_rating ?? "N/A"}</p>
-          <p>Opponent: {play.opponent_rating ?? "N/A"}</p>
-          <p>Diff: {play.rating_diff ?? "N/A"}</p>
-        </div>
-
-        <div>
-          <h4>🏟️ Situation</h4>
-          <p>Home Field: {play.home_field_adjustment ?? "N/A"}</p>
-          <p>Price Adj: {play.price_adjustment ?? "N/A"}</p>
-          <p>Version: {play.model_version || "N/A"}</p>
-        </div>
-
-        <div>
-          <h4>📚 Book</h4>
-          <p>Book: {play.sportsbook || "N/A"}</p>
-          <p>Sharp Book: {play.sharp_book_signal || "N/A"}</p>
-          <p>Score: {play.sharp_book_score ?? "N/A"}</p>
-        </div>
-      </div>
-
-      <p style={reasonStyle}>
-        {play.reason || play.sharp_reason || "No model reason available."}
-      </p>
-    </div>
+function getPodScore(play) {
+  const value = Number.parseFloat(
+    play?.universal_pod_score ??
+      play?.auto_pod_score
   );
 
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getOdds(play) {
   return (
-    <div style={pageStyle}>
-      <h1 style={{ marginBottom: "10px", fontSize: "38px" }}>
-        {title}
-      </h1>
-
-      <NFLTabs />
-
-      <p style={subtitleStyle}>
-        NFL model powered by market odds, team ratings, home-field adjustment,
-        sharp signals, CLV, sportsbook weighting, and market timing.
-      </p>
-
-      {error ? (
-        <p style={{ color: "#f87171" }}>{error}</p>
-      ) : filteredPlays.length === 0 ? (
-        <p>No NFL plays available right now.</p>
-      ) : (
-        <>
-          {topPlay && (
-            <section style={{ marginBottom: "45px" }}>
-              <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-                Top NFL Play
-              </h2>
-              {renderCard(topPlay, 0, "Top NFL Play", true)}
-            </section>
-          )}
-
-          <section>
-            <h2 style={{ marginBottom: "18px", fontSize: "30px" }}>
-              NFL Plays
-            </h2>
-
-            <div style={{ display: "grid", gap: "24px" }}>
-              {filteredPlays.map((play, index) =>
-                renderCard(play, index, index < 3 ? "Top Play" : null)
-              )}
-            </div>
-          </section>
-        </>
-      )}
-    </div>
+    play?.best_odds ??
+    play?.odds ??
+    null
   );
 }
 
-const pageStyle = {
-  padding: "30px",
-  backgroundColor: "#0b0b0b",
-  minHeight: "100vh",
-  color: "white",
-};
+function formatOdds(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return "N/A";
+  }
 
-const subtitleStyle = {
-  color: "#9ca3af",
-  marginBottom: "30px",
-  maxWidth: "850px",
-  lineHeight: "1.6",
-};
+  const numericValue = Number(value);
 
-const labelStyle = {
-  backgroundColor: "#22c55e",
-  color: "black",
-  padding: "6px 10px",
-  borderRadius: "8px",
-  display: "inline-block",
-  marginBottom: "16px",
-  fontWeight: "bold",
-  fontSize: "14px",
-};
+  if (!Number.isFinite(numericValue)) {
+    return String(value);
+  }
 
-const badgeWrapStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "10px",
-  marginBottom: "20px",
-};
+  return numericValue > 0
+    ? `+${numericValue}`
+    : String(numericValue);
+}
 
-const badgeStyle = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  color: "white",
-  padding: "8px 10px",
-  borderRadius: "999px",
-  fontSize: "14px",
-  fontWeight: "bold",
-};
+function average(values) {
+  const validValues = values.filter(Number.isFinite);
 
-const signalGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "16px",
-  backgroundColor: "#020617",
-  padding: "18px",
-  borderRadius: "12px",
-  marginBottom: "18px",
-};
+  if (!validValues.length) {
+    return 0;
+  }
 
-const reasonStyle = {
-  color: "#d1d5db",
-  lineHeight: "1.6",
-};
+  return (
+    validValues.reduce(
+      (sum, value) => sum + value,
+      0
+    ) / validValues.length
+  );
+}
+
+function getRecommendation(play) {
+  return String(
+    play?.final_recommendation ||
+      play?.recommendation ||
+      ""
+  ).trim();
+}
+
+function isQualifiedPlay(play) {
+  const recommendation = normalizeText(
+    getRecommendation(play)
+  );
+
+  return (
+    recommendation === "play" ||
+    recommendation === "best bet" ||
+    recommendation === "strong play" ||
+    recommendation === "official play"
+  );
+}
+
+function getLastUpdated(data) {
+  const raw =
+    data?.last_updated ||
+    data?.updated_at ||
+    data?.generated_at;
+
+  if (!raw) {
+    return "Live";
+  }
+
+  const date = new Date(raw);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Live";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function NFLModelPage({
+  marketFilter = "All",
+  title = "NFL Moneyline Model",
+}) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadNFL = useCallback(
+    async ({ silent = false } = {}) => {
+      const controller = new AbortController();
+
+      const timeout = window.setTimeout(() => {
+        controller.abort();
+      }, 30000);
+
+      try {
+        if (!silent) {
+          setRefreshing(true);
+        }
+
+        const response = await fetch(
+          `${API_URL}/model/nfl/today`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `NFL request failed: HTTP ${response.status}`
+          );
+        }
+
+        const json = await response.json();
+
+        setData(json);
+        setError("");
+      } catch (requestError) {
+        if (requestError?.name !== "AbortError") {
+          console.error(
+            "NFL model fetch error:",
+            requestError
+          );
+
+          setError(
+            "The NFL dashboard could not be loaded."
+          );
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        setRefreshing(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    loadNFL();
+
+    const interval = window.setInterval(() => {
+      loadNFL({
+        silent: true,
+      });
+    }, 120000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadNFL]);
+
+  const allPlays = useMemo(() => {
+    if (!Array.isArray(data?.plays)) {
+      return [];
+    }
+
+    return data.plays.filter(
+      (play) =>
+        play &&
+        typeof play === "object"
+    );
+  }, [data]);
+
+  const filteredPlays = useMemo(() => {
+    return allPlays
+      .filter((play) =>
+        marketMatches(
+          play,
+          marketFilter
+        )
+      )
+      .sort((a, b) => {
+        const podDifference =
+          getPodScore(b) -
+          getPodScore(a);
+
+        if (podDifference !== 0) {
+          return podDifference;
+        }
+
+        return (
+          getEdge(b) -
+          getEdge(a)
+        );
+      });
+  }, [allPlays, marketFilter]);
+
+  const canonicalTopPlay = useMemo(() => {
+    const backendTopPlay =
+      data?.top_play;
+
+    if (
+      backendTopPlay &&
+      typeof backendTopPlay === "object" &&
+      marketMatches(
+        backendTopPlay,
+        marketFilter
+      )
+    ) {
+      return backendTopPlay;
+    }
+
+    return filteredPlays[0] || null;
+  }, [
+    data,
+    filteredPlays,
+    marketFilter,
+  ]);
+
+  const qualifiedCount = useMemo(() => {
+    return filteredPlays.filter(
+      isQualifiedPlay
+    ).length;
+  }, [filteredPlays]);
+
+  const averageEdge = useMemo(() => {
+    return average(
+      filteredPlays.map(getEdge)
+    );
+  }, [filteredPlays]);
+
+  const averageConfidence = useMemo(() => {
+    return average(
+      filteredPlays.map(
+        getConfidence
+      )
+    );
+  }, [filteredPlays]);
+
+  const displayMarket =
+    marketFilter === "All"
+      ? "All Markets"
+      : marketFilter;
+
+  return (
+    <main className="nfl-v2-page">
+      <TBMPageHeader
+        title={title}
+        badge="NFL Model"
+      />
+
+      <section className="nfl-v2-status">
+        <div className="nfl-v2-status-live">
+          <i />
+
+          <div>
+            <strong>
+              NFL Model Live
+            </strong>
+
+            <span>
+              Ranked by POD score and edge
+            </span>
+          </div>
+        </div>
+
+        <div className="nfl-v2-status-actions">
+          <span>{displayMarket}</span>
+
+          <span>
+            Updated{" "}
+            {getLastUpdated(data)}
+          </span>
+
+          <button
+            type="button"
+            onClick={() =>
+              loadNFL()
+            }
+            disabled={refreshing}
+          >
+            {refreshing
+              ? "Refreshing..."
+              : "Refresh"}
+          </button>
+        </div>
+      </section>
+
+      <NFLTabs />
+
+      {error && !data ? (
+        <section className="nfl-v2-state nfl-v2-error">
+          <strong>
+            Unable to load NFL model
+          </strong>
+
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              loadNFL()
+            }
+          >
+            Try Again
+          </button>
+        </section>
+      ) : !data ? (
+        <section className="nfl-v2-state">
+          <strong>
+            Loading NFL model
+          </strong>
+
+          <span>
+            Pulling today’s games,
+            market prices and model
+            edges.
+          </span>
+        </section>
+      ) : (
+        <>
+          {error ? (
+            <div className="nfl-v2-warning">
+              {error} Showing the most
+              recently loaded results.
+            </div>
+          ) : null}
+
+          <section className="nfl-v2-kpis">
+            <TBMDataCard
+              label="Available Plays"
+              value={filteredPlays.length}
+              tone="blue"
+            />
+
+            <TBMDataCard
+              label="Qualified Plays"
+              value={qualifiedCount}
+              tone="green"
+            />
+
+            <TBMDataCard
+              label="Average Edge"
+              value={`${averageEdge.toFixed(
+                2
+              )}%`}
+              tone="green"
+            />
+
+            <TBMDataCard
+              label="Average Confidence"
+              value={`${averageConfidence.toFixed(
+                1
+              )}%`}
+              tone="gold"
+            />
+          </section>
+
+          <section className="nfl-v2-hero">
+            <div className="nfl-v2-section-label">
+              <div>
+                <span>
+                  Official NFL Top Play
+                </span>
+
+                <strong>
+                  Canonical model selection
+                </strong>
+              </div>
+
+              {canonicalTopPlay ? (
+                <em>
+                  {formatOdds(
+                    getOdds(
+                      canonicalTopPlay
+                    )
+                  )}
+                </em>
+              ) : null}
+            </div>
+
+            <TBMHeroPlayCard
+              play={
+                canonicalTopPlay
+                  ? {
+                      ...canonicalTopPlay,
+                      sport:
+                        canonicalTopPlay?.sport ||
+                        "NFL",
+                    }
+                  : null
+              }
+            />
+          </section>
+
+          <TBMSection title="NFL Edge Board">
+            <div className="nfl-v2-board-heading">
+              <span>
+                Compact rankings across{" "}
+                {displayMarket.toLowerCase()}
+              </span>
+
+              <strong>
+                {filteredPlays.length} Plays
+              </strong>
+            </div>
+
+            <div className="nfl-v2-play-list">
+              {filteredPlays.length > 0 ? (
+                filteredPlays.map(
+                  (play, index) => (
+                    <TBMTopPlayRow
+                      key={`${play?.game || "game"}-${play?.pick || "pick"}-${index}`}
+                      play={{
+                        ...play,
+                        sport:
+                          play?.sport ||
+                          "NFL",
+                      }}
+                      index={index}
+                    />
+                  )
+                )
+              ) : (
+                <div className="nfl-v2-empty">
+                  <strong>
+                    No NFL plays available
+                  </strong>
+
+                  <span>
+                    The current slate has
+                    no plays for this market
+                    filter.
+                  </span>
+                </div>
+              )}
+            </div>
+          </TBMSection>
+
+          <footer className="nfl-v2-footer">
+            <span>
+              Top play:{" "}
+              {canonicalTopPlay?.pick ||
+                "No Play"}
+            </span>
+
+            <span>
+              Model:{" "}
+              {data?.model_version ||
+                canonicalTopPlay?.model_version ||
+                "NFL Universal Model"}
+            </span>
+          </footer>
+        </>
+      )}
+    </main>
+  );
+}
 
 export default NFLModelPage;
