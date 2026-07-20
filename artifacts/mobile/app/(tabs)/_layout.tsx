@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
+import { useAuth } from '@clerk/expo';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
 
 function NativeTabLayout() {
   return (
@@ -117,6 +119,17 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
+  const { isSignedIn, getToken } = useAuth();
+
+  // Wire Clerk bearer token into all API client requests (mobile has no cookie jar)
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => { setAuthTokenGetter(null); };
+  }, [getToken]);
+
+  // Not signed in — redirect to auth
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+
   if (isLiquidGlassAvailable()) return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }

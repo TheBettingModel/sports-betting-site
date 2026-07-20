@@ -3,19 +3,23 @@ import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useClerk, useUser } from '@clerk/expo';
 import { useColors } from '@/hooks/useColors';
 import { useGetModelStats, useGetGamesToday } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
 import { MOCK_GAMES } from '@/data/mockGames';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
 
   const { data: statsData } = useGetModelStats();
   const { data: gamesData } = useGetGamesToday();
 
-  // Real or mock games for today's stats
   const todayGames = React.useMemo(() => {
     if (gamesData?.games && gamesData.games.length > 0) return gamesData.games.map(mapApiGame);
     return MOCK_GAMES;
@@ -26,7 +30,6 @@ export default function ProfileScreen() {
     todayGames.reduce((s, g) => s + Math.max(g.projection.edge, 0), 0) / todayGames.length
   ).toFixed(1);
 
-  // Model learning stats
   const overall = statsData?.overallAccuracy ?? 0;
   const totalPredictions = statsData?.totalPredictions ?? 0;
   const isCalibrating = totalPredictions === 0;
@@ -41,6 +44,17 @@ export default function ProfileScreen() {
     ? [...statsData.stats].sort((a, b) => b.accuracyRate - a.accuracyRate)[0]
     : null;
 
+  // User display name / initials
+  const displayName = user?.fullName ?? user?.firstName ?? user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] ?? 'User';
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
+  const initials = displayName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
+
+  const handleSignOut = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await signOut();
+    router.replace('/(auth)/sign-in');
+  };
+
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
@@ -51,29 +65,28 @@ export default function ProfileScreen() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Brand header */}
-      <View style={styles.brandRow}>
-        <Image
-          source={require('@/assets/images/icon.png')}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-        <View style={styles.brandText}>
-          <Text style={[styles.brandName, { color: colors.foreground }]}>TheBettingModel</Text>
-          <Text style={[styles.brandSub, { color: colors.mutedForeground }]}>AI-Powered Sports Analytics</Text>
+      {/* User header */}
+      <View style={styles.userRow}>
+        {/* Avatar */}
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{initials}</Text>
+        </View>
+        <View style={styles.userInfo}>
+          <Text style={[styles.userName, { color: colors.foreground }]}>{displayName}</Text>
+          {!!email && <Text style={[styles.userEmail, { color: colors.mutedForeground }]}>{email}</Text>}
         </View>
       </View>
 
-      {/* Sign in CTA */}
+      {/* Sign out */}
       <Pressable
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+        onPress={handleSignOut}
         style={({ pressed }) => [
-          styles.signInBtn,
-          { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1, borderRadius: colors.radius },
+          styles.signOutBtn,
+          { borderColor: colors.border, opacity: pressed ? 0.7 : 1, borderRadius: colors.radius },
         ]}
       >
-        <Feather name="user" size={18} color={colors.primaryForeground} />
-        <Text style={[styles.signInText, { color: colors.primaryForeground }]}>Sign In to Sync Picks</Text>
+        <Feather name="log-out" size={16} color={colors.mutedForeground} />
+        <Text style={[styles.signOutText, { color: colors.mutedForeground }]}>Sign Out</Text>
       </Pressable>
 
       {/* Model Learning */}
@@ -90,9 +103,7 @@ export default function ProfileScreen() {
         ) : (
           <View style={styles.perfRow}>
             <View style={styles.perfStat}>
-              <Text style={[styles.perfVal, { color: colors.win }]}>
-                {Math.round(overall * 100)}%
-              </Text>
+              <Text style={[styles.perfVal, { color: colors.win }]}>{Math.round(overall * 100)}%</Text>
               <Text style={[styles.perfLabel, { color: colors.mutedForeground }]}>ACCURACY</Text>
             </View>
             <View style={[styles.perfDivider, { backgroundColor: colors.border }]} />
@@ -110,7 +121,6 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Per-sport accuracy rows */}
         {(statsData?.stats ?? []).length > 0 && (
           <>
             <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
@@ -122,26 +132,14 @@ export default function ProfileScreen() {
                     <Text style={[styles.statValue, { color: colors.mutedForeground }]}>
                       {w.correctPredictions}/{w.totalPredictions}
                     </Text>
-                    <Text
-                      style={[
-                        styles.statAccuracy,
-                        {
-                          color:
-                            w.accuracyRate >= 0.6
-                              ? colors.win
-                              : w.accuracyRate >= 0.5
-                                ? colors.gold
-                                : colors.loss,
-                        },
-                      ]}
-                    >
+                    <Text style={[styles.statAccuracy, {
+                      color: w.accuracyRate >= 0.6 ? colors.win : w.accuracyRate >= 0.5 ? colors.gold : colors.loss,
+                    }]}>
                       {Math.round(w.accuracyRate * 100)}%
                     </Text>
                   </View>
                 </View>
-                {i < arr.length - 1 && (
-                  <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-                )}
+                {i < arr.length - 1 && <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />}
               </View>
             ))}
           </>
@@ -205,26 +203,20 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
-  logoImage: { width: 56, height: 56, borderRadius: 12 },
-  brandText: { flex: 1, gap: 2 },
-  brandName: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  brandSub: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  signInBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    marginBottom: 28,
+  userRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
+  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  userInfo: { flex: 1, gap: 3 },
+  userName: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  userEmail: { fontSize: 13, fontFamily: 'Inter_400Regular' },
+  signOutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, borderWidth: 1, paddingVertical: 12, marginBottom: 28,
   },
-  signInText: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  signOutText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
   sectionTitle: {
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.5,
-    marginBottom: 10,
-    marginTop: 4,
+    fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.5,
+    marginBottom: 10, marginTop: 4,
   },
   card: { borderRadius: 12, borderWidth: 1, marginBottom: 20, overflow: 'hidden' },
   calibratingBox: { padding: 20, alignItems: 'center', gap: 8 },
@@ -237,31 +229,23 @@ const styles = StyleSheet.create({
   perfLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 },
   perfDivider: { width: 1 },
   sportStatRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 12, paddingHorizontal: 16,
   },
   sportStatRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   statAccuracy: { fontSize: 15, fontFamily: 'Inter_700Bold', minWidth: 38, textAlign: 'right' },
   topSportBanner: { paddingVertical: 10, paddingHorizontal: 16 },
   topSportText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 14, paddingHorizontal: 16,
   },
   statLabel: { fontSize: 14, fontFamily: 'Inter_400Regular' },
   statValue: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   rowDivider: { height: 1, marginHorizontal: 16 },
   settingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 16,
   },
   settingsLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   settingsLabel: { fontSize: 15, fontFamily: 'Inter_400Regular' },
