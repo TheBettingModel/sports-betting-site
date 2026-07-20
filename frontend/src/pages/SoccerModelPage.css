@@ -1,0 +1,405 @@
+.soccer-v2-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #f8fafc;
+  overflow-x: hidden;
+}
+
+.soccer-v2-page,
+.soccer-v2-page * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.soccer-v2-status {
+  min-height: 50px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(69, 255, 84, 0.04),
+      transparent 38%
+    ),
+    rgba(5, 11, 18, 0.9);
+}
+
+.soccer-v2-status-live {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.soccer-v2-status-live i {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #45ff54;
+  box-shadow:
+    0 0 10px
+    rgba(69, 255, 84, 0.78);
+}
+
+.soccer-v2-status-live strong,
+.soccer-v2-status-live span {
+  display: block;
+}
+
+.soccer-v2-status-live strong {
+  color: #b7ffc0;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.soccer-v2-status-live span {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.soccer-v2-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.soccer-v2-status-actions span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.soccer-v2-status-actions button,
+.soccer-v2-state button {
+  min-height: 30px;
+  border: 1px solid
+    rgba(69, 255, 84, 0.25);
+  border-radius: 999px;
+  padding: 0 11px;
+  background:
+    rgba(69, 255, 84, 0.08);
+  color: #45ff54;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.soccer-v2-status-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.soccer-v2-filters {
+  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.soccer-v2-filter {
+  min-height: 34px;
+  border: 1px solid
+    rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  padding: 0 13px;
+  background:
+    rgba(15, 23, 42, 0.78);
+  color: #94a3b8;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.soccer-v2-filter:hover {
+  border-color:
+    rgba(69, 255, 84, 0.28);
+  color: #d1fae5;
+}
+
+.soccer-v2-filter-active {
+  border-color:
+    rgba(69, 255, 84, 0.38);
+  background:
+    rgba(69, 255, 84, 0.12);
+  color: #45ff54;
+}
+
+.soccer-v2-kpis {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.soccer-v2-hero {
+  margin-bottom: 16px;
+}
+
+.soccer-v2-section-label {
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.soccer-v2-section-label span,
+.soccer-v2-section-label strong {
+  display: block;
+}
+
+.soccer-v2-section-label span {
+  color: #45ff54;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.soccer-v2-section-label strong {
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.soccer-v2-section-label em {
+  border: 1px solid
+    rgba(69, 255, 84, 0.2);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background:
+    rgba(69, 255, 84, 0.06);
+  color: #b7ffc0;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.soccer-v2-board-heading {
+  margin: -4px 0 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.soccer-v2-board-heading span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.soccer-v2-board-heading strong {
+  flex: 0 0 auto;
+  border: 1px solid
+    rgba(69, 255, 84, 0.18);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background:
+    rgba(69, 255, 84, 0.055);
+  color: #b7ffc0;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.soccer-v2-play-list {
+  display: grid;
+  gap: 8px;
+}
+
+.soccer-v2-state {
+  min-height: 150px;
+  border: 1px solid
+    rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 7px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(12, 24, 34, 0.96),
+      rgba(3, 8, 13, 0.98)
+    );
+  color: #94a3b8;
+}
+
+.soccer-v2-state strong {
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.soccer-v2-state span {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.soccer-v2-state button {
+  margin-top: 7px;
+}
+
+.soccer-v2-error {
+  border-color:
+    rgba(248, 113, 113, 0.3);
+}
+
+.soccer-v2-error strong,
+.soccer-v2-error span {
+  color: #fecaca;
+}
+
+.soccer-v2-warning {
+  margin-bottom: 12px;
+  border: 1px solid
+    rgba(251, 191, 36, 0.22);
+  border-radius: 12px;
+  padding: 9px 11px;
+  background:
+    rgba(251, 191, 36, 0.055);
+  color: #fde68a;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.soccer-v2-empty {
+  min-height: 88px;
+  border: 1px dashed
+    rgba(148, 163, 184, 0.16);
+  border-radius: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background:
+    rgba(255, 255, 255, 0.018);
+}
+
+.soccer-v2-empty strong {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.soccer-v2-empty span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.soccer-v2-footer {
+  min-height: 42px;
+  margin-top: 12px;
+  border-top: 1px solid
+    rgba(148, 163, 184, 0.1);
+  padding: 12px 2px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .soccer-v2-kpis {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .soccer-v2-page {
+    padding: 14px;
+  }
+
+  .soccer-v2-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .soccer-v2-status-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .soccer-v2-status-actions span:nth-child(2) {
+    display: none;
+  }
+
+  .soccer-v2-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+
+  .soccer-v2-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .soccer-v2-filter {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .soccer-v2-page {
+    padding: 11px;
+  }
+
+  .soccer-v2-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .soccer-v2-section-label,
+  .soccer-v2-board-heading {
+    align-items: flex-start;
+  }
+
+  .soccer-v2-board-heading span {
+    max-width: 220px;
+  }
+
+  .soccer-v2-footer {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soccer-v2-status-live i {
+    box-shadow: none;
+  }
+
+  .soccer-v2-filter {
+    transition: none;
+  }
+}

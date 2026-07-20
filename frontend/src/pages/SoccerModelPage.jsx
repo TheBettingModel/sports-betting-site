@@ -1,233 +1,573 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import TBMHeroPlayCard from "../components/home/TBMHeroPlayCard";
+import TBMTopPlayRow from "../components/home/TBMTopPlayRow";
+import TBMDataCard from "../components/cards/TBMDataCard";
+import TBMPageHeader from "../components/layout/TBMPageHeader";
+import TBMSection from "../components/layout/TBMSection";
+import "./SoccerModelPage.css";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+const MARKET_FILTERS = [
+  "All",
+  "Moneyline",
+  "Spread",
+  "Total",
+  "Draw",
+];
+
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getMarket(play) {
+  return normalizeText(play?.market);
+}
+
+function getPick(play) {
+  return normalizeText(play?.pick);
+}
+
+function marketMatches(play, filter) {
+  if (!filter || filter === "All") {
+    return true;
+  }
+
+  const market = getMarket(play);
+  const pick = getPick(play);
+  const normalizedFilter = normalizeText(filter);
+
+  if (normalizedFilter === "moneyline") {
+    return (
+      market.includes("moneyline") ||
+      market === "ml" ||
+      market.includes("match winner")
+    );
+  }
+
+  if (normalizedFilter === "spread") {
+    return (
+      market.includes("spread") ||
+      market.includes("handicap") ||
+      market.includes("asian")
+    );
+  }
+
+  if (normalizedFilter === "total") {
+    return (
+      market.includes("total") ||
+      market.includes("over") ||
+      market.includes("under") ||
+      pick.startsWith("over ") ||
+      pick.startsWith("under ")
+    );
+  }
+
+  if (normalizedFilter === "draw") {
+    return (
+      market.includes("draw") ||
+      pick === "draw" ||
+      pick.startsWith("draw ") ||
+      pick.includes(" draw")
+    );
+  }
+
+  return market === normalizedFilter;
+}
+
+function getEdge(play) {
+  const value = Number.parseFloat(play?.edge);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getConfidence(play) {
+  const value = Number.parseFloat(play?.confidence);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getPodScore(play) {
+  const value = Number.parseFloat(play?.universal_pod_score);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getOdds(play) {
+  return (
+    play?.best_odds ??
+    play?.odds ??
+    null
+  );
+}
+
+function formatOdds(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return "N/A";
+  }
+
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return String(value);
+  }
+
+  return numericValue > 0
+    ? `+${numericValue}`
+    : String(numericValue);
+}
+
+function average(values) {
+  const validValues = values.filter(Number.isFinite);
+
+  if (!validValues.length) {
+    return 0;
+  }
+
+  return (
+    validValues.reduce(
+      (sum, value) => sum + value,
+      0
+    ) / validValues.length
+  );
+}
+
+function getRecommendation(play) {
+  return String(
+    play?.final_recommendation ||
+      play?.recommendation ||
+      ""
+  ).trim();
+}
+
+function isQualifiedPlay(play) {
+  const recommendation =
+    normalizeText(getRecommendation(play));
+
+  return (
+    recommendation === "play" ||
+    recommendation === "best bet" ||
+    recommendation === "strong play" ||
+    recommendation === "official play"
+  );
+}
+
+function getLastUpdated(data) {
+  const raw =
+    data?.last_updated ||
+    data?.updated_at ||
+    data?.generated_at;
+
+  if (!raw) {
+    return "Live";
+  }
+
+  const date = new Date(raw);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Live";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 function SoccerModelPage() {
-  const [plays, setPlays] = useState([]);
+  const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const [marketFilter, setMarketFilter] = useState("All");
+  const [marketFilter, setMarketFilter] =
+    useState("All");
+  const [refreshing, setRefreshing] =
+    useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const loadSoccer = useCallback(
+    async ({ silent = false } = {}) => {
+      const controller = new AbortController();
+
+      const timeout = window.setTimeout(() => {
+        controller.abort();
+      }, 30000);
+
+      try {
+        if (!silent) {
+          setRefreshing(true);
+        }
+
+        const response = await fetch(
+          `${API_URL}/model/soccer/today`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Soccer request failed: HTTP ${response.status}`
+          );
+        }
+
+        const json = await response.json();
+
+        setData(json);
+        setError("");
+      } catch (requestError) {
+        if (requestError?.name !== "AbortError") {
+          console.error(
+            "Soccer model fetch error:",
+            requestError
+          );
+
+          setError(
+            "The Soccer dashboard could not be loaded."
+          );
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        setRefreshing(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    fetch(`${API_URL}/model/soccer/today`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => setPlays(data.plays || []))
-      .catch((err) => {
-        console.error("Soccer model fetch error:", err);
-        setError("Failed to load Soccer model.");
+    loadSoccer();
+
+    const interval = window.setInterval(() => {
+      loadSoccer({
+        silent: true,
       });
-  }, [API_URL]);
+    }, 120000);
 
-  const filtered = plays.filter((play) => {
-    if (marketFilter === "All") return true;
-    return play.market === marketFilter;
-  });
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadSoccer]);
+
+  const allPlays = useMemo(() => {
+    if (!Array.isArray(data?.plays)) {
+      return [];
+    }
+
+    return data.plays.filter(
+      (play) =>
+        play &&
+        typeof play === "object"
+    );
+  }, [data]);
+
+  const filteredPlays = useMemo(() => {
+    return allPlays
+      .filter((play) =>
+        marketMatches(
+          play,
+          marketFilter
+        )
+      )
+      .sort((a, b) => {
+        const podDifference =
+          getPodScore(b) -
+          getPodScore(a);
+
+        if (podDifference !== 0) {
+          return podDifference;
+        }
+
+        return (
+          getEdge(b) -
+          getEdge(a)
+        );
+      });
+  }, [allPlays, marketFilter]);
+
+  const canonicalTopPlay = useMemo(() => {
+    const backendTopPlay =
+      data?.top_play;
+
+    if (
+      backendTopPlay &&
+      typeof backendTopPlay === "object" &&
+      marketMatches(
+        backendTopPlay,
+        marketFilter
+      )
+    ) {
+      return backendTopPlay;
+    }
+
+    return filteredPlays[0] || null;
+  }, [
+    data,
+    filteredPlays,
+    marketFilter,
+  ]);
+
+  const qualifiedCount = useMemo(() => {
+    return filteredPlays.filter(
+      isQualifiedPlay
+    ).length;
+  }, [filteredPlays]);
+
+  const averageEdge = useMemo(() => {
+    return average(
+      filteredPlays.map(getEdge)
+    );
+  }, [filteredPlays]);
+
+  const averageConfidence = useMemo(() => {
+    return average(
+      filteredPlays.map(
+        getConfidence
+      )
+    );
+  }, [filteredPlays]);
+
+  const displayMarket =
+    marketFilter === "All"
+      ? "All Markets"
+      : marketFilter;
 
   return (
-    <div style={pageStyle}>
-      <h1>⚽ Soccer Model</h1>
+    <main className="soccer-v2-page">
+      <TBMPageHeader
+        title="Soccer Model Dashboard"
+        badge="Soccer Model"
+      />
 
-      <p style={subtitleStyle}>
-        Soccer v3 Pro model with World Cup mode, team tiers, draw logic, totals environment,
-        line shopping, market intelligence, and universal final ratings.
-      </p>
+      <section className="soccer-v2-status">
+        <div className="soccer-v2-status-live">
+          <i />
 
-      <div style={filterWrapStyle}>
-        {["All", "Moneyline", "Spread", "Total"].map((market) => (
-          <button
-            key={market}
-            onClick={() => setMarketFilter(market)}
-            style={marketFilter === market ? activeButtonStyle : buttonStyle}
-          >
-            {market}
-          </button>
-        ))}
-      </div>
+          <div>
+            <strong>
+              Soccer Model Live
+            </strong>
 
-      {error ? (
-        <p style={{ color: "#f87171" }}>{error}</p>
-      ) : filtered.length === 0 ? (
-        <p>No Soccer plays available.</p>
-      ) : (
-        <div style={gridStyle}>
-          {filtered.map((play, index) => (
-            <div key={`${play.game}-${play.pick}-${index}`} style={cardStyle}>
-              <div style={topRowStyle}>
-                <span style={sportBadgeStyle}>⚽ Soccer</span>
-                <span style={badgeStyle}>{play.final_recommendation || play.recommendation}</span>
-              </div>
-
-              <h2 style={pickStyle}>{play.pick}</h2>
-              <p style={gameStyle}>{play.game}</p>
-
-              <div style={statsGridStyle}>
-                <Stat label="Market" value={play.market} />
-                <Stat label="Odds" value={play.best_odds || play.odds} />
-                <Stat label="Edge" value={`${play.edge}%`} />
-                <Stat label="Confidence" value={play.confidence} />
-                <Stat label="Units" value={play.units} />
-                <Stat label="Final Score" value={play.final_model_score} />
-                <Stat label="Tier" value={play.final_model_tier} />
-                <Stat label="POD Score" value={play.universal_pod_score} />
-              </div>
-
-              <div style={signalBoxStyle}>
-                <p><strong>Market:</strong> {play.market_intelligence_grade || "N/A"} — {play.market_intelligence_signal || "N/A"}</p>
-                <p><strong>Sharp:</strong> {play.sharp_signal || "N/A"}</p>
-                <p><strong>Best Book:</strong> {play.best_sportsbook || play.sportsbook || "N/A"} ({play.best_odds || play.odds || "N/A"})</p>
-                <p><strong>Line Value:</strong> {play.line_shop_value ?? "N/A"}</p>
-              </div>
-
-              <div style={soccerBoxStyle}>
-                <p><strong>Team Tier:</strong> {play.soccer_team_tier || "N/A"}</p>
-                <p><strong>Tournament Mode:</strong> {play.soccer_tournament_mode ? "Yes" : "No"}</p>
-                <p><strong>Total Environment:</strong> {play.soccer_total_environment || "N/A"}</p>
-                <p><strong>BTTS Score:</strong> {play.soccer_btts_score ?? "N/A"}</p>
-              </div>
-
-              <p style={reasonStyle}>{play.reason}</p>
-            </div>
-          ))}
+            <span>
+              Universal market rankings
+            </span>
+          </div>
         </div>
+
+        <div className="soccer-v2-status-actions">
+          <span>{displayMarket}</span>
+
+          <span>
+            Updated{" "}
+            {getLastUpdated(data)}
+          </span>
+
+          <button
+            type="button"
+            onClick={() =>
+              loadSoccer()
+            }
+            disabled={refreshing}
+          >
+            {refreshing
+              ? "Refreshing..."
+              : "Refresh"}
+          </button>
+        </div>
+      </section>
+
+      <nav
+        className="soccer-v2-filters"
+        aria-label="Soccer market filters"
+      >
+        {MARKET_FILTERS.map(
+          (market) => (
+            <button
+              key={market}
+              type="button"
+              className={
+                marketFilter === market
+                  ? "soccer-v2-filter soccer-v2-filter-active"
+                  : "soccer-v2-filter"
+              }
+              onClick={() =>
+                setMarketFilter(market)
+              }
+            >
+              {market}
+            </button>
+          )
+        )}
+      </nav>
+
+      {error && !data ? (
+        <section className="soccer-v2-state soccer-v2-error">
+          <strong>
+            Unable to load Soccer model
+          </strong>
+
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              loadSoccer()
+            }
+          >
+            Try Again
+          </button>
+        </section>
+      ) : !data ? (
+        <section className="soccer-v2-state">
+          <strong>
+            Loading Soccer model
+          </strong>
+
+          <span>
+            Pulling today’s matches,
+            market prices and model
+            edges.
+          </span>
+        </section>
+      ) : (
+        <>
+          {error ? (
+            <div className="soccer-v2-warning">
+              {error} Showing the most
+              recently loaded results.
+            </div>
+          ) : null}
+
+          <section className="soccer-v2-kpis">
+            <TBMDataCard
+              label="Available Plays"
+              value={filteredPlays.length}
+              tone="blue"
+            />
+
+            <TBMDataCard
+              label="Qualified Plays"
+              value={qualifiedCount}
+              tone="green"
+            />
+
+            <TBMDataCard
+              label="Average Edge"
+              value={`${averageEdge.toFixed(
+                2
+              )}%`}
+              tone="green"
+            />
+
+            <TBMDataCard
+              label="Average Confidence"
+              value={`${averageConfidence.toFixed(
+                1
+              )}%`}
+              tone="gold"
+            />
+          </section>
+
+          <section className="soccer-v2-hero">
+            <div className="soccer-v2-section-label">
+              <div>
+                <span>
+                  Official Soccer Top Play
+                </span>
+
+                <strong>
+                  Universal model selection
+                </strong>
+              </div>
+
+              {canonicalTopPlay ? (
+                <em>
+                  {formatOdds(
+                    getOdds(
+                      canonicalTopPlay
+                    )
+                  )}
+                </em>
+              ) : null}
+            </div>
+
+            <TBMHeroPlayCard
+              play={
+                canonicalTopPlay
+                  ? {
+                      ...canonicalTopPlay,
+                      sport:
+                        canonicalTopPlay?.sport ||
+                        "Soccer",
+                    }
+                  : null
+              }
+            />
+          </section>
+
+          <TBMSection title="Soccer Edge Board">
+            <div className="soccer-v2-board-heading">
+              <span>
+                Ranked by POD score and
+                model edge
+              </span>
+
+              <strong>
+                {filteredPlays.length} Plays
+              </strong>
+            </div>
+
+            <div className="soccer-v2-play-list">
+              {filteredPlays.length > 0 ? (
+                filteredPlays.map(
+                  (play, index) => (
+                    <TBMTopPlayRow
+                      key={`${play?.game || "game"}-${play?.pick || "pick"}-${index}`}
+                      play={{
+                        ...play,
+                        sport:
+                          play?.sport ||
+                          "Soccer",
+                      }}
+                      index={index}
+                    />
+                  )
+                )
+              ) : (
+                <div className="soccer-v2-empty">
+                  <strong>
+                    No Soccer plays
+                    available
+                  </strong>
+
+                  <span>
+                    The current slate has
+                    no plays for this market
+                    filter.
+                  </span>
+                </div>
+              )}
+            </div>
+          </TBMSection>
+
+          <footer className="soccer-v2-footer">
+            <span>
+              Top play:{" "}
+              {canonicalTopPlay?.pick ||
+                "No Play"}
+            </span>
+
+            <span>
+              Model:{" "}
+              {data?.model_version ||
+                canonicalTopPlay?.model_version ||
+                "Soccer Universal Model"}
+            </span>
+          </footer>
+        </>
       )}
-    </div>
+    </main>
   );
 }
-
-function Stat({ label, value }) {
-  return (
-    <div style={statStyle}>
-      <span style={statLabelStyle}>{label}</span>
-      <strong>{value ?? "N/A"}</strong>
-    </div>
-  );
-}
-
-const pageStyle = {
-  backgroundColor: "#020617",
-  color: "white",
-  minHeight: "100vh",
-  padding: "32px",
-};
-
-const subtitleStyle = {
-  color: "#9ca3af",
-  maxWidth: "900px",
-  lineHeight: "1.6",
-};
-
-const filterWrapStyle = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-  margin: "24px 0",
-};
-
-const buttonStyle = {
-  backgroundColor: "#111827",
-  color: "white",
-  border: "1px solid #374151",
-  padding: "10px 14px",
-  borderRadius: "999px",
-  cursor: "pointer",
-};
-
-const activeButtonStyle = {
-  ...buttonStyle,
-  backgroundColor: "#22c55e",
-  color: "black",
-  fontWeight: "bold",
-};
-
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))",
-  gap: "20px",
-};
-
-const cardStyle = {
-  backgroundColor: "#111827",
-  border: "1px solid #374151",
-  borderRadius: "18px",
-  padding: "22px",
-};
-
-const topRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "10px",
-  marginBottom: "14px",
-};
-
-const sportBadgeStyle = {
-  backgroundColor: "#1f2937",
-  border: "1px solid #374151",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-};
-
-const badgeStyle = {
-  backgroundColor: "#22c55e",
-  color: "black",
-  padding: "6px 10px",
-  borderRadius: "999px",
-  fontWeight: "bold",
-};
-
-const pickStyle = {
-  margin: "0 0 8px",
-};
-
-const gameStyle = {
-  color: "#d1d5db",
-  marginBottom: "16px",
-};
-
-const statsGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
-  gap: "10px",
-  marginBottom: "16px",
-};
-
-const statStyle = {
-  backgroundColor: "#020617",
-  border: "1px solid #374151",
-  borderRadius: "12px",
-  padding: "10px",
-};
-
-const statLabelStyle = {
-  display: "block",
-  color: "#9ca3af",
-  fontSize: "12px",
-  marginBottom: "4px",
-};
-
-const signalBoxStyle = {
-  backgroundColor: "#020617",
-  border: "1px solid #374151",
-  borderRadius: "12px",
-  padding: "12px",
-  marginBottom: "12px",
-  color: "#d1d5db",
-};
-
-const soccerBoxStyle = {
-  backgroundColor: "#052e16",
-  border: "1px solid #166534",
-  borderRadius: "12px",
-  padding: "12px",
-  marginBottom: "12px",
-  color: "#dcfce7",
-};
-
-const reasonStyle = {
-  color: "#d1d5db",
-  lineHeight: "1.6",
-};
 
 export default SoccerModelPage;
