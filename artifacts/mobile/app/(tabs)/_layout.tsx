@@ -4,34 +4,11 @@ import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Redirect, Tabs } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import { useAuth, useUser } from '@clerk/expo';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import Purchases from 'react-native-purchases';
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis' }} />
-        <Label>Today</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="games">
-        <Icon sf={{ default: 'calendar', selected: 'calendar.badge.checkmark' }} />
-        <Label>Games</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="picks">
-        <Icon sf={{ default: 'star', selected: 'star.fill' }} />
-        <Label>Picks</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
-        <Label>Account</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
 
 function ClassicTabLayout() {
   const colors = useColors();
@@ -139,6 +116,5 @@ export default function TabLayout() {
   // Not signed in — redirect to auth
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
 
-  if (Platform.OS === 'ios') return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }
