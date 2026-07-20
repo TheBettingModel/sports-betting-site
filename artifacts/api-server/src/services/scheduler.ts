@@ -13,10 +13,10 @@
  */
 
 import cron from "node-cron";
-import { eq, and, desc } from "drizzle-orm";
-import { db, automationRunsTable, modelWeightsTable } from "@workspace/db";
+import { eq, and, desc, ne } from "drizzle-orm";
+import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
-import { fetchAllSports } from "./espn";
+import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
 import { runGrading } from "./grading-runner";
 import { runAnalytics } from "./analytics";
@@ -47,6 +47,7 @@ async function finishRun(
   status: "completed" | "failed" | "skipped",
   recordsProcessed: number,
   errorDetails?: string,
+  dataSourceFreshness?: Record<string, unknown>,
 ): Promise<void> {
   await db
     .update(automationRunsTable)
@@ -55,8 +56,91 @@ async function finishRun(
       status,
       recordsProcessed,
       errorDetails: errorDetails ?? null,
+      dataSourceFreshness: dataSourceFreshness ?? null,
     })
     .where(eq(automationRunsTable.id, runId));
+}
+
+/**
+ * Check if any sport has returned 0 games for the last CONSECUTIVE_ZERO_THRESHOLD
+ * completed odds-ingestion runs. If so, create a data_quality_alerts row (once per
+ * sport — de-duped against existing unresolved alerts).
+ */
+const CONSECUTIVE_ZERO_THRESHOLD = 3;
+
+async function checkAndRaiseSportAlerts(
+  currentRunId: number,
+  currentSportCounts: Record<string, number | "error">,
+): Promise<void> {
+  // Pull the last N-1 completed odds-ingestion runs, explicitly excluding the
+  // current run (which was just written by finishRun). The current run contributes
+  // consecutiveZeros = 1 as the starting count below.
+  const recentRuns = await db
+    .select({ dataSourceFreshness: automationRunsTable.dataSourceFreshness })
+    .from(automationRunsTable)
+    .where(
+      and(
+        eq(automationRunsTable.jobName, "odds-ingestion"),
+        eq(automationRunsTable.status, "completed"),
+        ne(automationRunsTable.id, currentRunId),
+      ),
+    )
+    .orderBy(desc(automationRunsTable.startedAt))
+    .limit(CONSECUTIVE_ZERO_THRESHOLD - 1); // previous N-1 runs; current run is the Nth
+
+  const sports = Object.keys(currentSportCounts);
+
+  for (const sport of sports) {
+    const currentCount = currentSportCounts[sport];
+    // Only flag "ok but 0 games" — not error statuses
+    if (currentCount !== 0) continue;
+
+    // Check prior runs for this sport
+    let consecutiveZeros = 1; // current run counted as 1
+    for (const run of recentRuns) {
+      const freshness = run.dataSourceFreshness as Record<string, unknown> | null;
+      if (!freshness) break; // older run without freshness data — stop streak
+      const prev = freshness[sport];
+      if (prev === 0 || prev === "zero") {
+        consecutiveZeros++;
+      } else {
+        break; // streak broken
+      }
+    }
+
+    if (consecutiveZeros < CONSECUTIVE_ZERO_THRESHOLD) continue;
+
+    // Check for an existing unresolved alert for this sport + type
+    const [existing] = await db
+      .select({ id: dataQualityAlertsTable.id })
+      .from(dataQualityAlertsTable)
+      .where(
+        and(
+          eq(dataQualityAlertsTable.alertType, "zero_games_feed"),
+          eq(dataQualityAlertsTable.sport, sport),
+          eq(dataQualityAlertsTable.isResolved, false),
+        ),
+      )
+      .limit(1);
+
+    if (existing) continue; // already alerted
+
+    await db.insert(dataQualityAlertsTable).values({
+      alertType: "zero_games_feed",
+      sport,
+      severity: "warning",
+      description: `ESPN returned 0 games for ${sport} in the last ${CONSECUTIVE_ZERO_THRESHOLD} consecutive odds-ingestion runs. Sport may be in off-season or the feed may be broken.`,
+      metadata: {
+        consecutiveZeroRuns: consecutiveZeros,
+        threshold: CONSECUTIVE_ZERO_THRESHOLD,
+      },
+    });
+
+    logger.warn(
+      { sport, consecutiveZeros },
+      "Scheduler: data quality alert raised for zero-game sport",
+    );
+  }
 }
 
 // ── Jobs ──────────────────────────────────────────────────────────────────────
@@ -72,29 +156,62 @@ async function runOddsIngestion(): Promise<void> {
   const runId = await startRun(jobName);
 
   try {
-    const games = await fetchAllSports();
+    const sportResults = await fetchAllSportsDetailed();
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
+
+    // Per-sport counts stored in dataSourceFreshness:
+    //   number  → games fetched (0 = off-season / no games)
+    //   "error" → ESPN fetch failed for that sport
+    const sportCounts: Record<string, number | "error"> = {};
     let processed = 0;
 
-    for (const game of games) {
-      try {
-        const proj = computeProjection(
-          game.espnId,
-          game.sport,
-          game.homeTeamRecord,
-          game.awayTeamRecord,
-          weightsBySport[game.sport] ?? null,
-        );
-        await processGameSnapshot(game, proj);
-        processed++;
-      } catch (err) {
-        logger.warn({ err, gameId: game.espnId }, "Scheduler: odds-ingestion game error");
+    for (const { sport, games, fetchStatus } of sportResults) {
+      if (fetchStatus === "error") {
+        sportCounts[sport] = "error";
+        continue;
+      }
+
+      sportCounts[sport] = games.length;
+
+      for (const game of games) {
+        try {
+          const proj = computeProjection(
+            game.espnId,
+            game.sport,
+            game.homeTeamRecord,
+            game.awayTeamRecord,
+            weightsBySport[game.sport] ?? null,
+          );
+          await processGameSnapshot(game, proj);
+          processed++;
+        } catch (err) {
+          logger.warn({ err, gameId: game.espnId }, "Scheduler: odds-ingestion game error");
+        }
       }
     }
 
-    await finishRun(runId, "completed", processed);
-    logger.info({ processed }, "Scheduler: odds-ingestion complete");
+    const zeroSports = Object.entries(sportCounts)
+      .filter(([, v]) => v === 0)
+      .map(([s]) => s);
+    const errorSports = Object.entries(sportCounts)
+      .filter(([, v]) => v === "error")
+      .map(([s]) => s);
+
+    if (zeroSports.length > 0) {
+      logger.info({ zeroSports }, "Scheduler: sports with 0 games this run");
+    }
+    if (errorSports.length > 0) {
+      logger.warn({ errorSports }, "Scheduler: sports with ESPN fetch errors");
+    }
+
+    await finishRun(runId, "completed", processed, undefined, sportCounts);
+
+    // Check for data quality issues after recording this run's counts.
+    // Pass runId so the query excludes the just-written row and avoids double-counting.
+    await checkAndRaiseSportAlerts(runId, sportCounts);
+
+    logger.info({ processed, sportCounts }, "Scheduler: odds-ingestion complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await finishRun(runId, "failed", 0, msg);

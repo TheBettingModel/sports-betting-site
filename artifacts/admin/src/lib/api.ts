@@ -156,6 +156,8 @@ export interface AutomationRun {
   recordsProcessed: number;
   errorDetails?: string | null;
   retryCount: number;
+  /** Per-sport game counts for odds-ingestion runs: number = games fetched, "error" = fetch failed */
+  dataSourceFreshness?: Record<string, number | "error"> | null;
 }
 
 export interface AutomationResult {

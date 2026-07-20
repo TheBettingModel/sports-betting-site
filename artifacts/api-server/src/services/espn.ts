@@ -180,3 +180,88 @@ export async function fetchAllSports(): Promise<FetchedGame[]> {
   }
   return all;
 }
+
+/** Per-sport fetch result — distinguishes 0 games (off-season) from fetch errors. */
+export interface SportFetchResult {
+  sport: string;
+  games: FetchedGame[];
+  /** "ok" = ESPN responded (may still be 0 games); "error" = network/HTTP failure */
+  fetchStatus: "ok" | "error";
+  errorMessage?: string;
+}
+
+/**
+ * Like fetchAllSports() but returns a result per sport so callers can tell the
+ * difference between "no games today" and "ESPN fetch failed".
+ */
+export async function fetchAllSportsDetailed(): Promise<SportFetchResult[]> {
+  const sports = Object.keys(ESPN_SPORT_PATHS);
+
+  const out: SportFetchResult[] = await Promise.all(
+    sports.map(async (sport): Promise<SportFetchResult> => {
+      const path = ESPN_SPORT_PATHS[sport];
+      if (!path) return { sport, games: [], fetchStatus: "ok" };
+
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard`;
+      try {
+        const resp = await fetch(url, {
+          headers: { "User-Agent": "TheBettingModel/1.0" },
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (!resp.ok) {
+          logger.warn({ sport, status: resp.status }, "ESPN request non-OK");
+          return {
+            sport,
+            games: [],
+            fetchStatus: "error",
+            errorMessage: `HTTP ${resp.status}`,
+          };
+        }
+
+        const data = (await resp.json()) as EspnScoreboard;
+        const events = data.events ?? [];
+        const games: FetchedGame[] = [];
+
+        for (const event of events) {
+          const competition = event.competitions[0];
+          if (!competition) continue;
+
+          const home = competition.competitors.find((c) => c.homeAway === "home");
+          const away = competition.competitors.find((c) => c.homeAway === "away");
+          if (!home || !away) continue;
+
+          const eventDate = new Date(event.date);
+          const gameDate = eventDate.toISOString().split("T")[0] ?? "";
+
+          games.push({
+            espnId: `${sport}-${event.id}`,
+            sport,
+            homeTeamAbbr: getAbbr(home),
+            homeTeamName: getDisplayName(home),
+            homeTeamRecord: getRecord(home),
+            awayTeamAbbr: getAbbr(away),
+            awayTeamName: getDisplayName(away),
+            awayTeamRecord: getRecord(away),
+            gameTime: formatGameTime(event.date),
+            gameDate,
+            status: getStatus(event),
+            homeScore:
+              home.score !== undefined ? parseInt(home.score, 10) : undefined,
+            awayScore:
+              away.score !== undefined ? parseInt(away.score, 10) : undefined,
+          });
+        }
+
+        logger.info({ sport, count: games.length }, "ESPN games fetched");
+        return { sport, games, fetchStatus: "ok" };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error({ err, sport }, "ESPN fetch failed");
+        return { sport, games: [], fetchStatus: "error", errorMessage: msg };
+      }
+    }),
+  );
+
+  return out;
+}
