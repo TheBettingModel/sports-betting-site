@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Platform,
   RefreshControl,
   StyleSheet,
@@ -67,8 +68,12 @@ export default function TodayScreen() {
         ]}
       >
         <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.appName, { color: colors.primary }]}>THE BETTING MODEL</Text>
+          <View style={styles.logoRow}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={[styles.date, { color: colors.mutedForeground }]}>{today}</Text>
           </View>
           {lastUpdated && (
@@ -147,9 +152,10 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: 16, paddingBottom: 4 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  appName: { fontSize: 20, fontFamily: 'Inter_700Bold', letterSpacing: 2 },
-  date: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  logoRow: { flexDirection: 'column', alignItems: 'flex-start' },
+  logo: { width: 120, height: 40, borderRadius: 8 },
+  date: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 3 },
   updated: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
   loadingText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
