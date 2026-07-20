@@ -27,13 +27,30 @@ const C = {
   goldBg: '#1A2600',
 };
 
-const FEATURES = [
+const BASE_FEATURES = [
   'Unlimited daily picks — all ratings unlocked',
   'AI model edge scores for every game',
   'Strong Buy / Buy / Fade signals',
   'Real-time odds movement alerts',
-  '7-day free trial — cancel anytime',
 ];
+
+/** Returns a human-readable trial label like "7-day" or "2-week" from a package's introPrice. */
+function getTrialLabel(pkg: { product: { introPrice: { price: number; periodUnit: string; periodNumberOfUnits: number } | null } } | undefined): string {
+  const intro = pkg?.product.introPrice;
+  if (!intro || intro.price !== 0) return '';
+  const n = intro.periodNumberOfUnits;
+  const unit = intro.periodUnit.toLowerCase(); // 'day', 'week', 'month', 'year'
+  return `${n}-${unit}`;
+}
+
+/** Formats a currency amount using the product's currency code. Falls back to a simple "$X.XX" string. */
+function formatCurrency(amount: number, currencyCode: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)}`;
+  }
+}
 
 interface Props {
   visible: boolean;
@@ -58,8 +75,26 @@ export default function PaywallModal({ visible, onClose }: Props) {
   const monthlyPrice = monthlyPkg?.product.priceString ?? '$9.99';
   const annualPrice = annualPkg?.product.priceString ?? '$79.99';
   const annualMonthly = annualPkg
-    ? `$${(annualPkg.product.price / 12).toFixed(2)}/mo`
+    ? `${(annualPkg.product.price / 12).toFixed(2)}/mo`
     : '$6.67/mo';
+
+  // Per-period cost lines (live from RC)
+  const annualPerDay = annualPkg
+    ? `${formatCurrency(annualPkg.product.price / 365, annualPkg.product.currencyCode)}/day`
+    : null;
+  const monthlyPerWeek = monthlyPkg?.product.pricePerWeekString
+    ? `${monthlyPkg.product.pricePerWeekString}/week`
+    : null;
+
+  // Trial label derived from the selected package's introPrice (free trial = price 0)
+  const annualTrialLabel = getTrialLabel(annualPkg);
+  const monthlyTrialLabel = getTrialLabel(monthlyPkg);
+  // Badge always reflects annual trial (shown regardless of selection)
+  const badgeTrialLabel = annualTrialLabel || monthlyTrialLabel || '7-day';
+
+  // Features list with dynamic trial text
+  const trialFeature = badgeTrialLabel ? `${badgeTrialLabel} free trial — cancel anytime` : 'Free trial — cancel anytime';
+  const FEATURES = [...BASE_FEATURES, trialFeature];
 
   // Savings badge
   const savingsPct = monthlyPkg && annualPkg
@@ -104,7 +139,7 @@ export default function PaywallModal({ visible, onClose }: Props) {
             <Feather name="x" size={22} color={C.muted} />
           </Pressable>
           <View style={[s.trialBadge, { backgroundColor: C.goldBg, borderColor: C.gold + '44' }]}>
-            <Text style={[s.trialBadgeText, { color: C.gold }]}>7-DAY FREE TRIAL</Text>
+            <Text style={[s.trialBadgeText, { color: C.gold }]}>{badgeTrialLabel.toUpperCase()} FREE TRIAL</Text>
           </View>
         </View>
 
@@ -112,7 +147,8 @@ export default function PaywallModal({ visible, onClose }: Props) {
           {/* Hero */}
           <Text style={s.heroTitle}>Unlock TBM Pro</Text>
           <Text style={s.heroSubtitle}>
-            AI-powered picks from a model that learns every day.{'\n'}Try free for 7 days.
+            AI-powered picks from a model that learns every day.{'\n'}
+            {badgeTrialLabel ? `Try free for ${badgeTrialLabel}.` : 'Start with a free trial.'}
           </Text>
 
           {/* Feature list */}
@@ -151,6 +187,9 @@ export default function PaywallModal({ visible, onClose }: Props) {
                 {annualPrice}
               </Text>
               <Text style={[s.planMonthly, { color: C.muted }]}>{annualMonthly} billed yearly</Text>
+              {annualPerDay && (
+                <Text style={[s.planPerPeriod, { color: C.gold }]}>{annualPerDay}</Text>
+              )}
             </Pressable>
 
             {/* Monthly */}
@@ -168,6 +207,9 @@ export default function PaywallModal({ visible, onClose }: Props) {
                 {monthlyPrice}
               </Text>
               <Text style={[s.planMonthly, { color: C.muted }]}>billed monthly</Text>
+              {monthlyPerWeek && (
+                <Text style={[s.planPerPeriod, { color: C.gold }]}>{monthlyPerWeek}</Text>
+              )}
             </Pressable>
           </View>
 
@@ -196,8 +238,8 @@ export default function PaywallModal({ visible, onClose }: Props) {
 
           <Text style={s.legalText}>
             {selected === 'annual'
-              ? `${annualPrice}/year after 7-day free trial. Cancel anytime.`
-              : `${monthlyPrice}/month after 7-day free trial. Cancel anytime.`}
+              ? `${annualPrice}/year after ${annualTrialLabel || '7-day'} free trial. Cancel anytime.`
+              : `${monthlyPrice}/month after ${monthlyTrialLabel || '7-day'} free trial. Cancel anytime.`}
           </Text>
 
           {/* Restore */}
@@ -234,6 +276,7 @@ const s = StyleSheet.create({
   planName: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   planPrice: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   planMonthly: { fontSize: 11, fontFamily: 'Inter_400Regular' },
+  planPerPeriod: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   errorMsg: { textAlign: 'center', fontSize: 13, fontFamily: 'Inter_400Regular', marginBottom: 12 },
   cta: { backgroundColor: C.primary, borderRadius: 14, paddingVertical: 17, alignItems: 'center', marginBottom: 10, opacity: 0.5 },
   ctaActive: { opacity: 1 },
