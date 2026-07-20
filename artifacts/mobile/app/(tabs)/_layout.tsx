@@ -7,8 +7,9 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Redirect, Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
-import { useAuth } from '@clerk/expo';
+import { useAuth, useUser } from '@clerk/expo';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
+import Purchases from 'react-native-purchases';
 
 function NativeTabLayout() {
   return (
@@ -119,13 +120,22 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, getToken, userId } = useAuth();
 
   // Wire Clerk bearer token into all API client requests (mobile has no cookie jar)
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
     return () => { setAuthTokenGetter(null); };
   }, [getToken]);
+
+  // Identify signed-in user with RevenueCat so purchases are linked to their account
+  useEffect(() => {
+    if (userId) {
+      Purchases.logIn(userId).catch((err) =>
+        console.warn('[RevenueCat] logIn failed:', err?.message),
+      );
+    }
+  }, [userId]);
 
   // Not signed in — redirect to auth
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;

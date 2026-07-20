@@ -8,6 +8,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SportsProvider } from '@/context/SportsContext';
 import { setBaseUrl } from '@workspace/api-client-react';
+import { Alert } from 'react-native';
+import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -21,6 +23,14 @@ import * as SplashScreen from 'expo-splash-screen';
 // Point the API client at this repl's dev domain
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
 if (domain) setBaseUrl(`https://${domain}`);
+
+// Initialize RevenueCat (safe to call before auth — SDK auto-detects Expo Go and uses test mode)
+try {
+  initializeRevenueCat();
+} catch (err: any) {
+  // Non-fatal: paywall will be unavailable but rest of app works
+  console.warn('[RevenueCat] init failed:', err?.message);
+}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -64,13 +74,15 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <ErrorBoundary>
             <QueryClientProvider client={queryClient}>
-              <SportsProvider>
-                <GestureHandlerRootView>
-                  <KeyboardProvider>
-                    <RootLayoutNav />
-                  </KeyboardProvider>
-                </GestureHandlerRootView>
-              </SportsProvider>
+              <SubscriptionProvider>
+                <SportsProvider>
+                  <GestureHandlerRootView>
+                    <KeyboardProvider>
+                      <RootLayoutNav />
+                    </KeyboardProvider>
+                  </GestureHandlerRootView>
+                </SportsProvider>
+              </SubscriptionProvider>
             </QueryClientProvider>
           </ErrorBoundary>
         </SafeAreaProvider>

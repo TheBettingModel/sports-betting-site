@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,8 +14,13 @@ import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
 import { getBestPicks, MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
+import { LockedPickCard } from '@/components/LockedPickCard';
 import { ValueBadge } from '@/components/ValueBadge';
 import type { Game } from '@/data/mockGames';
+import { useSubscription } from '@/lib/revenuecat';
+import PaywallModal from '@/app/paywall';
+
+const FREE_PICKS = 2; // non-subscribers see this many picks unlocked
 
 const RATING_ORDER = ['Strong Buy', 'Buy', 'Neutral', 'Fade'] as const;
 type Rating = typeof RATING_ORDER[number];
@@ -29,11 +34,13 @@ const RATING_COLORS: Record<Rating, string> = {
 
 type ListItem =
   | { type: 'header'; rating: Rating; count: number }
-  | { type: 'game'; game: Game };
+  | { type: 'game'; game: Game; locked: boolean };
 
 export default function PicksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { isSubscribed } = useSubscription();
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
@@ -46,11 +53,9 @@ export default function PicksScreen() {
       return data.games
         .map(mapApiGame)
         .sort((a, b) => {
-          // Primary: rating tier order
           const ra = RATING_ORDER.indexOf(a.projection.valueRating as Rating);
           const rb = RATING_ORDER.indexOf(b.projection.valueRating as Rating);
           if (ra !== rb) return ra - rb;
-          // Secondary: model score
           return b.projection.modelScore - a.projection.modelScore;
         });
     }
@@ -72,17 +77,22 @@ export default function PicksScreen() {
     return c;
   }, [allPicks]);
 
-  // Build flat list with section header items
+  // Build flat list with section headers. Mark picks after FREE_PICKS as locked for non-subscribers.
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
+    let pickIndex = 0;
     for (const rating of RATING_ORDER) {
       const group = allPicks.filter(g => g.projection.valueRating === rating);
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
-      for (const game of group) items.push({ type: 'game', game });
+      for (const game of group) {
+        const locked = !isSubscribed && pickIndex >= FREE_PICKS;
+        items.push({ type: 'game', game, locked });
+        pickIndex++;
+      }
     }
     return items;
-  }, [allPicks]);
+  }, [allPicks, isSubscribed]);
 
   const renderItem = ({ item }: { item: ListItem }) => {
     if (item.type === 'header') {
@@ -98,8 +108,15 @@ export default function PicksScreen() {
         </View>
       );
     }
+    if (item.locked) {
+      return <LockedPickCard onUnlock={() => setPaywallOpen(true)} />;
+    }
     return <GameCard game={item.game} />;
   };
+
+  const lockedCount = allPicks.length > FREE_PICKS && !isSubscribed
+    ? allPicks.length - FREE_PICKS
+    : 0;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -140,7 +157,7 @@ export default function PicksScreen() {
               </View>
             )}
 
-            {/* Summary strip — one cell per rating tier */}
+            {/* Summary strip */}
             {!isLoading && allPicks.length > 0 && (
               <View style={[styles.summaryStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 {RATING_ORDER.map((r, i) => (
@@ -158,6 +175,15 @@ export default function PicksScreen() {
                 ))}
               </View>
             )}
+
+            {/* Locked picks banner for non-subscribers */}
+            {!isSubscribed && lockedCount > 0 && (
+              <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
+                <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
+                  🔒 {lockedCount} more picks unlocked with Pro — first {FREE_PICKS} shown free
+                </Text>
+              </View>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -170,6 +196,8 @@ export default function PicksScreen() {
           ) : null
         }
       />
+
+      <PaywallModal visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </View>
   );
 }
@@ -185,7 +213,7 @@ const styles = StyleSheet.create({
   },
   loadingText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   summaryStrip: {
-    marginHorizontal: 16, marginBottom: 20,
+    marginHorizontal: 16, marginBottom: 12,
     borderRadius: 12, borderWidth: 1,
     flexDirection: 'row', paddingVertical: 14,
   },
@@ -193,6 +221,12 @@ const styles = StyleSheet.create({
   summaryVal: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   summaryLabel: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 },
   divider: { width: 1, marginVertical: 4 },
+  lockedBanner: {
+    marginHorizontal: 16, marginBottom: 16,
+    borderRadius: 10, borderWidth: 1,
+    paddingVertical: 10, paddingHorizontal: 14,
+  },
+  lockedBannerText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     marginHorizontal: 16, marginBottom: 10, marginTop: 4,

@@ -10,6 +10,8 @@ config.resolver = {
   blockList: [
     /node_modules\/.pnpm\/.*\/node_modules\/@tailwindcss\/typography_tmp_[^/]+\/.*/,
     /node_modules\/.*\/@tailwindcss\/typography_tmp_[^/]+\/.*/,
+    /node_modules\/.pnpm\/react-native-purchases[^/]*\/node_modules\/react-native-purchases_tmp_[^/]+\/.*/,
+    /node_modules\/.*\/react-native-purchases_tmp_[^/]+\/.*/,
   ],
 };
 

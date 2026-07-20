@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,9 @@ import { useGetModelStats, useGetGamesToday } from '@workspace/api-client-react'
 import { mapApiGame } from '@/utils/gameAdapter';
 import { MOCK_GAMES } from '@/data/mockGames';
 import { useRouter } from 'expo-router';
+import { useSubscription } from '@/lib/revenuecat';
+import PaywallModal from '@/app/paywall';
+import Purchases from 'react-native-purchases';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -16,6 +19,8 @@ export default function ProfileScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const { isSubscribed, restore } = useSubscription();
 
   const { data: statsData } = useGetModelStats();
   const { data: gamesData } = useGetGamesToday();
@@ -74,7 +79,63 @@ export default function ProfileScreen() {
         <View style={styles.userInfo}>
           <Text style={[styles.userName, { color: colors.foreground }]}>{displayName}</Text>
           {!!email && <Text style={[styles.userEmail, { color: colors.mutedForeground }]}>{email}</Text>}
+          {/* Subscription badge */}
+          <View style={[
+            styles.subBadge,
+            isSubscribed
+              ? { backgroundColor: '#1A2600', borderColor: '#84CC16' + '66' }
+              : { backgroundColor: '#1A1A1A', borderColor: colors.border },
+          ]}>
+            <Feather name={isSubscribed ? 'zap' : 'lock'} size={10} color={isSubscribed ? '#84CC16' : colors.mutedForeground} />
+            <Text style={[styles.subBadgeText, { color: isSubscribed ? '#84CC16' : colors.mutedForeground }]}>
+              {isSubscribed ? 'Pro Member' : 'Free Plan'}
+            </Text>
+          </View>
         </View>
+      </View>
+
+      {/* Subscription card */}
+      <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>SUBSCRIPTION</Text>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+        {isSubscribed ? (
+          <Pressable
+            style={styles.settingsRow}
+            onPress={async () => {
+              await Haptics.selectionAsync();
+              try {
+                await Purchases.showManageSubscriptions();
+              } catch {
+                // showManagementInterface not available in Expo Go; open web fallback
+              }
+            }}
+          >
+            <View style={styles.settingsLeft}>
+              <Feather name="credit-card" size={16} color={colors.primary} />
+              <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Manage Subscription</Text>
+            </View>
+            <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              style={[styles.upgradeBtn, { backgroundColor: '#84CC16' }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPaywallOpen(true); }}
+            >
+              <Feather name="zap" size={16} color="#000000" />
+              <Text style={[styles.upgradeBtnText]}>Upgrade to Pro — 7-Day Free Trial</Text>
+            </Pressable>
+            <Pressable
+              style={styles.settingsRow}
+              onPress={async () => { await restore(); }}
+            >
+              <View style={styles.settingsLeft}>
+                <Feather name="rotate-ccw" size={16} color={colors.mutedForeground} />
+                <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Restore Purchases</Text>
+              </View>
+              <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
+            </Pressable>
+          </>
+        )}
       </View>
 
       {/* Sign out */}
@@ -88,6 +149,8 @@ export default function ProfileScreen() {
         <Feather name="log-out" size={16} color={colors.mutedForeground} />
         <Text style={[styles.signOutText, { color: colors.mutedForeground }]}>Sign Out</Text>
       </Pressable>
+
+      <PaywallModal visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
       {/* Model Learning */}
       <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>MODEL LEARNING</Text>
@@ -209,6 +272,17 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1, gap: 3 },
   userName: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   userEmail: { fontSize: 13, fontFamily: 'Inter_400Regular' },
+  subBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1,
+    alignSelf: 'flex-start', marginTop: 4,
+  },
+  subBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
+  upgradeBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, paddingVertical: 14, margin: 12, borderRadius: 10,
+  },
+  upgradeBtnText: { color: '#000000', fontSize: 14, fontFamily: 'Inter_700Bold' },
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, borderWidth: 1, paddingVertical: 12, marginBottom: 28,
