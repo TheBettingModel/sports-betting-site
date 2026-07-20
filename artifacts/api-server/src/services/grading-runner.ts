@@ -15,6 +15,7 @@ import {
   calculateUnits,
   type GradeResult,
 } from "./grading";
+import { runAnalytics } from "./analytics";
 import { logger } from "../lib/logger";
 
 /**
@@ -159,6 +160,10 @@ export async function runGrading(): Promise<number> {
 
   if (graded > 0) {
     logger.info({ graded }, "Grading: picks graded");
+    // Trigger analytics recompute after any new grades
+    await runAnalytics().catch((err) =>
+      logger.warn({ err }, "Analytics refresh failed after grading"),
+    );
   }
 
   return graded;
