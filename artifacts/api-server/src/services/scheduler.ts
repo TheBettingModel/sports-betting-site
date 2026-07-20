@@ -143,6 +143,54 @@ async function checkAndRaiseSportAlerts(
   }
 }
 
+/**
+ * Auto-resolve any unresolved `zero_games_feed` alerts for sports that returned
+ * >0 games in this ingestion run. This cleans up stale off-season alerts once a
+ * sport's season resumes.
+ */
+async function autoResolveSportAlerts(
+  currentSportCounts: Record<string, number | "error">,
+): Promise<void> {
+  const activeSports = Object.entries(currentSportCounts)
+    .filter(([, count]) => typeof count === "number" && count > 0)
+    .map(([sport]) => sport);
+
+  if (activeSports.length === 0) return;
+
+  const now = new Date();
+  let resolved = 0;
+
+  for (const sport of activeSports) {
+    const result = await db
+      .update(dataQualityAlertsTable)
+      .set({
+        isResolved: true,
+        resolvedAt: now,
+        resolvedBy: "scheduler:auto",
+      })
+      .where(
+        and(
+          eq(dataQualityAlertsTable.alertType, "zero_games_feed"),
+          eq(dataQualityAlertsTable.sport, sport),
+          eq(dataQualityAlertsTable.isResolved, false),
+        ),
+      )
+      .returning({ id: dataQualityAlertsTable.id });
+
+    if (result.length > 0) {
+      resolved += result.length;
+      logger.info(
+        { sport, resolvedIds: result.map((r) => r.id) },
+        "Scheduler: auto-resolved zero_games_feed alert — games returned for sport",
+      );
+    }
+  }
+
+  if (resolved > 0) {
+    logger.info({ resolved }, "Scheduler: auto-resolved stale zero_games_feed alerts");
+  }
+}
+
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 
 async function runOddsIngestion(): Promise<void> {
@@ -206,6 +254,9 @@ async function runOddsIngestion(): Promise<void> {
     }
 
     await finishRun(runId, "completed", processed, undefined, sportCounts);
+
+    // Auto-resolve any stale zero_games_feed alerts for sports that returned games.
+    await autoResolveSportAlerts(sportCounts);
 
     // Check for data quality issues after recording this run's counts.
     // Pass runId so the query excludes the just-written row and avoids double-counting.
