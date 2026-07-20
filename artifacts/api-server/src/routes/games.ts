@@ -7,6 +7,37 @@ import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
 import { runGrading } from "../services/grading-runner";
 import { logger } from "../lib/logger";
+import { resolveSubscriberStatus } from "../middleware/requireSubscriber";
+
+type AnyGame = Record<string, unknown>;
+
+/** Number of full picks shown to non-subscribers */
+const FREE_PICKS = 2;
+
+/**
+ * Returns the game with premium model fields zeroed out and `isLocked: true`.
+ * Fields are kept as valid numbers (not null) so clients don't crash on
+ * numeric rendering — they should hide/replace locked rows using `isLocked`.
+ */
+function lockGame(game: AnyGame): AnyGame {
+  return {
+    ...game,
+    // Zero out model projection fields
+    homeWinPct: 50,
+    confidence: "Low",
+    projectedSpread: 0,
+    projectedTotal: 0,
+    valueRating: "Neutral",
+    modelScore: 0,
+    edge: 0,
+    vegasSpread: 0,
+    vegasTotal: 0,
+    vegasHomeOdds: 0,
+    vegasAwayOdds: 0,
+    // Signal to the client that this game is gated
+    isLocked: true,
+  };
+}
 
 const router: IRouter = Router();
 
@@ -110,8 +141,15 @@ export async function refreshAll(): Promise<{
  * GET /api/games/today
  * Auto-refreshes from ESPN when data is stale (>1 hr old).
  * Optional ?sport=NFL query param for server-side filtering.
+ *
+ * Subscriber gating:
+ *   - Pro subscribers receive full model projections for all games.
+ *   - Non-subscribers receive full data for only the top FREE_PICKS games
+ *     across today's ENTIRE slate (sorted by modelScore descending).
+ *     The free quota is global — not per-sport — so repeatedly querying
+ *     with ?sport= cannot be used to extract additional premium picks.
  */
-router.get("/games/today", async (req, res): Promise<void> => {
+router.get("/games/today", resolveSubscriberStatus, async (req, res): Promise<void> => {
   if (isStale()) {
     try {
       await refreshAll();
@@ -122,22 +160,61 @@ router.get("/games/today", async (req, res): Promise<void> => {
 
   const today = new Date().toISOString().split("T")[0]!;
   const { sport } = req.query;
+  const isSubscribed = req.subscriberStatus?.isSubscribed === true;
 
-  const where =
-    typeof sport === "string" && sport !== "All"
-      ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport))
-      : eq(gamesTable.gameDate, today);
+  if (isSubscribed) {
+    // Subscribers: apply sport filter directly — no locking needed
+    const where =
+      typeof sport === "string" && sport !== "All"
+        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport))
+        : eq(gamesTable.gameDate, today);
 
-  const games = await db
+    const games = await db
+      .select()
+      .from(gamesTable)
+      .where(where)
+      .orderBy(desc(gamesTable.modelScore));
+
+    res.json({
+      games,
+      lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
+      totalGames: games.length,
+      isSubscribed: true,
+    });
+    return;
+  }
+
+  // Non-subscribers: always fetch the FULL day's slate first to establish
+  // global lock positions, then filter by sport for the final response.
+  // This prevents the ?sport= bypass: the free quota is consumed from the
+  // global ranked list regardless of the sport filter in the request.
+  const allTodayGames = await db
     .select()
     .from(gamesTable)
-    .where(where)
+    .where(eq(gamesTable.gameDate, today))
     .orderBy(desc(gamesTable.modelScore));
 
+  // Build a set of game IDs that are free (top FREE_PICKS by modelScore)
+  const freeGameIds = new Set(
+    allTodayGames.slice(0, FREE_PICKS).map((g) => g.id),
+  );
+
+  // Apply lock state across the full slate, then sport-filter for the response
+  const gatedAll = (allTodayGames as AnyGame[]).map((game) => {
+    const isFree = freeGameIds.has(game["id"] as string);
+    return isFree ? { ...game, isLocked: false } : lockGame(game);
+  });
+
+  const filtered =
+    typeof sport === "string" && sport !== "All"
+      ? gatedAll.filter((g) => g["sport"] === sport)
+      : gatedAll;
+
   res.json({
-    games,
+    games: filtered,
     lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
-    totalGames: games.length,
+    totalGames: filtered.length,
+    isSubscribed: false,
   });
 });
 

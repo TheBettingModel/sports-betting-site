@@ -35,12 +35,16 @@ export interface GameProjection {
   vegasHomeOdds: number;
   vegasAwayOdds: number;
   predictionCorrect?: boolean | null;
+  /** True when this game's premium projection data has been gated (non-subscriber). */
+  isLocked?: boolean;
 }
 
 export interface GamesTodayResponse {
   games: GameProjection[];
   lastUpdated: string;
   totalGames: number;
+  /** Whether the requesting user holds an active Pro subscription. */
+  isSubscribed: boolean;
 }
 
 export interface RefreshResponse {

@@ -12,6 +12,7 @@ export function mapApiGame(g: GameProjection): Game {
   return {
     id: g.id,
     sport: g.sport as Game['sport'],
+    isLocked: g.isLocked ?? false,
     homeTeam: {
       name: homeWords[homeWords.length - 1] ?? g.homeTeamName,
       abbr: g.homeTeamAbbr,

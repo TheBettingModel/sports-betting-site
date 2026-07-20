@@ -6,6 +6,7 @@ import analyticsRouter from "./analytics";
 import modelRegistryRouter from "./model-registry";
 import featuresRouter from "./features";
 import adminRouter from "./admin";
+import webhooksRouter from "./webhooks";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(analyticsRouter);
 router.use(modelRegistryRouter);
 router.use(featuresRouter);
 router.use(adminRouter);
+router.use(webhooksRouter);
 
 export default router;

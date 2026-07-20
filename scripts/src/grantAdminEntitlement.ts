@@ -13,7 +13,6 @@ async function grant() {
     path: {
       project_id: PROJECT_ID,
       customer_id: CUSTOMER_ID,
-      entitlement_identifier: ENTITLEMENT_IDENTIFIER,
     },
     body: {
       entitlement_id: "entlb213906c27",

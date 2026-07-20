@@ -43,7 +43,10 @@ export default function TodayScreen() {
 
   const topPick = useMemo(() => {
     if (allGames.length > 0) {
-      return [...allGames].sort((a, b) => b.projection.modelScore - a.projection.modelScore)[0] ?? getTopPick();
+      // Only feature non-locked games (subscribers can see all picks in this slot)
+      const unlocked = allGames.filter(g => !g.isLocked);
+      const pool = unlocked.length > 0 ? unlocked : allGames;
+      return [...pool].sort((a, b) => b.projection.modelScore - a.projection.modelScore)[0] ?? getTopPick();
     }
     return getTopPick();
   }, [allGames]);

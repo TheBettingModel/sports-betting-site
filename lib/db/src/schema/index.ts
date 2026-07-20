@@ -41,3 +41,6 @@ export * from "./automation-runs";
 export * from "./data-quality-alerts";
 export * from "./model-drift-alerts";
 export * from "./performance-metrics";
+
+// ── Subscribers (RevenueCat entitlement cache) ────────────────────────────────
+export * from "./subscribers";

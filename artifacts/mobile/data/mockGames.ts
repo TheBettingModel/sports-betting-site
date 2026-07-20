@@ -16,6 +16,8 @@ export interface Game {
   awayTeam: Team;
   gameTime: string;
   status: 'upcoming' | 'live' | 'final';
+  /** True when the server has gated this game's premium data (non-subscriber). */
+  isLocked?: boolean;
   projection: {
     homeWinPct: number;
     confidence: ConfidenceLevel;

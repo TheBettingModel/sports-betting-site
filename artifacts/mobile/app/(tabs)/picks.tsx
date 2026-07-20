@@ -77,7 +77,9 @@ export default function PicksScreen() {
     return c;
   }, [allPicks]);
 
-  // Build flat list with section headers. Mark picks after FREE_PICKS as locked for non-subscribers.
+  // Build flat list with section headers.
+  // Lock state is authoritative from the server (game.isLocked). Fall back to
+  // index-based locking when the API does not return isLocked (e.g. mock data).
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
     let pickIndex = 0;
@@ -86,7 +88,8 @@ export default function PicksScreen() {
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
       for (const game of group) {
-        const locked = !isSubscribed && pickIndex >= FREE_PICKS;
+        // Prefer server-side isLocked; fall back to index gate for mock data
+        const locked = game.isLocked ?? (!isSubscribed && pickIndex >= FREE_PICKS);
         items.push({ type: 'game', game, locked });
         pickIndex++;
       }

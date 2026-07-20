@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,13 +15,16 @@ import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
 import { MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
+import { LockedPickCard } from '@/components/LockedPickCard';
 import { SportFilter } from '@/components/SportFilter';
+import PaywallModal from '@/app/paywall';
 import type { Game, Sport } from '@/data/mockGames';
 
 export default function GamesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { selectedSport } = useSports();
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
@@ -97,9 +100,11 @@ export default function GamesScreen() {
                   {item.games.length} games
                 </Text>
               </View>
-              {item.games.map((game: Game) => (
-                <GameCard key={game.id} game={game} />
-              ))}
+              {item.games.map((game: Game) =>
+                game.isLocked
+                  ? <LockedPickCard key={game.id} onUnlock={() => setPaywallOpen(true)} />
+                  : <GameCard key={game.id} game={game} />
+              )}
             </View>
           )}
         />
@@ -112,7 +117,11 @@ export default function GamesScreen() {
       <FlatList
         data={filtered}
         keyExtractor={item => item.id}
-        renderItem={({ item }: { item: Game }) => <GameCard game={item} />}
+        renderItem={({ item }: { item: Game }) =>
+          item.isLocked
+            ? <LockedPickCard onUnlock={() => setPaywallOpen(true)} />
+            : <GameCard game={item} />
+        }
         ListHeaderComponent={<ListHeader />}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
@@ -129,6 +138,8 @@ export default function GamesScreen() {
           ) : null
         }
       />
+
+      <PaywallModal visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </View>
   );
 }
