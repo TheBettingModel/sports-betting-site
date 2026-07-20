@@ -1,9 +1,10 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { WinBar } from '@/components/WinBar';
 import { ValueBadge } from '@/components/ValueBadge';
+import { getTeamLogoUrl } from '@/utils/teamLogo';
 import type { Game } from '@/data/mockGames';
 
 const SPORT_COLORS: Record<string, string> = {
@@ -18,6 +19,26 @@ const SPORT_COLORS: Record<string, string> = {
 
 function fmtOdds(odds: number): string {
   return odds > 0 ? `+${odds}` : `${odds}`;
+}
+
+interface TeamLogoProps {
+  sport: Game['sport'];
+  abbr: string;
+  align?: 'left' | 'right';
+}
+
+function TeamLogo({ sport, abbr, align = 'left' }: TeamLogoProps) {
+  const colors = useColors();
+  const uri = getTeamLogoUrl(sport, abbr);
+  if (!uri) return null;
+  return (
+    <Image
+      source={{ uri }}
+      style={[styles.logo, align === 'right' && styles.logoRight]}
+      resizeMode="contain"
+      defaultSource={require('@/assets/images/icon.png')}
+    />
+  );
 }
 
 interface GameCardProps {
@@ -52,7 +73,9 @@ export function GameCard({ game }: GameCardProps) {
 
       {/* Teams + Model Score */}
       <View style={styles.teamsRow}>
+        {/* Home team */}
         <View style={styles.team}>
+          <TeamLogo sport={sport} abbr={homeTeam.abbr} align="left" />
           <Text style={[styles.abbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
           <Text style={[styles.city, { color: colors.mutedForeground }]}>{homeTeam.city}</Text>
           <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
@@ -61,15 +84,16 @@ export function GameCard({ game }: GameCardProps) {
         <View style={styles.middle}>
           <Text style={[styles.score, { color: colors.primary }]}>{projection.modelScore}</Text>
           <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>MODEL</Text>
-          {projection.edge > 0 && (
+          {projection.edge > 0 ? (
             <Text style={[styles.edge, { color: colors.win }]}>+{projection.edge.toFixed(1)}%</Text>
-          )}
-          {projection.edge <= 0 && (
+          ) : (
             <Text style={[styles.edge, { color: colors.loss }]}>{projection.edge.toFixed(1)}%</Text>
           )}
         </View>
 
+        {/* Away team */}
         <View style={[styles.team, styles.teamRight]}>
+          <TeamLogo sport={sport} abbr={awayTeam.abbr} align="right" />
           <Text style={[styles.abbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
           <Text style={[styles.city, { color: colors.mutedForeground }]}>{awayTeam.city}</Text>
           <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
@@ -115,7 +139,9 @@ const styles = StyleSheet.create({
   teamsRow: { flexDirection: 'row', alignItems: 'center' },
   team: { flex: 1, gap: 2 },
   teamRight: { alignItems: 'flex-end' },
-  abbr: { fontSize: 22, fontFamily: 'Inter_700Bold' },
+  logo: { width: 44, height: 44, marginBottom: 4 },
+  logoRight: { alignSelf: 'flex-end' },
+  abbr: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   city: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   record: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   middle: { flex: 1, alignItems: 'center' },

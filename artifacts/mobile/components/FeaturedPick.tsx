@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { WinBar } from '@/components/WinBar';
 import { ValueBadge } from '@/components/ValueBadge';
+import { getTeamLogoUrl } from '@/utils/teamLogo';
 import type { Game } from '@/data/mockGames';
 
 function fmtOdds(odds: number): string {
@@ -18,9 +19,12 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
   const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
   const diff = projection.projectedSpread - vegasLine.spread;
 
+  const homeLogo = getTeamLogoUrl(sport, homeTeam.abbr);
+  const awayLogo = getTeamLogoUrl(sport, awayTeam.abbr);
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gold }]}>
-      {/* Gold header */}
+      {/* Header bar */}
       <View style={[styles.goldBar, { backgroundColor: colors.gold }]}>
         <Text style={[styles.goldBarText, { color: colors.primaryForeground }]}>
           MODEL CONFIDENCE: {projection.confidence.toUpperCase()} · {projection.modelScore}/100
@@ -36,19 +40,39 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           <ValueBadge rating={projection.valueRating} />
         </View>
 
-        {/* Teams */}
+        {/* Teams with logos */}
         <View style={styles.teamsRow}>
+          {/* Home */}
           <View style={styles.teamBlock}>
+            {homeLogo && (
+              <Image
+                source={{ uri: homeLogo }}
+                style={styles.logo}
+                resizeMode="contain"
+                defaultSource={require('@/assets/images/icon.png')}
+              />
+            )}
             <Text style={[styles.abbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
             <Text style={[styles.teamFull, { color: colors.mutedForeground }]}>
               {homeTeam.city} {homeTeam.name}
             </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
           </View>
+
           <View style={styles.vsBlock}>
             <Text style={[styles.vs, { color: colors.mutedForeground }]}>VS</Text>
           </View>
+
+          {/* Away */}
           <View style={[styles.teamBlock, styles.teamRight]}>
+            {awayLogo && (
+              <Image
+                source={{ uri: awayLogo }}
+                style={styles.logo}
+                resizeMode="contain"
+                defaultSource={require('@/assets/images/icon.png')}
+              />
+            )}
             <Text style={[styles.abbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
             <Text style={[styles.teamFull, { color: colors.mutedForeground }]}>
               {awayTeam.city} {awayTeam.name}
@@ -128,10 +152,11 @@ const styles = StyleSheet.create({
   teamsRow: { flexDirection: 'row', alignItems: 'center' },
   teamBlock: { flex: 1, gap: 2 },
   teamRight: { alignItems: 'flex-end' },
-  abbr: { fontSize: 30, fontFamily: 'Inter_700Bold' },
+  logo: { width: 64, height: 64, marginBottom: 6 },
+  abbr: { fontSize: 28, fontFamily: 'Inter_700Bold' },
   teamFull: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   record: { fontSize: 11, fontFamily: 'Inter_400Regular' },
-  vsBlock: { paddingHorizontal: 12 },
+  vsBlock: { paddingHorizontal: 12, alignSelf: 'center' },
   vs: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   statsRow: {
     flexDirection: 'row',
