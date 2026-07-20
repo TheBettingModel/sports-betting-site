@@ -14,13 +14,22 @@
  *   wrapped in a database transaction to guarantee atomicity.
  */
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
   deploymentHistoryTable,
   modelVersionsTable,
+  performanceMetricsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+
+// ── Promotion thresholds ──────────────────────────────────────────────────────
+
+/** Minimum graded predictions required before a model can enter production. */
+export const MIN_SAMPLE_SIZE_FOR_PRODUCTION = 100;
+
+/** Minimum win rate required for production promotion. */
+export const MIN_WIN_RATE_FOR_PRODUCTION = 0.50;
 
 // ── Valid status transitions ──────────────────────────────────────────────────
 
@@ -271,6 +280,48 @@ export async function transitionModelStatus(
   if (MASTER_REQUIRED.has(newStatus) && !masterApproved) {
     throw new Error(
       `Transition to "${newStatus}" requires master approval (masterApproved: true).`,
+    );
+  }
+
+  // ── Promotion guard (approved → production) ───────────────────────────────
+  if (newStatus === "production" && current.status === "approved") {
+    // Find the "overall" performance_metrics row (all dimensions null)
+    const [overall] = await db
+      .select()
+      .from(performanceMetricsTable)
+      .where(
+        and(
+          eq(performanceMetricsTable.modelVersionId, modelVersionId),
+          isNull(performanceMetricsTable.sport),
+          isNull(performanceMetricsTable.market),
+          isNull(performanceMetricsTable.recommendation),
+        ),
+      )
+      .orderBy(desc(performanceMetricsTable.computedAt))
+      .limit(1);
+
+    const sample = overall?.sampleSize ?? 0;
+    const winRate = overall?.winRate ?? null;
+
+    if (sample < MIN_SAMPLE_SIZE_FOR_PRODUCTION) {
+      throw new Error(
+        `Promotion guard: model requires ≥ ${MIN_SAMPLE_SIZE_FOR_PRODUCTION} graded predictions ` +
+          `for production promotion. Current sample size: ${sample}. ` +
+          `Continue running the model in challenger mode until enough picks are graded.`,
+      );
+    }
+
+    if (winRate !== null && winRate < MIN_WIN_RATE_FOR_PRODUCTION) {
+      throw new Error(
+        `Promotion guard: model win rate (${(winRate * 100).toFixed(1)}%) is below the ` +
+          `minimum threshold of ${(MIN_WIN_RATE_FOR_PRODUCTION * 100).toFixed(0)}%. ` +
+          `Review challenger performance before promoting to production.`,
+      );
+    }
+
+    logger.info(
+      { modelVersionId, sample, winRate },
+      "Promotion guard passed",
     );
   }
 

@@ -14,8 +14,14 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, deploymentHistoryTable } from "@workspace/db";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
+import {
+  db,
+  backtestRunsTable,
+  deploymentHistoryTable,
+  modelComparisonsTable,
+  performanceMetricsTable,
+} from "@workspace/db";
 import {
   archiveModelVersion,
   createModelVersion,
@@ -26,6 +32,8 @@ import {
   rollbackModel,
   transitionModelStatus,
   updateModelVersion,
+  MIN_SAMPLE_SIZE_FOR_PRODUCTION,
+  MIN_WIN_RATE_FOR_PRODUCTION,
 } from "../services/modelRegistry";
 
 const router: IRouter = Router();
@@ -58,6 +66,173 @@ router.get("/models/production", async (_req, res): Promise<void> => {
 router.get("/models/challenger", async (_req, res): Promise<void> => {
   const versions = await getChallengerVersions();
   res.json({ models: versions, count: versions.length });
+});
+
+// ── Champion-challenger compare ───────────────────────────────────────────────
+
+/**
+ * GET /api/models/compare?champion=:id&challenger=:id
+ *
+ * Returns side-by-side overall performance_metrics for two model versions,
+ * backtest results for each, promotion thresholds, and a verdict.
+ */
+router.get("/models/compare", async (req, res): Promise<void> => {
+  const championId = parseInt(req.query.champion as string, 10);
+  const challengerId = parseInt(req.query.challenger as string, 10);
+
+  if (isNaN(championId) || isNaN(challengerId)) {
+    res.status(400).json({ error: "champion and challenger query params must be numeric model version IDs" });
+    return;
+  }
+
+  const [champion, challenger] = await Promise.all([
+    getModelVersion(championId),
+    getModelVersion(challengerId),
+  ]);
+
+  if (!champion) { res.status(404).json({ error: `Champion model version ${championId} not found` }); return; }
+  if (!challenger) { res.status(404).json({ error: `Challenger model version ${challengerId} not found` }); return; }
+
+  // Overall metrics for both versions (all-dimension-null row = aggregate row)
+  const [championMetrics, challengerMetrics] = await Promise.all([
+    db
+      .select()
+      .from(performanceMetricsTable)
+      .where(
+        and(
+          eq(performanceMetricsTable.modelVersionId, championId),
+          isNull(performanceMetricsTable.sport),
+          isNull(performanceMetricsTable.market),
+          isNull(performanceMetricsTable.recommendation),
+        ),
+      )
+      .orderBy(desc(performanceMetricsTable.computedAt))
+      .limit(1),
+    db
+      .select()
+      .from(performanceMetricsTable)
+      .where(
+        and(
+          eq(performanceMetricsTable.modelVersionId, challengerId),
+          isNull(performanceMetricsTable.sport),
+          isNull(performanceMetricsTable.market),
+          isNull(performanceMetricsTable.recommendation),
+        ),
+      )
+      .orderBy(desc(performanceMetricsTable.computedAt))
+      .limit(1),
+  ]);
+
+  // Latest backtest for each
+  const [championBacktest, challengerBacktest] = await Promise.all([
+    db
+      .select()
+      .from(backtestRunsTable)
+      .where(
+        and(
+          eq(backtestRunsTable.modelVersionId, championId),
+          eq(backtestRunsTable.status, "completed"),
+        ),
+      )
+      .orderBy(desc(backtestRunsTable.completedAt))
+      .limit(1),
+    db
+      .select()
+      .from(backtestRunsTable)
+      .where(
+        and(
+          eq(backtestRunsTable.modelVersionId, challengerId),
+          eq(backtestRunsTable.status, "completed"),
+        ),
+      )
+      .orderBy(desc(backtestRunsTable.completedAt))
+      .limit(1),
+  ]);
+
+  const cm = championMetrics[0] ?? null;
+  const chm = challengerMetrics[0] ?? null;
+
+  // Determine verdict
+  let verdict: "champion_better" | "challenger_better" | "inconclusive" | "insufficient_data" =
+    "insufficient_data";
+
+  const chSample = chm?.sampleSize ?? 0;
+  if (chSample >= MIN_SAMPLE_SIZE_FOR_PRODUCTION && cm && chm) {
+    const chROI = chm.roi ?? 0;
+    const cmROI = cm.roi ?? 0;
+    const chWR = chm.winRate ?? 0;
+    const cmWR = cm.winRate ?? 0;
+
+    // Challenger wins if it beats champion on both ROI and win rate by at least 1pp
+    if (chROI > cmROI + 0.01 && chWR > cmWR + 0.01) {
+      verdict = "challenger_better";
+    } else if (cmROI > chROI + 0.01 && cmWR > chWR + 0.01) {
+      verdict = "champion_better";
+    } else {
+      verdict = "inconclusive";
+    }
+  }
+
+  // Upsert a model_comparisons row for record-keeping
+  const today = new Date().toISOString().slice(0, 10);
+  const [existingComp] = await db
+    .select({ id: modelComparisonsTable.id })
+    .from(modelComparisonsTable)
+    .where(
+      and(
+        eq(modelComparisonsTable.championVersionId, championId),
+        eq(modelComparisonsTable.challengerVersionId, challengerId),
+      ),
+    )
+    .limit(1);
+
+  if (existingComp) {
+    await db
+      .update(modelComparisonsTable)
+      .set({
+        championMetrics: cm ?? null,
+        challengerMetrics: chm ?? null,
+        verdict,
+        sampleSize: chSample,
+      })
+      .where(eq(modelComparisonsTable.id, existingComp.id));
+  } else {
+    await db.insert(modelComparisonsTable).values({
+      championVersionId: championId,
+      challengerVersionId: challengerId,
+      sport: challenger.sport,
+      market: challenger.market,
+      comparisonPeriodStart: chm?.periodStart ?? today,
+      comparisonPeriodEnd: today,
+      championMetrics: cm ?? null,
+      challengerMetrics: chm ?? null,
+      verdict,
+      sampleSize: chSample,
+    });
+  }
+
+  res.json({
+    champion: {
+      version: champion,
+      metrics: cm,
+      latestBacktest: championBacktest[0] ?? null,
+    },
+    challenger: {
+      version: challenger,
+      metrics: chm,
+      latestBacktest: challengerBacktest[0] ?? null,
+    },
+    verdict,
+    promotionThresholds: {
+      minSampleSize: MIN_SAMPLE_SIZE_FOR_PRODUCTION,
+      minWinRate: MIN_WIN_RATE_FOR_PRODUCTION,
+      challengerMeetsSampleSize: chSample >= MIN_SAMPLE_SIZE_FOR_PRODUCTION,
+      challengerMeetsWinRate:
+        chm?.winRate != null ? chm.winRate >= MIN_WIN_RATE_FOR_PRODUCTION : null,
+    },
+    sampleSize: chSample,
+    comparedAt: new Date(),
+  });
 });
 
 // ── Create ────────────────────────────────────────────────────────────────────
