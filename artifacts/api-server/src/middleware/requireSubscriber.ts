@@ -14,7 +14,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createLocalJWKSet, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
 import { logger } from "../lib/logger";
@@ -41,38 +41,65 @@ declare global {
 }
 
 // ---------------------------------------------------------------------------
-// Clerk JWKS setup — derived from CLERK_PUBLISHABLE_KEY
+// Clerk JWKS setup — fetched ONCE at startup, cached locally.
+// Replit's production environment has intermittent outbound TLS connectivity,
+// so doing a remote JWKS fetch on every request causes frequent 401s.
+// We fetch the JWKS JSON once, build a local key set, and verify entirely
+// in-process from then on. Keys are refreshed every 6 hours in the background.
 // ---------------------------------------------------------------------------
 
 function buildClerkJwksUrl(): string | null {
   const key = process.env["CLERK_PUBLISHABLE_KEY"] ?? process.env["VITE_CLERK_PUBLISHABLE_KEY"] ?? "";
   if (!key) return null;
-
-  // Strip the pk_test_ / pk_live_ prefix, then base64-decode to get the domain
   const b64 = key.replace(/^pk_(test|live)_/, "");
   try {
-    const domain = Buffer.from(b64, "base64").toString("utf-8").replace(/\$$/, "");
+    const domain = Buffer.from(b64, "base64").toString("utf-8").replace(/\$/, "");
     return `https://${domain}/.well-known/jwks.json`;
   } catch {
     return null;
   }
 }
 
-// Lazy-initialized so tests can mock `jose` before the module resolves the JWKS.
-let _jwksUrl: string | null | undefined;
-let _jwks: ReturnType<typeof createRemoteJWKSet> | null | undefined;
+type LocalJWKS = ReturnType<typeof createLocalJWKSet>;
 
-function getJwks(): { jwksUrl: string | null; jwks: ReturnType<typeof createRemoteJWKSet> | null } {
-  if (_jwksUrl === undefined) {
-    _jwksUrl = buildClerkJwksUrl();
-    _jwks = _jwksUrl ? createRemoteJWKSet(new URL(_jwksUrl)) : null;
-    if (_jwksUrl) {
-      logger.info({ jwksUrl: _jwksUrl }, "Clerk JWKS configured");
-    } else {
-      logger.warn("CLERK_PUBLISHABLE_KEY not set — JWT verification disabled, all callers treated as non-subscribers");
-    }
+let _localJwks: LocalJWKS | null = null;
+let _jwksUrl: string | null = null;
+let _lastFetchedAt = 0;
+const JWKS_REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+async function fetchAndCacheJwks(): Promise<void> {
+  const url = _jwksUrl ?? buildClerkJwksUrl();
+  if (!url) return;
+  _jwksUrl = url;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`JWKS fetch returned ${res.status}`);
+    const json = await res.json() as object;
+    _localJwks = createLocalJWKSet(json);
+    _lastFetchedAt = Date.now();
+    logger.info({ jwksUrl: url }, "Clerk JWKS fetched and cached locally");
+  } catch (err) {
+    logger.warn({ err, jwksUrl: url }, "Clerk JWKS fetch failed — will retry on next request");
   }
-  return { jwksUrl: _jwksUrl, jwks: _jwks ?? null };
+}
+
+/** Call once at server startup to warm the JWKS cache. */
+export async function initJwks(): Promise<void> {
+  const url = buildClerkJwksUrl();
+  if (!url) {
+    logger.warn("CLERK_PUBLISHABLE_KEY not set — JWT verification disabled");
+    return;
+  }
+  _jwksUrl = url;
+  await fetchAndCacheJwks();
+}
+
+function getLocalJwks(): LocalJWKS | null {
+  // Refresh in background if stale, but don't block the current request
+  if (_jwksUrl && Date.now() - _lastFetchedAt > JWKS_REFRESH_MS) {
+    fetchAndCacheJwks().catch(() => {/* already logged inside */});
+  }
+  return _localJwks;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,34 +107,44 @@ function getJwks(): { jwksUrl: string | null; jwks: ReturnType<typeof createRemo
 // ---------------------------------------------------------------------------
 
 /**
- * Verifies the Clerk JWT and returns the `sub` (user ID) claim, or null when
- * the token is missing, malformed, expired, or has an invalid signature.
+ * Verifies the Clerk JWT using the locally cached JWKS key set (no outbound
+ * network call per request). Returns the `sub` (user ID) claim on success.
  *
- * Also returns a boolean indicating whether verification was *attempted* but
- * failed (as opposed to simply having no token). Callers use this to decide
- * whether to return 401 (bad token supplied) vs. 200 non-subscriber content
- * (no token supplied).
+ * `rejected` is true only when a token was present AND its signature/expiry
+ * is definitively invalid — callers use this to return 401. Network or cache
+ * errors fail open (non-subscriber) rather than hard-rejecting.
  */
 async function verifyClerkJwt(token: string): Promise<{ userId: string | null; rejected: boolean }> {
-  const { jwksUrl, jwks } = getJwks();
+  const jwks = getLocalJwks();
   if (!jwks) {
-    // JWKS not configured — cannot verify. Treat as no token so the app stays
-    // usable in dev environments without Clerk keys set.
-    return { userId: null, rejected: false };
+    // Cache not yet populated (startup fetch failed). Attempt a one-off fetch
+    // now, then retry. Fail open so one bad startup doesn't block all users.
+    await fetchAndCacheJwks();
+    const retried = getLocalJwks();
+    if (!retried) return { userId: null, rejected: false };
+    return verifyClerkJwt(token);
   }
 
   try {
-    // Note: issuer check omitted intentionally.
-    // Clerk's `iss` claim format can vary between dev/prod instances and SDK
-    // versions. The JWKS RS256 signature check is the primary security gate;
-    // issuer validation is redundant when we already pin to Clerk's own JWKS.
     const { payload } = await jwtVerify(token, jwks);
     const userId = typeof payload.sub === "string" ? payload.sub : null;
     return { userId, rejected: userId === null };
   } catch (err) {
-    // Expired, bad signature, etc. — token was present but invalid
-    logger.warn({ err }, "JWT verification failed");
-    return { userId: null, rejected: true };
+    // Distinguish genuine JWT errors (expired, bad signature) from local errors
+    const message = err instanceof Error ? err.message : String(err);
+    const isJwtError =
+      message.includes("expired") ||
+      message.includes("signature") ||
+      message.includes("invalid") ||
+      message.includes("audience") ||
+      message.includes("claim");
+    if (isJwtError) {
+      logger.debug({ err }, "JWT rejected — bad token");
+      return { userId: null, rejected: true };
+    }
+    // Unexpected error (shouldn't happen with local JWKS) — fail open
+    logger.warn({ err }, "JWT verification unexpected error — treating as no token");
+    return { userId: null, rejected: false };
   }
 }
 
