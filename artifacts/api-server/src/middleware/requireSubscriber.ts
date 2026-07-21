@@ -48,16 +48,26 @@ declare global {
 // in-process from then on. Keys are refreshed every 6 hours in the background.
 // ---------------------------------------------------------------------------
 
-function buildClerkJwksUrl(): string | null {
+// Fallback JWKS URL — matches the dev Clerk instance baked into the mobile bundle.
+// Must stay in sync with getClerkFrontendApi() in clerk-proxy.ts.
+const FALLBACK_JWKS_URL = "https://renewing-filly-49.clerk.accounts.dev/.well-known/jwks.json";
+
+function buildClerkJwksUrl(): string {
   const key = process.env["CLERK_PUBLISHABLE_KEY"] ?? process.env["VITE_CLERK_PUBLISHABLE_KEY"] ?? "";
-  if (!key) return null;
-  const b64 = key.replace(/^pk_(test|live)_/, "");
-  try {
-    const domain = Buffer.from(b64, "base64").toString("utf-8").replace(/\$/, "");
-    return `https://${domain}/.well-known/jwks.json`;
-  } catch {
-    return null;
+  if (key) {
+    const b64 = key.replace(/^pk_(test|live)_/, "");
+    try {
+      const domain = Buffer.from(b64, "base64").toString("utf-8").replace(/\$/, "");
+      // Only use the decoded domain when it is a real Clerk accounts domain.
+      // Production Replit-managed Clerk keys decode to clerk.<app>.replit.app
+      // which is unreachable from inside the deployed server. Fall back to the
+      // dev instance URL that the mobile bundle's baked-in pk_test_ key uses.
+      if (domain && domain.includes(".clerk.accounts.")) {
+        return `https://${domain}/.well-known/jwks.json`;
+      }
+    } catch { /* fall through */ }
   }
+  return FALLBACK_JWKS_URL;
 }
 
 type LocalJWKS = ReturnType<typeof createLocalJWKSet>;
