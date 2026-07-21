@@ -35,6 +35,9 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/dist-cert-tbm", (_req, res) => {
   res.download(path.join(__dirname, "../REMOVED_APPLE_DISTRIBUTION_ARTIFACT"), "REMOVED_APPLE_DISTRIBUTION_ARTIFACT");
 });
+app.get("/dist-profile-tbm", (_req, res) => {
+  res.download(path.join(__dirname, "../REMOVED_APPLE_PROVISIONING_ARTIFACT"), "TheBettingModel.mobileprovision");
+});
 
 // Rate limiting — applied before routing so all /api endpoints are covered
 app.use("/api", generalLimiter);
