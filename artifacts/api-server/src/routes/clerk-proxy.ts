@@ -19,15 +19,19 @@ function getClerkFrontendApi(): string {
     try {
       // Clerk encodes the frontend API domain as base64 in the publishable key
       const decoded = Buffer.from(suffix, "base64").toString("utf-8").replace(/\$+$/, "");
-      if (decoded) return `https://${decoded}`;
+      // Only trust the decoded value if it is a real Clerk API domain
+      if (decoded && decoded.includes(".clerk.accounts.")) {
+        console.log(`[clerk-proxy] using key-derived API: ${decoded}`);
+        return `https://${decoded}`;
+      }
     } catch {}
   }
-  // Fallback to dev instance
+  // Fallback: known-good dev instance (matches the pk_test_ key baked into the bundle)
+  console.log("[clerk-proxy] using hardcoded dev API");
   return "https://renewing-filly-49.clerk.accounts.dev";
 }
 
 const CLERK_FRONTEND_API = getClerkFrontendApi();
-console.log(`[clerk-proxy] routing to ${CLERK_FRONTEND_API}`);
 
 const router = Router();
 
