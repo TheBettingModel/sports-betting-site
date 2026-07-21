@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -246,6 +247,14 @@ export default function PaywallModal({ visible, onClose }: Props) {
           <Pressable onPress={handleRestore} disabled={isLoading} style={s.restoreBtn}>
             <Text style={[s.restoreText, { color: C.muted }]}>Restore Purchases</Text>
           </Pressable>
+
+          {/* Legal links */}
+          <Pressable
+            onPress={() => Linking.openURL('https://thebettingmodel.replit.app/api/privacy')}
+            style={s.legalLink}
+          >
+            <Text style={[s.legalLinkText, { color: C.muted }]}>Privacy Policy</Text>
+          </Pressable>
         </ScrollView>
       </View>
     </Modal>
@@ -284,4 +293,6 @@ const s = StyleSheet.create({
   legalText: { fontSize: 11, fontFamily: 'Inter_400Regular', color: C.muted, textAlign: 'center', marginBottom: 20 },
   restoreBtn: { alignItems: 'center', paddingVertical: 8 },
   restoreText: { fontSize: 13, fontFamily: 'Inter_400Regular' },
+  legalLink: { alignItems: 'center', paddingVertical: 10 },
+  legalLinkText: { fontSize: 12, fontFamily: 'Inter_400Regular', textDecorationLine: 'underline' },
 });

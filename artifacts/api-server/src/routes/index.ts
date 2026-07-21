@@ -9,6 +9,7 @@ import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
 import pushTokensRouter from "./push-tokens";
 import clerkProxyRouter from "./clerk-proxy";
+import legalRouter from "./legal";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(adminRouter);
 router.use(webhooksRouter);
 router.use(pushTokensRouter);
 router.use(clerkProxyRouter);
+router.use(legalRouter);
 
 export default router;

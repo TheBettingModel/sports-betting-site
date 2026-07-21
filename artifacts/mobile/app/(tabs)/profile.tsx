@@ -326,11 +326,11 @@ export default function ProfileScreen() {
         <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
 
         {[
-          { icon: 'dollar-sign' as const, label: 'Odds Format', value: 'American' },
-          { icon: 'info' as const, label: 'App Version', value: '1.0.0' },
+          { icon: 'dollar-sign' as const, label: 'Odds Format', value: 'American', onPress: () => Haptics.selectionAsync() },
+          { icon: 'info' as const, label: 'App Version', value: '1.0.0', onPress: () => Haptics.selectionAsync() },
         ].map((row, i, arr) => (
           <View key={row.label}>
-            <Pressable onPress={() => Haptics.selectionAsync()} style={styles.settingsRow}>
+            <Pressable onPress={row.onPress} style={styles.settingsRow}>
               <View style={styles.settingsLeft}>
                 <Feather name={row.icon} size={16} color={colors.mutedForeground} />
                 <Text style={[styles.settingsLabel, { color: colors.foreground }]}>{row.label}</Text>
@@ -343,6 +343,20 @@ export default function ProfileScreen() {
             {i < arr.length - 1 && <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />}
           </View>
         ))}
+
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+        {/* Legal links */}
+        <Pressable
+          onPress={() => Linking.openURL('https://thebettingmodel.replit.app/api/privacy')}
+          style={styles.settingsRow}
+        >
+          <View style={styles.settingsLeft}>
+            <Feather name="shield" size={16} color={colors.mutedForeground} />
+            <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Privacy Policy</Text>
+          </View>
+          <Feather name="external-link" size={14} color={colors.mutedForeground} />
+        </Pressable>
       </View>
     </ScrollView>
   );
