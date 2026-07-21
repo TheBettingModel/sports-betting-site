@@ -1,3 +1,10 @@
+/**
+ * Sign-in screen — Clerk signals API (@clerk/expo 3.7.x)
+ *
+ * Supported strategies (from Clerk environment):
+ *   • Email OTP  — sendCode → verifyCode → finalize
+ *   • Google SSO — startSSOFlow → setActive
+ */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,7 +21,7 @@ import {
 } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { useClerk, useSignIn, useSSO } from '@clerk/expo';
+import { useAuth, useSignIn, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
@@ -28,166 +35,219 @@ function useWarmUpBrowser() {
   }, []);
 }
 
-const COLORS = {
+const C = {
   bg: '#000000', card: '#111111', primary: '#84CC16',
   primaryFg: '#000000', border: '#2A2A2A', fg: '#FFFFFF',
   muted: '#6B7280', error: '#EF4444', inputBg: '#1A1A1A',
 };
 
+type Stage = 'email' | 'code';
+
 export default function SignInScreen() {
   useWarmUpBrowser();
-  const { signIn } = useSignIn();
+  // Clerk signals API: useSignIn returns { signIn, errors, fetchStatus }
+  const { signIn } = useSignIn() as any;
   const { startSSOFlow } = useSSO();
-  const clerk = useClerk();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
+  const [code, setCode] = useState('');
+  const [stage, setStage] = useState<Stage>('email');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
 
-  if (!signIn) {
-    return (
-      <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
-
-  const handleSignIn = async () => {
-    setGeneralError(null);
-    setIsLoading(true);
+  // ── Step 1: send OTP ──────────────────────────────────────────────────────
+  const handleSendCode = async () => {
+    if (!signIn || !email.trim()) return;
+    setErrorMsg(null);
+    setLoading(true);
     try {
-      const result = await signIn.create({ identifier: email, password });
-      if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
-      } else {
-        setGeneralError(`Sign-in incomplete (status: ${result.status}). Please try again.`);
+      const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
+      if (error) {
+        setErrorMsg(error.longMessage ?? error.message ?? 'Could not send code.');
+        return;
       }
+      setStage('code');
     } catch (err: any) {
+      setErrorMsg(err?.message ?? 'Could not send code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Step 2: verify OTP ────────────────────────────────────────────────────
+  const handleVerifyCode = async () => {
+    if (!signIn || !code.trim()) return;
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const { error: verifyError } = await signIn.emailCode.verifyCode({ code: code.trim() });
+      if (verifyError) {
+        setErrorMsg(verifyError.longMessage ?? verifyError.message ?? 'Invalid code.');
+        return;
+      }
+      // Activate the session
+      const { error: finalizeError } = await signIn.finalize();
+      if (finalizeError) {
+        setErrorMsg(finalizeError.longMessage ?? finalizeError.message ?? 'Could not complete sign-in.');
+        return;
+      }
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? 'Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Google SSO ────────────────────────────────────────────────────────────
+  const handleGoogle = useCallback(async () => {
+    setSsoLoading(true);
+    setErrorMsg(null);
+    try {
+      const result = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+
+      const { createdSessionId, setActive } = result as any;
+
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/(tabs)');
+        return;
+      }
+
+      // Already signed in (existing session re-used)
+      if (isSignedIn) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      setErrorMsg('Google sign-in did not complete. Please try again.');
+    } catch (err: any) {
+      const errCode = err?.errors?.[0]?.code ?? '';
       const msg =
         err?.errors?.[0]?.longMessage ||
         err?.errors?.[0]?.message ||
         err?.message ||
-        'Sign-in failed. Check your email and password.';
-      setGeneralError(msg);
-      Alert.alert('Sign-in Error', msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        '';
 
-  const handleSSO = useCallback(async (strategy: 'oauth_google' | 'oauth_apple') => {
-    setSsoLoading(strategy === 'oauth_google' ? 'google' : 'apple');
-    setGeneralError(null);
-    try {
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy,
-        redirectUrl: AuthSession.makeRedirectUri(),
-      });
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
+      // Session already exists — navigate to app
+      if (
+        errCode === 'session_exists' ||
+        errCode === 'identifier_already_signed_in' ||
+        msg.toLowerCase().includes('already signed in') ||
+        msg.toLowerCase().includes('session exists')
+      ) {
         router.replace('/(tabs)');
-      } else {
-        setGeneralError('SSO did not complete. Please try again.');
+        return;
       }
-    } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'SSO sign-in failed.';
-      Alert.alert('SSO Error', msg);
-      setGeneralError(msg);
-    } finally {
-      setSsoLoading(null);
-    }
-  }, [startSSOFlow, router]);
 
+      if (msg) {
+        Alert.alert('Google sign-in error', msg);
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg('Google sign-in failed. Please try again.');
+      }
+    } finally {
+      setSsoLoading(false);
+    }
+  }, [startSSOFlow, router, isSignedIn]);
+
+  // ── Verify code screen ────────────────────────────────────────────────────
+  if (stage === 'code') {
+    return (
+      <View style={s.root}>
+        <View style={s.verifyWrap}>
+          <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
+          <Text style={s.title}>Check your email</Text>
+          <Text style={s.sub}>We sent a 6-digit code to {email}.</Text>
+
+          {errorMsg && <ErrBanner msg={errorMsg} />}
+
+          <Text style={s.label}>Verification code</Text>
+          <TextInput
+            style={s.input}
+            value={code}
+            onChangeText={setCode}
+            placeholder="123456"
+            placeholderTextColor={C.muted}
+            keyboardType="numeric"
+            autoFocus
+            maxLength={6}
+            returnKeyType="done"
+            onSubmitEditing={handleVerifyCode}
+          />
+
+          <Pressable
+            style={[s.btn, (!code.trim() || loading) && s.off]}
+            onPress={handleVerifyCode}
+            disabled={!code.trim() || loading}
+          >
+            {loading
+              ? <ActivityIndicator size="small" color={C.primaryFg} />
+              : <Text style={s.btnTxt}>Sign In</Text>}
+          </Pressable>
+
+          <Pressable onPress={handleSendCode} style={s.link} disabled={loading}>
+            <Text style={s.linkTxt}>Resend code</Text>
+          </Pressable>
+          <Pressable onPress={() => { setStage('email'); setCode(''); setErrorMsg(null); }} style={s.link}>
+            <Text style={s.linkTxt}>← Change email</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Email screen ──────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
         <Text style={s.title}>Welcome back</Text>
-        <Text style={s.subtitle}>Sign in to your TBM account</Text>
+        <Text style={s.sub}>Sign in to your TBM account</Text>
 
-        {/* SSO — fastest path, no email verification needed */}
-        <Pressable
-          style={[s.socialBtn, ssoLoading === 'google' && s.btnDisabled]}
-          onPress={() => handleSSO('oauth_google')}
-          disabled={ssoLoading !== null || isLoading}
-        >
-          {ssoLoading === 'google'
-            ? <ActivityIndicator size="small" color={COLORS.fg} />
-            : <Feather name="globe" size={18} color={COLORS.fg} />}
-          <Text style={s.socialBtnText}>Continue with Google</Text>
+        <Pressable style={[s.social, ssoLoading && s.off]} onPress={handleGoogle} disabled={ssoLoading || loading}>
+          {ssoLoading
+            ? <ActivityIndicator size="small" color={C.fg} />
+            : <Feather name="globe" size={18} color={C.fg} />}
+          <Text style={s.socialTxt}>Continue with Google</Text>
         </Pressable>
 
-        {Platform.OS === 'ios' && (
-          <Pressable
-            style={[s.socialBtn, ssoLoading === 'apple' && s.btnDisabled]}
-            onPress={() => handleSSO('oauth_apple')}
-            disabled={ssoLoading !== null || isLoading}
-          >
-            {ssoLoading === 'apple'
-              ? <ActivityIndicator size="small" color={COLORS.fg} />
-              : <Feather name="smartphone" size={18} color={COLORS.fg} />}
-            <Text style={s.socialBtnText}>Continue with Apple</Text>
-          </Pressable>
-        )}
+        <Row />
 
-        <View style={s.divider}>
-          <View style={s.dividerLine} />
-          <Text style={s.dividerText}>or email</Text>
-          <View style={s.dividerLine} />
-        </View>
+        {errorMsg && <ErrBanner msg={errorMsg} />}
 
-        {generalError && (
-          <View style={s.errorBanner}>
-            <Feather name="alert-circle" size={14} color={COLORS.error} />
-            <Text style={s.errorBannerText}>{generalError}</Text>
-          </View>
-        )}
-
-        <Text style={s.label}>Email</Text>
+        <Text style={s.label}>Email address</Text>
         <TextInput
           style={s.input}
           value={email}
           onChangeText={setEmail}
           placeholder="you@example.com"
-          placeholderTextColor={COLORS.muted}
+          placeholderTextColor={C.muted}
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
+          returnKeyType="send"
+          onSubmitEditing={handleSendCode}
         />
 
-        <Text style={s.label}>Password</Text>
-        <View style={s.passwordRow}>
-          <TextInput
-            style={[s.input, { flex: 1, marginBottom: 0 }]}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Your password"
-            placeholderTextColor={COLORS.muted}
-            secureTextEntry={!showPassword}
-            autoComplete="password"
-          />
-          <Pressable onPress={() => setShowPassword(v => !v)} style={s.eyeBtn}>
-            <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.muted} />
-          </Pressable>
-        </View>
-
         <Pressable
-          style={[s.primaryBtn, (!email || !password || isLoading) && s.btnDisabled]}
-          onPress={handleSignIn}
-          disabled={!email || !password || isLoading}
+          style={[s.btn, (!email.trim() || loading) && s.off]}
+          onPress={handleSendCode}
+          disabled={!email.trim() || loading}
         >
-          {isLoading
-            ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
-            : <Text style={s.primaryBtnText}>Sign In</Text>}
+          {loading
+            ? <ActivityIndicator size="small" color={C.primaryFg} />
+            : <Text style={s.btnTxt}>Send Code</Text>}
         </Pressable>
 
         <View style={s.footer}>
-          <Text style={s.footerText}>Don't have an account? </Text>
+          <Text style={s.footerTxt}>No account? </Text>
           <Link href="/(auth)/sign-up"><Text style={s.footerLink}>Sign up</Text></Link>
         </View>
       </ScrollView>
@@ -195,42 +255,62 @@ export default function SignInScreen() {
   );
 }
 
+function Row() {
+  return (
+    <View style={s.divider}>
+      <View style={s.divLine} />
+      <Text style={s.divTxt}>or use email</Text>
+      <View style={s.divLine} />
+    </View>
+  );
+}
+
+function ErrBanner({ msg }: { msg: string }) {
+  return (
+    <View style={s.errBox}>
+      <Feather name="alert-circle" size={14} color={C.error} />
+      <Text style={s.errTxt}>{msg}</Text>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
-  logo: { width: 80, height: 80, borderRadius: 16, alignSelf: 'center', marginBottom: 28 },
-  title: { fontSize: 28, fontFamily: 'Inter_700Bold', color: COLORS.fg, textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', color: COLORS.muted, textAlign: 'center', marginBottom: 28 },
-  socialBtn: {
+  root: { flex: 1, backgroundColor: C.bg },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 64, paddingBottom: 40 },
+  verifyWrap: { flex: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
+  logo: { width: 72, height: 72, borderRadius: 16, alignSelf: 'center', marginBottom: 28 },
+  title: { fontSize: 26, fontFamily: 'Inter_700Bold', color: C.fg, textAlign: 'center', marginBottom: 6 },
+  sub: { fontSize: 14, fontFamily: 'Inter_400Regular', color: C.muted, textAlign: 'center', marginBottom: 28 },
+  social: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 12,
-    paddingVertical: 14, marginBottom: 12, backgroundColor: COLORS.card,
+    borderWidth: 1, borderColor: C.border, borderRadius: 12,
+    paddingVertical: 14, backgroundColor: C.card, marginBottom: 12,
   },
-  socialBtnText: { color: COLORS.fg, fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { color: COLORS.muted, fontSize: 13, fontFamily: 'Inter_400Regular' },
-  label: { color: COLORS.muted, fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 6 },
+  socialTxt: { color: C.fg, fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
+  divLine: { flex: 1, height: 1, backgroundColor: C.border },
+  divTxt: { color: C.muted, fontSize: 12, fontFamily: 'Inter_400Regular' },
+  label: { color: C.muted, fontSize: 13, fontFamily: 'Inter_500Medium', marginBottom: 6 },
   input: {
-    backgroundColor: COLORS.inputBg, borderWidth: 1, borderColor: COLORS.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
-    color: COLORS.fg, fontSize: 15, fontFamily: 'Inter_400Regular', marginBottom: 14,
+    backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 13, color: C.fg,
+    fontSize: 15, fontFamily: 'Inter_400Regular', marginBottom: 14,
   },
-  passwordRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  eyeBtn: { padding: 8 },
-  primaryBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', marginTop: 4, marginBottom: 20,
+  btn: {
+    backgroundColor: C.primary, borderRadius: 12,
+    paddingVertical: 15, alignItems: 'center', marginBottom: 16,
   },
-  primaryBtnText: { color: COLORS.primaryFg, fontSize: 16, fontFamily: 'Inter_700Bold' },
-  btnDisabled: { opacity: 0.45 },
-  errorBanner: {
+  btnTxt: { color: C.primaryFg, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  off: { opacity: 0.45 },
+  errBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    backgroundColor: '#1A0000', borderWidth: 1, borderColor: COLORS.error,
-    borderRadius: 10, padding: 12, marginBottom: 16,
+    backgroundColor: '#1A0000', borderWidth: 1, borderColor: C.error,
+    borderRadius: 10, padding: 12, marginBottom: 14,
   },
-  errorBannerText: { color: COLORS.error, fontSize: 13, fontFamily: 'Inter_400Regular', flex: 1 },
+  errTxt: { color: C.error, fontSize: 13, fontFamily: 'Inter_400Regular', flex: 1 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
-  footerText: { color: COLORS.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
-  footerLink: { color: COLORS.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
+  footerTxt: { color: C.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
+  footerLink: { color: C.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
+  link: { paddingVertical: 10, alignItems: 'center' },
+  linkTxt: { color: C.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
 });
