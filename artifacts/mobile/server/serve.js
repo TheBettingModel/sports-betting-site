@@ -61,6 +61,8 @@ function serveManifest(platform, res) {
     'content-type': 'application/json',
     'expo-protocol-version': '1',
     'expo-sfv-version': '0',
+    'cache-control': 'no-store, no-cache, must-revalidate',
+    'pragma': 'no-cache',
   });
   res.end(manifest);
 }
