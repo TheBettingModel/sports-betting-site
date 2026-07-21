@@ -58,7 +58,9 @@ export default function SignInScreen() {
   if (!signIn) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ color: '#fff', fontSize: 16, marginBottom: 12 }}>⏳ Clerk loading…</Text>
+        <Text style={{ color: COLORS.muted, fontSize: 12 }}>signIn object is not ready</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 16 }} />
       </View>
     );
   }
@@ -242,9 +244,8 @@ export default function SignInScreen() {
         </View>
 
         <Pressable
-          style={[s.primaryBtn, !canSubmit && s.btnDisabled]}
+          style={s.primaryBtn}
           onPress={handleSignIn}
-          disabled={!canSubmit}
         >
           {isLoading
             ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
