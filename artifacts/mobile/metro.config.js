@@ -1,12 +1,24 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+const workspaceRoot = path.resolve(__dirname, '../..');
+const projectRoot = __dirname;
 
-// @tailwindcss/typography creates _tmp_* directories during CSS processing
-// that are deleted before Metro can finish watching them, causing ENOENT crashes.
-// Exclude those transient paths from the file watcher.
+const config = getDefaultConfig(projectRoot);
+
+// pnpm monorepo: watch the workspace root so Metro can follow symlinks
+// into the pnpm store (node_modules/.pnpm/...)
+config.watchFolders = [workspaceRoot];
+
 config.resolver = {
   ...config.resolver,
+  // Allow Metro to resolve packages from the workspace root node_modules
+  nodeModulesPaths: [
+    path.resolve(projectRoot, 'node_modules'),
+    path.resolve(workspaceRoot, 'node_modules'),
+  ],
+  // Follow symlinks created by pnpm
+  unstable_enableSymlinks: true,
   blockList: [
     /node_modules\/.pnpm\/.*\/node_modules\/@tailwindcss\/typography_tmp_[^/]+\/.*/,
     /node_modules\/.*\/@tailwindcss\/typography_tmp_[^/]+\/.*/,
