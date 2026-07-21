@@ -63,23 +63,23 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   // Check for an OTA update on every launch and reload immediately if one is found.
-  // This eliminates the two-close cycle that expo-updates normally requires.
+  // This eliminates the two-close cycle that Expo's built-in updater normally requires.
   useEffect(() => {
     let cancelled = false;
     const checkUpdate = async () => {
       try {
-        const update = await Updates.checkForUpdateAsync();
-        if (cancelled) return;
-        if (update.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          if (!cancelled) await Updates.reloadAsync();
-        }
+        // expo-updates API: checkForUpdateAsync returns { isAvailable, manifest? }
+        const check = await Updates.checkForUpdateAsync();
+        if (cancelled || !check.isAvailable) return;
+        await Updates.fetchUpdateAsync();
+        if (!cancelled) await Updates.reloadAsync();
       } catch {
-        // Silently ignore: running in dev mode or expo-updates not configured
+        // Silently ignore: custom OTA build or expo-updates not configured in
+        // this environment — the built-in Expo updater handles it on next launch.
       }
     };
-    // Small delay so the splash screen has time to dismiss first
-    const t = setTimeout(checkUpdate, 1500);
+    // Delay so the splash screen dismisses before any potential reload
+    const t = setTimeout(checkUpdate, 2000);
     return () => { cancelled = true; clearTimeout(t); };
   }, []);
 

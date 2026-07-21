@@ -29,15 +29,9 @@ function useWarmUpBrowser() {
 }
 
 const COLORS = {
-  bg: '#000000',
-  card: '#111111',
-  primary: '#84CC16',
-  primaryFg: '#000000',
-  border: '#2A2A2A',
-  fg: '#FFFFFF',
-  muted: '#6B7280',
-  error: '#EF4444',
-  inputBg: '#1A1A1A',
+  bg: '#000000', card: '#111111', primary: '#84CC16',
+  primaryFg: '#000000', border: '#2A2A2A', fg: '#FFFFFF',
+  muted: '#6B7280', error: '#EF4444', inputBg: '#1A1A1A',
 };
 
 export default function SignInScreen() {
@@ -50,7 +44,6 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [verifyCode, setVerifyCode] = useState('');
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
@@ -58,61 +51,30 @@ export default function SignInScreen() {
   if (!signIn) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: '#fff', fontSize: 16, marginBottom: 12 }}>⏳ Clerk loading…</Text>
-        <Text style={{ color: COLORS.muted, fontSize: 12 }}>signIn object is not ready</Text>
-        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 16 }} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   const handleSignIn = async () => {
-    // DEBUG — remove once sign-in is confirmed working
-    Alert.alert('Debug', `Attempting sign-in for: ${email}`);
-
     setGeneralError(null);
     setIsLoading(true);
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
-
-      Alert.alert('Debug', `Status: ${result.status}, sessionId: ${result.createdSessionId ?? 'none'}`);
-
+      const result = await signIn.create({ identifier: email, password });
       if (result.status === 'complete') {
         await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
       } else {
-        setGeneralError(`Sign-in state: ${result.status ?? 'unknown'}. Please try again.`);
+        setGeneralError(`Sign-in incomplete (status: ${result.status}). Please try again.`);
       }
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.longMessage ||
         err?.errors?.[0]?.message ||
         err?.message ||
-        'An unexpected error occurred. Please try again.';
-      Alert.alert('Debug Error', msg);
+        'Sign-in failed. Check your email and password.';
       setGeneralError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    setGeneralError(null);
-    setIsLoading(true);
-    try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: 'email_code',
-        code: verifyCode,
-      });
-      if (result.status === 'complete') {
-        await clerk.setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
-      }
-    } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Verification failed.';
-      setGeneralError(msg);
+      Alert.alert('Sign-in Error', msg);
     } finally {
       setIsLoading(false);
     }
@@ -129,55 +91,26 @@ export default function SignInScreen() {
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
         router.replace('/(tabs)');
+      } else {
+        setGeneralError('SSO did not complete. Please try again.');
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'SSO sign-in failed.';
+      Alert.alert('SSO Error', msg);
       setGeneralError(msg);
     } finally {
       setSsoLoading(null);
     }
   }, [startSSOFlow, router]);
 
-  // MFA / email verification step
-  if (signIn.status === 'needs_first_factor') {
-    return (
-      <View style={s.root}>
-        <View style={s.verifyCard}>
-          <Text style={s.title}>Check your email</Text>
-          <Text style={s.subtitle}>Enter the verification code we sent to your inbox.</Text>
-          <TextInput
-            style={s.input}
-            value={verifyCode}
-            placeholder="6-digit code"
-            placeholderTextColor={COLORS.muted}
-            keyboardType="numeric"
-            onChangeText={setVerifyCode}
-          />
-          {generalError && <Text style={s.error}>{generalError}</Text>}
-          <Pressable
-            style={[s.primaryBtn, (!verifyCode || isLoading) && s.btnDisabled]}
-            onPress={handleVerify}
-            disabled={!verifyCode || isLoading}
-          >
-            {isLoading
-              ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
-              : <Text style={s.primaryBtnText}>Verify</Text>}
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  const canSubmit = !!email && !!password && !isLoading;
-
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
-
         <Text style={s.title}>Welcome back</Text>
         <Text style={s.subtitle}>Sign in to your TBM account</Text>
 
+        {/* SSO — fastest path, no email verification needed */}
         <Pressable
           style={[s.socialBtn, ssoLoading === 'google' && s.btnDisabled]}
           onPress={() => handleSSO('oauth_google')}
@@ -204,7 +137,7 @@ export default function SignInScreen() {
 
         <View style={s.divider}>
           <View style={s.dividerLine} />
-          <Text style={s.dividerText}>or</Text>
+          <Text style={s.dividerText}>or email</Text>
           <View style={s.dividerLine} />
         </View>
 
@@ -244,8 +177,9 @@ export default function SignInScreen() {
         </View>
 
         <Pressable
-          style={s.primaryBtn}
+          style={[s.primaryBtn, (!email || !password || isLoading) && s.btnDisabled]}
           onPress={handleSignIn}
+          disabled={!email || !password || isLoading}
         >
           {isLoading
             ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
@@ -254,9 +188,7 @@ export default function SignInScreen() {
 
         <View style={s.footer}>
           <Text style={s.footerText}>Don't have an account? </Text>
-          <Link href="/(auth)/sign-up">
-            <Text style={s.footerLink}>Sign up</Text>
-          </Link>
+          <Link href="/(auth)/sign-up"><Text style={s.footerLink}>Sign up</Text></Link>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -292,7 +224,6 @@ const s = StyleSheet.create({
   },
   primaryBtnText: { color: COLORS.primaryFg, fontSize: 16, fontFamily: 'Inter_700Bold' },
   btnDisabled: { opacity: 0.45 },
-  error: { color: COLORS.error, fontSize: 12, fontFamily: 'Inter_400Regular', marginBottom: 8 },
   errorBanner: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     backgroundColor: '#1A0000', borderWidth: 1, borderColor: COLORS.error,
@@ -302,5 +233,4 @@ const s = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
   footerText: { color: COLORS.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
   footerLink: { color: COLORS.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  verifyCard: { flex: 1, padding: 24, justifyContent: 'center' },
 });

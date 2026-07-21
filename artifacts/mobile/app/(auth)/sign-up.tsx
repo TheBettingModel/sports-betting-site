@@ -29,16 +29,13 @@ function useWarmUpBrowser() {
 }
 
 const COLORS = {
-  bg: '#000000',
-  card: '#111111',
-  primary: '#84CC16',
-  primaryFg: '#000000',
-  border: '#2A2A2A',
-  fg: '#FFFFFF',
-  muted: '#6B7280',
-  error: '#EF4444',
-  inputBg: '#1A1A1A',
+  bg: '#000000', card: '#111111', primary: '#84CC16',
+  primaryFg: '#000000', border: '#2A2A2A', fg: '#FFFFFF',
+  muted: '#6B7280', error: '#EF4444', inputBg: '#1A1A1A',
+  info: '#3B82F6',
 };
+
+type Stage = 'form' | 'verify';
 
 export default function SignUpScreen() {
   useWarmUpBrowser();
@@ -51,58 +48,58 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
-  const [stage, setStage] = useState<'form' | 'verify' | 'verify_link'>('form');
+  const [stage, setStage] = useState<Stage>('form');
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
 
   if (!signUp) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: '#fff', fontSize: 16, marginBottom: 12 }}>⏳ Clerk loading…</Text>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
-  // ── Email/password sign-up ────────────────────────────────────────────────
   const handleSignUp = async () => {
     setGeneralError(null);
+    setInfoMessage(null);
     setIsLoading(true);
     try {
-      // Create the sign-up (classic API)
       const result = await signUp.create({ emailAddress: email, password });
 
+      // Account created and immediately verified — activate session
       if (result.status === 'complete') {
-        // Email verification disabled — account ready immediately
         await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
         return;
       }
 
-      // Email verification required — try email_code first, fall back to email_link
-      let verifyStrategy: 'email_code' | 'email_link' = 'email_code';
-      try {
-        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      } catch (prepErr: any) {
-        const code = prepErr?.errors?.[0]?.code ?? '';
-        const msg422 = prepErr?.errors?.[0]?.longMessage || prepErr?.errors?.[0]?.message || prepErr?.message || '';
-        // Try email_link as fallback
+      // Email verification required
+      if (result.unverifiedFields?.includes('email_address')) {
         try {
-          await signUp.prepareEmailAddressVerification({ strategy: 'email_link' });
-          verifyStrategy = 'email_link';
-        } catch (prepErr2: any) {
-          // Both strategies failed — surface the full error
-          const rawCode = prepErr?.errors?.[0]?.code ?? 'unknown';
-          const rawMsg = prepErr?.errors?.[0]?.longMessage || prepErr?.errors?.[0]?.message || prepErr?.message || '';
-          const detail = `code: ${rawCode}\n${rawMsg}`;
-          Alert.alert('Verification setup failed', detail);
-          setGeneralError(`Cannot start email verification (${rawCode}). Please try Google sign-up instead.`);
-          return;
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+          // Code sent — show verify screen
+          setStage('verify');
+        } catch {
+          // prepare_verification failed (may be rate-limited or code already sent).
+          // Proceed to verify screen anyway — a code may have been sent on a
+          // previous attempt. In Clerk's development environment the code is
+          // visible in the Clerk dashboard; the test code is often 424242.
+          setInfoMessage(
+            'A verification code may have already been sent to your email. ' +
+            'Enter it below to continue. (Dev mode: try code 424242)'
+          );
+          setStage('verify');
         }
+        return;
       }
 
-      setStage(verifyStrategy === 'email_link' ? 'verify_link' : 'verify');
+      // Unexpected state — show details so we can debug
+      const detail = `status=${result.status}, missing=${JSON.stringify(result.missingFields)}`;
+      Alert.alert('Unexpected sign-up state', detail);
+      setGeneralError(`Unexpected state: ${result.status}. Please try Google sign-up.`);
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.longMessage ||
@@ -125,16 +122,14 @@ export default function SignUpScreen() {
         await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
       } else {
-        const msg = `Unexpected state: ${result.status ?? 'unknown'}. Please try again.`;
-        Alert.alert('Verification Error', msg);
-        setGeneralError(msg);
+        setGeneralError(`Verification incomplete (status: ${result.status}). Please try again.`);
       }
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.longMessage ||
         err?.errors?.[0]?.message ||
         err?.message ||
-        'Verification failed. Please check your code.';
+        'Verification failed. Please check the code and try again.';
       Alert.alert('Verification Error', msg);
       setGeneralError(msg);
     } finally {
@@ -142,7 +137,16 @@ export default function SignUpScreen() {
     }
   };
 
-  // ── SSO ───────────────────────────────────────────────────────────────────
+  const handleResend = async () => {
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setInfoMessage('A new code has been sent.');
+      setGeneralError(null);
+    } catch (err: any) {
+      setGeneralError('Could not resend code. Please go back and try again.');
+    }
+  };
+
   const handleSSO = useCallback(async (strategy: 'oauth_google' | 'oauth_apple') => {
     setSsoLoading(strategy === 'oauth_google' ? 'google' : 'apple');
     setGeneralError(null);
@@ -154,6 +158,8 @@ export default function SignUpScreen() {
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
         router.replace('/(tabs)');
+      } else {
+        setGeneralError('SSO did not complete. Please try again.');
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'SSO sign-up failed.';
@@ -164,39 +170,21 @@ export default function SignUpScreen() {
     }
   }, [startSSOFlow, router]);
 
-  // ── Email link sent (magic link strategy) ────────────────────────────────
-  if (stage === 'verify_link') {
-    return (
-      <View style={s.root}>
-        <View style={s.verifyContainer}>
-          <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
-          <Text style={s.title}>Check your email</Text>
-          <Text style={s.subtitle}>We sent a verification link to {email}. Tap it to confirm your account, then come back here.</Text>
-          {generalError && (
-            <View style={s.errorBanner}>
-              <Feather name="alert-circle" size={14} color={COLORS.error} />
-              <Text style={s.errorBannerText}>{generalError}</Text>
-            </View>
-          )}
-          <Pressable onPress={() => signUp.prepareEmailAddressVerification({ strategy: 'email_link' })} style={s.textBtn}>
-            <Text style={s.textBtnText}>Resend link</Text>
-          </Pressable>
-          <Pressable onPress={() => setStage('form')} style={s.textBtn}>
-            <Text style={s.textBtnText}>← Back</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // ── Email code verification step ──────────────────────────────────────────
+  // ── Email verification screen ─────────────────────────────────────────────
   if (stage === 'verify') {
     return (
       <View style={s.root}>
         <View style={s.verifyContainer}>
           <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
           <Text style={s.title}>Verify your email</Text>
-          <Text style={s.subtitle}>We sent a code to {email}. Enter it below to confirm your account.</Text>
+          <Text style={s.subtitle}>Enter the code sent to {email}.</Text>
+
+          {infoMessage && (
+            <View style={s.infoBanner}>
+              <Feather name="info" size={14} color={COLORS.info} />
+              <Text style={s.infoBannerText}>{infoMessage}</Text>
+            </View>
+          )}
 
           {generalError && (
             <View style={s.errorBanner}>
@@ -213,6 +201,7 @@ export default function SignUpScreen() {
             placeholder="6-digit code"
             placeholderTextColor={COLORS.muted}
             keyboardType="numeric"
+            autoFocus
           />
 
           <Pressable
@@ -225,25 +214,27 @@ export default function SignUpScreen() {
               : <Text style={s.primaryBtnText}>Confirm Email</Text>}
           </Pressable>
 
-          <Pressable
-            onPress={() => signUp.prepareEmailAddressVerification({ strategy: 'email_code' })}
-            style={s.textBtn}
-          >
+          <Pressable onPress={handleResend} style={s.textBtn}>
             <Text style={s.textBtnText}>Resend code</Text>
+          </Pressable>
+
+          <Pressable onPress={() => { setStage('form'); setGeneralError(null); setInfoMessage(null); }} style={s.textBtn}>
+            <Text style={s.textBtnText}>← Back</Text>
           </Pressable>
         </View>
       </View>
     );
   }
 
+  // ── Sign-up form ──────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
-
         <Text style={s.title}>Create your account</Text>
         <Text style={s.subtitle}>Join TBM — AI-powered sports picks</Text>
 
+        {/* SSO — recommended, bypasses email verification */}
         <Pressable
           style={[s.socialBtn, ssoLoading === 'google' && s.btnDisabled]}
           onPress={() => handleSSO('oauth_google')}
@@ -270,7 +261,7 @@ export default function SignUpScreen() {
 
         <View style={s.divider}>
           <View style={s.dividerLine} />
-          <Text style={s.dividerText}>or</Text>
+          <Text style={s.dividerText}>or email</Text>
           <View style={s.dividerLine} />
         </View>
 
@@ -321,9 +312,7 @@ export default function SignUpScreen() {
 
         <View style={s.footer}>
           <Text style={s.footerText}>Already have an account? </Text>
-          <Link href="/(auth)/sign-in">
-            <Text style={s.footerLink}>Sign in</Text>
-          </Link>
+          <Link href="/(auth)/sign-in"><Text style={s.footerLink}>Sign in</Text></Link>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -366,6 +355,12 @@ const s = StyleSheet.create({
     borderRadius: 10, padding: 12, marginBottom: 16,
   },
   errorBannerText: { color: COLORS.error, fontSize: 13, fontFamily: 'Inter_400Regular', flex: 1 },
+  infoBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: '#0A1628', borderWidth: 1, borderColor: COLORS.info,
+    borderRadius: 10, padding: 12, marginBottom: 16,
+  },
+  infoBannerText: { color: COLORS.info, fontSize: 13, fontFamily: 'Inter_400Regular', flex: 1 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
   footerText: { color: COLORS.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
   footerLink: { color: COLORS.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },

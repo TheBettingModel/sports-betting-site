@@ -8,11 +8,26 @@ import type { Request, Response } from "express";
  * this server. Without this proxy, Clerk cannot initialise and the app shows
  * a blank screen.
  *
- * Clerk Frontend API base: derived from the publishable key
- *   pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA
- *   → renewing-filly-49.clerk.accounts.dev
+ * The target Clerk API URL is derived from the CLERK_PUBLISHABLE_KEY env var
+ * so it automatically routes to the dev instance during development and the
+ * live instance in production (Replit swaps the key automatically on publish).
  */
-const CLERK_FRONTEND_API = "https://renewing-filly-49.clerk.accounts.dev";
+function getClerkFrontendApi(): string {
+  const key = process.env.CLERK_PUBLISHABLE_KEY ?? "";
+  const suffix = key.replace(/^pk_(test|live)_/, "");
+  if (suffix) {
+    try {
+      // Clerk encodes the frontend API domain as base64 in the publishable key
+      const decoded = Buffer.from(suffix, "base64").toString("utf-8").replace(/\$+$/, "");
+      if (decoded) return `https://${decoded}`;
+    } catch {}
+  }
+  // Fallback to dev instance
+  return "https://renewing-filly-49.clerk.accounts.dev";
+}
+
+const CLERK_FRONTEND_API = getClerkFrontendApi();
+console.log(`[clerk-proxy] routing to ${CLERK_FRONTEND_API}`);
 
 const router = Router();
 
