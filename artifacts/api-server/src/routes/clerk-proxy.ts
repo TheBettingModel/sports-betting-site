@@ -50,9 +50,14 @@ router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
 
     res.status(upstream.status);
 
-    // Forward ALL response headers (especially Set-Cookie for session state)
+    // Forward response headers — skip encoding/length headers since we've
+    // already decoded the body via fetch (re-encoding mismatch corrupts JSON)
+    const skipHeaders = new Set([
+      "transfer-encoding", "content-encoding", "content-length",
+      "connection", "keep-alive",
+    ]);
     for (const [key, value] of upstream.headers.entries()) {
-      if (key.toLowerCase() === "transfer-encoding") continue;
+      if (skipHeaders.has(key.toLowerCase())) continue;
       res.setHeader(key, value);
     }
 
