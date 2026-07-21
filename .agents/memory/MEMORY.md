@@ -1,1 +1,2 @@
 - [Clerk SPM nil-target fix](clerk-spm-nil-target.md) — @clerk/expo 3.x + RN 0.81 pod install crash; two nil guards needed in spm.rb via pnpm patch.
+- [Clerk signals auth flow](clerk-signals-auth.md) — @clerk/expo 3.7.x signals API; email OTP + Google only; no password; finalize() not setActive().
