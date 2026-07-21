@@ -54,10 +54,19 @@ router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
   if (!forwardHeaders["content-type"]) forwardHeaders["content-type"] = "application/json";
 
   try {
-    const body =
-      req.method !== "GET" && req.method !== "HEAD"
-        ? JSON.stringify(req.body)
-        : undefined;
+    // Re-encode the body in the same format the client sent.
+    // The Clerk mobile SDK sends form-encoded data for most endpoints (sign_ins,
+    // prepare_verification, etc.) — if we re-encode those as JSON the entire
+    // JSON string lands as a single unknown parameter name and Clerk rejects with 422.
+    let body: string | undefined;
+    if (req.method !== "GET" && req.method !== "HEAD" && req.body !== undefined) {
+      const ct = ((req.headers["content-type"] as string) ?? "").toLowerCase();
+      if (ct.includes("application/x-www-form-urlencoded")) {
+        body = new URLSearchParams(req.body as Record<string, string>).toString();
+      } else {
+        body = JSON.stringify(req.body);
+      }
+    }
 
     const upstream = await fetch(targetUrl, {
       method: req.method,
