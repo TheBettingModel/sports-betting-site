@@ -138,15 +138,36 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
 
   console.log('Starting Metro...');
   console.log(`Setting EXPO_PUBLIC_DOMAIN=${expoPublicDomain}`);
+
+  // Derive EXPO_PUBLIC_ vars from server-side secrets so Metro can bake them
+  // into the client bundle. Metro only inlines EXPO_PUBLIC_* names; non-prefixed
+  // secrets are stripped for security. We bridge them here at build time.
+  const clerkPublishableKey =
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+    process.env.CLERK_PUBLISHABLE_KEY ||
+    process.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+  const clerkProxyUrl =
+    process.env.EXPO_PUBLIC_CLERK_PROXY_URL ||
+    `https://${expoPublicDomain}/api/__clerk`;
+
+  if (!clerkPublishableKey) {
+    console.error('WARNING: No Clerk publishable key found. Set CLERK_PUBLISHABLE_KEY.');
+  }
+
   const env = {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
     EXPO_PUBLIC_REPL_ID: expoPublicReplId,
+    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: clerkPublishableKey,
+    EXPO_PUBLIC_CLERK_PROXY_URL: clerkProxyUrl,
   };
 
   if (expoPublicReplId) {
     console.log(`Setting EXPO_PUBLIC_REPL_ID=${expoPublicReplId}`);
   }
+  console.log(`Setting EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=${clerkPublishableKey ? '[set]' : '[MISSING]'}`);
+  console.log(`Setting EXPO_PUBLIC_CLERK_PROXY_URL=${clerkProxyUrl}`);
 
   metroProcess = spawn(
     'pnpm',
