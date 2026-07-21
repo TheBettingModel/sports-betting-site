@@ -8,8 +8,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SportsProvider } from '@/context/SportsContext';
 import { setBaseUrl } from '@workspace/api-client-react';
-import { Alert } from 'react-native';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
+import * as Updates from 'expo-updates';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -61,6 +61,27 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // Check for an OTA update on every launch and reload immediately if one is found.
+  // This eliminates the two-close cycle that expo-updates normally requires.
+  useEffect(() => {
+    let cancelled = false;
+    const checkUpdate = async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (cancelled) return;
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          if (!cancelled) await Updates.reloadAsync();
+        }
+      } catch {
+        // Silently ignore: running in dev mode or expo-updates not configured
+      }
+    };
+    // Small delay so the splash screen has time to dismiss first
+    const t = setTimeout(checkUpdate, 1500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

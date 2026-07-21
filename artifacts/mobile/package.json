@@ -61,6 +61,7 @@
   "dependencies": {
     "expo-build-properties": "^1.0.10",
     "expo-notifications": "^0.32.17",
+    "expo-updates": "^57.0.8",
     "react-native-purchases": "^10.4.3"
   }
 }
