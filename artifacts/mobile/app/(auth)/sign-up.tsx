@@ -70,9 +70,23 @@ export default function SignUpScreen() {
     setGeneralError(null);
     setIsLoading(true);
     try {
-      // Step 1: create the sign-up (classic API, works in all Clerk SDK versions)
-      await signUp.create({ emailAddress: email, password });
-      // Step 2: send verification email
+      // Create the sign-up (classic API)
+      const result = await signUp.create({ emailAddress: email, password });
+
+      // DEBUG — remove once flow is confirmed working
+      Alert.alert(
+        'Debug: signUp.create result',
+        `status: ${result.status}\nunverified: ${JSON.stringify(result.unverifiedFields)}\nmissing: ${JSON.stringify(result.missingFields)}`
+      );
+
+      if (result.status === 'complete') {
+        // Email verification is disabled — account is ready immediately
+        await clerk.setActive({ session: result.createdSessionId });
+        router.replace('/(tabs)');
+        return;
+      }
+
+      // Email verification required — send code
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setStage('verify');
     } catch (err: any) {
