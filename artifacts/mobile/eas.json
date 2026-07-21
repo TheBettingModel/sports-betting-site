@@ -46,6 +46,9 @@
         "appleId": "Jacqueskaune@gmail.com",
         "ascAppId": "6792899000",
         "appleTeamId": "FYF2J895MA"
+        "removedAppleKeyIdentifier": "REVOKED_ASC_KEY",
+        "removedAppleIssuerIdentifier": "REMOVED_ASC_ISSUER",
+        "removedAppleKeyPath": "./AuthKey_REVOKED_ASC_KEY.p8"
       }
     }
   }
