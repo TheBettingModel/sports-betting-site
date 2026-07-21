@@ -51,7 +51,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
-  const [stage, setStage] = useState<'form' | 'verify'>('form');
+  const [stage, setStage] = useState<'form' | 'verify' | 'verify_link'>('form');
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
@@ -73,22 +73,36 @@ export default function SignUpScreen() {
       // Create the sign-up (classic API)
       const result = await signUp.create({ emailAddress: email, password });
 
-      // DEBUG — remove once flow is confirmed working
-      Alert.alert(
-        'Debug: signUp.create result',
-        `status: ${result.status}\nunverified: ${JSON.stringify(result.unverifiedFields)}\nmissing: ${JSON.stringify(result.missingFields)}`
-      );
-
       if (result.status === 'complete') {
-        // Email verification is disabled — account is ready immediately
+        // Email verification disabled — account ready immediately
         await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
         return;
       }
 
-      // Email verification required — send code
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      setStage('verify');
+      // Email verification required — try email_code first, fall back to email_link
+      let verifyStrategy: 'email_code' | 'email_link' = 'email_code';
+      try {
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      } catch (prepErr: any) {
+        const code = prepErr?.errors?.[0]?.code ?? '';
+        const msg422 = prepErr?.errors?.[0]?.longMessage || prepErr?.errors?.[0]?.message || prepErr?.message || '';
+        // Try email_link as fallback
+        try {
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_link' });
+          verifyStrategy = 'email_link';
+        } catch (prepErr2: any) {
+          // Both strategies failed — surface the full error
+          const rawCode = prepErr?.errors?.[0]?.code ?? 'unknown';
+          const rawMsg = prepErr?.errors?.[0]?.longMessage || prepErr?.errors?.[0]?.message || prepErr?.message || '';
+          const detail = `code: ${rawCode}\n${rawMsg}`;
+          Alert.alert('Verification setup failed', detail);
+          setGeneralError(`Cannot start email verification (${rawCode}). Please try Google sign-up instead.`);
+          return;
+        }
+      }
+
+      setStage(verifyStrategy === 'email_link' ? 'verify_link' : 'verify');
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.longMessage ||
@@ -150,7 +164,32 @@ export default function SignUpScreen() {
     }
   }, [startSSOFlow, router]);
 
-  // ── Email verification step ───────────────────────────────────────────────
+  // ── Email link sent (magic link strategy) ────────────────────────────────
+  if (stage === 'verify_link') {
+    return (
+      <View style={s.root}>
+        <View style={s.verifyContainer}>
+          <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
+          <Text style={s.title}>Check your email</Text>
+          <Text style={s.subtitle}>We sent a verification link to {email}. Tap it to confirm your account, then come back here.</Text>
+          {generalError && (
+            <View style={s.errorBanner}>
+              <Feather name="alert-circle" size={14} color={COLORS.error} />
+              <Text style={s.errorBannerText}>{generalError}</Text>
+            </View>
+          )}
+          <Pressable onPress={() => signUp.prepareEmailAddressVerification({ strategy: 'email_link' })} style={s.textBtn}>
+            <Text style={s.textBtnText}>Resend link</Text>
+          </Pressable>
+          <Pressable onPress={() => setStage('form')} style={s.textBtn}>
+            <Text style={s.textBtnText}>← Back</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Email code verification step ──────────────────────────────────────────
   if (stage === 'verify') {
     return (
       <View style={s.root}>

@@ -48,6 +48,11 @@ router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
 
     const responseBody = await upstream.text();
 
+    // Log non-2xx responses so we can diagnose Clerk errors
+    if (upstream.status >= 400) {
+      console.error(`[clerk-proxy] ${req.method} ${clerkPath} → ${upstream.status}`, responseBody.slice(0, 1000));
+    }
+
     res.status(upstream.status);
 
     // Forward response headers — skip encoding/length headers since we've
