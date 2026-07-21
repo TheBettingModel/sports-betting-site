@@ -64,29 +64,38 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
 
+  // publishableKey is provided by the @clerk/expo native plugin from Info.plist
+  // at runtime. The env var is a JS-bundle fallback for dev/OTA builds.
+  const resolvedKey =
+    publishableKey ||
+    'pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA';
+
   return (
-    <ClerkProvider
-      publishableKey={publishableKey}
-      tokenCache={tokenCache}
-      proxyUrl={proxyUrl}
-    >
-      <ClerkLoaded>
-        <SafeAreaProvider>
-          <ErrorBoundary>
-            <QueryClientProvider client={queryClient}>
-              <SubscriptionProvider>
-                <SportsProvider>
-                  <GestureHandlerRootView>
-                    <KeyboardProvider>
-                      <RootLayoutNav />
-                    </KeyboardProvider>
-                  </GestureHandlerRootView>
-                </SportsProvider>
-              </SubscriptionProvider>
-            </QueryClientProvider>
-          </ErrorBoundary>
-        </SafeAreaProvider>
-      </ClerkLoaded>
-    </ClerkProvider>
+    // Outer boundary catches ClerkProvider/ClerkLoaded init failures
+    <ErrorBoundary>
+      <ClerkProvider
+        publishableKey={resolvedKey}
+        tokenCache={tokenCache}
+        proxyUrl={proxyUrl}
+      >
+        <ClerkLoaded>
+          <SafeAreaProvider>
+            <ErrorBoundary>
+              <QueryClientProvider client={queryClient}>
+                <SubscriptionProvider>
+                  <SportsProvider>
+                    <GestureHandlerRootView>
+                      <KeyboardProvider>
+                        <RootLayoutNav />
+                      </KeyboardProvider>
+                    </GestureHandlerRootView>
+                  </SportsProvider>
+                </SubscriptionProvider>
+              </QueryClientProvider>
+            </ErrorBoundary>
+          </SafeAreaProvider>
+        </ClerkLoaded>
+      </ClerkProvider>
+    </ErrorBoundary>
   );
 }

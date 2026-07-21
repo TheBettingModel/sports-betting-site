@@ -16,24 +16,24 @@ const ADMIN_USER_IDS = new Set(
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "pro";
 
-function getRevenueCatApiKey() {
-  if (!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
-    throw new Error("RevenueCat Public API Keys not found. Run the seed script and set the env vars.");
-  }
-
-  // In dev, Expo Go, web, or Expo Go's "storeClient" environment → use test key
+function getRevenueCatApiKey(): string | null {
+  // In dev, Expo Go, web, or storeClient → use test key if available
   if (__DEV__ || Platform.OS === "web" || Constants.executionEnvironment === "storeClient") {
-    return REVENUECAT_TEST_API_KEY;
+    return REVENUECAT_TEST_API_KEY || null;
   }
 
-  if (Platform.OS === "ios") return REVENUECAT_IOS_API_KEY;
-  if (Platform.OS === "android") return REVENUECAT_ANDROID_API_KEY;
+  if (Platform.OS === "ios") return REVENUECAT_IOS_API_KEY || null;
+  if (Platform.OS === "android") return REVENUECAT_ANDROID_API_KEY || null;
 
-  return REVENUECAT_TEST_API_KEY;
+  return REVENUECAT_TEST_API_KEY || null;
 }
 
 export function initializeRevenueCat(userId?: string) {
   const apiKey = getRevenueCatApiKey();
+  if (!apiKey) {
+    console.warn("[RevenueCat] No API key available — paywall disabled. Set EXPO_PUBLIC_REVENUECAT_IOS_API_KEY.");
+    return;
+  }
   Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
   Purchases.configure({ apiKey });
   if (userId) {

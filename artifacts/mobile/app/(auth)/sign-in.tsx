@@ -50,37 +50,64 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
+
+  // Guard: Clerk not yet loaded
+  if (!signIn) {
+    return (
+      <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   // ── Email/password sign-in ────────────────────────────────────────────────
   const handleSignIn = async () => {
-    const { error } = await signIn.password({ emailAddress: email, password });
-    if (error) return;
-    if (signIn.status === 'complete') {
-      await signIn.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl('/');
-          router.replace(url.startsWith('http') ? '/(tabs)' : (url as any));
-        },
-      });
+    setGeneralError(null);
+    try {
+      const { error } = await signIn.password({ emailAddress: email, password });
+      if (error) {
+        setGeneralError(error.message || 'Sign-in failed. Please check your credentials.');
+        return;
+      }
+      if (signIn.status === 'complete') {
+        await signIn.finalize({
+          navigate: () => { router.replace('/(tabs)'); },
+        });
+      } else {
+        // Unexpected state — surface it so we can diagnose
+        setGeneralError(`Unexpected sign-in state: ${signIn.status ?? 'unknown'}. Please try again.`);
+      }
+    } catch (err: any) {
+      const msg =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'An unexpected error occurred. Please try again.';
+      setGeneralError(msg);
     }
   };
 
   const handleVerify = async () => {
-    await signIn.mfa.verifyEmailCode({ code: verifyCode });
-    if (signIn.status === 'complete') {
-      await signIn.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl('/');
-          router.replace(url.startsWith('http') ? '/(tabs)' : (url as any));
-        },
-      });
+    setGeneralError(null);
+    try {
+      await signIn.mfa.verifyEmailCode({ code: verifyCode });
+      if (signIn.status === 'complete') {
+        await signIn.finalize({
+          navigate: () => { router.replace('/(tabs)'); },
+        });
+      }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Verification failed.';
+      setGeneralError(msg);
     }
   };
 
   // ── SSO ───────────────────────────────────────────────────────────────────
   const handleSSO = useCallback(async (strategy: 'oauth_google' | 'oauth_apple') => {
     setSsoLoading(strategy === 'oauth_google' ? 'google' : 'apple');
+    setGeneralError(null);
     try {
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy,
@@ -89,13 +116,12 @@ export default function SignInScreen() {
       if (createdSessionId) {
         await setActive!({
           session: createdSessionId,
-          navigate: async ({ decorateUrl }) => {
-            router.replace(decorateUrl('/').startsWith('http') ? '/(tabs)' : '/(tabs)');
-          },
+          navigate: async () => { router.replace('/(tabs)'); },
         });
       }
-    } catch (err) {
-      console.error('SSO error', err);
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'SSO sign-in failed.';
+      setGeneralError(msg);
     } finally {
       setSsoLoading(null);
     }
@@ -116,7 +142,8 @@ export default function SignInScreen() {
             keyboardType="numeric"
             onChangeText={setVerifyCode}
           />
-          {errors.fields.code && <Text style={s.error}>{errors.fields.code.message}</Text>}
+          {errors?.fields?.code && <Text style={s.error}>{errors.fields.code.message}</Text>}
+          {generalError && <Text style={s.error}>{generalError}</Text>}
           <Pressable style={[s.primaryBtn, !verifyCode && s.btnDisabled]} onPress={handleVerify} disabled={!verifyCode}>
             <Text style={s.primaryBtnText}>Verify</Text>
           </Pressable>
@@ -131,7 +158,8 @@ export default function SignInScreen() {
     );
   }
 
-  const canSubmit = !!email && !!password && fetchStatus !== 'fetching';
+  const isFetching = fetchStatus === 'fetching';
+  const canSubmit = !!email && !!password && !isFetching;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
@@ -174,6 +202,14 @@ export default function SignInScreen() {
           <View style={s.dividerLine} />
         </View>
 
+        {/* General error banner */}
+        {generalError && (
+          <View style={s.errorBanner}>
+            <Feather name="alert-circle" size={14} color={COLORS.error} />
+            <Text style={s.errorBannerText}>{generalError}</Text>
+          </View>
+        )}
+
         {/* Email */}
         <Text style={s.label}>Email</Text>
         <TextInput
@@ -186,7 +222,7 @@ export default function SignInScreen() {
           keyboardType="email-address"
           autoComplete="email"
         />
-        {errors.fields.identifier && <Text style={s.error}>{errors.fields.identifier.message}</Text>}
+        {errors?.fields?.identifier && <Text style={s.error}>{errors.fields.identifier.message}</Text>}
 
         {/* Password */}
         <Text style={s.label}>Password</Text>
@@ -204,11 +240,11 @@ export default function SignInScreen() {
             <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.muted} />
           </Pressable>
         </View>
-        {errors.fields.password && <Text style={s.error}>{errors.fields.password.message}</Text>}
+        {errors?.fields?.password && <Text style={s.error}>{errors.fields.password.message}</Text>}
 
         {/* Sign in */}
         <Pressable style={[s.primaryBtn, !canSubmit && s.btnDisabled]} onPress={handleSignIn} disabled={!canSubmit}>
-          {fetchStatus === 'fetching'
+          {isFetching
             ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
             : <Text style={s.primaryBtnText}>Sign In</Text>}
         </Pressable>
@@ -255,6 +291,12 @@ const s = StyleSheet.create({
   primaryBtnText: { color: COLORS.primaryFg, fontSize: 16, fontFamily: 'Inter_700Bold' },
   btnDisabled: { opacity: 0.45 },
   error: { color: COLORS.error, fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: -8, marginBottom: 8 },
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: '#1A0000', borderWidth: 1, borderColor: COLORS.error,
+    borderRadius: 10, padding: 12, marginBottom: 16,
+  },
+  errorBannerText: { color: COLORS.error, fontSize: 13, fontFamily: 'Inter_400Regular', flex: 1 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
   footerText: { color: COLORS.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
   footerLink: { color: COLORS.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
