@@ -8,6 +8,7 @@ import featuresRouter from "./features";
 import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
 import pushTokensRouter from "./push-tokens";
+import clerkProxyRouter from "./clerk-proxy";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(featuresRouter);
 router.use(adminRouter);
 router.use(webhooksRouter);
 router.use(pushTokensRouter);
+router.use(clerkProxyRouter);
 
 export default router;
