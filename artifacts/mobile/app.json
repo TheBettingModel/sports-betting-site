@@ -2,6 +2,7 @@
   "expo": {
     "name": "TheBettingModel",
     "slug": "mobile",
+    "owner": "jacqueskaune",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,7 +16,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.thebettingmodel.app"
+      "bundleIdentifier": "com.thebettingmodel.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.thebettingmodel.app"
@@ -58,6 +62,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "278c23a8-5a4b-4c28-baa2-f8331d5bee7a"
+      }
     }
   }
 }
