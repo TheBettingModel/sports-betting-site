@@ -16,6 +16,7 @@
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { adminLimiter } from "../middleware/rateLimiter";
 import {
   db,
   automationRunsTable,
@@ -53,6 +54,7 @@ function requireMasterKey(req: Request, res: Response, next: NextFunction): void
   next();
 }
 
+router.use("/admin", adminLimiter);
 router.use("/admin", requireMasterKey);
 
 // ── Overview ──────────────────────────────────────────────────────────────────

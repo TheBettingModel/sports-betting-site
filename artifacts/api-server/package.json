@@ -20,6 +20,7 @@
     "drizzle-orm": "catalog:",
     "expo-server-sdk": "^6.1.0",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
     "jose": "^6.2.3",
     "node-cron": "^4.6.0",
     "pino": "^9.14.0",

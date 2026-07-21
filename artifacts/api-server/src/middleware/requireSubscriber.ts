@@ -190,11 +190,25 @@ export async function resolveSubscriberStatus(
     if (userId) {
       try {
         const [row] = await db
-          .select({ isActive: subscribersTable.isActive })
+          .select({ isActive: subscribersTable.isActive, expiresAt: subscribersTable.expiresAt })
           .from(subscribersTable)
           .where(eq(subscribersTable.userId, userId))
           .limit(1);
-        isSubscribed = row?.isActive === true;
+
+        // Primary check: isActive flag (kept current by RevenueCat webhooks).
+        // Secondary check: expiresAt acts as a safety net — if the webhook
+        // hasn't fired yet but the subscription window has passed, lock it out.
+        const webhookSaysActive = row?.isActive === true;
+        const notYetExpired =
+          !row?.expiresAt || row.expiresAt.getTime() > Date.now();
+        isSubscribed = webhookSaysActive && notYetExpired;
+
+        if (webhookSaysActive && !notYetExpired) {
+          logger.info(
+            { userId, expiresAt: row?.expiresAt },
+            "Subscriber marked active but expiresAt is in the past — treating as lapsed",
+          );
+        }
       } catch (err) {
         // DB error → treat as non-subscriber; don't block the request
         logger.warn({ err }, "Subscriber lookup failed; treating as non-subscriber");

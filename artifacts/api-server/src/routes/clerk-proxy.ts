@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import { authLimiter } from "../middleware/rateLimiter";
 
 /**
  * Clerk proxy — forwards /api/__clerk/v1/* to Clerk's Frontend API.
@@ -34,6 +35,8 @@ function getClerkFrontendApi(): string {
 const CLERK_FRONTEND_API = getClerkFrontendApi();
 
 const router = Router();
+
+router.use("/__clerk", authLimiter);
 
 router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
   // Strip /api/__clerk prefix so we forward just /v1/...
