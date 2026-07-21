@@ -24,6 +24,9 @@ config.resolver = {
     /node_modules\/.*\/@tailwindcss\/typography_tmp_[^/]+\/.*/,
     /node_modules\/.pnpm\/react-native-purchases[^/]*\/node_modules\/react-native-purchases_tmp_[^/]+\/.*/,
     /node_modules\/.*\/react-native-purchases_tmp_[^/]+\/.*/,
+    // Block skill temp directories so stale/partial dirs never crash the watcher
+    /\.local\/skills\/.tmp-artifacts-.*/,
+    /\.local\/skills\/.*\/.tmp-.*/,
   ],
 };
 
