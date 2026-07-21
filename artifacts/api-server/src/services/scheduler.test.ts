@@ -47,7 +47,7 @@ vi.mock("../lib/logger", () => ({
 
 // ── Import under test (after mocks) ──────────────────────────────────────────
 
-import { _checkAndRaiseSportAlerts, schedulerJobs } from "./scheduler";
+import { _checkAndRaiseSportAlerts, _autoResolveSportAlerts, schedulerJobs } from "./scheduler";
 
 // ── Drizzle fluent-builder helpers ────────────────────────────────────────────
 //
@@ -228,6 +228,68 @@ describe("checkAndRaiseSportAlerts", () => {
     await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0, NBA: 0 });
 
     expect(mockDb.insert).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ── Unit tests: autoResolveSportAlerts ───────────────────────────────────────
+
+describe("autoResolveSportAlerts", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDb.insert.mockReturnValue(makeInsertBuilder([{ id: 1 }]));
+  });
+
+  it("resolves an unresolved zero_games_feed alert when the sport returns >0 games", async () => {
+    // The update should be called and resolve the alert
+    const updateBuilder = makeUpdateBuilder([{ id: 7 }]);
+    (mockDb.update as Mock).mockReturnValue(updateBuilder);
+
+    await _autoResolveSportAlerts({ NFL: 5 });
+
+    // update should have been called once for NFL
+    expect(mockDb.update).toHaveBeenCalledOnce();
+
+    // Inspect the .set() call — must include resolvedBy and isResolved
+    const setCalls = (updateBuilder.set as Mock).mock.calls as Array<[Record<string, unknown>]>;
+    expect(setCalls).toHaveLength(1);
+    const setArgs = setCalls[0][0];
+    expect(setArgs.isResolved).toBe(true);
+    expect(setArgs.resolvedBy).toBe("scheduler:auto");
+    expect(setArgs.resolvedAt).toBeInstanceOf(Date);
+  });
+
+  it("does NOT resolve alerts for sports that still have 0 games", async () => {
+    const updateBuilder = makeUpdateBuilder([]);
+    (mockDb.update as Mock).mockReturnValue(updateBuilder);
+
+    await _autoResolveSportAlerts({ NFL: 0, NBA: 0 });
+
+    // No sports are active — update must never be called
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
+  it("does NOT resolve alerts for sports with 'error' fetch status", async () => {
+    const updateBuilder = makeUpdateBuilder([]);
+    (mockDb.update as Mock).mockReturnValue(updateBuilder);
+
+    await _autoResolveSportAlerts({ NFL: "error" });
+
+    // Error sports are not treated as active — update must never be called
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
+  it("resolves alerts only for the active sports, leaving zero/error sports untouched", async () => {
+    let updateCallCount = 0;
+    (mockDb.update as Mock).mockImplementation(() => {
+      updateCallCount++;
+      return makeUpdateBuilder([{ id: updateCallCount * 10 }]);
+    });
+
+    // NFL returned games, NBA still at 0, MLB errored
+    await _autoResolveSportAlerts({ NFL: 3, NBA: 0, MLB: "error" });
+
+    // Only NFL is active — exactly one update
+    expect(mockDb.update).toHaveBeenCalledOnce();
   });
 });
 
