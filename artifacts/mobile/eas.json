@@ -1,0 +1,50 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
+        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
+        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx",
+        "EXPO_PUBLIC_DOMAIN": "481a48a8-d9c1-40b5-a69a-b780842f13e8-00-paexxphf59op.worf.replit.dev"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
+        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
+        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx",
+        "EXPO_PUBLIC_DOMAIN": "481a48a8-d9c1-40b5-a69a-b780842f13e8-00-paexxphf59op.worf.replit.dev"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
+        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
+        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx",
+        "EXPO_PUBLIC_DOMAIN": "481a48a8-d9c1-40b5-a69a-b780842f13e8-00-paexxphf59op.worf.replit.dev"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "",
+        "ascAppId": "",
+        "appleTeamId": ""
+      }
+    }
+  }
+}
