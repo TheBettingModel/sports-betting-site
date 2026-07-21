@@ -93,11 +93,13 @@ router.get("/model/stats", async (_req, res): Promise<void> => {
   const weightsBySport = new Map(weights.map((w) => [w.sport, w]));
 
   // ── Build response stats ──────────────────────────────────────────────────
-  // Merge: sports with graded picks get live accuracy;
-  // sports only in model_weights (no picks yet) use EMA accuracy.
+  // Only include sports that have at least one graded pick. Sports that exist
+  // solely in model_weights with no real pick history (e.g. off-season NCAAB)
+  // are excluded so they cannot surface as "Best sport" on the account screen.
+  // The confidenceMultiplier from model_weights is still included for any sport
+  // that does have picks, so the prediction engine is unaffected.
   const allSports = new Set([
-    ...agg.keys(),
-    ...weightsBySport.keys(),
+    ...agg.keys(), // only sports with real graded picks
   ]);
 
   const stats = [...allSports].map((sport) => {
