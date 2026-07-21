@@ -88,8 +88,9 @@ export default function PicksScreen() {
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
       for (const game of group) {
-        // Prefer server-side isLocked; fall back to index gate for mock data
-        const locked = game.isLocked ?? (!isSubscribed && pickIndex >= FREE_PICKS);
+        // Subscription always overrides server-side lock flag.
+        // Server sets isLocked without knowing the user's subscription status.
+        const locked = !isSubscribed && (game.isLocked ?? pickIndex >= FREE_PICKS);
         items.push({ type: 'game', game, locked });
         pickIndex++;
       }

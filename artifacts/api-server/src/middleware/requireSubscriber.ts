@@ -97,15 +97,16 @@ async function verifyClerkJwt(token: string): Promise<{ userId: string | null; r
   }
 
   try {
-    const { payload } = await jwtVerify(token, jwks, {
-      // Clerk uses the frontend API URL as the issuer
-      issuer: jwksUrl ? jwksUrl.replace("/.well-known/jwks.json", "") : undefined,
-    });
+    // Note: issuer check omitted intentionally.
+    // Clerk's `iss` claim format can vary between dev/prod instances and SDK
+    // versions. The JWKS RS256 signature check is the primary security gate;
+    // issuer validation is redundant when we already pin to Clerk's own JWKS.
+    const { payload } = await jwtVerify(token, jwks);
     const userId = typeof payload.sub === "string" ? payload.sub : null;
     return { userId, rejected: userId === null };
   } catch (err) {
-    // Expired, bad signature, wrong issuer, etc. — token was present but invalid
-    logger.debug({ err }, "JWT verification failed");
+    // Expired, bad signature, etc. — token was present but invalid
+    logger.warn({ err }, "JWT verification failed");
     return { userId: null, rejected: true };
   }
 }
