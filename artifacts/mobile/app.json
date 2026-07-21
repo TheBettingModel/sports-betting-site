@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.thebettingmodel.app",
+      "bundleIdentifier": "app.replit.thebettingmodel",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

@@ -19,6 +19,11 @@ android/
 *.key
 *.mobileprovision
 
+# Allow EAS local credentials (explicitly included for EAS Build archive)
+!REMOVED_APPLE_DISTRIBUTION_ARTIFACT
+!REMOVED_APPLE_PROVISIONING_ARTIFACT
+!REMOVED_LOCAL_CREDENTIAL_MANIFEST
+
 # Metro
 .metro-health-check*
 
