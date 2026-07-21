@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { useAuth, useSignUp, useSSO } from '@clerk/expo';
+import { useAuth, useClerk, useSignUp, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
@@ -43,6 +43,7 @@ export default function SignUpScreen() {
   useWarmUpBrowser();
   const { signUp, errors, fetchStatus } = useSignUp();
   const { startSSOFlow } = useSSO();
+  const clerk = useClerk();
   const { isSignedIn } = useAuth();
   const router = useRouter();
 
@@ -93,9 +94,8 @@ export default function SignUpScreen() {
     try {
       await signUp.verifications.verifyEmailCode({ code });
       if (signUp.status === 'complete') {
-        await signUp.finalize({
-          navigate: () => { router.replace('/(tabs)'); },
-        });
+        await clerk.setActive({ session: signUp.createdSessionId });
+        router.replace('/(tabs)');
       } else {
         setGeneralError(`Unexpected state: ${signUp.status ?? 'unknown'}. Please try again.`);
       }

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { useSignIn, useSSO } from '@clerk/expo';
+import { useClerk, useSignIn, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
@@ -44,6 +44,7 @@ export default function SignInScreen() {
   useWarmUpBrowser();
   const { signIn, errors, fetchStatus } = useSignIn();
   const { startSSOFlow } = useSSO();
+  const clerk = useClerk();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -72,9 +73,11 @@ export default function SignInScreen() {
         return;
       }
       if (signIn.status === 'complete') {
-        await signIn.finalize({
-          navigate: () => { router.replace('/(tabs)'); },
-        });
+        // Activate the session explicitly so isSignedIn is true BEFORE we navigate.
+        // Without this, the tabs layout's auth guard sees isSignedIn=false and
+        // immediately bounces back to sign-in.
+        await clerk.setActive({ session: signIn.createdSessionId });
+        router.replace('/(tabs)');
       } else {
         // Unexpected state — surface it so we can diagnose
         setGeneralError(`Unexpected sign-in state: ${signIn.status ?? 'unknown'}. Please try again.`);
@@ -94,9 +97,8 @@ export default function SignInScreen() {
     try {
       await signIn.mfa.verifyEmailCode({ code: verifyCode });
       if (signIn.status === 'complete') {
-        await signIn.finalize({
-          navigate: () => { router.replace('/(tabs)'); },
-        });
+        await clerk.setActive({ session: signIn.createdSessionId });
+        router.replace('/(tabs)');
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Verification failed.';
