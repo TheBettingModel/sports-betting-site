@@ -370,6 +370,12 @@ importers:
 
   artifacts/api-server:
     dependencies:
+      '@replit/connectors-sdk':
+        specifier: '*'
+        version: 0.4.1
+      '@replit/revenuecat-sdk':
+        specifier: '*'
+        version: 5.0.0(typescript@5.9.3)
       '@workspace/api-zod':
         specifier: workspace:*
         version: link:../../lib/api-zod

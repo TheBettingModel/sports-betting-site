@@ -24,6 +24,7 @@ import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
 import { sendStrongBuyNotification } from "./pushNotifications";
+import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 
 // Track the last date we sent a Strong Buy notification so we only fire once per day
 let lastNotificationDate: string | null = null;
@@ -395,6 +396,29 @@ async function runAnalyticsRefresh(): Promise<void> {
   }
 }
 
+async function runSubscriberReconciliation(): Promise<void> {
+  const jobName = "subscriber-reconciliation";
+  if (runningJobs.has(jobName)) {
+    logger.debug("Scheduler: subscriber-reconciliation already running, skipping");
+    return;
+  }
+
+  runningJobs.add(jobName);
+  const runId = await startRun(jobName);
+
+  try {
+    const { checked, revoked, errors } = await reconcileSubscriberStatus();
+    await finishRun(runId, "completed", revoked, errors > 0 ? `${errors} API errors` : undefined);
+    logger.info({ checked, revoked, errors }, "Scheduler: subscriber-reconciliation complete");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await finishRun(runId, "failed", 0, msg);
+    logger.error({ err }, "Scheduler: subscriber-reconciliation failed");
+  } finally {
+    runningJobs.delete(jobName);
+  }
+}
+
 async function runDriftCheck(): Promise<void> {
   const jobName = "drift-monitoring";
   if (runningJobs.has(jobName)) {
@@ -444,6 +468,11 @@ export function startScheduler(): void {
     void runDriftCheck();
   });
 
+  // Subscriber reconciliation — hourly at :15, catches missed expiration webhooks
+  cron.schedule("15 * * * *", () => {
+    void runSubscriberReconciliation();
+  });
+
   logger.info("Scheduler: all cron jobs registered");
 }
 
@@ -455,6 +484,7 @@ export const schedulerJobs = {
   resultGrading: runResultGrading,
   analyticsRefresh: runAnalyticsRefresh,
   driftCheck: runDriftCheck,
+  subscriberReconciliation: runSubscriberReconciliation,
 };
 
 /**

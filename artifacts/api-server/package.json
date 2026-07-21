@@ -11,6 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@replit/connectors-sdk": "*",
+    "@replit/revenuecat-sdk": "*",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cookie-parser": "^1.4.7",
