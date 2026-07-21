@@ -175,7 +175,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
       </ul>
       <p>
         To exercise any of these rights, or to delete your account, email us at
-        <a href="mailto:privacy@thebettingmodel.com">privacy@thebettingmodel.com</a>.
+        <a href="mailto:Jacqueskaune@gmail.com">Jacqueskaune@gmail.com</a>.
         We will respond within 30 days.
       </p>
     </section>
@@ -210,7 +210,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
       <h2>9. Contact Us</h2>
       <div class="card">
         <p>Questions about this policy? Reach us at:</p>
-        <p><a href="mailto:privacy@thebettingmodel.com">privacy@thebettingmodel.com</a></p>
+        <p><a href="mailto:Jacqueskaune@gmail.com">Jacqueskaune@gmail.com</a></p>
       </div>
     </section>
   </main>
