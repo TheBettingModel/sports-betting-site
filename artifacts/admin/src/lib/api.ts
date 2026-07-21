@@ -181,6 +181,7 @@ export interface DriftAlert {
   severity: string;
   isResolved: boolean;
   resolvedAt?: string | null;
+  resolvedBy?: string | null;
   createdAt: string;
 }
 

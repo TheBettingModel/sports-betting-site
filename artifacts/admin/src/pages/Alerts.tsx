@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, AlertTriangle, ShieldAlert, ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ShieldAlert, ChevronDown, ChevronRight, Clock, Bot, User } from "lucide-react";
 import { adminApi, type DriftAlert, type DQAlert } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 
@@ -26,6 +26,47 @@ function StatusBadge({ resolved }: { resolved: boolean }) {
     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase bg-orange-500/10 text-orange-400 border border-orange-500/20">
       active
     </span>
+  );
+}
+
+/** Shows who/what resolved an alert with a distinct badge + timestamp. */
+function ResolvedByCell({
+  resolvedAt,
+  resolvedBy,
+}: {
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+}) {
+  if (!resolvedAt) return <span className="text-zinc-600">—</span>;
+
+  const isAuto = resolvedBy === "scheduler:auto";
+  const label = isAuto
+    ? "Auto (scheduler)"
+    : resolvedBy && resolvedBy !== "admin"
+    ? resolvedBy
+    : "Admin";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium w-fit ${
+          isAuto
+            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+            : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+        }`}
+      >
+        {isAuto ? (
+          <Bot className="w-3 h-3 shrink-0" />
+        ) : (
+          <User className="w-3 h-3 shrink-0" />
+        )}
+        {label}
+      </span>
+      <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+        <Clock className="w-3 h-3 shrink-0" />
+        {timeAgo(resolvedAt)}
+      </span>
+    </div>
   );
 }
 
@@ -111,7 +152,7 @@ function SportAlertGroup({ sport, alerts, onResolve, isResolving }: SportGroupPr
                   <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
                   <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</th>
                   <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Triggered</th>
-                  <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Resolved</th>
+                  <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Resolved by</th>
                   <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -126,18 +167,8 @@ function SportAlertGroup({ sport, alerts, onResolve, isResolving }: SportGroupPr
                     <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{a.alertType}</td>
                     <td className="px-4 py-3 text-xs text-foreground max-w-xs">{a.description}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(a.createdAt)}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {a.isResolved && a.resolvedAt ? (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 shrink-0" />
-                          {timeAgo(a.resolvedAt)}
-                          {a.resolvedBy && a.resolvedBy !== "admin" && (
-                            <span className="text-zinc-500"> · {a.resolvedBy}</span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-600">—</span>
-                      )}
+                    <td className="px-4 py-3">
+                      <ResolvedByCell resolvedAt={a.resolvedAt} resolvedBy={a.resolvedBy} />
                     </td>
                     <td className="px-4 py-3 text-right">
                       {!a.isResolved && (
@@ -266,13 +297,14 @@ export function Alerts() {
                     <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Baseline</th>
                     <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Current</th>
                     <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Age</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Resolved by</th>
                     <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {driftAlerts.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
                         {showResolved ? "No resolved alerts." : "No active drift alerts. All models healthy."}
                       </td>
                     </tr>
@@ -284,6 +316,9 @@ export function Alerts() {
                       <td className="px-4 py-3 text-right text-xs text-muted-foreground">{a.baselineValue.toFixed(4)}</td>
                       <td className="px-4 py-3 text-right text-xs text-foreground">{a.currentValue.toFixed(4)}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{timeAgo(a.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <ResolvedByCell resolvedAt={a.resolvedAt} resolvedBy={a.resolvedBy} />
+                      </td>
                       <td className="px-4 py-3 text-right">
                         {!a.isResolved && (
                           <button
@@ -295,7 +330,6 @@ export function Alerts() {
                             Resolve
                           </button>
                         )}
-                        {a.isResolved && <span className="text-xs text-muted-foreground">resolved</span>}
                       </td>
                     </tr>
                   ))}
