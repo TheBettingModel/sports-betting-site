@@ -23,16 +23,14 @@ export function Login() {
         setMasterKey(key.trim());
         window.location.reload();
       } else if (res.status === 401) {
-        setError("Invalid master key. Check your MASTER_API_KEY environment variable.");
+        setError("Invalid key.");
+      } else if (res.status === 503) {
+        setError("Admin access not configured on the server. Set MASTER_API_KEY and redeploy.");
       } else {
-        // Non-401 error could mean key not configured — allow entry
-        setMasterKey(key.trim());
-        window.location.reload();
+        setError("Unexpected error — try again.");
       }
     } catch {
-      // Network error — store key and try anyway
-      setMasterKey(key.trim());
-      window.location.reload();
+      setError("Could not reach the server. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -81,7 +79,7 @@ export function Login() {
         </form>
 
         <p className="mt-6 text-xs text-muted-foreground text-center">
-          Set <code className="text-primary">MASTER_API_KEY</code> in environment secrets to enable key validation.
+          Contact your administrator for access.
         </p>
       </div>
     </div>

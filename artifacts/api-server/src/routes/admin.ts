@@ -40,12 +40,12 @@ const router: IRouter = Router();
 const MASTER_KEY = process.env["MASTER_API_KEY"] ?? "";
 
 function requireMasterKey(req: Request, res: Response, next: NextFunction): void {
-  const key = req.headers["x-master-key"] as string | undefined;
   if (!MASTER_KEY) {
-    // If no key is configured, allow all admin requests (dev mode)
-    next();
+    // No key configured — lock everything down rather than fail open.
+    res.status(503).json({ error: "Admin access not configured: set MASTER_API_KEY" });
     return;
   }
+  const key = req.headers["x-master-key"] as string | undefined;
   if (!key || key !== MASTER_KEY) {
     res.status(401).json({ error: "Unauthorized: valid X-Master-Key header required" });
     return;
