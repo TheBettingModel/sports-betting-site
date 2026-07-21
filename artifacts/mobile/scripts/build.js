@@ -139,21 +139,24 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
   console.log('Starting Metro...');
   console.log(`Setting EXPO_PUBLIC_DOMAIN=${expoPublicDomain}`);
 
-  // Derive EXPO_PUBLIC_ vars from server-side secrets so Metro can bake them
-  // into the client bundle. Metro only inlines EXPO_PUBLIC_* names; non-prefixed
-  // secrets are stripped for security. We bridge them here at build time.
+  // Derive EXPO_PUBLIC_ vars so Metro can bake them into the client bundle.
+  // Metro only inlines EXPO_PUBLIC_* names; non-prefixed secrets are stripped.
+  //
+  // CLERK_PK_HARDCODED is a PUBLISHABLE key — safe to commit. It is the
+  // base64 encoding of the Clerk frontend API domain and is intentionally
+  // public (analogous to an API "publishable" key, not a secret).
+  const CLERK_PK_HARDCODED =
+    'pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA';
+
   const clerkPublishableKey =
     process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
     process.env.CLERK_PUBLISHABLE_KEY ||
-    process.env.VITE_CLERK_PUBLISHABLE_KEY;
+    process.env.VITE_CLERK_PUBLISHABLE_KEY ||
+    CLERK_PK_HARDCODED;
 
   const clerkProxyUrl =
     process.env.EXPO_PUBLIC_CLERK_PROXY_URL ||
     `https://${expoPublicDomain}/api/__clerk`;
-
-  if (!clerkPublishableKey) {
-    console.error('WARNING: No Clerk publishable key found. Set CLERK_PUBLISHABLE_KEY.');
-  }
 
   const env = {
     ...process.env,
