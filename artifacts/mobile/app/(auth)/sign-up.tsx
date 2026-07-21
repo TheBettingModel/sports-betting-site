@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +14,7 @@ import {
 } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { useAuth, useClerk, useSignUp, useSSO } from '@clerk/expo';
+import { useClerk, useSignUp, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
@@ -41,63 +42,64 @@ const COLORS = {
 
 export default function SignUpScreen() {
   useWarmUpBrowser();
-  const { signUp, errors, fetchStatus } = useSignUp();
+  const { signUp } = useSignUp();
   const { startSSOFlow } = useSSO();
   const clerk = useClerk();
-  const { isSignedIn } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
+  const [stage, setStage] = useState<'form' | 'verify'>('form');
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
 
-  // Guard: Clerk not yet loaded
   if (!signUp) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: '#fff', fontSize: 16, marginBottom: 12 }}>⏳ Clerk loading…</Text>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
-  // Redirect if already signed in
-  if (isSignedIn) {
-    router.replace('/(tabs)');
-    return null;
-  }
-
   // ── Email/password sign-up ────────────────────────────────────────────────
   const handleSignUp = async () => {
     setGeneralError(null);
+    setIsLoading(true);
     try {
-      const { error } = await signUp.password({ emailAddress: email, password });
-      if (error) {
-        setGeneralError(error.message || 'Sign-up failed. Please check your details.');
-        return;
-      }
-      await signUp.verifications.sendEmailCode();
+      // Step 1: create the sign-up (classic API, works in all Clerk SDK versions)
+      await signUp.create({ emailAddress: email, password });
+      // Step 2: send verification email
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setStage('verify');
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.longMessage ||
         err?.errors?.[0]?.message ||
         err?.message ||
-        'An unexpected error occurred. Please try again.';
+        'Sign-up failed. Please check your details.';
+      Alert.alert('Sign-up Error', msg);
       setGeneralError(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerify = async () => {
     setGeneralError(null);
+    setIsLoading(true);
     try {
-      await signUp.verifications.verifyEmailCode({ code });
-      if (signUp.status === 'complete') {
-        await clerk.setActive({ session: signUp.createdSessionId });
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if (result.status === 'complete') {
+        await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
       } else {
-        setGeneralError(`Unexpected state: ${signUp.status ?? 'unknown'}. Please try again.`);
+        const msg = `Unexpected state: ${result.status ?? 'unknown'}. Please try again.`;
+        Alert.alert('Verification Error', msg);
+        setGeneralError(msg);
       }
     } catch (err: any) {
       const msg =
@@ -105,7 +107,10 @@ export default function SignUpScreen() {
         err?.errors?.[0]?.message ||
         err?.message ||
         'Verification failed. Please check your code.';
+      Alert.alert('Verification Error', msg);
       setGeneralError(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -118,14 +123,13 @@ export default function SignUpScreen() {
         strategy,
         redirectUrl: AuthSession.makeRedirectUri(),
       });
-      if (createdSessionId) {
-        await setActive!({
-          session: createdSessionId,
-          navigate: async () => { router.replace('/(tabs)'); },
-        });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/(tabs)');
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'SSO sign-up failed.';
+      Alert.alert('SSO Error', msg);
       setGeneralError(msg);
     } finally {
       setSsoLoading(null);
@@ -133,11 +137,7 @@ export default function SignUpScreen() {
   }, [startSSOFlow, router]);
 
   // ── Email verification step ───────────────────────────────────────────────
-  if (
-    signUp.status === 'missing_requirements' &&
-    signUp.unverifiedFields.includes('email_address') &&
-    signUp.missingFields.length === 0
-  ) {
+  if (stage === 'verify') {
     return (
       <View style={s.root}>
         <View style={s.verifyContainer}>
@@ -161,46 +161,40 @@ export default function SignUpScreen() {
             placeholderTextColor={COLORS.muted}
             keyboardType="numeric"
           />
-          {errors?.fields?.code && <Text style={s.error}>{errors.fields.code.message}</Text>}
 
           <Pressable
-            style={[s.primaryBtn, (!code || fetchStatus === 'fetching') && s.btnDisabled]}
+            style={[s.primaryBtn, (!code || isLoading) && s.btnDisabled]}
             onPress={handleVerify}
-            disabled={!code || fetchStatus === 'fetching'}
+            disabled={!code || isLoading}
           >
-            {fetchStatus === 'fetching'
+            {isLoading
               ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
               : <Text style={s.primaryBtnText}>Confirm Email</Text>}
           </Pressable>
 
-          <Pressable onPress={() => signUp.verifications.sendEmailCode()} style={s.textBtn}>
+          <Pressable
+            onPress={() => signUp.prepareEmailAddressVerification({ strategy: 'email_code' })}
+            style={s.textBtn}
+          >
             <Text style={s.textBtnText}>Resend code</Text>
           </Pressable>
-
-          {/* Required for Clerk bot protection */}
-          <View nativeID="clerk-captcha" />
         </View>
       </View>
     );
   }
 
-  const isFetching = fetchStatus === 'fetching';
-  const canSubmit = !!email && !!password && !isFetching;
-
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
         <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
 
         <Text style={s.title}>Create your account</Text>
         <Text style={s.subtitle}>Join TBM — AI-powered sports picks</Text>
 
-        {/* Social */}
         <Pressable
           style={[s.socialBtn, ssoLoading === 'google' && s.btnDisabled]}
           onPress={() => handleSSO('oauth_google')}
-          disabled={ssoLoading !== null}
+          disabled={ssoLoading !== null || isLoading}
         >
           {ssoLoading === 'google'
             ? <ActivityIndicator size="small" color={COLORS.fg} />
@@ -212,7 +206,7 @@ export default function SignUpScreen() {
           <Pressable
             style={[s.socialBtn, ssoLoading === 'apple' && s.btnDisabled]}
             onPress={() => handleSSO('oauth_apple')}
-            disabled={ssoLoading !== null}
+            disabled={ssoLoading !== null || isLoading}
           >
             {ssoLoading === 'apple'
               ? <ActivityIndicator size="small" color={COLORS.fg} />
@@ -221,14 +215,12 @@ export default function SignUpScreen() {
           </Pressable>
         )}
 
-        {/* Divider */}
         <View style={s.divider}>
           <View style={s.dividerLine} />
           <Text style={s.dividerText}>or</Text>
           <View style={s.dividerLine} />
         </View>
 
-        {/* General error banner */}
         {generalError && (
           <View style={s.errorBanner}>
             <Feather name="alert-circle" size={14} color={COLORS.error} />
@@ -236,7 +228,6 @@ export default function SignUpScreen() {
           </View>
         )}
 
-        {/* Email */}
         <Text style={s.label}>Email</Text>
         <TextInput
           style={s.input}
@@ -248,16 +239,14 @@ export default function SignUpScreen() {
           keyboardType="email-address"
           autoComplete="email"
         />
-        {errors?.fields?.emailAddress && <Text style={s.error}>{errors.fields.emailAddress.message}</Text>}
 
-        {/* Password */}
         <Text style={s.label}>Password</Text>
         <View style={s.passwordRow}>
           <TextInput
             style={[s.input, { flex: 1, marginBottom: 0 }]}
             value={password}
             onChangeText={setPassword}
-            placeholder="Create a password"
+            placeholder="Create a password (8+ chars)"
             placeholderTextColor={COLORS.muted}
             secureTextEntry={!showPassword}
             autoComplete="new-password"
@@ -266,19 +255,17 @@ export default function SignUpScreen() {
             <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.muted} />
           </Pressable>
         </View>
-        {errors?.fields?.password && <Text style={s.error}>{errors.fields.password.message}</Text>}
 
-        {/* Sign up */}
-        <Pressable style={[s.primaryBtn, !canSubmit && s.btnDisabled]} onPress={handleSignUp} disabled={!canSubmit}>
-          {isFetching
+        <Pressable
+          style={[s.primaryBtn, (!email || !password || isLoading) && s.btnDisabled]}
+          onPress={handleSignUp}
+          disabled={!email || !password || isLoading}
+        >
+          {isLoading
             ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
             : <Text style={s.primaryBtnText}>Create Account</Text>}
         </Pressable>
 
-        {/* Required for Clerk bot protection */}
-        <View nativeID="clerk-captcha" />
-
-        {/* Footer */}
         <View style={s.footer}>
           <Text style={s.footerText}>Already have an account? </Text>
           <Link href="/(auth)/sign-in">
@@ -320,7 +307,6 @@ const s = StyleSheet.create({
   },
   primaryBtnText: { color: COLORS.primaryFg, fontSize: 16, fontFamily: 'Inter_700Bold' },
   btnDisabled: { opacity: 0.45 },
-  error: { color: COLORS.error, fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: -8, marginBottom: 8 },
   errorBanner: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     backgroundColor: '#1A0000', borderWidth: 1, borderColor: COLORS.error,
