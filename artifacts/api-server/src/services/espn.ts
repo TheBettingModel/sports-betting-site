@@ -16,6 +16,16 @@ function toEasternDate(date: Date): string {
     .replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
 }
 
+/**
+ * Returns today's date as YYYYMMDD in Eastern time — the format ESPN's
+ * ?dates= query parameter expects.  Without this, ESPN returns whatever
+ * calendar day their servers consider "current", which lags behind once
+ * the previous day's final scores are in.
+ */
+function todayEspnParam(): string {
+  return toEasternDate(new Date()).replace(/-/g, "");
+}
+
 const ESPN_SPORT_PATHS: Record<string, string> = {
   NFL: "football/nfl",
   NCAAF: "football/college-football",
@@ -131,7 +141,7 @@ async function fetchSportGames(sport: string): Promise<FetchedGame[]> {
   const path = ESPN_SPORT_PATHS[sport];
   if (!path) return [];
 
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard`;
+  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${todayEspnParam()}`;
 
   try {
     const resp = await fetch(url, {
@@ -218,7 +228,7 @@ export async function fetchAllSportsDetailed(): Promise<SportFetchResult[]> {
       const path = ESPN_SPORT_PATHS[sport];
       if (!path) return { sport, games: [], fetchStatus: "ok" };
 
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard`;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${todayEspnParam()}`;
       try {
         const resp = await fetch(url, {
           headers: { "User-Agent": "TheBettingModel/1.0" },
