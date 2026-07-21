@@ -50,8 +50,15 @@ export default function ProfileScreen() {
       )
     : null;
 
+  // Require at least 10 graded picks before a sport qualifies as "best sport".
+  // This prevents tiny off-season samples (e.g. 1-for-1 NCAAB) from topping the list.
+  const MIN_PICKS_FOR_BEST = 10;
   const topSport = statsData?.stats.length
-    ? [...statsData.stats].sort((a, b) => b.accuracyRate - a.accuracyRate)[0]
+    ? (() => {
+        const qualified = statsData.stats.filter(s => s.totalPredictions >= MIN_PICKS_FOR_BEST);
+        if (qualified.length === 0) return null;
+        return [...qualified].sort((a, b) => b.accuracyRate - a.accuracyRate)[0];
+      })()
     : null;
 
   // User display name / initials
@@ -262,7 +269,7 @@ export default function ProfileScreen() {
         {topSport && !isCalibrating && (
           <View style={[styles.topSportBanner, { backgroundColor: colors.goldBg }]}>
             <Text style={[styles.topSportText, { color: colors.gold }]}>
-              🏆 Best sport: {topSport.sport} — {Math.round(topSport.accuracyRate * 100)}% accuracy
+              🏆 Best sport: {topSport.sport} — {Math.round(topSport.accuracyRate * 100)}% ({topSport.totalPredictions} picks)
             </Text>
           </View>
         )}
