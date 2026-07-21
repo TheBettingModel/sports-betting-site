@@ -21,20 +21,18 @@ router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
   const clerkPath = req.path.replace(/^\/__clerk/, "");
   const targetUrl = `${CLERK_FRONTEND_API}${clerkPath}${req.url.includes("?") ? "?" + req.url.split("?")[1] : ""}`;
 
-  // Forward safe headers; drop host so Clerk accepts the request
-  const forwardHeaders: Record<string, string> = {
-    "content-type": req.headers["content-type"] ?? "application/json",
-    accept: req.headers["accept"] ?? "application/json",
-  };
-  if (req.headers["authorization"]) {
-    forwardHeaders["authorization"] = req.headers["authorization"] as string;
+  // Forward all headers except host; cookies are critical for session continuity
+  const forwardHeaders: Record<string, string> = {};
+  const passthroughHeaders = [
+    "content-type", "accept", "authorization", "cookie",
+    "clerk-api-version", "x-clerk-auth-reason", "x-clerk-auth-status",
+    "x-mobile-token", "user-agent", "origin", "referer",
+  ];
+  for (const h of passthroughHeaders) {
+    const v = req.headers[h];
+    if (v) forwardHeaders[h] = v as string;
   }
-  if (req.headers["clerk-api-version"]) {
-    forwardHeaders["clerk-api-version"] = req.headers["clerk-api-version"] as string;
-  }
-  if (req.headers["x-clerk-auth-reason"]) {
-    forwardHeaders["x-clerk-auth-reason"] = req.headers["x-clerk-auth-reason"] as string;
-  }
+  if (!forwardHeaders["content-type"]) forwardHeaders["content-type"] = "application/json";
 
   try {
     const body =
@@ -50,10 +48,13 @@ router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
 
     const responseBody = await upstream.text();
 
-    // Forward status and key headers back to the client
     res.status(upstream.status);
-    const ct = upstream.headers.get("content-type");
-    if (ct) res.setHeader("content-type", ct);
+
+    // Forward ALL response headers (especially Set-Cookie for session state)
+    for (const [key, value] of upstream.headers.entries()) {
+      if (key.toLowerCase() === "transfer-encoding") continue;
+      res.setHeader(key, value);
+    }
 
     res.send(responseBody);
   } catch (err: any) {
