@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,7 +18,6 @@ import { useClerk, useSignIn, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
-// Required for Android — completes any pending browser sessions
 WebBrowser.maybeCompleteAuthSession();
 
 function useWarmUpBrowser() {
@@ -42,7 +42,7 @@ const COLORS = {
 
 export default function SignInScreen() {
   useWarmUpBrowser();
-  const { signIn, errors, fetchStatus } = useSignIn();
+  const { signIn } = useSignIn();
   const { startSSOFlow } = useSSO();
   const clerk = useClerk();
   const router = useRouter();
@@ -52,9 +52,9 @@ export default function SignInScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState<'google' | 'apple' | null>(null);
 
-  // Guard: Clerk not yet loaded
   if (!signIn) {
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -63,24 +63,25 @@ export default function SignInScreen() {
     );
   }
 
-  // ── Email/password sign-in ────────────────────────────────────────────────
   const handleSignIn = async () => {
+    // DEBUG — remove once sign-in is confirmed working
+    Alert.alert('Debug', `Attempting sign-in for: ${email}`);
+
     setGeneralError(null);
+    setIsLoading(true);
     try {
-      const { error } = await signIn.password({ emailAddress: email, password });
-      if (error) {
-        setGeneralError(error.message || 'Sign-in failed. Please check your credentials.');
-        return;
-      }
-      if (signIn.status === 'complete') {
-        // Activate the session explicitly so isSignedIn is true BEFORE we navigate.
-        // Without this, the tabs layout's auth guard sees isSignedIn=false and
-        // immediately bounces back to sign-in.
-        await clerk.setActive({ session: signIn.createdSessionId });
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      Alert.alert('Debug', `Status: ${result.status}, sessionId: ${result.createdSessionId ?? 'none'}`);
+
+      if (result.status === 'complete') {
+        await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
       } else {
-        // Unexpected state — surface it so we can diagnose
-        setGeneralError(`Unexpected sign-in state: ${signIn.status ?? 'unknown'}. Please try again.`);
+        setGeneralError(`Sign-in state: ${result.status ?? 'unknown'}. Please try again.`);
       }
     } catch (err: any) {
       const msg =
@@ -88,25 +89,33 @@ export default function SignInScreen() {
         err?.errors?.[0]?.message ||
         err?.message ||
         'An unexpected error occurred. Please try again.';
+      Alert.alert('Debug Error', msg);
       setGeneralError(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerify = async () => {
     setGeneralError(null);
+    setIsLoading(true);
     try {
-      await signIn.mfa.verifyEmailCode({ code: verifyCode });
-      if (signIn.status === 'complete') {
-        await clerk.setActive({ session: signIn.createdSessionId });
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'email_code',
+        code: verifyCode,
+      });
+      if (result.status === 'complete') {
+        await clerk.setActive({ session: result.createdSessionId });
         router.replace('/(tabs)');
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Verification failed.';
       setGeneralError(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // ── SSO ───────────────────────────────────────────────────────────────────
   const handleSSO = useCallback(async (strategy: 'oauth_google' | 'oauth_apple') => {
     setSsoLoading(strategy === 'oauth_google' ? 'google' : 'apple');
     setGeneralError(null);
@@ -115,11 +124,9 @@ export default function SignInScreen() {
         strategy,
         redirectUrl: AuthSession.makeRedirectUri(),
       });
-      if (createdSessionId) {
-        await setActive!({
-          session: createdSessionId,
-          navigate: async () => { router.replace('/(tabs)'); },
-        });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/(tabs)');
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'SSO sign-in failed.';
@@ -129,8 +136,8 @@ export default function SignInScreen() {
     }
   }, [startSSOFlow, router]);
 
-  // ── MFA / client trust verification step ─────────────────────────────────
-  if (signIn.status === 'needs_client_trust') {
+  // MFA / email verification step
+  if (signIn.status === 'needs_first_factor') {
     return (
       <View style={s.root}>
         <View style={s.verifyCard}>
@@ -144,39 +151,35 @@ export default function SignInScreen() {
             keyboardType="numeric"
             onChangeText={setVerifyCode}
           />
-          {errors?.fields?.code && <Text style={s.error}>{errors.fields.code.message}</Text>}
           {generalError && <Text style={s.error}>{generalError}</Text>}
-          <Pressable style={[s.primaryBtn, !verifyCode && s.btnDisabled]} onPress={handleVerify} disabled={!verifyCode}>
-            <Text style={s.primaryBtnText}>Verify</Text>
-          </Pressable>
-          <Pressable onPress={() => signIn.mfa.sendEmailCode()} style={s.textBtn}>
-            <Text style={s.textBtnText}>Resend code</Text>
-          </Pressable>
-          <Pressable onPress={() => signIn.reset()} style={s.textBtn}>
-            <Text style={s.textBtnText}>Start over</Text>
+          <Pressable
+            style={[s.primaryBtn, (!verifyCode || isLoading) && s.btnDisabled]}
+            onPress={handleVerify}
+            disabled={!verifyCode || isLoading}
+          >
+            {isLoading
+              ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
+              : <Text style={s.primaryBtnText}>Verify</Text>}
           </Pressable>
         </View>
       </View>
     );
   }
 
-  const isFetching = fetchStatus === 'fetching';
-  const canSubmit = !!email && !!password && !isFetching;
+  const canSubmit = !!email && !!password && !isLoading;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
         <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
 
         <Text style={s.title}>Welcome back</Text>
         <Text style={s.subtitle}>Sign in to your TBM account</Text>
 
-        {/* Social buttons */}
         <Pressable
           style={[s.socialBtn, ssoLoading === 'google' && s.btnDisabled]}
           onPress={() => handleSSO('oauth_google')}
-          disabled={ssoLoading !== null}
+          disabled={ssoLoading !== null || isLoading}
         >
           {ssoLoading === 'google'
             ? <ActivityIndicator size="small" color={COLORS.fg} />
@@ -188,7 +191,7 @@ export default function SignInScreen() {
           <Pressable
             style={[s.socialBtn, ssoLoading === 'apple' && s.btnDisabled]}
             onPress={() => handleSSO('oauth_apple')}
-            disabled={ssoLoading !== null}
+            disabled={ssoLoading !== null || isLoading}
           >
             {ssoLoading === 'apple'
               ? <ActivityIndicator size="small" color={COLORS.fg} />
@@ -197,14 +200,12 @@ export default function SignInScreen() {
           </Pressable>
         )}
 
-        {/* Divider */}
         <View style={s.divider}>
           <View style={s.dividerLine} />
           <Text style={s.dividerText}>or</Text>
           <View style={s.dividerLine} />
         </View>
 
-        {/* General error banner */}
         {generalError && (
           <View style={s.errorBanner}>
             <Feather name="alert-circle" size={14} color={COLORS.error} />
@@ -212,7 +213,6 @@ export default function SignInScreen() {
           </View>
         )}
 
-        {/* Email */}
         <Text style={s.label}>Email</Text>
         <TextInput
           style={s.input}
@@ -224,9 +224,7 @@ export default function SignInScreen() {
           keyboardType="email-address"
           autoComplete="email"
         />
-        {errors?.fields?.identifier && <Text style={s.error}>{errors.fields.identifier.message}</Text>}
 
-        {/* Password */}
         <Text style={s.label}>Password</Text>
         <View style={s.passwordRow}>
           <TextInput
@@ -242,16 +240,17 @@ export default function SignInScreen() {
             <Feather name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.muted} />
           </Pressable>
         </View>
-        {errors?.fields?.password && <Text style={s.error}>{errors.fields.password.message}</Text>}
 
-        {/* Sign in */}
-        <Pressable style={[s.primaryBtn, !canSubmit && s.btnDisabled]} onPress={handleSignIn} disabled={!canSubmit}>
-          {isFetching
+        <Pressable
+          style={[s.primaryBtn, !canSubmit && s.btnDisabled]}
+          onPress={handleSignIn}
+          disabled={!canSubmit}
+        >
+          {isLoading
             ? <ActivityIndicator size="small" color={COLORS.primaryFg} />
             : <Text style={s.primaryBtnText}>Sign In</Text>}
         </Pressable>
 
-        {/* Footer */}
         <View style={s.footer}>
           <Text style={s.footerText}>Don't have an account? </Text>
           <Link href="/(auth)/sign-up">
@@ -292,7 +291,7 @@ const s = StyleSheet.create({
   },
   primaryBtnText: { color: COLORS.primaryFg, fontSize: 16, fontFamily: 'Inter_700Bold' },
   btnDisabled: { opacity: 0.45 },
-  error: { color: COLORS.error, fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: -8, marginBottom: 8 },
+  error: { color: COLORS.error, fontSize: 12, fontFamily: 'Inter_400Regular', marginBottom: 8 },
   errorBanner: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     backgroundColor: '#1A0000', borderWidth: 1, borderColor: COLORS.error,
@@ -303,6 +302,4 @@ const s = StyleSheet.create({
   footerText: { color: COLORS.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
   footerLink: { color: COLORS.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   verifyCard: { flex: 1, padding: 24, justifyContent: 'center' },
-  textBtn: { paddingVertical: 10, alignItems: 'center' },
-  textBtnText: { color: COLORS.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
 });
