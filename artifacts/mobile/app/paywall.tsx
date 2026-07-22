@@ -73,11 +73,11 @@ export default function PaywallModal({ visible, onClose }: Props) {
     (p) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual',
   );
 
-  const monthlyPrice = monthlyPkg?.product.priceString ?? '$9.99';
-  const annualPrice = annualPkg?.product.priceString ?? '$79.99';
+  const monthlyPrice = monthlyPkg?.product.priceString ?? '$14.99';
+  const annualPrice = annualPkg?.product.priceString ?? '$119.00';
   const annualMonthly = annualPkg
     ? `${(annualPkg.product.price / 12).toFixed(2)}/mo`
-    : '$6.67/mo';
+    : '$9.92/mo';
 
   // Per-period cost lines (live from RC)
   const annualPerDay = annualPkg
