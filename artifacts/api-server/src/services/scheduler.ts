@@ -23,6 +23,7 @@ import { runAnalytics } from "./analytics";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
+import { getWnbaTeamStats, getSoccerTeamStats, warmUpTeamStatsCache } from "./teamStats";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 
@@ -282,6 +283,25 @@ async function runOddsIngestion(): Promise<void> {
 
       for (const game of games) {
         try {
+          // Fetch advanced team analytics for WNBA/NBA and Soccer.
+          // Results are cached (WNBA: 4h, Soccer: 1h) so subsequent calls
+          // within the same run are instant after the first batch fetch.
+          const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats] =
+            await Promise.all([
+              (game.sport === "WNBA" || game.sport === "NBA")
+                ? getWnbaTeamStats(game.homeTeamId ?? "")
+                : Promise.resolve(undefined),
+              (game.sport === "WNBA" || game.sport === "NBA")
+                ? getWnbaTeamStats(game.awayTeamId ?? "")
+                : Promise.resolve(undefined),
+              game.sport === "Soccer"
+                ? getSoccerTeamStats(game.homeTeamId ?? "")
+                : Promise.resolve(undefined),
+              game.sport === "Soccer"
+                ? getSoccerTeamStats(game.awayTeamId ?? "")
+                : Promise.resolve(undefined),
+            ]);
+
           const proj = computeProjection(
             game.espnId,
             game.sport,
@@ -289,14 +309,18 @@ async function runOddsIngestion(): Promise<void> {
             game.awayTeamRecord,
             weightsBySport[game.sport] ?? null,
             {
-              homeHomeRecord: game.homeHomeRecord,
-              homeRoadRecord: game.homeRoadRecord,
-              awayHomeRecord: game.awayHomeRecord,
-              awayRoadRecord: game.awayRoadRecord,
+              homeHomeRecord:   game.homeHomeRecord,
+              homeRoadRecord:   game.homeRoadRecord,
+              awayHomeRecord:   game.awayHomeRecord,
+              awayRoadRecord:   game.awayRoadRecord,
               realVegasHomeOdds: game.vegasHomeOdds,
               realVegasAwayOdds: game.vegasAwayOdds,
               realVegasDrawOdds: game.vegasDrawOdds,
               realVegasOverUnder: game.vegasOverUnder,
+              homeTeamStats,
+              awayTeamStats,
+              homeSoccerStats,
+              awaySoccerStats,
             },
           );
           await processGameSnapshot(game, proj);
@@ -361,6 +385,22 @@ async function runResultGrading(): Promise<void> {
     let snapshots = 0;
     for (const game of games) {
       try {
+        const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats] =
+          await Promise.all([
+            (game.sport === "WNBA" || game.sport === "NBA")
+              ? getWnbaTeamStats(game.homeTeamId ?? "")
+              : Promise.resolve(undefined),
+            (game.sport === "WNBA" || game.sport === "NBA")
+              ? getWnbaTeamStats(game.awayTeamId ?? "")
+              : Promise.resolve(undefined),
+            game.sport === "Soccer"
+              ? getSoccerTeamStats(game.homeTeamId ?? "")
+              : Promise.resolve(undefined),
+            game.sport === "Soccer"
+              ? getSoccerTeamStats(game.awayTeamId ?? "")
+              : Promise.resolve(undefined),
+          ]);
+
         const proj = computeProjection(
           game.espnId,
           game.sport,
@@ -368,14 +408,18 @@ async function runResultGrading(): Promise<void> {
           game.awayTeamRecord,
           weightsBySport[game.sport] ?? null,
           {
-            homeHomeRecord: game.homeHomeRecord,
-            homeRoadRecord: game.homeRoadRecord,
-            awayHomeRecord: game.awayHomeRecord,
-            awayRoadRecord: game.awayRoadRecord,
+            homeHomeRecord:    game.homeHomeRecord,
+            homeRoadRecord:    game.homeRoadRecord,
+            awayHomeRecord:    game.awayHomeRecord,
+            awayRoadRecord:    game.awayRoadRecord,
             realVegasHomeOdds: game.vegasHomeOdds,
             realVegasAwayOdds: game.vegasAwayOdds,
             realVegasDrawOdds: game.vegasDrawOdds,
             realVegasOverUnder: game.vegasOverUnder,
+            homeTeamStats,
+            awayTeamStats,
+            homeSoccerStats,
+            awaySoccerStats,
           },
         );
         await processGameSnapshot(game, proj);
@@ -495,6 +539,10 @@ export function startScheduler(): void {
   cron.schedule("15 * * * *", () => {
     void runSubscriberReconciliation();
   });
+
+  // Warm up team stats cache in the background so the first game refresh
+  // has advanced analytics immediately available.
+  warmUpTeamStatsCache();
 
   logger.info("Scheduler: all cron jobs registered");
 }

@@ -3,6 +3,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
+import { getWnbaTeamStats, getSoccerTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
 import { runGrading } from "../services/grading-runner";
@@ -67,6 +68,24 @@ export async function refreshAll(): Promise<{
 
   for (const game of fetchedGames) {
     const w = weightsBySport[game.sport] ?? null;
+
+    // Fetch advanced team analytics (cached; first call triggers batch fetch)
+    const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats] =
+      await Promise.all([
+        (game.sport === "WNBA" || game.sport === "NBA")
+          ? getWnbaTeamStats(game.homeTeamId ?? "")
+          : Promise.resolve(undefined),
+        (game.sport === "WNBA" || game.sport === "NBA")
+          ? getWnbaTeamStats(game.awayTeamId ?? "")
+          : Promise.resolve(undefined),
+        game.sport === "Soccer"
+          ? getSoccerTeamStats(game.homeTeamId ?? "")
+          : Promise.resolve(undefined),
+        game.sport === "Soccer"
+          ? getSoccerTeamStats(game.awayTeamId ?? "")
+          : Promise.resolve(undefined),
+      ]);
+
     const proj = computeProjection(
       game.espnId,
       game.sport,
@@ -74,14 +93,18 @@ export async function refreshAll(): Promise<{
       game.awayTeamRecord,
       w,
       {
-        homeHomeRecord: game.homeHomeRecord,
-        homeRoadRecord: game.homeRoadRecord,
-        awayHomeRecord: game.awayHomeRecord,
-        awayRoadRecord: game.awayRoadRecord,
+        homeHomeRecord:    game.homeHomeRecord,
+        homeRoadRecord:    game.homeRoadRecord,
+        awayHomeRecord:    game.awayHomeRecord,
+        awayRoadRecord:    game.awayRoadRecord,
         realVegasHomeOdds: game.vegasHomeOdds,
         realVegasAwayOdds: game.vegasAwayOdds,
         realVegasDrawOdds: game.vegasDrawOdds,
         realVegasOverUnder: game.vegasOverUnder,
+        homeTeamStats,
+        awayTeamStats,
+        homeSoccerStats,
+        awaySoccerStats,
       },
     );
 

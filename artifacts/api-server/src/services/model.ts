@@ -1,4 +1,5 @@
 import type { ModelWeights } from "@workspace/db";
+import type { WnbaTeamStats, SoccerTeamStats } from "./teamStats";
 
 export interface ProjectionResult {
   homeWinPct: number;
@@ -120,6 +121,16 @@ export interface ComputeOptions {
   realVegasDrawOdds?: number;
   /** Real Vegas over/under total */
   realVegasOverUnder?: number;
+  // ── Advanced team analytics (WNBA / NBA) ─────────────────────────────────
+  /** Home team advanced stats: eFG%, TS%, pace, turnovers, recent form, rest */
+  homeTeamStats?: WnbaTeamStats;
+  /** Away team advanced stats */
+  awayTeamStats?: WnbaTeamStats;
+  // ── Soccer historical metrics ────────────────────────────────────────────
+  /** Home team soccer stats computed from our DB (goals, form, rest) */
+  homeSoccerStats?: SoccerTeamStats;
+  /** Away team soccer stats */
+  awaySoccerStats?: SoccerTeamStats;
 }
 
 export function computeProjection(
@@ -161,11 +172,61 @@ export function computeProjection(
     awayWinRate = awayWL.total > 0 ? awayWL.wins / awayWL.total : 0.5;
   }
 
-  // Model probability: base 50% + home advantage + record differential
-  let prob = 0.5 + homeAdv + (homeWinRate - awayWinRate) * 0.35;
+  // ── Model probability ──────────────────────────────────────────────────────
+  // Base: home advantage + season win-rate differential (home/road splits)
+  let prob = 0.5 + homeAdv + (homeWinRate - awayWinRate) * 0.30;
+
+  // ── Tier 1: Efficiency metrics (most predictive for WNBA / NBA) ────────────
+  const hs = opts.homeTeamStats;
+  const as_ = opts.awayTeamStats;
+
+  if (hs && as_) {
+    // eFG% differential — single strongest per-possession efficiency metric
+    // A 5pp eFG% gap ≈ 3–4 PPG advantage; weight accordingly.
+    const efgDiff = hs.efgPercent - as_.efgPercent;
+    prob += efgDiff * 0.28;
+
+    // Turnover battle — lower TO% is better; difference is symmetric
+    // Typical WNBA TO% range: 0.12–0.18; 1pp swing ≈ 1 extra possession/game
+    const toDiff = as_.turnoverPercent - hs.turnoverPercent;
+    prob += toDiff * 0.22;
+
+    // Offensive rebounding edge — 2nd-chance points matter in close games
+    const orebDiff = (hs.orebPg - as_.orebPg) * 0.004;
+    prob += orebDiff;
+
+    // Defensive presence — blocks/steals proxy for rim/perimeter defense
+    const defDiff = ((hs.bpg + hs.spg) - (as_.bpg + as_.spg)) * 0.003;
+    prob += defDiff;
+  }
+
+  // ── Tier 2: Recent form — last-5 win% and net rating (last 10) ────────────
+  if (hs && as_) {
+    // Recent win% differential — captures hot/cold streaks
+    const formDiff = hs.last5WinPct - as_.last5WinPct;
+    prob += formDiff * 0.12;
+
+    // Net rating proxy (avg point diff last 10) — captures true team quality
+    // Each +10 point swing in avg margin ≈ 3pp probability shift
+    const netRatingDiff = hs.last10PointDiff - as_.last10PointDiff;
+    prob += netRatingDiff * 0.003;
+  }
+
+  // ── Tier 3: Situational — rest advantage ──────────────────────────────────
+  if (hs && as_) {
+    // Each extra rest day = small edge; typical WNBA b2b penalty ~3–4pp
+    const restDiff = hs.restDays - as_.restDays;
+    const restAdj  = Math.max(-0.035, Math.min(0.035, restDiff * 0.009));
+    prob += restAdj;
+  }
+
+  // Apply confidence multiplier (from model weights learning system)
   prob = 0.5 + (prob - 0.5) * multiplier;
-  const noise = hashNoise(gameId, 10, 5);
-  prob = Math.max(0.25, Math.min(0.80, prob + noise));
+
+  // Use reduced noise when we have rich analytics (more signal → less uncertainty)
+  const noiseRange = (hs && as_) ? 6 : 10;
+  const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
+  prob = Math.max(0.22, Math.min(0.82, prob + noise));
 
   const homeWinPct = Math.round(prob * 100);
   const deviation = Math.abs(homeWinPct - 50);
@@ -249,10 +310,47 @@ function computeSoccerProjection(
   const homeRate = parseSoccerWinRate(homeRecord);
   const awayRate = parseSoccerWinRate(awayRecord);
 
-  // Model home win probability (includes home advantage)
-  let prob = 0.42 + 0.05 + (homeRate - awayRate) * 0.30;
+  // Base: 42% home-win floor + home advantage + season record differential
+  let prob = 0.42 + 0.05 + (homeRate - awayRate) * 0.28;
+
+  // ── Tier 1: Goals-based team quality (from our DB) ─────────────────────
+  const hs = opts.homeSoccerStats;
+  const as_ = opts.awaySoccerStats;
+
+  if (hs && as_) {
+    // Attack vs Defence matchup: home's scoring ability vs away's defensive record
+    // Each extra 0.5 GPG advantage ≈ 5–6pp shift in home-win probability
+    const attackVsDef = (hs.goalsPerGame - as_.goalsAllowedPerGame) * 0.08;
+    prob += attackVsDef;
+
+    // Away attack vs home defence (penalises home if away are strong attackers)
+    const awayAttackVsHomeDef = (as_.goalsPerGame - hs.goalsAllowedPerGame) * 0.08;
+    prob -= awayAttackVsHomeDef;
+
+    // Overall goal differential — general quality proxy
+    const goalDiffEdge = (hs.goalDifferential - as_.goalDifferential) * 0.05;
+    prob += goalDiffEdge;
+
+    // ── Tier 2: Recent form (last 5 W-D-L rating) ──────────────────────
+    // W=1, D=0.4, L=0 — captures momentum and current team cohesion
+    const formDiff = hs.last5Form - as_.last5Form;
+    prob += formDiff * 0.10;
+
+    // Last-5 goal differential — finer-grained form signal
+    const last5GDiff = (hs.last5GoalDiff - as_.last5GoalDiff) * 0.025;
+    prob += last5GDiff;
+
+    // ── Tier 3: Rest advantage ──────────────────────────────────────────
+    // Soccer congestion penalty is real (3 games/7 days = significant fatigue)
+    const restDiff = hs.restDays - as_.restDays;
+    const restAdj  = Math.max(-0.025, Math.min(0.025, restDiff * 0.007));
+    prob += restAdj;
+  }
+
+  // Apply confidence multiplier
   prob = 0.42 + (prob - 0.42) * multiplier;
-  const noise = hashNoise(gameId, 8, 4);
+  const noiseRange = (hs && as_) ? 6 : 8;
+  const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
   prob = Math.max(0.15, Math.min(0.75, prob + noise));
 
   // Model draw probability — scales inversely with favourite strength
