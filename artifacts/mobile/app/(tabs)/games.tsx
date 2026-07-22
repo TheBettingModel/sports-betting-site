@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSports, SPORTS } from '@/context/SportsContext';
 import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
@@ -17,14 +18,13 @@ import { MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
 import { LockedPickCard } from '@/components/LockedPickCard';
 import { SportFilter } from '@/components/SportFilter';
-import PaywallModal from '@/app/paywall';
 import type { Game, Sport } from '@/data/mockGames';
 
 export default function GamesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { selectedSport } = useSports();
-  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
@@ -102,7 +102,7 @@ export default function GamesScreen() {
               </View>
               {item.games.map((game: Game) =>
                 game.isLocked
-                  ? <LockedPickCard key={game.id} onUnlock={() => setPaywallOpen(true)} />
+                  ? <LockedPickCard key={game.id} onUnlock={() => router.push('/membership')} />
                   : <GameCard key={game.id} game={game} />
               )}
             </View>
@@ -119,7 +119,7 @@ export default function GamesScreen() {
         keyExtractor={item => item.id}
         renderItem={({ item }: { item: Game }) =>
           item.isLocked
-            ? <LockedPickCard onUnlock={() => setPaywallOpen(true)} />
+            ? <LockedPickCard onUnlock={() => router.push('/membership')} />
             : <GameCard game={item} />
         }
         ListHeaderComponent={<ListHeader />}
@@ -139,7 +139,6 @@ export default function GamesScreen() {
         }
       />
 
-      <PaywallModal visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </View>
   );
 }

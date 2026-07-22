@@ -10,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSports } from '@/context/SportsContext';
 import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
 import { getTopPick, MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
+import { LockedPickCard } from '@/components/LockedPickCard';
 import { FeaturedPick } from '@/components/FeaturedPick';
 import { SportFilter } from '@/components/SportFilter';
 import type { Game } from '@/data/mockGames';
@@ -23,6 +25,7 @@ import type { Game } from '@/data/mockGames';
 export default function TodayScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { selectedSport } = useSports();
 
   const { data, isLoading, refetch } = useGetGamesToday();
@@ -108,6 +111,15 @@ export default function TodayScreen() {
         </View>
       )}
 
+      {/* Locked picks banner */}
+      {filteredGames.some(g => g.isLocked) && (
+        <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
+          <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
+            🔒 Showing {filteredGames.filter(g => !g.isLocked).length} of {filteredGames.length} picks — unlock all with Pro
+          </Text>
+        </View>
+      )}
+
       <Text
         style={[
           styles.sectionLabel,
@@ -124,7 +136,11 @@ export default function TodayScreen() {
       <FlatList
         data={filteredGames}
         keyExtractor={item => item.id}
-        renderItem={({ item }: { item: Game }) => <GameCard game={item} />}
+        renderItem={({ item }: { item: Game }) =>
+          item.isLocked
+            ? <LockedPickCard onUnlock={() => router.push('/membership')} />
+            : <GameCard game={item} />
+        }
         ListHeaderComponent={<ListHeader />}
         contentContainerStyle={{
           paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
@@ -171,4 +187,13 @@ const styles = StyleSheet.create({
   },
   empty: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 15, fontFamily: 'Inter_400Regular' },
+  lockedBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  lockedBannerText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
 });

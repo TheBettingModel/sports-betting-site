@@ -88,9 +88,9 @@ export default function PicksScreen() {
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
       for (const game of group) {
-        // Subscription always overrides server-side lock flag.
-        // Server sets isLocked without knowing the user's subscription status.
-        const locked = !isSubscribed && (game.isLocked ?? pickIndex >= FREE_PICKS);
+        // Trust the server's isLocked flag — it is the authoritative source.
+        // Fall back to index-based locking only for mock/offline data.
+        const locked = game.isLocked ?? (pickIndex >= FREE_PICKS);
         items.push({ type: 'game', game, locked });
         pickIndex++;
       }
@@ -118,9 +118,7 @@ export default function PicksScreen() {
     return <GameCard game={item.game} />;
   };
 
-  const lockedCount = allPicks.length > FREE_PICKS && !isSubscribed
-    ? allPicks.length - FREE_PICKS
-    : 0;
+  const lockedCount = allPicks.filter(g => g.isLocked === true).length;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -181,7 +179,7 @@ export default function PicksScreen() {
             )}
 
             {/* Locked picks banner for non-subscribers */}
-            {!isSubscribed && lockedCount > 0 && (
+            {lockedCount > 0 && (
               <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
                 <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
                   🔒 Showing {FREE_PICKS} of {allPicks.length} picks today — unlock all with Pro
