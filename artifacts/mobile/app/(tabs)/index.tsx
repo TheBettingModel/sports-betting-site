@@ -46,10 +46,15 @@ export default function TodayScreen() {
 
   const topPick = useMemo(() => {
     if (allGames.length > 0) {
-      // Only feature non-locked games (subscribers can see all picks in this slot)
       const unlocked = allGames.filter(g => !g.isLocked);
       const pool = unlocked.length > 0 ? unlocked : allGames;
-      return [...pool].sort((a, b) => b.projection.modelScore - a.projection.modelScore)[0] ?? getTopPick();
+      // Prioritise actionable ratings: Strong Buy → Buy → everything else by model score
+      const RATING_PRIORITY: Record<string, number> = { 'Strong Buy': 0, 'Buy': 1, 'Neutral': 2, 'Fade': 3 };
+      return [...pool].sort((a, b) => {
+        const rDiff = (RATING_PRIORITY[a.projection.valueRating] ?? 2) - (RATING_PRIORITY[b.projection.valueRating] ?? 2);
+        if (rDiff !== 0) return rDiff;
+        return b.projection.modelScore - a.projection.modelScore;
+      })[0] ?? getTopPick();
     }
     return getTopPick();
   }, [allGames]);
