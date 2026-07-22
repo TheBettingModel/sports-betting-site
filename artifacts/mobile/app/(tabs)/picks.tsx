@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
@@ -18,7 +19,6 @@ import { LockedPickCard } from '@/components/LockedPickCard';
 import { ValueBadge } from '@/components/ValueBadge';
 import type { Game } from '@/data/mockGames';
 import { useSubscription } from '@/lib/revenuecat';
-import PaywallModal from '@/app/paywall';
 
 const FREE_PICKS = 2; // non-subscribers see this many picks unlocked
 
@@ -39,8 +39,8 @@ type ListItem =
 export default function PicksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { isSubscribed } = useSubscription();
-  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
@@ -113,7 +113,7 @@ export default function PicksScreen() {
       );
     }
     if (item.locked) {
-      return <LockedPickCard onUnlock={() => setPaywallOpen(true)} />;
+      return <LockedPickCard onUnlock={() => router.push('/membership')} />;
     }
     return <GameCard game={item.game} />;
   };
@@ -184,7 +184,7 @@ export default function PicksScreen() {
             {!isSubscribed && lockedCount > 0 && (
               <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
                 <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
-                  🔒 {lockedCount} more picks unlocked with Pro — first {FREE_PICKS} shown free
+                  🔒 Showing {FREE_PICKS} of {allPicks.length} picks today — unlock all with Pro
                 </Text>
               </View>
             )}
@@ -201,7 +201,6 @@ export default function PicksScreen() {
         }
       />
 
-      <PaywallModal visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </View>
   );
 }

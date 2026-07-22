@@ -44,6 +44,14 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="membership"
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_bottom',
+        }}
+      />
     </Stack>
   );
 }
