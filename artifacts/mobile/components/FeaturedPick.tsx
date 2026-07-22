@@ -18,6 +18,10 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
   const colors = useColors();
   const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
   const diff = projection.projectedSpread - vegasLine.spread;
+  const isFade = projection.valueRating === 'Fade';
+  const isNeutral = projection.valueRating === 'Neutral';
+  const pickTeam = projection.edge >= 0 ? homeTeam : awayTeam;
+  const edgeAbs = Math.abs(projection.edge);
 
   const homeLogo = getTeamLogoUrl(sport, homeTeam.abbr);
   const awayLogo = getTeamLogoUrl(sport, awayTeam.abbr);
@@ -39,6 +43,19 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           </Text>
           <ValueBadge rating={projection.valueRating} />
         </View>
+
+        {/* Model pick banner */}
+        {!isFade && !isNeutral && (
+          <View style={[styles.pickBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '55' }]}>
+            <Text style={[styles.pickLabel, { color: colors.mutedForeground }]}>MODEL PICK</Text>
+            <Text style={[styles.pickTeam, { color: colors.gold }]}>
+              {pickTeam.city} {pickTeam.name}
+            </Text>
+            <Text style={[styles.pickEdge, { color: colors.gold }]}>
+              · +{edgeAbs.toFixed(1)}% EDGE
+            </Text>
+          </View>
+        )}
 
         {/* Teams with logos */}
         <View style={styles.teamsRow}>
@@ -84,7 +101,9 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
         {/* Stats row */}
         <View style={[styles.statsRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
           <View style={styles.stat}>
-            <Text style={[styles.statVal, { color: colors.win }]}>+{projection.edge.toFixed(1)}%</Text>
+            <Text style={[styles.statVal, { color: colors.win }]}>
+              {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
+            </Text>
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>EDGE</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -172,4 +191,16 @@ const styles = StyleSheet.create({
   compBlock: { flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', gap: 4 },
   compLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   compVal: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  pickBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  pickLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  pickTeam: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  pickEdge: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
 });

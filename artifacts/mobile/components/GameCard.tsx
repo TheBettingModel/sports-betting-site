@@ -84,10 +84,12 @@ export function GameCard({ game }: GameCardProps) {
         <View style={styles.middle}>
           <Text style={[styles.score, { color: colors.primary }]}>{projection.modelScore}</Text>
           <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>MODEL</Text>
-          {projection.edge > 0 ? (
-            <Text style={[styles.edge, { color: colors.win }]}>+{projection.edge.toFixed(1)}%</Text>
+          {projection.valueRating === 'Neutral' || projection.valueRating === 'Fade' ? (
+            <Text style={[styles.edge, { color: colors.mutedForeground }]}>{projection.valueRating.toUpperCase()}</Text>
           ) : (
-            <Text style={[styles.edge, { color: colors.loss }]}>{projection.edge.toFixed(1)}%</Text>
+            <Text style={[styles.edge, { color: colors.win }]}>
+              {(projection.edge >= 0 ? homeTeam : awayTeam).abbr} +{Math.abs(projection.edge).toFixed(1)}%
+            </Text>
           )}
         </View>
 
@@ -99,6 +101,18 @@ export function GameCard({ game }: GameCardProps) {
           <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
         </View>
       </View>
+
+      {/* Model pick banner */}
+      {projection.valueRating !== 'Neutral' && projection.valueRating !== 'Fade' && (
+        <View style={[styles.pickBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '55' }]}>
+          <Text style={[styles.pickLabel, { color: colors.mutedForeground }]}>MODEL PICK</Text>
+          <Text style={[styles.pickTeam, { color: colors.gold }]}>
+            {projection.edge >= 0
+              ? `${homeTeam.city} ${homeTeam.name}`
+              : `${awayTeam.city} ${awayTeam.name}`}
+          </Text>
+        </View>
+      )}
 
       {/* Win probability bar */}
       <WinBar
@@ -157,4 +171,15 @@ const styles = StyleSheet.create({
   },
   vegasLabel: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   vegasVal: { fontSize: 11, fontFamily: 'Inter_400Regular', flex: 1 },
+  pickBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  pickLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  pickTeam: { fontSize: 13, fontFamily: 'Inter_700Bold' },
 });
