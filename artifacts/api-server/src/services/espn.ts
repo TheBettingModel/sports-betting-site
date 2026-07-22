@@ -1,6 +1,35 @@
 import { logger } from "../lib/logger";
 
 /**
+ * Fetch with automatic retry and exponential backoff.
+ * Retries on network errors or 5xx responses; gives up on 4xx.
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxAttempts = 3,
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      if (resp.ok) return resp;
+      // 4xx = don't retry; 5xx = retry
+      if (resp.status < 500) return resp;
+      lastErr = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      lastErr = err;
+    }
+    if (attempt < maxAttempts) {
+      const delay = 500 * 2 ** (attempt - 1); // 500ms, 1000ms
+      await new Promise((r) => setTimeout(r, delay));
+      logger.warn({ url, attempt }, "ESPN fetch retry");
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Returns the YYYY-MM-DD date in US Eastern time (America/New_York).
  * US sports leagues schedule games in Eastern time, so a game at 8 PM ET
  * is "today" even if it falls on the next UTC calendar day.
@@ -17,22 +46,13 @@ function toEasternDate(date: Date): string {
 }
 
 /**
- * Returns a date as YYYYMMDD in Eastern time — the format ESPN's
- * ?dates= query parameter expects.
+ * Returns today's date as YYYYMMDD in Eastern time — the format ESPN's
+ * ?dates= query parameter expects.  Without this, ESPN returns whatever
+ * calendar day their servers consider "current", which lags behind once
+ * the previous day's final scores are in.
  */
-function toEspnParam(date: Date): string {
-  return toEasternDate(date).replace(/-/g, "");
-}
-
-/**
- * Returns a YYYYMMDD-YYYYMMDD range string covering today through
- * `days` days into the future (Eastern time), so the scoreboard
- * endpoint returns upcoming games across the window.
- */
-function espnDateRange(days = 2): string {
-  const now = new Date();
-  const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-  return `${toEspnParam(now)}-${toEspnParam(future)}`;
+function todayEspnParam(): string {
+  return toEasternDate(new Date()).replace(/-/g, "");
 }
 
 const ESPN_SPORT_PATHS: Record<string, string> = {
@@ -150,12 +170,12 @@ async function fetchSportGames(sport: string): Promise<FetchedGame[]> {
   const path = ESPN_SPORT_PATHS[sport];
   if (!path) return [];
 
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${espnDateRange(2)}&limit=100`;
+  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${todayEspnParam()}&limit=100`;
 
   try {
-    const resp = await fetch(url, {
+    const resp = await fetchWithRetry(url, {
       headers: { "User-Agent": "TheBettingModel/1.0" },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!resp.ok) {
@@ -237,11 +257,11 @@ export async function fetchAllSportsDetailed(): Promise<SportFetchResult[]> {
       const path = ESPN_SPORT_PATHS[sport];
       if (!path) return { sport, games: [], fetchStatus: "ok" };
 
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${espnDateRange(2)}&limit=100`;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${todayEspnParam()}&limit=100`;
       try {
-        const resp = await fetch(url, {
+        const resp = await fetchWithRetry(url, {
           headers: { "User-Agent": "TheBettingModel/1.0" },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(15000),
         });
 
         if (!resp.ok) {
