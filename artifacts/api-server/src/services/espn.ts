@@ -17,13 +17,22 @@ function toEasternDate(date: Date): string {
 }
 
 /**
- * Returns today's date as YYYYMMDD in Eastern time — the format ESPN's
- * ?dates= query parameter expects.  Without this, ESPN returns whatever
- * calendar day their servers consider "current", which lags behind once
- * the previous day's final scores are in.
+ * Returns a date as YYYYMMDD in Eastern time — the format ESPN's
+ * ?dates= query parameter expects.
  */
-function todayEspnParam(): string {
-  return toEasternDate(new Date()).replace(/-/g, "");
+function toEspnParam(date: Date): string {
+  return toEasternDate(date).replace(/-/g, "");
+}
+
+/**
+ * Returns a YYYYMMDD-YYYYMMDD range string covering today through
+ * `days` days into the future (Eastern time), so the scoreboard
+ * endpoint returns upcoming games across the window.
+ */
+function espnDateRange(days = 2): string {
+  const now = new Date();
+  const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  return `${toEspnParam(now)}-${toEspnParam(future)}`;
 }
 
 const ESPN_SPORT_PATHS: Record<string, string> = {
@@ -141,7 +150,7 @@ async function fetchSportGames(sport: string): Promise<FetchedGame[]> {
   const path = ESPN_SPORT_PATHS[sport];
   if (!path) return [];
 
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${todayEspnParam()}`;
+  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${espnDateRange(2)}&limit=100`;
 
   try {
     const resp = await fetch(url, {
@@ -228,7 +237,7 @@ export async function fetchAllSportsDetailed(): Promise<SportFetchResult[]> {
       const path = ESPN_SPORT_PATHS[sport];
       if (!path) return { sport, games: [], fetchStatus: "ok" };
 
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${todayEspnParam()}`;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${espnDateRange(2)}&limit=100`;
       try {
         const resp = await fetch(url, {
           headers: { "User-Agent": "TheBettingModel/1.0" },
