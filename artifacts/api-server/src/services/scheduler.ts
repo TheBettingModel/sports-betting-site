@@ -23,7 +23,7 @@ import { runAnalytics } from "./analytics";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
-import { getWnbaTeamStats, getSoccerTeamStats, warmUpTeamStatsCache } from "./teamStats";
+import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, warmUpTeamStatsCache } from "./teamStats";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 
@@ -281,12 +281,14 @@ async function runOddsIngestion(): Promise<void> {
       const existing = sportCounts[sport];
       sportCounts[sport] = typeof existing === "number" ? existing + games.length : games.length;
 
+      const DB_SPORTS = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
+
       for (const game of games) {
         try {
-          // Fetch advanced team analytics for WNBA/NBA and Soccer.
-          // Results are cached (WNBA: 4h, Soccer: 1h) so subsequent calls
-          // within the same run are instant after the first batch fetch.
-          const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats] =
+          // Fetch advanced team analytics (all cached after first call per run).
+          // WNBA/NBA: ESPN stats (4h TTL). Soccer: DB goals (1h TTL).
+          // MLB/NFL/NHL/NCAAF/NCAAB: DB runs/points (1h TTL).
+          const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
             await Promise.all([
               (game.sport === "WNBA" || game.sport === "NBA")
                 ? getWnbaTeamStats(game.homeTeamId ?? "")
@@ -300,6 +302,12 @@ async function runOddsIngestion(): Promise<void> {
               game.sport === "Soccer"
                 ? getSoccerTeamStats(game.awayTeamId ?? "")
                 : Promise.resolve(undefined),
+              DB_SPORTS.has(game.sport)
+                ? getDbTeamStats(game.homeTeamId ?? "", game.sport)
+                : Promise.resolve(undefined),
+              DB_SPORTS.has(game.sport)
+                ? getDbTeamStats(game.awayTeamId ?? "", game.sport)
+                : Promise.resolve(undefined),
             ]);
 
           const proj = computeProjection(
@@ -309,10 +317,10 @@ async function runOddsIngestion(): Promise<void> {
             game.awayTeamRecord,
             weightsBySport[game.sport] ?? null,
             {
-              homeHomeRecord:   game.homeHomeRecord,
-              homeRoadRecord:   game.homeRoadRecord,
-              awayHomeRecord:   game.awayHomeRecord,
-              awayRoadRecord:   game.awayRoadRecord,
+              homeHomeRecord:    game.homeHomeRecord,
+              homeRoadRecord:    game.homeRoadRecord,
+              awayHomeRecord:    game.awayHomeRecord,
+              awayRoadRecord:    game.awayRoadRecord,
               realVegasHomeOdds: game.vegasHomeOdds,
               realVegasAwayOdds: game.vegasAwayOdds,
               realVegasDrawOdds: game.vegasDrawOdds,
@@ -321,6 +329,8 @@ async function runOddsIngestion(): Promise<void> {
               awayTeamStats,
               homeSoccerStats,
               awaySoccerStats,
+              homeDbStats,
+              awayDbStats,
             },
           );
           await processGameSnapshot(game, proj);
@@ -382,10 +392,11 @@ async function runResultGrading(): Promise<void> {
     const games = await fetchAllSports();
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
+    const DB_SPORTS_GRADING = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
     let snapshots = 0;
     for (const game of games) {
       try {
-        const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats] =
+        const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
           await Promise.all([
             (game.sport === "WNBA" || game.sport === "NBA")
               ? getWnbaTeamStats(game.homeTeamId ?? "")
@@ -398,6 +409,12 @@ async function runResultGrading(): Promise<void> {
               : Promise.resolve(undefined),
             game.sport === "Soccer"
               ? getSoccerTeamStats(game.awayTeamId ?? "")
+              : Promise.resolve(undefined),
+            DB_SPORTS_GRADING.has(game.sport)
+              ? getDbTeamStats(game.homeTeamId ?? "", game.sport)
+              : Promise.resolve(undefined),
+            DB_SPORTS_GRADING.has(game.sport)
+              ? getDbTeamStats(game.awayTeamId ?? "", game.sport)
               : Promise.resolve(undefined),
           ]);
 
@@ -420,6 +437,8 @@ async function runResultGrading(): Promise<void> {
             awayTeamStats,
             homeSoccerStats,
             awaySoccerStats,
+            homeDbStats,
+            awayDbStats,
           },
         );
         await processGameSnapshot(game, proj);

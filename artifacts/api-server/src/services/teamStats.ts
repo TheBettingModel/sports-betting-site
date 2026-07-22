@@ -3,21 +3,26 @@
  *
  * Fetches and caches rich team analytics used by the projection model.
  *
- * ── WNBA ──────────────────────────────────────────────────────────────────
+ * ── WNBA / NBA ────────────────────────────────────────────────────────────────
  *   Source:  ESPN team stats API  +  ESPN team schedule API
  *   Metrics: eFG%, TS%, pace, turnover%, assist%, OREB, 3P rate,
  *            steals/blocks, last-5/10 win%, point differential, rest days.
  *   Cache:   In-memory, 4-hour TTL.  A single concurrent refresh promise
  *            ensures we only fire one batch of ESPN calls at a time.
  *
- * ── Soccer ────────────────────────────────────────────────────────────────
+ * ── Soccer ────────────────────────────────────────────────────────────────────
  *   Source:  Our own games DB (completed matches we've already stored).
  *   Metrics: Goals per game, goals allowed per game, goal differential,
  *            last-5/10 form rating (W=1, D=0.4, L=0), last-5 goal diff,
  *            rest days since last match.
  *   Cache:   In-memory, 1-hour TTL (DB data changes every 15 min).
  *
- * Both caches return stale data immediately while a background refresh runs,
+ * ── MLB / NFL / NHL / NCAAF / NCAAB ─────────────────────────────────────────
+ *   Source:  Our own games DB — runs/points/goals scored & allowed per game,
+ *            Pythagorean win%, last-5/10 form, score differential, rest days.
+ *   Cache:   In-memory, 1-hour TTL per sport.
+ *
+ * All caches return stale data immediately while a background refresh runs,
  * so the model always has something to work with.
  */
 
@@ -66,17 +71,68 @@ export interface SoccerTeamStats {
   restDays: number;               // days since last match (0–14)
 }
 
+/**
+ * Generic DB-sourced team stats for MLB, NFL, NHL, NCAAF, NCAAB.
+ * Computed from completed game scores already stored in our games table.
+ */
+export interface DbTeamStats {
+  teamId: string;
+  sport: string;
+  scoredPerGame: number;       // avg runs/points/goals scored
+  allowedPerGame: number;      // avg runs/points/goals allowed
+  scoreDifferential: number;   // scoredPerGame − allowedPerGame
+  pythagoreanWinPct: number;   // RS^exp / (RS^exp + RA^exp) — better than W/L record
+  last5WinPct: number;         // win% in last 5 games
+  last10WinPct: number;
+  last5ScoreDiff: number;      // avg score differential, last 5 games
+  last10ScoreDiff: number;
+  restDays: number;            // days since last completed game (capped at 14)
+  sampleSize: number;          // number of completed games used
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Cache stores
 // ─────────────────────────────────────────────────────────────────────────────
 
-const WNBA_TTL_MS   = 4 * 60 * 60 * 1000; // 4 h
-const SOCCER_TTL_MS = 60 * 60 * 1000;     // 1 h
+const WNBA_TTL_MS   = 4 * 60 * 60 * 1000; // 4 h — ESPN batch refresh
+const SOCCER_TTL_MS = 60 * 60 * 1000;     // 1 h — DB data refreshes every 15 min
+const DB_STATS_TTL_MS = 60 * 60 * 1000;   // 1 h — same as soccer
 
 const wnbaCache   = new Map<string, { stats: WnbaTeamStats;   fetchedAt: number }>();
 const soccerCache = new Map<string, { stats: SoccerTeamStats; fetchedAt: number }>();
+// Key: `${sport}:${teamId}`
+const dbStatsCache = new Map<string, { stats: DbTeamStats;    fetchedAt: number }>();
 
 let wnbaRefreshPromise: Promise<void> | null = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pythagorean exponents per sport (empirically derived)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PYTHAG_EXP: Record<string, number> = {
+  MLB:   1.83, // Bill James original; best fit for 9-inning runs
+  NFL:   2.37, // Daryl Morey / pro football reference
+  NHL:   2.00, // goal-based; standard
+  NCAAF: 2.37, // similar to NFL
+  NCAAB: 10.25, // high-scoring environment; Pomeroy exponent
+  UFC:   2.00, // fallback — rarely used (no team scores)
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Minimum completed-game sample required before DB stats are trusted.
+// Below this threshold getDbTeamStats() returns undefined and the model
+// falls back to season W/L records — preventing single-game outliers
+// (e.g. a 0-run game) from pushing Pythagorean to 0% or 100%.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MIN_SAMPLE_SIZES: Record<string, number> = {
+  MLB:   8,  // 162-game season — need ~5% of season for stable run averages
+  NFL:   3,  // 17-game season  — any 3 games = meaningful data
+  NHL:   8,  // 82-game season
+  NCAAF: 4,  // ~12-game season — need quarter of season
+  NCAAB: 6,  // 30-game season
+  UFC:   5,  // fight-level — accumulate at least 5 bouts
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESPN team IDs for all 15 current WNBA teams
@@ -162,7 +218,6 @@ async function fetchWnbaTeamForm(teamId: string): Promise<FormResult> {
         const opp    = comp.competitors.find((c) => c.team?.id !== teamId);
         const myScore  = getScore(myTeam?.score);
         const oppScore = getScore(opp?.score);
-        // Derive win from score rather than relying on `winner` field
         return {
           date:      e.date,
           myScore,
@@ -171,7 +226,7 @@ async function fetchWnbaTeamForm(teamId: string): Promise<FormResult> {
           pointDiff: myScore - oppScore,
         };
       })
-      .filter((g) => g.myScore > 0 || g.oppScore > 0); // skip un-played rows
+      .filter((g) => g.myScore > 0 || g.oppScore > 0);
 
     if (completed.length === 0) return defaults;
 
@@ -207,7 +262,6 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
     const data = await resp.json() as { results?: { stats?: { categories?: EspnStatCat[] } } };
     const cats: EspnStatCat[] = data.results?.stats?.categories ?? [];
 
-    // Raw ESPN values —————————————————————————————————————————————————————————
     const ppg      = findStat(cats, "offensive", "avgPoints");
     const afga     = findStat(cats, "offensive", "avgFieldGoalsAttempted");
     const afta     = findStat(cats, "offensive", "avgFreeThrowsAttempted");
@@ -218,14 +272,13 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
     const orpg     = findStat(cats, "offensive", "avgOffensiveRebounds");
     // ESPN's shootingEfficiency is already a 0–1 decimal (e.g. 0.55 = 55% eFG%)
     const efg      = findStat(cats, "offensive", "shootingEfficiency");
-    // ESPN returns percentage strings for these (e.g. 82.2 not 0.822)
+    // ESPN returns percentage strings for these (e.g. 82.2, not 0.822)
     const ftPct    = findStat(cats, "offensive", "freeThrowPct")    / 100;
     const threePct = findStat(cats, "offensive", "threePointPct")   / 100;
     const spg      = findStat(cats, "defensive", "avgSteals");
     const bpg      = findStat(cats, "defensive", "avgBlocks");
     const drebPg   = findStat(cats, "defensive", "avgDefensiveRebounds");
 
-    // Derived metrics —————————————————————————————————————————————————————————
     const possEst    = Math.max(1, afga + 0.44 * afta + topg - orpg);
     const tsPct      = (afga + afta) > 0 ? ppg / (2 * (afga + 0.44 * afta)) : 0.55;
     const toPct      = topg / possEst;
@@ -278,10 +331,9 @@ async function refreshAllWnbaStats(): Promise<void> {
 }
 
 /**
- * Returns advanced stats for a WNBA team by ESPN numeric team ID.
- * Triggers a full cache refresh (all teams in parallel) on first call
- * or when the cache is expired. Returns stale data immediately if available
- * while a background refresh runs.
+ * Returns advanced stats for a WNBA/NBA team by ESPN numeric team ID.
+ * Triggers a full cache refresh on first call or when the cache is expired.
+ * Returns stale data immediately if available while a background refresh runs.
  */
 export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | undefined> {
   if (!teamId) return undefined;
@@ -291,17 +343,14 @@ export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | 
 
   if (fresh) return cached.stats;
 
-  // Cache miss or stale — start refresh if not already running
   if (!wnbaRefreshPromise) {
     wnbaRefreshPromise = refreshAllWnbaStats().finally(() => {
       wnbaRefreshPromise = null;
     });
   }
 
-  // Return stale data immediately (background refresh will update the cache)
   if (cached) return cached.stats;
 
-  // No data at all — must wait for the refresh
   await wnbaRefreshPromise;
   return wnbaCache.get(teamId)?.stats;
 }
@@ -312,9 +361,8 @@ export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | 
 
 /**
  * Returns goals-based team stats and recent form for a soccer team.
- * Uses our completed games in the DB — no external API call needed.
- *
- * Automatically caches for 1 hour (refreshes as new game results land).
+ * Uses completed games in our DB — no external API needed.
+ * Cached for 1 hour.
  */
 export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStats | undefined> {
   if (!teamId) return undefined;
@@ -327,11 +375,11 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
   try {
     const rows = await db
       .select({
-        gameDate:  gamesTable.gameDate,
+        gameDate:   gamesTable.gameDate,
         homeTeamId: gamesTable.homeTeamId,
         awayTeamId: gamesTable.awayTeamId,
-        homeScore: gamesTable.homeScore,
-        awayScore: gamesTable.awayScore,
+        homeScore:  gamesTable.homeScore,
+        awayScore:  gamesTable.awayScore,
       })
       .from(gamesTable)
       .where(
@@ -350,12 +398,11 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
     if (rows.length === 0) return undefined;
 
     const games = rows.map((r) => {
-      const isHome      = r.homeTeamId === teamId;
-      const goalsFor    = isHome ? (r.homeScore ?? 0) : (r.awayScore ?? 0);
+      const isHome       = r.homeTeamId === teamId;
+      const goalsFor     = isHome ? (r.homeScore ?? 0) : (r.awayScore ?? 0);
       const goalsAgainst = isHome ? (r.awayScore ?? 0) : (r.homeScore ?? 0);
-      const diff        = goalsFor - goalsAgainst;
-      // W-D-L form rating: win=1.0, draw=0.4, loss=0.0
-      const form        = diff > 0 ? 1.0 : diff === 0 ? 0.4 : 0.0;
+      const diff         = goalsFor - goalsAgainst;
+      const form         = diff > 0 ? 1.0 : diff === 0 ? 0.4 : 0.0;
       return { goalsFor, goalsAgainst, diff, form };
     });
 
@@ -371,8 +418,7 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
     const last10Form          = avg(last10.map((g) => g.form));
     const last5GoalDiff       = avg(last5.map((g)  => g.diff));
 
-    // Rest days based on the most recent match date
-    const lastDateStr = rows[0]!.gameDate; // YYYY-MM-DD
+    const lastDateStr = rows[0]!.gameDate;
     const lastDate    = new Date(lastDateStr + "T12:00:00Z");
     const today       = new Date();
     const restDays    = Math.max(0, Math.min(14,
@@ -383,7 +429,7 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
       teamId,
       goalsPerGame,
       goalsAllowedPerGame,
-      goalDifferential:  goalsPerGame - goalsAllowedPerGame,
+      goalDifferential: goalsPerGame - goalsAllowedPerGame,
       last5Form,
       last10Form,
       last5GoalDiff,
@@ -394,6 +440,135 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
     return stats;
   } catch (err) {
     logger.warn({ err, teamId }, "TeamStats: failed to compute soccer stats from DB");
+    return undefined;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Generic DB stats: MLB / NFL / NHL / NCAAF / NCAAB
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns runs/points/goals-based team stats for any sport that stores
+ * completed game scores in our games table (MLB, NFL, NHL, NCAAF, NCAAB).
+ *
+ * Metrics computed:
+ *  - Pythagorean win% — much more predictive than raw W/L record
+ *  - Last-5/10 form, score differential
+ *  - Rest days since last game
+ *
+ * Cached per (sport, teamId) for 1 hour.
+ */
+export async function getDbTeamStats(
+  teamId: string,
+  sport: string,
+): Promise<DbTeamStats | undefined> {
+  if (!teamId || !sport) return undefined;
+
+  const cacheKey = `${sport}:${teamId}`;
+  const cached = dbStatsCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < DB_STATS_TTL_MS) {
+    return cached.stats;
+  }
+
+  try {
+    const rows = await db
+      .select({
+        gameDate:   gamesTable.gameDate,
+        homeTeamId: gamesTable.homeTeamId,
+        awayTeamId: gamesTable.awayTeamId,
+        homeScore:  gamesTable.homeScore,
+        awayScore:  gamesTable.awayScore,
+      })
+      .from(gamesTable)
+      .where(
+        and(
+          eq(gamesTable.sport, sport),
+          eq(gamesTable.status, "final"),
+          or(
+            eq(gamesTable.homeTeamId, teamId),
+            eq(gamesTable.awayTeamId, teamId),
+          ),
+        ),
+      )
+      .orderBy(desc(gamesTable.gameDate))
+      .limit(20);
+
+    if (rows.length === 0) return undefined;
+
+    const games = rows
+      .filter((r) => r.homeScore != null && r.awayScore != null)
+      .map((r) => {
+        const isHome      = r.homeTeamId === teamId;
+        const scored      = isHome ? (r.homeScore ?? 0) : (r.awayScore ?? 0);
+        const allowed     = isHome ? (r.awayScore ?? 0) : (r.homeScore ?? 0);
+        const diff        = scored - allowed;
+        const won         = diff > 0;
+        return { scored, allowed, diff, won, gameDate: r.gameDate };
+      });
+
+    if (games.length === 0) return undefined;
+
+    // Require a minimum sample before trusting DB-derived stats.
+    // A single outlier game (e.g. a 0-run shutout) can send Pythagorean
+    // to 0% and wipe out meaningful win-rate signal. Return undefined so
+    // the model falls back to the season W/L record instead.
+    const minSample = MIN_SAMPLE_SIZES[sport] ?? 5;
+    if (games.length < minSample) {
+      logger.debug(
+        { teamId, sport, have: games.length, need: minSample },
+        "TeamStats: insufficient sample for DB stats, skipping",
+      );
+      return undefined;
+    }
+
+    const avg = (arr: number[]) =>
+      arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+
+    const last5  = games.slice(0, 5);
+    const last10 = games.slice(0, 10);
+
+    const scoredPerGame  = avg(games.map((g) => g.scored));
+    const allowedPerGame = avg(games.map((g) => g.allowed));
+
+    // Pythagorean win percentage — RS^exp / (RS^exp + RA^exp)
+    const exp = PYTHAG_EXP[sport] ?? 2.0;
+    const rse = Math.pow(Math.max(scoredPerGame, 0.01), exp);
+    const rae = Math.pow(Math.max(allowedPerGame, 0.01), exp);
+    const pythagoreanWinPct = rse / (rse + rae);
+
+    const last5WinPct    = last5.length  > 0 ? last5.filter((g)  => g.won).length  / last5.length  : 0.5;
+    const last10WinPct   = last10.length > 0 ? last10.filter((g) => g.won).length  / last10.length : 0.5;
+    const last5ScoreDiff  = avg(last5.map((g)  => g.diff));
+    const last10ScoreDiff = avg(last10.map((g) => g.diff));
+
+    // Rest days — use most recent game's date (rows sorted desc)
+    const lastDateStr = games[0]!.gameDate;
+    const lastDate    = new Date((lastDateStr ?? "") + "T12:00:00Z");
+    const today       = new Date();
+    const restDays    = Math.max(0, Math.min(14,
+      Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
+    ));
+
+    const stats: DbTeamStats = {
+      teamId,
+      sport,
+      scoredPerGame,
+      allowedPerGame,
+      scoreDifferential: scoredPerGame - allowedPerGame,
+      pythagoreanWinPct,
+      last5WinPct,
+      last10WinPct,
+      last5ScoreDiff,
+      last10ScoreDiff,
+      restDays,
+      sampleSize: games.length,
+    };
+
+    dbStatsCache.set(cacheKey, { stats, fetchedAt: Date.now() });
+    return stats;
+  } catch (err) {
+    logger.warn({ err, teamId, sport }, "TeamStats: failed to compute DB team stats");
     return undefined;
   }
 }

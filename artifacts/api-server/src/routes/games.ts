@@ -3,7 +3,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
-import { getWnbaTeamStats, getSoccerTeamStats } from "../services/teamStats";
+import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
 import { runGrading } from "../services/grading-runner";
@@ -69,8 +69,12 @@ export async function refreshAll(): Promise<{
   for (const game of fetchedGames) {
     const w = weightsBySport[game.sport] ?? null;
 
-    // Fetch advanced team analytics (cached; first call triggers batch fetch)
-    const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats] =
+    const DB_SPORTS = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
+
+    // Fetch advanced team analytics (all cached after first call per run).
+    // WNBA/NBA: ESPN stats (4h TTL). Soccer: DB goals (1h TTL).
+    // MLB/NFL/NHL/NCAAF/NCAAB: DB runs/points (1h TTL).
+    const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
       await Promise.all([
         (game.sport === "WNBA" || game.sport === "NBA")
           ? getWnbaTeamStats(game.homeTeamId ?? "")
@@ -83,6 +87,12 @@ export async function refreshAll(): Promise<{
           : Promise.resolve(undefined),
         game.sport === "Soccer"
           ? getSoccerTeamStats(game.awayTeamId ?? "")
+          : Promise.resolve(undefined),
+        DB_SPORTS.has(game.sport)
+          ? getDbTeamStats(game.homeTeamId ?? "", game.sport)
+          : Promise.resolve(undefined),
+        DB_SPORTS.has(game.sport)
+          ? getDbTeamStats(game.awayTeamId ?? "", game.sport)
           : Promise.resolve(undefined),
       ]);
 
@@ -105,6 +115,8 @@ export async function refreshAll(): Promise<{
         awayTeamStats,
         homeSoccerStats,
         awaySoccerStats,
+        homeDbStats,
+        awayDbStats,
       },
     );
 
