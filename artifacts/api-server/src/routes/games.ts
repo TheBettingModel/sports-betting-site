@@ -73,14 +73,26 @@ export async function refreshAll(): Promise<{
       game.homeTeamRecord,
       game.awayTeamRecord,
       w,
+      {
+        homeHomeRecord: game.homeHomeRecord,
+        homeRoadRecord: game.homeRoadRecord,
+        awayHomeRecord: game.awayHomeRecord,
+        awayRoadRecord: game.awayRoadRecord,
+        realVegasHomeOdds: game.vegasHomeOdds,
+        realVegasAwayOdds: game.vegasAwayOdds,
+        realVegasDrawOdds: game.vegasDrawOdds,
+        realVegasOverUnder: game.vegasOverUnder,
+      },
     );
 
-    // Upsert the games table (existing behaviour — unchanged)
     await db
       .insert(gamesTable)
       .values({
         id: game.espnId,
         sport: game.sport,
+        league: game.league ?? null,
+        homeTeamId: game.homeTeamId ?? null,
+        awayTeamId: game.awayTeamId ?? null,
         homeTeamAbbr: game.homeTeamAbbr,
         homeTeamName: game.homeTeamName,
         homeTeamRecord: game.homeTeamRecord,
@@ -97,6 +109,9 @@ export async function refreshAll(): Promise<{
       .onConflictDoUpdate({
         target: gamesTable.id,
         set: {
+          league: game.league ?? null,
+          homeTeamId: game.homeTeamId ?? null,
+          awayTeamId: game.awayTeamId ?? null,
           gameDate: game.gameDate,
           gameTime: game.gameTime,
           status: game.status,
@@ -115,6 +130,7 @@ export async function refreshAll(): Promise<{
           vegasTotal: proj.vegasTotal,
           vegasHomeOdds: proj.vegasHomeOdds,
           vegasAwayOdds: proj.vegasAwayOdds,
+          vegasDrawOdds: proj.vegasDrawOdds,
         },
       });
 

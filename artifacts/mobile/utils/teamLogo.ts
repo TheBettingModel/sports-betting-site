@@ -8,13 +8,13 @@ const SPORT_SLUG: Record<Sport, string | null> = {
   MLB: 'mlb',
   NHL: 'nhl',
   WNBA: 'wnba',
-  Soccer: null, // handled separately with numeric ESPN IDs
+  Soccer: null, // handled separately — uses ESPN numeric team IDs
   UFC: null,    // UFC uses fighter headshots, not team logos
 };
 
 /**
  * MLS team abbreviation → ESPN numeric team ID.
- * ESPN CDN soccer logos require the numeric ID, not the abbreviation.
+ * Used as a fallback when the ESPN ID is not passed directly.
  * Source: site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams
  */
 const MLS_TEAM_IDS: Record<string, string> = {
@@ -51,12 +51,23 @@ const MLS_TEAM_IDS: Record<string, string> = {
 };
 
 /**
- * Returns an ESPN CDN logo URL for a given sport + team abbreviation.
- * Returns null for sports without team logos (UFC, unknown soccer teams).
+ * Returns an ESPN CDN logo URL for a given sport + team.
+ *
+ * For Soccer: prefers the ESPN numeric `teamId` (works for any league —
+ * MLS, EPL, La Liga, etc.). Falls back to the MLS abbreviation lookup.
+ * Returns null when no ID can be resolved (new or unknown teams).
+ *
+ * For all other sports: uses the team abbreviation with the sport CDN slug.
+ * Returns null for sports without team logos (UFC).
  */
-export function getTeamLogoUrl(sport: Sport, abbr: string): string | null {
+export function getTeamLogoUrl(
+  sport: Sport,
+  abbr: string,
+  teamId?: string | null,
+): string | null {
   if (sport === 'Soccer') {
-    const id = MLS_TEAM_IDS[abbr.toUpperCase()];
+    // Prefer direct ESPN team ID (works for all leagues)
+    const id = teamId ?? MLS_TEAM_IDS[abbr.toUpperCase()];
     if (!id) return null;
     return `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png`;
   }

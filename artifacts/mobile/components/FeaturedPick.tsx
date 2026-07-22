@@ -23,8 +23,8 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
   const pickTeam = projection.edge >= 0 ? homeTeam : awayTeam;
   const edgeAbs = Math.abs(projection.edge);
 
-  const homeLogo = getTeamLogoUrl(sport, homeTeam.abbr);
-  const awayLogo = getTeamLogoUrl(sport, awayTeam.abbr);
+  const homeLogo = getTeamLogoUrl(sport, homeTeam.abbr, homeTeam.espnId);
+  const awayLogo = getTeamLogoUrl(sport, awayTeam.abbr, awayTeam.espnId);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gold }]}>

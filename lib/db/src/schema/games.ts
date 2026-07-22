@@ -12,7 +12,12 @@ import { z } from "zod/v4";
 
 export const gamesTable = pgTable("games", {
   id: text("id").primaryKey(), // ESPN event ID
+
   sport: text("sport").notNull(),
+  league: text("league"),                   // sub-league label (e.g. "EPL", "MLS")
+
+  homeTeamId: text("home_team_id"),         // ESPN numeric team ID — used for logo URLs
+  awayTeamId: text("away_team_id"),
 
   homeTeamAbbr: text("home_team_abbr").notNull(),
   homeTeamName: text("home_team_name").notNull(),
@@ -39,11 +44,12 @@ export const gamesTable = pgTable("games", {
   modelScore: integer("model_score").notNull().default(50),
   edge: real("edge").notNull().default(0),
 
-  // Vegas line (populated from ESPN where available, otherwise estimated)
+  // Vegas lines (real from ESPN/DraftKings when available, otherwise estimated)
   vegasSpread: real("vegas_spread").notNull().default(0),
   vegasTotal: real("vegas_total").notNull().default(0),
   vegasHomeOdds: integer("vegas_home_odds").notNull().default(-110),
   vegasAwayOdds: integer("vegas_away_odds").notNull().default(-110),
+  vegasDrawOdds: integer("vegas_draw_odds").notNull().default(0), // soccer only; 0 = N/A
 
   // Outcome tracking for learning
   predictionCorrect: boolean("prediction_correct"),

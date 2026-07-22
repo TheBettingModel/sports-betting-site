@@ -12,6 +12,9 @@ export interface HealthStatus {
 export interface GameProjection {
   id: string;
   sport: string;
+  league?: string | null;
+  homeTeamId?: string | null;
+  awayTeamId?: string | null;
   homeTeamAbbr: string;
   homeTeamName: string;
   homeTeamRecord: string;
@@ -34,6 +37,7 @@ export interface GameProjection {
   vegasTotal: number;
   vegasHomeOdds: number;
   vegasAwayOdds: number;
+  vegasDrawOdds: number;
   predictionCorrect?: boolean | null;
   /** True when this game's premium projection data has been gated (non-subscriber). */
   isLocked?: boolean;

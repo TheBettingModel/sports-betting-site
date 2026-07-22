@@ -9,6 +9,9 @@
 export interface GameProjection {
   id: string;
   sport: string;
+  league?: string | null;
+  homeTeamId?: string | null;
+  awayTeamId?: string | null;
   homeTeamAbbr: string;
   homeTeamName: string;
   homeTeamRecord: string;
@@ -31,5 +34,6 @@ export interface GameProjection {
   vegasTotal: number;
   vegasHomeOdds: number;
   vegasAwayOdds: number;
+  vegasDrawOdds: number;
   predictionCorrect?: boolean | null;
 }

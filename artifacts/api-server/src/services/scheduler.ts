@@ -275,7 +275,10 @@ async function runOddsIngestion(): Promise<void> {
         continue;
       }
 
-      sportCounts[sport] = games.length;
+      // Accumulate counts so Soccer sub-leagues (EPL, La Liga, etc.) all
+      // contribute to the same "Soccer" entry rather than overwriting it.
+      const existing = sportCounts[sport];
+      sportCounts[sport] = typeof existing === "number" ? existing + games.length : games.length;
 
       for (const game of games) {
         try {
@@ -285,6 +288,16 @@ async function runOddsIngestion(): Promise<void> {
             game.homeTeamRecord,
             game.awayTeamRecord,
             weightsBySport[game.sport] ?? null,
+            {
+              homeHomeRecord: game.homeHomeRecord,
+              homeRoadRecord: game.homeRoadRecord,
+              awayHomeRecord: game.awayHomeRecord,
+              awayRoadRecord: game.awayRoadRecord,
+              realVegasHomeOdds: game.vegasHomeOdds,
+              realVegasAwayOdds: game.vegasAwayOdds,
+              realVegasDrawOdds: game.vegasDrawOdds,
+              realVegasOverUnder: game.vegasOverUnder,
+            },
           );
           await processGameSnapshot(game, proj);
           processed++;
@@ -354,6 +367,16 @@ async function runResultGrading(): Promise<void> {
           game.homeTeamRecord,
           game.awayTeamRecord,
           weightsBySport[game.sport] ?? null,
+          {
+            homeHomeRecord: game.homeHomeRecord,
+            homeRoadRecord: game.homeRoadRecord,
+            awayHomeRecord: game.awayHomeRecord,
+            awayRoadRecord: game.awayRoadRecord,
+            realVegasHomeOdds: game.vegasHomeOdds,
+            realVegasAwayOdds: game.vegasAwayOdds,
+            realVegasDrawOdds: game.vegasDrawOdds,
+            realVegasOverUnder: game.vegasOverUnder,
+          },
         );
         await processGameSnapshot(game, proj);
         snapshots++;

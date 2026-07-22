@@ -12,16 +12,19 @@ export function mapApiGame(g: GameProjection): Game {
   return {
     id: g.id,
     sport: g.sport as Game['sport'],
+    league: g.league ?? undefined,
     isLocked: g.isLocked ?? false,
     homeTeam: {
       name: homeWords[homeWords.length - 1] ?? g.homeTeamName,
       abbr: g.homeTeamAbbr,
+      espnId: g.homeTeamId ?? undefined,
       record: g.homeTeamRecord,
       city: homeWords.slice(0, -1).join(' ') || g.homeTeamName,
     },
     awayTeam: {
       name: awayWords[awayWords.length - 1] ?? g.awayTeamName,
       abbr: g.awayTeamAbbr,
+      espnId: g.awayTeamId ?? undefined,
       record: g.awayTeamRecord,
       city: awayWords.slice(0, -1).join(' ') || g.awayTeamName,
     },
@@ -41,6 +44,7 @@ export function mapApiGame(g: GameProjection): Game {
       total: g.vegasTotal,
       homeOdds: g.vegasHomeOdds,
       awayOdds: g.vegasAwayOdds,
+      drawOdds: g.vegasDrawOdds || undefined,
     },
   };
 }

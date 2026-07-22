@@ -7,11 +7,15 @@ export interface Team {
   abbr: string;
   record: string;
   city: string;
+  /** ESPN numeric team ID — used to resolve logo URLs for any league */
+  espnId?: string;
 }
 
 export interface Game {
   id: string;
   sport: Sport;
+  /** Sub-league label (e.g. "EPL", "MLS", "La Liga") — Soccer only */
+  league?: string;
   homeTeam: Team;
   awayTeam: Team;
   gameTime: string;
@@ -32,6 +36,8 @@ export interface Game {
     total: number;
     homeOdds: number;
     awayOdds: number;
+    /** Draw moneyline — present for Soccer (0 = N/A) */
+    drawOdds?: number;
   };
 }
 

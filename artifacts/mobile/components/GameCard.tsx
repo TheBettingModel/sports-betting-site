@@ -24,12 +24,13 @@ function fmtOdds(odds: number): string {
 interface TeamLogoProps {
   sport: Game['sport'];
   abbr: string;
+  espnId?: string;
   align?: 'left' | 'right';
 }
 
-function TeamLogo({ sport, abbr, align = 'left' }: TeamLogoProps) {
+function TeamLogo({ sport, abbr, espnId, align = 'left' }: TeamLogoProps) {
   const colors = useColors();
-  const uri = getTeamLogoUrl(sport, abbr);
+  const uri = getTeamLogoUrl(sport, abbr, espnId);
   if (!uri) return null;
   return (
     <Image
@@ -75,7 +76,7 @@ export function GameCard({ game }: GameCardProps) {
       <View style={styles.teamsRow}>
         {/* Home team */}
         <View style={styles.team}>
-          <TeamLogo sport={sport} abbr={homeTeam.abbr} align="left" />
+          <TeamLogo sport={sport} abbr={homeTeam.abbr} espnId={homeTeam.espnId} align="left" />
           <Text style={[styles.abbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
           <Text style={[styles.city, { color: colors.mutedForeground }]}>{homeTeam.city}</Text>
           <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
@@ -95,7 +96,7 @@ export function GameCard({ game }: GameCardProps) {
 
         {/* Away team */}
         <View style={[styles.team, styles.teamRight]}>
-          <TeamLogo sport={sport} abbr={awayTeam.abbr} align="right" />
+          <TeamLogo sport={sport} abbr={awayTeam.abbr} espnId={awayTeam.espnId} align="right" />
           <Text style={[styles.abbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
           <Text style={[styles.city, { color: colors.mutedForeground }]}>{awayTeam.city}</Text>
           <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
