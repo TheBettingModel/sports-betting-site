@@ -30,7 +30,7 @@
     "production": {
       "credentialsSource": "remote",
       "env": {
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhlYmV0dGluZ21vZGVsLnJlcGxpdC5hcHAk",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://thebettingmodel.replit.app/api/__clerk",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
