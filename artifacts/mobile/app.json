@@ -17,6 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.replit.thebettingmodel",
+      "buildNumber": "10",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
