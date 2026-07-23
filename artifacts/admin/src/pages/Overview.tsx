@@ -2,9 +2,9 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BrainCircuit, AlertTriangle, Clock, TrendingUp,
-  Activity, CheckCircle2, XCircle,
+  Activity, Rss,
 } from "lucide-react";
-import { adminApi, type AdminOverview } from "@/lib/api";
+import { adminApi, type AdminOverview, type FeedHealthEntry } from "@/lib/api";
 import { pct, units, timeAgo, statusColor, statusDot } from "@/lib/utils";
 
 function KPI({
@@ -30,6 +30,68 @@ function KPI({
   );
 }
 
+const FEED_STATUS_DOT: Record<FeedHealthEntry["status"], string> = {
+  ok: "bg-green-400",
+  quiet: "bg-zinc-500",
+  error: "bg-red-500",
+  stale: "bg-yellow-400",
+};
+
+const FEED_STATUS_LABEL: Record<FeedHealthEntry["status"], string> = {
+  ok: "Live",
+  quiet: "Quiet",
+  error: "Error",
+  stale: "Stale",
+};
+
+const FEED_STATUS_TEXT: Record<FeedHealthEntry["status"], string> = {
+  ok: "text-green-400",
+  quiet: "text-zinc-400",
+  error: "text-red-400",
+  stale: "text-yellow-400",
+};
+
+function FeedHealthGrid({ entries }: { entries: FeedHealthEntry[] }) {
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Rss className="w-4 h-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Feed Health</h2>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400" />Live</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-500" />Quiet</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />Error</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 rounded-full bg-yellow-400" />Stale</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {entries.map((e) => (
+          <div
+            key={e.sport}
+            className="flex flex-col items-center gap-1 bg-background border border-border rounded-md px-2 py-2.5"
+            title={e.lastChecked ? `Last checked ${timeAgo(e.lastChecked)}` : "No data yet"}
+          >
+            <span className={`inline-block w-2 h-2 rounded-full ${FEED_STATUS_DOT[e.status]}`} />
+            <span className="text-xs font-medium text-foreground text-center leading-tight">{e.sport}</span>
+            <span className={`text-[10px] ${FEED_STATUS_TEXT[e.status]}`}>
+              {e.status === "ok" && e.gameCount != null
+                ? `${e.gameCount} game${e.gameCount !== 1 ? "s" : ""}`
+                : FEED_STATUS_LABEL[e.status]}
+            </span>
+          </div>
+        ))}
+      </div>
+      {entries[0]?.lastChecked && (
+        <p className="text-[10px] text-muted-foreground mt-2 text-right">
+          Last ingestion {timeAgo(entries[0].lastChecked)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Overview() {
   const { data, isLoading, error } = useQuery<AdminOverview>({
     queryKey: ["admin-overview"],
@@ -41,7 +103,7 @@ export function Overview() {
   if (error) return <div className="text-red-400 text-sm">Error: {(error as Error).message}</div>;
   if (!data) return null;
 
-  const { production, challengers, alerts, grading, performance, automation } = data;
+  const { production, challengers, alerts, grading, performance, automation, feedHealth } = data;
 
   return (
     <div className="space-y-6">
@@ -66,6 +128,11 @@ export function Overview() {
         <KPI icon={TrendingUp} label="Avg Win Rate" value={pct(performance.avgWinRate)} sub="across all models" accent={!!performance.avgWinRate && performance.avgWinRate >= 0.5} />
         <KPI icon={TrendingUp} label="Avg ROI" value={units(performance.avgROI)} sub="per pick risked" accent={!!performance.avgROI && performance.avgROI > 0} />
       </div>
+
+      {/* Feed health */}
+      {feedHealth && feedHealth.length > 0 && (
+        <FeedHealthGrid entries={feedHealth} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Automation health */}

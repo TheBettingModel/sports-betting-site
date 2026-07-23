@@ -47,3 +47,9 @@ export * from "./subscribers";
 
 // ── Push notifications ────────────────────────────────────────────────────────
 export * from "./push-tokens";
+
+// ── Alert snoozes ─────────────────────────────────────────────────────────────
+export * from "./sport-snoozes";
+
+// ── User notification preferences ─────────────────────────────────────────────
+export * from "./notification-preferences";

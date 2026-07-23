@@ -8,6 +8,9 @@ import { generalLimiter } from "./middleware/rateLimiter";
 
 const app: Express = express();
 
+// Trust the Replit reverse proxy so IP-based rate limiting works correctly.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

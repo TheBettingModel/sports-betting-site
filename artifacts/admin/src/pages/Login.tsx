@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Activity } from "lucide-react";
-import { setMasterKey } from "@/lib/api";
+import { createSession, setSession } from "@/lib/api";
 
 export function Login() {
   const [key, setKey] = useState("");
@@ -14,20 +14,12 @@ export function Login() {
     setError("");
 
     try {
-      // Test the key against the overview endpoint
-      const res = await fetch("/api/admin/overview", {
-        headers: { "X-Master-Key": key.trim() },
-      });
-
-      if (res.ok) {
-        setMasterKey(key.trim());
+      const result = await createSession(key.trim());
+      if (result) {
+        setSession(result.token, result.expiresAt);
         window.location.reload();
-      } else if (res.status === 401) {
-        setError("Invalid key.");
-      } else if (res.status === 503) {
-        setError("Admin access not configured on the server. Set MASTER_API_KEY and redeploy.");
       } else {
-        setError("Unexpected error — try again.");
+        setError("Invalid key.");
       }
     } catch {
       setError("Could not reach the server. Check your connection.");
@@ -60,14 +52,13 @@ export function Login() {
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="Enter your MASTER_API_KEY"
+              autoComplete="current-password"
               className="w-full px-3 py-2.5 bg-card border border-border rounded text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
               autoFocus
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <button
             type="submit"
@@ -79,7 +70,7 @@ export function Login() {
         </form>
 
         <p className="mt-6 text-xs text-muted-foreground text-center">
-          Contact your administrator for access.
+          Session expires after 8 hours of inactivity.
         </p>
       </div>
     </div>

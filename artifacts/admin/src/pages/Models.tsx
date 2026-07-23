@@ -1,10 +1,184 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, RefreshCw, Rocket, RotateCcw } from "lucide-react";
-import { adminApi, modelApi, type ModelVersion } from "@/lib/api";
-import { timeAgo, statusColor, statusDot } from "@/lib/utils";
+import { ChevronDown, Rocket, RotateCcw, TrendingUp, BarChart2 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, ReferenceLine,
+} from "recharts";
+import { adminApi, modelApi, type ModelVersion, type SportStat } from "@/lib/api";
+import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
 const STATUS_ORDER = ["production", "challenger", "approved", "development", "retired", "rejected"];
+
+// ── Colour helpers ─────────────────────────────────────────────────────────────
+
+function winRateColor(rate: number): string {
+  if (rate >= 0.55) return "#4ade80"; // green-400
+  if (rate >= 0.50) return "#facc15"; // yellow-400
+  return "#f87171";                   // red-400
+}
+
+// ── Custom tooltip ─────────────────────────────────────────────────────────────
+
+interface TooltipPayload {
+  payload: SportStat;
+}
+
+function WinRateTooltip({
+  active, payload,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload[];
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]!.payload;
+  return (
+    <div className="bg-card border border-border rounded p-2.5 text-xs space-y-1 shadow-xl">
+      <p className="font-semibold text-foreground">{d.sport}</p>
+      <p className="text-muted-foreground">Overall: <span className="text-foreground font-medium">{pct(d.accuracyRate)}</span></p>
+      <p className="text-muted-foreground">Strong Buy: <span className="text-foreground font-medium">{pct(d.strongBuyAccuracy)}</span></p>
+      <p className="text-muted-foreground">Buy: <span className="text-foreground font-medium">{pct(d.buyAccuracy)}</span></p>
+      <p className="text-muted-foreground">Sample: <span className="text-foreground font-medium">{d.totalPredictions} picks</span></p>
+      {d.avgClv != null && (
+        <p className="text-muted-foreground">Avg CLV: <span className="text-foreground font-medium">{d.avgClv > 0 ? "+" : ""}{(d.avgClv * 100).toFixed(1)}%</span></p>
+      )}
+    </div>
+  );
+}
+
+// ── Performance charts panel ──────────────────────────────────────────────────
+
+function PerformancePanel() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["model-stats"],
+    queryFn: () => modelApi.stats(),
+    refetchInterval: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="text-muted-foreground text-sm">Loading performance data…</div>
+      </div>
+    );
+  }
+
+  const stats = data?.stats ?? [];
+
+  if (stats.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <BarChart2 className="w-4 h-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Performance</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">No graded picks yet — charts will appear once results are recorded.</p>
+      </div>
+    );
+  }
+
+  // Sort by win rate descending for bar chart
+  const sorted = [...stats].sort((a, b) => b.accuracyRate - a.accuracyRate);
+
+  // Build comparison data for the grouped bar (Strong Buy vs Buy)
+  const comparisonData = sorted.map((s) => ({
+    sport: s.sport,
+    "Strong Buy": Math.round(s.strongBuyAccuracy * 1000) / 10,
+    "Buy": Math.round(s.buyAccuracy * 1000) / 10,
+    sport_stat: s,
+  }));
+
+  const overallAccuracy = data?.overallAccuracy ?? 0;
+  const totalPicks = data?.totalPredictions ?? 0;
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Performance</h2>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span>Overall: <span className="font-medium" style={{ color: winRateColor(overallAccuracy) }}>{pct(overallAccuracy)}</span></span>
+          <span>{totalPicks} graded picks</span>
+        </div>
+      </div>
+
+      {/* Win rate by sport */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Win Rate by Sport</p>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 24, top: 0, bottom: 0 }}>
+            <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis
+              type="number"
+              domain={[0, 1]}
+              tickFormatter={(v) => `${Math.round(v * 100)}%`}
+              tick={{ fontSize: 10, fill: "#71717a" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              type="category"
+              dataKey="sport"
+              tick={{ fontSize: 11, fill: "#a1a1aa" }}
+              axisLine={false}
+              tickLine={false}
+              width={52}
+            />
+            <Tooltip content={<WinRateTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+            <ReferenceLine x={0.5} stroke="#52525b" strokeDasharray="4 2" />
+            <Bar dataKey="accuracyRate" radius={[0, 3, 3, 0]} maxBarSize={18}>
+              {sorted.map((s) => (
+                <Cell key={s.sport} fill={winRateColor(s.accuracyRate)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Strong Buy vs Buy comparison */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Strong Buy vs Buy Accuracy (%)</p>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={comparisonData} margin={{ left: 8, right: 8, top: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis
+              dataKey="sport"
+              tick={{ fontSize: 10, fill: "#71717a" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, 100]}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fontSize: 10, fill: "#71717a" }}
+              axisLine={false}
+              tickLine={false}
+              width={36}
+            />
+            <Tooltip
+              cursor={{ fill: "rgba(255,255,255,0.04)" }}
+              contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+              labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+            />
+            <ReferenceLine y={50} stroke="#52525b" strokeDasharray="4 2" />
+            <Bar dataKey="Strong Buy" fill="#4ade80" radius={[3, 3, 0, 0]} maxBarSize={20} />
+            <Bar dataKey="Buy" fill="#60a5fa" radius={[3, 3, 0, 0]} maxBarSize={20} />
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-400" />Strong Buy</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-400" />Buy</span>
+          <span className="ml-auto">Dashed line = 50%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export function Models() {
   const qc = useQueryClient();
@@ -41,6 +215,9 @@ export function Models() {
         <h1 className="text-xl font-bold text-foreground">Model Registry</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Deploy, rollback, and monitor model versions</p>
       </div>
+
+      {/* Performance charts */}
+      <PerformancePanel />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5">

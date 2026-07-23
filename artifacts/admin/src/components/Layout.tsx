@@ -9,7 +9,7 @@ import {
   LogOut,
   Activity,
 } from "lucide-react";
-import { clearMasterKey } from "@/lib/api";
+import { clearSession } from "@/lib/api";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Overview" },
@@ -22,8 +22,8 @@ const NAV = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  function logout() {
-    clearMasterKey();
+  async function logout() {
+    await clearSession();
     window.location.reload();
   }
 

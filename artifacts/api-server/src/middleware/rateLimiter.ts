@@ -26,6 +26,21 @@ export const adminLimiter = rateLimit({
 });
 
 /**
+ * Extra-strict limit specifically for the session-creation endpoint
+ * (POST /api/admin/session). After 10 failed attempts within 15 minutes,
+ * further requests are blocked. This makes brute-forcing the master key
+ * from a single IP effectively impossible.
+ */
+export const sessionAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // only count failed (non-2xx) attempts
+  message: { error: "Too many failed login attempts — please wait 15 minutes before trying again." },
+});
+
+/**
  * Auth / Clerk proxy limit — tighter than general to slow down credential
  * stuffing against the sign-in endpoint.
  */

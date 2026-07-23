@@ -7,20 +7,53 @@
 
 const BASE = "/api";
 
-export function getMasterKey(): string {
-  return sessionStorage.getItem("tbm_master_key") ?? "";
+const SESSION_KEY = "tbm_admin_token";
+const SESSION_EXPIRES_KEY = "tbm_admin_token_expires";
+
+export function getSessionToken(): string {
+  const token = sessionStorage.getItem(SESSION_KEY) ?? "";
+  const expires = sessionStorage.getItem(SESSION_EXPIRES_KEY);
+  if (!token || !expires) return "";
+  // Treat as expired if within 60s of expiry
+  if (Date.now() >= new Date(expires).getTime() - 60_000) {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_EXPIRES_KEY);
+    return "";
+  }
+  return token;
 }
 
-export function setMasterKey(key: string): void {
-  sessionStorage.setItem("tbm_master_key", key);
+export function setSession(token: string, expiresAt: string): void {
+  sessionStorage.setItem(SESSION_KEY, token);
+  sessionStorage.setItem(SESSION_EXPIRES_KEY, expiresAt);
 }
 
-export function clearMasterKey(): void {
-  sessionStorage.removeItem("tbm_master_key");
+export async function clearSession(): Promise<void> {
+  const token = getSessionToken();
+  if (token) {
+    // Best-effort revoke on the server
+    await fetch(`${BASE}/admin/session`, {
+      method: "DELETE",
+      headers: { "X-Admin-Token": token },
+    }).catch(() => {/* ignore */});
+  }
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_EXPIRES_KEY);
 }
 
 export function isAuthenticated(): boolean {
-  return getMasterKey().length > 0;
+  return getSessionToken().length > 0;
+}
+
+/** Exchange the master key for a session token. Returns null on bad key. */
+export async function createSession(masterKey: string): Promise<{ token: string; expiresAt: string } | null> {
+  const res = await fetch(`${BASE}/admin/session`, {
+    method: "POST",
+    headers: { "X-Master-Key": masterKey },
+  });
+  if (res.status === 401 || res.status === 503) return null;
+  if (!res.ok) throw new Error(`Session error: ${res.status}`);
+  return res.json() as Promise<{ token: string; expiresAt: string }>;
 }
 
 async function request<T>(
@@ -28,17 +61,19 @@ async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
+  const token = getSessionToken();
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",
-      "X-Master-Key": getMasterKey(),
+      ...(token ? { "X-Admin-Token": token } : {}),
     },
     body: body != null ? JSON.stringify(body) : undefined,
   });
 
   if (res.status === 401) {
-    clearMasterKey();
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_EXPIRES_KEY);
     window.location.reload();
     throw new Error("Unauthorized");
   }
@@ -91,9 +126,16 @@ export const adminApi = {
     api.post(`/admin/models/${id}/deploy`, { performedBy, notes }),
   rollbackModel: (id: number, performedBy = "admin", notes?: string) =>
     api.post(`/admin/models/${id}/rollback`, { performedBy, notes }),
+  // Snoozes
+  snoozes: () => api.get<{ snoozes: SportSnooze[] }>("/admin/sports/snoozes"),
+  snoozeSport: (sport: string, durationHours: number, reason?: string) =>
+    api.post<SportSnooze>(`/admin/sports/${sport}/snooze`, { durationHours, reason }),
+  unsnoozeSport: (sport: string) =>
+    api.delete<{ message: string }>(`/admin/sports/${sport}/snooze`),
 };
 
 export const modelApi = {
+  stats: () => api.get<ModelStatsResult>("/model/stats"),
   list: (status?: string) =>
     api.get<{ models: ModelVersion[]; count: number }>(
       `/models${status ? `?status=${status}` : ""}`,
@@ -110,6 +152,13 @@ export const modelApi = {
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
+export interface FeedHealthEntry {
+  sport: string;
+  status: "ok" | "quiet" | "error" | "stale";
+  gameCount: number | null;
+  lastChecked: string | null;
+}
+
 export interface AdminOverview {
   production: { modelCount: number; models: ModelSummary[] };
   challengers: { count: number; models: ModelSummary[] };
@@ -117,6 +166,7 @@ export interface AdminOverview {
   grading: { pendingPicks: number };
   performance: { totalGradedPicks: number; avgROI: number | null; avgWinRate: number | null };
   automation: { health: string; lastRun: AutoRunSummary | null };
+  feedHealth: FeedHealthEntry[];
 }
 
 export interface ModelSummary {
@@ -222,6 +272,34 @@ export interface BacktestRun {
 export interface BacktestsResult {
   runs: BacktestRun[];
   count: number;
+}
+
+export interface SportStat {
+  sport: string;
+  accuracyRate: number;
+  totalPredictions: number;
+  correctPredictions: number;
+  strongBuyAccuracy: number;
+  buyAccuracy: number;
+  avgClv: number | null;
+  confidenceMultiplier: number;
+  lastLearnedAt: string | null;
+}
+
+export interface ModelStatsResult {
+  stats: SportStat[];
+  overallAccuracy: number;
+  totalPredictions: number;
+  dataAsOf: string;
+}
+
+export interface SportSnooze {
+  id: number;
+  sport: string;
+  snoozedUntil: string;
+  snoozedBy: string;
+  reason: string | null;
+  createdAt: string;
 }
 
 export interface CompareResult {

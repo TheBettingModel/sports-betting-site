@@ -15,8 +15,8 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import { adminLimiter } from "../middleware/rateLimiter";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { adminLimiter, sessionAuthLimiter } from "../middleware/rateLimiter";
 import {
   db,
   automationRunsTable,
@@ -27,6 +27,7 @@ import {
   performanceMetricsTable,
   pickResultsTable,
   publishedPicksTable,
+  sportSnoozesTable,
   trainingDatasetsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
@@ -39,22 +40,79 @@ const router: IRouter = Router();
 // ── Auth middleware ───────────────────────────────────────────────────────────
 
 const MASTER_KEY = process.env["MASTER_API_KEY"] ?? "";
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
+
+interface Session { expiresAt: Date }
+const sessions = new Map<string, Session>();
+
+/** Prune expired sessions (called lazily on each auth check). */
+function pruneExpiredSessions(): void {
+  const now = new Date();
+  for (const [token, session] of sessions) {
+    if (session.expiresAt <= now) sessions.delete(token);
+  }
+}
+
+function isValidSession(token: string): boolean {
+  pruneExpiredSessions();
+  const session = sessions.get(token);
+  return session !== undefined && session.expiresAt > new Date();
+}
 
 function requireMasterKey(req: Request, res: Response, next: NextFunction): void {
   if (!MASTER_KEY) {
-    // No key configured — lock everything down rather than fail open.
     res.status(503).json({ error: "Admin access not configured: set MASTER_API_KEY" });
     return;
   }
+
+  // Accept either a session token (preferred) or the raw key (legacy / CLI)
+  const sessionToken = req.headers["x-admin-token"] as string | undefined;
+  if (sessionToken) {
+    if (isValidSession(sessionToken)) { next(); return; }
+    res.status(401).json({ error: "Session expired or invalid — please log in again" });
+    return;
+  }
+
   const key = req.headers["x-master-key"] as string | undefined;
   if (!key || key !== MASTER_KEY) {
-    res.status(401).json({ error: "Unauthorized: valid X-Master-Key header required" });
+    res.status(401).json({ error: "Unauthorized: valid X-Master-Key or X-Admin-Token header required" });
     return;
   }
   next();
 }
 
+// ── Session endpoints (no master-key auth — they ARE the auth flow) ───────────
+
 router.use("/admin", adminLimiter);
+
+/** POST /api/admin/session — exchange the master key for a session token */
+router.post("/admin/session", sessionAuthLimiter, (req, res): void => {
+  if (!MASTER_KEY) {
+    res.status(503).json({ error: "Admin access not configured: set MASTER_API_KEY" });
+    return;
+  }
+  const key = req.headers["x-master-key"] as string | undefined;
+  if (!key || key !== MASTER_KEY) {
+    res.status(401).json({ error: "Invalid master key" });
+    return;
+  }
+
+  pruneExpiredSessions();
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  sessions.set(token, { expiresAt });
+
+  logger.info({ sessionCount: sessions.size }, "Admin: session created");
+  res.status(201).json({ token, expiresAt: expiresAt.toISOString() });
+});
+
+/** DELETE /api/admin/session — revoke the current session token */
+router.delete("/admin/session", (req, res): void => {
+  const token = req.headers["x-admin-token"] as string | undefined;
+  if (token) sessions.delete(token);
+  res.json({ message: "Logged out" });
+});
+
 router.use("/admin", requireMasterKey);
 
 // ── Overview ──────────────────────────────────────────────────────────────────
@@ -125,6 +183,44 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
           ? "degraded"
           : "running";
 
+  // ── Feed health: derive per-sport status from the most recent ingestion run ──
+  const TRACKED_SPORTS = ["MLB", "NFL", "NHL", "NBA", "WNBA", "NCAAB", "NCAAF", "Soccer", "UFC"];
+  const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+  // Find the most recent completed odds-ingestion run that recorded feed data
+  const freshestIngestion = recentRuns.find(
+    (r) => r.jobName === "odds-ingestion" && r.dataSourceFreshness != null,
+  );
+
+  const freshness = freshestIngestion?.dataSourceFreshness as
+    | Record<string, number | "error">
+    | null
+    | undefined;
+
+  const lastChecked = freshestIngestion?.startedAt?.toISOString() ?? null;
+  const isStale =
+    !freshestIngestion ||
+    Date.now() - new Date(freshestIngestion.startedAt).getTime() > STALE_THRESHOLD_MS;
+
+  const feedHealth = TRACKED_SPORTS.map((sport) => {
+    if (!freshness || isStale) {
+      return { sport, status: "stale" as const, gameCount: null, lastChecked: null };
+    }
+    const val = freshness[sport];
+    if (val === undefined) {
+      return { sport, status: "stale" as const, gameCount: null, lastChecked };
+    }
+    if (val === "error") {
+      return { sport, status: "error" as const, gameCount: null, lastChecked };
+    }
+    return {
+      sport,
+      status: val > 0 ? ("ok" as const) : ("quiet" as const),
+      gameCount: val,
+      lastChecked,
+    };
+  });
+
   res.json({
     production: {
       modelCount: productionModels.length,
@@ -171,6 +267,7 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
           }
         : null,
     },
+    feedHealth,
   });
 });
 
@@ -378,6 +475,54 @@ router.post("/admin/models/:id/rollback", async (req, res): Promise<void> => {
 
   const result = await rollbackModel(id, performedBy, true, notes);
   res.json(result);
+});
+
+// ── Sport snoozes ─────────────────────────────────────────────────────────────
+
+/** GET /admin/sports/snoozes — list all active (not yet expired) snoozes */
+router.get("/admin/sports/snoozes", async (_req, res): Promise<void> => {
+  const now = new Date();
+  const snoozes = await db
+    .select()
+    .from(sportSnoozesTable)
+    .where(gt(sportSnoozesTable.snoozedUntil, now));
+  res.json({ snoozes });
+});
+
+/** POST /admin/sports/:sport/snooze — create or extend a snooze */
+router.post("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
+  const sport = req.params.sport;
+  const durationHours: number = Number(req.body?.durationHours ?? 168); // default 1 week
+  const snoozedBy: string = req.body?.snoozedBy ?? "admin";
+  const reason: string | undefined = req.body?.reason;
+
+  if (durationHours <= 0 || durationHours > 8760) {
+    res.status(400).json({ error: "durationHours must be between 1 and 8760 (1 year)" });
+    return;
+  }
+
+  const snoozedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+
+  // Upsert: if a snooze already exists for this sport, extend/replace it
+  const [row] = await db
+    .insert(sportSnoozesTable)
+    .values({ sport, snoozedUntil, snoozedBy, reason: reason ?? null })
+    .onConflictDoUpdate({
+      target: sportSnoozesTable.sport,
+      set: { snoozedUntil, snoozedBy, reason: reason ?? null, createdAt: new Date() },
+    })
+    .returning();
+
+  logger.info({ sport, snoozedUntil, snoozedBy }, "Admin: sport snoozed");
+  res.status(201).json(row);
+});
+
+/** DELETE /admin/sports/:sport/snooze — remove a snooze early */
+router.delete("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
+  const sport = req.params.sport;
+  await db.delete(sportSnoozesTable).where(eq(sportSnoozesTable.sport, sport));
+  logger.info({ sport }, "Admin: sport snooze removed");
+  res.json({ message: `Snooze for ${sport} removed` });
 });
 
 export default router;

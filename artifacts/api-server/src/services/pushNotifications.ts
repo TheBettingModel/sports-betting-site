@@ -7,8 +7,9 @@
 
 import { Expo, type ExpoPushMessage } from "expo-server-sdk";
 import { eq, and, inArray } from "drizzle-orm";
-import { db, pushTokensTable, subscribersTable } from "@workspace/db";
+import { db, pushTokensTable, subscribersTable, notificationPreferencesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { storePushReceipts } from "./pushReceipts";
 
 const expo = new Expo();
 
@@ -47,6 +48,7 @@ async function getActiveSubscriberTokens(): Promise<
 export async function sendStrongBuyNotification(
   strongBuyCount: number,
   topPick?: string,
+  sport?: string,
 ): Promise<void> {
   if (strongBuyCount === 0) return;
 
@@ -55,6 +57,14 @@ export async function sendStrongBuyNotification(
     logger.info("Push: no active subscriber tokens, skipping");
     return;
   }
+
+  // Load notification preferences for all users that have tokens
+  const userIds = [...new Set(tokenRows.map((r) => r.userId))];
+  const prefRows = await db
+    .select()
+    .from(notificationPreferencesTable)
+    .where(inArray(notificationPreferencesTable.userId, userIds));
+  const prefByUser = new Map(prefRows.map((p) => [p.userId, p.enabledSports]));
 
   const title =
     strongBuyCount === 1
@@ -65,71 +75,91 @@ export async function sendStrongBuyNotification(
     ? `Top pick: ${topPick} — open the app to see full analysis`
     : "Open the app to see today's model picks";
 
-  // Build messages, filtering invalid tokens
-  const messages: ExpoPushMessage[] = [];
+  // Build messages, filtering invalid tokens and sport preferences
+  const messages: Array<ExpoPushMessage & { _token: string }> = [];
   const invalidTokens: string[] = [];
+  let skippedByPreference = 0;
 
-  for (const { token } of tokenRows) {
+  for (const { userId, token } of tokenRows) {
     if (!Expo.isExpoPushToken(token)) {
       invalidTokens.push(token);
       continue;
     }
+
+    // Apply per-sport preference: if the user has set enabledSports, check inclusion
+    if (sport) {
+      const enabledSports = prefByUser.get(userId);
+      if (enabledSports !== undefined && enabledSports !== null && !enabledSports.includes(sport)) {
+        skippedByPreference++;
+        continue;
+      }
+    }
+
     messages.push({
       to: token,
       sound: "default",
       title,
       body,
-      data: { screen: "picks" }, // deep-link payload handled in the mobile app
-      channelId: "picks", // Android channel
+      data: { screen: "picks" },
+      channelId: "picks",
+      _token: token,
     });
   }
 
   if (invalidTokens.length > 0) {
-    logger.warn(
-      { count: invalidTokens.length },
-      "Push: deactivating invalid tokens",
-    );
-    // Deactivate only the specific invalid tokens (not a broad sweep)
+    logger.warn({ count: invalidTokens.length }, "Push: deactivating invalid tokens");
     await db
       .update(pushTokensTable)
       .set({ isActive: false, updatedAt: new Date() })
       .where(inArray(pushTokensTable.token, invalidTokens));
   }
 
-  if (messages.length === 0) return;
+  if (messages.length === 0) {
+    logger.info({ skippedByPreference }, "Push: all tokens filtered by preferences, skipping");
+    return;
+  }
+
+  // Build clean messages (strip internal _token field)
+  const cleanMessages: ExpoPushMessage[] = messages.map(({ _token: _, ...m }) => m);
 
   // Send in batches (Expo SDK handles chunking)
-  const chunks = expo.chunkPushNotifications(messages);
+  const chunks = expo.chunkPushNotifications(cleanMessages);
+  // Track chunk → token mapping for receipt storage
+  const chunkTokens: string[][] = expo.chunkPushNotifications(
+    messages.map((m) => ({ to: m._token })),
+  ).map((chunk) => chunk.map((m) => m.to as string));
+
   let sent = 0;
   let failed = 0;
+  const pendingForReceipts: Array<{ receiptId: string; token: string }> = [];
 
-  for (const chunk of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]!;
+    const tokens = chunkTokens[i]!;
     try {
       const tickets = await expo.sendPushNotificationsAsync(chunk);
-      for (const ticket of tickets) {
+      tickets.forEach((ticket, idx) => {
         if (ticket.status === "ok") {
           sent++;
+          pendingForReceipts.push({ receiptId: ticket.id, token: tokens[idx]! });
         } else {
           failed++;
           logger.warn({ ticket }, "Push: ticket error");
-          // If the token is invalid/unregistered, deactivate it
-          if (
-            ticket.details?.error === "DeviceNotRegistered" ||
-            ticket.details?.error === "InvalidCredentials"
-          ) {
-            // We can't easily map ticket back to token here without more complex
-            // tracking; the next send cycle will clean up via isExpoPushToken check
-          }
         }
-      }
+      });
     } catch (err) {
       logger.error({ err }, "Push: failed to send chunk");
       failed += chunk.length;
     }
   }
 
+  // Store receipt IDs for later delivery confirmation
+  if (pendingForReceipts.length > 0) {
+    storePushReceipts(pendingForReceipts);
+  }
+
   logger.info(
-    { sent, failed, strongBuyCount },
+    { sent, failed, skippedByPreference, strongBuyCount, sport },
     "Push: Strong Buy notification batch complete",
   );
 }

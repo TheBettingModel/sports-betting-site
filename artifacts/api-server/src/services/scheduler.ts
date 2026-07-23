@@ -13,13 +13,14 @@
  */
 
 import cron from "node-cron";
-import { eq, and, desc, ne, gte } from "drizzle-orm";
-import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
+import { eq, and, desc, ne, gte, gt } from "drizzle-orm";
+import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
 import { runGrading } from "./grading-runner";
 import { runAnalytics } from "./analytics";
+import { checkPendingPushReceipts } from "./pushReceipts";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
@@ -115,6 +116,27 @@ async function checkAndRaiseSportAlerts(
     }
 
     if (consecutiveZeros < CONSECUTIVE_ZERO_THRESHOLD) continue;
+
+    // Skip raising if admin has snoozed this sport
+    const now = new Date();
+    const [snooze] = await db
+      .select({ snoozedUntil: sportSnoozesTable.snoozedUntil })
+      .from(sportSnoozesTable)
+      .where(
+        and(
+          eq(sportSnoozesTable.sport, sport),
+          gt(sportSnoozesTable.snoozedUntil, now),
+        ),
+      )
+      .limit(1);
+
+    if (snooze) {
+      logger.info(
+        { sport, snoozedUntil: snooze.snoozedUntil },
+        "Scheduler: skipping alert — sport is snoozed",
+      );
+      continue;
+    }
 
     // Check for an existing unresolved alert for this sport + type
     const [existing] = await db
@@ -471,6 +493,10 @@ async function runAnalyticsRefresh(): Promise<void> {
 
   try {
     const rowsWritten = await runAnalytics();
+    // Check pending push receipts in the background during analytics run
+    await checkPendingPushReceipts().catch((err) =>
+      logger.warn({ err }, "Scheduler: push receipt check failed — non-fatal"),
+    );
     await finishRun(runId, "completed", rowsWritten);
     logger.info({ rowsWritten }, "Scheduler: analytics-refresh complete");
   } catch (err) {

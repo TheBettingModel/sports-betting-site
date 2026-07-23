@@ -8,6 +8,7 @@ import featuresRouter from "./features";
 import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
 import pushTokensRouter from "./push-tokens";
+import notificationPreferencesRouter from "./notification-preferences";
 import clerkProxyRouter from "./clerk-proxy";
 import legalRouter from "./legal";
 
@@ -22,6 +23,7 @@ router.use(featuresRouter);
 router.use(adminRouter);
 router.use(webhooksRouter);
 router.use(pushTokensRouter);
+router.use(notificationPreferencesRouter);
 router.use(clerkProxyRouter);
 router.use(legalRouter);
 

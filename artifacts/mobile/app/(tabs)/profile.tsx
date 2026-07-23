@@ -12,6 +12,7 @@ import { useSubscription } from '@/lib/revenuecat';
 import PaywallModal from '@/app/paywall';
 import Purchases from 'react-native-purchases';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotificationPreferences, ALL_SPORTS } from '@/hooks/useNotificationPreferences';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -22,6 +23,7 @@ export default function ProfileScreen() {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const { isSubscribed, restore } = useSubscription();
   const { enableNotifications, disableNotifications, getNotificationsEnabled } = usePushNotifications();
+  const { prefs: notifPrefs, saving: notifPrefsSaving, toggleSport } = useNotificationPreferences();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -322,6 +324,42 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* Sport alert preferences — shown when notifications are enabled and user is Pro */}
+        {notificationsEnabled && isSubscribed && Platform.OS !== 'web' && (
+          <>
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.sportPrefsSection]}>
+              <Text style={[styles.sportPrefsTitle, { color: colors.mutedForeground }]}>
+                ALERT ME FOR THESE SPORTS
+              </Text>
+              <View style={styles.sportChipsGrid}>
+                {ALL_SPORTS.map((sport) => {
+                  const enabled = notifPrefs.enabledSports === null || notifPrefs.enabledSports.includes(sport);
+                  return (
+                    <Pressable
+                      key={sport}
+                      disabled={notifPrefsSaving}
+                      onPress={async () => { await Haptics.selectionAsync(); await toggleSport(sport); }}
+                      style={[
+                        styles.sportChip,
+                        {
+                          backgroundColor: enabled ? colors.primary + '22' : colors.card,
+                          borderColor: enabled ? colors.primary : colors.border,
+                          opacity: notifPrefsSaving ? 0.6 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.sportChipText, { color: enabled ? colors.primary : colors.mutedForeground }]}>
+                        {sport}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        )}
+
         <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
 
         {[
@@ -424,4 +462,12 @@ const styles = StyleSheet.create({
   settingsSubLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
   settingsRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   settingsVal: { fontSize: 14, fontFamily: 'Inter_400Regular' },
+  sportPrefsSection: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  sportPrefsTitle: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 },
+  sportChipsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sportChip: {
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1,
+  },
+  sportChipText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
 });
