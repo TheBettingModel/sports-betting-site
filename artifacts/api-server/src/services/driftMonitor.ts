@@ -11,7 +11,7 @@
  * human review before any remediation action is taken.
  */
 
-import { and, between, eq, gte, lt, sql } from "drizzle-orm";
+import { and, between, eq, gt, gte, lt, sql } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
@@ -19,6 +19,7 @@ import {
   modelDriftAlertsTable,
   modelPredictionsTable,
   modelVersionsTable,
+  sportSnoozesTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 
@@ -147,6 +148,20 @@ async function createDriftAlert(
 
 async function monitorModelDrift(modelVersionId: number, sport: string): Promise<void> {
   const now = new Date();
+
+  // Respect snooze — if an admin has silenced this sport, skip drift alerts.
+  // Off-season low-volume "prediction_drift" warnings are the main noise this prevents.
+  const [snooze] = await db
+    .select({ snoozedUntil: sportSnoozesTable.snoozedUntil })
+    .from(sportSnoozesTable)
+    .where(and(eq(sportSnoozesTable.sport, sport), gt(sportSnoozesTable.snoozedUntil, now)))
+    .limit(1);
+
+  if (snooze) {
+    logger.debug({ sport, snoozedUntil: snooze.snoozedUntil }, "Drift monitor: skipping snoozed sport");
+    return;
+  }
+
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 

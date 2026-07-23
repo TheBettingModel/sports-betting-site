@@ -172,9 +172,10 @@ async function checkAndRaiseSportAlerts(
 }
 
 /**
- * Auto-resolve any unresolved `zero_games_feed` alerts for sports that returned
- * >0 games in this ingestion run. This cleans up stale off-season alerts once a
- * sport's season resumes.
+ * Auto-resolve any unresolved `zero_games_feed` or `feed_fetch_error` alerts
+ * for sports that returned >0 games in this ingestion run. This cleans up
+ * stale off-season alerts once a sport's season resumes, and clears fetch-error
+ * alerts once the ESPN API recovers.
  */
 async function autoResolveSportAlerts(
   currentSportCounts: Record<string, number | "error">,
@@ -189,33 +190,139 @@ async function autoResolveSportAlerts(
   let resolved = 0;
 
   for (const sport of activeSports) {
-    const result = await db
-      .update(dataQualityAlertsTable)
-      .set({
-        isResolved: true,
-        resolvedAt: now,
-        resolvedBy: "scheduler:auto",
-      })
-      .where(
-        and(
-          eq(dataQualityAlertsTable.alertType, "zero_games_feed"),
-          eq(dataQualityAlertsTable.sport, sport),
-          eq(dataQualityAlertsTable.isResolved, false),
-        ),
-      )
-      .returning({ id: dataQualityAlertsTable.id });
+    for (const alertType of ["zero_games_feed", "feed_fetch_error"] as const) {
+      const result = await db
+        .update(dataQualityAlertsTable)
+        .set({
+          isResolved: true,
+          resolvedAt: now,
+          resolvedBy: "scheduler:auto",
+        })
+        .where(
+          and(
+            eq(dataQualityAlertsTable.alertType, alertType),
+            eq(dataQualityAlertsTable.sport, sport),
+            eq(dataQualityAlertsTable.isResolved, false),
+          ),
+        )
+        .returning({ id: dataQualityAlertsTable.id });
 
-    if (result.length > 0) {
-      resolved += result.length;
-      logger.info(
-        { sport, resolvedIds: result.map((r) => r.id) },
-        "Scheduler: auto-resolved zero_games_feed alert — games returned for sport",
-      );
+      if (result.length > 0) {
+        resolved += result.length;
+        logger.info(
+          { sport, alertType, resolvedIds: result.map((r) => r.id) },
+          "Scheduler: auto-resolved alert — sport returned games",
+        );
+      }
     }
   }
 
   if (resolved > 0) {
-    logger.info({ resolved }, "Scheduler: auto-resolved stale zero_games_feed alerts");
+    logger.info({ resolved }, "Scheduler: auto-resolved stale data-quality alerts");
+  }
+}
+
+/**
+ * Raise a `feed_fetch_error` data-quality alert when ESPN fails to return data
+ * for a sport across CONSECUTIVE_ERROR_THRESHOLD consecutive runs. Each run
+ * already applies 3 internal retries before marking a sport as "error", so
+ * two consecutive error runs means the ESPN API is genuinely struggling.
+ */
+const CONSECUTIVE_ERROR_THRESHOLD = 2;
+
+async function checkAndRaiseFetchErrorAlerts(
+  currentRunId: number,
+  currentSportCounts: Record<string, number | "error">,
+): Promise<void> {
+  const errorSports = Object.entries(currentSportCounts)
+    .filter(([, count]) => count === "error")
+    .map(([sport]) => sport);
+
+  if (errorSports.length === 0) return;
+
+  // Pull recent completed runs to check for consecutive errors
+  const recentRuns = await db
+    .select({ dataSourceFreshness: automationRunsTable.dataSourceFreshness })
+    .from(automationRunsTable)
+    .where(
+      and(
+        eq(automationRunsTable.jobName, "odds-ingestion"),
+        eq(automationRunsTable.status, "completed"),
+        ne(automationRunsTable.id, currentRunId),
+      ),
+    )
+    .orderBy(desc(automationRunsTable.startedAt))
+    .limit(CONSECUTIVE_ERROR_THRESHOLD - 1);
+
+  const now = new Date();
+
+  for (const sport of errorSports) {
+    let consecutiveErrors = 1; // current run is the first error
+
+    for (const run of recentRuns) {
+      const freshness = run.dataSourceFreshness as Record<string, unknown> | null;
+      if (!freshness) break;
+      if (freshness[sport] === "error") {
+        consecutiveErrors++;
+      } else {
+        break;
+      }
+    }
+
+    if (consecutiveErrors < CONSECUTIVE_ERROR_THRESHOLD) continue;
+
+    // Respect snooze: if admin has silenced this sport, skip the alert
+    const [snooze] = await db
+      .select({ snoozedUntil: sportSnoozesTable.snoozedUntil })
+      .from(sportSnoozesTable)
+      .where(
+        and(
+          eq(sportSnoozesTable.sport, sport),
+          gt(sportSnoozesTable.snoozedUntil, now),
+        ),
+      )
+      .limit(1);
+
+    if (snooze) {
+      logger.info(
+        { sport, snoozedUntil: snooze.snoozedUntil },
+        "Scheduler: skipping feed_fetch_error alert — sport is snoozed",
+      );
+      continue;
+    }
+
+    // Check for an existing unresolved alert before raising a duplicate
+    const [existing] = await db
+      .select({ id: dataQualityAlertsTable.id })
+      .from(dataQualityAlertsTable)
+      .where(
+        and(
+          eq(dataQualityAlertsTable.alertType, "feed_fetch_error"),
+          eq(dataQualityAlertsTable.sport, sport),
+          eq(dataQualityAlertsTable.isResolved, false),
+        ),
+      )
+      .limit(1);
+
+    if (existing) continue;
+
+    await db.insert(dataQualityAlertsTable).values({
+      alertType: "feed_fetch_error",
+      sport,
+      severity: "critical",
+      description:
+        `ESPN API returned a fetch error for ${sport} in the last ${consecutiveErrors} consecutive ` +
+        `odds-ingestion runs (each run already applied 3 retries). The feed may be down or the endpoint URL has changed.`,
+      metadata: {
+        consecutiveErrorRuns: consecutiveErrors,
+        threshold: CONSECUTIVE_ERROR_THRESHOLD,
+      },
+    });
+
+    logger.error(
+      { sport, consecutiveErrors },
+      "Scheduler: critical data-quality alert raised — ESPN feed_fetch_error",
+    );
   }
 }
 
@@ -379,12 +486,15 @@ async function runOddsIngestion(): Promise<void> {
 
     await finishRun(runId, "completed", processed, undefined, sportCounts);
 
-    // Auto-resolve any stale zero_games_feed alerts for sports that returned games.
+    // Auto-resolve any stale alerts for sports that returned games.
     await autoResolveSportAlerts(sportCounts);
 
     // Check for data quality issues after recording this run's counts.
     // Pass runId so the query excludes the just-written row and avoids double-counting.
     await checkAndRaiseSportAlerts(runId, sportCounts);
+
+    // Raise critical alerts for sports where ESPN fetch is consistently failing.
+    await checkAndRaiseFetchErrorAlerts(runId, sportCounts);
 
     // Send push notifications for Strong Buy picks — once per calendar day only.
     await maybeSendStrongBuyNotification();
