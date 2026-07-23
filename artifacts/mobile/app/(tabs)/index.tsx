@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Platform,
@@ -15,12 +14,15 @@ import { useColors } from '@/hooks/useColors';
 import { useSports } from '@/context/SportsContext';
 import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
-import { getTopPick, MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
+import { GameCardSkeleton } from '@/components/GameCardSkeleton';
 import { LockedPickCard } from '@/components/LockedPickCard';
 import { FeaturedPick } from '@/components/FeaturedPick';
 import { SportFilter } from '@/components/SportFilter';
+import { EmptyState } from '@/components/EmptyState';
 import type { Game } from '@/data/mockGames';
+
+const SKELETON_COUNT = 5;
 
 export default function TodayScreen() {
   const colors = useColors();
@@ -35,9 +37,8 @@ export default function TodayScreen() {
 
   const allGames: Game[] = useMemo(() => {
     if (data?.games && data.games.length > 0) return data.games.map(mapApiGame);
-    if (!isLoading) return MOCK_GAMES; // fallback when ESPN has no games today
     return [];
-  }, [data, isLoading]);
+  }, [data]);
 
   const filteredGames = useMemo(
     () => (selectedSport === 'All' ? allGames : allGames.filter(g => g.sport === selectedSport)),
@@ -45,18 +46,15 @@ export default function TodayScreen() {
   );
 
   const topPick = useMemo(() => {
-    if (allGames.length > 0) {
-      const unlocked = allGames.filter(g => !g.isLocked);
-      const pool = unlocked.length > 0 ? unlocked : allGames;
-      // Prioritise actionable ratings: Strong Buy → Buy → everything else by model score
-      const RATING_PRIORITY: Record<string, number> = { 'Strong Buy': 0, 'Buy': 1, 'Neutral': 2, 'Fade': 3 };
-      return [...pool].sort((a, b) => {
-        const rDiff = (RATING_PRIORITY[a.projection.valueRating] ?? 2) - (RATING_PRIORITY[b.projection.valueRating] ?? 2);
-        if (rDiff !== 0) return rDiff;
-        return b.projection.modelScore - a.projection.modelScore;
-      })[0] ?? getTopPick();
-    }
-    return getTopPick();
+    if (allGames.length === 0) return null;
+    const unlocked = allGames.filter(g => !g.isLocked);
+    const pool = unlocked.length > 0 ? unlocked : allGames;
+    const RATING_PRIORITY: Record<string, number> = { 'Strong Buy': 0, 'Buy': 1, 'Neutral': 2, 'Fade': 3 };
+    return [...pool].sort((a, b) => {
+      const rDiff = (RATING_PRIORITY[a.projection.valueRating] ?? 2) - (RATING_PRIORITY[b.projection.valueRating] ?? 2);
+      if (rDiff !== 0) return rDiff;
+      return b.projection.modelScore - a.projection.modelScore;
+    })[0] ?? null;
   }, [allGames]);
 
   const lastUpdated = data?.lastUpdated
@@ -69,15 +67,12 @@ export default function TodayScreen() {
     day: 'numeric',
   });
 
+  const lockedCount = filteredGames.filter(g => g.isLocked).length;
+
   const ListHeader = () => (
     <View style={{ backgroundColor: colors.background }}>
       {/* App header */}
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) },
-        ]}
-      >
+      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
         <View style={styles.headerRow}>
           <View style={styles.logoRow}>
             <Image
@@ -98,18 +93,8 @@ export default function TodayScreen() {
       {/* Sport filter */}
       <SportFilter />
 
-      {/* Loading indicator */}
-      {isLoading && (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-            Fetching live data…
-          </Text>
-        </View>
-      )}
-
-      {/* Featured pick */}
-      {selectedSport === 'All' && topPick && (
+      {/* Featured pick — only when data is ready */}
+      {!isLoading && selectedSport === 'All' && topPick && (
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TOP PICK TODAY</Text>
           <FeaturedPick game={topPick} />
@@ -117,58 +102,63 @@ export default function TodayScreen() {
       )}
 
       {/* Locked picks banner */}
-      {filteredGames.some(g => g.isLocked) && (
+      {!isLoading && lockedCount > 0 && (
         <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
           <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
-            🔒 Showing {filteredGames.filter(g => !g.isLocked).length} of {filteredGames.length} picks — unlock all with Pro
+            🔒 {filteredGames.filter(g => !g.isLocked).length} of {filteredGames.length} picks shown — unlock all with Pro
           </Text>
         </View>
       )}
 
-      <Text
-        style={[
-          styles.sectionLabel,
-          { color: colors.mutedForeground, marginHorizontal: 16, marginTop: 20 },
-        ]}
-      >
-        {selectedSport === 'All' ? 'ALL GAMES' : `${selectedSport} GAMES`} · {filteredGames.length}
-      </Text>
+      {!isLoading && (
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginHorizontal: 16, marginTop: 20 }]}>
+          {selectedSport === 'All' ? 'ALL GAMES' : `${selectedSport} GAMES`}
+          {filteredGames.length > 0 && ` · ${filteredGames.length}`}
+        </Text>
+      )}
     </View>
   );
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={filteredGames}
-        keyExtractor={item => item.id}
-        renderItem={({ item }: { item: Game }) =>
-          item.isLocked
-            ? <LockedPickCard onUnlock={() => router.push('/membership')} />
-            : <GameCard game={item} />
-        }
-        ListHeaderComponent={<ListHeader />}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => triggerRefresh()}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.empty}>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                No games today for this sport
-              </Text>
-            </View>
-          ) : null
-        }
-      />
+      {isLoading ? (
+        /* Skeleton loading state — replaces the spinner+empty experience */
+        <FlatList
+          data={Array.from({ length: SKELETON_COUNT })}
+          keyExtractor={(_, i) => `skel-${i}`}
+          renderItem={() => <GameCardSkeleton />}
+          ListHeaderComponent={<ListHeader />}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
+          }}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+        />
+      ) : (
+        <FlatList
+          data={filteredGames}
+          keyExtractor={item => item.id}
+          renderItem={({ item }: { item: Game }) =>
+            item.isLocked
+              ? <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={lockedCount} />
+              : <GameCard game={item} />
+          }
+          ListHeaderComponent={<ListHeader />}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
+          }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => triggerRefresh()}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={<EmptyState sport={selectedSport !== 'All' ? selectedSport : undefined} />}
+        />
+      )}
     </View>
   );
 }
@@ -181,8 +171,6 @@ const styles = StyleSheet.create({
   logo: { width: 120, height: 40, borderRadius: 8 },
   date: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 3 },
   updated: { fontSize: 11, fontFamily: 'Inter_400Regular' },
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  loadingText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   section: { paddingHorizontal: 16, marginTop: 4 },
   sectionLabel: {
     fontSize: 11,
@@ -190,8 +178,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: 10,
   },
-  empty: { padding: 40, alignItems: 'center' },
-  emptyText: { fontSize: 15, fontFamily: 'Inter_400Regular' },
   lockedBanner: {
     marginHorizontal: 16,
     marginTop: 12,

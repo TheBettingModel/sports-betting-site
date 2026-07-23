@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   RefreshControl,
@@ -13,14 +12,16 @@ import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
-import { getBestPicks, MOCK_GAMES } from '@/data/mockGames';
 import { GameCard } from '@/components/GameCard';
+import { GameCardSkeleton } from '@/components/GameCardSkeleton';
 import { LockedPickCard } from '@/components/LockedPickCard';
 import { ValueBadge } from '@/components/ValueBadge';
+import { EmptyState } from '@/components/EmptyState';
 import type { Game } from '@/data/mockGames';
 import { useSubscription } from '@/lib/revenuecat';
 
-const FREE_PICKS = 2; // non-subscribers see this many picks unlocked
+const FREE_PICKS = 2;
+const SKELETON_COUNT = 6;
 
 const RATING_ORDER = ['Strong Buy', 'Buy', 'Neutral', 'Fade'] as const;
 type Rating = typeof RATING_ORDER[number];
@@ -47,7 +48,6 @@ export default function PicksScreen() {
     mutation: { onSuccess: () => refetch() },
   });
 
-  // All today's games sorted by model score high → low
   const allPicks: Game[] = useMemo(() => {
     if (data?.games && data.games.length > 0) {
       return data.games
@@ -59,27 +59,17 @@ export default function PicksScreen() {
           return b.projection.modelScore - a.projection.modelScore;
         });
     }
-    if (!isLoading) {
-      return [...MOCK_GAMES].sort((a, b) => {
-        const ra = RATING_ORDER.indexOf(a.projection.valueRating as Rating);
-        const rb = RATING_ORDER.indexOf(b.projection.valueRating as Rating);
-        if (ra !== rb) return ra - rb;
-        return b.projection.modelScore - a.projection.modelScore;
-      });
-    }
     return [];
-  }, [data, isLoading]);
+  }, [data]);
 
-  // Summary counts
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const g of allPicks) c[g.projection.valueRating] = (c[g.projection.valueRating] ?? 0) + 1;
     return c;
   }, [allPicks]);
 
-  // Build flat list with section headers.
-  // Lock state is authoritative from the server (game.isLocked). Fall back to
-  // index-based locking when the API does not return isLocked (e.g. mock data).
+  const lockedCount = allPicks.filter(g => g.isLocked === true).length;
+
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
     let pickIndex = 0;
@@ -88,8 +78,6 @@ export default function PicksScreen() {
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
       for (const game of group) {
-        // Trust the server's isLocked flag — it is the authoritative source.
-        // Fall back to index-based locking only for mock/offline data.
         const locked = game.isLocked ?? (pickIndex >= FREE_PICKS);
         items.push({ type: 'game', game, locked });
         pickIndex++;
@@ -113,12 +101,69 @@ export default function PicksScreen() {
       );
     }
     if (item.locked) {
-      return <LockedPickCard onUnlock={() => router.push('/membership')} />;
+      return <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={lockedCount} />;
     }
     return <GameCard game={item.game} />;
   };
 
-  const lockedCount = allPicks.filter(g => g.isLocked === true).length;
+  const ListHeader = (
+    <View style={{ backgroundColor: colors.background }}>
+      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
+        <Text style={[styles.title, { color: colors.foreground }]}>Today's Picks</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+          {isLoading
+            ? 'Loading picks…'
+            : allPicks.length > 0
+              ? `${allPicks.length} games · ranked by model rating`
+              : 'No picks yet today'}
+        </Text>
+      </View>
+
+      {/* Summary strip — only when data is ready */}
+      {!isLoading && allPicks.length > 0 && (
+        <View style={[styles.summaryStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {RATING_ORDER.map((r, i) => (
+            <React.Fragment key={r}>
+              {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
+              <View style={styles.summaryCell}>
+                <Text style={[styles.summaryVal, { color: RATING_COLORS[r] }]}>
+                  {counts[r] ?? 0}
+                </Text>
+                <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+                  {r === 'Strong Buy' ? 'STR BUY' : r.toUpperCase()}
+                </Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+      )}
+
+      {/* Locked picks banner */}
+      {!isLoading && lockedCount > 0 && (
+        <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
+          <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
+            🔒 Showing {FREE_PICKS} of {allPicks.length} picks today — unlock all with Pro
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <FlatList
+          data={Array.from({ length: SKELETON_COUNT })}
+          keyExtractor={(_, i) => `skel-${i}`}
+          renderItem={() => <GameCardSkeleton />}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={{ paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90 }}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -128,9 +173,7 @@ export default function PicksScreen() {
           item.type === 'header' ? `hdr-${item.rating}` : item.game.id
         }
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
-        }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90 }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -140,65 +183,9 @@ export default function PicksScreen() {
           />
         }
         renderItem={renderItem}
-        ListHeaderComponent={
-          <View style={{ backgroundColor: colors.background }}>
-            {/* Page header */}
-            <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
-              <Text style={[styles.title, { color: colors.foreground }]}>Today's Picks</Text>
-              <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-                {isLoading ? 'Loading…' : `${allPicks.length} games · ranked by model rating`}
-              </Text>
-            </View>
-
-            {isLoading && (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-                  Fetching live picks…
-                </Text>
-              </View>
-            )}
-
-            {/* Summary strip */}
-            {!isLoading && allPicks.length > 0 && (
-              <View style={[styles.summaryStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                {RATING_ORDER.map((r, i) => (
-                  <React.Fragment key={r}>
-                    {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-                    <View style={styles.summaryCell}>
-                      <Text style={[styles.summaryVal, { color: RATING_COLORS[r] }]}>
-                        {counts[r] ?? 0}
-                      </Text>
-                      <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
-                        {r === 'Strong Buy' ? 'STR BUY' : r.toUpperCase()}
-                      </Text>
-                    </View>
-                  </React.Fragment>
-                ))}
-              </View>
-            )}
-
-            {/* Locked picks banner for non-subscribers */}
-            {lockedCount > 0 && (
-              <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
-                <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
-                  🔒 Showing {FREE_PICKS} of {allPicks.length} picks today — unlock all with Pro
-                </Text>
-              </View>
-            )}
-          </View>
-        }
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.empty}>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                No picks available yet today
-              </Text>
-            </View>
-          ) : null
-        }
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={<EmptyState message="No picks available yet today. Pull down to refresh." />}
       />
-
     </View>
   );
 }
@@ -208,11 +195,6 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 12 },
   title: { fontSize: 28, fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  loadingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 4, marginBottom: 8,
-  },
-  loadingText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   summaryStrip: {
     marginHorizontal: 16, marginBottom: 12,
     borderRadius: 12, borderWidth: 1,
@@ -234,11 +216,6 @@ const styles = StyleSheet.create({
     paddingLeft: 10, borderLeftWidth: 3, borderRadius: 1,
   },
   sectionTitle: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.5, flex: 1 },
-  sectionBadge: {
-    paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 10, borderWidth: 1,
-  },
+  sectionBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
   sectionCount: { fontSize: 11, fontFamily: 'Inter_700Bold' },
-  empty: { padding: 40, alignItems: 'center' },
-  emptyText: { fontSize: 15, fontFamily: 'Inter_400Regular' },
 });

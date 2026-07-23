@@ -7,7 +7,6 @@ import { useClerk, useUser } from '@clerk/expo';
 import { useColors } from '@/hooks/useColors';
 import { useGetModelStats, useGetGamesToday } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
-import { MOCK_GAMES } from '@/data/mockGames';
 import { useRouter } from 'expo-router';
 import { useSubscription } from '@/lib/revenuecat';
 import PaywallModal from '@/app/paywall';
@@ -32,7 +31,7 @@ export default function ProfileScreen() {
 
   const todayGames = React.useMemo(() => {
     if (gamesData?.games && gamesData.games.length > 0) return gamesData.games.map(mapApiGame);
-    return MOCK_GAMES;
+    return [];
   }, [gamesData]);
 
   const strongBuys = todayGames.filter(g => g.projection.valueRating === 'Strong Buy').length;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { WinBar } from '@/components/WinBar';
 import { ValueBadge } from '@/components/ValueBadge';
@@ -48,7 +49,7 @@ interface GameCardProps {
 
 export function GameCard({ game }: GameCardProps) {
   const colors = useColors();
-  const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
+  const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine, insights } = game;
   const sportColor = SPORT_COLORS[sport] ?? colors.primary;
 
   return (
@@ -112,6 +113,21 @@ export function GameCard({ game }: GameCardProps) {
               ? `${homeTeam.city} ${homeTeam.name}`
               : `${awayTeam.city} ${awayTeam.name}`}
           </Text>
+        </View>
+      )}
+
+      {/* Insight chips — why the model likes this game */}
+      {insights && insights.length > 0 && (
+        <View style={styles.insightsRow}>
+          {insights.map((text, i) => (
+            <View
+              key={i}
+              style={[styles.insightChip, { backgroundColor: colors.muted, borderColor: colors.border }]}
+            >
+              <Feather name="trending-up" size={10} color={colors.mutedForeground} />
+              <Text style={[styles.insightText, { color: colors.mutedForeground }]}>{text}</Text>
+            </View>
+          ))}
         </View>
       )}
 
@@ -183,4 +199,19 @@ const styles = StyleSheet.create({
   },
   pickLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
   pickTeam: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  insightsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  insightChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  insightText: { fontSize: 10, fontFamily: 'Inter_500Medium' },
 });

@@ -22,6 +22,11 @@ export interface Game {
   status: 'upcoming' | 'live' | 'final';
   /** True when the server has gated this game's premium data (non-subscriber). */
   isLocked?: boolean;
+  /**
+   * 1–2 human-readable signals explaining why the model favours this pick.
+   * Computed in the client adapter from projection fields; not stored on the server.
+   */
+  insights?: string[];
   projection: {
     homeWinPct: number;
     confidence: ConfidenceLevel;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { WinBar } from '@/components/WinBar';
 import { ValueBadge } from '@/components/ValueBadge';
@@ -16,7 +17,7 @@ interface FeaturedPickProps {
 
 export function FeaturedPick({ game }: FeaturedPickProps) {
   const colors = useColors();
-  const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
+  const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine, insights } = game;
   const diff = projection.projectedSpread - vegasLine.spread;
   const isFade = projection.valueRating === 'Fade';
   const isNeutral = projection.valueRating === 'Neutral';
@@ -129,6 +130,22 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           awayAbbr={awayTeam.abbr}
         />
 
+        {/* Model signals — why the model likes this game */}
+        {insights && insights.length > 0 && (
+          <View style={[styles.insightsBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <View style={styles.insightsHeader}>
+              <Feather name="cpu" size={11} color={colors.mutedForeground} />
+              <Text style={[styles.insightsTitle, { color: colors.mutedForeground }]}>MODEL SIGNALS</Text>
+            </View>
+            {insights.map((text, i) => (
+              <View key={i} style={styles.insightRow}>
+                <View style={[styles.insightDot, { backgroundColor: colors.gold }]} />
+                <Text style={[styles.insightText, { color: colors.foreground }]}>{text}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Model vs Vegas spread comparison */}
         <View style={styles.compRow}>
           <View style={[styles.compBlock, { backgroundColor: colors.goldBg, borderColor: colors.gold + '55' }]}>
@@ -187,6 +204,18 @@ const styles = StyleSheet.create({
   statVal: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   statLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 },
   divider: { width: 1, marginVertical: 2 },
+  insightsBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  insightsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  insightsTitle: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  insightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  insightDot: { width: 5, height: 5, borderRadius: 3 },
+  insightText: { fontSize: 12, fontFamily: 'Inter_400Regular', flex: 1 },
   compRow: { flexDirection: 'row', gap: 8 },
   compBlock: { flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', gap: 4 },
   compLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
