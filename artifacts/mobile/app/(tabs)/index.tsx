@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   FlatList,
-  Image,
   Platform,
   RefreshControl,
   StyleSheet,
@@ -74,21 +73,33 @@ export default function TodayScreen() {
       {/* App header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
         <View style={styles.headerRow}>
-          <View style={styles.logoRow}>
-            <Image
-              source={require('@/assets/images/icon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={[styles.date, { color: colors.mutedForeground }]}>{today}</Text>
+          <View>
+            <Text style={[styles.brandName, { color: colors.foreground }]}>TBM</Text>
+            <Text style={[styles.brandSub, { color: colors.primary }]}>PICKS ENGINE</Text>
           </View>
-          {lastUpdated && (
-            <Text style={[styles.updated, { color: colors.mutedForeground }]}>
-              Updated {lastUpdated}
+          <View style={styles.headerRight}>
+            <Text style={[styles.date, { color: colors.mutedForeground }]}>
+              TODAY / {today.toUpperCase()}
             </Text>
-          )}
+            {lastUpdated && (
+              <Text style={[styles.updated, { color: colors.mutedForeground }]}>
+                Updated {lastUpdated}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
+
+      {/* Games count badge */}
+      {!isLoading && allGames.length > 0 && (
+        <View style={styles.badgeRow}>
+          <View style={[styles.gamesBadge, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '66' }]}>
+            <Text style={[styles.gamesBadgeText, { color: colors.primary }]}>
+              {allGames.length} GAMES TODAY
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Sport filter */}
       <SportFilter />
@@ -96,7 +107,10 @@ export default function TodayScreen() {
       {/* Featured pick — only when data is ready */}
       {!isLoading && selectedSport === 'All' && topPick && (
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TOP PICK TODAY</Text>
+          <View style={styles.sectionLabelRow}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TODAY'S MATCHUPS</Text>
+            <View style={[styles.sectionLine, { backgroundColor: colors.primary }]} />
+          </View>
           <FeaturedPick game={topPick} />
         </View>
       )}
@@ -111,10 +125,13 @@ export default function TodayScreen() {
       )}
 
       {!isLoading && (
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginHorizontal: 16, marginTop: 20 }]}>
-          {selectedSport === 'All' ? 'ALL GAMES' : `${selectedSport} GAMES`}
-          {filteredGames.length > 0 && ` · ${filteredGames.length}`}
-        </Text>
+        <View style={[styles.sectionLabelRow, { marginHorizontal: 16, marginTop: 20 }]}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            {selectedSport === 'All' ? 'ALL GAMES' : `${selectedSport} GAMES`}
+            {filteredGames.length > 0 && ` · ${filteredGames.length}`}
+          </Text>
+          <View style={[styles.sectionLine, { backgroundColor: colors.primary }]} />
+        </View>
       )}
     </View>
   );
@@ -165,19 +182,36 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { paddingHorizontal: 16, paddingBottom: 4 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logoRow: { flexDirection: 'column', alignItems: 'flex-start' },
-  logo: { width: 120, height: 40, borderRadius: 8 },
-  date: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 3 },
-  updated: { fontSize: 11, fontFamily: 'Inter_400Regular' },
+  header: { paddingHorizontal: 16, paddingBottom: 8 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  brandName: { fontSize: 30, fontFamily: 'Inter_700Bold', letterSpacing: -1, lineHeight: 32 },
+  brandSub: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 3, marginTop: 2 },
+  headerRight: { alignItems: 'flex-end', gap: 2 },
+  date: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase' },
+  updated: { fontSize: 10, fontFamily: 'Inter_400Regular' },
+  badgeRow: { paddingHorizontal: 16, marginBottom: 4 },
+  gamesBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  gamesBadgeText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
   section: { paddingHorizontal: 16, marginTop: 4 },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.5,
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginBottom: 10,
   },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  sectionLine: { width: 28, height: 2, borderRadius: 1 },
   lockedBanner: {
     marginHorizontal: 16,
     marginTop: 12,

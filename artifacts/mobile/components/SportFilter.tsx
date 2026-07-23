@@ -27,7 +27,7 @@ export function SportFilter() {
             style={[
               styles.chip,
               {
-                backgroundColor: active ? colors.primary : colors.card,
+                backgroundColor: active ? colors.primary : 'transparent',
                 borderColor: active ? colors.primary : colors.border,
               },
             ]}

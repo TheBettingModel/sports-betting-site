@@ -1,10 +1,7 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
-import { WinBar } from '@/components/WinBar';
 import { ValueBadge } from '@/components/ValueBadge';
-import { getTeamLogoUrl } from '@/utils/teamLogo';
 import type { Game } from '@/data/mockGames';
 
 function fmtOdds(odds: number): string {
@@ -18,218 +15,189 @@ interface FeaturedPickProps {
 export function FeaturedPick({ game }: FeaturedPickProps) {
   const colors = useColors();
   const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine, insights } = game;
-  const diff = projection.projectedSpread - vegasLine.spread;
   const isFade = projection.valueRating === 'Fade';
   const isNeutral = projection.valueRating === 'Neutral';
   const pickTeam = projection.edge >= 0 ? homeTeam : awayTeam;
   const edgeAbs = Math.abs(projection.edge);
 
-  const homeLogo = getTeamLogoUrl(sport, homeTeam.abbr, homeTeam.espnId);
-  const awayLogo = getTeamLogoUrl(sport, awayTeam.abbr, awayTeam.espnId);
-
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gold }]}>
-      {/* Header bar */}
-      <View style={[styles.goldBar, { backgroundColor: colors.gold }]}>
-        <Text style={[styles.goldBarText, { color: colors.primaryForeground }]}>
-          MODEL CONFIDENCE: {projection.confidence.toUpperCase()} · {projection.modelScore}/100
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Lime gradient header band */}
+      <View style={styles.gradientBand}>
+        <Text style={styles.bandLeft}>
+          {sport} · ⭐ TOP PICK
         </Text>
+        <Text style={styles.bandRight}>{gameTime}</Text>
       </View>
 
       <View style={styles.body}>
-        {/* Sport + time + badge */}
-        <View style={styles.headerRow}>
-          <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-            {sport} · {gameTime}
+        {/* Matchup heading */}
+        <View style={styles.matchupRow}>
+          <Text style={[styles.matchupText, { color: colors.foreground }]}>
+            {homeTeam.abbr}{' '}
+            <Text style={[styles.vsText, { color: colors.mutedForeground }]}>vs</Text>
+            {' '}{awayTeam.abbr}
           </Text>
+          <Text style={[styles.matchupFull, { color: colors.mutedForeground }]}>
+            {homeTeam.city} {homeTeam.name} vs {awayTeam.city} {awayTeam.name}
+          </Text>
+        </View>
+
+        {/* Model score + badge */}
+        <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
+          <View>
+            <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>MODEL SCORE</Text>
+            <View style={styles.scoreInline}>
+              <Text style={[styles.scoreNum, { color: colors.foreground }]}>
+                {projection.modelScore}
+              </Text>
+              <Text style={[styles.scoreDenom, { color: colors.primary }]}>/100</Text>
+            </View>
+          </View>
           <ValueBadge rating={projection.valueRating} />
         </View>
 
-        {/* Model pick banner */}
+        {/* Win probability + edge */}
         {!isFade && !isNeutral && (
-          <View style={[styles.pickBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '55' }]}>
-            <Text style={[styles.pickLabel, { color: colors.mutedForeground }]}>MODEL PICK</Text>
-            <Text style={[styles.pickTeam, { color: colors.gold }]}>
-              {pickTeam.city} {pickTeam.name}
-            </Text>
-            <Text style={[styles.pickEdge, { color: colors.gold }]}>
-              · +{edgeAbs.toFixed(1)}% EDGE
-            </Text>
+          <View style={styles.winRow}>
+            <View>
+              <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>WIN PROBABILITY</Text>
+              <Text style={[styles.winPct, { color: colors.foreground }]}>
+                {projection.homeWinPct}%{' '}
+                <Text style={[styles.winSub, { color: colors.mutedForeground }]}>HOME WIN</Text>
+              </Text>
+            </View>
+            <View style={[styles.edgeChip, { backgroundColor: colors.primary + '1A' }]}>
+              <Text style={[styles.edgeText, { color: colors.primary }]}>
+                EDGE: {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
+              </Text>
+            </View>
           </View>
         )}
 
-        {/* Teams with logos */}
-        <View style={styles.teamsRow}>
-          {/* Home */}
-          <View style={styles.teamBlock}>
-            {homeLogo && (
-              <Image
-                source={{ uri: homeLogo }}
-                style={styles.logo}
-                resizeMode="contain"
-                defaultSource={require('@/assets/images/icon.png')}
-              />
-            )}
-            <Text style={[styles.abbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
-            <Text style={[styles.teamFull, { color: colors.mutedForeground }]}>
-              {homeTeam.city} {homeTeam.name}
-            </Text>
-            <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
-          </View>
-
-          <View style={styles.vsBlock}>
-            <Text style={[styles.vs, { color: colors.mutedForeground }]}>VS</Text>
-          </View>
-
-          {/* Away */}
-          <View style={[styles.teamBlock, styles.teamRight]}>
-            {awayLogo && (
-              <Image
-                source={{ uri: awayLogo }}
-                style={styles.logo}
-                resizeMode="contain"
-                defaultSource={require('@/assets/images/icon.png')}
-              />
-            )}
-            <Text style={[styles.abbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
-            <Text style={[styles.teamFull, { color: colors.mutedForeground }]}>
-              {awayTeam.city} {awayTeam.name}
-            </Text>
-            <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
-          </View>
+        {/* Vegas row */}
+        <View style={[styles.vegasRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.vegasItem, { color: colors.mutedForeground }]}>
+            VEGAS · {fmtOdds(vegasLine.homeOdds)}
+          </Text>
+          <Text style={[styles.vegasDivider, { color: colors.border }]}>|</Text>
+          <Text style={[styles.vegasItem, { color: colors.mutedForeground }]}>
+            O/U · {vegasLine.total}
+          </Text>
+          <Text style={[styles.vegasDivider, { color: colors.border }]}>|</Text>
+          <Text style={[styles.vegasItem, { color: colors.mutedForeground }]}>
+            SPREAD · {vegasLine.spread > 0 ? '+' : ''}{vegasLine.spread}
+          </Text>
         </View>
 
-        {/* Stats row */}
-        <View style={[styles.statsRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
-          <View style={styles.stat}>
-            <Text style={[styles.statVal, { color: colors.win }]}>
-              {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>EDGE</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.stat}>
-            <Text style={[styles.statVal, { color: colors.foreground }]}>
-              {projection.homeWinPct}%
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>WIN PROB</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.stat}>
-            <Text style={[styles.statVal, { color: colors.foreground }]}>
-              {fmtOdds(vegasLine.homeOdds)}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>ML ODDS</Text>
-          </View>
-        </View>
-
-        {/* Win bar */}
-        <WinBar
-          homeWinPct={projection.homeWinPct}
-          homeAbbr={homeTeam.abbr}
-          awayAbbr={awayTeam.abbr}
-        />
-
-        {/* Model signals — why the model likes this game */}
+        {/* Model signals — kept as a compact chip row */}
         {insights && insights.length > 0 && (
-          <View style={[styles.insightsBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <View style={styles.insightsHeader}>
-              <Feather name="cpu" size={11} color={colors.mutedForeground} />
-              <Text style={[styles.insightsTitle, { color: colors.mutedForeground }]}>MODEL SIGNALS</Text>
-            </View>
-            {insights.map((text, i) => (
-              <View key={i} style={styles.insightRow}>
-                <View style={[styles.insightDot, { backgroundColor: colors.gold }]} />
-                <Text style={[styles.insightText, { color: colors.foreground }]}>{text}</Text>
+          <View style={styles.insightsRow}>
+            {insights.slice(0, 2).map((text, i) => (
+              <View
+                key={i}
+                style={[styles.insightChip, { backgroundColor: colors.muted, borderColor: colors.border }]}
+              >
+                <Text style={[styles.insightText, { color: colors.mutedForeground }]}>{text}</Text>
               </View>
             ))}
           </View>
         )}
-
-        {/* Model vs Vegas spread comparison */}
-        <View style={styles.compRow}>
-          <View style={[styles.compBlock, { backgroundColor: colors.goldBg, borderColor: colors.gold + '55' }]}>
-            <Text style={[styles.compLabel, { color: colors.gold }]}>MODEL LINE</Text>
-            <Text style={[styles.compVal, { color: colors.foreground }]}>
-              {projection.projectedSpread > 0 ? '+' : ''}{projection.projectedSpread}
-            </Text>
-          </View>
-          <View style={[styles.compBlock, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <Text style={[styles.compLabel, { color: colors.mutedForeground }]}>VEGAS LINE</Text>
-            <Text style={[styles.compVal, { color: colors.foreground }]}>
-              {vegasLine.spread > 0 ? '+' : ''}{vegasLine.spread}
-            </Text>
-          </View>
-          <View style={[
-            styles.compBlock,
-            {
-              backgroundColor: diff > 0 ? colors.winBg : colors.lossBg,
-              borderColor: (diff > 0 ? colors.win : colors.loss) + '55',
-            },
-          ]}>
-            <Text style={[styles.compLabel, { color: diff > 0 ? colors.win : colors.loss }]}>DISCREPANCY</Text>
-            <Text style={[styles.compVal, { color: diff > 0 ? colors.win : colors.loss }]}>
-              {diff > 0 ? '+' : ''}{diff.toFixed(1)}
-            </Text>
-          </View>
-        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 1.5, overflow: 'hidden' },
-  goldBar: { paddingVertical: 8, paddingHorizontal: 14 },
-  goldBarText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
-  body: { padding: 16, gap: 14 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  meta: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  teamsRow: { flexDirection: 'row', alignItems: 'center' },
-  teamBlock: { flex: 1, gap: 2 },
-  teamRight: { alignItems: 'flex-end' },
-  logo: { width: 64, height: 64, marginBottom: 6 },
-  abbr: { fontSize: 28, fontFamily: 'Inter_700Bold' },
-  teamFull: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  record: { fontSize: 11, fontFamily: 'Inter_400Regular' },
-  vsBlock: { paddingHorizontal: 12, alignSelf: 'center' },
-  vs: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  statsRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    paddingVertical: 12,
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
-  stat: { flex: 1, alignItems: 'center', gap: 2 },
-  statVal: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  statLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 },
-  divider: { width: 1, marginVertical: 2 },
-  insightsBox: {
-    borderRadius: 10,
+
+  // Gradient band — simulated with solid lime (RN doesn't support CSS gradients; LinearGradient optional)
+  gradientBand: {
+    backgroundColor: '#84CC16',
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bandLeft: {
+    color: '#000000',
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.3,
+  },
+  bandRight: {
+    color: 'rgba(0,0,0,0.65)',
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+  },
+
+  body: { padding: 16, gap: 16 },
+
+  // Matchup
+  matchupRow: { gap: 2 },
+  matchupText: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.5, lineHeight: 32 },
+  vsText: { fontSize: 18, fontFamily: 'Inter_700Bold' },
+  matchupFull: { fontSize: 12, fontFamily: 'Inter_400Regular' },
+
+  // Score
+  scoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    borderBottomWidth: 1,
+    paddingBottom: 16,
+  },
+  scoreLabel: {
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  scoreInline: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+  scoreNum: { fontSize: 56, fontFamily: 'Inter_700Bold', lineHeight: 60, letterSpacing: -1 },
+  scoreDenom: { fontSize: 20, fontFamily: 'Inter_700Bold', marginBottom: 6 },
+
+  // Win prob
+  winRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  winPct: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.5 },
+  winSub: { fontSize: 16, fontFamily: 'Inter_700Bold' },
+  edgeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignSelf: 'flex-end',
+  },
+  edgeText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+
+  // Vegas
+  vegasRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 8,
     borderWidth: 1,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    gap: 8,
   },
-  insightsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  insightsTitle: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
-  insightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  insightDot: { width: 5, height: 5, borderRadius: 3 },
-  insightText: { fontSize: 12, fontFamily: 'Inter_400Regular', flex: 1 },
-  compRow: { flexDirection: 'row', gap: 8 },
-  compBlock: { flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', gap: 4 },
-  compLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
-  compVal: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  pickBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 8,
+  vegasItem: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.5, textTransform: 'uppercase' },
+  vegasDivider: { fontSize: 14 },
+
+  // Insights
+  insightsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  insightChip: {
+    borderRadius: 6,
     borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  pickLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
-  pickTeam: { fontSize: 14, fontFamily: 'Inter_700Bold' },
-  pickEdge: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  insightText: { fontSize: 10, fontFamily: 'Inter_500Medium' },
 });
