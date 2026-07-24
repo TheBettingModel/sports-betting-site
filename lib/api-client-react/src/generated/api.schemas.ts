@@ -15,6 +15,8 @@ export interface GameProjection {
   league?: string | null;
   homeTeamId?: string | null;
   awayTeamId?: string | null;
+  homeTeamLogo?: string | null;
+  awayTeamLogo?: string | null;
   homeTeamAbbr: string;
   homeTeamName: string;
   homeTeamRecord: string;

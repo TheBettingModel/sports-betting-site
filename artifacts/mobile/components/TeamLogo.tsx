@@ -4,18 +4,23 @@ import { getTeamLogoUrl } from '@/utils/teamLogos';
 
 interface TeamLogoProps {
   sport: string;
-  espnId?: string;
   abbr: string;
+  /** Stored ESPN CDN URL (future use). When present, preferred over the constructed URL. */
+  logoUrl?: string;
   size?: number;
 }
 
 /**
- * Renders an ESPN team logo image. Falls back to the text abbreviation
- * if the sport has no logo URL (UFC) or if the image fails to load.
+ * Renders an ESPN team logo image.
+ *
+ * URL priority:
+ *   1. logoUrl — explicitly stored URL captured at ingestion (future path)
+ *   2. Abbreviation-based ESPN CDN URL — constructed from team abbr, always current
+ *   3. Text abbreviation fallback — shown if the sport has no logos (UFC) or image errors
  */
-export function TeamLogo({ sport, espnId, abbr, size = 40 }: TeamLogoProps) {
+export function TeamLogo({ sport, abbr, logoUrl, size = 40 }: TeamLogoProps) {
   const [failed, setFailed] = useState(false);
-  const uri = getTeamLogoUrl(sport, espnId);
+  const uri = logoUrl ?? getTeamLogoUrl(sport, abbr);
 
   if (uri && !failed) {
     return (

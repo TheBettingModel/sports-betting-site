@@ -7,8 +7,10 @@ export interface Team {
   abbr: string;
   record: string;
   city: string;
-  /** ESPN numeric team ID — used to resolve logo URLs for any league */
+  /** ESPN numeric team ID */
   espnId?: string;
+  /** ESPN CDN logo URL — stored at ingestion time, always current */
+  logoUrl?: string;
 }
 
 export interface Game {

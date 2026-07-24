@@ -16,8 +16,10 @@ export const gamesTable = pgTable("games", {
   sport: text("sport").notNull(),
   league: text("league"),                   // sub-league label (e.g. "EPL", "MLS")
 
-  homeTeamId: text("home_team_id"),         // ESPN numeric team ID — used for logo URLs
+  homeTeamId: text("home_team_id"),         // ESPN numeric team ID
   awayTeamId: text("away_team_id"),
+  homeTeamLogo: text("home_team_logo"),     // ESPN CDN logo URL captured at ingestion time
+  awayTeamLogo: text("away_team_logo"),
 
   homeTeamAbbr: text("home_team_abbr").notNull(),
   homeTeamName: text("home_team_name").notNull(),

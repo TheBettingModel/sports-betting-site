@@ -61,6 +61,7 @@ interface EspnTeam {
   abbreviation?: string;
   displayName?: string;
   shortDisplayName?: string;
+  logos?: Array<{ href: string; rel?: string[] }>;
 }
 
 interface EspnAthlete {
@@ -119,8 +120,10 @@ export interface FetchedGame {
   league?: string;        // sub-league label (e.g. "EPL", "MLS", "La Liga")
 
   // Team identifiers
-  homeTeamId?: string;    // ESPN numeric team ID — used for logo URLs
+  homeTeamId?: string;    // ESPN numeric team ID
   awayTeamId?: string;
+  homeTeamLogo?: string;  // ESPN CDN logo URL, captured directly from API response
+  awayTeamLogo?: string;
   homeTeamAbbr: string;
   homeTeamName: string;
   awayTeamAbbr: string;
@@ -326,6 +329,8 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 
         homeTeamId: home.team?.id,
         awayTeamId: away.team?.id,
+        homeTeamLogo: home.team?.logos?.[0]?.href,
+        awayTeamLogo: away.team?.logos?.[0]?.href,
         homeTeamAbbr: homeAbbr,
         homeTeamName: getDisplayName(home),
         awayTeamAbbr: getAbbr(away),
@@ -410,6 +415,8 @@ export async function fetchSportGamesByDate(
         league,
         homeTeamId:       home.team?.id,
         awayTeamId:       away.team?.id,
+        homeTeamLogo:     home.team?.logos?.[0]?.href,
+        awayTeamLogo:     away.team?.logos?.[0]?.href,
         homeTeamAbbr:     homeAbbr,
         homeTeamName:     getDisplayName(home),
         awayTeamAbbr:     getAbbr(away),
