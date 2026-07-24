@@ -29,9 +29,20 @@ export const modelWeightsTable = pgTable("model_weights", {
   totalPredictions: integer("total_predictions").notNull().default(0),
   correctPredictions: integer("correct_predictions").notNull().default(0),
 
-  // Per-rating accuracy
+  // Per-rating accuracy (legacy: Strong Buy / Buy)
   strongBuyAccuracy: real("strong_buy_accuracy").notNull().default(0.5),
   buyAccuracy: real("buy_accuracy").notNull().default(0.5),
+
+  // Per-tier accuracy (Phase 1 tiers: Elite / Strong / Playable)
+  eliteAccuracy: real("elite_accuracy").notNull().default(0.5),
+  strongAccuracy: real("strong_accuracy").notNull().default(0.5),
+  playableAccuracy: real("playable_accuracy").notNull().default(0.5),
+
+  // Brier score — probabilistic calibration quality.
+  // Range 0–1; lower is better. Random baseline = 0.25.
+  // Tracks how well model probabilities match observed frequencies,
+  // separate from the binary accuracyRate displayed to users.
+  brierScore: real("brier_score").notNull().default(0.25),
 
   // Multiplier applied to model confidence deviation from 50%.
   // > 1.0 = model is performing well, amplify edges.

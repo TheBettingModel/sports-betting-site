@@ -136,6 +136,12 @@ router.get("/model/stats", async (_req, res): Promise<void> => {
       strongBuyAccuracy,
       buyAccuracy,
       avgClv,
+      // EMA-derived calibration quality (lower Brier = better)
+      brierScore: w?.brierScore ?? 0.25,
+      // Per-tier accuracy (Elite / Strong / Playable)
+      eliteAccuracy: w?.eliteAccuracy ?? null,
+      strongAccuracy: w?.strongAccuracy ?? null,
+      playableAccuracy: w?.playableAccuracy ?? null,
       // EMA-derived (still used by prediction engine)
       confidenceMultiplier: w?.confidenceMultiplier ?? 1.0,
       lastLearnedAt: w?.lastLearnedAt?.toISOString() ?? null,
