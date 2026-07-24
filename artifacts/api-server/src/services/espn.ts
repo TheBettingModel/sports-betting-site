@@ -364,6 +364,87 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/**
+ * Fetch games for a specific sport key on a specific date (YYYYMMDD).
+ * Used by the stale-game recovery process to backfill results that fell
+ * off the current-day scoreboard feed.
+ */
+export async function fetchSportGamesByDate(
+  sportKey: string,
+  yyyymmdd: string,
+): Promise<FetchedGame[]> {
+  const path = ESPN_SPORT_PATHS[sportKey];
+  if (!path) return [];
+
+  const sport = SPORT_FOR_KEY[sportKey] ?? sportKey;
+  const league = LEAGUE_LABEL[sportKey];
+
+  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${yyyymmdd}&limit=100`;
+
+  try {
+    const resp = await fetchWithRetry(url, {
+      headers: { "User-Agent": "TheBettingModel/1.0" },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const data = (await resp.json()) as EspnScoreboard;
+    const events = data.events ?? [];
+    const games: FetchedGame[] = [];
+
+    for (const event of events) {
+      const competition = event.competitions[0];
+      if (!competition) continue;
+
+      const home = competition.competitors.find((c) => c.homeAway === "home");
+      const away = competition.competitors.find((c) => c.homeAway === "away");
+      if (!home || !away) continue;
+
+      const eventDate = new Date(event.date);
+      const gameDate = toEasternDate(eventDate);
+      const homeAbbr = getAbbr(home);
+      const { homeOdds, awayOdds, drawOdds, overUnder } = extractOdds(competition, homeAbbr);
+
+      games.push({
+        espnId: `${sport}-${event.id}`,
+        sport,
+        league,
+        homeTeamId:       home.team?.id,
+        awayTeamId:       away.team?.id,
+        homeTeamAbbr:     homeAbbr,
+        homeTeamName:     getDisplayName(home),
+        awayTeamAbbr:     getAbbr(away),
+        awayTeamName:     getDisplayName(away),
+        homeTeamRecord:   getOverallRecord(home),
+        awayTeamRecord:   getOverallRecord(away),
+        homeHomeRecord:   getHomeRecord(home),
+        homeRoadRecord:   getRoadRecord(home),
+        awayHomeRecord:   getHomeRecord(away),
+        awayRoadRecord:   getRoadRecord(away),
+        gameTime:         formatGameTime(event.date),
+        gameDate,
+        status:           getStatus(event),
+        homeScore:        home.score !== undefined ? parseInt(home.score, 10) : undefined,
+        awayScore:        away.score !== undefined ? parseInt(away.score, 10) : undefined,
+        vegasHomeOdds:    homeOdds ?? undefined,
+        vegasAwayOdds:    awayOdds ?? undefined,
+        vegasDrawOdds:    drawOdds ?? undefined,
+        vegasOverUnder:   overUnder ?? undefined,
+      });
+    }
+
+    logger.info({ sportKey, yyyymmdd, count: games.length }, "ESPN historical games fetched");
+    return games;
+  } catch (err) {
+    logger.error({ err, sportKey, yyyymmdd }, "ESPN historical fetch failed");
+    return [];
+  }
+}
+
+/** All sport keys that map to the "Soccer" canonical sport. */
+export const SOCCER_SPORT_KEYS = Object.keys(ESPN_SPORT_PATHS).filter(
+  (k) => (SPORT_FOR_KEY[k] ?? k) === "Soccer",
+);
+
 export async function fetchAllSports(): Promise<FetchedGame[]> {
   const results = await Promise.allSettled(
     Object.keys(ESPN_SPORT_PATHS).map(fetchSportGames),

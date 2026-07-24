@@ -18,7 +18,7 @@ import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, pub
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
-import { runGrading } from "./grading-runner";
+import { runGrading, recoverStaleGames } from "./grading-runner";
 import { runAnalytics } from "./analytics";
 import { checkPendingPushReceipts } from "./pushReceipts";
 import { runDriftMonitor } from "./driftMonitor";
@@ -578,10 +578,16 @@ async function runResultGrading(): Promise<void> {
       } catch (_) { /* continue */ }
     }
 
+    // Recover any games stuck in non-final status from past dates
+    const recovered = await recoverStaleGames();
+    if (recovered > 0) {
+      logger.info({ recovered }, "Scheduler: stale games recovered");
+    }
+
     const graded = await runGrading();
 
     await finishRun(runId, "completed", graded);
-    logger.info({ snapshots, graded }, "Scheduler: result-grading complete");
+    logger.info({ snapshots, recovered, graded }, "Scheduler: result-grading complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await finishRun(runId, "failed", 0, msg);

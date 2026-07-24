@@ -1,8 +1,9 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, lt, ne } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
   gameResultsTable,
+  gamesTable,
   marketsTable,
   pickResultsTable,
   publishedPicksTable,
@@ -15,6 +16,7 @@ import {
   calculateUnits,
   type GradeResult,
 } from "./grading";
+import { fetchSportGamesByDate, SOCCER_SPORT_KEYS } from "./espn";
 import { runAnalytics } from "./analytics";
 import { logger } from "../lib/logger";
 
@@ -167,6 +169,112 @@ export async function runGrading(): Promise<number> {
   }
 
   return graded;
+}
+
+/**
+ * Backfill game results for any game stuck in "live" or "upcoming" status
+ * from a past date. This handles the case where the grading job didn't catch
+ * a game going final before it fell off the ESPN current-day scoreboard feed.
+ *
+ * Returns the number of game_results newly written.
+ */
+export async function recoverStaleGames(): Promise<number> {
+  const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+
+  // Find games stuck in non-final status from past dates
+  const staleGames = await db
+    .select({
+      id:      gamesTable.id,
+      sport:   gamesTable.sport,
+      gameDate: gamesTable.gameDate,
+      status:  gamesTable.status,
+    })
+    .from(gamesTable)
+    .where(
+      and(
+        ne(gamesTable.status, "final"),
+        lt(gamesTable.gameDate, todayStr),
+      ),
+    );
+
+  if (staleGames.length === 0) return 0;
+
+  logger.info(
+    { count: staleGames.length },
+    "Stale game recovery: found games to check",
+  );
+
+  // Group by (sport, gameDate) to minimise ESPN API calls
+  const pairs = new Map<string, { sport: string; gameDate: string }>();
+  for (const g of staleGames) {
+    pairs.set(`${g.sport}|${g.gameDate}`, { sport: g.sport, gameDate: g.gameDate });
+  }
+
+  const staleIds = new Set(staleGames.map((g) => g.id));
+  let recovered = 0;
+
+  for (const { sport, gameDate } of pairs.values()) {
+    const yyyymmdd = gameDate.replace(/-/g, "");
+
+    // Soccer uses several sport-keys — try all of them and deduplicate
+    const sportKeys =
+      sport === "Soccer"
+        ? SOCCER_SPORT_KEYS
+        : [sport]; // for all other sports the key equals the sport name
+
+    const seen = new Set<string>();
+    for (const key of sportKeys) {
+      const espnGames = await fetchSportGamesByDate(key, yyyymmdd);
+      for (const eg of espnGames) {
+        if (seen.has(eg.espnId) || !staleIds.has(eg.espnId)) continue;
+        if (eg.status !== "final") continue;
+        if (eg.homeScore === undefined || eg.awayScore === undefined) continue;
+
+        seen.add(eg.espnId);
+
+        // Check whether a game_result already exists (idempotent)
+        const [existing] = await db
+          .select({ id: gameResultsTable.id })
+          .from(gameResultsTable)
+          .where(eq(gameResultsTable.gameId, eg.espnId))
+          .limit(1);
+
+        if (existing) {
+          // Result already written — just update the games table status
+          await db
+            .update(gamesTable)
+            .set({ status: "final" })
+            .where(eq(gamesTable.id, eg.espnId));
+          continue;
+        }
+
+        const homeWon = eg.homeScore > eg.awayScore;
+        await db.insert(gameResultsTable).values({
+          gameId:        eg.espnId,
+          homeScore:     eg.homeScore,
+          awayScore:     eg.awayScore,
+          homeTeamWon:   homeWon,
+          gradedAt:      new Date(),
+          gradingSource: "espn_recovery",
+        });
+
+        // Sync the games table status too
+        await db
+          .update(gamesTable)
+          .set({ status: "final" })
+          .where(eq(gamesTable.id, eg.espnId));
+
+        recovered++;
+        logger.info(
+          { gameId: eg.espnId, sport, homeScore: eg.homeScore, awayScore: eg.awayScore },
+          "Stale game recovered",
+        );
+      }
+    }
+  }
+
+  logger.info({ recovered }, "Stale game recovery complete");
+  return recovered;
 }
 
 /**
