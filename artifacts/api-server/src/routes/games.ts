@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
@@ -228,8 +228,8 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     // Subscribers: apply sport filter directly — no locking needed
     const where =
       typeof sport === "string" && sport !== "All"
-        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport), eq(gamesTable.status, "upcoming"))
-        : and(eq(gamesTable.gameDate, today), eq(gamesTable.status, "upcoming"));
+        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport), inArray(gamesTable.status, ["upcoming", "live", "final"]))
+        : and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming", "live", "final"]));
 
     const games = await db
       .select()
@@ -253,7 +253,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
   const allTodayGames = await db
     .select()
     .from(gamesTable)
-    .where(and(eq(gamesTable.gameDate, today), eq(gamesTable.status, "upcoming")))
+    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming", "live", "final"])))
     .orderBy(desc(gamesTable.modelScore));
 
   // Build a set of game IDs that are free (top FREE_PICKS by modelScore)
