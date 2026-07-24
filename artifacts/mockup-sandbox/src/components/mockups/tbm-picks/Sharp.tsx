@@ -3,7 +3,7 @@ import { Lock, Home, Trophy, Settings, BarChart2 } from "lucide-react";
 
 export function Sharp() {
   return (
-    <div className="w-[390px] h-[844px] bg-[#080E1A] text-white relative font-sans overflow-hidden flex flex-col mx-auto border border-[#1A2540]">
+    <div className="w-[390px] h-[844px] bg-[#000000] text-white relative font-sans overflow-hidden flex flex-col mx-auto border border-[#222222]">
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto pb-24">
         {/* Header */}
@@ -29,13 +29,13 @@ export function Sharp() {
           <button className="bg-[#84CC16] text-black rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
             ALL
           </button>
-          <button className="border border-[#1A2540] text-neutral-400 rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
+          <button className="border border-[#222222] text-neutral-400 rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
             MLB
           </button>
-          <button className="border border-[#1A2540] text-neutral-400 rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
+          <button className="border border-[#222222] text-neutral-400 rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
             NFL
           </button>
-          <button className="border border-[#1A2540] text-neutral-400 rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
+          <button className="border border-[#222222] text-neutral-400 rounded-full px-4 py-1.5 font-bold text-sm whitespace-nowrap">
             NBA
           </button>
         </div>
@@ -50,7 +50,7 @@ export function Sharp() {
 
         <div className="px-5 flex flex-col gap-5">
           {/* Featured Pick Card */}
-          <div className="rounded-xl overflow-hidden border border-[#1A2540] bg-[#0F1929] shadow-lg shadow-[#84CC16]/5">
+          <div className="rounded-xl overflow-hidden border border-[#222222] bg-[#111111] shadow-lg shadow-[#84CC16]/5">
             <div className="bg-gradient-to-r from-[#84CC16] to-[#65A30D] px-4 py-2 flex justify-between items-center">
               <span className="font-black text-sm text-black tracking-wide">MLB · ⭐ TOP PICK</span>
               <span className="text-sm font-bold text-black/70">7:05 PM</span>
@@ -63,7 +63,7 @@ export function Sharp() {
                 <p className="text-[#6B7280] text-xs font-medium">Los Angeles Dodgers vs New York Yankees</p>
               </div>
 
-              <div className="flex justify-between items-end border-b border-[#1A2540] pb-5 mb-5">
+              <div className="flex justify-between items-end border-b border-[#222222] pb-5 mb-5">
                 <div>
                   <p className="text-[10px] font-black tracking-wider text-neutral-500 mb-1">MODEL SCORE</p>
                   <div className="flex items-baseline gap-1 leading-none">
@@ -78,21 +78,15 @@ export function Sharp() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-end mb-6">
-                <div>
-                  <p className="text-[10px] font-black tracking-wider text-neutral-500 mb-1">WIN PROBABILITY</p>
-                  <p className="text-3xl font-black text-white tracking-tight leading-none">
-                    67% <span className="text-lg text-neutral-400">HOME WIN</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[#84CC16] font-bold text-sm bg-[#84CC16]/10 px-2 py-1 rounded">
-                    EDGE: LAD +8.3%
-                  </p>
-                </div>
+              <div className="flex flex-col gap-1 mb-5">
+                <p className="text-[10px] font-black tracking-wider text-neutral-500 uppercase">WIN PROBABILITY</p>
+                <p className="text-3xl font-black text-white tracking-tight leading-none">
+                  67% <span className="text-lg text-neutral-400">HOME WIN</span>
+                </p>
+                <p className="text-[#84CC16] font-bold text-sm">EDGE: LAD +8.3%</p>
               </div>
 
-              <div className="bg-[#080E1A] rounded p-3 flex justify-between text-[11px] font-bold text-neutral-400 tracking-wide uppercase border border-[#1A2540]">
+              <div className="bg-[#0A0A0A] rounded p-3 flex justify-between text-[11px] font-bold text-neutral-400 tracking-wide uppercase border border-[#222222]">
                 <span>Vegas · LAD -145</span>
                 <span>Over/Under · 8.5</span>
               </div>
@@ -100,13 +94,13 @@ export function Sharp() {
           </div>
 
           {/* Regular Game Card 1 */}
-          <div className="rounded-r-xl border-y border-r border-[#1A2540] border-l-4 border-l-[#0EA5E9] bg-[#0F1929] p-4 flex justify-between items-center">
+          <div className="rounded-r-xl border-y border-r border-[#222222] border-l-4 border-l-[#0EA5E9] bg-[#111111] p-4 flex justify-between items-center">
             <div className="flex-1">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-2xl font-black text-white tracking-tight leading-none">BOS <span className="text-neutral-500 text-lg font-bold">vs</span> HOU</h3>
                 <span className="text-xs font-bold text-neutral-500 tracking-wide">MLB · 6:10 PM</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-3xl font-black text-white leading-none">71</span>
                   <span className="text-sm font-bold text-[#84CC16]">/100</span>
@@ -114,7 +108,7 @@ export function Sharp() {
                 <span className="bg-[#84CC16] text-black text-[10px] font-black px-2 py-1 rounded tracking-wide uppercase">
                   Buy
                 </span>
-                <span className="ml-auto text-[#84CC16] font-bold text-sm">
+                <span className="ml-auto text-[#84CC16] font-bold text-sm whitespace-nowrap">
                   HOU +4.1%
                 </span>
               </div>
@@ -122,21 +116,21 @@ export function Sharp() {
           </div>
 
           {/* Regular Game Card 2 */}
-          <div className="rounded-r-xl border-y border-r border-[#1A2540] border-l-4 border-l-[#0EA5E9] bg-[#0F1929] p-4 flex justify-between items-center">
+          <div className="rounded-r-xl border-y border-r border-[#222222] border-l-4 border-l-[#0EA5E9] bg-[#111111] p-4 flex justify-between items-center">
             <div className="flex-1">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-2xl font-black text-white tracking-tight leading-none">KC <span className="text-neutral-500 text-lg font-bold">vs</span> CLE</h3>
                 <span className="text-xs font-bold text-neutral-500 tracking-wide">MLB · 6:40 PM</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-3xl font-black text-neutral-400 leading-none">58</span>
                   <span className="text-sm font-bold text-neutral-600">/100</span>
                 </div>
-                <span className="bg-[#1A2540] text-neutral-400 text-[10px] font-black px-2 py-1 rounded tracking-wide uppercase">
+                <span className="bg-[#222222] text-neutral-400 text-[10px] font-black px-2 py-1 rounded tracking-wide uppercase">
                   Neutral
                 </span>
-                <span className="ml-auto text-neutral-500 font-bold text-sm">
+                <span className="ml-auto text-neutral-500 font-bold text-sm whitespace-nowrap">
                   NO EDGE
                 </span>
               </div>
@@ -144,7 +138,7 @@ export function Sharp() {
           </div>
 
           {/* Locked Pick Card */}
-          <div className="relative rounded-xl border border-[#1A2540] bg-[#0F1929] p-5 h-[160px] flex flex-col justify-center items-center overflow-hidden">
+          <div className="relative rounded-xl border border-[#222222] bg-[#111111] p-5 h-[160px] flex flex-col justify-center items-center overflow-hidden">
             {/* Blurred Background Content */}
             <div className="absolute inset-0 p-5 filter blur-sm opacity-30 flex flex-col gap-4 pointer-events-none">
               <div className="h-6 w-32 bg-white/20 rounded"></div>
@@ -154,7 +148,7 @@ export function Sharp() {
             
             {/* Lock Overlay */}
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full bg-[#1A2540] flex items-center justify-center mb-2">
+              <div className="w-10 h-10 rounded-full bg-[#222222] flex items-center justify-center mb-2">
                 <Lock size={18} className="text-neutral-400" />
               </div>
               <p className="text-neutral-400 text-xs font-black tracking-widest mb-4">PRO PICKS LOCKED</p>
@@ -168,7 +162,7 @@ export function Sharp() {
       </div>
 
       {/* Bottom Nav */}
-      <nav className="absolute bottom-0 left-0 right-0 h-20 bg-[#080E1A] border-t border-[#1A2540] flex justify-around items-center px-2 pb-5 z-20">
+      <nav className="absolute bottom-0 left-0 right-0 h-20 bg-[#000000] border-t border-[#222222] flex justify-around items-center px-2 pb-5 z-20">
         <button className="flex flex-col items-center gap-1.5 relative w-16 pt-3">
           <div className="absolute top-0 left-2 right-2 h-0.5 bg-[#84CC16] rounded-b-full"></div>
           <Trophy size={22} className="text-[#84CC16]" />

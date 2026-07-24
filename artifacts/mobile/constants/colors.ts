@@ -8,11 +8,11 @@ const palette = {
   tint: '#84CC16',
 
   // Core surfaces
-  background: '#080E1A',
+  background: '#000000',
   foreground: '#FFFFFF',
 
   // Cards / elevated surfaces
-  card: '#0F1929',
+  card: '#111111',
   cardForeground: '#FFFFFF',
 
   // Primary — lime green (logo colour)
@@ -20,11 +20,11 @@ const palette = {
   primaryForeground: '#000000',
 
   // Secondary
-  secondary: '#0F1929',
+  secondary: '#1A1A1A',
   secondaryForeground: '#F9FAFB',
 
   // Muted
-  muted: '#0F1929',
+  muted: '#1A1A1A',
   mutedForeground: '#6B7280',
 
   // Accent
@@ -36,8 +36,8 @@ const palette = {
   destructiveForeground: '#FFFFFF',
 
   // Borders and inputs
-  border: '#1A2540',
-  input: '#1A2540',
+  border: '#222222',
+  input: '#222222',
 
   // Semantic win / loss
   win: '#84CC16',
@@ -50,7 +50,7 @@ const palette = {
   goldBg: '#1A2600',
 
   // Surface variants
-  surface: '#080E1A',
+  surface: '#0A0A0A',
 };
 
 const colors = {
