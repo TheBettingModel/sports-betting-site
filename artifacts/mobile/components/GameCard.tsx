@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { ValueBadge } from '@/components/ValueBadge';
+import { TeamLogo } from '@/components/TeamLogo';
 import type { Game } from '@/data/mockGames';
 
 const SPORT_COLORS: Record<string, string> = {
@@ -25,7 +26,7 @@ interface GameCardProps {
 
 export function GameCard({ game }: GameCardProps) {
   const colors = useColors();
-  const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
+  const { homeTeam, awayTeam, gameTime, sport, projection } = game;
   const sportColor = SPORT_COLORS[sport] ?? colors.primary;
 
   const isNeutral = projection.valueRating === 'Neutral';
@@ -52,21 +53,35 @@ export function GameCard({ game }: GameCardProps) {
         },
       ]}
     >
-      {/* Top row: matchup + sport/time */}
+      {/* Top row: logos + matchup + meta */}
       <View style={styles.topRow}>
-        <Text style={[styles.matchup, { color: colors.foreground }]}>
-          {homeTeam.abbr}{' '}
-          <Text style={[styles.vs, { color: colors.mutedForeground }]}>vs</Text>
-          {' '}{awayTeam.abbr}
-        </Text>
+        {/* Logo matchup block */}
+        <View style={styles.matchupBlock}>
+          <TeamLogo sport={sport} espnId={homeTeam.espnId} abbr={homeTeam.abbr} size={36} />
+          <View style={styles.matchupCenter}>
+            <Text style={[styles.vs, { color: colors.mutedForeground }]}>vs</Text>
+            <Text style={[styles.records, { color: colors.mutedForeground }]}>
+              {homeTeam.record} · {awayTeam.record}
+            </Text>
+          </View>
+          <TeamLogo sport={sport} espnId={awayTeam.espnId} abbr={awayTeam.abbr} size={36} />
+        </View>
+
+        {/* Sport + time */}
         <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-          {sport} · {gameTime}
+          {sport}{'\n'}{gameTime}
         </Text>
+      </View>
+
+      {/* Team abbrs below logos */}
+      <View style={styles.abbrRow}>
+        <Text style={[styles.abbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
+        <View style={styles.abbrSpacer} />
+        <Text style={[styles.abbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
       </View>
 
       {/* Bottom row: score + badge + units + edge */}
       <View style={styles.bottomRow}>
-        {/* Score with optional star tier indicator */}
         <View style={styles.scoreBlock}>
           <View style={styles.scoreInline}>
             <Text style={[
@@ -83,15 +98,12 @@ export function GameCard({ game }: GameCardProps) {
             </Text>
           </View>
           {stars != null && stars >= 4 && (
-            <Text style={styles.starBadge}>
-              {'★'.repeat(stars)}
-            </Text>
+            <Text style={styles.starBadge}>{'★'.repeat(stars)}</Text>
           )}
         </View>
 
         <ValueBadge rating={projection.valueRating} compact />
 
-        {/* Units pill — only shown for actionable picks */}
         {showUnits && (
           <View style={[styles.unitsPill, { backgroundColor: colors.muted, borderColor: colors.border }]}>
             <Text style={[styles.unitsText, { color: colors.primary }]}>
@@ -123,25 +135,68 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
     padding: 14,
-    gap: 10,
+    gap: 8,
   },
+
+  // Top row
   topRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
   },
-  matchup: { fontSize: 22, fontFamily: 'Inter_700Bold', letterSpacing: -0.3, lineHeight: 26 },
-  vs: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  meta: { fontSize: 11, fontFamily: 'Inter_600SemiBold', textAlign: 'right', marginTop: 2 },
+  matchupBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  matchupCenter: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  vs: {
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  records: {
+    fontSize: 9,
+    fontFamily: 'Inter_500Medium',
+    letterSpacing: 0.2,
+  },
+  meta: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    textAlign: 'right',
+    lineHeight: 14,
+  },
+
+  // Abbr row beneath logos
+  abbrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  abbr: {
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.3,
+    width: 36,
+    textAlign: 'center',
+  },
+  abbrSpacer: { flex: 1 },
+
+  // Bottom row
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 2,
   },
   scoreBlock: { gap: 1 },
   scoreInline: { flexDirection: 'row', alignItems: 'flex-end', gap: 1 },
-  score: { fontSize: 30, fontFamily: 'Inter_700Bold', lineHeight: 34, letterSpacing: -0.5 },
-  scoreDenom: { fontSize: 13, fontFamily: 'Inter_700Bold', marginBottom: 3 },
+  score: { fontSize: 28, fontFamily: 'Inter_700Bold', lineHeight: 32, letterSpacing: -0.5 },
+  scoreDenom: { fontSize: 12, fontFamily: 'Inter_700Bold', marginBottom: 3 },
   starBadge: { fontSize: 10, color: '#84CC16', letterSpacing: 0.5 },
   unitsPill: {
     borderRadius: 5,

@@ -2,19 +2,17 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { ValueBadge } from '@/components/ValueBadge';
+import { TeamLogo } from '@/components/TeamLogo';
 import type { Game } from '@/data/mockGames';
 
 function fmtOdds(odds: number): string {
   return odds > 0 ? `+${odds}` : `${odds}`;
 }
 
-/** Render filled and empty stars from a 1–5 count. */
 function StarRating({ stars }: { stars: number }) {
   return (
     <Text style={styles.stars}>
-      {Array.from({ length: 5 }, (_, i) =>
-        i < stars ? '★' : '☆'
-      ).join('')}
+      {Array.from({ length: 5 }, (_, i) => i < stars ? '★' : '☆').join('')}
     </Text>
   );
 }
@@ -36,30 +34,42 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
   const units = projection.units;
   const sharpSignal = projection.sharpSignal;
 
-  const bandLabel = `${sport} · ${tier.toUpperCase()}`;
-
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      {/* Lime gradient header band */}
+      {/* Green header band */}
       <View style={styles.gradientBand}>
-        <Text style={styles.bandLeft}>{bandLabel}</Text>
+        <Text style={styles.bandLeft}>{sport} · {tier.toUpperCase()}</Text>
         <Text style={styles.bandRight}>{gameTime}</Text>
       </View>
 
       <View style={styles.body}>
-        {/* Matchup heading */}
+
+        {/* ── Logo matchup row ── */}
         <View style={styles.matchupRow}>
-          <Text style={[styles.matchupText, { color: colors.foreground }]}>
-            {homeTeam.abbr}{' '}
+          {/* Home team */}
+          <View style={styles.teamCol}>
+            <TeamLogo sport={sport} espnId={homeTeam.espnId} abbr={homeTeam.abbr} size={64} />
+            <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
+            <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+          </View>
+
+          {/* Centre: vs + full names */}
+          <View style={styles.vsCol}>
             <Text style={[styles.vsText, { color: colors.mutedForeground }]}>vs</Text>
-            {' '}{awayTeam.abbr}
-          </Text>
-          <Text style={[styles.matchupFull, { color: colors.mutedForeground }]}>
-            {homeTeam.city} {homeTeam.name} vs {awayTeam.city} {awayTeam.name}
-          </Text>
+            <Text style={[styles.fullNames, { color: colors.mutedForeground }]} numberOfLines={2}>
+              {homeTeam.city} {homeTeam.name}{'\n'}{awayTeam.city} {awayTeam.name}
+            </Text>
+          </View>
+
+          {/* Away team */}
+          <View style={styles.teamCol}>
+            <TeamLogo sport={sport} espnId={awayTeam.espnId} abbr={awayTeam.abbr} size={64} />
+            <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
+            <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
+          </View>
         </View>
 
-        {/* Model score + stars + badge */}
+        {/* ── Model score + stars + badge ── */}
         <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
           <View>
             <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>MODEL SCORE</Text>
@@ -83,7 +93,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           </View>
         </View>
 
-        {/* Win probability + edge — stacked to prevent clipping on narrow screens */}
+        {/* ── Win probability + edge ── */}
         {!isFade && !isNeutral && (
           <View style={styles.winBlock}>
             <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>WIN PROBABILITY</Text>
@@ -103,7 +113,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           </View>
         )}
 
-        {/* Vegas row */}
+        {/* ── Vegas row ── */}
         <View style={[styles.vegasRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.vegasItem, { color: colors.mutedForeground }]}>
             VEGAS · {fmtOdds(vegasLine.homeOdds)}
@@ -118,7 +128,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           </Text>
         </View>
 
-        {/* Model signals — kept as a compact chip row */}
+        {/* ── Insight chips ── */}
         {insights && insights.length > 0 && (
           <View style={styles.insightsRow}>
             {insights.slice(0, 2).map((text, i) => (
@@ -143,7 +153,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Gradient band — simulated with solid lime (RN doesn't support CSS gradients)
   gradientBand: {
     backgroundColor: '#84CC16',
     paddingVertical: 9,
@@ -152,27 +161,49 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  bandLeft: {
-    color: '#000000',
-    fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 0.3,
-  },
-  bandRight: {
-    color: 'rgba(0,0,0,0.65)',
-    fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-  },
+  bandLeft: { color: '#000000', fontSize: 13, fontFamily: 'Inter_700Bold', letterSpacing: 0.3 },
+  bandRight: { color: 'rgba(0,0,0,0.65)', fontSize: 13, fontFamily: 'Inter_700Bold' },
 
   body: { padding: 16, gap: 16 },
 
-  // Matchup
-  matchupRow: { gap: 2 },
-  matchupText: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.5, lineHeight: 32 },
-  vsText: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  matchupFull: { fontSize: 12, fontFamily: 'Inter_400Regular' },
+  // ── Logo matchup ─────────────────────────────────────────────────────────
+  matchupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  teamCol: {
+    alignItems: 'center',
+    gap: 4,
+    width: 72,
+  },
+  teamAbbr: {
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.3,
+  },
+  teamRecord: {
+    fontSize: 10,
+    fontFamily: 'Inter_500Medium',
+  },
+  vsCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  vsText: {
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    textTransform: 'uppercase',
+  },
+  fullNames: {
+    fontSize: 10,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
 
-  // Score
+  // ── Score row ─────────────────────────────────────────────────────────────
   scoreRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -180,35 +211,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: 16,
   },
-  scoreLabel: {
-    fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.2,
-    marginBottom: 4,
-  },
+  scoreLabel: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1.2, marginBottom: 4 },
   scoreInline: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   scoreNum: { fontSize: 56, fontFamily: 'Inter_700Bold', lineHeight: 60, letterSpacing: -1 },
   scoreDenom: { fontSize: 20, fontFamily: 'Inter_700Bold', marginBottom: 6 },
   stars: { fontSize: 18, color: '#84CC16', letterSpacing: 1, marginTop: 4 },
-
-  // Badge + units pill on the right side of the score row
   badgeCol: { alignItems: 'flex-end', gap: 8, paddingBottom: 4 },
-  unitsPill: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
+  unitsPill: { borderRadius: 6, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
   unitsText: { fontSize: 13, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
 
-  // Win prob — stacked column so edge never clips on narrow screens
+  // ── Win probability ───────────────────────────────────────────────────────
   winBlock: { gap: 3 },
   winPct: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.5 },
   winSub: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   edgeText: { fontSize: 13, fontFamily: 'Inter_700Bold' },
   sharpText: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
 
-  // Vegas
+  // ── Vegas ─────────────────────────────────────────────────────────────────
   vegasRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -218,16 +237,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
-  vegasItem: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.5, textTransform: 'uppercase' },
+  vegasItem: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
   vegasDivider: { fontSize: 14 },
 
-  // Insights
+  // ── Insights ──────────────────────────────────────────────────────────────
   insightsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  insightChip: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
+  insightChip: { borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
   insightText: { fontSize: 10, fontFamily: 'Inter_500Medium' },
 });
