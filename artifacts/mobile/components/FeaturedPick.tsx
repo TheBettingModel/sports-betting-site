@@ -57,21 +57,17 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           <ValueBadge rating={projection.valueRating} />
         </View>
 
-        {/* Win probability + edge */}
+        {/* Win probability + edge — stacked to prevent clipping on narrow screens */}
         {!isFade && !isNeutral && (
-          <View style={styles.winRow}>
-            <View>
-              <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>WIN PROBABILITY</Text>
-              <Text style={[styles.winPct, { color: colors.foreground }]}>
-                {projection.homeWinPct}%{' '}
-                <Text style={[styles.winSub, { color: colors.mutedForeground }]}>HOME WIN</Text>
-              </Text>
-            </View>
-            <View style={[styles.edgeChip, { backgroundColor: colors.primary + '1A' }]}>
-              <Text style={[styles.edgeText, { color: colors.primary }]}>
-                EDGE: {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
-              </Text>
-            </View>
+          <View style={styles.winBlock}>
+            <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>WIN PROBABILITY</Text>
+            <Text style={[styles.winPct, { color: colors.foreground }]}>
+              {projection.homeWinPct}%{' '}
+              <Text style={[styles.winSub, { color: colors.mutedForeground }]}>HOME WIN</Text>
+            </Text>
+            <Text style={[styles.edgeText, { color: colors.primary }]}>
+              EDGE: {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
+            </Text>
           </View>
         )}
 
@@ -162,21 +158,11 @@ const styles = StyleSheet.create({
   scoreNum: { fontSize: 56, fontFamily: 'Inter_700Bold', lineHeight: 60, letterSpacing: -1 },
   scoreDenom: { fontSize: 20, fontFamily: 'Inter_700Bold', marginBottom: 6 },
 
-  // Win prob
-  winRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
+  // Win prob — stacked column so edge never clips on narrow screens
+  winBlock: { gap: 2 },
   winPct: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.5 },
   winSub: { fontSize: 16, fontFamily: 'Inter_700Bold' },
-  edgeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    alignSelf: 'flex-end',
-  },
-  edgeText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+  edgeText: { fontSize: 13, fontFamily: 'Inter_700Bold' },
 
   // Vegas
   vegasRow: {
