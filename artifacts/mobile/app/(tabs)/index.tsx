@@ -23,6 +23,18 @@ import type { Game } from '@/data/mockGames';
 
 const SKELETON_COUNT = 5;
 
+const RATING_PRIORITY: Record<string, number> = { 'Strong Buy': 0, 'Buy': 1, 'Neutral': 2, 'Fade': 3 };
+const RATING_COLORS: Record<string, string> = {
+  'Strong Buy': '#84CC16',
+  'Buy':        '#22C55E',
+  'Neutral':    '#94A3B8',
+  'Fade':       '#EF4444',
+};
+
+type ListItem =
+  | { type: 'game'; game: Game }
+  | { type: 'divider'; rating: string; count: number; color: string };
+
 export default function TodayScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -43,6 +55,39 @@ export default function TodayScreen() {
     () => (selectedSport === 'All' ? allGames : allGames.filter(g => g.sport === selectedSport)),
     [allGames, selectedSport],
   );
+
+  // Always sort by rating priority first, then model score — so BUY floats above NEUTRAL/FADE
+  const sortedGames = useMemo(() =>
+    [...filteredGames].sort((a, b) => {
+      const rDiff = (RATING_PRIORITY[a.projection.valueRating] ?? 2) - (RATING_PRIORITY[b.projection.valueRating] ?? 2);
+      if (rDiff !== 0) return rDiff;
+      return b.projection.modelScore - a.projection.modelScore;
+    }),
+    [filteredGames],
+  );
+
+  // When a sport filter is active, inject rating-group dividers so users see
+  // the BUY / NEUTRAL / FADE boundary clearly instead of a confusing mix.
+  const listItems: ListItem[] = useMemo(() => {
+    if (selectedSport === 'All') {
+      return sortedGames.map(game => ({ type: 'game' as const, game }));
+    }
+    const counts = sortedGames.reduce<Record<string, number>>((acc, g) => {
+      acc[g.projection.valueRating] = (acc[g.projection.valueRating] ?? 0) + 1;
+      return acc;
+    }, {});
+    const items: ListItem[] = [];
+    let lastRating = '';
+    for (const game of sortedGames) {
+      const rating = game.projection.valueRating;
+      if (rating !== lastRating) {
+        items.push({ type: 'divider', rating, count: counts[rating] ?? 0, color: RATING_COLORS[rating] ?? '#6B7280' });
+        lastRating = rating;
+      }
+      items.push({ type: 'game', game });
+    }
+    return items;
+  }, [sortedGames, selectedSport]);
 
   const topPick = useMemo(() => {
     if (allGames.length === 0) return null;
@@ -153,13 +198,36 @@ export default function TodayScreen() {
         />
       ) : (
         <FlatList
-          data={filteredGames}
-          keyExtractor={item => item.id}
-          renderItem={({ item }: { item: Game }) =>
-            item.isLocked
-              ? <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={lockedCount} />
-              : <GameCard game={item} />
+          data={listItems}
+          keyExtractor={(item, i) =>
+            item.type === 'divider' ? `div-${item.rating}` : item.game.id
           }
+          renderItem={({ item }: { item: ListItem }) => {
+            if (item.type === 'divider') {
+              return (
+                <View style={[styles.ratingDivider, { borderLeftColor: item.color }]}>
+                  <Text style={[styles.ratingLabel, { color: item.color }]}>
+                    {item.rating.toUpperCase()}
+                  </Text>
+                  <View style={[styles.ratingBadge, { backgroundColor: item.color + '22', borderColor: item.color + '55' }]}>
+                    <Text style={[styles.ratingCount, { color: item.color }]}>{item.count}</Text>
+                  </View>
+                  {(item.rating === 'Strong Buy' || item.rating === 'Buy') && (
+                    <Text style={[styles.ratingHint, { color: item.color }]}>MODEL EDGE VS VEGAS</Text>
+                  )}
+                  {item.rating === 'Neutral' && (
+                    <Text style={[styles.ratingHint, { color: '#6B7280' }]}>NO CLEAR EDGE</Text>
+                  )}
+                  {item.rating === 'Fade' && (
+                    <Text style={[styles.ratingHint, { color: item.color }]}>BET THE OTHER SIDE</Text>
+                  )}
+                </View>
+              );
+            }
+            return item.game.isLocked
+              ? <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={lockedCount} />
+              : <GameCard game={item.game} />;
+          }}
           ListHeaderComponent={<ListHeader />}
           contentContainerStyle={{
             paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90,
@@ -221,4 +289,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   lockedBannerText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  ratingDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+  },
+  ratingLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.5 },
+  ratingBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  ratingCount: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  ratingHint: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8, marginLeft: 2 },
 });
