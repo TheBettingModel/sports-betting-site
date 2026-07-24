@@ -424,6 +424,12 @@ export interface ComputeOptions {
   /** Consensus (average of US public books) moneylines */
   consensusHomeOdds?: number;
   consensusAwayOdds?: number;
+  /** Line movement: did the home team's odds shorten (get more negative) since opening?
+   *  undefined = first time seeing this game; no movement baseline yet */
+  lineMovedTowardHome?: boolean;
+  /** MLB only: probability shift from pitcher matchup advantage. Range [-0.08, +0.08].
+   *  Positive = home starter has the edge. Computed by mlbPitchers service. */
+  pitcherAdvantage?: number;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -647,6 +653,12 @@ function computeRunsModel(
     prob += Math.max(-maxRest, Math.min(maxRest, restDiff * (fw["restWeight"] ?? 0.010)));
   }
 
+  // MLB pitcher adjustment — the single most impactful individual-game variable.
+  // Applied after team-level stats so it layers on top of roster quality signals.
+  if (sport === "MLB" && opts.pitcherAdvantage != null) {
+    prob += opts.pitcherAdvantage;
+  }
+
   prob = 0.5 + (prob - 0.5) * multiplier;
   const noiseRange = (hs && as_) ? 7 : 10;
   const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
@@ -714,10 +726,23 @@ function finalizeResult(
     opts.consensusAwayOdds,
     pickIsHome,
   );
+
+  // Line movement confirmation: if the market moved toward our pick since the
+  // opening line, sharp/informed money has already validated the direction.
+  // Moves away from the pick are a warning sign — adjust sharp score accordingly.
+  const lineMoveConfirms =
+    opts.lineMovedTowardHome != null
+      ? (pickIsHome ? opts.lineMovedTowardHome : !opts.lineMovedTowardHome)
+      : null;
+  const effectiveSharpScore =
+    lineMoveConfirms === true  ? Math.min(10, sharpScore + 1) :
+    lineMoveConfirms === false ? Math.max(0,  sharpScore - 1) :
+    sharpScore;
+
   const units           = getDynamicUnits(edge, confidenceNum, valueRating);
   const { finalModelScore, finalModelTier, finalModelStars } =
-    getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
-  const podScore = getPodScore(finalModelScore, sharpScore, edge);
+    getUniversalFinalRating(edge, confidenceNum, effectiveSharpScore, priceAdj);
+  const podScore = getPodScore(finalModelScore, effectiveSharpScore, edge);
 
   // modelScore is now the universal final rating (backward-compat field name)
   const modelScore = finalModelScore;

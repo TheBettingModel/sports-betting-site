@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
-import { getOddsForGame } from "../services/oddsApi";
+import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
+import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
@@ -52,15 +53,33 @@ function isStale(): boolean {
   return Date.now() - lastRefreshedAt.getTime() > STALE_MS;
 }
 
+/** Convert American moneyline to raw implied probability (vig-inclusive). */
+function impliedProbFromOdds(american: number): number {
+  return american < 0
+    ? Math.abs(american) / (Math.abs(american) + 100)
+    : 100 / (american + 100);
+}
+
 export async function refreshAll(): Promise<{
   gamesUpdated: number;
   sportsRefreshed: string[];
   picksGraded: number;
 }> {
-  const [fetchedGames, weights] = await Promise.all([
+  // Also fetch existing game rows so we can preserve opening odds and detect line movement
+  const todayDateStr = new Date()
+    .toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
+
+  const [fetchedGames, weights, existingRows] = await Promise.all([
     fetchAllSports(),
     db.select().from(modelWeightsTable),
+    db.select({
+      id: gamesTable.id,
+      openingHomeOdds: gamesTable.openingHomeOdds,
+      openingAwayOdds: gamesTable.openingAwayOdds,
+    }).from(gamesTable).where(eq(gamesTable.gameDate, todayDateStr)),
   ]);
+
+  const existingByGameId = new Map(existingRows.map((r) => [r.id, r]));
 
   const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
 
@@ -97,15 +116,36 @@ export async function refreshAll(): Promise<{
           : Promise.resolve(undefined),
       ]);
 
-    // Phase 2: fetch live multi-book odds (30-min in-memory cache).
-    // Replaces ESPN's single-book moneyline with a consensus market price and
-    // adds Pinnacle's line for the sharp divergence signal.
+    // ── Phase 2a: multi-book odds (30-min cache) ──────────────────────────────
+    // Replaces ESPN's single-book moneyline with a consensus price and adds
+    // Pinnacle's line for the sharp-money divergence signal.
     const gameOdds = await getOddsForGame(
       game.sport,
       game.league ?? null,
       game.homeTeamName,
       game.awayTeamName,
     );
+
+    // ── Phase 2b: MLB probable starters (4-hour cache) ────────────────────────
+    const starters = game.sport === "MLB"
+      ? await getProbablePitchers(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+      : { home: null, away: null };
+    const pitcherAdvantage = game.sport === "MLB"
+      ? computePitcherAdvantage(starters)
+      : undefined;
+
+    // ── Phase 2c: line movement ───────────────────────────────────────────────
+    const existingRow = existingByGameId.get(game.espnId);
+    const currentHomeOdds = gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds ?? null;
+    const currentAwayOdds = gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds ?? null;
+    // Opening odds: preserved from first observation; falls back to current on first insert.
+    const openingHomeOdds = existingRow?.openingHomeOdds ?? currentHomeOdds;
+    const openingAwayOdds = existingRow?.openingAwayOdds ?? currentAwayOdds;
+    // Did the home team's implied probability increase since opening?
+    const lineMovedTowardHome: boolean | undefined =
+      existingRow?.openingHomeOdds != null && currentHomeOdds != null
+        ? impliedProbFromOdds(currentHomeOdds) > impliedProbFromOdds(existingRow.openingHomeOdds)
+        : undefined;
 
     const proj = computeProjection(
       game.espnId,
@@ -118,17 +158,18 @@ export async function refreshAll(): Promise<{
         homeRoadRecord:    game.homeRoadRecord,
         awayHomeRecord:    game.awayHomeRecord,
         awayRoadRecord:    game.awayRoadRecord,
-        // Consensus odds from The Odds API preferred over ESPN's single book.
-        // Falls back to ESPN when the game isn't listed yet (early AM, off-season).
+        // Consensus odds preferred over ESPN single book
         realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
         realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
         realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
         realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
-        // Pinnacle vs consensus sharp signal (Phase 2 — undefined = graceful fallback)
+        // Phase 2 signals
         pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
         pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
         consensusHomeOdds: gameOdds?.consensusHomeOdds,
         consensusAwayOdds: gameOdds?.consensusAwayOdds,
+        lineMovedTowardHome,
+        pitcherAdvantage,
         homeTeamStats,
         awayTeamStats,
         homeSoccerStats,
@@ -137,6 +178,10 @@ export async function refreshAll(): Promise<{
         awayDbStats,
       },
     );
+
+    // ── Phase 2d: best available line ──────────────────────────────────────────
+    const pickIsHome = proj.edge >= 0;
+    const bestLine = getBestLine(gameOdds ?? null, pickIsHome);
 
     await db
       .insert(gamesTable)
@@ -160,6 +205,20 @@ export async function refreshAll(): Promise<{
         homeScore: game.homeScore ?? null,
         awayScore: game.awayScore ?? null,
         ...proj,
+        // Phase 2: set once — opening odds preserved on conflict (not in set block)
+        openingHomeOdds: openingHomeOdds ?? null,
+        openingAwayOdds: openingAwayOdds ?? null,
+        // Phase 2: always refreshed
+        homeStarterName:     starters.home?.name ?? null,
+        homeStarterEra:      starters.home?.seasonEra ?? null,
+        homeStarterWhip:     starters.home?.seasonWhip ?? null,
+        homeStarterRecentEra: starters.home?.recentEra ?? null,
+        awayStarterName:     starters.away?.name ?? null,
+        awayStarterEra:      starters.away?.seasonEra ?? null,
+        awayStarterWhip:     starters.away?.seasonWhip ?? null,
+        awayStarterRecentEra: starters.away?.recentEra ?? null,
+        bestLineBook: bestLine ? displayBookName(bestLine.book) : null,
+        bestLineOdds: bestLine?.odds ?? null,
       })
       .onConflictDoUpdate({
         target: gamesTable.id,
@@ -198,6 +257,21 @@ export async function refreshAll(): Promise<{
           finalModelTier: proj.finalModelTier,
           finalModelStars: proj.finalModelStars,
           podScore: proj.podScore,
+          // Phase 2: opening odds — use COALESCE to set once on first sighting;
+          // if the row already has a non-null value, preserve it.
+          openingHomeOdds: sql`COALESCE(${gamesTable.openingHomeOdds}, EXCLUDED.opening_home_odds)`,
+          openingAwayOdds: sql`COALESCE(${gamesTable.openingAwayOdds}, EXCLUDED.opening_away_odds)`,
+          // Phase 2: always refreshed
+          homeStarterName:     starters.home?.name ?? null,
+          homeStarterEra:      starters.home?.seasonEra ?? null,
+          homeStarterWhip:     starters.home?.seasonWhip ?? null,
+          homeStarterRecentEra: starters.home?.recentEra ?? null,
+          awayStarterName:     starters.away?.name ?? null,
+          awayStarterEra:      starters.away?.seasonEra ?? null,
+          awayStarterWhip:     starters.away?.seasonWhip ?? null,
+          awayStarterRecentEra: starters.away?.recentEra ?? null,
+          bestLineBook: bestLine ? displayBookName(bestLine.book) : null,
+          bestLineOdds: bestLine?.odds ?? null,
         },
       });
 

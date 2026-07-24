@@ -34,6 +34,18 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
   const units = projection.units;
   const sharpSignal = projection.sharpSignal;
 
+  // Phase 2 extras
+  const homeStarter = projection.homeStarterName
+    ? { name: projection.homeStarterName, era: projection.homeStarterRecentEra ?? projection.homeStarterEra }
+    : null;
+  const awayStarter = projection.awayStarterName
+    ? { name: projection.awayStarterName, era: projection.awayStarterRecentEra ?? projection.awayStarterEra }
+    : null;
+  const hasPitchers = sport === 'MLB' && (homeStarter || awayStarter);
+  const bestLineBook = projection.bestLineBook;
+  const bestLineOdds = projection.bestLineOdds;
+  const hasBestLine = bestLineBook != null && bestLineOdds != null;
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Green header band */}
@@ -68,6 +80,43 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
             <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
           </View>
         </View>
+
+        {/* ── MLB pitcher matchup ── */}
+        {hasPitchers && (
+          <View style={[styles.pitcherRow, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <View style={styles.pitcherSide}>
+              {homeStarter && (
+                <>
+                  <Text style={[styles.pitcherLabel, { color: colors.mutedForeground }]}>SP</Text>
+                  <Text style={[styles.pitcherName, { color: colors.foreground }]} numberOfLines={1}>
+                    {homeStarter.name.split(' ').pop()}
+                  </Text>
+                  {homeStarter.era != null && (
+                    <Text style={[styles.pitcherEra, { color: colors.primary }]}>
+                      {homeStarter.era.toFixed(2)} ERA
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+            <Text style={[styles.pitcherVs, { color: colors.mutedForeground }]}>vs</Text>
+            <View style={[styles.pitcherSide, styles.pitcherSideRight]}>
+              {awayStarter && (
+                <>
+                  <Text style={[styles.pitcherLabel, { color: colors.mutedForeground }]}>SP</Text>
+                  <Text style={[styles.pitcherName, { color: colors.foreground }]} numberOfLines={1}>
+                    {awayStarter.name.split(' ').pop()}
+                  </Text>
+                  {awayStarter.era != null && (
+                    <Text style={[styles.pitcherEra, { color: colors.primary }]}>
+                      {awayStarter.era.toFixed(2)} ERA
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* ── Model score + stars + badge ── */}
         <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
@@ -127,6 +176,18 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
             SPREAD · {vegasLine.spread > 0 ? '+' : ''}{vegasLine.spread}
           </Text>
         </View>
+
+        {/* ── Best available line ── */}
+        {hasBestLine && (
+          <View style={[styles.bestLineRow, { borderColor: colors.border }]}>
+            <Text style={[styles.bestLineLabel, { color: colors.mutedForeground }]}>BEST LINE</Text>
+            <Text style={[styles.bestLineOdds, { color: colors.primary }]}>
+              {fmtOdds(bestLineOdds!)}
+            </Text>
+            <Text style={[styles.bestLineAt, { color: colors.mutedForeground }]}>at</Text>
+            <Text style={[styles.bestLineBook, { color: colors.foreground }]}>{bestLineBook}</Text>
+          </View>
+        )}
 
         {/* ── Insight chips ── */}
         {insights && insights.length > 0 && (
@@ -239,6 +300,37 @@ const styles = StyleSheet.create({
   },
   vegasItem: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
   vegasDivider: { fontSize: 14 },
+
+  // ── Pitcher matchup (MLB) ─────────────────────────────────────────────────
+  pitcherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: -8, // pull up closer to logo row
+  },
+  pitcherSide: { flex: 1, gap: 2 },
+  pitcherSideRight: { alignItems: 'flex-end' },
+  pitcherLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  pitcherName: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+  pitcherEra: { fontSize: 11, fontFamily: 'Inter_500Medium' },
+  pitcherVs: { fontSize: 12, fontFamily: 'Inter_700Bold', paddingHorizontal: 8 },
+
+  // ── Best available line ────────────────────────────────────────────────────
+  bestLineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    paddingTop: 10,
+  },
+  bestLineLabel: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1.2, flex: 1 },
+  bestLineOdds: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  bestLineAt: { fontSize: 11, fontFamily: 'Inter_400Regular' },
+  bestLineBook: { fontSize: 13, fontFamily: 'Inter_700Bold' },
 
   // ── Insights ──────────────────────────────────────────────────────────────
   insightsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

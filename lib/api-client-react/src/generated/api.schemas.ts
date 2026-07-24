@@ -53,6 +53,19 @@ export interface GameProjection {
   finalModelTier?: string | null;
   finalModelStars?: number | null;
   podScore?: number | null;
+  // Phase 2: pitcher matchup (MLB only)
+  homeStarterName?: string | null;
+  homeStarterEra?: number | null;
+  homeStarterRecentEra?: number | null;
+  awayStarterName?: string | null;
+  awayStarterEra?: number | null;
+  awayStarterRecentEra?: number | null;
+  // Phase 2: line movement
+  openingHomeOdds?: number | null;
+  openingAwayOdds?: number | null;
+  // Phase 2: best available line
+  bestLineBook?: string | null;
+  bestLineOdds?: number | null;
 }
 
 export interface GamesTodayResponse {

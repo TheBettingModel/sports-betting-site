@@ -46,6 +46,16 @@ export interface Game {
     finalModelTier?: string;  // "Elite" | "Strong" | "Playable" | "Watchlist" | "Pass"
     finalModelStars?: number; // 1–5
     podScore?: number;        // cross-sport ranking score
+    // Phase 2: MLB probable starters
+    homeStarterName?: string;
+    homeStarterEra?: number;
+    homeStarterRecentEra?: number;
+    awayStarterName?: string;
+    awayStarterEra?: number;
+    awayStarterRecentEra?: number;
+    // Phase 2: best available line across all tracked books
+    bestLineBook?: string;
+    bestLineOdds?: number;
   };
   vegasLine: {
     spread: number;

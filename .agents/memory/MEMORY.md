@@ -2,3 +2,5 @@
 - [Clerk signals auth flow](clerk-signals-auth.md) — @clerk/expo 3.7.x signals API; email OTP + Google only; no password; finalize() not setActive().
 - [WNBA + Soccer model improvements](wnba-soccer-model-improvements.md) — real Vegas odds from ESPN, home/road splits, soccer 3-outcome model, 6 international leagues, new DB columns.
 - [Phase 1 model engine upgrade](phase1-model-engine.md) — calibration, dynamic units, universal final rating, POD score; all fields flow through games table + model_predictions.
+- [MLB Pitcher Signal](mlb-pitcher-signal.md) — MLB Stats API; must hydrate=team to get team.id; use static MLB_ID_TO_ESPN map; stat type displayName is "season" not "statsSingleSeason".
+- [Odds API Features](odds-api-features.md) — consensus odds, Pinnacle sharp signal, best available line, opening odds COALESCE pattern, line movement in model.

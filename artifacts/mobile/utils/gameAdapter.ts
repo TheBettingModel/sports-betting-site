@@ -101,6 +101,15 @@ export function mapApiGame(g: GameProjection): Game {
       finalModelTier: g.finalModelTier ?? undefined,
       finalModelStars: g.finalModelStars ?? undefined,
       podScore: g.podScore ?? undefined,
+      // Phase 2: starters + best line
+      homeStarterName: g.homeStarterName ?? undefined,
+      homeStarterEra: g.homeStarterEra ?? undefined,
+      homeStarterRecentEra: g.homeStarterRecentEra ?? undefined,
+      awayStarterName: g.awayStarterName ?? undefined,
+      awayStarterEra: g.awayStarterEra ?? undefined,
+      awayStarterRecentEra: g.awayStarterRecentEra ?? undefined,
+      bestLineBook: g.bestLineBook ?? undefined,
+      bestLineOdds: g.bestLineOdds ?? undefined,
     },
     vegasLine: {
       spread: g.vegasSpread,

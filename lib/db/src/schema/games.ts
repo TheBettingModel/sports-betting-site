@@ -64,6 +64,27 @@ export const gamesTable = pgTable("games", {
   vegasAwayOdds: integer("vegas_away_odds").notNull().default(-110),
   vegasDrawOdds: integer("vegas_draw_odds").notNull().default(0), // soccer only; 0 = N/A
 
+  // Opening odds — written once on first insert, never overwritten on conflict.
+  // Compared to current consensus odds to detect line movement direction.
+  openingHomeOdds: integer("opening_home_odds"),
+  openingAwayOdds: integer("opening_away_odds"),
+
+  // Best available line across all tracked bookmakers for this game's pick side.
+  // Updated each refresh; shows subscribers where to get the best price.
+  bestLineBook: text("best_line_book"),
+  bestLineOdds: integer("best_line_odds"),
+
+  // MLB probable starters — fetched from MLB Stats API (free, no key).
+  // Pitcher ERA is the single most predictive individual-game variable in baseball.
+  homeStarterName: text("home_starter_name"),
+  homeStarterEra:  real("home_starter_era"),
+  homeStarterWhip: real("home_starter_whip"),
+  homeStarterRecentEra: real("home_starter_recent_era"),  // ERA over last 3 starts
+  awayStarterName: text("away_starter_name"),
+  awayStarterEra:  real("away_starter_era"),
+  awayStarterWhip: real("away_starter_whip"),
+  awayStarterRecentEra: real("away_starter_recent_era"),
+
   // Outcome tracking for learning
   predictionCorrect: boolean("prediction_correct"),
 

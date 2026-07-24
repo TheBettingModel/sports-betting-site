@@ -50,6 +50,12 @@ export function resolveOddsApiKey(sport: string, league?: string | null): string
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface BookmakerLine {
+  book: string;       // e.g. "pinnacle", "draftkings", "fanduel"
+  homeOdds: number;   // American odds for home team
+  awayOdds: number;   // American odds for away team
+}
+
 export interface GameOdds {
   /** Average moneyline across US public books (consensus market price) */
   consensusHomeOdds: number;
@@ -64,6 +70,8 @@ export interface GameOdds {
   spread?: number;   // positive = home favoured by N points
   /** Best available total */
   total?: number;
+  /** All per-bookmaker H2H lines — used to find the best available price */
+  bookmakerOdds: BookmakerLine[];
 }
 
 interface OddsApiOutcome {
@@ -245,6 +253,18 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       }
     }
 
+    // Collect per-bookmaker H2H lines for best-line surfacing
+    const bookmakerOdds: BookmakerLine[] = [];
+    for (const book of g.bookmakers) {
+      const h2h = book.markets.find((m) => m.key === "h2h");
+      if (!h2h) continue;
+      const bHomeOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
+      const bAwayOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
+      if (bHomeOdds != null && bAwayOdds != null) {
+        bookmakerOdds.push({ book: book.key, homeOdds: bHomeOdds, awayOdds: bAwayOdds });
+      }
+    }
+
     result.set(key, {
       consensusHomeOdds,
       consensusAwayOdds,
@@ -254,6 +274,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       pinnacleDrawOdds,
       spread,
       total,
+      bookmakerOdds,
     });
   }
 
@@ -291,6 +312,56 @@ export async function fetchOddsForSport(
     logger.error({ err, oddsApiKey }, "OddsAPI: fetch failed — using cached/empty data");
     return cached?.games ?? new Map();
   }
+}
+
+// ── Best available line ───────────────────────────────────────────────────────
+
+/** Returns the book with the best American odds for the given pick direction. */
+export function getBestLine(
+  gameOdds: GameOdds | null,
+  pickIsHome: boolean,
+): { book: string; odds: number } | null {
+  if (!gameOdds?.bookmakerOdds.length) return null;
+
+  let best: { book: string; odds: number } | null = null;
+
+  for (const b of gameOdds.bookmakerOdds) {
+    const odds = pickIsHome ? b.homeOdds : b.awayOdds;
+    if (best == null || impliedProb(odds) < impliedProb(best.odds)) {
+      // Lower implied probability = higher payout = better for the bettor
+      best = { book: b.book, odds };
+    }
+  }
+
+  return best;
+}
+
+// ── Friendly book name map ────────────────────────────────────────────────────
+
+const BOOK_DISPLAY: Record<string, string> = {
+  pinnacle:        "Pinnacle",
+  draftkings:      "DraftKings",
+  fanduel:         "FanDuel",
+  betmgm:          "BetMGM",
+  caesars:         "Caesars",
+  pointsbet:       "PointsBet",
+  betrivers:       "BetRivers",
+  williamhill_us:  "Caesars",
+  unibet_us:       "Unibet",
+  betanysports:    "BetAnySports",
+  betclic_fr:      "Betclic",
+  betonlineag:     "BetOnline",
+  bovada:          "Bovada",
+  betus:           "BetUS",
+  fanatics:        "Fanatics",
+  matchbook:       "Matchbook",
+  lowvig:          "LowVig.ag",
+  betfair_ex_eu:   "Betfair",
+};
+
+/** Human-readable bookmaker name (falls back to the raw key). */
+export function displayBookName(key: string): string {
+  return BOOK_DISPLAY[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
