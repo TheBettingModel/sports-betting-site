@@ -110,6 +110,18 @@ export function mapApiGame(g: GameProjection): Game {
       awayStarterRecentEra: g.awayStarterRecentEra ?? undefined,
       bestLineBook: g.bestLineBook ?? undefined,
       bestLineOdds: g.bestLineOdds ?? undefined,
+      // Phase 3: weather
+      weatherWindMph:  g.weatherWindMph  ?? undefined,
+      weatherTotalAdj: g.weatherTotalAdj ?? undefined,
+      weatherSummary:  g.weatherSummary  ?? undefined,
+      // Phase 3: NHL goalies
+      homeGoalieName:    g.homeGoalieName    ?? undefined,
+      homeGoalieSavePct: g.homeGoalieSavePct ?? undefined,
+      awayGoalieName:    g.awayGoalieName    ?? undefined,
+      awayGoalieSavePct: g.awayGoalieSavePct ?? undefined,
+      // Phase 3: NFL injuries
+      homeKeyInjuries: g.homeKeyInjuries ?? undefined,
+      awayKeyInjuries: g.awayKeyInjuries ?? undefined,
     },
     vegasLine: {
       spread: g.vegasSpread,

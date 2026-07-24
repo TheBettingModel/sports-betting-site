@@ -85,6 +85,29 @@ export const gamesTable = pgTable("games", {
   awayStarterWhip: real("away_starter_whip"),
   awayStarterRecentEra: real("away_starter_recent_era"),
 
+  // ── Phase 3: environmental signals ───────────────────────────────────────────
+
+  // Weather (MLB/NFL outdoor venues — null for dome or unsupported sport)
+  weatherWindMph:  real("weather_wind_mph"),
+  weatherPrecipMm: real("weather_precip_mm"),
+  weatherTotalAdj: real("weather_total_adj"),    // applied to projected total
+  weatherIsDome:   boolean("weather_is_dome"),
+  weatherSummary:  text("weather_summary"),
+
+  // NHL goalie matchup — season stats for presumed starters
+  homeGoalieName:    text("home_goalie_name"),
+  homeGoalieSavePct: real("home_goalie_save_pct"),
+  homeGoalieGaa:     real("home_goalie_gaa"),
+  awayGoalieName:    text("away_goalie_name"),
+  awayGoalieSavePct: real("away_goalie_save_pct"),
+  awayGoalieGaa:     real("away_goalie_gaa"),
+
+  // NFL injury impact — net probability adjustment + key-player summaries
+  homeInjuryImpact: real("home_injury_impact"),
+  awayInjuryImpact: real("away_injury_impact"),
+  homeKeyInjuries:  text("home_key_injuries"),   // JSON array of "Name (POS, status)"
+  awayKeyInjuries:  text("away_key_injuries"),
+
   // Outcome tracking for learning
   predictionCorrect: boolean("prediction_correct"),
 

@@ -430,6 +430,18 @@ export interface ComputeOptions {
   /** MLB only: probability shift from pitcher matchup advantage. Range [-0.08, +0.08].
    *  Positive = home starter has the edge. Computed by mlbPitchers service. */
   pitcherAdvantage?: number;
+  /** NHL only: probability shift from goalie matchup. Range [-0.07, +0.07].
+   *  Positive = home goalie has the edge. */
+  goalieAdvantage?: number;
+  /** NFL only: net probability shift from injury reports. Range [-0.05, +0.05].
+   *  Positive = home team is healthier. */
+  injuryAdvantage?: number;
+  /** MLB/NFL: total-line adjustment from weather (wind, rain, temp). Applied to projectedTotal. */
+  weatherTotalAdjustment?: number;
+  /** Wind speed in mph — stored for display/logging but not used in win-prob calc */
+  weatherWindMph?: number;
+  /** Precipitation forecast in mm */
+  weatherPrecipMm?: number;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -659,6 +671,16 @@ function computeRunsModel(
     prob += opts.pitcherAdvantage;
   }
 
+  // NHL goalie adjustment — save% drives more variance than team quality in hockey.
+  if (sport === "NHL" && opts.goalieAdvantage != null) {
+    prob += opts.goalieAdvantage;
+  }
+
+  // NFL injury adjustment — missing starters (especially QB) materially shifts win prob.
+  if (sport === "NFL" && opts.injuryAdvantage != null) {
+    prob += opts.injuryAdvantage;
+  }
+
   prob = 0.5 + (prob - 0.5) * multiplier;
   const noiseRange = (hs && as_) ? 7 : 10;
   const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
@@ -750,10 +772,15 @@ function finalizeResult(
   const projectedSpread = Math.round((0.5 - prob) * 20 * 2) / 2;
   const vegasSpread     = Math.round((0.5 - vegasImplied) * 20 * 2) / 2;
 
-  const defaultTotal    = DEFAULT_TOTALS[sport] ?? 45.0;
-  const projectedTotal  = opts.realVegasOverUnder ?? defaultTotal;
-  const totalNoise      = hashNoise(gameId + "t", 2, 1);
-  const vegasTotal      = opts.realVegasOverUnder ?? (projectedTotal + totalNoise);
+  const defaultTotal   = DEFAULT_TOTALS[sport] ?? 45.0;
+  const baseTotal      = opts.realVegasOverUnder ?? defaultTotal;
+  // Weather adjustment shifts our projected total without touching the market line.
+  // A -1.5 weather adjustment on a 9.0 total means we project 7.5 runs — if the
+  // market hasn't moved, that gap IS the edge on the under.
+  const weatherAdj     = opts.weatherTotalAdjustment ?? 0;
+  const projectedTotal = Math.round((baseTotal + weatherAdj) * 10) / 10;
+  const totalNoise     = hashNoise(gameId + "t", 2, 1);
+  const vegasTotal     = opts.realVegasOverUnder ?? (baseTotal + totalNoise);
 
   return {
     homeWinPct,

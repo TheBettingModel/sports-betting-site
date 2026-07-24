@@ -5,6 +5,11 @@ import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
 import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
+import { getVenueWeather, computeWeatherEffect } from "../services/weatherService";
+import { getGoalieMatchup, computeGoalieAdvantage } from "../services/nhlGoalies";
+import { getTeamInjuryImpact, computeInjuryAdvantage } from "../services/nflInjuries";
+import type { GoalieMatchup } from "../services/nhlGoalies";
+import type { TeamInjuryImpact } from "../services/nflInjuries";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
@@ -80,8 +85,43 @@ export async function refreshAll(): Promise<{
   ]);
 
   const existingByGameId = new Map(existingRows.map((r) => [r.id, r]));
+  const weightsBySport   = Object.fromEntries(weights.map((w) => [w.sport, w]));
 
-  const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
+  // ── Phase 3 pre-fetch: all external signals in parallel before the game loop ─
+  // Running these inside the per-game loop would serialize 15+ HTTP calls
+  // (worst case 15 × 8s timeout ≈ 2 minutes). Pre-batching bounds latency to
+  // the slowest single request (~1s for Open-Meteo, ~2s for NHL).
+  const weatherMap = new Map<string, Awaited<ReturnType<typeof getVenueWeather>>>();
+  const goalieMap  = new Map<string, Awaited<ReturnType<typeof getGoalieMatchup>>>();
+  const injuryMap  = new Map<string, Awaited<ReturnType<typeof getTeamInjuryImpact>>>();
+
+  await Promise.all([
+    // Weather — one call per outdoor MLB/NFL venue (dome stadiums resolve instantly)
+    ...fetchedGames
+      .filter((g) => g.sport === "MLB" || g.sport === "NFL")
+      .map(async (g) => {
+        const w = await getVenueWeather(
+          g.sport, g.homeTeamAbbr, g.gameDate, g.gameTime ?? "7:00 PM ET",
+        );
+        weatherMap.set(g.espnId, w);
+      }),
+    // NHL goalies — one call per game (both teams fetched inside)
+    ...fetchedGames
+      .filter((g) => g.sport === "NHL")
+      .map(async (g) => {
+        const m = await getGoalieMatchup(g.homeTeamAbbr, g.awayTeamAbbr, g.gameDate);
+        goalieMap.set(g.espnId, m);
+      }),
+    // NFL injuries — one report covers all 32 teams; cache dedupes repeat lookups
+    ...fetchedGames
+      .filter((g) => g.sport === "NFL")
+      .flatMap((g) => [g.homeTeamAbbr, g.awayTeamAbbr])
+      .filter((abbr, i, arr) => arr.indexOf(abbr) === i) // unique
+      .map(async (abbr) => {
+        const impact = await getTeamInjuryImpact(abbr);
+        injuryMap.set(abbr, impact);
+      }),
+  ]);
 
   let upserted = 0;
   const sports = new Set<string>();
@@ -147,6 +187,22 @@ export async function refreshAll(): Promise<{
         ? impliedProbFromOdds(currentHomeOdds) > impliedProbFromOdds(existingRow.openingHomeOdds)
         : undefined;
 
+    // ── Phase 3: look up pre-fetched signals (already resolved above) ─────────
+    const venueWeather  = weatherMap.get(game.espnId) ?? null;
+    const goalieMatchup = goalieMap.get(game.espnId) ?? ({ home: null, away: null } as GoalieMatchup);
+    const homeInjury    = injuryMap.get(game.homeTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
+    const awayInjury    = injuryMap.get(game.awayTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
+
+    const weatherEffect   = venueWeather && !venueWeather.isDome
+      ? computeWeatherEffect(venueWeather, game.sport)
+      : null;
+    const goalieAdvantage = game.sport === "NHL"
+      ? computeGoalieAdvantage(goalieMatchup)
+      : undefined;
+    const injuryAdvantage = game.sport === "NFL"
+      ? computeInjuryAdvantage(homeInjury, awayInjury)
+      : undefined;
+
     const proj = computeProjection(
       game.espnId,
       game.sport,
@@ -170,6 +226,12 @@ export async function refreshAll(): Promise<{
         consensusAwayOdds: gameOdds?.consensusAwayOdds,
         lineMovedTowardHome,
         pitcherAdvantage,
+        // Phase 3 signals
+        goalieAdvantage,
+        injuryAdvantage,
+        weatherTotalAdjustment: weatherEffect?.totalAdjustment,
+        weatherWindMph:   venueWeather?.windSpeedMph,
+        weatherPrecipMm:  venueWeather?.precipitationMm,
         homeTeamStats,
         awayTeamStats,
         homeSoccerStats,
@@ -219,6 +281,24 @@ export async function refreshAll(): Promise<{
         awayStarterRecentEra: starters.away?.recentEra ?? null,
         bestLineBook: bestLine ? displayBookName(bestLine.book) : null,
         bestLineOdds: bestLine?.odds ?? null,
+        // Phase 3: weather (null for domes or unsupported sports)
+        weatherWindMph:  venueWeather?.isDome ? null : (venueWeather?.windSpeedMph ?? null),
+        weatherPrecipMm: venueWeather?.isDome ? null : (venueWeather?.precipitationMm ?? null),
+        weatherTotalAdj: weatherEffect?.totalAdjustment ?? null,
+        weatherIsDome:   venueWeather?.isDome ?? null,
+        weatherSummary:  weatherEffect?.summary ?? null,
+        // Phase 3: NHL goalies
+        homeGoalieName:    goalieMatchup.home?.name ?? null,
+        homeGoalieSavePct: goalieMatchup.home?.savePct ?? null,
+        homeGoalieGaa:     goalieMatchup.home?.gaa ?? null,
+        awayGoalieName:    goalieMatchup.away?.name ?? null,
+        awayGoalieSavePct: goalieMatchup.away?.savePct ?? null,
+        awayGoalieGaa:     goalieMatchup.away?.gaa ?? null,
+        // Phase 3: NFL injuries
+        homeInjuryImpact: game.sport === "NFL" ? homeInjury.impactScore : null,
+        awayInjuryImpact: game.sport === "NFL" ? awayInjury.impactScore : null,
+        homeKeyInjuries:  game.sport === "NFL" ? JSON.stringify(homeInjury.keyInjuries) : null,
+        awayKeyInjuries:  game.sport === "NFL" ? JSON.stringify(awayInjury.keyInjuries) : null,
       })
       .onConflictDoUpdate({
         target: gamesTable.id,
@@ -272,6 +352,22 @@ export async function refreshAll(): Promise<{
           awayStarterRecentEra: starters.away?.recentEra ?? null,
           bestLineBook: bestLine ? displayBookName(bestLine.book) : null,
           bestLineOdds: bestLine?.odds ?? null,
+          // Phase 3: always refreshed (weather/lineups change daily)
+          weatherWindMph:  venueWeather?.isDome ? null : (venueWeather?.windSpeedMph ?? null),
+          weatherPrecipMm: venueWeather?.isDome ? null : (venueWeather?.precipitationMm ?? null),
+          weatherTotalAdj: weatherEffect?.totalAdjustment ?? null,
+          weatherIsDome:   venueWeather?.isDome ?? null,
+          weatherSummary:  weatherEffect?.summary ?? null,
+          homeGoalieName:    goalieMatchup.home?.name ?? null,
+          homeGoalieSavePct: goalieMatchup.home?.savePct ?? null,
+          homeGoalieGaa:     goalieMatchup.home?.gaa ?? null,
+          awayGoalieName:    goalieMatchup.away?.name ?? null,
+          awayGoalieSavePct: goalieMatchup.away?.savePct ?? null,
+          awayGoalieGaa:     goalieMatchup.away?.gaa ?? null,
+          homeInjuryImpact: game.sport === "NFL" ? homeInjury.impactScore : null,
+          awayInjuryImpact: game.sport === "NFL" ? awayInjury.impactScore : null,
+          homeKeyInjuries:  game.sport === "NFL" ? JSON.stringify(homeInjury.keyInjuries) : null,
+          awayKeyInjuries:  game.sport === "NFL" ? JSON.stringify(awayInjury.keyInjuries) : null,
         },
       });
 

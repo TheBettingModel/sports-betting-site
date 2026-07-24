@@ -45,6 +45,48 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 interface Session { expiresAt: Date }
 const sessions = new Map<string, Session>();
 
+// ── Brute-force lockout (5-second lockout after 3 failed attempts per IP) ────
+const LOCKOUT_WINDOW_MS = 5_000;    // lockout duration
+const MAX_ATTEMPTS = 3;             // attempts before lockout
+
+interface FailedAttemptRecord {
+  count: number;
+  lockedUntil: number | null;
+}
+const failedAttempts = new Map<string, FailedAttemptRecord>();
+
+function getClientIp(req: Request): string {
+  return (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+    ?? req.socket.remoteAddress
+    ?? "unknown";
+}
+
+function isLockedOut(ip: string): boolean {
+  const record = failedAttempts.get(ip);
+  if (!record) return false;
+  if (record.lockedUntil && Date.now() < record.lockedUntil) return true;
+  return false;
+}
+
+function recordFailedAttempt(ip: string): void {
+  const now = Date.now();
+  const record = failedAttempts.get(ip) ?? { count: 0, lockedUntil: null };
+  // Reset if previous lockout has expired
+  if (record.lockedUntil && now >= record.lockedUntil) {
+    record.count = 0;
+    record.lockedUntil = null;
+  }
+  record.count++;
+  if (record.count >= MAX_ATTEMPTS) {
+    record.lockedUntil = now + LOCKOUT_WINDOW_MS;
+  }
+  failedAttempts.set(ip, record);
+}
+
+function clearFailedAttempts(ip: string): void {
+  failedAttempts.delete(ip);
+}
+
 /** Prune expired sessions (called lazily on each auth check). */
 function pruneExpiredSessions(): void {
   const now = new Date();
@@ -91,11 +133,24 @@ router.post("/admin/session", sessionAuthLimiter, (req, res): void => {
     res.status(503).json({ error: "Admin access not configured: set MASTER_API_KEY" });
     return;
   }
-  const key = req.headers["x-master-key"] as string | undefined;
-  if (!key || key !== MASTER_KEY) {
-    res.status(401).json({ error: "Invalid master key" });
+
+  const ip = getClientIp(req);
+
+  // Check lockout before doing anything else
+  if (isLockedOut(ip)) {
+    res.status(429).json({ error: "Invalid key" });
     return;
   }
+
+  const key = req.headers["x-master-key"] as string | undefined;
+  if (!key || key !== MASTER_KEY) {
+    recordFailedAttempt(ip);
+    res.status(401).json({ error: "Invalid key" });
+    return;
+  }
+
+  // Successful auth — clear failed attempt counter
+  clearFailedAttempts(ip);
 
   pruneExpiredSessions();
   const token = crypto.randomUUID();

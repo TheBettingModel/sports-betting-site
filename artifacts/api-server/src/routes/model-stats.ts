@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, isNotNull, and, gte, sql } from "drizzle-orm";
 import {
   db,
   modelWeightsTable,
@@ -160,6 +160,103 @@ router.get("/model/stats", async (_req, res): Promise<void> => {
     totalPredictions,
     dataAsOf: new Date().toISOString(),
   });
+});
+
+/**
+ * GET /api/model-stats/history
+ *
+ * Returns per-sport weekly win/loss/push totals for the last 8 weeks.
+ * Includes an "ALL" aggregation across all sports.
+ * Only graded picks (result IS NOT NULL and not 'pending') are included.
+ */
+router.get("/model-stats/history", async (_req, res): Promise<void> => {
+  const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000);
+
+  // Raw graded picks in the last 8 weeks
+  const rows = await db
+    .select({
+      sport: publishedPicksTable.sport,
+      result: pickResultsTable.result,
+      unitsWonLost: pickResultsTable.unitsWonLost,
+      // Truncate gradedAt to week (ISO week start = Monday)
+      week: sql<string>`to_char(date_trunc('week', ${pickResultsTable.gradedAt}), 'YYYY-MM-DD')`,
+    })
+    .from(pickResultsTable)
+    .innerJoin(
+      publishedPicksTable,
+      eq(pickResultsTable.pickId, publishedPicksTable.id),
+    )
+    .where(
+      and(
+        isNotNull(pickResultsTable.gradedAt),
+        isNotNull(pickResultsTable.result),
+        inArray(pickResultsTable.result, ["win", "loss", "push"]),
+        gte(pickResultsTable.gradedAt, eightWeeksAgo),
+      ),
+    );
+
+  // Aggregate by sport + week
+  interface WeekAgg {
+    wins: number;
+    losses: number;
+    pushes: number;
+    unitsWon: number;
+  }
+
+  // key: "sport::week"
+  const aggMap = new Map<string, WeekAgg>();
+  const weeks = new Set<string>();
+  const sports = new Set<string>();
+
+  for (const row of rows) {
+    if (!row.week) continue;
+    weeks.add(row.week);
+    sports.add(row.sport);
+
+    for (const sportKey of [row.sport, "ALL"]) {
+      const key = `${sportKey}::${row.week}`;
+      if (!aggMap.has(key)) {
+        aggMap.set(key, { wins: 0, losses: 0, pushes: 0, unitsWon: 0 });
+      }
+      const agg = aggMap.get(key)!;
+      if (row.result === "win") agg.wins++;
+      else if (row.result === "loss") agg.losses++;
+      else if (row.result === "push") agg.pushes++;
+      agg.unitsWon += row.unitsWonLost ?? 0;
+    }
+  }
+
+  // Build response array
+  const history: Array<{
+    week: string;
+    sport: string;
+    wins: number;
+    losses: number;
+    pushes: number;
+    unitsWon: number;
+    totalPicks: number;
+  }> = [];
+
+  const allSports = [...sports, "ALL"];
+
+  for (const week of [...weeks].sort()) {
+    for (const sport of allSports) {
+      const key = `${sport}::${week}`;
+      const agg = aggMap.get(key);
+      if (!agg) continue;
+      history.push({
+        week,
+        sport,
+        wins: agg.wins,
+        losses: agg.losses,
+        pushes: agg.pushes,
+        unitsWon: Math.round(agg.unitsWon * 100) / 100,
+        totalPicks: agg.wins + agg.losses + agg.pushes,
+      });
+    }
+  }
+
+  res.json({ history });
 });
 
 export default router;

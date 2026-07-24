@@ -1,14 +1,18 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Rocket, RotateCcw, TrendingUp, BarChart2 } from "lucide-react";
+import { Rocket, RotateCcw, TrendingUp } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, ReferenceLine,
+  ResponsiveContainer, Cell, ReferenceLine, LineChart, Line,
 } from "recharts";
-import { adminApi, modelApi, type ModelVersion, type SportStat } from "@/lib/api";
+import {
+  adminApi, modelApi,
+  type ModelVersion, type SportStat, type WeeklyHistoryEntry,
+} from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
 const STATUS_ORDER = ["production", "challenger", "approved", "development", "retired", "rejected"];
+const SPORT_TABS = ["ALL", "MLB", "NFL", "NBA", "WNBA", "NHL", "Soccer"];
 
 // ── Colour helpers ─────────────────────────────────────────────────────────────
 
@@ -18,42 +22,263 @@ function winRateColor(rate: number): string {
   return "#f87171";                   // red-400
 }
 
-// ── Custom tooltip ─────────────────────────────────────────────────────────────
-
-interface TooltipPayload {
-  payload: SportStat;
+function unitBarColor(units: number): string {
+  return units >= 0 ? "#4ade80" : "#f87171";
 }
 
-function WinRateTooltip({
-  active, payload,
-}: {
-  active?: boolean;
-  payload?: TooltipPayload[];
-}) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0]!.payload;
+// ── Format week label ──────────────────────────────────────────────────────────
+
+function formatWeek(iso: string): string {
+  // iso = "2025-07-14" (Monday of that week)
+  const d = new Date(iso + "T00:00:00Z");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+// ── Stat cards ─────────────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  sub?: string;
+  highlight?: string;
+}
+
+function StatCard({ label, value, sub, highlight }: StatCardProps) {
   return (
-    <div className="bg-card border border-border rounded p-2.5 text-xs space-y-1 shadow-xl">
-      <p className="font-semibold text-foreground">{d.sport}</p>
-      <p className="text-muted-foreground">Overall: <span className="text-foreground font-medium">{pct(d.accuracyRate)}</span></p>
-      <p className="text-muted-foreground">Strong Buy: <span className="text-foreground font-medium">{pct(d.strongBuyAccuracy)}</span></p>
-      <p className="text-muted-foreground">Buy: <span className="text-foreground font-medium">{pct(d.buyAccuracy)}</span></p>
-      <p className="text-muted-foreground">Sample: <span className="text-foreground font-medium">{d.totalPredictions} picks</span></p>
-      {d.avgClv != null && (
-        <p className="text-muted-foreground">Avg CLV: <span className="text-foreground font-medium">{d.avgClv > 0 ? "+" : ""}{(d.avgClv * 100).toFixed(1)}%</span></p>
-      )}
+    <div className="bg-card border border-border rounded-lg p-4 flex flex-col gap-1">
+      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-bold" style={highlight ? { color: highlight } : undefined}>
+        {value}
+      </p>
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
 
-// ── Performance charts panel ──────────────────────────────────────────────────
+// ── Win-rate trend line chart ──────────────────────────────────────────────────
+
+interface WinRateChartProps {
+  history: WeeklyHistoryEntry[];
+  sport: string;
+}
+
+function WinRateChart({ history, sport }: WinRateChartProps) {
+  const filtered = history
+    .filter((h) => h.sport === sport)
+    .map((h) => ({
+      week: formatWeek(h.week),
+      winPct: h.totalPicks > 0 ? Math.round((h.wins / h.totalPicks) * 1000) / 10 : null,
+      picks: h.totalPicks,
+    }));
+
+  if (filtered.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+        No graded picks in the last 8 weeks.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={180}>
+      <LineChart data={filtered} margin={{ left: 4, right: 12, top: 4, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+        <XAxis
+          dataKey="week"
+          tick={{ fontSize: 10, fill: "#71717a" }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tickFormatter={(v) => `${v}%`}
+          tick={{ fontSize: 10, fill: "#71717a" }}
+          axisLine={false}
+          tickLine={false}
+          width={36}
+        />
+        <Tooltip
+          cursor={{ stroke: "rgba(255,255,255,0.1)" }}
+          contentStyle={{
+            background: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+          labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+          formatter={(v: number) => [`${v}%`, "Win Rate"]}
+        />
+        <ReferenceLine y={50} stroke="#52525b" strokeDasharray="4 2" />
+        <Line
+          type="monotone"
+          dataKey="winPct"
+          stroke="#60a5fa"
+          strokeWidth={2}
+          dot={{ r: 3, fill: "#60a5fa" }}
+          connectNulls={false}
+          name="Win %"
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── Units won/lost bar chart ───────────────────────────────────────────────────
+
+interface UnitsChartProps {
+  history: WeeklyHistoryEntry[];
+  sport: string;
+}
+
+function UnitsChart({ history, sport }: UnitsChartProps) {
+  const filtered = history
+    .filter((h) => h.sport === sport)
+    .map((h) => ({
+      week: formatWeek(h.week),
+      unitsWon: h.unitsWon,
+    }));
+
+  if (filtered.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+        No graded picks in the last 8 weeks.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={180}>
+      <BarChart data={filtered} margin={{ left: 4, right: 12, top: 4, bottom: 0 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+        <XAxis
+          dataKey="week"
+          tick={{ fontSize: 10, fill: "#71717a" }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          tickFormatter={(v) => `${v > 0 ? "+" : ""}${v}u`}
+          tick={{ fontSize: 10, fill: "#71717a" }}
+          axisLine={false}
+          tickLine={false}
+          width={40}
+        />
+        <Tooltip
+          cursor={{ fill: "rgba(255,255,255,0.04)" }}
+          contentStyle={{
+            background: "hsl(var(--card))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+          labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+          formatter={(v: number) => [`${v > 0 ? "+" : ""}${v} units`, "Units Won/Lost"]}
+        />
+        <ReferenceLine y={0} stroke="#52525b" strokeDasharray="4 2" />
+        <Bar dataKey="unitsWon" radius={[3, 3, 0, 0]} maxBarSize={28}>
+          {filtered.map((entry, i) => (
+            <Cell key={i} fill={unitBarColor(entry.unitsWon)} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── Per-tier performance table ────────────────────────────────────────────────
+
+interface TierTableProps {
+  stats: SportStat[];
+}
+
+function TierTable({ stats }: TierTableProps) {
+  if (stats.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">No tier data available yet.</p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Sport</th>
+            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Overall</th>
+            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Elite</th>
+            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Strong</th>
+            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Playable</th>
+            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Picks</th>
+            <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Brier</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {stats.map((s) => (
+            <tr key={s.sport} className="hover:bg-accent/20 transition-colors">
+              <td className="px-3 py-2 font-medium text-foreground">{s.sport}</td>
+              <td className="px-3 py-2 text-right">
+                <span style={{ color: winRateColor(s.accuracyRate) }} className="font-medium">
+                  {pct(s.accuracyRate)}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right text-muted-foreground">
+                {s.eliteAccuracy != null ? pct(s.eliteAccuracy) : "—"}
+              </td>
+              <td className="px-3 py-2 text-right text-muted-foreground">
+                {s.strongAccuracy != null ? pct(s.strongAccuracy) : "—"}
+              </td>
+              <td className="px-3 py-2 text-right text-muted-foreground">
+                {s.playableAccuracy != null ? pct(s.playableAccuracy) : "—"}
+              </td>
+              <td className="px-3 py-2 text-right text-muted-foreground">{s.totalPredictions}</td>
+              <td className="px-3 py-2 text-right text-muted-foreground font-mono text-xs">
+                {s.brierScore != null ? s.brierScore.toFixed(3) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Performance Panel ─────────────────────────────────────────────────────────
 
 function PerformancePanel() {
-  const { data, isLoading } = useQuery({
+  const [selectedSport, setSelectedSport] = useState("ALL");
+
+  const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ["model-stats"],
     queryFn: () => modelApi.stats(),
     refetchInterval: 60_000,
   });
+
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ["model-stats-history"],
+    queryFn: () => modelApi.statsHistory(),
+    refetchInterval: 60_000,
+  });
+
+  const stats = statsData?.stats ?? [];
+  const history = historyData?.history ?? [];
+  const overallAccuracy = statsData?.overallAccuracy ?? 0;
+  const totalPicks = statsData?.totalPredictions ?? 0;
+
+  // Overall Brier score (average across sports)
+  const sportsWithBrier = stats.filter((s) => s.brierScore != null);
+  const overallBrier =
+    sportsWithBrier.length > 0
+      ? sportsWithBrier.reduce((sum, s) => sum + (s.brierScore ?? 0), 0) / sportsWithBrier.length
+      : null;
+
+  // Overall avg CLV
+  const sportsWithClv = stats.filter((s) => s.avgClv != null);
+  const overallAvgClv =
+    sportsWithClv.length > 0
+      ? sportsWithClv.reduce((sum, s) => sum + (s.avgClv ?? 0), 0) / sportsWithClv.length
+      : null;
+
+  const isLoading = statsLoading || historyLoading;
 
   if (isLoading) {
     return (
@@ -63,116 +288,99 @@ function PerformancePanel() {
     );
   }
 
-  const stats = data?.stats ?? [];
-
-  if (stats.length === 0) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <BarChart2 className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">Performance</h2>
-        </div>
-        <p className="text-sm text-muted-foreground">No graded picks yet — charts will appear once results are recorded.</p>
-      </div>
-    );
-  }
-
-  // Sort by win rate descending for bar chart
-  const sorted = [...stats].sort((a, b) => b.accuracyRate - a.accuracyRate);
-
-  // Build comparison data for the grouped bar (Strong Buy vs Buy)
-  const comparisonData = sorted.map((s) => ({
-    sport: s.sport,
-    "Strong Buy": Math.round(s.strongBuyAccuracy * 1000) / 10,
-    "Buy": Math.round(s.buyAccuracy * 1000) / 10,
-    sport_stat: s,
-  }));
-
-  const overallAccuracy = data?.overallAccuracy ?? 0;
-  const totalPicks = data?.totalPredictions ?? 0;
-
   return (
-    <div className="bg-card border border-border rounded-lg p-4 space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Performance</h2>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span>Overall: <span className="font-medium" style={{ color: winRateColor(overallAccuracy) }}>{pct(overallAccuracy)}</span></span>
-          <span>{totalPicks} graded picks</span>
-        </div>
+    <div className="space-y-5">
+      {/* ── Top stat cards ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          label="Overall Accuracy"
+          value={pct(overallAccuracy)}
+          sub={`${totalPicks} graded picks`}
+          highlight={winRateColor(overallAccuracy)}
+        />
+        <StatCard
+          label="Total Picks"
+          value={totalPicks.toLocaleString()}
+          sub="all sports combined"
+        />
+        <StatCard
+          label="Avg CLV"
+          value={
+            overallAvgClv != null
+              ? `${overallAvgClv > 0 ? "+" : ""}${(overallAvgClv * 100).toFixed(1)}%`
+              : "—"
+          }
+          sub="closing line value"
+          highlight={overallAvgClv != null ? (overallAvgClv >= 0 ? "#4ade80" : "#f87171") : undefined}
+        />
+        <StatCard
+          label="Avg Brier Score"
+          value={overallBrier != null ? overallBrier.toFixed(3) : "—"}
+          sub="lower is better"
+        />
       </div>
 
-      {/* Win rate by sport */}
-      <div>
-        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Win Rate by Sport</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 24, top: 0, bottom: 0 }}>
-            <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis
-              type="number"
-              domain={[0, 1]}
-              tickFormatter={(v) => `${Math.round(v * 100)}%`}
-              tick={{ fontSize: 10, fill: "#71717a" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="sport"
-              tick={{ fontSize: 11, fill: "#a1a1aa" }}
-              axisLine={false}
-              tickLine={false}
-              width={52}
-            />
-            <Tooltip content={<WinRateTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-            <ReferenceLine x={0.5} stroke="#52525b" strokeDasharray="4 2" />
-            <Bar dataKey="accuracyRate" radius={[0, 3, 3, 0]} maxBarSize={18}>
-              {sorted.map((s) => (
-                <Cell key={s.sport} fill={winRateColor(s.accuracyRate)} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Strong Buy vs Buy comparison */}
-      <div>
-        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Strong Buy vs Buy Accuracy (%)</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={comparisonData} margin={{ left: 8, right: 8, top: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis
-              dataKey="sport"
-              tick={{ fontSize: 10, fill: "#71717a" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              domain={[0, 100]}
-              tickFormatter={(v) => `${v}%`}
-              tick={{ fontSize: 10, fill: "#71717a" }}
-              axisLine={false}
-              tickLine={false}
-              width={36}
-            />
-            <Tooltip
-              cursor={{ fill: "rgba(255,255,255,0.04)" }}
-              contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-              labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
-            />
-            <ReferenceLine y={50} stroke="#52525b" strokeDasharray="4 2" />
-            <Bar dataKey="Strong Buy" fill="#4ade80" radius={[3, 3, 0, 0]} maxBarSize={20} />
-            <Bar dataKey="Buy" fill="#60a5fa" radius={[3, 3, 0, 0]} maxBarSize={20} />
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-400" />Strong Buy</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-400" />Buy</span>
-          <span className="ml-auto">Dashed line = 50%</span>
+      {/* ── Charts + tier table panel ── */}
+      <div className="bg-card border border-border rounded-lg p-4 space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Win-Rate Trends & ROI</h2>
+          </div>
         </div>
+
+        {/* Sport selector tabs */}
+        <div className="flex flex-wrap gap-1.5">
+          {SPORT_TABS.map((sport) => (
+            <button
+              key={sport}
+              onClick={() => setSelectedSport(sport)}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                selectedSport === sport
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {sport}
+            </button>
+          ))}
+        </div>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Win-rate line chart */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+              Win Rate % — Last 8 Weeks ({selectedSport})
+            </p>
+            <WinRateChart history={history} sport={selectedSport} />
+          </div>
+
+          {/* Units bar chart */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+              Units Won / Lost — Last 8 Weeks ({selectedSport})
+            </p>
+            <UnitsChart history={history} sport={selectedSport} />
+          </div>
+        </div>
+
+        {/* Per-tier performance table */}
+        {stats.length > 0 && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wider">
+              Per-Sport Tier Performance
+            </p>
+            <TierTable stats={stats} />
+          </div>
+        )}
+
+        {stats.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No graded picks yet — charts and stats will appear once results are recorded.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -216,7 +424,7 @@ export function Models() {
         <p className="text-sm text-muted-foreground mt-0.5">Deploy, rollback, and monitor model versions</p>
       </div>
 
-      {/* Performance charts */}
+      {/* Performance charts + stat cards */}
       <PerformancePanel />
 
       {/* Filters */}

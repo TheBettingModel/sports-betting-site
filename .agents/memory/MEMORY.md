@@ -4,3 +4,5 @@
 - [Phase 1 model engine upgrade](phase1-model-engine.md) — calibration, dynamic units, universal final rating, POD score; all fields flow through games table + model_predictions.
 - [MLB Pitcher Signal](mlb-pitcher-signal.md) — MLB Stats API; must hydrate=team to get team.id; use static MLB_ID_TO_ESPN map; stat type displayName is "season" not "statsSingleSeason".
 - [Odds API Features](odds-api-features.md) — consensus odds, Pinnacle sharp signal, best available line, opening odds COALESCE pattern, line movement in model.
+- [Phase 3 model signals](phase3-model-signals.md) — weather/NHL goalies/NFL injuries; Open-Meteo forecast_days=2 fix; pre-batch before game loop; CHW abbr for White Sox.
+- [Admin & push upgrades](admin-push-upgrades.md) — brute-force lockout on admin login; win-rate charts; push receipt retry (30-min scheduler); sport-specific notification prefs.

@@ -7,7 +7,7 @@
 
 import { Expo, type ExpoPushMessage } from "expo-server-sdk";
 import { eq, and, inArray } from "drizzle-orm";
-import { db, pushTokensTable, subscribersTable, notificationPreferencesTable } from "@workspace/db";
+import { db, pushTokensTable, subscribersTable, notificationPreferencesTable, userPreferencesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { storePushReceipts } from "./pushReceipts";
 
@@ -45,10 +45,18 @@ async function getActiveSubscriberTokens(): Promise<
  * @param strongBuyCount - number of Strong Buy picks published this run
  * @param topPick        - optional short description of the top pick (e.g. "Lakers vs Warriors")
  */
+// Tier ordering for minimum tier filtering
+const TIER_ORDER: Record<string, number> = {
+  Playable: 1,
+  "Strong Buy": 2,
+  Elite: 3,
+};
+
 export async function sendStrongBuyNotification(
   strongBuyCount: number,
   topPick?: string,
   sport?: string,
+  tier?: string,
 ): Promise<void> {
   if (strongBuyCount === 0) return;
 
@@ -60,11 +68,18 @@ export async function sendStrongBuyNotification(
 
   // Load notification preferences for all users that have tokens
   const userIds = [...new Set(tokenRows.map((r) => r.userId))];
-  const prefRows = await db
-    .select()
-    .from(notificationPreferencesTable)
-    .where(inArray(notificationPreferencesTable.userId, userIds));
+  const [prefRows, userPrefRows] = await Promise.all([
+    db
+      .select()
+      .from(notificationPreferencesTable)
+      .where(inArray(notificationPreferencesTable.userId, userIds)),
+    db
+      .select()
+      .from(userPreferencesTable)
+      .where(inArray(userPreferencesTable.userId, userIds)),
+  ]);
   const prefByUser = new Map(prefRows.map((p) => [p.userId, p.enabledSports]));
+  const userPrefByUser = new Map(userPrefRows.map((p) => [p.userId, p]));
 
   const title =
     strongBuyCount === 1
@@ -76,7 +91,7 @@ export async function sendStrongBuyNotification(
     : "Open the app to see today's model picks";
 
   // Build messages, filtering invalid tokens and sport preferences
-  const messages: Array<ExpoPushMessage & { _token: string }> = [];
+  const messages: Array<ExpoPushMessage & { _token: string; _userId: string }> = [];
   const invalidTokens: string[] = [];
   let skippedByPreference = 0;
 
@@ -86,8 +101,36 @@ export async function sendStrongBuyNotification(
       continue;
     }
 
-    // Apply per-sport preference: if the user has set enabledSports, check inclusion
-    if (sport) {
+    // Apply user_preferences: master switch and tier threshold
+    const userPref = userPrefByUser.get(userId);
+    if (userPref) {
+      // Skip if user has disabled all notifications
+      if (!userPref.notifEnabled) {
+        skippedByPreference++;
+        continue;
+      }
+
+      // Skip if pick tier is below the user's minimum tier
+      if (tier && userPref.notifMinTier) {
+        const pickTierRank = TIER_ORDER[tier] ?? 1;
+        const minTierRank = TIER_ORDER[userPref.notifMinTier] ?? 1;
+        if (pickTierRank < minTierRank) {
+          skippedByPreference++;
+          continue;
+        }
+      }
+
+      // Apply notif_sports from user_preferences (overrides notif prefs table if set)
+      if (sport && userPref.notifSports !== null && userPref.notifSports !== undefined) {
+        if (!userPref.notifSports.includes(sport)) {
+          skippedByPreference++;
+          continue;
+        }
+      }
+    }
+
+    // Apply per-sport preference from legacy notification_preferences table
+    if (sport && !userPref) {
       const enabledSports = prefByUser.get(userId);
       if (enabledSports !== undefined && enabledSports !== null && !enabledSports.includes(sport)) {
         skippedByPreference++;
@@ -103,6 +146,7 @@ export async function sendStrongBuyNotification(
       data: { screen: "picks" },
       channelId: "picks",
       _token: token,
+      _userId: userId,
     });
   }
 
@@ -119,29 +163,40 @@ export async function sendStrongBuyNotification(
     return;
   }
 
-  // Build clean messages (strip internal _token field)
-  const cleanMessages: ExpoPushMessage[] = messages.map(({ _token: _, ...m }) => m);
+  // Build clean messages (strip internal fields)
+  const cleanMessages: ExpoPushMessage[] = messages.map(({ _token: _, _userId: __, ...m }) => m);
 
   // Send in batches (Expo SDK handles chunking)
   const chunks = expo.chunkPushNotifications(cleanMessages);
-  // Track chunk → token mapping for receipt storage
-  const chunkTokens: string[][] = expo.chunkPushNotifications(
+  // Track chunk → token/userId mapping for receipt storage
+  const chunkMeta: Array<{ token: string; userId: string }>[] = expo.chunkPushNotifications(
     messages.map((m) => ({ to: m._token })),
-  ).map((chunk) => chunk.map((m) => m.to as string));
+  ).map((_chunk, i) =>
+    messages
+      .slice(
+        i * 100, // Expo max chunk size is 100
+        (i + 1) * 100,
+      )
+      .map((m) => ({ token: m._token, userId: m._userId })),
+  );
 
   let sent = 0;
   let failed = 0;
-  const pendingForReceipts: Array<{ receiptId: string; token: string }> = [];
+  const pendingForReceipts: Array<{ receiptId: string; token: string; userId: string }> = [];
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]!;
-    const tokens = chunkTokens[i]!;
+    const meta = chunkMeta[i]!;
     try {
       const tickets = await expo.sendPushNotificationsAsync(chunk);
       tickets.forEach((ticket, idx) => {
         if (ticket.status === "ok") {
           sent++;
-          pendingForReceipts.push({ receiptId: ticket.id, token: tokens[idx]! });
+          pendingForReceipts.push({
+            receiptId: ticket.id,
+            token: meta[idx]!.token,
+            userId: meta[idx]!.userId,
+          });
         } else {
           failed++;
           logger.warn({ ticket }, "Push: ticket error");
@@ -155,7 +210,7 @@ export async function sendStrongBuyNotification(
 
   // Store receipt IDs for later delivery confirmation
   if (pendingForReceipts.length > 0) {
-    storePushReceipts(pendingForReceipts);
+    void storePushReceipts(pendingForReceipts);
   }
 
   logger.info(

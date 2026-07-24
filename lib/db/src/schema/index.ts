@@ -53,3 +53,9 @@ export * from "./sport-snoozes";
 
 // ── User notification preferences ─────────────────────────────────────────────
 export * from "./notification-preferences";
+
+// ── Push receipts (Expo delivery confirmation) ────────────────────────────────
+export * from "./push-receipts";
+
+// ── User preferences (sport filters, tier thresholds) ────────────────────────
+export * from "./user-preferences";

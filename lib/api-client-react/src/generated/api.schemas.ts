@@ -66,6 +66,20 @@ export interface GameProjection {
   // Phase 2: best available line
   bestLineBook?: string | null;
   bestLineOdds?: number | null;
+  // Phase 3: weather (MLB/NFL)
+  weatherWindMph?: number | null;
+  weatherTotalAdj?: number | null;
+  weatherSummary?: string | null;
+  // Phase 3: NHL goalies
+  homeGoalieName?: string | null;
+  homeGoalieSavePct?: number | null;
+  awayGoalieName?: string | null;
+  awayGoalieSavePct?: number | null;
+  // Phase 3: NFL injuries
+  homeInjuryImpact?: number | null;
+  awayInjuryImpact?: number | null;
+  homeKeyInjuries?: string | null;
+  awayKeyInjuries?: string | null;
 }
 
 export interface GamesTodayResponse {

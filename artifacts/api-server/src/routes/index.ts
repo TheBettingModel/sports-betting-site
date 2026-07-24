@@ -9,6 +9,7 @@ import adminRouter from "./admin";
 import webhooksRouter from "./webhooks";
 import pushTokensRouter from "./push-tokens";
 import notificationPreferencesRouter from "./notification-preferences";
+import preferencesRouter from "./preferences";
 import clerkProxyRouter from "./clerk-proxy";
 import legalRouter from "./legal";
 
@@ -24,6 +25,7 @@ router.use(adminRouter);
 router.use(webhooksRouter);
 router.use(pushTokensRouter);
 router.use(notificationPreferencesRouter);
+router.use(preferencesRouter);
 router.use(clerkProxyRouter);
 router.use(legalRouter);
 

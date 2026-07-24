@@ -45,13 +45,13 @@ export function isAuthenticated(): boolean {
   return getSessionToken().length > 0;
 }
 
-/** Exchange the master key for a session token. Returns null on bad key. */
+/** Exchange the master key for a session token. Returns null on bad key or lockout. */
 export async function createSession(masterKey: string): Promise<{ token: string; expiresAt: string } | null> {
   const res = await fetch(`${BASE}/admin/session`, {
     method: "POST",
     headers: { "X-Master-Key": masterKey },
   });
-  if (res.status === 401 || res.status === 503) return null;
+  if (res.status === 401 || res.status === 429 || res.status === 503) return null;
   if (!res.ok) throw new Error(`Session error: ${res.status}`);
   return res.json() as Promise<{ token: string; expiresAt: string }>;
 }
@@ -136,6 +136,7 @@ export const adminApi = {
 
 export const modelApi = {
   stats: () => api.get<ModelStatsResult>("/model/stats"),
+  statsHistory: () => api.get<ModelStatsHistoryResult>("/model-stats/history"),
   list: (status?: string) =>
     api.get<{ models: ModelVersion[]; count: number }>(
       `/models${status ? `?status=${status}` : ""}`,
@@ -282,6 +283,10 @@ export interface SportStat {
   strongBuyAccuracy: number;
   buyAccuracy: number;
   avgClv: number | null;
+  brierScore?: number | null;
+  eliteAccuracy?: number | null;
+  strongAccuracy?: number | null;
+  playableAccuracy?: number | null;
   confidenceMultiplier: number;
   lastLearnedAt: string | null;
 }
@@ -291,6 +296,20 @@ export interface ModelStatsResult {
   overallAccuracy: number;
   totalPredictions: number;
   dataAsOf: string;
+}
+
+export interface WeeklyHistoryEntry {
+  week: string;
+  sport: string;
+  wins: number;
+  losses: number;
+  pushes: number;
+  unitsWon: number;
+  totalPicks: number;
+}
+
+export interface ModelStatsHistoryResult {
+  history: WeeklyHistoryEntry[];
 }
 
 export interface SportSnooze {

@@ -609,10 +609,6 @@ async function runAnalyticsRefresh(): Promise<void> {
 
   try {
     const rowsWritten = await runAnalytics();
-    // Check pending push receipts in the background during analytics run
-    await checkPendingPushReceipts().catch((err) =>
-      logger.warn({ err }, "Scheduler: push receipt check failed — non-fatal"),
-    );
     await finishRun(runId, "completed", rowsWritten);
     logger.info({ rowsWritten }, "Scheduler: analytics-refresh complete");
   } catch (err) {
@@ -670,6 +666,23 @@ async function runDriftCheck(): Promise<void> {
   }
 }
 
+async function runPushReceiptCheck(): Promise<void> {
+  const jobName = "push-receipt-check";
+  if (runningJobs.has(jobName)) {
+    logger.debug("Scheduler: push-receipt-check already running, skipping");
+    return;
+  }
+
+  runningJobs.add(jobName);
+  try {
+    await checkPendingPushReceipts();
+  } catch (err) {
+    logger.warn({ err }, "Scheduler: push-receipt-check failed — non-fatal");
+  } finally {
+    runningJobs.delete(jobName);
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -699,6 +712,11 @@ export function startScheduler(): void {
   // Subscriber reconciliation — hourly at :15, catches missed expiration webhooks
   cron.schedule("15 * * * *", () => {
     void runSubscriberReconciliation();
+  });
+
+  // Push receipt checker — every 30 minutes, offset by 5 to avoid colliding with odds ingestion
+  cron.schedule("5,35 * * * *", () => {
+    void runPushReceiptCheck();
   });
 
   // Warm up team stats cache in the background so the first game refresh

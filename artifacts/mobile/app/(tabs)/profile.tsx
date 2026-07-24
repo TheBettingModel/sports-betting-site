@@ -13,6 +13,7 @@ import PaywallModal from '@/app/paywall';
 import Purchases from 'react-native-purchases';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useNotificationPreferences, ALL_SPORTS } from '@/hooks/useNotificationPreferences';
+import { useUserPreferences, TIER_LABELS, VALID_TIERS } from '@/hooks/useUserPreferences';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -24,6 +25,7 @@ export default function ProfileScreen() {
   const { isSubscribed, restore } = useSubscription();
   const { enableNotifications, disableNotifications, getNotificationsEnabled } = usePushNotifications();
   const { prefs: notifPrefs, saving: notifPrefsSaving, toggleSport } = useNotificationPreferences();
+  const { prefs: userPrefs, saving: userPrefsSaving, setMinTier } = useUserPreferences();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -338,19 +340,48 @@ export default function ProfileScreen() {
                   return (
                     <Pressable
                       key={sport}
-                      disabled={notifPrefsSaving}
+                      disabled={notifPrefsSaving || userPrefsSaving}
                       onPress={async () => { await Haptics.selectionAsync(); await toggleSport(sport); }}
                       style={[
                         styles.sportChip,
                         {
                           backgroundColor: enabled ? colors.primary + '22' : colors.card,
                           borderColor: enabled ? colors.primary : colors.border,
-                          opacity: notifPrefsSaving ? 0.6 : 1,
+                          opacity: (notifPrefsSaving || userPrefsSaving) ? 0.6 : 1,
                         },
                       ]}
                     >
                       <Text style={[styles.sportChipText, { color: enabled ? colors.primary : colors.mutedForeground }]}>
                         {sport}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Minimum tier selector */}
+              <Text style={[styles.sportPrefsTitle, { color: colors.mutedForeground, marginTop: 14 }]}>
+                MINIMUM PICK TIER
+              </Text>
+              <View style={styles.tierRow}>
+                {VALID_TIERS.map((tier) => {
+                  const selected = (userPrefs.notifMinTier ?? 'Playable') === tier;
+                  return (
+                    <Pressable
+                      key={tier}
+                      disabled={userPrefsSaving}
+                      onPress={async () => { await Haptics.selectionAsync(); await setMinTier(tier); }}
+                      style={[
+                        styles.tierChip,
+                        {
+                          backgroundColor: selected ? colors.primary + '22' : colors.card,
+                          borderColor: selected ? colors.primary : colors.border,
+                          opacity: userPrefsSaving ? 0.6 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.tierChipText, { color: selected ? colors.primary : colors.mutedForeground }]}>
+                        {TIER_LABELS[tier] ?? tier}
                       </Text>
                     </Pressable>
                   );
@@ -470,4 +501,11 @@ const styles = StyleSheet.create({
     borderRadius: 20, borderWidth: 1,
   },
   sportChipText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  tierRow: { flexDirection: 'column', gap: 8 },
+  tierChip: {
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1,
+    alignItems: 'center',
+  },
+  tierChipText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
 });

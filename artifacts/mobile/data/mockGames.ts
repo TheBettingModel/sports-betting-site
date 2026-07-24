@@ -56,6 +56,18 @@ export interface Game {
     // Phase 2: best available line across all tracked books
     bestLineBook?: string;
     bestLineOdds?: number;
+    // Phase 3: weather
+    weatherWindMph?: number;
+    weatherTotalAdj?: number;
+    weatherSummary?: string;
+    // Phase 3: NHL goalies
+    homeGoalieName?: string;
+    homeGoalieSavePct?: number;
+    awayGoalieName?: string;
+    awayGoalieSavePct?: number;
+    // Phase 3: NFL injuries
+    homeKeyInjuries?: string;
+    awayKeyInjuries?: string;
   };
   vegasLine: {
     spread: number;
