@@ -12,7 +12,7 @@
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
         "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
-        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx",
+        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx,user_3GyCCHwnYB9sIByophLiunxGtMf",
         "EXPO_PUBLIC_DOMAIN": "thebettingmodel.replit.app"
       }
     },
@@ -23,7 +23,7 @@
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
         "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
-        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx",
+        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx,user_3GyCCHwnYB9sIByophLiunxGtMf",
         "EXPO_PUBLIC_DOMAIN": "thebettingmodel.replit.app"
       }
     },
@@ -35,7 +35,7 @@
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
         "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
-        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx",
+        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx,user_3GyCCHwnYB9sIByophLiunxGtMf",
         "EXPO_PUBLIC_DOMAIN": "thebettingmodel.replit.app"
       }
     }
