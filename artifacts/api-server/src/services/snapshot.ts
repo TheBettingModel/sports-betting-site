@@ -124,7 +124,11 @@ async function writePredictionSnapshot(
       edge: proj.edge,
       confidence: proj.confidence,
       recommendation: proj.valueRating,
-      units: proj.valueRating === "Strong Buy" ? 2.0 : 1.0,
+      units: proj.units > 0 ? proj.units : 1.0,
+      podScore: proj.podScore,
+      finalRating: proj.finalModelScore,
+      marketIntelligenceGrade: proj.finalModelTier,
+      sharpSignals: { sharpScore: proj.sharpScore, sharpSignal: proj.sharpSignal },
       featureSnapshot,
       predictionTimestamp: capturedAt,
       dataCutoffTimestamp: capturedAt,
@@ -149,8 +153,8 @@ async function publishPick(
 ): Promise<void> {
   const isPublic =
     proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
-  const isPlayOfDay = proj.valueRating === "Strong Buy";
-  const units = proj.valueRating === "Strong Buy" ? 2.0 : 1.0;
+  const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
+  const units = proj.units > 0 ? proj.units : 1.0;
 
   const [pick] = await db
     .insert(publishedPicksTable)

@@ -33,8 +33,17 @@ export interface Game {
     projectedSpread: number;
     projectedTotal: number;
     valueRating: ValueRating;
-    modelScore: number; // 0–100
-    edge: number; // % edge vs market
+    modelScore: number;  // 0–100 universal final rating
+    edge: number;        // % edge vs market
+    // Phase 1: enhanced model fields
+    confidenceNum?: number;   // 0–100 numeric confidence
+    units?: number;           // dynamic unit sizing (0.5–3.0; 0 = no bet)
+    sharpScore?: number;      // 0–5 sharp signal strength
+    sharpSignal?: string;     // "Sharp Play" | "Value Watch" | "Neutral Signal" | "No Signal"
+    finalModelScore?: number; // universal final rating
+    finalModelTier?: string;  // "Elite" | "Strong" | "Playable" | "Watchlist" | "Pass"
+    finalModelStars?: number; // 1–5
+    podScore?: number;        // cross-sport ranking score
   };
   vegasLine: {
     spread: number;

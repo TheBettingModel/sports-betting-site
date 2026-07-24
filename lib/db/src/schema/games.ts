@@ -44,6 +44,17 @@ export const gamesTable = pgTable("games", {
   modelScore: integer("model_score").notNull().default(50),
   edge: real("edge").notNull().default(0),
 
+  // Phase 1: enhanced model scoring
+  confidenceNum: integer("confidence_num").notNull().default(50),
+  units: real("units").notNull().default(1.0),
+  priceAdjustment: real("price_adjustment").notNull().default(0),
+  sharpScore: integer("sharp_score").notNull().default(0),
+  sharpSignal: text("sharp_signal").notNull().default("No Signal"),
+  finalModelScore: integer("final_model_score").notNull().default(50),
+  finalModelTier: text("final_model_tier").notNull().default("Watchlist"),
+  finalModelStars: integer("final_model_stars").notNull().default(2),
+  podScore: real("pod_score").notNull().default(0),
+
   // Vegas lines (real from ESPN/DraftKings when available, otherwise estimated)
   vegasSpread: real("vegas_spread").notNull().default(0),
   vegasTotal: real("vegas_total").notNull().default(0),

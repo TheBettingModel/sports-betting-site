@@ -7,13 +7,24 @@ export interface ProjectionResult {
   projectedSpread: number;
   projectedTotal: number;
   valueRating: string;
-  modelScore: number;
+  modelScore: number;        // universal final rating (0–100) — replaces old deviation-based score
   edge: number;
   vegasSpread: number;
   vegasTotal: number;
   vegasHomeOdds: number;
   vegasAwayOdds: number;
-  vegasDrawOdds: number; // 0 for non-soccer; real draw ML for soccer
+  vegasDrawOdds: number;     // 0 for non-soccer; real draw ML for soccer
+
+  // ── Phase 1: enhanced model fields ───────────────────────────────────────
+  confidenceNum: number;     // 0–100 numeric confidence (converted from deviation)
+  units: number;             // dynamic unit sizing (0.5 – 3.0; 0 = no bet)
+  priceAdjustment: number;   // -0.6 to +0.6 price-profile bonus (plus-money favoured)
+  sharpScore: number;        // 0–5 sharp signal strength
+  sharpSignal: string;       // "Sharp Play" | "Value Watch" | "Neutral Signal" | "No Signal"
+  finalModelScore: number;   // same as modelScore — kept separate for clarity
+  finalModelTier: string;    // "Elite" | "Strong" | "Playable" | "Watchlist" | "Pass"
+  finalModelStars: number;   // 1–5 stars
+  podScore: number;          // cross-sport pick-of-the-day ranking score
 }
 
 /** Default over/under totals per sport (used when ESPN doesn't return a real line) */
@@ -183,6 +194,149 @@ function hashNoise(str: string, range: number, offset: number): number {
     h |= 0;
   }
   return ((Math.abs(h) % (range + 1)) - offset) * 0.01;
+}
+
+// ── Phase 1 helper functions ──────────────────────────────────────────────────
+
+/**
+ * 3.2 Probability calibration — trims overconfident tails.
+ * Research shows models consistently overstate confidence at the extremes;
+ * these deductions bring predicted probabilities closer to empirical hit rates.
+ */
+function calibrateModelProbability(prob: number): number {
+  const pct = prob * 100;
+  if (pct >= 65) return (pct - 2.0) / 100;
+  if (pct >= 60) return (pct - 1.5) / 100;
+  if (pct >= 55) return (pct - 1.0) / 100;
+  // Mirror calibration for the away-favoured side
+  if (pct <= 35) return (pct + 2.0) / 100;
+  if (pct <= 40) return (pct + 1.5) / 100;
+  if (pct <= 45) return (pct + 1.0) / 100;
+  return prob;
+}
+
+/**
+ * Convert raw deviation from 50% into a 0–100 numeric confidence score.
+ * deviation=0 → 50 (coin flip), deviation=25 → 99 (near-certain).
+ */
+function getNumericConfidence(deviation: number): number {
+  return Math.min(99, Math.round(50 + deviation * 2.0));
+}
+
+/**
+ * 3.5 Price adjustment — plus-money edges are harder for oddsmakers to misprice,
+ * so they carry more signal weight than equivalent minus-money edges.
+ */
+function getPriceAdjustment(odds: number): number {
+  if (odds >= 120) return 0.6;
+  if (odds >= 100) return 0.4;
+  if (odds >= -110) return 0.2;
+  if (odds >= -130) return 0.0;
+  if (odds >= -160) return -0.3;
+  return -0.6;
+}
+
+/**
+ * 3.4 Dynamic unit sizing — scales bet size with conviction.
+ * Returns 0 for Neutral/Fade (no bet), 0.5–3.0 for Buy/Strong Buy.
+ */
+function getDynamicUnits(edge: number, confidenceNum: number, valueRating: string): number {
+  if (valueRating === "Fade" || valueRating === "Neutral") return 0;
+  if (edge >= 8 && confidenceNum >= 90) return 3.0;
+  if (edge >= 6 && confidenceNum >= 85) return 2.0;
+  if (edge >= 4 && confidenceNum >= 75) return 1.5;
+  if (edge >= 2 && confidenceNum >= 60) return 1.0;
+  return 0.5;
+}
+
+/**
+ * 4.2 Sharp market signal — single-book version (no Pinnacle/Circa available yet).
+ * Grades picks 0–5 based on edge magnitude and price profile.
+ */
+function getSharpMarketSignal(
+  edge: number,
+  odds: number,
+): { sharpScore: number; sharpSignal: string } {
+  let score = 0;
+
+  // Edge contribution
+  if (edge >= 8) score += 4;
+  else if (edge >= 5) score += 3;
+  else if (edge >= 3) score += 2;
+  else if (edge >= 1) score += 1;
+  else if (edge < 0) score -= 2;
+
+  // Plus-money edges are more meaningful (books don't over-juice + sides)
+  if (odds > 100) score += 1;
+  else if (odds <= -200 && edge < 5) score -= 1; // heavy-fav low-edge = likely public side
+
+  const sharpSignal =
+    score >= 5 ? "Sharp Play" :
+    score >= 3 ? "Value Watch" :
+    score >= 1 ? "Neutral Signal" :
+    "No Signal";
+
+  return { sharpScore: Math.max(0, score), sharpSignal };
+}
+
+/**
+ * 4.10 Universal final rating — weighted 0–100 score replacing the old
+ * simple deviation-from-50 modelScore.
+ */
+function getUniversalFinalRating(
+  edge: number,
+  confidenceNum: number,
+  sharpScore: number,
+  priceAdj: number,
+): { finalModelScore: number; finalModelTier: string; finalModelStars: number } {
+  let score = 50;
+
+  // Edge (primary driver, ~40% of total)
+  if (edge >= 6) score += 18;
+  else if (edge >= 4) score += 14;
+  else if (edge >= 2) score += 8;
+  else if (edge > 0) score += 3;
+  else if (edge < 0) score -= 8;
+
+  // Confidence (~25%)
+  if (confidenceNum >= 88) score += 10;
+  else if (confidenceNum >= 80) score += 7;
+  else if (confidenceNum >= 70) score += 4;
+  else if (confidenceNum >= 60) score += 2;
+
+  // Sharp signal (~20%)
+  if (sharpScore >= 4) score += 8;
+  else if (sharpScore >= 2) score += 4;
+  else if (sharpScore <= 0 && edge < 2) score -= 4;
+
+  // Price profile (~15%) — scale ±0.6 to ±3 pts
+  score += Math.round(priceAdj * 5);
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let finalModelTier: string;
+  let finalModelStars: number;
+
+  if (score >= 85) { finalModelTier = "Elite";      finalModelStars = 5; }
+  else if (score >= 72) { finalModelTier = "Strong"; finalModelStars = 4; }
+  else if (score >= 60) { finalModelTier = "Playable"; finalModelStars = 3; }
+  else if (score >= 50) { finalModelTier = "Watchlist"; finalModelStars = 2; }
+  else                  { finalModelTier = "Pass";    finalModelStars = 1; }
+
+  return { finalModelScore: score, finalModelTier, finalModelStars };
+}
+
+/**
+ * 4.11 Universal POD score — cross-sport pick-of-the-day ranking.
+ * Higher = better candidate for the featured pick slot.
+ */
+function getPodScore(finalModelScore: number, sharpScore: number, edge: number): number {
+  let score = finalModelScore * 0.40;
+  score += sharpScore * 2;          // sharp signal proxy
+  if (edge >= 6) score += 10;
+  else if (edge >= 4) score += 6;
+  else if (edge >= 2) score += 3;
+  return Math.round(Math.max(0, score));
 }
 
 // ── ComputeOptions ────────────────────────────────────────────────────────────
@@ -432,11 +586,14 @@ function computeRunsModel(
 function finalizeResult(
   gameId: string,
   sport: string,
-  prob: number,
+  rawProb: number,
   homeWinRate: number,
   accuracyBoost: number,
   opts: ComputeOptions,
 ): ProjectionResult {
+  // 3.2: Apply probability calibration before computing edge
+  const prob = calibrateModelProbability(rawProb);
+
   const homeWinPct = Math.round(prob * 100);
   const deviation  = Math.abs(homeWinPct - 50);
 
@@ -462,10 +619,25 @@ function finalizeResult(
   }
 
   const edge       = Math.round((prob - vegasImplied) * 1000) / 10;
-  const modelScore = Math.max(40, Math.min(95, Math.round(55 + deviation + accuracyBoost)));
   const confidence = deviation >= 18 ? "High" : deviation >= 9 ? "Medium" : "Low";
   const valueRating =
     edge >= 10 ? "Strong Buy" : edge >= 5 ? "Buy" : edge <= -5 ? "Fade" : "Neutral";
+
+  // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
+
+  // Determine the pick-side odds for price adjustment (home if edge > 0, else away)
+  const pickOdds  = edge >= 0 ? vegasHomeOdds : vegasAwayOdds;
+  const priceAdj  = getPriceAdjustment(pickOdds);
+
+  const confidenceNum   = getNumericConfidence(deviation);
+  const { sharpScore, sharpSignal } = getSharpMarketSignal(edge, pickOdds);
+  const units           = getDynamicUnits(edge, confidenceNum, valueRating);
+  const { finalModelScore, finalModelTier, finalModelStars } =
+    getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
+  const podScore = getPodScore(finalModelScore, sharpScore, edge);
+
+  // modelScore is now the universal final rating (backward-compat field name)
+  const modelScore = finalModelScore;
 
   const projectedSpread = Math.round((0.5 - prob) * 20 * 2) / 2;
   const vegasSpread     = Math.round((0.5 - vegasImplied) * 20 * 2) / 2;
@@ -488,6 +660,16 @@ function finalizeResult(
     vegasHomeOdds,
     vegasAwayOdds,
     vegasDrawOdds: 0,
+    // Phase 1
+    confidenceNum,
+    units,
+    priceAdjustment: priceAdj,
+    sharpScore,
+    sharpSignal,
+    finalModelScore,
+    finalModelTier,
+    finalModelStars,
+    podScore,
   };
 }
 
@@ -505,28 +687,31 @@ function computeSoccerProjection(
   const homeRate = parseSoccerWinRate(homeRecord);
   const awayRate = parseSoccerWinRate(awayRecord);
 
-  let prob = 0.42 + 0.05 + (homeRate - awayRate) * (fw["recordWeight"] ?? 0.28);
+  let rawProb = 0.42 + 0.05 + (homeRate - awayRate) * (fw["recordWeight"] ?? 0.28);
 
   const hs  = opts.homeSoccerStats;
   const as_ = opts.awaySoccerStats;
 
   if (hs && as_) {
     // Tier 1: Attack vs defence matchup
-    prob += (hs.goalsPerGame - as_.goalsAllowedPerGame) * (fw["attackDefWeight"] ?? 0.08);
-    prob -= (as_.goalsPerGame - hs.goalsAllowedPerGame) * (fw["attackDefWeight"] ?? 0.08);
-    prob += (hs.goalDifferential - as_.goalDifferential) * (fw["goalDiffWeight"] ?? 0.05);
+    rawProb += (hs.goalsPerGame - as_.goalsAllowedPerGame) * (fw["attackDefWeight"] ?? 0.08);
+    rawProb -= (as_.goalsPerGame - hs.goalsAllowedPerGame) * (fw["attackDefWeight"] ?? 0.08);
+    rawProb += (hs.goalDifferential - as_.goalDifferential) * (fw["goalDiffWeight"] ?? 0.05);
     // Tier 2: Recent form
-    prob += (hs.last5Form - as_.last5Form) * (fw["formWeight"] ?? 0.10);
-    prob += (hs.last5GoalDiff - as_.last5GoalDiff) * (fw["lastGoalDiffWeight"] ?? 0.025);
+    rawProb += (hs.last5Form - as_.last5Form) * (fw["formWeight"] ?? 0.10);
+    rawProb += (hs.last5GoalDiff - as_.last5GoalDiff) * (fw["lastGoalDiffWeight"] ?? 0.025);
     // Tier 3: Rest
     const restDiff = hs.restDays - as_.restDays;
-    prob += Math.max(-0.025, Math.min(0.025, restDiff * (fw["restWeight"] ?? 0.007)));
+    rawProb += Math.max(-0.025, Math.min(0.025, restDiff * (fw["restWeight"] ?? 0.007)));
   }
 
-  prob = 0.42 + (prob - 0.42) * multiplier;
+  rawProb = 0.42 + (rawProb - 0.42) * multiplier;
   const noiseRange = (hs && as_) ? 6 : 8;
   const noise      = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
-  prob             = Math.max(0.15, Math.min(0.75, prob + noise));
+  rawProb          = Math.max(0.15, Math.min(0.75, rawProb + noise));
+
+  // 3.2: Apply calibration to the home-win probability
+  const prob = calibrateModelProbability(rawProb);
 
   const drawProb = Math.max(0.18, 0.30 - Math.abs(prob - 0.5) * 0.5);
   const awayProb = Math.max(0.10, 1 - prob - drawProb);
@@ -536,7 +721,6 @@ function computeSoccerProjection(
 
   const homeWinPct = Math.round(modelHome * 100);
   const deviation  = Math.abs(homeWinPct - 50);
-  const modelScore = Math.max(40, Math.min(95, Math.round(55 + deviation + accuracyBoost)));
   const confidence = deviation >= 18 ? "High" : deviation >= 9 ? "Medium" : "Low";
 
   let vegasHomeOdds: number;
@@ -572,6 +756,17 @@ function computeSoccerProjection(
   const valueRating =
     edge >= 8 ? "Strong Buy" : edge >= 4 ? "Buy" : edge <= -4 ? "Fade" : "Neutral";
 
+  // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
+  const pickOdds = edge >= 0 ? vegasHomeOdds : vegasAwayOdds;
+  const priceAdj = getPriceAdjustment(pickOdds);
+
+  const confidenceNum = getNumericConfidence(deviation);
+  const { sharpScore, sharpSignal } = getSharpMarketSignal(edge, pickOdds);
+  const units = getDynamicUnits(edge, confidenceNum, valueRating);
+  const { finalModelScore, finalModelTier, finalModelStars } =
+    getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
+  const podScore = getPodScore(finalModelScore, sharpScore, edge);
+
   const projectedSpread = Math.round((0.5 - modelHome) * 6 * 2) / 2;
   const vegasSpread     = Math.round((0.5 - vegasImpliedHome) * 6 * 2) / 2;
   const projectedTotal  = opts.realVegasOverUnder ?? DEFAULT_TOTALS["Soccer"] ?? 2.5;
@@ -584,12 +779,22 @@ function computeSoccerProjection(
     projectedSpread,
     projectedTotal,
     valueRating,
-    modelScore,
+    modelScore: finalModelScore,
     edge,
     vegasSpread,
     vegasTotal,
     vegasHomeOdds,
     vegasAwayOdds,
     vegasDrawOdds,
+    // Phase 1
+    confidenceNum,
+    units,
+    priceAdjustment: priceAdj,
+    sharpScore,
+    sharpSignal,
+    finalModelScore,
+    finalModelTier,
+    finalModelStars,
+    podScore,
   };
 }

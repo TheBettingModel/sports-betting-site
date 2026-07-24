@@ -8,6 +8,17 @@ function fmtOdds(odds: number): string {
   return odds > 0 ? `+${odds}` : `${odds}`;
 }
 
+/** Render filled and empty stars from a 1–5 count. */
+function StarRating({ stars }: { stars: number }) {
+  return (
+    <Text style={styles.stars}>
+      {Array.from({ length: 5 }, (_, i) =>
+        i < stars ? '★' : '☆'
+      ).join('')}
+    </Text>
+  );
+}
+
 interface FeaturedPickProps {
   game: Game;
 }
@@ -20,13 +31,18 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
   const pickTeam = projection.edge >= 0 ? homeTeam : awayTeam;
   const edgeAbs = Math.abs(projection.edge);
 
+  const tier = projection.finalModelTier ?? 'TOP PICK';
+  const stars = projection.finalModelStars ?? 0;
+  const units = projection.units;
+  const sharpSignal = projection.sharpSignal;
+
+  const bandLabel = `${sport} · ${tier.toUpperCase()}`;
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Lime gradient header band */}
       <View style={styles.gradientBand}>
-        <Text style={styles.bandLeft}>
-          {sport} · ⭐ TOP PICK
-        </Text>
+        <Text style={styles.bandLeft}>{bandLabel}</Text>
         <Text style={styles.bandRight}>{gameTime}</Text>
       </View>
 
@@ -43,7 +59,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           </Text>
         </View>
 
-        {/* Model score + badge */}
+        {/* Model score + stars + badge */}
         <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
           <View>
             <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>MODEL SCORE</Text>
@@ -53,8 +69,18 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
               </Text>
               <Text style={[styles.scoreDenom, { color: colors.primary }]}>/100</Text>
             </View>
+            {stars > 0 && <StarRating stars={stars} />}
           </View>
-          <ValueBadge rating={projection.valueRating} />
+          <View style={styles.badgeCol}>
+            <ValueBadge rating={projection.valueRating} />
+            {units != null && units > 0 && (
+              <View style={[styles.unitsPill, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Text style={[styles.unitsText, { color: colors.primary }]}>
+                  {units.toFixed(1)}u
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Win probability + edge — stacked to prevent clipping on narrow screens */}
@@ -68,6 +94,12 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
             <Text style={[styles.edgeText, { color: colors.primary }]}>
               EDGE: {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
             </Text>
+            {sharpSignal && sharpSignal !== 'No Signal' && (
+              <Text style={[styles.sharpText, { color: colors.mutedForeground }]}>
+                {sharpSignal === 'Sharp Play' ? '⚡ ' : ''}
+                {sharpSignal.toUpperCase()}
+              </Text>
+            )}
           </View>
         )}
 
@@ -111,7 +143,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Gradient band — simulated with solid lime (RN doesn't support CSS gradients; LinearGradient optional)
+  // Gradient band — simulated with solid lime (RN doesn't support CSS gradients)
   gradientBand: {
     backgroundColor: '#84CC16',
     paddingVertical: 9,
@@ -157,12 +189,24 @@ const styles = StyleSheet.create({
   scoreInline: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   scoreNum: { fontSize: 56, fontFamily: 'Inter_700Bold', lineHeight: 60, letterSpacing: -1 },
   scoreDenom: { fontSize: 20, fontFamily: 'Inter_700Bold', marginBottom: 6 },
+  stars: { fontSize: 18, color: '#84CC16', letterSpacing: 1, marginTop: 4 },
+
+  // Badge + units pill on the right side of the score row
+  badgeCol: { alignItems: 'flex-end', gap: 8, paddingBottom: 4 },
+  unitsPill: {
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  unitsText: { fontSize: 13, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
 
   // Win prob — stacked column so edge never clips on narrow screens
-  winBlock: { gap: 2 },
+  winBlock: { gap: 3 },
   winPct: { fontSize: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.5 },
   winSub: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   edgeText: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  sharpText: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
 
   // Vegas
   vegasRow: {

@@ -33,6 +33,10 @@ export function GameCard({ game }: GameCardProps) {
   const showEdge = !isNeutral && !isFade;
   const edgeTeam = projection.edge >= 0 ? homeTeam : awayTeam;
 
+  const units = projection.units;
+  const stars = projection.finalModelStars;
+  const showUnits = showEdge && units != null && units > 0;
+
   return (
     <Pressable
       onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
@@ -60,24 +64,41 @@ export function GameCard({ game }: GameCardProps) {
         </Text>
       </View>
 
-      {/* Bottom row: score + badge + edge */}
+      {/* Bottom row: score + badge + units + edge */}
       <View style={styles.bottomRow}>
-        <View style={styles.scoreInline}>
-          <Text style={[
-            styles.score,
-            { color: showEdge ? colors.foreground : colors.mutedForeground },
-          ]}>
-            {projection.modelScore}
-          </Text>
-          <Text style={[
-            styles.scoreDenom,
-            { color: showEdge ? colors.primary : colors.mutedForeground },
-          ]}>
-            /100
-          </Text>
+        {/* Score with optional star tier indicator */}
+        <View style={styles.scoreBlock}>
+          <View style={styles.scoreInline}>
+            <Text style={[
+              styles.score,
+              { color: showEdge ? colors.foreground : colors.mutedForeground },
+            ]}>
+              {projection.modelScore}
+            </Text>
+            <Text style={[
+              styles.scoreDenom,
+              { color: showEdge ? colors.primary : colors.mutedForeground },
+            ]}>
+              /100
+            </Text>
+          </View>
+          {stars != null && stars >= 4 && (
+            <Text style={styles.starBadge}>
+              {'★'.repeat(stars)}
+            </Text>
+          )}
         </View>
 
         <ValueBadge rating={projection.valueRating} compact />
+
+        {/* Units pill — only shown for actionable picks */}
+        {showUnits && (
+          <View style={[styles.unitsPill, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <Text style={[styles.unitsText, { color: colors.primary }]}>
+              {units!.toFixed(1)}u
+            </Text>
+          </View>
+        )}
 
         {showEdge ? (
           <Text style={[styles.edge, { color: colors.primary }]}>
@@ -115,11 +136,20 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
+  scoreBlock: { gap: 1 },
   scoreInline: { flexDirection: 'row', alignItems: 'flex-end', gap: 1 },
   score: { fontSize: 30, fontFamily: 'Inter_700Bold', lineHeight: 34, letterSpacing: -0.5 },
   scoreDenom: { fontSize: 13, fontFamily: 'Inter_700Bold', marginBottom: 3 },
+  starBadge: { fontSize: 10, color: '#84CC16', letterSpacing: 0.5 },
+  unitsPill: {
+    borderRadius: 5,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  unitsText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   edge: { marginLeft: 'auto', fontSize: 13, fontFamily: 'Inter_700Bold' },
   noEdge: { marginLeft: 'auto', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
 });

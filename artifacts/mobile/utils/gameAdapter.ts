@@ -90,6 +90,15 @@ export function mapApiGame(g: GameProjection): Game {
       valueRating: g.valueRating as 'Strong Buy' | 'Buy' | 'Neutral' | 'Fade',
       modelScore: g.modelScore,
       edge: g.edge,
+      // Phase 1
+      confidenceNum: g.confidenceNum ?? undefined,
+      units: g.units ?? undefined,
+      sharpScore: g.sharpScore ?? undefined,
+      sharpSignal: g.sharpSignal ?? undefined,
+      finalModelScore: g.finalModelScore ?? undefined,
+      finalModelTier: g.finalModelTier ?? undefined,
+      finalModelStars: g.finalModelStars ?? undefined,
+      podScore: g.podScore ?? undefined,
     },
     vegasLine: {
       spread: g.vegasSpread,

@@ -41,6 +41,16 @@ export interface GameProjection {
   predictionCorrect?: boolean | null;
   /** True when this game's premium projection data has been gated (non-subscriber). */
   isLocked?: boolean;
+  // Phase 1: enhanced model scoring
+  confidenceNum?: number | null;
+  units?: number | null;
+  priceAdjustment?: number | null;
+  sharpScore?: number | null;
+  sharpSignal?: string | null;
+  finalModelScore?: number | null;
+  finalModelTier?: string | null;
+  finalModelStars?: number | null;
+  podScore?: number | null;
 }
 
 export interface GamesTodayResponse {

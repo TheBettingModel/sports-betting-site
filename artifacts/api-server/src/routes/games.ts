@@ -166,6 +166,16 @@ export async function refreshAll(): Promise<{
           vegasHomeOdds: proj.vegasHomeOdds,
           vegasAwayOdds: proj.vegasAwayOdds,
           vegasDrawOdds: proj.vegasDrawOdds,
+          // Phase 1
+          confidenceNum: proj.confidenceNum,
+          units: proj.units,
+          priceAdjustment: proj.priceAdjustment,
+          sharpScore: proj.sharpScore,
+          sharpSignal: proj.sharpSignal,
+          finalModelScore: proj.finalModelScore,
+          finalModelTier: proj.finalModelTier,
+          finalModelStars: proj.finalModelStars,
+          podScore: proj.podScore,
         },
       });
 
