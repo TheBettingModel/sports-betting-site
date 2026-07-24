@@ -106,17 +106,21 @@ export default function PicksScreen() {
     return <GameCard game={item.game} />;
   };
 
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
   const ListHeader = (
     <View style={{ backgroundColor: colors.background }}>
+      {/* Sharp-style header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Today's Picks</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          {isLoading
-            ? 'Loading picks…'
-            : allPicks.length > 0
-              ? `${allPicks.length} games · ranked by model rating`
-              : 'No picks yet today'}
-        </Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={[styles.brandName, { color: colors.foreground }]}>TBM</Text>
+            <Text style={[styles.brandSub, { color: colors.primary }]}>MODEL RATINGS</Text>
+          </View>
+          <Text style={[styles.dateText, { color: colors.mutedForeground }]}>
+            TODAY / {today.toUpperCase()}
+          </Text>
+        </View>
       </View>
 
       {/* Summary strip — only when data is ready */}
@@ -135,6 +139,16 @@ export default function PicksScreen() {
               </View>
             </React.Fragment>
           ))}
+        </View>
+      )}
+
+      {/* Section label */}
+      {!isLoading && allPicks.length > 0 && (
+        <View style={styles.sectionLabelRow}>
+          <Text style={[styles.sectionLabelText, { color: colors.mutedForeground }]}>
+            RANKED BY MODEL · {allPicks.length} GAMES
+          </Text>
+          <View style={[styles.sectionLine, { backgroundColor: colors.primary }]} />
         </View>
       )}
 
@@ -193,8 +207,16 @@ export default function PicksScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: 16, paddingBottom: 12 },
-  title: { fontSize: 28, fontFamily: 'Inter_700Bold' },
-  subtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  brandName: { fontSize: 30, fontFamily: 'Inter_700Bold', letterSpacing: -1, lineHeight: 32 },
+  brandSub: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 3, marginTop: 2 },
+  dateText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase' },
+  sectionLabelRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginBottom: 10,
+  },
+  sectionLabelText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.5 },
+  sectionLine: { width: 28, height: 2, borderRadius: 1 },
   summaryStrip: {
     marginHorizontal: 16, marginBottom: 12,
     borderRadius: 12, borderWidth: 1,
