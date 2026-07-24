@@ -1,3 +1,4 @@
 - [Clerk SPM nil-target fix](clerk-spm-nil-target.md) — @clerk/expo 3.x + RN 0.81 pod install crash; two nil guards needed in spm.rb via pnpm patch.
 - [Clerk signals auth flow](clerk-signals-auth.md) — @clerk/expo 3.7.x signals API; email OTP + Google only; no password; finalize() not setActive().
 - [WNBA + Soccer model improvements](wnba-soccer-model-improvements.md) — real Vegas odds from ESPN, home/road splits, soccer 3-outcome model, 6 international leagues, new DB columns.
+- [Phase 1 model engine upgrade](phase1-model-engine.md) — calibration, dynamic units, universal final rating, POD score; all fields flow through games table + model_predictions.
