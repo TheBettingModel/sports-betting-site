@@ -3,6 +3,7 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
+import { getOddsForGame } from "../services/oddsApi";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
@@ -96,6 +97,16 @@ export async function refreshAll(): Promise<{
           : Promise.resolve(undefined),
       ]);
 
+    // Phase 2: fetch live multi-book odds (30-min in-memory cache).
+    // Replaces ESPN's single-book moneyline with a consensus market price and
+    // adds Pinnacle's line for the sharp divergence signal.
+    const gameOdds = await getOddsForGame(
+      game.sport,
+      game.league ?? null,
+      game.homeTeamName,
+      game.awayTeamName,
+    );
+
     const proj = computeProjection(
       game.espnId,
       game.sport,
@@ -107,10 +118,17 @@ export async function refreshAll(): Promise<{
         homeRoadRecord:    game.homeRoadRecord,
         awayHomeRecord:    game.awayHomeRecord,
         awayRoadRecord:    game.awayRoadRecord,
-        realVegasHomeOdds: game.vegasHomeOdds,
-        realVegasAwayOdds: game.vegasAwayOdds,
-        realVegasDrawOdds: game.vegasDrawOdds,
-        realVegasOverUnder: game.vegasOverUnder,
+        // Consensus odds from The Odds API preferred over ESPN's single book.
+        // Falls back to ESPN when the game isn't listed yet (early AM, off-season).
+        realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
+        realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
+        realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+        realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
+        // Pinnacle vs consensus sharp signal (Phase 2 — undefined = graceful fallback)
+        pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
+        pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
+        consensusHomeOdds: gameOdds?.consensusHomeOdds,
+        consensusAwayOdds: gameOdds?.consensusAwayOdds,
         homeTeamStats,
         awayTeamStats,
         homeSoccerStats,

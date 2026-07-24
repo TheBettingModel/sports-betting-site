@@ -253,26 +253,92 @@ function getDynamicUnits(edge: number, confidenceNum: number, valueRating: strin
  * 4.2 Sharp market signal — single-book version (no Pinnacle/Circa available yet).
  * Grades picks 0–5 based on edge magnitude and price profile.
  */
+/**
+ * Convert American odds to raw implied probability (vig not removed).
+ * Used internally for sharp signal calculation only.
+ */
+function impliedProbFromAmerican(american: number): number {
+  return american < 0
+    ? Math.abs(american) / (Math.abs(american) + 100)
+    : 100 / (american + 100);
+}
+
+/**
+ * Phase 2 sharp market signal.
+ *
+ * When Pinnacle data is available (via The Odds API), measures the divergence
+ * between Pinnacle's implied probability and the public-book consensus for the
+ * pick side. Pinnacle accepts sharp/professional bettors and doesn't limit
+ * winners — when their line differs meaningfully from public books, sharp money
+ * is one side and the public is on the other.
+ *
+ * Divergence scale:
+ *   ≥ 5pp  → Pinnacle strongly backing pick → +4 score (Sharp Play tier)
+ *   ≥ 3pp  → Pinnacle backing pick          → +3 (Value Watch tier)
+ *   ≥ 1pp  → Slight Pinnacle lean           → +1
+ *   ≤ −3pp → Pinnacle fading pick           → −3 (major penalty)
+ *   ≤ −2pp → Pinnacle slight fade           → −2
+ *
+ * Without Pinnacle data, falls back to the Phase 1 edge + odds scoring so the
+ * signal degrades gracefully for sports/games Pinnacle doesn't cover (WNBA, etc.)
+ */
 function getSharpMarketSignal(
   edge: number,
-  odds: number,
+  pickOdds: number,
+  pinnacleHomeOdds?: number,
+  pinnacleAwayOdds?: number,
+  consensusHomeOdds?: number,
+  consensusAwayOdds?: number,
+  pickIsHome?: boolean,
 ): { sharpScore: number; sharpSignal: string } {
   let score = 0;
 
-  // Edge contribution
-  if (edge >= 8) score += 4;
-  else if (edge >= 5) score += 3;
-  else if (edge >= 3) score += 2;
-  else if (edge >= 1) score += 1;
-  else if (edge < 0) score -= 2;
+  const hasPinnacle =
+    pinnacleHomeOdds != null && pinnacleAwayOdds != null &&
+    consensusHomeOdds != null && consensusAwayOdds != null;
 
-  // Plus-money edges are more meaningful (books don't over-juice + sides)
-  if (odds > 100) score += 1;
-  else if (odds <= -200 && edge < 5) score -= 1; // heavy-fav low-edge = likely public side
+  if (hasPinnacle) {
+    // ── Phase 2: Pinnacle vs consensus divergence ─────────────────────────
+    const pinnPickProb = pickIsHome
+      ? impliedProbFromAmerican(pinnacleHomeOdds!)
+      : impliedProbFromAmerican(pinnacleAwayOdds!);
+    const consPickProb = pickIsHome
+      ? impliedProbFromAmerican(consensusHomeOdds!)
+      : impliedProbFromAmerican(consensusAwayOdds!);
+
+    // How much sharper Pinnacle is on the pick side vs the public market.
+    // Positive = Pinnacle backs pick more than public books do (sharp signal).
+    const divergence = pinnPickProb - consPickProb;
+
+    if      (divergence >= 0.05) score += 4;  // Pinnacle strongly backs pick
+    else if (divergence >= 0.03) score += 3;
+    else if (divergence >= 0.01) score += 1;
+    else if (divergence <= -0.04) score -= 3; // Pinnacle fading the pick
+    else if (divergence <= -0.02) score -= 2;
+
+    // Secondary: model edge still matters even with Pinnacle confirmation
+    if (edge >= 10) score += 1;
+    else if (edge < 0) score -= 1;
+
+    // Plus-money Pinnacle lines are even more meaningful (sharps like value)
+    const pinnPickOdds = pickIsHome ? pinnacleHomeOdds! : pinnacleAwayOdds!;
+    if (pinnPickOdds > 0 && divergence > 0) score += 1;
+
+  } else {
+    // ── Phase 1 fallback: single-book edge + odds scoring ─────────────────
+    if      (edge >= 8) score += 4;
+    else if (edge >= 5) score += 3;
+    else if (edge >= 3) score += 2;
+    else if (edge >= 1) score += 1;
+    else if (edge < 0)  score -= 2;
+
+    if (pickOdds > 100)                      score += 1;
+    else if (pickOdds <= -200 && edge < 5)   score -= 1;
+  }
 
   const sharpSignal =
-    score >= 5 ? "Sharp Play" :
-    score >= 3 ? "Value Watch" :
+    score >= 5 ? "Sharp Play"     :
+    score >= 3 ? "Value Watch"    :
     score >= 1 ? "Neutral Signal" :
     "No Signal";
 
@@ -350,6 +416,14 @@ export interface ComputeOptions {
   realVegasAwayOdds?: number;
   realVegasDrawOdds?: number;
   realVegasOverUnder?: number;
+  // ── Phase 2: multi-book sharp signal ────────────────────────────────────
+  /** Pinnacle moneylines — the sharpest book; divergence from consensus = sharp signal */
+  pinnacleHomeOdds?: number;
+  pinnacleAwayOdds?: number;
+  pinnacleDrawOdds?: number;
+  /** Consensus (average of US public books) moneylines */
+  consensusHomeOdds?: number;
+  consensusAwayOdds?: number;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -626,11 +700,20 @@ function finalizeResult(
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
 
   // Determine the pick-side odds for price adjustment (home if edge > 0, else away)
-  const pickOdds  = edge >= 0 ? vegasHomeOdds : vegasAwayOdds;
-  const priceAdj  = getPriceAdjustment(pickOdds);
+  const pickIsHome = edge >= 0;
+  const pickOdds   = pickIsHome ? vegasHomeOdds : vegasAwayOdds;
+  const priceAdj   = getPriceAdjustment(pickOdds);
 
-  const confidenceNum   = getNumericConfidence(deviation);
-  const { sharpScore, sharpSignal } = getSharpMarketSignal(edge, pickOdds);
+  const confidenceNum = getNumericConfidence(deviation);
+  const { sharpScore, sharpSignal } = getSharpMarketSignal(
+    edge,
+    pickOdds,
+    opts.pinnacleHomeOdds,
+    opts.pinnacleAwayOdds,
+    opts.consensusHomeOdds,
+    opts.consensusAwayOdds,
+    pickIsHome,
+  );
   const units           = getDynamicUnits(edge, confidenceNum, valueRating);
   const { finalModelScore, finalModelTier, finalModelStars } =
     getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
