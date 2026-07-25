@@ -442,6 +442,17 @@ export interface ComputeOptions {
   weatherWindMph?: number;
   /** Precipitation forecast in mm */
   weatherPrecipMm?: number;
+  /**
+   * MLB only: net probability shift from bullpen fatigue differential.
+   * Positive = home bullpen is fresher. Range [-0.04, +0.04].
+   * Computed by mlbBullpen service from last-3-days relief pitcher pitch counts.
+   */
+  bullpenAdvantage?: number;
+  /**
+   * MLB only: total-line adjustment from combined bullpen fatigue.
+   * Tired pens give up more runs. Range [0, +1.0].
+   */
+  bullpenTotalAdjustment?: number;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -669,6 +680,12 @@ function computeRunsModel(
   // Applied after team-level stats so it layers on top of roster quality signals.
   if (sport === "MLB" && opts.pitcherAdvantage != null) {
     prob += opts.pitcherAdvantage;
+  }
+
+  // MLB bullpen fatigue adjustment — secondary to starter, but meaningful in close games.
+  // A fresh bullpen vs. a taxed one creates a real 6th-9th inning edge.
+  if (sport === "MLB" && opts.bullpenAdvantage != null) {
+    prob += opts.bullpenAdvantage;
   }
 
   // NHL goalie adjustment — save% drives more variance than team quality in hockey.

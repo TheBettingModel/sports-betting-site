@@ -6,3 +6,4 @@
 - [Odds API Features](odds-api-features.md) — consensus odds, Pinnacle sharp signal, best available line, opening odds COALESCE pattern, line movement in model.
 - [Phase 3 model signals](phase3-model-signals.md) — weather/NHL goalies/NFL injuries; Open-Meteo forecast_days=2 fix; pre-batch before game loop; CHW abbr for White Sox.
 - [Admin & push upgrades](admin-push-upgrades.md) — brute-force lockout on admin login; win-rate charts; push receipt retry (30-min scheduler); sport-specific notification prefs.
+- [MLB Bullpen + Lineup signals](mlb-bullpen-lineup-signals.md) — Phase 4 model signals; boxscore hydrate on schedule endpoint doesn't work — fetch /game/{gamePk}/boxscore separately; lineup cache needs seeding before parallel lookups.

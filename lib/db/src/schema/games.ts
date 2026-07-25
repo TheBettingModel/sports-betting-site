@@ -108,6 +108,18 @@ export const gamesTable = pgTable("games", {
   homeKeyInjuries:  text("home_key_injuries"),   // JSON array of "Name (POS, status)"
   awayKeyInjuries:  text("away_key_injuries"),
 
+  // MLB bullpen fatigue — weighted relief pitch counts over last 3 days
+  // Higher score = more fatigued bullpen. Null for non-MLB sports.
+  homeBullpenFatigue: real("home_bullpen_fatigue"),
+  awayBullpenFatigue: real("away_bullpen_fatigue"),
+  homeBullpenLabel: text("home_bullpen_label"),   // "Fresh" | "Moderate" | "Tired" | "Exhausted"
+  awayBullpenLabel: text("away_bullpen_label"),
+
+  // MLB lineup confirmation — true when all 9 batting-order spots are locked in.
+  // Posted 1–3 hours before first pitch; null / false before that.
+  homeLineupConfirmed: boolean("home_lineup_confirmed"),
+  awayLineupConfirmed: boolean("away_lineup_confirmed"),
+
   // Outcome tracking for learning
   predictionCorrect: boolean("prediction_correct"),
 
