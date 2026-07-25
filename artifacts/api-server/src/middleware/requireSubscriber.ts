@@ -41,6 +41,14 @@ declare global {
 }
 
 // ---------------------------------------------------------------------------
+// Admin user IDs — always treated as Pro subscribers, bypassing the DB check.
+// Comma-separated Clerk user IDs from the ADMIN_USER_IDS env var.
+// ---------------------------------------------------------------------------
+const ADMIN_USER_IDS = new Set(
+  (process.env["ADMIN_USER_IDS"] ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+);
+
+// ---------------------------------------------------------------------------
 // Clerk JWKS setup — fetched ONCE at startup, cached locally.
 // Replit's production environment has intermittent outbound TLS connectivity,
 // so doing a remote JWKS fetch on every request causes frequent 401s.
@@ -188,6 +196,10 @@ export async function resolveSubscriberStatus(
     tokenRejected = result.rejected;
 
     if (userId) {
+      // Admin users always have Pro access — no DB lookup needed.
+      if (ADMIN_USER_IDS.has(userId)) {
+        isSubscribed = true;
+      } else {
       try {
         const [row] = await db
           .select({ isActive: subscribersTable.isActive, expiresAt: subscribersTable.expiresAt })
@@ -213,6 +225,7 @@ export async function resolveSubscriberStatus(
         // DB error → treat as non-subscriber; don't block the request
         logger.warn({ err }, "Subscriber lookup failed; treating as non-subscriber");
       }
+      } // end else (non-admin)
     }
   }
 

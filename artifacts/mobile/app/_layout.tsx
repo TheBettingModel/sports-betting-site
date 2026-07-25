@@ -71,23 +71,24 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   // Check for an OTA update on every launch and reload immediately if one is found.
-  // This eliminates the two-close cycle that Expo's built-in updater normally requires.
+  // Only runs when expo-updates is enabled (i.e. production EAS builds with an
+  // updates channel configured). Skipped in Expo Go and dev builds to avoid
+  // the black-screen flash caused by Updates.reloadAsync() in those environments.
   useEffect(() => {
+    if (!Updates.isEnabled) return;
     let cancelled = false;
     const checkUpdate = async () => {
       try {
-        // expo-updates API: checkForUpdateAsync returns { isAvailable, manifest? }
         const check = await Updates.checkForUpdateAsync();
         if (cancelled || !check.isAvailable) return;
         await Updates.fetchUpdateAsync();
         if (!cancelled) await Updates.reloadAsync();
       } catch {
-        // Silently ignore: custom OTA build or expo-updates not configured in
-        // this environment — the built-in Expo updater handles it on next launch.
+        // Silently ignore: network error or no update channel configured.
       }
     };
     // Delay so the splash screen dismisses before any potential reload
-    const t = setTimeout(checkUpdate, 2000);
+    const t = setTimeout(checkUpdate, 3000);
     return () => { cancelled = true; clearTimeout(t); };
   }, []);
 
