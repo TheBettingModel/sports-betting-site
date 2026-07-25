@@ -42,11 +42,12 @@ declare global {
 
 // ---------------------------------------------------------------------------
 // Admin user IDs — always treated as Pro subscribers, bypassing the DB check.
-// Comma-separated Clerk user IDs from the ADMIN_USER_IDS env var.
+// These are the app owner / partner accounts; add new IDs here as needed.
 // ---------------------------------------------------------------------------
-const ADMIN_USER_IDS = new Set(
-  (process.env["ADMIN_USER_IDS"] ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-);
+const ADMIN_USER_IDS = new Set([
+  "user_3GmXMcCGzqs1c5aD1snP08e7Frx", // Jacques (owner)
+  "user_3GyCCHwnYB9sIByophLiunxGtMf", // Partner (jjmaclellan24@gmail.com)
+]);
 
 // ---------------------------------------------------------------------------
 // Clerk JWKS setup — fetched ONCE at startup, cached locally.
