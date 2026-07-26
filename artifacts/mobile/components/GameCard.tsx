@@ -7,17 +7,31 @@ import { TeamLogo } from '@/components/TeamLogo';
 import type { Game } from '@/data/mockGames';
 
 const SPORT_COLORS: Record<string, string> = {
-  NFL: '#4F46E5',
-  NBA: '#EA580C',
-  MLB: '#0EA5E9',
-  NHL: '#8B5CF6',
+  NFL:    '#4F46E5',
+  NBA:    '#EA580C',
+  MLB:    '#0EA5E9',
+  NHL:    '#8B5CF6',
   Soccer: '#22C55E',
-  UFC: '#DC2626',
-  WNBA: '#FF6900',
+  UFC:    '#DC2626',
+  WNBA:   '#FF6900',
 };
 
 function fmtOdds(odds: number): string {
   return odds > 0 ? `+${odds}` : `${odds}`;
+}
+
+/**
+ * Implied-probability shift between two American-odds lines.
+ * Positive result means the current line has a *higher* implied prob for
+ * the pick side than the opening — market moved against you (bad).
+ * We flip the sign so that positive = market moved YOUR way (good).
+ */
+function clvShift(opening: number, current: number): number {
+  const toImpl = (o: number) =>
+    o < 0 ? Math.abs(o) / (Math.abs(o) + 100) : 100 / (o + 100);
+  // positive = opening was cheaper (shorter implied prob) → market drifted away → bad
+  const raw = (toImpl(current) - toImpl(opening)) * 100;
+  return -raw; // flip: positive = moved your way
 }
 
 interface GameCardProps {
@@ -26,17 +40,33 @@ interface GameCardProps {
 
 export function GameCard({ game }: GameCardProps) {
   const colors = useColors();
-  const { homeTeam, awayTeam, gameTime, sport, projection } = game;
+  const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
   const sportColor = SPORT_COLORS[sport] ?? colors.primary;
 
+  // ── Pick identity ──────────────────────────────────────────────
   const isNeutral = projection.valueRating === 'Neutral';
-  const isFade = projection.valueRating === 'Fade';
-  const showEdge = !isNeutral && !isFade;
-  const edgeTeam = projection.edge >= 0 ? homeTeam : awayTeam;
+  const isFade    = projection.valueRating === 'Fade';
+  const hasEdge   = !isNeutral && !isFade;
+  const pickIsHome = projection.edge >= 0;
+  const pickTeam   = pickIsHome ? homeTeam : awayTeam;
+  const pickOdds   = pickIsHome ? vegasLine.homeOdds : vegasLine.awayOdds;
+  const openingOdds = pickIsHome
+    ? vegasLine.openingHomeOdds
+    : vegasLine.openingAwayOdds;
+
+  // CLV: only meaningful when we have an opening line that differs from current
+  const clv = openingOdds != null && openingOdds !== pickOdds
+    ? clvShift(openingOdds, pickOdds)
+    : null;
+  const clvUp = clv != null && clv > 0;
 
   const units = projection.units;
   const stars = projection.finalModelStars;
-  const showUnits = showEdge && units != null && units > 0;
+  const showUnits = hasEdge && units != null && units > 0;
+
+  // ── Starters (MLB) ─────────────────────────────────────────────
+  const showStarters = sport === 'MLB'
+    && (projection.homeStarterName || projection.awayStarterName);
 
   return (
     <Pressable
@@ -53,70 +83,192 @@ export function GameCard({ game }: GameCardProps) {
         },
       ]}
     >
-      {/* Top row: logos + matchup + meta */}
-      <View style={styles.topRow}>
-        {/* Logo matchup block */}
-        <View style={styles.matchupBlock}>
-          <TeamLogo sport={sport} espnId={homeTeam.espnId} abbr={homeTeam.abbr} size={36} />
-          <View style={styles.matchupCenter}>
-            <Text style={[styles.vs, { color: colors.mutedForeground }]}>vs</Text>
-            <Text style={[styles.records, { color: colors.mutedForeground }]}>
-              {homeTeam.record} · {awayTeam.record}
-            </Text>
+      {/* ══════════════════════════════════════════════
+          PICK BAND — hero section
+          Only shown when the model has a real edge
+         ══════════════════════════════════════════════ */}
+      {hasEdge && (
+        <View style={styles.pickBand}>
+
+          {/* Row 1: label + badge + units */}
+          <View style={styles.pickBandTop}>
+            <Text style={styles.pickLabel}>THE PICK</Text>
+            <View style={styles.pickBandRight}>
+              <ValueBadge rating={projection.valueRating} compact />
+              {showUnits && (
+                <View style={[styles.unitsPill, { backgroundColor: '#0d1f00', borderColor: '#2a3d00' }]}>
+                  <Text style={[styles.unitsText, { color: colors.primary }]}>
+                    {units!.toFixed(1)}u
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
-          <TeamLogo sport={sport} espnId={awayTeam.espnId} abbr={awayTeam.abbr} size={36} />
+
+          {/* Row 2: pick team + home/away + bet type + current odds */}
+          <View style={styles.pickRow}>
+            <Text style={[styles.pickAbbr, { color: colors.foreground }]}>
+              {pickTeam.abbr}
+            </Text>
+            <View style={styles.homeAwayPill}>
+              <Text style={styles.homeAwayText}>
+                {pickIsHome ? 'HOME' : 'AWAY'}
+              </Text>
+            </View>
+            <Text style={[styles.betType, { color: colors.mutedForeground }]}>
+              Moneyline
+            </Text>
+            <View style={[styles.oddsPill, { backgroundColor: '#1a1a1a', borderColor: '#2a2a2a' }]}>
+              <Text style={[styles.oddsText, { color: '#e5e7eb' }]}>
+                {fmtOdds(pickOdds)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Row 3: CLV line movement */}
+          {clv != null && openingOdds != null && (
+            <View style={[styles.clvRow, { backgroundColor: '#0a0a0a', borderColor: '#1d1d1d' }]}>
+              <Text style={styles.clvLabel}>CLV</Text>
+              <Text style={styles.clvBody}>
+                Open{' '}
+                <Text style={styles.clvOpenOdds}>{fmtOdds(openingOdds)}</Text>
+              </Text>
+              <Text style={styles.clvArrow}>→</Text>
+              <Text style={[styles.clvCurrent, { color: '#e5e7eb' }]}>
+                {fmtOdds(pickOdds)}
+              </Text>
+              <View style={styles.clvRight}>
+                <Text style={[styles.clvShift, { color: clvUp ? colors.primary : '#EF4444' }]}>
+                  {clvUp ? '▲' : '▼'} {Math.abs(clv).toFixed(1)}%
+                </Text>
+                <Text style={[styles.clvContext, { color: clvUp ? colors.primary : '#EF4444' }]}>
+                  {clvUp ? 'with sharp' : 'fading'}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ══════════════════════════════════════════════
+          MATCHUP — logos + teams + records
+         ══════════════════════════════════════════════ */}
+      <View style={styles.matchupRow}>
+
+        {/* Home team */}
+        <View style={styles.teamBlock}>
+          <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={34} />
+          <View style={styles.teamMeta}>
+            <View style={styles.teamAbbrLine}>
+              <Text style={[
+                styles.teamAbbr,
+                { color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
+              ]}>
+                {homeTeam.abbr}
+              </Text>
+              <Text style={styles.haBadge}>HOME</Text>
+            </View>
+            <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+          </View>
         </View>
 
-        {/* Sport + time */}
+        {/* VS + sport/time */}
+        <View style={styles.matchupCenter}>
+          <Text style={[styles.vs, { color: '#4B5563' }]}>VS</Text>
+        </View>
+
+        {/* Away team */}
+        <View style={[styles.teamBlock, styles.teamBlockRight]}>
+          <View style={[styles.teamMeta, styles.teamMetaRight]}>
+            <View style={[styles.teamAbbrLine, styles.teamAbbrLineRight]}>
+              <Text style={styles.haBadge}>AWAY</Text>
+              <Text style={[
+                styles.teamAbbr,
+                { color: (hasEdge && !pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
+              ]}>
+                {awayTeam.abbr}
+              </Text>
+            </View>
+            <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
+          </View>
+          <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={34} />
+        </View>
+
+        {/* Sport + time — far right */}
         <Text style={[styles.meta, { color: colors.mutedForeground }]}>
           {sport}{'\n'}{gameTime}
         </Text>
       </View>
 
-      {/* Team abbrs below logos */}
-      <View style={styles.abbrRow}>
-        <Text style={[styles.abbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
-        <View style={styles.abbrSpacer} />
-        <Text style={[styles.abbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
-      </View>
+      {/* ══════════════════════════════════════════════
+          STARTING PITCHERS — MLB only
+         ══════════════════════════════════════════════ */}
+      {showStarters && (
+        <View style={[styles.startersRow, { backgroundColor: '#0a0a0a', borderColor: '#1a1a1a' }]}>
+          <Text style={[
+            styles.starterName,
+            { color: (hasEdge && pickIsHome) ? '#d1d5db' : colors.mutedForeground },
+          ]}>
+            {projection.homeStarterName ?? '—'}
+          </Text>
+          <Text style={styles.starterSP}>SP</Text>
+          <Text style={[
+            styles.starterName,
+            { color: (hasEdge && !pickIsHome) ? '#d1d5db' : colors.mutedForeground },
+          ]}>
+            {projection.awayStarterName ?? '—'}
+          </Text>
+        </View>
+      )}
 
-      {/* Bottom row: score + badge + units + edge */}
-      <View style={styles.bottomRow}>
+      {/* ══════════════════════════════════════════════
+          METRICS — score · edge · confidence
+         ══════════════════════════════════════════════ */}
+      <View style={styles.metricsRow}>
+        {/* Model score */}
         <View style={styles.scoreBlock}>
-          <View style={styles.scoreInline}>
-            <Text style={[
-              styles.score,
-              { color: showEdge ? colors.foreground : colors.mutedForeground },
-            ]}>
-              {projection.modelScore}
-            </Text>
-            <Text style={[
-              styles.scoreDenom,
-              { color: showEdge ? colors.primary : colors.mutedForeground },
-            ]}>
-              /100
-            </Text>
-          </View>
-          {stars != null && stars >= 4 && (
-            <Text style={styles.starBadge}>{'★'.repeat(stars)}</Text>
-          )}
+          <Text style={[
+            styles.score,
+            { color: hasEdge ? colors.foreground : colors.mutedForeground },
+          ]}>
+            {projection.modelScore}
+          </Text>
+          <Text style={[
+            styles.scoreDenom,
+            { color: hasEdge ? colors.primary : colors.mutedForeground },
+          ]}>
+            /100
+          </Text>
         </View>
 
-        <ValueBadge rating={projection.valueRating} compact />
+        {/* Divider */}
+        {hasEdge && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
 
-        {showUnits && (
-          <View style={[styles.unitsPill, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <Text style={[styles.unitsText, { color: colors.primary }]}>
-              {units!.toFixed(1)}u
+        {/* Edge */}
+        {hasEdge && (
+          <View style={styles.metricBlock}>
+            <Text style={[styles.metricLabel, { color: '#9CA3AF' }]}>EDGE</Text>
+            <Text style={[styles.metricValue, { color: colors.primary }]}>
+              +{Math.abs(projection.edge).toFixed(1)}%
             </Text>
           </View>
         )}
 
-        {showEdge ? (
-          <Text style={[styles.edge, { color: colors.primary }]}>
-            {edgeTeam.abbr} +{Math.abs(projection.edge).toFixed(1)}%
-          </Text>
-        ) : (
+        {/* Stars */}
+        {hasEdge && stars != null && stars >= 4 && (
+          <>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View style={styles.metricBlock}>
+              <Text style={[styles.metricLabel, { color: '#9CA3AF' }]}>CONF</Text>
+              <Text style={[styles.starBadge, { color: colors.primary }]}>
+                {'★'.repeat(stars)}
+              </Text>
+            </View>
+          </>
+        )}
+
+        {/* No edge fallback */}
+        {!hasEdge && (
           <Text style={[styles.noEdge, { color: colors.mutedForeground }]}>NO EDGE</Text>
         )}
       </View>
@@ -134,77 +286,269 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
-    padding: 14,
-    gap: 8,
+    overflow: 'hidden',
+    gap: 0,
   },
 
-  // Top row
-  topRow: {
+  // ── Pick band ─────────────────────────────────────────────────
+  pickBand: {
+    paddingHorizontal: 14,
+    paddingTop: 11,
+    paddingBottom: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+    gap: 7,
+  },
+  pickBandTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  matchupBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  matchupCenter: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  vs: {
-    fontSize: 12,
-    fontFamily: 'Inter_700Bold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  records: {
+  pickLabel: {
     fontSize: 9,
-    fontFamily: 'Inter_500Medium',
-    letterSpacing: 0.2,
-  },
-  meta: {
-    fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
-    textAlign: 'right',
-    lineHeight: 14,
-  },
-
-  // Abbr row beneath logos
-  abbrRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  abbr: {
-    fontSize: 15,
     fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.3,
-    width: 36,
-    textAlign: 'center',
+    color: '#84CC16',
+    letterSpacing: 1.4,
   },
-  abbrSpacer: { flex: 1 },
-
-  // Bottom row
-  bottomRow: {
+  pickBandRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
+    gap: 6,
   },
-  scoreBlock: { gap: 1 },
-  scoreInline: { flexDirection: 'row', alignItems: 'flex-end', gap: 1 },
-  score: { fontSize: 28, fontFamily: 'Inter_700Bold', lineHeight: 32, letterSpacing: -0.5 },
-  scoreDenom: { fontSize: 12, fontFamily: 'Inter_700Bold', marginBottom: 3 },
-  starBadge: { fontSize: 10, color: '#84CC16', letterSpacing: 0.5 },
   unitsPill: {
     borderRadius: 5,
     borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  unitsText: {
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+  },
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  pickAbbr: {
+    fontSize: 26,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  homeAwayPill: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#2e2e2e',
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  unitsText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
-  edge: { marginLeft: 'auto', fontSize: 13, fontFamily: 'Inter_700Bold' },
-  noEdge: { marginLeft: 'auto', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  homeAwayText: {
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
+  },
+  betType: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  oddsPill: {
+    borderRadius: 4,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  oddsText: {
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+  },
+
+  // CLV row
+  clvRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  clvLabel: {
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+    color: '#9CA3AF',
+    letterSpacing: 1,
+  },
+  clvBody: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+    color: '#9CA3AF',
+  },
+  clvOpenOdds: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+    color: '#d1d5db',
+  },
+  clvArrow: {
+    fontSize: 10,
+    color: '#4B5563',
+  },
+  clvCurrent: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+  },
+  clvRight: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  clvShift: {
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
+  },
+  clvContext: {
+    fontSize: 9,
+    fontFamily: 'Inter_600SemiBold',
+    opacity: 0.75,
+  },
+
+  // ── Matchup ────────────────────────────────────────────────────
+  matchupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 0,
+  },
+  teamBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  teamBlockRight: {
+    flexDirection: 'row-reverse',
+  },
+  teamMeta: {
+    gap: 2,
+  },
+  teamMetaRight: {
+    alignItems: 'flex-end',
+  },
+  teamAbbrLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  teamAbbrLineRight: {
+    flexDirection: 'row-reverse',
+  },
+  teamAbbr: {
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.2,
+  },
+  haBadge: {
+    fontSize: 8,
+    fontFamily: 'Inter_700Bold',
+    color: '#6B7280',
+    letterSpacing: 0.4,
+  },
+  record: {
+    fontSize: 9,
+    fontFamily: 'Inter_500Medium',
+  },
+  matchupCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  vs: {
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1,
+  },
+  meta: {
+    fontSize: 9,
+    fontFamily: 'Inter_600SemiBold',
+    textAlign: 'right',
+    lineHeight: 13,
+    marginLeft: 12,
+  },
+
+  // ── Starters ──────────────────────────────────────────────────
+  startersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 14,
+    marginTop: 8,
+    borderRadius: 5,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  starterName: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  starterSP: {
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+    color: '#6B7280',
+    letterSpacing: 0.5,
+  },
+
+  // ── Metrics ───────────────────────────────────────────────────
+  metricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
+    gap: 0,
+  },
+  scoreBlock: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  score: {
+    fontSize: 28,
+    fontFamily: 'Inter_700Bold',
+    lineHeight: 32,
+    letterSpacing: -0.5,
+  },
+  scoreDenom: {
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 3,
+  },
+  divider: {
+    width: 1,
+    height: 22,
+    marginHorizontal: 12,
+  },
+  metricBlock: {
+    gap: 1,
+  },
+  metricLabel: {
+    fontSize: 8,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.8,
+  },
+  metricValue: {
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+  },
+  starBadge: {
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  noEdge: {
+    marginLeft: 'auto',
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+  },
 });

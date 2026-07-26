@@ -74,6 +74,9 @@ export interface Game {
     total: number;
     homeOdds: number;
     awayOdds: number;
+    /** Opening moneyline — captured at first ingestion, never overwritten */
+    openingHomeOdds?: number | null;
+    openingAwayOdds?: number | null;
     /** Draw moneyline — present for Soccer (0 = N/A) */
     drawOdds?: number;
   };

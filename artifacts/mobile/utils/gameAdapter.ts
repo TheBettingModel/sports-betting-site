@@ -128,6 +128,8 @@ export function mapApiGame(g: GameProjection): Game {
       total: g.vegasTotal,
       homeOdds: g.vegasHomeOdds,
       awayOdds: g.vegasAwayOdds,
+      openingHomeOdds: g.openingHomeOdds ?? undefined,
+      openingAwayOdds: g.openingAwayOdds ?? undefined,
       drawOdds: g.vegasDrawOdds || undefined,
     },
   };
