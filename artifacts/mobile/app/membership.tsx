@@ -322,16 +322,29 @@ export default function MembershipScreen() {
         </Pressable>
 
         {/* Legal links */}
-        <Pressable
-          onPress={() =>
-            Linking.openURL('https://thebettingmodel.replit.app/api/privacy')
-          }
-          style={s.legalLink}
-        >
-          <Text style={[s.legalLinkText, { color: C.muted }]}>
-            Privacy Policy
-          </Text>
-        </Pressable>
+        <View style={s.legalRow}>
+          <Pressable
+            onPress={() =>
+              Linking.openURL('https://thebettingmodel.replit.app/api/privacy')
+            }
+            style={s.legalLink}
+          >
+            <Text style={[s.legalLinkText, { color: C.muted }]}>
+              Privacy Policy
+            </Text>
+          </Pressable>
+          <Text style={[s.legalDivider, { color: C.muted }]}>·</Text>
+          <Pressable
+            onPress={() =>
+              Linking.openURL('https://thebettingmodel.replit.app/api/terms')
+            }
+            style={s.legalLink}
+          >
+            <Text style={[s.legalLinkText, { color: C.muted }]}>
+              Terms of Use
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -447,7 +460,9 @@ const s = StyleSheet.create({
   },
   restoreBtn: { alignItems: 'center', paddingVertical: 8 },
   restoreText: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  legalLink: { alignItems: 'center', paddingVertical: 10 },
+  legalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
+  legalDivider: { fontSize: 12, paddingHorizontal: 6 },
+  legalLink: { alignItems: 'center', paddingVertical: 6 },
   legalLinkText: {
     fontSize: 12,
     fontFamily: 'Inter_400Regular',

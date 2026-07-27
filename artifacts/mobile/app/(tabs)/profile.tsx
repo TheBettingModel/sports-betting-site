@@ -425,6 +425,35 @@ export default function ProfileScreen() {
           </View>
           <Feather name="external-link" size={14} color={colors.mutedForeground} />
         </Pressable>
+
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+        <Pressable
+          onPress={() => Linking.openURL('https://thebettingmodel.replit.app/api/terms')}
+          style={styles.settingsRow}
+        >
+          <View style={styles.settingsLeft}>
+            <Feather name="file-text" size={16} color={colors.mutedForeground} />
+            <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Terms of Use</Text>
+          </View>
+          <Feather name="external-link" size={14} color={colors.mutedForeground} />
+        </Pressable>
+
+        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+        {/* Account deletion — required by App Store Guideline 5.1.1(v) */}
+        <Pressable
+          onPress={() => Linking.openURL(
+            'mailto:support@thebettingmodel.com?subject=Account%20Deletion%20Request&body=Please%20delete%20my%20TheBettingModel%20account%20and%20all%20associated%20data.'
+          )}
+          style={styles.settingsRow}
+        >
+          <View style={styles.settingsLeft}>
+            <Feather name="trash-2" size={16} color={colors.destructive ?? '#EF4444'} />
+            <Text style={[styles.settingsLabel, { color: colors.destructive ?? '#EF4444' }]}>Delete Account</Text>
+          </View>
+          <Feather name="external-link" size={14} color={colors.mutedForeground} />
+        </Pressable>
       </View>
     </ScrollView>
   );
