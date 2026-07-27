@@ -151,53 +151,51 @@ export function GameCard({ game }: GameCardProps) {
       )}
 
       {/* ══════════════════════════════════════════════
-          MATCHUP — logos + teams + records
+          MATCHUP — sport/time header + logos row
          ══════════════════════════════════════════════ */}
+
+      {/* Sport + time — own line so logos row has full width */}
+      <View style={styles.matchupMeta}>
+        <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
+          {sport}  ·  {gameTime}
+        </Text>
+      </View>
+
+      {/* Logos row: Logo + abbr + record  |  vs  |  record + abbr + Logo */}
       <View style={styles.matchupRow}>
 
         {/* Home team */}
         <View style={styles.teamBlock}>
           <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={34} />
           <View style={styles.teamMeta}>
-            <View style={styles.teamAbbrLine}>
-              <Text style={[
-                styles.teamAbbr,
-                { color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
-              ]}>
-                {homeTeam.abbr}
-              </Text>
-              <Text style={styles.haBadge}>HOME</Text>
-            </View>
+            <Text style={[
+              styles.teamAbbr,
+              { color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
+            ]}>
+              {homeTeam.abbr}
+            </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
           </View>
         </View>
 
-        {/* VS + sport/time */}
+        {/* VS centre */}
         <View style={styles.matchupCenter}>
-          <Text style={[styles.vs, { color: '#4B5563' }]}>VS</Text>
+          <Text style={[styles.vs, { color: '#4B5563' }]}>vs</Text>
         </View>
 
         {/* Away team */}
         <View style={[styles.teamBlock, styles.teamBlockRight]}>
           <View style={[styles.teamMeta, styles.teamMetaRight]}>
-            <View style={[styles.teamAbbrLine, styles.teamAbbrLineRight]}>
-              <Text style={styles.haBadge}>AWAY</Text>
-              <Text style={[
-                styles.teamAbbr,
-                { color: (hasEdge && !pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
-              ]}>
-                {awayTeam.abbr}
-              </Text>
-            </View>
+            <Text style={[
+              styles.teamAbbr,
+              { color: (hasEdge && !pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
+            ]}>
+              {awayTeam.abbr}
+            </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
           </View>
           <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={34} />
         </View>
-
-        {/* Sport + time — far right */}
-        <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-          {sport}{'\n'}{gameTime}
-        </Text>
       </View>
 
       {/* ══════════════════════════════════════════════
@@ -416,11 +414,20 @@ const styles = StyleSheet.create({
   },
 
   // ── Matchup ────────────────────────────────────────────────────
+  matchupMeta: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  metaText: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.2,
+  },
   matchupRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingTop: 10,
     paddingBottom: 0,
   },
   teamBlock: {
@@ -437,24 +444,10 @@ const styles = StyleSheet.create({
   teamMetaRight: {
     alignItems: 'flex-end',
   },
-  teamAbbrLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  teamAbbrLineRight: {
-    flexDirection: 'row-reverse',
-  },
   teamAbbr: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'Inter_700Bold',
     letterSpacing: -0.2,
-  },
-  haBadge: {
-    fontSize: 8,
-    fontFamily: 'Inter_700Bold',
-    color: '#6B7280',
-    letterSpacing: 0.4,
   },
   record: {
     fontSize: 9,
@@ -466,15 +459,8 @@ const styles = StyleSheet.create({
   },
   vs: {
     fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1,
-  },
-  meta: {
-    fontSize: 9,
     fontFamily: 'Inter_600SemiBold',
-    textAlign: 'right',
-    lineHeight: 13,
-    marginLeft: 12,
+    letterSpacing: 0.5,
   },
 
   // ── Starters ──────────────────────────────────────────────────

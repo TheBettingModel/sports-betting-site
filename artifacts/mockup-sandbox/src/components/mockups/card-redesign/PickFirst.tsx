@@ -212,23 +212,25 @@ function Card({ d }: { d: CardData }) {
       {/* ━━━━ MATCHUP ━━━━ */}
       <div style={{ padding: "10px 14px 0" }}>
 
-        {/* Logos + abbrs + records */}
+        {/* Sport + time — own line, no crowding */}
+        <div style={{ marginBottom: 7 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "#6B7280", letterSpacing: 0.2 }}>
+            {d.sport}  ·  {d.gameTime}
+          </span>
+        </div>
+
+        {/* Logos row — logo + abbr + record only, no HOME/AWAY text */}
         <div style={{ display: "flex", alignItems: "center" }}>
 
           {/* Home team */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Logo sportKey={d.sportKey} abbr={d.homeAbbr} size={36} />
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{
-                  fontSize: 14, fontWeight: 800, letterSpacing: -0.2,
-                  color: d.pickIsHome ? "#ffffff" : "#9CA3AF",
-                }}>
-                  {d.homeAbbr.toUpperCase()}
-                </span>
-                <span style={{ fontSize: 8, fontWeight: 700, color: "#6B7280", letterSpacing: "0.05em" }}>
-                  HOME
-                </span>
+              <div style={{
+                fontSize: 15, fontWeight: 800, letterSpacing: -0.2,
+                color: d.pickIsHome ? "#ffffff" : "#9CA3AF",
+              }}>
+                {d.homeAbbr.toUpperCase()}
               </div>
               <div style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>{d.homeRecord}</div>
             </div>
@@ -236,32 +238,21 @@ function Card({ d }: { d: CardData }) {
 
           {/* vs */}
           <div style={{ flex: 1, textAlign: "center" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#4B5563", letterSpacing: 1 }}>VS</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#4B5563", letterSpacing: 0.5 }}>vs</span>
           </div>
 
           {/* Away team */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexDirection: "row-reverse" }}>
             <Logo sportKey={d.sportKey} abbr={d.awayAbbr} size={36} />
             <div style={{ textAlign: "right" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5 }}>
-                <span style={{ fontSize: 8, fontWeight: 700, color: "#6B7280", letterSpacing: "0.05em" }}>
-                  AWAY
-                </span>
-                <span style={{
-                  fontSize: 14, fontWeight: 800, letterSpacing: -0.2,
-                  color: !d.pickIsHome ? "#ffffff" : "#9CA3AF",
-                }}>
-                  {d.awayAbbr.toUpperCase()}
-                </span>
+              <div style={{
+                fontSize: 15, fontWeight: 800, letterSpacing: -0.2,
+                color: !d.pickIsHome ? "#ffffff" : "#9CA3AF",
+              }}>
+                {d.awayAbbr.toUpperCase()}
               </div>
               <div style={{ fontSize: 9, color: "#6B7280", marginTop: 1 }}>{d.awayRecord}</div>
             </div>
-          </div>
-
-          {/* Sport + time */}
-          <div style={{ marginLeft: 14, textAlign: "right", minWidth: 68 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "#6B7280", letterSpacing: 0.3 }}>{d.sport}</div>
-            <div style={{ fontSize: 9, color: "#6B7280", marginTop: 2, lineHeight: 1.3 }}>{d.gameTime}</div>
           </div>
         </div>
 
