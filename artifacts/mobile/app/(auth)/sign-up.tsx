@@ -23,7 +23,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth, useSignUp, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { AntDesign, Feather } from '@expo/vector-icons';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -57,6 +57,7 @@ export default function SignUpScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   // ── Step 1: create account + send OTP ────────────────────────────────────
   const handleStart = async () => {
@@ -126,6 +127,59 @@ export default function SignUpScreen() {
     if (error) setErrorMsg(error?.message ?? 'Could not resend code.');
     setLoading(false);
   };
+
+  // ── Apple SSO (required by App Store Guideline 4.8) ──────────────────────
+  const handleApple = useCallback(async () => {
+    setAppleLoading(true);
+    setErrorMsg(null);
+    try {
+      const result = await startSSOFlow({
+        strategy: 'oauth_apple',
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+
+      const { createdSessionId, setActive } = result as any;
+
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/(tabs)');
+        return;
+      }
+
+      if (isSignedIn) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      setErrorMsg('Apple sign-in did not complete. Please try again.');
+    } catch (err: any) {
+      const errCode = err?.errors?.[0]?.code ?? '';
+      const msg =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        '';
+
+      if (
+        errCode === 'session_exists' ||
+        errCode === 'identifier_already_signed_in' ||
+        msg.toLowerCase().includes('already signed in') ||
+        msg.toLowerCase().includes('session exists')
+      ) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      if (msg) {
+        Alert.alert('Apple sign-in error', msg);
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg('Apple sign-in failed. Please try again.');
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  }, [startSSOFlow, router, isSignedIn]);
 
   // ── Google SSO ────────────────────────────────────────────────────────────
   const handleGoogle = useCallback(async () => {
@@ -236,7 +290,23 @@ export default function SignUpScreen() {
         <Text style={s.title}>Create your account</Text>
         <Text style={s.sub}>Join TBM — AI-powered sports picks</Text>
 
-        <Pressable style={[s.social, ssoLoading && s.off]} onPress={handleGoogle} disabled={ssoLoading || loading}>
+        {/* Sign in with Apple — required by App Store Guideline 4.8 */}
+        <Pressable
+          style={[s.social, s.appleSocial, (appleLoading || ssoLoading) && s.off]}
+          onPress={handleApple}
+          disabled={appleLoading || ssoLoading || loading}
+        >
+          {appleLoading
+            ? <ActivityIndicator size="small" color="#000" />
+            : <AntDesign name="apple" size={18} color="#000" />}
+          <Text style={s.appleSocialTxt}>Continue with Apple</Text>
+        </Pressable>
+
+        <Pressable
+          style={[s.social, (ssoLoading || appleLoading) && s.off]}
+          onPress={handleGoogle}
+          disabled={ssoLoading || appleLoading || loading}
+        >
           {ssoLoading
             ? <ActivityIndicator size="small" color={C.fg} />
             : <Feather name="globe" size={18} color={C.fg} />}
@@ -311,7 +381,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: C.border, borderRadius: 12,
     paddingVertical: 14, backgroundColor: C.card, marginBottom: 12,
   },
+  appleSocial: {
+    backgroundColor: '#FFFFFF', borderColor: '#FFFFFF',
+  },
   socialTxt: { color: C.fg, fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  appleSocialTxt: { color: '#000000', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
   divLine: { flex: 1, height: 1, backgroundColor: C.border },
   divTxt: { color: C.muted, fontSize: 12, fontFamily: 'Inter_400Regular' },
