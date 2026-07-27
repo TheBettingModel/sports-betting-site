@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
@@ -9,6 +9,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SportsProvider } from '@/context/SportsContext';
 import { setBaseUrl } from '@workspace/api-client-react';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DISCLAIMER_KEY } from '@/app/disclaimer';
 import * as Updates from 'expo-updates';
 import {
   Inter_400Regular,
@@ -17,7 +19,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
 // Point the API client at this repl's dev domain
@@ -39,11 +41,20 @@ const queryClient = new QueryClient();
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
-function RootLayoutNav() {
+function RootLayoutNav({ showDisclaimer }: { showDisclaimer: boolean }) {
+  // If the user hasn't accepted the disclaimer, replace the initial route.
+  // Runs after the splash screen is dismissed so there is no visible flash.
+  useEffect(() => {
+    if (showDisclaimer) {
+      router.replace('/disclaimer');
+    }
+  }, [showDisclaimer]);
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="disclaimer" options={{ headerShown: false }} />
       <Stack.Screen
         name="membership"
         options={{
@@ -64,11 +75,29 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // Check whether the user has previously accepted the disclaimer.
+  // We hold the splash screen until both fonts AND this check complete so
+  // the user never sees a partial-render flash before the disclaimer.
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    AsyncStorage.getItem(DISCLAIMER_KEY)
+      .then(val => {
+        setShowDisclaimer(!val);
+        setDisclaimerChecked(true);
+      })
+      .catch(() => {
+        // Non-fatal — default to not showing if storage is unavailable
+        setDisclaimerChecked(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && disclaimerChecked) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, disclaimerChecked]);
 
   // Check for an OTA update on every launch and reload immediately if one is found.
   // Only runs when expo-updates is enabled (i.e. production EAS builds with an
@@ -92,7 +121,9 @@ export default function RootLayout() {
     return () => { cancelled = true; clearTimeout(t); };
   }, []);
 
-  if (!fontsLoaded && !fontError) return null;
+  // Hold rendering until both fonts and the disclaimer check are ready.
+  // This keeps the splash screen visible and prevents any layout flash.
+  if ((!fontsLoaded && !fontError) || !disclaimerChecked) return null;
 
   // publishableKey is provided by the @clerk/expo native plugin from Info.plist
   // at runtime. The env var is a JS-bundle fallback for dev/OTA builds.
@@ -116,7 +147,7 @@ export default function RootLayout() {
                   <SportsProvider>
                     <GestureHandlerRootView>
                       <KeyboardProvider>
-                        <RootLayoutNav />
+                        <RootLayoutNav showDisclaimer={showDisclaimer} />
                       </KeyboardProvider>
                     </GestureHandlerRootView>
                   </SportsProvider>

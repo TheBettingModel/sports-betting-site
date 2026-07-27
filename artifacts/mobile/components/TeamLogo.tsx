@@ -1,56 +1,74 @@
-import React, { useState } from 'react';
-import { Image, Text, View, StyleSheet } from 'react-native';
-import { getTeamLogoUrl } from '@/utils/teamLogos';
+import React from 'react';
+import { Text, View, StyleSheet } from 'react-native';
+
+/**
+ * IP-safe team logo badge.
+ *
+ * Renders the team abbreviation inside a sport-coloured circular badge.
+ * No external CDN images are fetched — all rendering is local, eliminating
+ * any third-party intellectual-property concerns for App Store review.
+ */
 
 interface TeamLogoProps {
   sport: string;
   abbr: string;
-  /** Stored ESPN CDN URL (future use). When present, preferred over the constructed URL. */
+  /** Accepted but intentionally ignored — kept for API compatibility. */
   logoUrl?: string;
   size?: number;
 }
 
-/**
- * Renders an ESPN team logo image.
- *
- * URL priority:
- *   1. logoUrl — explicitly stored URL captured at ingestion (future path)
- *   2. Abbreviation-based ESPN CDN URL — constructed from team abbr, always current
- *   3. Text abbreviation fallback — shown if the sport has no logos (UFC) or image errors
- */
-export function TeamLogo({ sport, abbr, logoUrl, size = 40 }: TeamLogoProps) {
-  const [failed, setFailed] = useState(false);
-  const uri = logoUrl ?? getTeamLogoUrl(sport, abbr);
+/** Accent colour per sport, used for the badge border ring. */
+const SPORT_ACCENT: Record<string, string> = {
+  MLB:   '#1473E6',
+  NFL:   '#B22222',
+  NBA:   '#E0431C',
+  NHL:   '#005EB8',
+  WNBA:  '#FF6900',
+  NCAAF: '#CC5500',
+  NCAAB: '#1D3557',
+  Soccer:'#2E8B57',
+  UFC:   '#C8102E',
+};
 
-  if (uri && !failed) {
-    return (
-      <Image
-        source={{ uri }}
-        style={{ width: size, height: size }}
-        resizeMode="contain"
-        onError={() => setFailed(true)}
-      />
-    );
-  }
+const DEFAULT_ACCENT = '#4B5563';
 
-  // Fallback: abbr text centred in the same footprint
+export function TeamLogo({ sport, abbr, size = 40 }: TeamLogoProps) {
+  const accent = SPORT_ACCENT[sport] ?? DEFAULT_ACCENT;
+  const fontSize = Math.round(size * 0.33);
+  const borderWidth = size >= 36 ? 2 : 1.5;
+
   return (
-    <View style={[styles.fallback, { width: size, height: size }]}>
-      <Text style={[styles.fallbackText, { fontSize: Math.round(size * 0.32) }]}>
-        {abbr}
+    <View
+      style={[
+        styles.badge,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderColor: accent,
+          borderWidth,
+        },
+      ]}
+    >
+      <Text
+        style={[styles.abbr, { fontSize, color: accent }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {abbr.toUpperCase()}
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fallback: {
+  badge: {
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#0D0D0D',
   },
-  fallbackText: {
+  abbr: {
     fontFamily: 'Inter_700Bold',
-    color: '#888888',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
 });

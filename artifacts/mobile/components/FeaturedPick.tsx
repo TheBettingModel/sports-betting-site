@@ -60,7 +60,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
         <View style={styles.matchupRow}>
           {/* Home team */}
           <View style={styles.teamCol}>
-            <TeamLogo sport={sport} espnId={homeTeam.espnId} abbr={homeTeam.abbr} size={64} />
+            <TeamLogo sport={sport} abbr={homeTeam.abbr} size={64} />
             <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
             <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
           </View>
@@ -75,7 +75,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
 
           {/* Away team */}
           <View style={styles.teamCol}>
-            <TeamLogo sport={sport} espnId={awayTeam.espnId} abbr={awayTeam.abbr} size={64} />
+            <TeamLogo sport={sport} abbr={awayTeam.abbr} size={64} />
             <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
             <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
           </View>
