@@ -1,0 +1,20 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "TgbU1GzCob-YIePqneP7Y"
+uri = "file://attached_assets/generated_images/screenshot_picks.jpg"
+type = "image"
+title = "Screenshot 1 — Today's Picks"
+
+[[outputs]]
+id = "GuNjmfOfSlE_C159xPCgv"
+uri = "file://attached_assets/generated_images/screenshot_games.jpg"
+type = "image"
+title = "Screenshot 2 — All Games"
+
+[[outputs]]
+id = "vy_Rc1DHBzy-8Pv7LQc5X"
+uri = "file://attached_assets/generated_images/screenshot_models.jpg"
+type = "image"
+title = "Screenshot 3 — Model Performance"
