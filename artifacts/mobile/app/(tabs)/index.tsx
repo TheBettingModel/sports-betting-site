@@ -111,6 +111,7 @@ export default function TodayScreen() {
     day: 'numeric',
   });
 
+  const liveGamesCount = data?.liveGamesCount ?? 0;
   const lockedCount = filteredGames.filter(g => g.isLocked).length;
 
   const ListHeader = () => (
@@ -135,7 +136,7 @@ export default function TodayScreen() {
         </View>
       </View>
 
-      {/* Games count badge */}
+      {/* Games count badge + in-progress pill */}
       {!isLoading && allGames.length > 0 && (
         <View style={styles.badgeRow}>
           <View style={[styles.gamesBadge, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '66' }]}>
@@ -143,6 +144,13 @@ export default function TodayScreen() {
               {allGames.length} GAMES TODAY
             </Text>
           </View>
+          {liveGamesCount > 0 && (
+            <View style={[styles.gamesBadge, { backgroundColor: '#EF444422', borderColor: '#EF444466', marginLeft: 8 }]}>
+              <Text style={[styles.gamesBadgeText, { color: '#EF4444' }]}>
+                ● {liveGamesCount} IN PROGRESS
+              </Text>
+            </View>
+          )}
         </View>
       )}
 

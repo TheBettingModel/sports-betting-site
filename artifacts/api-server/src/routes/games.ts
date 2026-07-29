@@ -480,12 +480,20 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
   const { sport } = req.query;
   const isSubscribed = req.subscriberStatus?.isSubscribed === true;
 
+  // Count live games for the "N games in progress" indicator — always scoped
+  // to today's full slate regardless of sport filter or subscription status.
+  const liveGamesRows = await db
+    .select({ id: gamesTable.id })
+    .from(gamesTable)
+    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["live"])));
+  const liveGamesCount = liveGamesRows.length;
+
   if (isSubscribed) {
     // Subscribers: apply sport filter directly — no locking needed
     const where =
       typeof sport === "string" && sport !== "All"
-        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport), inArray(gamesTable.status, ["upcoming", "live", "final"]))
-        : and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming", "live", "final"]));
+        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport), inArray(gamesTable.status, ["upcoming"]))
+        : and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming"]));
 
     const games = await db
       .select()
@@ -497,6 +505,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       games,
       lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
       totalGames: games.length,
+      liveGamesCount,
       isSubscribed: true,
     });
     return;
@@ -509,7 +518,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
   const allTodayGames = await db
     .select()
     .from(gamesTable)
-    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming", "live", "final"])))
+    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming"])))
     .orderBy(desc(gamesTable.modelScore));
 
   // Build a set of game IDs that are free (top FREE_PICKS by modelScore)
@@ -532,6 +541,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     games: filtered,
     lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
     totalGames: filtered.length,
+    liveGamesCount,
     isSubscribed: false,
   });
 });

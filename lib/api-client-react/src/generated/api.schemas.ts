@@ -86,6 +86,8 @@ export interface GamesTodayResponse {
   games: GameProjection[];
   lastUpdated: string;
   totalGames: number;
+  /** Number of games currently in progress (excluded from the games list). */
+  liveGamesCount?: number;
   /** Whether the requesting user holds an active Pro subscription. */
   isSubscribed: boolean;
 }
