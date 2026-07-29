@@ -3,6 +3,7 @@ import {
   db,
   closingLinesTable,
   gameResultsTable,
+  gamesTable,
   modelPredictionsTable,
   oddsSnapshotsTable,
   publishedPicksTable,
@@ -202,17 +203,23 @@ async function writeGameResult(game: FetchedGame): Promise<void> {
     .where(eq(gameResultsTable.gameId, game.espnId))
     .limit(1);
 
-  if (existing) return; // Already recorded
+  if (!existing) {
+    await db.insert(gameResultsTable).values({
+      gameId: game.espnId,
+      homeScore: game.homeScore,
+      awayScore: game.awayScore,
+      homeTeamWon: game.homeScore > game.awayScore,
+      overtimes: 0,
+      statusDetail: "Final",
+      gradingSource: "espn",
+    });
+  }
 
-  await db.insert(gameResultsTable).values({
-    gameId: game.espnId,
-    homeScore: game.homeScore,
-    awayScore: game.awayScore,
-    homeTeamWon: game.homeScore > game.awayScore,
-    overtimes: 0,
-    statusDetail: "Final",
-    gradingSource: "espn",
-  });
+  // Always keep the games table scores current so game cards show final scores.
+  await db
+    .update(gamesTable)
+    .set({ homeScore: game.homeScore, awayScore: game.awayScore })
+    .where(eq(gamesTable.id, game.espnId));
 }
 
 // ── Closing lines ─────────────────────────────────────────────────────────────
