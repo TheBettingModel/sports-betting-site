@@ -12,6 +12,7 @@ import notificationPreferencesRouter from "./notification-preferences";
 import preferencesRouter from "./preferences";
 import clerkProxyRouter from "./clerk-proxy";
 import legalRouter from "./legal";
+import resultsRouter from "./results";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(notificationPreferencesRouter);
 router.use(preferencesRouter);
 router.use(clerkProxyRouter);
 router.use(legalRouter);
+router.use(resultsRouter);
 
 export default router;

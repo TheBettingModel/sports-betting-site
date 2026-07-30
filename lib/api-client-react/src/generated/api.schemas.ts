@@ -120,3 +120,50 @@ export type GetGamesTodayParams = {
 sport?: string;
 };
 
+export interface ResultsSportStat {
+  sport: string;
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  currentStreak: number;
+  currentStreakDir: 'W' | 'L' | 'P';
+}
+
+export interface RecentPickResult {
+  pickId: number;
+  sport: string;
+  awayTeamAbbr: string;
+  homeTeamAbbr: string;
+  awayScore?: number | null;
+  homeScore?: number | null;
+  pick: string;
+  odds: number;
+  unitsRisked: number;
+  unitsWonLost: number;
+  result: string;
+  gameDate: string;
+  gradedAt?: string | null;
+}
+
+export interface ResultsSummaryResponse {
+  period: string;
+  overall: {
+    wins: number;
+    losses: number;
+    pushes: number;
+    totalPicks: number;
+    winRate: number;
+    unitsWonLost: number;
+  };
+  bySport: ResultsSportStat[];
+  recentResults: RecentPickResult[];
+  dataAsOf: string;
+}
+
+export type GetResultsSummaryParams = {
+  period?: 'season' | 'week';
+};
+
