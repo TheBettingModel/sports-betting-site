@@ -81,9 +81,9 @@ export default function ResultsScreen() {
 
   listItems.push({ type: 'header-summary' });
 
-  if (bySport.length > 0) {
+  if (bySport.filter(s => s.wins + s.losses > 0).length > 0) {
     listItems.push({ type: 'header-sport' });
-    for (const stat of bySport) {
+    for (const stat of bySport.filter(s => s.wins + s.losses > 0)) {
       listItems.push({ type: 'sport-row', stat });
     }
   }
