@@ -363,7 +363,7 @@ export function useGetModelStats<TData = Awaited<ReturnType<typeof getModelStats
 
 // ── Results summary ────────────────────────────────────────────────────────────
 
-export const getGetResultsSummaryUrl = () => `/results/summary`;
+export const getGetResultsSummaryUrl = () => `/api/results/summary`;
 
 export const getResultsSummary = async (
   params?: GetResultsSummaryParams,
@@ -377,7 +377,7 @@ export const getResultsSummary = async (
 };
 
 export const getGetResultsSummaryQueryKey = (params?: GetResultsSummaryParams) =>
-  [`/results/summary`, ...(params ? [params] : [])] as const;
+  [`/api/results/summary`, ...(params ? [params] : [])] as const;
 
 export const getGetResultsSummaryQueryOptions = <
   TData = Awaited<ReturnType<typeof getResultsSummary>>,
