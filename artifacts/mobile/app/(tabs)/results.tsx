@@ -34,7 +34,7 @@ type ListItem =
   | { type: 'header-summary' }
   | { type: 'header-sport' }
   | { type: 'sport-row'; stat: SportStat }
-  | { type: 'header-results' }
+  | { type: 'date-header'; label: string }
   | { type: 'result-row'; item: RecentResult };
 
 // ── Sport colors ──────────────────────────────────────────────────────────────
@@ -89,8 +89,14 @@ export default function ResultsScreen() {
   }
 
   if (recentResults.length > 0) {
-    listItems.push({ type: 'header-results' });
+    // Group by gameDate and insert a date-header before each new date
+    let lastDate = '';
     for (const item of recentResults) {
+      const dateKey = item.gameDate ?? '';
+      if (dateKey !== lastDate) {
+        listItems.push({ type: 'date-header', label: formatDate(dateKey) });
+        lastDate = dateKey;
+      }
       listItems.push({ type: 'result-row', item });
     }
   }
@@ -174,9 +180,9 @@ export default function ResultsScreen() {
         );
       }
 
-      case 'header-results':
+      case 'date-header':
         return (
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>RECENT RESULTS</Text>
+          <Text style={[styles.dateHeader, { color: colors.mutedForeground }]}>{item.label}</Text>
         );
 
       case 'result-row': {
@@ -187,30 +193,20 @@ export default function ResultsScreen() {
         const resultLabel = isWin ? 'W' : isPush ? 'P' : 'L';
         const unitsLabel = isWin
           ? `+${r.unitsWonLost.toFixed(1)}u`
-          : isPush ? '0u' : `${r.unitsWonLost.toFixed(1)}u`;
+          : isPush ? '±0u' : `${r.unitsWonLost.toFixed(1)}u`;
         const color = sportColor(r.sport);
-        const hasScores = r.awayScore != null && r.homeScore != null;
 
         return (
           <View style={[styles.resultRow, { borderBottomColor: colors.border }]}>
-            <View style={[styles.resultSportBar, { backgroundColor: color }]} />
+            <View style={[styles.resultDot, { backgroundColor: color }]} />
             <View style={styles.resultMiddle}>
-              <View style={styles.resultScoreRow}>
-                <Text style={[styles.resultTeams, { color: colors.foreground }]}>
-                  {r.awayTeamAbbr}{hasScores ? ` ${r.awayScore}` : ''}{' '}
-                  <Text style={{ color: colors.mutedForeground }}>@</Text>{' '}
-                  {r.homeTeamAbbr}{hasScores ? ` ${r.homeScore}` : ''}
-                </Text>
-                <Text style={[styles.resultDate, { color: colors.mutedForeground }]}>
-                  {formatDate(r.gameDate)}
-                </Text>
-              </View>
-              <Text style={[styles.resultPick, { color: colors.mutedForeground }]}>
-                Pick: <Text style={{ color: colors.foreground }}>{r.pick}</Text>
+              <Text style={[styles.resultPick, { color: colors.foreground }]}>{r.pick}</Text>
+              <Text style={[styles.resultMatchup, { color: colors.mutedForeground }]}>
+                {r.awayTeamAbbr} @ {r.homeTeamAbbr}
               </Text>
             </View>
             <View style={styles.resultRight}>
-              <View style={[styles.resultBadge, { backgroundColor: resultColor + '20' }]}>
+              <View style={[styles.resultBadge, { backgroundColor: resultColor + '22' }]}>
                 <Text style={[styles.resultBadgeText, { color: resultColor }]}>{resultLabel}</Text>
               </View>
               <Text style={[styles.resultUnits, { color: resultColor }]}>{unitsLabel}</Text>
@@ -403,24 +399,32 @@ const styles = StyleSheet.create({
   barTrack: { height: 4, backgroundColor: '#222222', borderRadius: 2, marginTop: 5, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 2 },
 
+  // Timeline date header
+  dateHeader: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+
   // Result rows
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  resultSportBar: { width: 3, height: 38, borderRadius: 2, flexShrink: 0 },
+  resultDot: { width: 8, height: 8, borderRadius: 2, flexShrink: 0 },
   resultMiddle: { flex: 1 },
-  resultScoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  resultTeams: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  resultDate: { fontSize: 10, fontFamily: 'Inter_400Regular' },
-  resultPick: { fontSize: 11, fontFamily: 'Inter_400Regular' },
+  resultPick: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
+  resultMatchup: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
   resultRight: { alignItems: 'center', gap: 3, flexShrink: 0 },
-  resultBadge: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  resultBadgeText: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  resultBadge: { width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  resultBadgeText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
   resultUnits: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
 
   // Skeleton
