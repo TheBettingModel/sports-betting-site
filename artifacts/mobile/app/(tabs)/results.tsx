@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { useGetResultsSummary, type RecentPickResult } from '@workspace/api-client-react';
+import { useGetResultsSummary } from '@workspace/api-client-react';
 import { EmptyState } from '@/components/EmptyState';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -28,14 +28,10 @@ type SportStat = {
   currentStreakDir: 'W' | 'L' | 'P';
 };
 
-type RecentResult = RecentPickResult;
-
 type ListItem =
   | { type: 'header-summary' }
   | { type: 'header-sport' }
-  | { type: 'sport-row'; stat: SportStat }
-  | { type: 'date-header'; label: string }
-  | { type: 'result-row'; item: RecentResult };
+  | { type: 'sport-row'; stat: SportStat };
 
 // ── Sport colors ──────────────────────────────────────────────────────────────
 
@@ -73,7 +69,6 @@ export default function ResultsScreen() {
 
   const overall = data?.overall;
   const bySport = data?.bySport ?? [];
-  const recentResults = data?.recentResults ?? [];
 
   // ── Build flat list items ─────────────────────────────────────────────────
 
@@ -85,19 +80,6 @@ export default function ResultsScreen() {
     listItems.push({ type: 'header-sport' });
     for (const stat of bySport.filter(s => s.wins + s.losses > 0)) {
       listItems.push({ type: 'sport-row', stat });
-    }
-  }
-
-  if (recentResults.length > 0) {
-    // Group by gameDate and insert a date-header before each new date
-    let lastDate = '';
-    for (const item of recentResults) {
-      const dateKey = item.gameDate ?? '';
-      if (dateKey !== lastDate) {
-        listItems.push({ type: 'date-header', label: formatDate(dateKey) });
-        lastDate = dateKey;
-      }
-      listItems.push({ type: 'result-row', item });
     }
   }
 
@@ -180,41 +162,6 @@ export default function ResultsScreen() {
         );
       }
 
-      case 'date-header':
-        return (
-          <Text style={[styles.dateHeader, { color: colors.mutedForeground }]}>{item.label}</Text>
-        );
-
-      case 'result-row': {
-        const { item: r } = item;
-        const isWin = r.result === 'win';
-        const isPush = r.result === 'push';
-        const resultColor = isWin ? colors.primary : isPush ? '#F59E0B' : '#EF4444';
-        const resultLabel = isWin ? 'W' : isPush ? 'P' : 'L';
-        const unitsLabel = isWin
-          ? `+${r.unitsWonLost.toFixed(1)}u`
-          : isPush ? '±0u' : `${r.unitsWonLost.toFixed(1)}u`;
-        const color = sportColor(r.sport);
-
-        return (
-          <View style={[styles.resultRow, { borderBottomColor: colors.border }]}>
-            <View style={[styles.resultDot, { backgroundColor: color }]} />
-            <View style={styles.resultMiddle}>
-              <Text style={[styles.resultPick, { color: colors.foreground }]}>{r.pick}</Text>
-              <Text style={[styles.resultMatchup, { color: colors.mutedForeground }]}>
-                {r.awayTeamAbbr} @ {r.homeTeamAbbr}
-              </Text>
-            </View>
-            <View style={styles.resultRight}>
-              <View style={[styles.resultBadge, { backgroundColor: resultColor + '22' }]}>
-                <Text style={[styles.resultBadgeText, { color: resultColor }]}>{resultLabel}</Text>
-              </View>
-              <Text style={[styles.resultUnits, { color: resultColor }]}>{unitsLabel}</Text>
-            </View>
-          </View>
-        );
-      }
-
       default:
         return null;
     }
@@ -276,7 +223,6 @@ export default function ResultsScreen() {
       <FlatList
         data={listItems}
         keyExtractor={(item, i) => {
-          if (item.type === 'result-row') return `result-${item.item.pickId}`;
           if (item.type === 'sport-row') return `sport-${item.stat.sport}`;
           return `${item.type}-${i}`;
         }}
@@ -398,34 +344,6 @@ const styles = StyleSheet.create({
 
   barTrack: { height: 4, backgroundColor: '#222222', borderRadius: 2, marginTop: 5, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 2 },
-
-  // Timeline date header
-  dateHeader: {
-    fontSize: 11,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 4,
-  },
-
-  // Result rows
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  resultDot: { width: 8, height: 8, borderRadius: 2, flexShrink: 0 },
-  resultMiddle: { flex: 1 },
-  resultPick: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  resultMatchup: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  resultRight: { alignItems: 'center', gap: 3, flexShrink: 0 },
-  resultBadge: { width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  resultBadgeText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
-  resultUnits: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
 
   // Skeleton
   skeletonContainer: { paddingHorizontal: 16, gap: 12, marginTop: 8 },
