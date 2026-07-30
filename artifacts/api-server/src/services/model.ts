@@ -243,10 +243,10 @@ function getPriceAdjustment(odds: number): number {
 function getDynamicUnits(edge: number, confidenceNum: number, valueRating: string): number {
   if (valueRating === "Fade" || valueRating === "Neutral") return 0;
   if (edge >= 8 && confidenceNum >= 90) return 3.0;
-  if (edge >= 6 && confidenceNum >= 85) return 2.0;
-  if (edge >= 4 && confidenceNum >= 75) return 1.5;
-  if (edge >= 2 && confidenceNum >= 60) return 1.0;
-  return 0.5;
+  if (edge >= 6 && confidenceNum >= 85) return 2.5;
+  if (edge >= 4 && confidenceNum >= 75) return 2.0;
+  if (edge >= 2 && confidenceNum >= 60) return 1.5;
+  return 1.0;
 }
 
 /**
