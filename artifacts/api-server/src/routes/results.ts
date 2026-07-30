@@ -8,7 +8,7 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, desc, gte, and } from "drizzle-orm";
+import { eq, desc, gte, and, ne } from "drizzle-orm";
 import {
   db,
   pickResultsTable,
@@ -99,7 +99,7 @@ router.get(
           gamesTable,
           eq(publishedPicksTable.gameId, gamesTable.id),
         )
-        .where(gte(gamesTable.gameDate, cutoffDate))
+        .where(and(gte(gamesTable.gameDate, cutoffDate), ne(pickResultsTable.result, "pending")))
         .orderBy(desc(pickResultsTable.gradedAt));
 
       // ── Overall ───────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ router.get(
       for (const r of rows) {
         if (r.result === "win") totalWins++;
         else if (r.result === "loss") totalLosses++;
-        else totalPushes++;
+        else if (r.result === "push") totalPushes++;
         totalUnits += r.unitsWonLost ?? 0;
       }
 
@@ -136,7 +136,7 @@ router.get(
         s.units += r.unitsWonLost ?? 0;
         if (r.result === "win") s.wins++;
         else if (r.result === "loss") s.losses++;
-        else s.pushes++;
+        else if (r.result === "push") s.pushes++;
       }
 
       const bySport = Object.entries(sportMap).map(([sport, s]) => {
