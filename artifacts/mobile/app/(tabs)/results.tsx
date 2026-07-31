@@ -33,20 +33,7 @@ type ListItem =
   | { type: 'header-sport' }
   | { type: 'sport-row'; stat: SportStat };
 
-// ── Sport colors ──────────────────────────────────────────────────────────────
-
-const SPORT_COLORS: Record<string, string> = {
-  MLB:    '#2563EB',
-  NBA:    '#EA580C',
-  NFL:    '#4F46E5',
-  WNBA:   '#EC4899',
-  Soccer: '#10B981',
-  NHL:    '#06B6D4',
-};
-
-function sportColor(sport: string): string {
-  return SPORT_COLORS[sport] ?? '#6B7280';
-}
+import { getSportColor } from '@/constants/sportColors';
 
 // ── Subcomponents ─────────────────────────────────────────────────────────────
 
@@ -128,7 +115,7 @@ export default function ResultsScreen() {
 
       case 'sport-row': {
         const { stat } = item;
-        const color = sportColor(stat.sport);
+        const color = getSportColor(stat.sport);
         const streakColor = stat.currentStreakDir === 'W' ? colors.primary : '#EF4444';
         const unitsPos = stat.unitsWonLost >= 0;
         return (
@@ -175,7 +162,7 @@ export default function ResultsScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.brandName, { color: colors.foreground }]}>TBM</Text>
-            <Text style={[styles.brandSub, { color: colors.primary }]}>RESULTS</Text>
+            <Text style={[styles.brandSub, { color: colors.mutedForeground }]}>RECORD</Text>
           </View>
         </View>
       </View>
@@ -207,7 +194,7 @@ export default function ResultsScreen() {
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
           <Text style={[styles.brandName, { color: colors.foreground }]}>TBM</Text>
-          <Text style={[styles.brandSub, { color: colors.primary }]}>RESULTS</Text>
+          <Text style={[styles.brandSub, { color: colors.mutedForeground }]}>RECORD</Text>
         </View>
         <View style={styles.skeletonContainer}>
           {[1, 2, 3].map((i) => (
@@ -326,7 +313,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     padding: 14,
     gap: 12,
@@ -342,7 +329,7 @@ const styles = StyleSheet.create({
   streakText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   sportUnits: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
 
-  barTrack: { height: 4, backgroundColor: '#222222', borderRadius: 2, marginTop: 5, overflow: 'hidden' },
+  barTrack: { height: 4, backgroundColor: '#1E1E1E', borderRadius: 2, marginTop: 5, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 2 },
 
   // Skeleton

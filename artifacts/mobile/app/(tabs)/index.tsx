@@ -25,9 +25,9 @@ const SKELETON_COUNT = 5;
 
 const RATING_PRIORITY: Record<string, number> = { 'Strong Buy': 0, 'Buy': 1, 'Neutral': 2, 'Fade': 3 };
 const RATING_COLORS: Record<string, string> = {
-  'Strong Buy': '#84CC16',
-  'Buy':        '#22C55E',
-  'Neutral':    '#94A3B8',
+  'Strong Buy': '#FFFFFF',
+  'Buy':        '#CBD5E1',
+  'Neutral':    '#4B5563',
   'Fade':       '#EF4444',
 };
 
@@ -121,17 +121,12 @@ export default function TodayScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.brandName, { color: colors.foreground }]}>TBM</Text>
-            <Text style={[styles.brandSub, { color: colors.primary }]}>PICKS ENGINE</Text>
+            <Text style={[styles.brandSub, { color: colors.mutedForeground }]}>PICKS ENGINE</Text>
           </View>
           <View style={styles.headerRight}>
             <Text style={[styles.date, { color: colors.mutedForeground }]}>
-              TODAY / {today.toUpperCase()}
+              {today.toUpperCase()}
             </Text>
-            {lastUpdated && (
-              <Text style={[styles.updated, { color: colors.mutedForeground }]}>
-                Updated {lastUpdated}
-              </Text>
-            )}
           </View>
         </View>
       </View>
@@ -139,8 +134,8 @@ export default function TodayScreen() {
       {/* Games count badge + in-progress pill */}
       {!isLoading && allGames.length > 0 && (
         <View style={styles.badgeRow}>
-          <View style={[styles.gamesBadge, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '66' }]}>
-            <Text style={[styles.gamesBadgeText, { color: colors.primary }]}>
+          <View style={[styles.gamesBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Text style={[styles.gamesBadgeText, { color: colors.mutedForeground }]}>
               {allGames.length} GAMES TODAY
             </Text>
           </View>
@@ -162,7 +157,7 @@ export default function TodayScreen() {
         <View style={styles.section}>
           <View style={styles.sectionLabelRow}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TODAY'S MATCHUPS</Text>
-            <View style={[styles.sectionLine, { backgroundColor: colors.primary }]} />
+            <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
           </View>
           <FeaturedPick game={topPick} />
         </View>
@@ -183,7 +178,7 @@ export default function TodayScreen() {
             {selectedSport === 'All' ? 'ALL GAMES' : `${selectedSport} GAMES`}
             {filteredGames.length > 0 && ` · ${filteredGames.length}`}
           </Text>
-          <View style={[styles.sectionLine, { backgroundColor: colors.primary }]} />
+          <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
         </View>
       )}
     </View>

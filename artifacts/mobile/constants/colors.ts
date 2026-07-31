@@ -1,6 +1,12 @@
 /**
  * TheBettingModel – black & green theme.
  * Lime green (#84CC16) matches the logo. Black background.
+ *
+ * Surface depth system:
+ *   #000000  background (root)
+ *   #0F0F0F  card / elevated surfaces
+ *   #141414  secondary / muted fills
+ *   #1E1E1E  borders, inputs, dividers
  */
 
 const palette = {
@@ -11,23 +17,23 @@ const palette = {
   background: '#000000',
   foreground: '#FFFFFF',
 
-  // Cards / elevated surfaces
-  card: '#111111',
+  // Cards / elevated surfaces — slightly lighter than pure black
+  card: '#0F0F0F',
   cardForeground: '#FFFFFF',
 
-  // Primary — lime green (logo colour)
+  // Primary — lime green (logo colour). Reserve for wins, CTAs, active states.
   primary: '#84CC16',
   primaryForeground: '#000000',
 
-  // Secondary
-  secondary: '#1A1A1A',
+  // Secondary — mid-dark fill
+  secondary: '#141414',
   secondaryForeground: '#F9FAFB',
 
-  // Muted
-  muted: '#1A1A1A',
+  // Muted — same mid-dark for fills, gray for text
+  muted: '#141414',
   mutedForeground: '#6B7280',
 
-  // Accent
+  // Accent — same as primary
   accent: '#84CC16',
   accentForeground: '#000000',
 
@@ -36,8 +42,8 @@ const palette = {
   destructiveForeground: '#FFFFFF',
 
   // Borders and inputs
-  border: '#222222',
-  input: '#222222',
+  border: '#1E1E1E',
+  input: '#1E1E1E',
 
   // Semantic win / loss
   win: '#84CC16',
@@ -56,7 +62,7 @@ const palette = {
 const colors = {
   light: palette,
   dark: palette,
-  radius: 12,
+  radius: 14,
 };
 
 export default colors;

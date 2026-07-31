@@ -70,7 +70,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="results"
         options={{
-          title: 'Results',
+          title: 'Record',
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="chart.bar.fill" tintColor={color} size={22} />
@@ -82,7 +82,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Account',
+          title: 'Profile',
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="person.fill" tintColor={color} size={22} />

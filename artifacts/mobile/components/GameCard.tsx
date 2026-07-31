@@ -1,20 +1,12 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { ValueBadge } from '@/components/ValueBadge';
 import { TeamLogo } from '@/components/TeamLogo';
 import type { Game } from '@/data/mockGames';
 
-const SPORT_COLORS: Record<string, string> = {
-  NFL:    '#4F46E5',
-  NBA:    '#EA580C',
-  MLB:    '#0EA5E9',
-  NHL:    '#8B5CF6',
-  Soccer: '#22C55E',
-  UFC:    '#DC2626',
-  WNBA:   '#FF6900',
-};
+import { getSportColor } from '@/constants/sportColors';
 
 function fmtOdds(odds: number): string {
   return odds > 0 ? `+${odds}` : `${odds}`;
@@ -41,7 +33,7 @@ interface GameCardProps {
 export function GameCard({ game }: GameCardProps) {
   const colors = useColors();
   const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
-  const sportColor = SPORT_COLORS[sport] ?? colors.primary;
+  const sportColor = getSportColor(sport);
 
   // ── Pick identity ──────────────────────────────────────────────
   const isNeutral = projection.valueRating === 'Neutral';
@@ -282,8 +274,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderRightWidth: 1,
     borderLeftWidth: 4,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
+    ...(Platform.OS === 'ios' ? { shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } } : { elevation: 6 }),
     overflow: 'hidden',
     gap: 0,
   },
@@ -305,7 +298,7 @@ const styles = StyleSheet.create({
   pickLabel: {
     fontSize: 9,
     fontFamily: 'Inter_700Bold',
-    color: '#84CC16',
+    color: '#6B7280',
     letterSpacing: 1.4,
   },
   pickBandRight: {

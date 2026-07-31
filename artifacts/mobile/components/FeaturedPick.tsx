@@ -209,7 +209,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
