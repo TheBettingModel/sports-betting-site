@@ -108,7 +108,7 @@ export default function ProfileScreen() {
             styles.subBadge,
             isSubscribed
               ? { backgroundColor: '#1A2600', borderColor: '#84CC16' + '66' }
-              : { backgroundColor: '#1A1A1A', borderColor: colors.border },
+              : { backgroundColor: colors.secondary, borderColor: colors.border },
           ]}>
             <Feather name={isSubscribed ? 'zap' : 'lock'} size={10} color={isSubscribed ? '#84CC16' : colors.mutedForeground} />
             <Text style={[styles.subBadgeText, { color: isSubscribed ? '#84CC16' : colors.mutedForeground }]}>
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.5,
     marginBottom: 10, marginTop: 4,
   },
-  card: { borderRadius: 12, borderWidth: 1, marginBottom: 20, overflow: 'hidden' },
+  card: { borderRadius: 14, borderWidth: 1, marginBottom: 20, overflow: 'hidden' },
   statRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingVertical: 14, paddingHorizontal: 16,

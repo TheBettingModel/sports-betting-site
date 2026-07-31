@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useColors } from '@/hooks/useColors';
 
 interface Props {
   onUnlock: () => void;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function LockedPickCard({ onUnlock, hiddenCount }: Props) {
+  const colors = useColors();
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onUnlock();
@@ -21,7 +23,7 @@ export function LockedPickCard({ onUnlock, hiddenCount }: Props) {
 
   return (
     <Pressable
-      style={({ pressed }) => [s.card, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [s.card, { backgroundColor: colors.card }, pressed && { opacity: 0.85 }]}
       onPress={handlePress}
     >
       {/* Ghost rows behind the overlay */}

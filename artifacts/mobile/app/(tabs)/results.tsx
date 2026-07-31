@@ -290,6 +290,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     padding: 16,
+    ...(Platform.OS === 'ios'
+      ? { shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }
+      : { elevation: 6 }),
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   summaryLeft: { flex: 1 },
@@ -317,6 +320,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     gap: 12,
+    ...(Platform.OS === 'ios'
+      ? { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }
+      : { elevation: 4 }),
   },
   sportLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, width: 80 },
   sportDot: { width: 8, height: 8, borderRadius: 2 },
