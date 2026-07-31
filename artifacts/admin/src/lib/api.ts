@@ -132,6 +132,8 @@ export const adminApi = {
     api.post<SportSnooze>(`/admin/sports/${sport}/snooze`, { durationHours, reason }),
   unsnoozeSport: (sport: string) =>
     api.delete<{ message: string }>(`/admin/sports/${sport}/snooze`),
+  resetDriftBaseline: () =>
+    api.post<{ resolved: number; newAlerts: number; message: string }>("/admin/alerts/drift/reset-baseline"),
 };
 
 export const modelApi = {

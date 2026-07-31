@@ -33,6 +33,7 @@ import {
 import { runBacktest } from "../services/backtesting";
 import { transitionModelStatus, rollbackModel } from "../services/modelRegistry";
 import { schedulerJobs, getAutomationRuns } from "../services/scheduler";
+import { runDriftMonitor } from "../services/driftMonitor";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -399,6 +400,41 @@ router.get("/admin/alerts", async (req, res): Promise<void> => {
     drift: { alerts: driftAlerts, count: driftAlerts.length },
     dataQuality: { alerts: dqAlerts, count: dqAlerts.length },
     totalActive: activeCount,
+  });
+});
+
+// ── Reset drift baseline ──────────────────────────────────────────────────────
+// Bulk-resolves all active drift alerts (stale after a model overhaul) and
+// immediately re-runs the drift monitor so the next comparison uses fresh data.
+
+router.post("/admin/alerts/drift/reset-baseline", async (req, res): Promise<void> => {
+  const now = new Date();
+
+  // 1. Count + resolve all unresolved drift alerts
+  const unresolvedBefore = await db
+    .select({ id: modelDriftAlertsTable.id })
+    .from(modelDriftAlertsTable)
+    .where(eq(modelDriftAlertsTable.isResolved, false));
+
+  if (unresolvedBefore.length > 0) {
+    await db
+      .update(modelDriftAlertsTable)
+      .set({ isResolved: true, resolvedAt: now, resolvedBy: "admin:baseline-reset" })
+      .where(eq(modelDriftAlertsTable.isResolved, false));
+  }
+
+  // 2. Re-run drift monitor — it will compare fresh 7-day vs 30-day windows
+  const { alertsCreated } = await runDriftMonitor();
+
+  logger.info(
+    { resolved: unresolvedBefore.length, newAlerts: alertsCreated },
+    "Admin: drift baseline reset",
+  );
+
+  res.json({
+    resolved: unresolvedBefore.length,
+    newAlerts: alertsCreated,
+    message: `Resolved ${unresolvedBefore.length} stale alert${unresolvedBefore.length !== 1 ? "s" : ""}. Drift monitor re-ran and raised ${alertsCreated} new alert${alertsCreated !== 1 ? "s" : ""}.`,
   });
 });
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2, AlertTriangle, ShieldAlert, ChevronDown, ChevronRight,
-  Clock, Bot, User, BellOff, BellRing, Timer,
+  Clock, Bot, User, BellOff, BellRing, Timer, RotateCcw,
 } from "lucide-react";
 import { adminApi, type DriftAlert, type DQAlert, type SportSnooze } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
@@ -372,6 +372,18 @@ export function Alerts() {
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ["snoozes"] }); },
   });
 
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetResult, setResetResult] = useState<string | null>(null);
+  const resetBaseline = useMutation({
+    mutationFn: () => adminApi.resetDriftBaseline(),
+    onSuccess: (data) => {
+      void qc.invalidateQueries({ queryKey: ["alerts"] });
+      setResetResult(data.message);
+      setResetConfirm(false);
+      setTimeout(() => setResetResult(null), 8000);
+    },
+  });
+
   const driftAlerts: DriftAlert[] = driftData?.drift.alerts ?? [];
   const dqAlerts: DQAlert[] = dqData?.dataQuality.alerts ?? [];
   const snoozeMap = new Map<string, SportSnooze>(
@@ -438,11 +450,46 @@ export function Alerts() {
                 <AlertTriangle className="w-4 h-4 text-yellow-400" />
                 Model Drift Alerts
               </h2>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} className="accent-primary" />
-                Show resolved
-              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} className="accent-primary" />
+                  Show resolved
+                </label>
+                {!resetConfirm ? (
+                  <button
+                    onClick={() => setResetConfirm(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded text-xs hover:bg-zinc-700 transition-colors"
+                    title="Resolve all stale drift alerts and re-run the monitor with a fresh baseline"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset Baseline
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded px-2.5 py-1">
+                    <span className="text-xs text-orange-300">Resolve all active drift alerts?</span>
+                    <button
+                      onClick={() => resetBaseline.mutate()}
+                      disabled={resetBaseline.isPending}
+                      className="px-2 py-0.5 bg-orange-500/20 text-orange-300 border border-orange-500/30 rounded text-[10px] font-medium hover:bg-orange-500/30 transition-colors disabled:opacity-40"
+                    >
+                      {resetBaseline.isPending ? "Resetting…" : "Confirm"}
+                    </button>
+                    <button
+                      onClick={() => setResetConfirm(false)}
+                      className="px-2 py-0.5 bg-card border border-border rounded text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+            {resetResult && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-md text-xs text-green-400">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                {resetResult}
+              </div>
+            )}
             <div className="bg-card border border-border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
