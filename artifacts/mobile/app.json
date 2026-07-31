@@ -9,6 +9,15 @@
     "scheme": "mobile",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/278c23a8-5a4b-4c28-baa2-f8331d5bee7a",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -17,7 +26,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.replit.thebettingmodel",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
