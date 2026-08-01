@@ -492,8 +492,8 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     // Subscribers: apply sport filter directly — no locking needed
     const where =
       typeof sport === "string" && sport !== "All"
-        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport), inArray(gamesTable.status, ["upcoming"]))
-        : and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming"]));
+        ? and(eq(gamesTable.gameDate, today), eq(gamesTable.sport, sport), inArray(gamesTable.status, ["upcoming", "live"]))
+        : and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming", "live"]));
 
     const games = await db
       .select()
@@ -518,7 +518,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
   const allTodayGames = await db
     .select()
     .from(gamesTable)
-    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming"])))
+    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["upcoming", "live"])))
     .orderBy(desc(gamesTable.modelScore));
 
   // Build a set of game IDs that are free (top FREE_PICKS by modelScore)
