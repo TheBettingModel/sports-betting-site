@@ -97,12 +97,18 @@ components:
           type: string
         homeTeamRecord:
           type: string
+        homeTeamLogo:
+          type: string
+          nullable: true
         awayTeamAbbr:
           type: string
         awayTeamName:
           type: string
         awayTeamRecord:
           type: string
+        awayTeamLogo:
+          type: string
+          nullable: true
         gameTime:
           type: string
         gameDate:

@@ -12,17 +12,14 @@ export interface HealthStatus {
 export interface GameProjection {
   id: string;
   sport: string;
-  league?: string | null;
-  homeTeamId?: string | null;
-  awayTeamId?: string | null;
-  homeTeamLogo?: string | null;
-  awayTeamLogo?: string | null;
   homeTeamAbbr: string;
   homeTeamName: string;
   homeTeamRecord: string;
+  homeTeamLogo?: string | null;
   awayTeamAbbr: string;
   awayTeamName: string;
   awayTeamRecord: string;
+  awayTeamLogo?: string | null;
   gameTime: string;
   gameDate: string;
   status: string;
@@ -39,57 +36,13 @@ export interface GameProjection {
   vegasTotal: number;
   vegasHomeOdds: number;
   vegasAwayOdds: number;
-  vegasDrawOdds: number;
   predictionCorrect?: boolean | null;
-  /** True when this game's premium projection data has been gated (non-subscriber). */
-  isLocked?: boolean;
-  // Phase 1: enhanced model scoring
-  confidenceNum?: number | null;
-  units?: number | null;
-  priceAdjustment?: number | null;
-  sharpScore?: number | null;
-  sharpSignal?: string | null;
-  finalModelScore?: number | null;
-  finalModelTier?: string | null;
-  finalModelStars?: number | null;
-  podScore?: number | null;
-  // Phase 2: pitcher matchup (MLB only)
-  homeStarterName?: string | null;
-  homeStarterEra?: number | null;
-  homeStarterRecentEra?: number | null;
-  awayStarterName?: string | null;
-  awayStarterEra?: number | null;
-  awayStarterRecentEra?: number | null;
-  // Phase 2: line movement
-  openingHomeOdds?: number | null;
-  openingAwayOdds?: number | null;
-  // Phase 2: best available line
-  bestLineBook?: string | null;
-  bestLineOdds?: number | null;
-  // Phase 3: weather (MLB/NFL)
-  weatherWindMph?: number | null;
-  weatherTotalAdj?: number | null;
-  weatherSummary?: string | null;
-  // Phase 3: NHL goalies
-  homeGoalieName?: string | null;
-  homeGoalieSavePct?: number | null;
-  awayGoalieName?: string | null;
-  awayGoalieSavePct?: number | null;
-  // Phase 3: NFL injuries
-  homeInjuryImpact?: number | null;
-  awayInjuryImpact?: number | null;
-  homeKeyInjuries?: string | null;
-  awayKeyInjuries?: string | null;
 }
 
 export interface GamesTodayResponse {
   games: GameProjection[];
   lastUpdated: string;
   totalGames: number;
-  /** Number of games currently in progress (excluded from the games list). */
-  liveGamesCount?: number;
-  /** Whether the requesting user holds an active Pro subscription. */
-  isSubscribed: boolean;
 }
 
 export interface RefreshResponse {
@@ -118,52 +71,5 @@ export interface ModelStatsResponse {
 
 export type GetGamesTodayParams = {
 sport?: string;
-};
-
-export interface ResultsSportStat {
-  sport: string;
-  wins: number;
-  losses: number;
-  pushes: number;
-  totalPicks: number;
-  winRate: number;
-  unitsWonLost: number;
-  currentStreak: number;
-  currentStreakDir: 'W' | 'L' | 'P';
-}
-
-export interface RecentPickResult {
-  pickId: number;
-  sport: string;
-  awayTeamAbbr: string;
-  homeTeamAbbr: string;
-  awayScore?: number | null;
-  homeScore?: number | null;
-  pick: string;
-  odds: number;
-  unitsRisked: number;
-  unitsWonLost: number;
-  result: string;
-  gameDate: string;
-  gradedAt?: string | null;
-}
-
-export interface ResultsSummaryResponse {
-  period: string;
-  overall: {
-    wins: number;
-    losses: number;
-    pushes: number;
-    totalPicks: number;
-    winRate: number;
-    unitsWonLost: number;
-  };
-  bySport: ResultsSportStat[];
-  recentResults: RecentPickResult[];
-  dataAsOf: string;
-}
-
-export type GetResultsSummaryParams = {
-  period?: 'season' | 'week';
 };
 

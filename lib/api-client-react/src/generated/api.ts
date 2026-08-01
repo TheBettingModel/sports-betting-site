@@ -22,11 +22,9 @@ import type {
 import type {
   GamesTodayResponse,
   GetGamesTodayParams,
-  GetResultsSummaryParams,
   HealthStatus,
   ModelStatsResponse,
-  RefreshResponse,
-  ResultsSummaryResponse
+  RefreshResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -361,65 +359,8 @@ export function useGetModelStats<TData = Awaited<ReturnType<typeof getModelStats
 }
 
 
-// ── Results summary ────────────────────────────────────────────────────────────
 
-export const getGetResultsSummaryUrl = () => `/api/results/summary`;
 
-export const getResultsSummary = async (
-  params?: GetResultsSummaryParams,
-  options?: RequestInit,
-): Promise<ResultsSummaryResponse> => {
-  const query = params?.period ? `?period=${params.period}` : '';
-  return customFetch<ResultsSummaryResponse>(
-    `${getGetResultsSummaryUrl()}${query}`,
-    { ...options, method: 'GET' },
-  );
-};
-
-export const getGetResultsSummaryQueryKey = (params?: GetResultsSummaryParams) =>
-  [`/api/results/summary`, ...(params ? [params] : [])] as const;
-
-export const getGetResultsSummaryQueryOptions = <
-  TData = Awaited<ReturnType<typeof getResultsSummary>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetResultsSummaryParams,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getResultsSummary>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getGetResultsSummaryQueryKey(params);
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getResultsSummary>>> = ({ signal }) =>
-    getResultsSummary(params, { signal, ...requestOptions });
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getResultsSummary>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetResultsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getResultsSummary>>>;
-export type GetResultsSummaryQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get model results summary — overall + by-sport + recent picks
- */
-export function useGetResultsSummary<
-  TData = Awaited<ReturnType<typeof getResultsSummary>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetResultsSummaryParams,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getResultsSummary>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetResultsSummaryQueryOptions(params, options);
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
-  return withQueryKey(query, queryOptions.queryKey);
-}
 
 
 
