@@ -105,10 +105,14 @@ export default function PicksScreen() {
   const lockedCount = filteredGames.filter(g => g.isLocked === true).length;
   const liveGamesCount = data?.liveGamesCount ?? 0;
 
-  // Build list with rating section headers
-  // When showPlaysOnly=true, only include Strong Buy + Buy
+  // Build list with rating section headers.
+  // On the All tab: respect the Plays/All toggle (default: Plays only).
+  // On a specific sport tab: always show every rating — users drilling into a sport
+  // want the full picture, not just qualifying plays.
   const PLAYS_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
-  const activeRatings = showPlaysOnly ? PLAYS_RATINGS : [...RATING_ORDER];
+  const activeRatings = (selectedSport === 'All' && showPlaysOnly)
+    ? PLAYS_RATINGS
+    : [...RATING_ORDER];
 
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
@@ -185,8 +189,8 @@ export default function PicksScreen() {
               </React.Fragment>
             ))}
           </View>
-          {/* Plays / All toggle */}
-          <View style={[styles.togglePill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* Plays / All toggle — only meaningful on the All tab */}
+          {selectedSport === 'All' && <View style={[styles.togglePill, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Pressable
               onPress={() => setShowPlaysOnly(true)}
               style={[styles.toggleOption, showPlaysOnly && { backgroundColor: colors.primary + '22' }]}
