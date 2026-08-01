@@ -45,15 +45,7 @@ function ClassicTabLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{
-          title: 'Today',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="chart.line.uptrend.xyaxis" tintColor={color} size={22} />
-            ) : (
-              <Feather name="trending-up" size={22} color={color} />
-            ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="picks"
