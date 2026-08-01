@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
@@ -430,6 +430,26 @@ export async function refreshAll(): Promise<{
 
     upserted++;
     sports.add(game.sport);
+  }
+
+  // Mark any games that are still "live" in the DB but were NOT returned by
+  // ESPN this cycle as "completed" — ESPN drops finished events from its feed,
+  // so absence from the response means the game ended.
+  const returnedIds = fetchedGames.map((g) => g.espnId);
+  if (returnedIds.length > 0) {
+    await db
+      .update(gamesTable)
+      .set({ status: "completed" })
+      .where(
+        and(
+          eq(gamesTable.gameDate, todayDateStr),
+          eq(gamesTable.status, "live"),
+          notInArray(gamesTable.id, returnedIds),
+        ),
+      );
+  } else {
+    // ESPN returned nothing at all — don't blindly mark everything completed;
+    // this is likely a transient fetch failure. Leave existing statuses alone.
   }
 
   // EMA learning pass (keeps confidenceMultiplier up to date)
