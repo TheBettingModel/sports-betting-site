@@ -60,6 +60,12 @@ export function GameCard({ game }: GameCardProps) {
   const showStarters = sport === 'MLB'
     && (projection.homeStarterName || projection.awayStarterName);
 
+  // ── UFC: use last name (homeTeam.name) instead of abbreviation ──
+  const isUFC = sport === 'UFC';
+  const homeDisplay = isUFC ? homeTeam.name : homeTeam.abbr;
+  const awayDisplay = isUFC ? awayTeam.name : awayTeam.abbr;
+  const pickDisplay = isUFC ? pickTeam.name : pickTeam.abbr;
+
   return (
     <Pressable
       onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
@@ -99,8 +105,8 @@ export function GameCard({ game }: GameCardProps) {
 
           {/* Row 2: pick team + home/away + bet type + current odds */}
           <View style={styles.pickRow}>
-            <Text style={[styles.pickAbbr, { color: colors.foreground }]}>
-              {pickTeam.abbr}
+            <Text style={[styles.pickAbbr, { color: colors.foreground, fontSize: isUFC ? 20 : 26 }]}>
+              {pickDisplay}
             </Text>
             <View style={styles.homeAwayPill}>
               <Text style={styles.homeAwayText}>
@@ -160,11 +166,17 @@ export function GameCard({ game }: GameCardProps) {
         <View style={styles.teamBlock}>
           <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={34} />
           <View style={styles.teamMeta}>
-            <Text style={[
-              styles.teamAbbr,
-              { color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
-            ]}>
-              {homeTeam.abbr}
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.teamAbbr,
+                {
+                  color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground,
+                  fontSize: isUFC ? 13 : 15,
+                },
+              ]}
+            >
+              {homeDisplay}
             </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
           </View>
@@ -178,11 +190,17 @@ export function GameCard({ game }: GameCardProps) {
         {/* Away team */}
         <View style={[styles.teamBlock, styles.teamBlockRight]}>
           <View style={[styles.teamMeta, styles.teamMetaRight]}>
-            <Text style={[
-              styles.teamAbbr,
-              { color: (hasEdge && !pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground },
-            ]}>
-              {awayTeam.abbr}
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.teamAbbr,
+                {
+                  color: (hasEdge && !pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground,
+                  fontSize: isUFC ? 13 : 15,
+                },
+              ]}
+            >
+              {awayDisplay}
             </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
           </View>

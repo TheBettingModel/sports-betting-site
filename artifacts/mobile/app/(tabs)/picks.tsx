@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   Platform,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -52,6 +53,7 @@ export default function PicksScreen() {
   const router = useRouter();
   const { isSubscribed } = useSubscription();
   const { selectedSport } = useSports();
+  const [showPlaysOnly, setShowPlaysOnly] = useState(true);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
@@ -104,10 +106,14 @@ export default function PicksScreen() {
   const liveGamesCount = data?.liveGamesCount ?? 0;
 
   // Build list with rating section headers
+  // When showPlaysOnly=true, only include Strong Buy + Buy
+  const PLAYS_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
+  const activeRatings = showPlaysOnly ? PLAYS_RATINGS : [...RATING_ORDER];
+
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
     let pickIndex = 0;
-    for (const rating of RATING_ORDER) {
+    for (const rating of activeRatings) {
       const group = sortedGames.filter(g => g.projection.valueRating === rating);
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
@@ -118,7 +124,8 @@ export default function PicksScreen() {
       }
     }
     return items;
-  }, [sortedGames, isSubscribed]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedGames, isSubscribed, showPlaysOnly]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -160,22 +167,43 @@ export default function PicksScreen() {
       {/* Sport filter pills */}
       <SportFilter />
 
-      {/* Summary strip — counts for current sport filter */}
+      {/* Summary strip + Plays/All toggle */}
       {!isLoading && sortedGames.length > 0 && (
-        <View style={[styles.summaryStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {RATING_ORDER.map((r, i) => (
-            <React.Fragment key={r}>
-              {i > 0 && <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />}
-              <View style={styles.summaryCell}>
-                <Text style={[styles.summaryVal, { color: RATING_COLORS[r] }]}>
-                  {counts[r] ?? 0}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
-                  {r === 'Strong Buy' ? 'STR BUY' : r.toUpperCase()}
-                </Text>
-              </View>
-            </React.Fragment>
-          ))}
+        <View style={styles.stripRow}>
+          <View style={[styles.summaryStrip, { backgroundColor: colors.card, borderColor: colors.border, flex: 1 }]}>
+            {RATING_ORDER.map((r, i) => (
+              <React.Fragment key={r}>
+                {i > 0 && <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />}
+                <View style={styles.summaryCell}>
+                  <Text style={[styles.summaryVal, { color: RATING_COLORS[r] }]}>
+                    {counts[r] ?? 0}
+                  </Text>
+                  <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+                    {r === 'Strong Buy' ? 'STR BUY' : r.toUpperCase()}
+                  </Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+          {/* Plays / All toggle */}
+          <View style={[styles.togglePill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Pressable
+              onPress={() => setShowPlaysOnly(true)}
+              style={[styles.toggleOption, showPlaysOnly && { backgroundColor: colors.primary + '22' }]}
+            >
+              <Text style={[styles.toggleText, { color: showPlaysOnly ? colors.primary : colors.mutedForeground }]}>
+                PLAYS
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowPlaysOnly(false)}
+              style={[styles.toggleOption, !showPlaysOnly && { backgroundColor: colors.secondary }]}
+            >
+              <Text style={[styles.toggleText, { color: !showPlaysOnly ? colors.foreground : colors.mutedForeground }]}>
+                ALL
+              </Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -292,8 +320,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
   },
   badgeText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  stripRow: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginTop: 4, marginBottom: 4, gap: 8,
+  },
   summaryStrip: {
-    marginHorizontal: 16, marginTop: 4, marginBottom: 4,
     borderRadius: 12, borderWidth: 1,
     flexDirection: 'row', paddingVertical: 14,
   },
@@ -301,6 +332,14 @@ const styles = StyleSheet.create({
   summaryVal: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   summaryLabel: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 },
   stripDivider: { width: 1, marginVertical: 4 },
+  togglePill: {
+    borderRadius: 10, borderWidth: 1,
+    flexDirection: 'column', overflow: 'hidden',
+  },
+  toggleOption: {
+    paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center',
+  },
+  toggleText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   featuredSection: { paddingHorizontal: 16, marginTop: 12 },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   sectionLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.5, textTransform: 'uppercase' },
