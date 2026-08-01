@@ -51,6 +51,32 @@ export interface RefreshResponse {
   sportsRefreshed: string[];
 }
 
+export interface OverallStat {
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+}
+
+export interface SportStat {
+  sport: string;
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  currentStreak: number;
+  currentStreakDir: string;
+}
+
+export interface ResultsSummaryResponse {
+  overall: OverallStat;
+  bySport: SportStat[];
+}
+
 export interface ModelSportStat {
   sport: string;
   accuracyRate: number;
@@ -71,5 +97,9 @@ export interface ModelStatsResponse {
 
 export type GetGamesTodayParams = {
 sport?: string;
+};
+
+export type GetResultsSummaryParams = {
+period?: string;
 };
 

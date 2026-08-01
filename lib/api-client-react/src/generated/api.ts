@@ -22,9 +22,11 @@ import type {
 import type {
   GamesTodayResponse,
   GetGamesTodayParams,
+  GetResultsSummaryParams,
   HealthStatus,
   ModelStatsResponse,
-  RefreshResponse
+  RefreshResponse,
+  ResultsSummaryResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -286,6 +288,90 @@ export const useRefreshGames = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getRefreshGamesMutationOptions(options));
     }
+
+export const getGetResultsSummaryUrl = (params?: GetResultsSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/results/summary?${stringifiedParams}` : `/api/results/summary`
+}
+
+/**
+ * @summary Get overall and per-sport model performance summary
+ */
+export const getResultsSummary = async (params?: GetResultsSummaryParams, options?: RequestInit): Promise<ResultsSummaryResponse> => {
+
+  return customFetch<ResultsSummaryResponse>(getGetResultsSummaryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetResultsSummaryQueryKey = (params?: GetResultsSummaryParams,) => {
+    return [
+    `/api/results/summary`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetResultsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getResultsSummary>>, TError = ErrorType<unknown>>(params?: GetResultsSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getResultsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetResultsSummaryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getResultsSummary>>> = ({ signal }) => getResultsSummary(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getResultsSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetResultsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getResultsSummary>>>
+export type GetResultsSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get overall and per-sport model performance summary
+ */
+
+export function useGetResultsSummary<TData = Awaited<ReturnType<typeof getResultsSummary>>, TError = ErrorType<unknown>>(
+ params?: GetResultsSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getResultsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetResultsSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetModelStatsUrl = () => {
 

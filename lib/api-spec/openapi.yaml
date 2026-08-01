@@ -61,6 +61,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/RefreshResponse"
 
+  /results/summary:
+    get:
+      operationId: getResultsSummary
+      tags: [games]
+      summary: Get overall and per-sport model performance summary
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Results summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsSummaryResponse"
+
   /model/stats:
     get:
       operationId: getModelStats
@@ -201,6 +220,57 @@ components:
         - message
         - gamesUpdated
         - sportsRefreshed
+
+    OverallStat:
+      type: object
+      properties:
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+      required: [wins, losses, pushes, totalPicks, winRate, unitsWonLost]
+
+    SportStat:
+      type: object
+      properties:
+        sport:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        currentStreak:
+          type: integer
+        currentStreakDir:
+          type: string
+      required: [sport, wins, losses, pushes, totalPicks, winRate, unitsWonLost, currentStreak, currentStreakDir]
+
+    ResultsSummaryResponse:
+      type: object
+      properties:
+        overall:
+          $ref: "#/components/schemas/OverallStat"
+        bySport:
+          type: array
+          items:
+            $ref: "#/components/schemas/SportStat"
+      required: [overall, bySport]
 
     ModelSportStat:
       type: object

@@ -70,6 +70,36 @@ export const RefreshGamesResponse = zod.object({
 
 
 /**
+ * @summary Get overall and per-sport model performance summary
+ */
+export const GetResultsSummaryQueryParams = zod.object({
+  "period": zod.coerce.string().optional()
+})
+
+export const GetResultsSummaryResponse = zod.object({
+  "overall": zod.object({
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number()
+}),
+  "bySport": zod.array(zod.object({
+  "sport": zod.string(),
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number(),
+  "currentStreak": zod.number(),
+  "currentStreakDir": zod.string()
+}))
+})
+
+
+/**
  * @summary Get model learning accuracy stats per sport
  */
 export const GetModelStatsResponse = zod.object({
