@@ -207,7 +207,7 @@ export default function PicksScreen() {
                 ALL
               </Text>
             </Pressable>
-          </View>
+          </View>}
         </View>
       )}
 
