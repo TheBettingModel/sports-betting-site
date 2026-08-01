@@ -108,11 +108,13 @@ export function GameCard({ game }: GameCardProps) {
             <Text style={[styles.pickAbbr, { color: colors.foreground, fontSize: isUFC ? 20 : 26 }]}>
               {pickDisplay}
             </Text>
-            <View style={styles.homeAwayPill}>
-              <Text style={styles.homeAwayText}>
-                {pickIsHome ? 'HOME' : 'AWAY'}
-              </Text>
-            </View>
+            {!isUFC && (
+              <View style={styles.homeAwayPill}>
+                <Text style={styles.homeAwayText}>
+                  {pickIsHome ? 'HOME' : 'AWAY'}
+                </Text>
+              </View>
+            )}
             <Text style={[styles.betType, { color: colors.mutedForeground }]}>
               Moneyline
             </Text>

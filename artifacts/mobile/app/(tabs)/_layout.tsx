@@ -9,7 +9,7 @@ import { useAuth, useUser } from '@clerk/expo';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import Purchases from 'react-native-purchases';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const NOTIF_PROMPT_KEY = '@tbm/notif_prompt_shown';
 
@@ -93,6 +93,7 @@ function ClassicTabLayout() {
 
 export default function TabLayout() {
   const { isSignedIn, getToken, userId } = useAuth();
+  const { enableNotifications } = usePushNotifications();
 
   // Wire Clerk bearer token into all API client requests (mobile has no cookie jar)
   useEffect(() => {
@@ -101,7 +102,8 @@ export default function TabLayout() {
   }, [getToken]);
 
   // Ask for push notification permission once, shortly after first sign-in.
-  // Does nothing on web or if permission was already requested before.
+  // Runs the full enableNotifications flow: OS prompt + Expo token + server registration.
+  // Does nothing on web or if already prompted before.
   useEffect(() => {
     if (!isSignedIn || Platform.OS === 'web') return;
     const timer = setTimeout(async () => {
@@ -109,13 +111,13 @@ export default function TabLayout() {
         const already = await AsyncStorage.getItem(NOTIF_PROMPT_KEY);
         if (already) return;
         await AsyncStorage.setItem(NOTIF_PROMPT_KEY, 'true');
-        await Notifications.requestPermissionsAsync();
+        await enableNotifications();
       } catch {
         // non-fatal — user can still enable later in Profile
       }
-    }, 3000); // 3-second delay so the app feels settled before prompting
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [isSignedIn]);
+  }, [isSignedIn, enableNotifications]);
 
   // Identify signed-in user with RevenueCat so purchases are linked to their account
   useEffect(() => {
