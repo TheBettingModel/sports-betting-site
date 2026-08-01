@@ -102,6 +102,8 @@ interface EspnEvent {
   name: string;
   status: EspnStatus;
   competitions: Array<{
+    id?: string;         // present for UFC bouts; used as game ID
+    date?: string;       // individual bout start time (UFC)
     competitors: EspnCompetitor[];
     odds?: EspnOdds[];
     neutralSite?: boolean;
@@ -309,54 +311,68 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
     const games: FetchedGame[] = [];
 
     for (const event of events) {
-      const competition = event.competitions[0];
-      if (!competition) continue;
+      // UFC returns one event (the card) with many competitions (one per bout).
+      // All other sports return one event per game with a single competition.
+      const competitionsToProcess = sport === "UFC"
+        ? event.competitions
+        : (event.competitions[0] ? [event.competitions[0]] : []);
 
-      const home = competition.competitors.find((c) => c.homeAway === "home");
-      const away = competition.competitors.find((c) => c.homeAway === "away");
-      if (!home || !away) continue;
+      for (const competition of competitionsToProcess) {
+        // UFC competitors have homeAway: null — fall back to array position.
+        const home = competition.competitors.find((c) => c.homeAway === "home")
+          ?? competition.competitors[0];
+        const away = competition.competitors.find((c) => c.homeAway === "away")
+          ?? competition.competitors[1];
+        if (!home || !away) continue;
 
-      const eventDate = new Date(event.date);
-      const gameDate = toEasternDate(eventDate);
+        // UFC bouts each have their own date; other sports use the event date.
+        const startDate = new Date(competition.date ?? event.date);
+        const gameDate = toEasternDate(startDate);
 
-      const homeAbbr = getAbbr(home);
-      const { homeOdds, awayOdds, drawOdds, overUnder } = extractOdds(competition, homeAbbr);
+        // UFC uses competition.id (bout ID) so each fight is a distinct row.
+        const espnId = sport === "UFC"
+          ? `${sport}-${competition.id ?? event.id}`
+          : `${sport}-${event.id}`;
 
-      games.push({
-        espnId: `${sport}-${event.id}`,
-        sport,
-        league,
+        const homeAbbr = getAbbr(home);
+        const { homeOdds, awayOdds, drawOdds, overUnder } = extractOdds(competition, homeAbbr);
 
-        homeTeamId: home.team?.id,
-        awayTeamId: away.team?.id,
-        homeTeamLogo: home.team?.logos?.[0]?.href,
-        awayTeamLogo: away.team?.logos?.[0]?.href,
-        homeTeamAbbr: homeAbbr,
-        homeTeamName: getDisplayName(home),
-        awayTeamAbbr: getAbbr(away),
-        awayTeamName: getDisplayName(away),
+        games.push({
+          espnId,
+          sport,
+          league,
 
-        homeTeamRecord: getOverallRecord(home),
-        awayTeamRecord: getOverallRecord(away),
+          homeTeamId: home.team?.id,
+          awayTeamId: away.team?.id,
+          homeTeamLogo: home.team?.logos?.[0]?.href,
+          awayTeamLogo: away.team?.logos?.[0]?.href,
+          homeTeamAbbr: homeAbbr,
+          homeTeamName: getDisplayName(home),
+          awayTeamAbbr: getAbbr(away),
+          awayTeamName: getDisplayName(away),
 
-        homeHomeRecord: getHomeRecord(home),
-        homeRoadRecord: getRoadRecord(home),
-        awayHomeRecord: getHomeRecord(away),
-        awayRoadRecord: getRoadRecord(away),
+          homeTeamRecord: getOverallRecord(home),
+          awayTeamRecord: getOverallRecord(away),
 
-        gameTime: formatGameTime(event.date),
-        gameDate,
-        status: getStatus(event),
+          homeHomeRecord: getHomeRecord(home),
+          homeRoadRecord: getRoadRecord(home),
+          awayHomeRecord: getHomeRecord(away),
+          awayRoadRecord: getRoadRecord(away),
 
-        homeScore: home.score !== undefined ? parseInt(home.score, 10) : undefined,
-        awayScore: away.score !== undefined ? parseInt(away.score, 10) : undefined,
+          gameTime: formatGameTime(competition.date ?? event.date),
+          gameDate,
+          status: getStatus(event),
 
-        // Real Vegas odds — undefined when ESPN doesn't provide them
-        vegasHomeOdds: homeOdds ?? undefined,
-        vegasAwayOdds: awayOdds ?? undefined,
-        vegasDrawOdds: drawOdds ?? undefined,
-        vegasOverUnder: overUnder ?? undefined,
-      });
+          homeScore: home.score !== undefined ? parseInt(home.score, 10) : undefined,
+          awayScore: away.score !== undefined ? parseInt(away.score, 10) : undefined,
+
+          // Real Vegas odds — undefined when ESPN doesn't provide them
+          vegasHomeOdds: homeOdds ?? undefined,
+          vegasAwayOdds: awayOdds ?? undefined,
+          vegasDrawOdds: drawOdds ?? undefined,
+          vegasOverUnder: overUnder ?? undefined,
+        });
+      }
     }
 
     logger.info({ sportKey, sport, count: games.length }, "ESPN games fetched");
@@ -397,46 +413,54 @@ export async function fetchSportGamesByDate(
     const games: FetchedGame[] = [];
 
     for (const event of events) {
-      const competition = event.competitions[0];
-      if (!competition) continue;
+      const competitionsToProcess = sport === "UFC"
+        ? event.competitions
+        : (event.competitions[0] ? [event.competitions[0]] : []);
 
-      const home = competition.competitors.find((c) => c.homeAway === "home");
-      const away = competition.competitors.find((c) => c.homeAway === "away");
-      if (!home || !away) continue;
+      for (const competition of competitionsToProcess) {
+        const home = competition.competitors.find((c) => c.homeAway === "home")
+          ?? competition.competitors[0];
+        const away = competition.competitors.find((c) => c.homeAway === "away")
+          ?? competition.competitors[1];
+        if (!home || !away) continue;
 
-      const eventDate = new Date(event.date);
-      const gameDate = toEasternDate(eventDate);
-      const homeAbbr = getAbbr(home);
-      const { homeOdds, awayOdds, drawOdds, overUnder } = extractOdds(competition, homeAbbr);
+        const startDate = new Date(competition.date ?? event.date);
+        const gameDate = toEasternDate(startDate);
+        const espnId = sport === "UFC"
+          ? `${sport}-${competition.id ?? event.id}`
+          : `${sport}-${event.id}`;
+        const homeAbbr = getAbbr(home);
+        const { homeOdds, awayOdds, drawOdds, overUnder } = extractOdds(competition, homeAbbr);
 
-      games.push({
-        espnId: `${sport}-${event.id}`,
-        sport,
-        league,
-        homeTeamId:       home.team?.id,
-        awayTeamId:       away.team?.id,
-        homeTeamLogo:     home.team?.logos?.[0]?.href,
-        awayTeamLogo:     away.team?.logos?.[0]?.href,
-        homeTeamAbbr:     homeAbbr,
-        homeTeamName:     getDisplayName(home),
-        awayTeamAbbr:     getAbbr(away),
-        awayTeamName:     getDisplayName(away),
-        homeTeamRecord:   getOverallRecord(home),
-        awayTeamRecord:   getOverallRecord(away),
-        homeHomeRecord:   getHomeRecord(home),
-        homeRoadRecord:   getRoadRecord(home),
-        awayHomeRecord:   getHomeRecord(away),
-        awayRoadRecord:   getRoadRecord(away),
-        gameTime:         formatGameTime(event.date),
-        gameDate,
-        status:           getStatus(event),
-        homeScore:        home.score !== undefined ? parseInt(home.score, 10) : undefined,
-        awayScore:        away.score !== undefined ? parseInt(away.score, 10) : undefined,
-        vegasHomeOdds:    homeOdds ?? undefined,
-        vegasAwayOdds:    awayOdds ?? undefined,
-        vegasDrawOdds:    drawOdds ?? undefined,
-        vegasOverUnder:   overUnder ?? undefined,
-      });
+        games.push({
+          espnId,
+          sport,
+          league,
+          homeTeamId:       home.team?.id,
+          awayTeamId:       away.team?.id,
+          homeTeamLogo:     home.team?.logos?.[0]?.href,
+          awayTeamLogo:     away.team?.logos?.[0]?.href,
+          homeTeamAbbr:     homeAbbr,
+          homeTeamName:     getDisplayName(home),
+          awayTeamAbbr:     getAbbr(away),
+          awayTeamName:     getDisplayName(away),
+          homeTeamRecord:   getOverallRecord(home),
+          awayTeamRecord:   getOverallRecord(away),
+          homeHomeRecord:   getHomeRecord(home),
+          homeRoadRecord:   getRoadRecord(home),
+          awayHomeRecord:   getHomeRecord(away),
+          awayRoadRecord:   getRoadRecord(away),
+          gameTime:         formatGameTime(competition.date ?? event.date),
+          gameDate,
+          status:           getStatus(event),
+          homeScore:        home.score !== undefined ? parseInt(home.score, 10) : undefined,
+          awayScore:        away.score !== undefined ? parseInt(away.score, 10) : undefined,
+          vegasHomeOdds:    homeOdds ?? undefined,
+          vegasAwayOdds:    awayOdds ?? undefined,
+          vegasDrawOdds:    drawOdds ?? undefined,
+          vegasOverUnder:   overUnder ?? undefined,
+        });
+      }
     }
 
     logger.info({ sportKey, yyyymmdd, count: games.length }, "ESPN historical games fetched");
