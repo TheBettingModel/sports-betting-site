@@ -43,6 +43,36 @@ const SPORT_FOR_KEY: Record<string, string> = {
   Soccer_UCL:       "Soccer",
 };
 
+/**
+ * Maps sportKey → ESPN CDN logo slug.
+ * URL pattern: https://a.espncdn.com/i/teamlogos/{slug}/500/{teamId}.png
+ * The scoreboard endpoint never populates team.logos[], so we construct
+ * the URL directly from the team ID that IS reliably present.
+ */
+const ESPN_CDN_SLUG: Record<string, string> = {
+  NFL:              "nfl",
+  NCAAF:            "college-football",
+  NBA:              "nba",
+  NCAAB:            "mens-college-basketball",
+  MLB:              "mlb",
+  NHL:              "nhl",
+  WNBA:             "wnba",
+  Soccer:           "soccer",
+  Soccer_EPL:       "soccer",
+  Soccer_LaLiga:    "soccer",
+  Soccer_Bundesliga:"soccer",
+  Soccer_SerieA:    "soccer",
+  Soccer_Ligue1:    "soccer",
+  Soccer_UCL:       "soccer",
+  // UFC uses fighter headshots, not team logos — omit intentionally
+};
+
+function espnLogoUrl(sportKey: string, teamId?: string): string | undefined {
+  const slug = ESPN_CDN_SLUG[sportKey];
+  if (!slug || !teamId) return undefined;
+  return `https://a.espncdn.com/i/teamlogos/${slug}/500/${teamId}.png`;
+}
+
 /** Human-readable league labels. */
 const LEAGUE_LABEL: Record<string, string> = {
   Soccer:           "MLS",
@@ -344,8 +374,8 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 
           homeTeamId: home.team?.id,
           awayTeamId: away.team?.id,
-          homeTeamLogo: home.team?.logos?.[0]?.href,
-          awayTeamLogo: away.team?.logos?.[0]?.href,
+          homeTeamLogo: espnLogoUrl(sportKey, home.team?.id),
+          awayTeamLogo: espnLogoUrl(sportKey, away.team?.id),
           homeTeamAbbr: homeAbbr,
           homeTeamName: getDisplayName(home),
           awayTeamAbbr: getAbbr(away),
@@ -438,8 +468,8 @@ export async function fetchSportGamesByDate(
           league,
           homeTeamId:       home.team?.id,
           awayTeamId:       away.team?.id,
-          homeTeamLogo:     home.team?.logos?.[0]?.href,
-          awayTeamLogo:     away.team?.logos?.[0]?.href,
+          homeTeamLogo:     espnLogoUrl(sportKey, home.team?.id),
+          awayTeamLogo:     espnLogoUrl(sportKey, away.team?.id),
           homeTeamAbbr:     homeAbbr,
           homeTeamName:     getDisplayName(home),
           awayTeamAbbr:     getAbbr(away),
