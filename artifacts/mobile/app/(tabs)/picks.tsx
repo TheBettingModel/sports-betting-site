@@ -103,6 +103,13 @@ export default function PicksScreen() {
   }, [allGames]);
 
   const lockedCount = filteredGames.filter(g => g.isLocked === true).length;
+
+  // Per-sport game counts — drives the count badge on each sport pill
+  const sportGameCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const g of allGames) c[g.sport] = (c[g.sport] ?? 0) + 1;
+    return c;
+  }, [allGames]);
   const liveGamesCount = data?.liveGamesCount ?? 0;
 
   // Build list with rating section headers.
@@ -169,7 +176,7 @@ export default function PicksScreen() {
       )}
 
       {/* Sport filter pills */}
-      <SportFilter />
+      <SportFilter gameCounts={sportGameCounts} />
 
       {/* Summary strip + Plays/All toggle */}
       {!isLoading && sortedGames.length > 0 && (

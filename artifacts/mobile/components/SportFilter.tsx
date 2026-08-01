@@ -1,13 +1,23 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useSports, SPORTS } from '@/context/SportsContext';
 
-export function SportFilter() {
+interface SportFilterProps {
+  /** Total game count per sport key. Used to show a count badge and hide sports with 0 games. */
+  gameCounts?: Record<string, number>;
+}
+
+export function SportFilter({ gameCounts }: SportFilterProps) {
   const colors = useColors();
   const { selectedSport, setSelectedSport } = useSports();
-  const allSports = ['All', ...SPORTS];
+
+  // Only show sports that have games today; always show 'All'
+  const availableSports = gameCounts
+    ? SPORTS.filter(s => (gameCounts[s] ?? 0) > 0)
+    : SPORTS;
+  const allSports = ['All', ...availableSports];
 
   return (
     <ScrollView
@@ -17,6 +27,7 @@ export function SportFilter() {
     >
       {allSports.map(sport => {
         const active = selectedSport === sport;
+        const count = sport !== 'All' && gameCounts ? gameCounts[sport] : undefined;
         return (
           <Pressable
             key={sport}
@@ -40,6 +51,19 @@ export function SportFilter() {
             >
               {sport}
             </Text>
+            {count !== undefined && (
+              <View style={[
+                styles.countBadge,
+                { backgroundColor: active ? colors.primaryForeground + '30' : colors.border },
+              ]}>
+                <Text style={[
+                  styles.countText,
+                  { color: active ? colors.primaryForeground : colors.mutedForeground },
+                ]}>
+                  {count}
+                </Text>
+              </View>
+            )}
           </Pressable>
         );
       })}
@@ -54,6 +78,17 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   chipText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  countBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  countText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
 });
