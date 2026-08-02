@@ -4,9 +4,9 @@ export const modules: ModuleMap = {
   "./components/mockups/card-redesign/PickFirst.tsx": () => import("../components/mockups/card-redesign/PickFirst.tsx"),
   "./components/mockups/card-redesign/Signal.tsx": () => import("../components/mockups/card-redesign/Signal.tsx"),
   "./components/mockups/card-redesign/Verdict.tsx": () => import("../components/mockups/card-redesign/Verdict.tsx"),
-  "./components/mockups/results-stats/ResultsStats.tsx": () => import("../components/mockups/results-stats/ResultsStats.tsx"),
   "./components/mockups/tbm-picks/Contender.tsx": () => import("../components/mockups/tbm-picks/Contender.tsx"),
   "./components/mockups/tbm-picks/Premium.tsx": () => import("../components/mockups/tbm-picks/Premium.tsx"),
   "./components/mockups/tbm-picks/Sharp.tsx": () => import("../components/mockups/tbm-picks/Sharp.tsx"),
-  "./components/mockups/tbm-picks/Signal.tsx": () => import("../components/mockups/tbm-picks/Signal.tsx")
+  "./components/mockups/tbm-picks/Signal.tsx": () => import("../components/mockups/tbm-picks/Signal.tsx"),
+  "./components/mockups/results-stats/ResultsStats.tsx": () => import("../components/mockups/results-stats/ResultsStats.tsx")
 };
