@@ -142,7 +142,8 @@ export default function RootLayout() {
         {/* ClerkLoading renders while the Clerk SDK initialises — prevents a
             blank black screen on cold launch while auth state is resolving. */}
         <ClerkLoading>
-          <View style={{ flex: 1, backgroundColor: '#000000' }} />
+          {/* Solid black placeholder while Clerk initialises — prevents white flash */}
+          <></>
         </ClerkLoading>
         <ClerkLoaded>
           <SafeAreaProvider>
