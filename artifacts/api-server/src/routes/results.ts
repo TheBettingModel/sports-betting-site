@@ -60,13 +60,17 @@ router.get(
     try {
       const period = req.query.period === "week" ? "week" : "season";
 
-      // Cut-off date: last 7 days for "week", Jan 1 of this year for "season"
+      // Cut-off date: most recent Monday (ET) for "week", Jan 1 of this year for "season"
       const now = new Date();
       let cutoffDate: string;
       if (period === "week") {
-        const d = new Date(now);
-        d.setDate(d.getDate() - 7);
-        cutoffDate = d.toISOString().split("T")[0];
+        // Find the most recent Monday in US Eastern time
+        const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        const dayOfWeek = etNow.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // days since last Monday
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - daysToMonday);
+        cutoffDate = monday.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
       } else {
         cutoffDate = `${now.getFullYear()}-01-01`;
       }
