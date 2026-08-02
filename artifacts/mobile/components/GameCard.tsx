@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   pickLabel: {
     fontSize: 9,
     fontFamily: 'Inter_700Bold',
-    color: '#6B7280',
+    color: '#84CC16',
     letterSpacing: 1.4,
   },
   pickBandRight: {
