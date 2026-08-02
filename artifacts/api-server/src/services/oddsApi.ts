@@ -72,6 +72,8 @@ export interface GameOdds {
   total?: number;
   /** All per-bookmaker H2H lines — used to find the best available price */
   bookmakerOdds: BookmakerLine[];
+  /** ISO 8601 game start time from The Odds API — used for doubleheader matching */
+  commenceTime: string;
 }
 
 interface OddsApiOutcome {
@@ -136,7 +138,9 @@ function matchKey(homeTeam: string, awayTeam: string): string {
 // ── In-memory cache ───────────────────────────────────────────────────────────
 
 interface CacheEntry {
-  games: Map<string, GameOdds>;
+  /** Map keyed by "{normalizedHome}|{normalizedAway}" — value is an array to
+   *  support doubleheaders where the same teams play twice on the same day. */
+  games: Map<string, GameOdds[]>;
   fetchedAt: number;
 }
 
@@ -150,7 +154,7 @@ const PUBLIC_BOOKS = new Set([
   "unibet_us", "barstool", "wynnbet", "betus", "mybookieag",
 ]);
 
-async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOdds>> {
+async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOdds[]>> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) throw new Error("ODDS_API_KEY secret is not set");
 
@@ -265,7 +269,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       }
     }
 
-    result.set(key, {
+    const entry: GameOdds = {
       consensusHomeOdds,
       consensusAwayOdds,
       consensusDrawOdds,
@@ -275,7 +279,15 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       spread,
       total,
       bookmakerOdds,
-    });
+      commenceTime: g.commence_time,
+    };
+    // Support doubleheaders: append to the array rather than overwriting.
+    const existing = result.get(key);
+    if (existing) {
+      existing.push(entry);
+    } else {
+      result.set(key, [entry]);
+    }
   }
 
   logger.info(
@@ -295,7 +307,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
 export async function fetchOddsForSport(
   sport: string,
   league?: string | null,
-): Promise<Map<string, GameOdds>> {
+): Promise<Map<string, GameOdds[]>> {
   const oddsApiKey = resolveOddsApiKey(sport, league);
   if (!oddsApiKey) return new Map(); // sport not supported (UFC, etc.)
 
@@ -366,6 +378,8 @@ export function displayBookName(key: string): string {
 
 /**
  * Convenience: look up a specific game by home + away team name.
+ * Pass commenceTimeISO (ESPN game start time) so doubleheaders are matched
+ * by proximity instead of always returning the first entry.
  * Returns null when no match is found (game not yet listed, or sport unsupported).
  */
 export async function getOddsForGame(
@@ -373,8 +387,20 @@ export async function getOddsForGame(
   league: string | null | undefined,
   homeTeamName: string,
   awayTeamName: string,
+  commenceTimeISO?: string,
 ): Promise<GameOdds | null> {
   const gamesMap = await fetchOddsForSport(sport, league);
   const key = matchKey(homeTeamName, awayTeamName);
-  return gamesMap.get(key) ?? null;
+  const entries = gamesMap.get(key);
+  if (!entries || entries.length === 0) return null;
+  if (entries.length === 1 || !commenceTimeISO) return entries[0]!;
+
+  // Multiple entries (doubleheader): pick the one whose commence_time is
+  // closest to the ESPN game time.
+  const espnMs = new Date(commenceTimeISO).getTime();
+  return entries.reduce((best, cur) => {
+    const bestDiff = Math.abs(new Date(best.commenceTime).getTime() - espnMs);
+    const curDiff  = Math.abs(new Date(cur.commenceTime).getTime() - espnMs);
+    return curDiff < bestDiff ? cur : best;
+  });
 }

@@ -84,6 +84,8 @@ export function mapApiGame(g: GameProjection): Game {
     },
     gameTime: g.gameTime,
     status: (g.status ?? 'upcoming') as Game['status'],
+    homeScore: g.homeScore ?? undefined,
+    awayScore: g.awayScore ?? undefined,
     projection: {
       homeWinPct: g.homeWinPct,
       confidence: g.confidence as 'High' | 'Medium' | 'Low',

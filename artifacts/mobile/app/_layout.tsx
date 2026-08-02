@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
+import { ClerkProvider, ClerkLoaded, ClerkLoading } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -139,6 +139,11 @@ export default function RootLayout() {
         tokenCache={tokenCache}
         proxyUrl={proxyUrl}
       >
+        {/* ClerkLoading renders while the Clerk SDK initialises — prevents a
+            blank black screen on cold launch while auth state is resolving. */}
+        <ClerkLoading>
+          <View style={{ flex: 1, backgroundColor: '#000000' }} />
+        </ClerkLoading>
         <ClerkLoaded>
           <SafeAreaProvider>
             <ErrorBoundary>

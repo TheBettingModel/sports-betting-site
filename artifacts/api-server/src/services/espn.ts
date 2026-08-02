@@ -173,6 +173,8 @@ export interface FetchedGame {
 
   gameTime: string;
   gameDate: string;         // YYYY-MM-DD (Eastern)
+  /** ISO 8601 game start time — preserved for doubleheader odds matching */
+  commenceTimeISO: string;
   status: "upcoming" | "live" | "final";
   homeScore?: number;
   awayScore?: number;
@@ -390,6 +392,7 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
           awayRoadRecord: getRoadRecord(away),
 
           gameTime: formatGameTime(competition.date ?? event.date),
+          commenceTimeISO: competition.date ?? event.date,
           gameDate,
           status: getStatus(event),
 
@@ -481,6 +484,7 @@ export async function fetchSportGamesByDate(
           awayHomeRecord:   getHomeRecord(away),
           awayRoadRecord:   getRoadRecord(away),
           gameTime:         formatGameTime(competition.date ?? event.date),
+          commenceTimeISO:  competition.date ?? event.date,
           gameDate,
           status:           getStatus(event),
           homeScore:        home.score !== undefined ? parseInt(home.score, 10) : undefined,

@@ -21,7 +21,10 @@ export interface Game {
   homeTeam: Team;
   awayTeam: Team;
   gameTime: string;
-  status: 'upcoming' | 'live' | 'final';
+  status: 'upcoming' | 'live' | 'final' | 'completed';
+  /** Final scores — only present when status is 'final' or 'completed' */
+  homeScore?: number;
+  awayScore?: number;
   /** True when the server has gated this game's premium data (non-subscriber). */
   isLocked?: boolean;
   /**

@@ -33,6 +33,8 @@ interface GameCardProps {
 export function GameCard({ game }: GameCardProps) {
   const colors = useColors();
   const { homeTeam, awayTeam, gameTime, sport, projection, vegasLine } = game;
+  const isFinal = game.status === 'final' || game.status === 'completed';
+  const hasScores = isFinal && game.homeScore != null && game.awayScore != null;
   const sportColor = getSportColor(sport);
 
   // ── Pick identity ──────────────────────────────────────────────
@@ -151,13 +153,29 @@ export function GameCard({ game }: GameCardProps) {
       )}
 
       {/* ══════════════════════════════════════════════
+          FINAL SCORE — shown only for completed games
+         ══════════════════════════════════════════════ */}
+      {hasScores && (
+        <View style={[styles.finalScoreRow, { backgroundColor: '#0a0a0a', borderBottomColor: '#1a1a1a' }]}>
+          <Text style={[styles.finalLabel, { color: '#6B7280' }]}>FINAL</Text>
+          <Text style={[styles.finalScore, { color: colors.foreground }]}>
+            {game.homeScore}
+          </Text>
+          <Text style={[styles.finalSep, { color: '#4B5563' }]}>–</Text>
+          <Text style={[styles.finalScore, { color: colors.foreground }]}>
+            {game.awayScore}
+          </Text>
+        </View>
+      )}
+
+      {/* ══════════════════════════════════════════════
           MATCHUP — sport/time header + logos row
          ══════════════════════════════════════════════ */}
 
       {/* Sport + time — own line so logos row has full width */}
       <View style={styles.matchupMeta}>
         <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
-          {sport}  ·  {gameTime}
+          {sport}  ·  {isFinal ? 'FINAL' : gameTime}
         </Text>
       </View>
 
@@ -299,6 +317,31 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'ios' ? { shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } } : { elevation: 6 }),
     overflow: 'hidden',
     gap: 0,
+  },
+
+  // ── Final score ───────────────────────────────────────────────
+  finalScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  finalLabel: {
+    fontSize: 9,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1.2,
+    marginRight: 4,
+  },
+  finalScore: {
+    fontSize: 22,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.5,
+  },
+  finalSep: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
   },
 
   // ── Pick band ─────────────────────────────────────────────────

@@ -195,6 +195,7 @@ export async function refreshAll(): Promise<{
       game.league ?? null,
       game.homeTeamName,
       game.awayTeamName,
+      game.commenceTimeISO,
     );
 
     // ── Phase 2b: MLB probable starters (4-hour cache) ────────────────────────
@@ -370,9 +371,11 @@ export async function refreshAll(): Promise<{
           edge: proj.edge,
           vegasSpread: proj.vegasSpread,
           vegasTotal: proj.vegasTotal,
-          vegasHomeOdds: proj.vegasHomeOdds,
-          vegasAwayOdds: proj.vegasAwayOdds,
-          vegasDrawOdds: proj.vegasDrawOdds,
+          // Preserve existing odds when the latest refresh returns null (e.g. Soccer
+          // game just appeared, Odds API cache hasn't refreshed yet, or fetch failed).
+          vegasHomeOdds: sql`COALESCE(EXCLUDED.vegas_home_odds, ${gamesTable.vegasHomeOdds})`,
+          vegasAwayOdds: sql`COALESCE(EXCLUDED.vegas_away_odds, ${gamesTable.vegasAwayOdds})`,
+          vegasDrawOdds: sql`COALESCE(EXCLUDED.vegas_draw_odds, ${gamesTable.vegasDrawOdds})`,
           // Phase 1
           confidenceNum: proj.confidenceNum,
           units: proj.units,
@@ -439,7 +442,7 @@ export async function refreshAll(): Promise<{
   if (returnedIds.length > 0) {
     await db
       .update(gamesTable)
-      .set({ status: "completed" })
+      .set({ status: "final" })
       .where(
         and(
           eq(gamesTable.gameDate, todayDateStr),
