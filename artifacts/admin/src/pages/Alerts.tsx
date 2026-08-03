@@ -34,16 +34,34 @@ function StatusBadge({ resolved }: { resolved: boolean }) {
   );
 }
 
+/** Shows who/what resolved an alert with a distinct badge + timestamp. */
 function ResolvedByCell({ resolvedAt, resolvedBy }: { resolvedAt?: string | null; resolvedBy?: string | null }) {
   if (!resolvedAt) return <span className="text-zinc-600">—</span>;
   const isAuto = resolvedBy === "scheduler:auto";
-  const label = isAuto ? "Auto (scheduler)" : resolvedBy && resolvedBy !== "admin" ? resolvedBy : "Admin";
+  const isSnooze = resolvedBy?.startsWith("snooze:");
+  const label = isAuto
+    ? "Auto (scheduler)"
+    : isSnooze
+    ? "Snoozed"
+    : resolvedBy && resolvedBy !== "admin"
+    ? resolvedBy
+    : "Admin";
   return (
     <div className="flex flex-col gap-1">
       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium w-fit ${
-        isAuto ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+        isAuto
+          ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+          : isSnooze
+          ? "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20"
+          : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
       }`}>
-        {isAuto ? <Bot className="w-3 h-3 shrink-0" /> : <User className="w-3 h-3 shrink-0" />}
+        {isAuto ? (
+          <Bot className="w-3 h-3 shrink-0" />
+        ) : isSnooze ? (
+          <BellOff className="w-3 h-3 shrink-0" />
+        ) : (
+          <User className="w-3 h-3 shrink-0" />
+        )}
         {label}
       </span>
       <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">

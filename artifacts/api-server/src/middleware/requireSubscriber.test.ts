@@ -11,24 +11,25 @@
  *     for tokenRejected)
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, type Mock } from "vitest";
 import express, { type Application, type Request, type Response } from "express";
 import request from "supertest";
 
 // ── Hoisted mock state ────────────────────────────────────────────────────────
 
-const { mockJwtVerify, mockCreateRemoteJWKSet, mockDbSelect } = vi.hoisted(() => {
+const { mockJwtVerify, mockCreateRemoteJWKSet, mockDbSelect, mockFetch } = vi.hoisted(() => {
   // Provide a valid-format Clerk publishable key so buildClerkJwksUrl() returns
   // a non-null URL and the JWKS path is exercised in tests.
-  // Format: pk_test_<base64(domain + "$")>
-  // base64("clerk.test.example.com$") = "Y2xlcmsubGVzdC5leGFtcGxlLmNvbSQ="
-  const fakeB64 = Buffer.from("clerk.test.example.com$").toString("base64");
+  // "test.clerk.accounts.dev$" contains ".clerk.accounts." so the middleware
+  // won't fall back to the hardcoded FALLBACK_JWKS_URL.
+  const fakeB64 = Buffer.from("test.clerk.accounts.dev$").toString("base64");
   process.env["CLERK_PUBLISHABLE_KEY"] = `pk_test_${fakeB64}`;
 
   return {
     mockJwtVerify: vi.fn(),
-    mockCreateRemoteJWKSet: vi.fn(),
+    mockCreateRemoteJWKSet: vi.fn().mockReturnValue({}), // truthy JWKS key set
     mockDbSelect: vi.fn(),
+    mockFetch: vi.fn(),
   };
 });
 
@@ -37,6 +38,7 @@ const { mockJwtVerify, mockCreateRemoteJWKSet, mockDbSelect } = vi.hoisted(() =>
 vi.mock("jose", () => ({
   jwtVerify: mockJwtVerify,
   createRemoteJWKSet: mockCreateRemoteJWKSet,
+  createLocalJWKSet: mockCreateRemoteJWKSet,
 }));
 
 vi.mock("@workspace/db", () => ({
@@ -56,7 +58,7 @@ vi.mock("../lib/logger", () => ({
 
 // ── Import under test (after mocks) ──────────────────────────────────────────
 
-import { resolveSubscriberStatus, rejectInvalidToken } from "./requireSubscriber";
+import { resolveSubscriberStatus, rejectInvalidToken, _setLocalJwksForTest } from "./requireSubscriber";
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
@@ -91,10 +93,19 @@ function mockDb(rows: Array<{ isActive: boolean }>) {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+// Seed _localJwks before any test runs so verifyClerkJwt can proceed to call jwtVerify.
+// We bypass the real fetch/JWKS path entirely via the test-only helper.
+beforeAll(() => {
+  mockCreateRemoteJWKSet.mockReturnValue({});
+  _setLocalJwksForTest(mockCreateRemoteJWKSet() as ReturnType<typeof mockCreateRemoteJWKSet>);
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: JWKS set is a no-op object (truthy so verification is attempted)
   mockCreateRemoteJWKSet.mockReturnValue({});
+  // Re-seed _localJwks before every test. Vitest 4.x may re-evaluate modules
+  // between tests, which resets module-level variables to their initial values.
+  _setLocalJwksForTest(mockCreateRemoteJWKSet());
   // Default: DB returns no subscriber row
   mockDb([]);
 });
@@ -111,7 +122,7 @@ describe("resolveSubscriberStatus", () => {
   });
 
   it("sets tokenRejected=true when the JWT signature is invalid", async () => {
-    mockJwtVerify.mockRejectedValue(new Error("JWTSignatureVerificationFailed"));
+    mockJwtVerify.mockRejectedValue(new Error("signature verification failed"));
 
     const res = await request(buildApp())
       .get("/test")
@@ -126,7 +137,7 @@ describe("resolveSubscriberStatus", () => {
   });
 
   it("sets tokenRejected=true when the JWT is expired", async () => {
-    mockJwtVerify.mockRejectedValue(new Error("JWTExpired"));
+    mockJwtVerify.mockRejectedValue(new Error("jwt expired"));
 
     const res = await request(buildApp())
       .get("/test")
@@ -191,7 +202,7 @@ describe("resolveSubscriberStatus", () => {
 
 describe("rejectInvalidToken", () => {
   it("returns 401 when a tampered token was rejected", async () => {
-    mockJwtVerify.mockRejectedValue(new Error("JWTSignatureVerificationFailed"));
+    mockJwtVerify.mockRejectedValue(new Error("signature verification failed"));
 
     const res = await request(buildGuardApp())
       .get("/test")
@@ -202,7 +213,7 @@ describe("rejectInvalidToken", () => {
   });
 
   it("returns 401 when an expired token was rejected", async () => {
-    mockJwtVerify.mockRejectedValue(new Error("JWTExpired"));
+    mockJwtVerify.mockRejectedValue(new Error("jwt expired"));
 
     const res = await request(buildGuardApp())
       .get("/test")

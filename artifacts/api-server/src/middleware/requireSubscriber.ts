@@ -102,6 +102,14 @@ async function fetchAndCacheJwks(): Promise<void> {
   }
 }
 
+/**
+ * TEST HELPER — directly seeds the JWKS key set used for JWT verification.
+ * Only call this from test files; production code should call initJwks() instead.
+ */
+export function _setLocalJwksForTest(jwks: LocalJWKS | null): void {
+  _localJwks = jwks;
+}
+
 /** Call once at server startup to warm the JWKS cache. */
 export async function initJwks(): Promise<void> {
   const url = buildClerkJwksUrl();

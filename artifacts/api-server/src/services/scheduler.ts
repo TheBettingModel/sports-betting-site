@@ -117,27 +117,6 @@ async function checkAndRaiseSportAlerts(
 
     if (consecutiveZeros < CONSECUTIVE_ZERO_THRESHOLD) continue;
 
-    // Skip raising if admin has snoozed this sport
-    const now = new Date();
-    const [snooze] = await db
-      .select({ snoozedUntil: sportSnoozesTable.snoozedUntil })
-      .from(sportSnoozesTable)
-      .where(
-        and(
-          eq(sportSnoozesTable.sport, sport),
-          gt(sportSnoozesTable.snoozedUntil, now),
-        ),
-      )
-      .limit(1);
-
-    if (snooze) {
-      logger.info(
-        { sport, snoozedUntil: snooze.snoozedUntil },
-        "Scheduler: skipping alert — sport is snoozed",
-      );
-      continue;
-    }
-
     // Check for an existing unresolved alert for this sport + type
     const [existing] = await db
       .select({ id: dataQualityAlertsTable.id })
@@ -152,6 +131,43 @@ async function checkAndRaiseSportAlerts(
       .limit(1);
 
     if (existing) continue; // already alerted
+
+    // Check if this sport is currently snoozed (admin marked it as off-season)
+    const alertNow = new Date();
+    const [snooze] = await db
+      .select({ id: sportSnoozesTable.id, snoozedUntil: sportSnoozesTable.snoozedUntil })
+      .from(sportSnoozesTable)
+      .where(
+        and(
+          eq(sportSnoozesTable.sport, sport),
+          gt(sportSnoozesTable.snoozedUntil, alertNow),
+        ),
+      )
+      .limit(1);
+
+    if (snooze) {
+      // Insert the alert immediately resolved so history is preserved
+      await db.insert(dataQualityAlertsTable).values({
+        alertType: "zero_games_feed",
+        sport,
+        severity: "warning",
+        description: `ESPN returned 0 games for ${sport} in the last ${CONSECUTIVE_ZERO_THRESHOLD} consecutive odds-ingestion runs (sport is snoozed until ${snooze.snoozedUntil.toISOString().slice(0, 10)}).`,
+        isResolved: true,
+        resolvedAt: alertNow,
+        resolvedBy: `snooze:${sport}`,
+        metadata: {
+          consecutiveZeroRuns: consecutiveZeros,
+          threshold: CONSECUTIVE_ZERO_THRESHOLD,
+          snoozedUntil: snooze.snoozedUntil.toISOString(),
+        },
+      });
+
+      logger.info(
+        { sport, consecutiveZeros, snoozedUntil: snooze.snoozedUntil },
+        "Scheduler: zero-game alert auto-resolved (sport is snoozed)",
+      );
+      continue;
+    }
 
     await db.insert(dataQualityAlertsTable).values({
       alertType: "zero_games_feed",

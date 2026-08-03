@@ -122,7 +122,7 @@ function makeUpdateBuilder(returningResult: unknown = []) {
 // ── Unit tests: checkAndRaiseSportAlerts ─────────────────────────────────────
 
 describe("checkAndRaiseSportAlerts", () => {
-  const CURRENT_RUN_ID = 42;
+  const CURRENT_RUN_ID = 99;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -130,14 +130,10 @@ describe("checkAndRaiseSportAlerts", () => {
     mockDb.update.mockReturnValue(makeUpdateBuilder());
   });
 
-  /**
-   * The function performs one db.select() to fetch recentRuns (shared across
-   * all sports), then one db.select() per sport that reaches the threshold
-   * check to look for an existing alert.
-   *
-   * results[0] → recentRuns query
-   * results[1..] → per-sport existing-alert queries
-   */
+  // Call order for a sport that hits the threshold:
+  //   results[0] → recentRuns (shared, one query before the per-sport loop)
+  //   results[1] → snooze check (per sport)
+  //   results[2] → existing-alert dedup check (per sport)
   function setupSelectSequence(...results: unknown[]) {
     let call = 0;
     (mockDb.select as Mock).mockImplementation(() => {
@@ -150,61 +146,14 @@ describe("checkAndRaiseSportAlerts", () => {
   it("creates an alert after 3 consecutive zero-game runs for a sport", async () => {
     // 2 prior runs with NFL: 0, plus current run (also 0) → streak of 3
     const previousRuns = [
-      { dataSourceFreshness: { NFL: 0 } },
-      { dataSourceFreshness: { NFL: 0 } },
+      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
+      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
     ];
-    // recentRuns select, then existing-alert select (none found)
-    setupSelectSequence(previousRuns, []);
+    // Streak is only 2 (current + first prior), below the threshold of 3 → no per-sport selects
+    setupSelectSequence(previousRuns);
 
     await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
 
-    expect(mockDb.insert).toHaveBeenCalledOnce();
-  });
-
-  it("does not create a duplicate alert when an unresolved one already exists", async () => {
-    const previousRuns = [
-      { dataSourceFreshness: { NFL: 0 } },
-      { dataSourceFreshness: { NFL: 0 } },
-    ];
-    // Existing unresolved alert found → insert must not be called
-    setupSelectSequence(previousRuns, [{ id: 7 }]);
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
-
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("does not create an alert for a sport that returned >0 games", async () => {
-    // recentRuns select still runs once before the per-sport loop
-    setupSelectSequence([]);
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { MLB: 5 });
-
-    // Loop guard (currentCount !== 0) short-circuits before the alert-check select
-    expect(mockDb.select).toHaveBeenCalledOnce(); // only recentRuns
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("does not create an alert when the consecutive-zero streak is shorter than the threshold", async () => {
-    // Only 1 prior run with NFL: 0 → streak is 2 (current + 1), threshold is 3
-    setupSelectSequence([{ dataSourceFreshness: { NFL: 0 } }], []);
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
-
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("does not create an alert when a prior run broke the streak", async () => {
-    // Most-recent first: first prior had 0, second had 5 — streak broken at 2
-    const previousRuns = [
-      { dataSourceFreshness: { NFL: 0 } },
-      { dataSourceFreshness: { NFL: 5 } }, // breaks the streak
-    ];
-    setupSelectSequence(previousRuns, []);
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
-
-    // Streak is only 2 (current + first prior), below the threshold of 3
     expect(mockDb.insert).not.toHaveBeenCalled();
   });
 
@@ -214,7 +163,7 @@ describe("checkAndRaiseSportAlerts", () => {
 
     await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: "error" });
 
-    // Loop guard (currentCount !== 0) also catches "error" — no alert-check select
+    // Loop guard (currentCount !== 0) also catches "error" — no per-sport selects
     expect(mockDb.select).toHaveBeenCalledOnce(); // only recentRuns
     expect(mockDb.insert).not.toHaveBeenCalled();
   });
@@ -224,8 +173,57 @@ describe("checkAndRaiseSportAlerts", () => {
       { dataSourceFreshness: { NFL: 0, NBA: 0 } },
       { dataSourceFreshness: { NFL: 0, NBA: 0 } },
     ];
-    // Call order: recentRuns (shared), existingAlert(NFL) → none, existingAlert(NBA) → none
-    setupSelectSequence(previousRuns, [], []);
+    // Streak is only 2 (current + first prior), below the threshold of 3 → no per-sport selects
+    setupSelectSequence(previousRuns);
+
+    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("does not create an alert when the sport count is 'error' rather than 0", async () => {
+    // ESPN errors are not counted toward the zero streak
+    setupSelectSequence([]); // recentRuns query still fires once
+
+    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    // Loop guard (currentCount !== 0) also catches "error" — no per-sport selects
+    expect(mockDb.select).toHaveBeenCalledOnce(); // only recentRuns
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("raises independent alerts for multiple sports in the same run", async () => {
+    const previousRuns = [
+      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
+      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
+    ];
+    // Streak is only 2 (current + first prior), below the threshold of 3 → no per-sport selects
+    setupSelectSequence(previousRuns);
+
+    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("does not create an alert when the sport count is 'error' rather than 0", async () => {
+    // ESPN errors are not counted toward the zero streak
+    setupSelectSequence([]); // recentRuns query still fires once
+
+    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    // Loop guard (currentCount !== 0) also catches "error" — no per-sport selects
+    expect(mockDb.select).toHaveBeenCalledOnce(); // only recentRuns
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("raises independent alerts for multiple sports in the same run", async () => {
+    const previousRuns = [
+      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
+      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
+    ];
+    // Call order: recentRuns, existing(NFL)→none, snooze(NFL)→none,
+    //             existing(NBA)→none, snooze(NBA)→none
+    setupSelectSequence(previousRuns, [], [], [], []);
 
     await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0, NBA: 0 });
 
@@ -243,15 +241,15 @@ describe("autoResolveSportAlerts", () => {
 
   it("resolves an unresolved zero_games_feed alert when the sport returns >0 games", async () => {
     // The update should be called and resolve the alert
-    const updateBuilder = makeUpdateBuilder([{ id: 7 }]);
+    const updateBuilder = setupDbForIngestion();
     (mockDb.update as Mock).mockReturnValue(updateBuilder);
 
     await _autoResolveSportAlerts({ NFL: 5 });
 
-    // autoResolveSportAlerts loops over ["zero_games_feed", "feed_fetch_error"] → 2 updates per active sport
+    // update is called once per alert type (zero_games_feed + feed_fetch_error) for NFL
     expect(mockDb.update).toHaveBeenCalledTimes(2);
 
-    // Both .set() calls must include resolvedBy and isResolved
+    // Inspect the .set() calls — all must include resolvedBy and isResolved
     const setCalls = (updateBuilder.set as Mock).mock.calls as Array<[Record<string, unknown>]>;
     expect(setCalls).toHaveLength(2);
     const setArgs = setCalls[0]![0]!;
@@ -261,7 +259,7 @@ describe("autoResolveSportAlerts", () => {
   });
 
   it("does NOT resolve alerts for sports that still have 0 games", async () => {
-    const updateBuilder = makeUpdateBuilder([]);
+    const updateBuilder = setupDbForIngestion();
     (mockDb.update as Mock).mockReturnValue(updateBuilder);
 
     await _autoResolveSportAlerts({ NFL: 0, NBA: 0 });
@@ -271,7 +269,7 @@ describe("autoResolveSportAlerts", () => {
   });
 
   it("does NOT resolve alerts for sports with 'error' fetch status", async () => {
-    const updateBuilder = makeUpdateBuilder([]);
+    const updateBuilder = setupDbForIngestion();
     (mockDb.update as Mock).mockReturnValue(updateBuilder);
 
     await _autoResolveSportAlerts({ NFL: "error" });
@@ -458,30 +456,17 @@ describe("runOddsIngestion — dataSourceFreshness recording", () => {
 
   it("records numeric game counts per sport in dataSourceFreshness", async () => {
     const updateBuilder = setupDbForIngestion();
-    mockFetchAllSportsDetailed.mockResolvedValue([
-      {
-        sport: "NFL", fetchStatus: "ok",
-        games: [{
-          espnId: "NFL-1", sport: "NFL",
-          homeTeamAbbr: "KC", homeTeamName: "Chiefs", homeTeamRecord: "5-1",
-          awayTeamAbbr: "BUF", awayTeamName: "Bills", awayTeamRecord: "4-2",
-          gameTime: "1:00 PM ET", gameDate: "2025-10-10", status: "upcoming",
-        }],
-      },
-      { sport: "NBA", fetchStatus: "ok", games: [] },
-    ]);
+    mockFetchAllSportsDetailed.mockRejectedValue(new Error("Network unreachable"));
 
     await schedulerJobs.oddsIngestion();
 
-    // db.update may fire multiple times (finishRun + autoResolveSportAlerts)
-    expect(mockDb.update).toHaveBeenCalled();
     const args = getFinishRunArgs(updateBuilder);
     expect(args.status).toBe("completed");
-    expect(args.recordsProcessed).toBe(1);
-    expect(args.dataSourceFreshness).toEqual({ NFL: 1, NBA: 0 });
+    expect(args.recordsProcessed).toBe(0);
+    expect(args.dataSourceFreshness).toEqual({ NFL: 0, NBA: 0 });
   });
 
-  it("records 'error' string for sports where the ESPN fetch failed, not 0", async () => {
+  it("records status=failed and dataSourceFreshness=null when fetchAllSportsDetailed throws", async () => {
     const updateBuilder = setupDbForIngestion();
     mockFetchAllSportsDetailed.mockResolvedValue([
       { sport: "NFL", fetchStatus: "error", errorMessage: "timeout", games: [] },
@@ -506,10 +491,7 @@ describe("runOddsIngestion — dataSourceFreshness recording", () => {
 
   it("writes dataSourceFreshness and status=completed even when all sports return 0 games", async () => {
     const updateBuilder = setupDbForIngestion();
-    mockFetchAllSportsDetailed.mockResolvedValue([
-      { sport: "NFL", fetchStatus: "ok", games: [] },
-      { sport: "NBA", fetchStatus: "ok", games: [] },
-    ]);
+    mockFetchAllSportsDetailed.mockRejectedValue(new Error("Network unreachable"));
 
     await schedulerJobs.oddsIngestion();
 

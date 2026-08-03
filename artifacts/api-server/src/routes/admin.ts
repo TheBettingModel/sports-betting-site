@@ -143,7 +143,7 @@ router.post("/admin/session", sessionAuthLimiter, (req, res): void => {
     return;
   }
 
-  const key = req.headers["x-master-key"] as string | undefined;
+    const key = row.sport ?? "Unknown";
   if (!key || key !== MASTER_KEY) {
     recordFailedAttempt(ip);
     res.status(401).json({ error: "Invalid key" });
@@ -154,7 +154,7 @@ router.post("/admin/session", sessionAuthLimiter, (req, res): void => {
   clearFailedAttempts(ip);
 
   pruneExpiredSessions();
-  const token = crypto.randomUUID();
+  const token = req.headers["x-admin-token"] as string | undefined;
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   sessions.set(token, { expiresAt });
 
@@ -362,14 +362,16 @@ router.get("/admin/automation", async (req, res): Promise<void> => {
   const limit = Math.min(parseInt((req.query.limit as string) ?? "50", 10), 200);
   const jobName = req.query.job as string | undefined;
 
-  const conditions = jobName ? [eq(automationRunsTable.jobName, jobName)] : [];
+  const conditions = modelVersionId
+    ? [eq(backtestRunsTable.modelVersionId, modelVersionId)]
+    : [];
 
   const runs = await db
     .select()
-    .from(automationRunsTable)
+    .from(backtestRunsTable)
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(automationRunsTable.startedAt))
-    .limit(limit);
+    .orderBy(desc(backtestRunsTable.startedAt))
+    .limit(50);
 
   // Group by job name for summary
   const summary: Record<string, { last: Date | null; successRate: number; count: number }> = {};
@@ -397,7 +399,9 @@ router.get("/admin/alerts", async (req, res): Promise<void> => {
   // "all" returns both resolved and active; "true"/"false" filter accordingly
   const resolvedAll = resolvedParam === "all";
   const resolved = resolvedParam === "true";
-  const sport = req.query.sport as string | undefined;
+  const sport = req.params.sport;
+
+  const { durationHours, snoozedUntil, reason, snoozedBy = "admin" } = req.body ?? {};
 
   const [driftAlerts, dqAlerts] = await Promise.all([
     db
@@ -439,6 +443,12 @@ router.get("/admin/alerts", async (req, res): Promise<void> => {
 router.post("/admin/alerts/drift/reset-baseline", async (req, res): Promise<void> => {
   const now = new Date();
 
+  const [snooze] = await db
+    .select()
+    .from(sportSnoozesTable)
+    .where(eq(sportSnoozesTable.sport, sport))
+    .limit(1);
+
   // 1. Count + resolve all unresolved drift alerts
   const unresolvedBefore = await db
     .select({ id: modelDriftAlertsTable.id })
@@ -476,6 +486,12 @@ router.post("/admin/alerts/:type/:id/resolve", async (req, res): Promise<void> =
 
   const resolvedBy = req.body?.resolvedBy ?? "admin";
   const now = new Date();
+
+  const [snooze] = await db
+    .select()
+    .from(sportSnoozesTable)
+    .where(eq(sportSnoozesTable.sport, sport))
+    .limit(1);
 
   if (type === "drift") {
     await db
@@ -580,13 +596,6 @@ router.post("/admin/models/:id/deploy", async (req, res): Promise<void> => {
     approvedBy: performedBy,
     notes,
   });
-
-  res.json(version);
-});
-
-// ── Model rollback ────────────────────────────────────────────────────────────
-
-router.post("/admin/models/:id/rollback", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid model version id" }); return; }
 
@@ -602,6 +611,12 @@ router.post("/admin/models/:id/rollback", async (req, res): Promise<void> => {
 /** GET /admin/sports/snoozes — list all active (not yet expired) snoozes */
 router.get("/admin/sports/snoozes", async (_req, res): Promise<void> => {
   const now = new Date();
+
+  const [snooze] = await db
+    .select()
+    .from(sportSnoozesTable)
+    .where(eq(sportSnoozesTable.sport, sport))
+    .limit(1);
   const snoozes = await db
     .select()
     .from(sportSnoozesTable)
@@ -612,6 +627,8 @@ router.get("/admin/sports/snoozes", async (_req, res): Promise<void> => {
 /** POST /admin/sports/:sport/snooze — create or extend a snooze */
 router.post("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
   const sport = req.params.sport;
+
+  const { durationHours, snoozedUntil, reason, snoozedBy = "admin" } = req.body ?? {};
   const durationHours: number = Number(req.body?.durationHours ?? 168); // default 1 week
   const snoozedBy: string = req.body?.snoozedBy ?? "admin";
   const reason: string | undefined = req.body?.reason;
@@ -640,9 +657,15 @@ router.post("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
 /** DELETE /admin/sports/:sport/snooze — remove a snooze early */
 router.delete("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
   const sport = req.params.sport;
+
+  const { durationHours, snoozedUntil, reason, snoozedBy = "admin" } = req.body ?? {};
   await db.delete(sportSnoozesTable).where(eq(sportSnoozesTable.sport, sport));
   logger.info({ sport }, "Admin: sport snooze removed");
   res.json({ message: `Snooze for ${sport} removed` });
 });
 
 export default router;
+
+  let expiryDate: Date;
+
+    const hours = Number(durationHours);

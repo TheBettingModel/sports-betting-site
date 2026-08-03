@@ -34,6 +34,8 @@ vi.mock("@workspace/db", () => ({
   db: mockDb,
   pushTokensTable: { userId: "userId", token: "token", isActive: "isActive", updatedAt: "updatedAt" },
   subscribersTable: { userId: "userId", isActive: "isActive" },
+  notificationPreferencesTable: {},
+  userPreferencesTable: {},
 }));
 
 vi.mock("expo-server-sdk", () => ({
@@ -45,8 +47,18 @@ vi.mock("expo-server-sdk", () => ({
   },
 }));
 
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((_col: unknown, _val: unknown) => ({ __eq: [_col, _val] })),
+  and: vi.fn((...args: unknown[]) => ({ __and: args })),
+  inArray: vi.fn((_col: unknown, _vals: unknown) => ({ __inArray: [_col, _vals] })),
+}));
+
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock("./pushReceipts", () => ({
+  storePushReceipts: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ── Import under test (after mocks) ──────────────────────────────────────────
@@ -55,14 +67,30 @@ import { sendStrongBuyNotification } from "./pushNotifications";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeSelectChain(resolvedValue: unknown) {
-  const chain = {
-    from: vi.fn().mockReturnThis(),
-    innerJoin: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue(resolvedValue),
-  };
-  (mockDb.select as Mock).mockReturnValue(chain);
-  return chain;
+/**
+ * Set up the mock db.select() sequence.
+ * sendStrongBuyNotification makes three selects:
+ *   1. getActiveSubscriberTokens (with innerJoin) → tokenRows
+ *   2. notificationPreferencesTable → notifPrefRows (default [])
+ *   3. userPreferencesTable        → userPrefRows  (default [])
+ */
+function makeSelectChain(
+  tokenRows: unknown,
+  notifPrefRows: unknown = [],
+  userPrefRows: unknown = [],
+) {
+  function makeChain(result: unknown) {
+    return {
+      from: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue(result),
+    };
+  }
+  (mockDb.select as Mock)
+    .mockReturnValueOnce(makeChain(tokenRows))
+    .mockReturnValueOnce(makeChain(notifPrefRows))
+    .mockReturnValueOnce(makeChain(userPrefRows));
+  return makeChain(tokenRows); // returned for callers that inspect the chain
 }
 
 function makeUpdateChain() {
@@ -77,7 +105,9 @@ function makeUpdateChain() {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // resetAllMocks (not clearAllMocks) to also flush any unconsumed mockReturnValueOnce
+  // items from previous tests, which would corrupt the select-chain call order.
+  vi.resetAllMocks();
 });
 
 describe("sendStrongBuyNotification", () => {
