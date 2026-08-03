@@ -404,6 +404,19 @@ export function Alerts() {
     return a.localeCompare(b);
   });
 
+  // Scroll to a sport group when the page is opened via a hash link from the
+  // Overview feed health chips (e.g. #sport-mlb). Runs once after data loads.
+  useEffect(() => {
+    if (isLoading || sortedSports.length === 0) return;
+    const hash = window.location.hash; // e.g. "#sport-mlb"
+    if (!hash) return;
+    const el = document.getElementById(hash.slice(1));
+    if (el) {
+      // Small delay so the DOM settles after React renders
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    }
+  }, [isLoading, sortedSports.length]);
+
   const activeDriftCount = driftAlerts.filter((a) => !a.isResolved).length;
   const activeDQCount = dqAlerts.filter((a) => !a.isResolved).length;
   const activeSnoozesCount = snoozesData?.snoozes.length ?? 0;
