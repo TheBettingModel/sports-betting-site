@@ -744,6 +744,7 @@ export const schedulerJobs = {
 export {
   checkAndRaiseSportAlerts as _checkAndRaiseSportAlerts,
   autoResolveSportAlerts as _autoResolveSportAlerts,
+  checkAndRaiseFetchErrorAlerts as _checkAndRaiseFetchErrorAlerts,
 };
 
 /**

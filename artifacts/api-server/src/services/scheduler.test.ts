@@ -31,6 +31,8 @@ vi.mock("@workspace/db", () => ({
   automationRunsTable: {},
   dataQualityAlertsTable: {},
   modelWeightsTable: {},
+  sportSnoozesTable: { snoozedUntil: "snoozedUntil", sport: "sport" },
+  publishedPicksTable: {},
 }));
 
 vi.mock("./espn", () => ({
@@ -47,7 +49,7 @@ vi.mock("../lib/logger", () => ({
 
 // ── Import under test (after mocks) ──────────────────────────────────────────
 
-import { _checkAndRaiseSportAlerts, _autoResolveSportAlerts, schedulerJobs } from "./scheduler";
+import { _checkAndRaiseSportAlerts, _autoResolveSportAlerts, _checkAndRaiseFetchErrorAlerts, schedulerJobs } from "./scheduler";
 
 // ── Drizzle fluent-builder helpers ────────────────────────────────────────────
 //
@@ -246,13 +248,13 @@ describe("autoResolveSportAlerts", () => {
 
     await _autoResolveSportAlerts({ NFL: 5 });
 
-    // update should have been called once for NFL
-    expect(mockDb.update).toHaveBeenCalledOnce();
+    // autoResolveSportAlerts loops over ["zero_games_feed", "feed_fetch_error"] → 2 updates per active sport
+    expect(mockDb.update).toHaveBeenCalledTimes(2);
 
-    // Inspect the .set() call — must include resolvedBy and isResolved
+    // Both .set() calls must include resolvedBy and isResolved
     const setCalls = (updateBuilder.set as Mock).mock.calls as Array<[Record<string, unknown>]>;
-    expect(setCalls).toHaveLength(1);
-    const setArgs = setCalls[0][0];
+    expect(setCalls).toHaveLength(2);
+    const setArgs = setCalls[0]![0]!;
     expect(setArgs.isResolved).toBe(true);
     expect(setArgs.resolvedBy).toBe("scheduler:auto");
     expect(setArgs.resolvedAt).toBeInstanceOf(Date);
@@ -288,8 +290,123 @@ describe("autoResolveSportAlerts", () => {
     // NFL returned games, NBA still at 0, MLB errored
     await _autoResolveSportAlerts({ NFL: 3, NBA: 0, MLB: "error" });
 
-    // Only NFL is active — exactly one update
-    expect(mockDb.update).toHaveBeenCalledOnce();
+    // Only NFL is active → 2 updates (one per alert type: zero_games_feed + feed_fetch_error)
+    expect(mockDb.update).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ── Unit tests: checkAndRaiseFetchErrorAlerts ────────────────────────────────
+
+describe("checkAndRaiseFetchErrorAlerts", () => {
+  const CURRENT_RUN_ID = 99;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockDb.insert.mockReturnValue(makeInsertBuilder([{ id: 99 }]));
+    mockDb.update.mockReturnValue(makeUpdateBuilder());
+  });
+
+  // Call order for a sport that hits the threshold:
+  //   results[0] → recentRuns (shared, one query before the per-sport loop)
+  //   results[1] → snooze check (per sport)
+  //   results[2] → existing-alert dedup check (per sport)
+  function setupSelectSequence(...results: unknown[]) {
+    let call = 0;
+    (mockDb.select as Mock).mockImplementation(() => {
+      const result = results[call] ?? [];
+      call++;
+      return makeSelectBuilder(result);
+    });
+  }
+
+  it("raises a critical feed_fetch_error alert after 2 consecutive ESPN errors", async () => {
+    // 1 prior run with NFL "error" + current run = streak of 2 (== threshold)
+    setupSelectSequence(
+      [{ dataSourceFreshness: { NFL: "error" } }], // recentRuns
+      [], // snooze check → none
+      [], // existing-alert check → none
+    );
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    expect(mockDb.insert).toHaveBeenCalledOnce();
+    const values = (mockDb.insert.mock.results[0]!.value.values as Mock).mock.calls[0]![0] as Record<string, unknown>;
+    expect(values.alertType).toBe("feed_fetch_error");
+    expect(values.severity).toBe("critical");
+    expect(values.sport).toBe("NFL");
+  });
+
+  it("does not raise an alert when the streak is only 1 run (current run only)", async () => {
+    // Most-recent prior run had NFL: 3 — streak breaks immediately
+    setupSelectSequence([{ dataSourceFreshness: { NFL: 3 } }]);
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("does not raise an alert when there are no prior runs to form a streak", async () => {
+    setupSelectSequence([]); // no prior runs at all
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("does not raise a duplicate when an unresolved feed_fetch_error alert already exists", async () => {
+    setupSelectSequence(
+      [{ dataSourceFreshness: { NFL: "error" } }], // recentRuns: streak met
+      [], // snooze → none
+      [{ id: 5 }], // existing unresolved alert → skip
+    );
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("skips the alert when the sport is snoozed by an admin", async () => {
+    setupSelectSequence(
+      [{ dataSourceFreshness: { NFL: "error" } }], // recentRuns: streak met
+      [{ snoozedUntil: new Date(Date.now() + 3_600_000) }], // active snooze
+    );
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("raises independent alerts for two sports both showing consecutive errors", async () => {
+    // Shared recentRuns has both NFL and NBA erroring; each sport then gets its own
+    // snooze + dedup check (no snooze, no existing alert for either).
+    setupSelectSequence(
+      [{ dataSourceFreshness: { NFL: "error", NBA: "error" } }], // recentRuns
+      [], // snooze(NFL) → none
+      [], // existing(NFL) → none
+      [], // snooze(NBA) → none
+      [], // existing(NBA) → none
+    );
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error", NBA: "error" });
+
+    expect(mockDb.insert).toHaveBeenCalledTimes(2);
+  });
+
+  it("does nothing and skips all DB queries when no sports have an error status", async () => {
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: 5, NBA: 0 });
+
+    // Early-return path — no DB queries at all
+    expect(mockDb.select).not.toHaveBeenCalled();
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("does not raise an alert for a sport that had an error then recovered then errored again once", async () => {
+    // Prior run: NFL recovered (returned 5 games) → streak broken
+    setupSelectSequence([{ dataSourceFreshness: { NFL: 5 } }]);
+
+    await _checkAndRaiseFetchErrorAlerts(CURRENT_RUN_ID, { NFL: "error" });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
   });
 });
 
