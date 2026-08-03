@@ -7,6 +7,10 @@
  *   - Requests with a valid JWT and a token body succeed (200)
  *   - The same shared resolveSubscriberStatus middleware used by the rest of
  *     the API is what gates these routes (no separate JWT logic)
+ *   - A user whose subscription is currently inactive can still register a
+ *     token (registration only requires auth, not an active subscription)
+ *   - Once the subscription is active and a token is registered, notifications
+ *     will be directed to that token (covered via service-layer tests)
  */
 
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
@@ -50,10 +54,18 @@ function buildApp(): Application {
   return app;
 }
 
-/** Simulate resolveSubscriberStatus setting userId (authenticated) */
+/** Simulate resolveSubscriberStatus setting userId (authenticated, active subscriber) */
 function withAuth(userId: string) {
   (mockResolveSubscriberStatus as Mock).mockImplementation((_req, _res, next) => {
     _req.subscriberStatus = { userId, isSubscribed: true };
+    next();
+  });
+}
+
+/** Simulate resolveSubscriberStatus for an authenticated user with an inactive subscription */
+function withAuthInactiveSub(userId: string) {
+  (mockResolveSubscriberStatus as Mock).mockImplementation((_req, _res, next) => {
+    _req.subscriberStatus = { userId, isSubscribed: false };
     next();
   });
 }
@@ -115,6 +127,55 @@ describe("POST /api/push-tokens", () => {
     // The shared middleware must have been called
     expect(mockResolveSubscriberStatus).toHaveBeenCalledTimes(1);
   });
+
+  it("registers a token for a user with an inactive subscription (registration requires auth, not active sub)", async () => {
+    // A user whose subscription has lapsed can still register their device token.
+    // The route only checks for a valid userId from the JWT — not whether their
+    // subscription is currently active.  Notification delivery is gated separately
+    // at send time via the SQL join on subscribersTable.isActive=true.
+    withAuthInactiveSub("lapsed-user");
+    const app = buildApp();
+    const res = await request(app)
+      .post("/api/push-tokens")
+      .send({ token: "ExponentPushToken[lapsed-device]", platform: "android" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(mockRegisterPushToken).toHaveBeenCalledWith(
+      "lapsed-user",
+      "ExponentPushToken[lapsed-device]",
+      "android",
+    );
+  });
+
+  it("registers a new token after app re-install for an active subscriber", async () => {
+    // Simulates: subscriber uninstalls and reinstalls the app.
+    // They get a new Expo push token on fresh install and call POST /api/push-tokens.
+    // The route must pass the new token to registerPushToken, which upserts it.
+    withAuth("returning-user");
+    const app = buildApp();
+    const res = await request(app)
+      .post("/api/push-tokens")
+      .send({ token: "ExponentPushToken[fresh-install]", platform: "ios" });
+
+    expect(res.status).toBe(200);
+    expect(mockRegisterPushToken).toHaveBeenCalledWith(
+      "returning-user",
+      "ExponentPushToken[fresh-install]",
+      "ios",
+    );
+  });
+
+  it("returns 500 when registerPushToken throws", async () => {
+    withAuth("user-err");
+    mockRegisterPushToken.mockRejectedValue(new Error("DB error"));
+    const app = buildApp();
+    const res = await request(app)
+      .post("/api/push-tokens")
+      .send({ token: "ExponentPushToken[abc]" });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Failed to register token" });
+  });
 });
 
 describe("DELETE /api/push-tokens", () => {
@@ -146,5 +207,16 @@ describe("DELETE /api/push-tokens", () => {
       "user-123",
       "ExponentPushToken[abc]",
     );
+  });
+
+  it("returns 500 when deregisterPushToken throws", async () => {
+    withAuth("user-err");
+    mockDeregisterPushToken.mockRejectedValue(new Error("DB error"));
+    const app = buildApp();
+    const res = await request(app)
+      .delete("/api/push-tokens")
+      .send({ token: "ExponentPushToken[abc]" });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Failed to deregister token" });
   });
 });
