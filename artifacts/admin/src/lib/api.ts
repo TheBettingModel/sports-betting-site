@@ -139,6 +139,8 @@ export const adminApi = {
 export const modelApi = {
   stats: () => api.get<ModelStatsResult>("/model/stats"),
   statsHistory: () => api.get<ModelStatsHistoryResult>("/model-stats/history"),
+  roi: (period: "season" | "week" = "season") =>
+    api.get<RoiResult>(`/results/roi?period=${period}`),
   list: (status?: string) =>
     api.get<{ models: ModelVersion[]; count: number }>(
       `/models${status ? `?status=${status}` : ""}`,
@@ -316,6 +318,34 @@ export interface WeeklyHistoryEntry {
 
 export interface ModelStatsHistoryResult {
   history: WeeklyHistoryEntry[];
+}
+
+export interface RoiEntry {
+  key: string;
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
+}
+
+export interface RoiBySportEntry extends RoiEntry {
+  sport: string;
+}
+
+export interface RoiByRatingEntry extends RoiEntry {
+  recommendation: string;
+}
+
+export interface RoiResult {
+  period: string;
+  byRating: RoiByRatingEntry[];
+  bySport: RoiBySportEntry[];
+  bySportAndRating: Array<RoiEntry & { sport: string; recommendation: string }>;
+  dataAsOf: string;
 }
 
 export interface SportSnooze {

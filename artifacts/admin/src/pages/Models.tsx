@@ -8,6 +8,7 @@ import {
 import {
   adminApi, modelApi,
   type ModelVersion, type SportStat, type WeeklyHistoryEntry,
+  type RoiByRatingEntry, type RoiBySportEntry,
 } from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
@@ -185,6 +186,173 @@ function UnitsChart({ history, sport }: UnitsChartProps) {
   );
 }
 
+// ── ROI by rating tier chart ──────────────────────────────────────────────────
+
+const TIER_COLORS: Record<string, string> = {
+  "Strong Buy": "#4ade80",
+  "Buy":        "#60a5fa",
+  "Neutral":    "#a1a1aa",
+  "Fade":       "#f87171",
+};
+const TIER_ORDER = ["Strong Buy", "Buy", "Neutral", "Fade"];
+
+interface RoiByRatingChartProps {
+  byRating: RoiByRatingEntry[];
+  bySport: RoiBySportEntry[];
+}
+
+function RoiByRatingChart({ byRating, bySport }: RoiByRatingChartProps) {
+  const ratingData = TIER_ORDER
+    .map((rec) => byRating.find((r) => r.recommendation === rec))
+    .filter((r): r is RoiByRatingEntry => !!r && r.totalPicks > 0)
+    .map((r) => ({
+      name: r.recommendation === "Strong Buy" ? "Strong Buy" : r.recommendation,
+      winRate: r.winRate,
+      roi: r.roi,
+      units: r.unitsWonLost,
+      picks: r.totalPicks,
+      color: TIER_COLORS[r.recommendation] ?? "#71717a",
+    }));
+
+  if (ratingData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-36 text-sm text-muted-foreground">
+        No graded picks yet — ROI by tier will appear after games are graded.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Win rate + ROI bar chart */}
+      <ResponsiveContainer width="100%" height={160}>
+        <BarChart data={ratingData} margin={{ left: 4, right: 12, top: 4, bottom: 0 }} barGap={4}>
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+          <YAxis
+            yAxisId="left"
+            tickFormatter={(v) => `${v}%`}
+            tick={{ fontSize: 10, fill: "#71717a" }}
+            axisLine={false}
+            tickLine={false}
+            width={38}
+            domain={[0, 100]}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tickFormatter={(v) => `${v > 0 ? "+" : ""}${v}%`}
+            tick={{ fontSize: 10, fill: "#71717a" }}
+            axisLine={false}
+            tickLine={false}
+            width={42}
+          />
+          <Tooltip
+            cursor={{ fill: "rgba(255,255,255,0.04)" }}
+            contentStyle={{
+              background: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: 6,
+              fontSize: 12,
+            }}
+            labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+            formatter={(v: number, name: string) => [
+              name === "winRate" ? `${v}%` : `${v > 0 ? "+" : ""}${v}%`,
+              name === "winRate" ? "Win Rate" : "ROI",
+            ]}
+          />
+          <ReferenceLine yAxisId="left" y={50} stroke="#52525b" strokeDasharray="4 2" />
+          <Bar yAxisId="left" dataKey="winRate" radius={[3, 3, 0, 0]} maxBarSize={36} name="winRate">
+            {ratingData.map((entry, i) => (
+              <Cell key={i} fill={entry.color} fillOpacity={0.85} />
+            ))}
+          </Bar>
+          <Bar yAxisId="right" dataKey="roi" radius={[3, 3, 0, 0]} maxBarSize={20} name="roi">
+            {ratingData.map((entry, i) => (
+              <Cell key={i} fill={entry.color} fillOpacity={0.45} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      {/* Summary table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Tier</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Picks</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">W–L</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Win%</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Units</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">ROI%</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {ratingData.map((r) => (
+              <tr key={r.name} className="hover:bg-accent/20 transition-colors">
+                <td className="px-2 py-1.5">
+                  <span className="font-medium" style={{ color: r.color }}>{r.name}</span>
+                </td>
+                <td className="px-2 py-1.5 text-right text-muted-foreground">{r.picks}</td>
+                <td className="px-2 py-1.5 text-right text-muted-foreground font-mono">
+                  {byRating.find((b) => b.recommendation === r.name)?.wins ?? 0}–{byRating.find((b) => b.recommendation === r.name)?.losses ?? 0}
+                </td>
+                <td className="px-2 py-1.5 text-right font-medium" style={{ color: winRateColor(r.winRate / 100) }}>
+                  {r.winRate}%
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono" style={{ color: r.units >= 0 ? "#4ade80" : "#f87171" }}>
+                  {r.units >= 0 ? "+" : ""}{r.units.toFixed(1)}u
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono" style={{ color: r.roi >= 0 ? "#4ade80" : "#f87171" }}>
+                  {r.roi >= 0 ? "+" : ""}{r.roi.toFixed(1)}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Per-sport ROI breakdown */}
+      {bySport.length > 0 && (
+        <div className="overflow-x-auto mt-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">By Sport</p>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Sport</th>
+                <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Picks</th>
+                <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">W–L</th>
+                <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Win%</th>
+                <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Units</th>
+                <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">ROI%</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {bySport.map((s) => (
+                <tr key={s.sport} className="hover:bg-accent/20 transition-colors">
+                  <td className="px-2 py-1.5 font-medium text-foreground">{s.sport}</td>
+                  <td className="px-2 py-1.5 text-right text-muted-foreground">{s.totalPicks}</td>
+                  <td className="px-2 py-1.5 text-right text-muted-foreground font-mono">{s.wins}–{s.losses}</td>
+                  <td className="px-2 py-1.5 text-right font-medium" style={{ color: winRateColor(s.winRate / 100) }}>
+                    {s.winRate}%
+                  </td>
+                  <td className="px-2 py-1.5 text-right font-mono" style={{ color: s.unitsWonLost >= 0 ? "#4ade80" : "#f87171" }}>
+                    {s.unitsWonLost >= 0 ? "+" : ""}{s.unitsWonLost.toFixed(1)}u
+                  </td>
+                  <td className="px-2 py-1.5 text-right font-mono" style={{ color: s.roi >= 0 ? "#4ade80" : "#f87171" }}>
+                    {s.roi >= 0 ? "+" : ""}{s.roi.toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Per-tier performance table ────────────────────────────────────────────────
 
 interface TierTableProps {
@@ -257,6 +425,12 @@ function PerformancePanel() {
     queryKey: ["model-stats-history"],
     queryFn: () => modelApi.statsHistory(),
     refetchInterval: 60_000,
+  });
+
+  const { data: roiData } = useQuery({
+    queryKey: ["model-roi"],
+    queryFn: () => modelApi.roi("season"),
+    refetchInterval: 120_000,
   });
 
   const stats = statsData?.stats ?? [];
@@ -376,7 +550,18 @@ function PerformancePanel() {
           </div>
         )}
 
-        {stats.length === 0 && (
+        {/* ROI by rating tier */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wider">
+            ROI by Rating Tier (Season)
+          </p>
+          <RoiByRatingChart
+            byRating={roiData?.byRating ?? []}
+            bySport={roiData?.bySport ?? []}
+          />
+        </div>
+
+        {stats.length === 0 && !roiData && (
           <p className="text-sm text-muted-foreground">
             No graded picks yet — charts and stats will appear once results are recorded.
           </p>

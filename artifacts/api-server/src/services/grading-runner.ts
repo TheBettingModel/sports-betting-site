@@ -5,6 +5,7 @@ import {
   gameResultsTable,
   gamesTable,
   marketsTable,
+  modelPredictionsTable,
   pickResultsTable,
   publishedPicksTable,
 } from "@workspace/db";
@@ -156,6 +157,13 @@ export async function runGrading(): Promise<number> {
         gradeAudit: [auditEntry],
       })
       .where(eq(pickResultsTable.id, pendingRow.pickResultId));
+
+    // ── Backwrite grade to model_predictions ──────────────────────────────
+    // Allows ROI tracking by sport/tier directly from the predictions table.
+    await db
+      .update(modelPredictionsTable)
+      .set({ grade })
+      .where(eq(modelPredictionsTable.id, pick.predictionId));
 
     graded++;
   }
