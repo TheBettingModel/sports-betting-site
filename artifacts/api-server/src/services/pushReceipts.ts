@@ -148,14 +148,44 @@ export async function checkPendingPushReceipts(): Promise<void> {
     return; // Don't mark as checked on error — retry next cycle
   }
 
+  // Build a token → delivery status map for ALL receipt outcomes so every
+  // token gets an accurate last_delivery_status regardless of error type.
+  const tokenDeliveryStatus = new Map<string, string>();
+  for (const update of updates) {
+    const row = pending.find((p) => p.id === update.id);
+    if (!row) continue;
+    if (update.status === "ok") {
+      tokenDeliveryStatus.set(row.token, "ok");
+    } else {
+      const errorCode =
+        (update.errorDetails as Record<string, unknown> | undefined)?.error as string | undefined;
+      tokenDeliveryStatus.set(row.token, errorCode ?? "unknown");
+    }
+  }
+
   // Deactivate tokens with permanent errors
   if (tokensToDeactivate.length > 0) {
+    for (const token of tokensToDeactivate) {
+      const status = tokenDeliveryStatus.get(token) ?? "DeviceNotRegistered";
+      await db
+        .update(pushTokensTable)
+        .set({ isActive: false, lastDeliveryStatus: status, updatedAt: new Date() })
+        .where(eq(pushTokensTable.token, token));
+    }
+    logger.info({ deactivated: tokensToDeactivate.length }, "Push receipts: deactivated invalid tokens");
+  }
+
+  // Update last_delivery_status for ALL other tokens (ok, MessageTooBig, MessageRateExceeded, etc.)
+  const deactivatedSet = new Set(tokensToDeactivate);
+  const remainingStatusEntries = [...tokenDeliveryStatus.entries()].filter(
+    ([token]) => !deactivatedSet.has(token),
+  );
+
+  for (const [token, status] of remainingStatusEntries) {
     await db
       .update(pushTokensTable)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(inArray(pushTokensTable.token, tokensToDeactivate));
-
-    logger.info({ deactivated: tokensToDeactivate.length }, "Push receipts: deactivated invalid tokens");
+      .set({ lastDeliveryStatus: status, updatedAt: new Date() })
+      .where(eq(pushTokensTable.token, token));
   }
 
   // Mark processed rows as checked in the DB

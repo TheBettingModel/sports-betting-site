@@ -184,11 +184,32 @@ export async function sendStrongBuyNotification(
   let failed = 0;
   const pendingForReceipts: Array<{ receiptId: string; token: string; userId: string }> = [];
 
+  /** Retry a chunk up to maxAttempts times on transient network errors. */
+  async function sendChunkWithRetry(
+    chunk: Parameters<typeof expo.sendPushNotificationsAsync>[0],
+    maxAttempts = 3,
+  ): ReturnType<typeof expo.sendPushNotificationsAsync> {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await expo.sendPushNotificationsAsync(chunk);
+      } catch (err) {
+        lastErr = err;
+        if (attempt < maxAttempts) {
+          const delayMs = 500 * attempt; // 500 ms, 1000 ms
+          logger.warn({ err, attempt, delayMs }, "Push: chunk send failed, retrying");
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+    throw lastErr;
+  }
+
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]!;
     const meta = chunkMeta[i]!;
     try {
-      const tickets = await expo.sendPushNotificationsAsync(chunk);
+      const tickets = await sendChunkWithRetry(chunk);
       tickets.forEach((ticket, idx) => {
         if (ticket.status === "ok") {
           sent++;
@@ -203,7 +224,7 @@ export async function sendStrongBuyNotification(
         }
       });
     } catch (err) {
-      logger.error({ err }, "Push: failed to send chunk");
+      logger.error({ err, chunkSize: chunk.length }, "Push: chunk failed after retries, dropping");
       failed += chunk.length;
     }
   }

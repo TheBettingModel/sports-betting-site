@@ -20,6 +20,8 @@ export const pushTokensTable = pgTable(
     token: text("token").notNull(),
     platform: text("platform"), // "ios" | "android" | "web"
     isActive: boolean("is_active").notNull().default(true),
+    /** Last delivery outcome from Expo receipt API: "ok" | "DeviceNotRegistered" | "InvalidCredentials" | "MessageTooBig" | "MessageRateExceeded" | null */
+    lastDeliveryStatus: text("last_delivery_status"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

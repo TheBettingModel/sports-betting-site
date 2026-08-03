@@ -13,8 +13,8 @@
  */
 
 import cron from "node-cron";
-import { eq, and, desc, ne, gte, gt } from "drizzle-orm";
-import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable } from "@workspace/db";
+import { eq, and, desc, ne, gte, gt, lt } from "drizzle-orm";
+import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable, pushTokensTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
@@ -699,6 +699,42 @@ async function runPushReceiptCheck(): Promise<void> {
   }
 }
 
+/**
+ * Prune push tokens that have been inactive for more than 30 days.
+ * This keeps the push_tokens table clean and avoids re-querying permanently
+ * dead tokens on every future send cycle.
+ */
+async function runPushTokenCleanup(): Promise<void> {
+  const jobName = "push-token-cleanup";
+  if (runningJobs.has(jobName)) {
+    logger.debug("Scheduler: push-token-cleanup already running, skipping");
+    return;
+  }
+
+  runningJobs.add(jobName);
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const result = await db
+      .delete(pushTokensTable)
+      .where(
+        and(
+          eq(pushTokensTable.isActive, false),
+          lt(pushTokensTable.updatedAt, thirtyDaysAgo),
+        ),
+      )
+      .returning({ id: pushTokensTable.id });
+
+    logger.info(
+      { pruned: result.length },
+      "Scheduler: pruned stale inactive push tokens (>30 days)",
+    );
+  } catch (err) {
+    logger.warn({ err }, "Scheduler: push-token-cleanup failed — non-fatal");
+  } finally {
+    runningJobs.delete(jobName);
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -734,6 +770,11 @@ export function startScheduler(): void {
   cron.schedule("5,35 * * * *", () => {
     void runPushReceiptCheck();
   });
+
+  // Push token cleanup — daily at 3 AM Eastern time (DST-aware), prunes tokens inactive >30 days
+  cron.schedule("0 3 * * *", () => {
+    void runPushTokenCleanup();
+  }, { timezone: "America/New_York" });
 
   // Warm up team stats cache in the background so the first game refresh
   // has advanced analytics immediately available.

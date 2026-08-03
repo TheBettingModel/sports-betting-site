@@ -2,6 +2,8 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const rawPort = process.env["PORT"];
 
@@ -17,6 +19,23 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+/**
+ * Apply any pending schema additions that are safe to run idempotently at
+ * startup. Uses ADD COLUMN IF NOT EXISTS so running against an already-migrated
+ * database is a no-op. This ensures production DBs pick up new nullable columns
+ * without a separate migration step.
+ */
+async function applyStartupMigrations(): Promise<void> {
+  try {
+    await db.execute(
+      sql`ALTER TABLE push_tokens ADD COLUMN IF NOT EXISTS last_delivery_status TEXT`,
+    );
+    logger.info("Startup migrations: push_tokens.last_delivery_status ensured");
+  } catch (err) {
+    logger.warn({ err }, "Startup migrations: push_tokens column check failed — non-fatal");
+  }
+}
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -24,6 +43,11 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Ensure schema additions are present (idempotent — safe on every restart)
+  applyStartupMigrations().catch((err) =>
+    logger.warn({ err }, "Startup migrations failed — continuing"),
+  );
 
   // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
   // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)
