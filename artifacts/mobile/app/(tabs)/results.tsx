@@ -61,12 +61,17 @@ export default function ResultsScreen() {
 
   const listItems: ListItem[] = [];
 
-  listItems.push({ type: 'header-summary' });
+  // Only build the list when we have graded picks — otherwise the FlatList
+  // stays empty and ListEmptyComponent shows the "no picks yet" state.
+  if (overall && overall.totalPicks > 0) {
+    listItems.push({ type: 'header-summary' });
 
-  if (bySport.filter(s => s.wins + s.losses > 0).length > 0) {
-    listItems.push({ type: 'header-sport' });
-    for (const stat of bySport.filter(s => s.wins + s.losses > 0)) {
-      listItems.push({ type: 'sport-row', stat });
+    const gradedSports = bySport.filter(s => s.wins + s.losses > 0);
+    if (gradedSports.length > 0) {
+      listItems.push({ type: 'header-sport' });
+      for (const stat of gradedSports) {
+        listItems.push({ type: 'sport-row', stat });
+      }
     }
   }
 

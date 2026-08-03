@@ -596,6 +596,12 @@ router.post("/admin/models/:id/deploy", async (req, res): Promise<void> => {
     approvedBy: performedBy,
     notes,
   });
+  res.json(version);
+});
+
+// ── Model rollback ────────────────────────────────────────────────────────────
+
+router.post("/admin/models/:id/rollback", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid model version id" }); return; }
 
@@ -611,12 +617,6 @@ router.post("/admin/models/:id/deploy", async (req, res): Promise<void> => {
 /** GET /admin/sports/snoozes — list all active (not yet expired) snoozes */
 router.get("/admin/sports/snoozes", async (_req, res): Promise<void> => {
   const now = new Date();
-
-  const [snooze] = await db
-    .select()
-    .from(sportSnoozesTable)
-    .where(eq(sportSnoozesTable.sport, sport))
-    .limit(1);
   const snoozes = await db
     .select()
     .from(sportSnoozesTable)
@@ -628,7 +628,6 @@ router.get("/admin/sports/snoozes", async (_req, res): Promise<void> => {
 router.post("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
   const sport = req.params.sport;
 
-  const { durationHours, snoozedUntil, reason, snoozedBy = "admin" } = req.body ?? {};
   const durationHours: number = Number(req.body?.durationHours ?? 168); // default 1 week
   const snoozedBy: string = req.body?.snoozedBy ?? "admin";
   const reason: string | undefined = req.body?.reason;
@@ -657,15 +656,9 @@ router.post("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
 /** DELETE /admin/sports/:sport/snooze — remove a snooze early */
 router.delete("/admin/sports/:sport/snooze", async (req, res): Promise<void> => {
   const sport = req.params.sport;
-
-  const { durationHours, snoozedUntil, reason, snoozedBy = "admin" } = req.body ?? {};
   await db.delete(sportSnoozesTable).where(eq(sportSnoozesTable.sport, sport));
   logger.info({ sport }, "Admin: sport snooze removed");
   res.json({ message: `Snooze for ${sport} removed` });
 });
 
 export default router;
-
-  let expiryDate: Date;
-
-    const hours = Number(durationHours);
