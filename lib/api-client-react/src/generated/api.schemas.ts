@@ -72,9 +72,76 @@ export interface SportStat {
   currentStreakDir: string;
 }
 
+export interface RecentResult {
+  pickId: number;
+  sport: string;
+  awayTeamAbbr: string;
+  homeTeamAbbr: string;
+  awayScore?: number | null;
+  homeScore?: number | null;
+  pick: string;
+  odds?: number | null;
+  unitsRisked?: number | null;
+  unitsWonLost: number;
+  result: string;
+  gameDate: string;
+  gradedAt?: string | null;
+}
+
 export interface ResultsSummaryResponse {
+  period?: string;
   overall: OverallStat;
   bySport: SportStat[];
+  recentResults?: RecentResult[];
+  dataAsOf?: string;
+}
+
+export interface RoiEntry {
+  key: string;
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
+}
+
+export type RoiByRatingEntry = RoiEntry & {
+  recommendation: string;
+};
+
+export type RoiBySportEntry = RoiEntry & {
+  sport: string;
+};
+
+export type RoiBySportAndRatingEntry = RoiEntry & {
+  sport: string;
+  recommendation: string;
+};
+
+export interface ResultsRoiResponse {
+  period?: string;
+  byRating: RoiByRatingEntry[];
+  bySport: RoiBySportEntry[];
+  bySportAndRating: RoiBySportAndRatingEntry[];
+  dataAsOf?: string;
+}
+
+export interface ModelStatsHistoryEntry {
+  week: string;
+  sport: string;
+  wins: number;
+  losses: number;
+  pushes: number;
+  unitsWon: number;
+  totalPicks: number;
+}
+
+export interface ModelStatsHistoryResponse {
+  history: ModelStatsHistoryEntry[];
+  dataAsOf: string;
 }
 
 export interface ModelSportStat {
@@ -95,11 +162,47 @@ export interface ModelStatsResponse {
   dataAsOf: string;
 }
 
+export interface RegisterPushTokenRequest {
+  token: string;
+  platform: string;
+}
+
+export interface DeregisterPushTokenRequest {
+  token: string;
+}
+
+export interface NotificationPreferences {
+  enabledSports?: string[] | null;
+  allSports: string[];
+}
+
+export interface UpdateNotificationPreferencesRequest {
+  enabledSports?: string[] | null;
+}
+
+export interface UserPreferences {
+  notifSports?: string[] | null;
+  notifMinTier: string;
+  notifEnabled: boolean;
+  validSports: string[];
+  validTiers: string[];
+}
+
+export interface UpdateUserPreferencesRequest {
+  notifSports?: string[] | null;
+  notifMinTier?: string;
+  notifEnabled?: boolean;
+}
+
 export type GetGamesTodayParams = {
 sport?: string;
 };
 
 export type GetResultsSummaryParams = {
+period?: string;
+};
+
+export type GetResultsRoiParams = {
 period?: string;
 };
 

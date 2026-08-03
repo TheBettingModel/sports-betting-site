@@ -14,6 +14,10 @@ tags:
     description: Game data with model projections
   - name: model
     description: Model learning stats
+  - name: results
+    description: Model performance results and ROI
+  - name: device
+    description: Device push token and preference management
 paths:
   /healthz:
     get:
@@ -64,7 +68,7 @@ paths:
   /results/summary:
     get:
       operationId: getResultsSummary
-      tags: [games]
+      tags: [results]
       summary: Get overall and per-sport model performance summary
       parameters:
         - name: period
@@ -80,6 +84,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResultsSummaryResponse"
 
+  /results/roi:
+    get:
+      operationId: getResultsRoi
+      tags: [results]
+      summary: Get win%, units, and ROI broken down by sport and rating tier
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ROI breakdown by rating and sport
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsRoiResponse"
+
+  /model-stats/history:
+    get:
+      operationId: getModelStatsHistory
+      tags: [model]
+      summary: Get weekly win-rate and units history per sport (last 8 weeks)
+      responses:
+        "200":
+          description: Weekly model performance history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelStatsHistoryResponse"
+
   /model/stats:
     get:
       operationId: getModelStats
@@ -92,6 +128,99 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ModelStatsResponse"
+
+  /push-tokens:
+    post:
+      operationId: registerPushToken
+      tags: [device]
+      summary: Register a device push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterPushTokenRequest"
+      responses:
+        "200":
+          description: Token registered
+        "400":
+          description: Bad request
+
+    delete:
+      operationId: deregisterPushToken
+      tags: [device]
+      summary: Remove a device push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeregisterPushTokenRequest"
+      responses:
+        "200":
+          description: Token removed
+
+  /notification-preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags: [device]
+      summary: Get per-sport notification preferences for the authenticated user
+      responses:
+        "200":
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+
+    put:
+      operationId: updateNotificationPreferences
+      tags: [device]
+      summary: Update per-sport notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNotificationPreferencesRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+
+  /preferences:
+    get:
+      operationId: getUserPreferences
+      tags: [device]
+      summary: Get notification/alert preferences for the authenticated user
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
+    put:
+      operationId: updateUserPreferences
+      tags: [device]
+      summary: Update notification/alert preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserPreferencesRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
 
 components:
   schemas:
@@ -261,16 +390,163 @@ components:
           type: string
       required: [sport, wins, losses, pushes, totalPicks, winRate, unitsWonLost, currentStreak, currentStreakDir]
 
+    RecentResult:
+      type: object
+      properties:
+        pickId:
+          type: integer
+        sport:
+          type: string
+        awayTeamAbbr:
+          type: string
+        homeTeamAbbr:
+          type: string
+        awayScore:
+          type: integer
+          nullable: true
+        homeScore:
+          type: integer
+          nullable: true
+        pick:
+          type: string
+        odds:
+          type: integer
+          nullable: true
+        unitsRisked:
+          type: number
+          nullable: true
+        unitsWonLost:
+          type: number
+        result:
+          type: string
+        gameDate:
+          type: string
+        gradedAt:
+          type: string
+          nullable: true
+      required: [pickId, sport, awayTeamAbbr, homeTeamAbbr, pick, unitsWonLost, result, gameDate]
+
     ResultsSummaryResponse:
       type: object
       properties:
+        period:
+          type: string
         overall:
           $ref: "#/components/schemas/OverallStat"
         bySport:
           type: array
           items:
             $ref: "#/components/schemas/SportStat"
+        recentResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecentResult"
+        dataAsOf:
+          type: string
       required: [overall, bySport]
+
+    RoiEntry:
+      type: object
+      properties:
+        key:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        unitsRisked:
+          type: number
+        roi:
+          type: number
+      required: [key, wins, losses, pushes, totalPicks, winRate, unitsWonLost, unitsRisked, roi]
+
+    RoiByRatingEntry:
+      allOf:
+        - $ref: "#/components/schemas/RoiEntry"
+        - type: object
+          properties:
+            recommendation:
+              type: string
+          required: [recommendation]
+
+    RoiBySportEntry:
+      allOf:
+        - $ref: "#/components/schemas/RoiEntry"
+        - type: object
+          properties:
+            sport:
+              type: string
+          required: [sport]
+
+    RoiBySportAndRatingEntry:
+      allOf:
+        - $ref: "#/components/schemas/RoiEntry"
+        - type: object
+          properties:
+            sport:
+              type: string
+            recommendation:
+              type: string
+          required: [sport, recommendation]
+
+    ResultsRoiResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        byRating:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoiByRatingEntry"
+        bySport:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoiBySportEntry"
+        bySportAndRating:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoiBySportAndRatingEntry"
+        dataAsOf:
+          type: string
+      required: [byRating, bySport, bySportAndRating]
+
+    ModelStatsHistoryEntry:
+      type: object
+      properties:
+        week:
+          type: string
+        sport:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        unitsWon:
+          type: number
+        totalPicks:
+          type: integer
+      required: [week, sport, wins, losses, pushes, unitsWon, totalPicks]
+
+    ModelStatsHistoryResponse:
+      type: object
+      properties:
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelStatsHistoryEntry"
+        dataAsOf:
+          type: string
+      required: [history, dataAsOf]
 
     ModelSportStat:
       type: object
@@ -319,3 +595,77 @@ components:
         - overallAccuracy
         - totalPredictions
         - dataAsOf
+
+    RegisterPushTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+      required: [token, platform]
+
+    DeregisterPushTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+      required: [token]
+
+    NotificationPreferences:
+      type: object
+      properties:
+        enabledSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+        allSports:
+          type: array
+          items:
+            type: string
+      required: [allSports]
+
+    UpdateNotificationPreferencesRequest:
+      type: object
+      properties:
+        enabledSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    UserPreferences:
+      type: object
+      properties:
+        notifSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+        notifMinTier:
+          type: string
+        notifEnabled:
+          type: boolean
+        validSports:
+          type: array
+          items:
+            type: string
+        validTiers:
+          type: array
+          items:
+            type: string
+      required: [notifMinTier, notifEnabled, validSports, validTiers]
+
+    UpdateUserPreferencesRequest:
+      type: object
+      properties:
+        notifSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+        notifMinTier:
+          type: string
+        notifEnabled:
+          type: boolean

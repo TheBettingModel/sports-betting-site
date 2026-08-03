@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OverallStat } from './overallStat';
+import type { RecentResult } from './recentResult';
 import type { SportStat } from './sportStat';
 
 export interface ResultsSummaryResponse {
+  period?: string;
   overall: OverallStat;
   bySport: SportStat[];
+  recentResults?: RecentResult[];
+  dataAsOf?: string;
 }

@@ -77,6 +77,7 @@ export const GetResultsSummaryQueryParams = zod.object({
 })
 
 export const GetResultsSummaryResponse = zod.object({
+  "period": zod.string().optional(),
   "overall": zod.object({
   "wins": zod.number(),
   "losses": zod.number(),
@@ -95,7 +96,93 @@ export const GetResultsSummaryResponse = zod.object({
   "unitsWonLost": zod.number(),
   "currentStreak": zod.number(),
   "currentStreakDir": zod.string()
-}))
+})),
+  "recentResults": zod.array(zod.object({
+  "pickId": zod.number(),
+  "sport": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "awayScore": zod.number().nullish(),
+  "homeScore": zod.number().nullish(),
+  "pick": zod.string(),
+  "odds": zod.number().nullish(),
+  "unitsRisked": zod.number().nullish(),
+  "unitsWonLost": zod.number(),
+  "result": zod.string(),
+  "gameDate": zod.string(),
+  "gradedAt": zod.string().nullish()
+})).optional(),
+  "dataAsOf": zod.string().optional()
+})
+
+
+/**
+ * @summary Get win%, units, and ROI broken down by sport and rating tier
+ */
+export const GetResultsRoiQueryParams = zod.object({
+  "period": zod.coerce.string().optional()
+})
+
+export const GetResultsRoiResponse = zod.object({
+  "period": zod.string().optional(),
+  "byRating": zod.array(zod.object({
+  "key": zod.string(),
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number(),
+  "unitsRisked": zod.number(),
+  "roi": zod.number()
+}).and(zod.object({
+  "recommendation": zod.string()
+}))),
+  "bySport": zod.array(zod.object({
+  "key": zod.string(),
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number(),
+  "unitsRisked": zod.number(),
+  "roi": zod.number()
+}).and(zod.object({
+  "sport": zod.string()
+}))),
+  "bySportAndRating": zod.array(zod.object({
+  "key": zod.string(),
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number(),
+  "unitsRisked": zod.number(),
+  "roi": zod.number()
+}).and(zod.object({
+  "sport": zod.string(),
+  "recommendation": zod.string()
+}))),
+  "dataAsOf": zod.string().optional()
+})
+
+
+/**
+ * @summary Get weekly win-rate and units history per sport (last 8 weeks)
+ */
+export const GetModelStatsHistoryResponse = zod.object({
+  "history": zod.array(zod.object({
+  "week": zod.string(),
+  "sport": zod.string(),
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "unitsWon": zod.number(),
+  "totalPicks": zod.number()
+})),
+  "dataAsOf": zod.string()
 })
 
 
@@ -116,6 +203,79 @@ export const GetModelStatsResponse = zod.object({
   "overallAccuracy": zod.number(),
   "totalPredictions": zod.number(),
   "dataAsOf": zod.string()
+})
+
+
+/**
+ * @summary Register a device push token
+ */
+export const RegisterPushTokenBody = zod.object({
+  "token": zod.string(),
+  "platform": zod.string()
+})
+
+export const RegisterPushTokenResponse = zod.unknown()
+
+
+/**
+ * @summary Remove a device push token
+ */
+export const DeregisterPushTokenBody = zod.object({
+  "token": zod.string()
+})
+
+export const DeregisterPushTokenResponse = zod.unknown()
+
+
+/**
+ * @summary Get per-sport notification preferences for the authenticated user
+ */
+export const GetNotificationPreferencesResponse = zod.object({
+  "enabledSports": zod.array(zod.string()).nullish(),
+  "allSports": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Update per-sport notification preferences
+ */
+export const UpdateNotificationPreferencesBody = zod.object({
+  "enabledSports": zod.array(zod.string()).nullish()
+})
+
+export const UpdateNotificationPreferencesResponse = zod.object({
+  "enabledSports": zod.array(zod.string()).nullish(),
+  "allSports": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get notification/alert preferences for the authenticated user
+ */
+export const GetUserPreferencesResponse = zod.object({
+  "notifSports": zod.array(zod.string()).nullish(),
+  "notifMinTier": zod.string(),
+  "notifEnabled": zod.boolean(),
+  "validSports": zod.array(zod.string()),
+  "validTiers": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Update notification/alert preferences
+ */
+export const UpdateUserPreferencesBody = zod.object({
+  "notifSports": zod.array(zod.string()).nullish(),
+  "notifMinTier": zod.string().optional(),
+  "notifEnabled": zod.boolean().optional()
+})
+
+export const UpdateUserPreferencesResponse = zod.object({
+  "notifSports": zod.array(zod.string()).nullish(),
+  "notifMinTier": zod.string(),
+  "notifEnabled": zod.boolean(),
+  "validSports": zod.array(zod.string()),
+  "validTiers": zod.array(zod.string())
 })
 
 

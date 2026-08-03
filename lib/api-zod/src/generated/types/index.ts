@@ -6,14 +6,29 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './deregisterPushTokenRequest';
 export * from './gameProjection';
 export * from './gamesTodayResponse';
 export * from './getGamesTodayParams';
+export * from './getResultsRoiParams';
 export * from './getResultsSummaryParams';
 export * from './healthStatus';
 export * from './modelSportStat';
+export * from './modelStatsHistoryEntry';
+export * from './modelStatsHistoryResponse';
 export * from './modelStatsResponse';
+export * from './notificationPreferences';
 export * from './overallStat';
+export * from './recentResult';
 export * from './refreshResponse';
+export * from './registerPushTokenRequest';
+export * from './resultsRoiResponse';
 export * from './resultsSummaryResponse';
+export * from './roiByRatingEntry';
+export * from './roiBySportAndRatingEntry';
+export * from './roiBySportEntry';
+export * from './roiEntry';
 export * from './sportStat';
+export * from './updateNotificationPreferencesRequest';
+export * from './updateUserPreferencesRequest';
+export * from './userPreferences';
