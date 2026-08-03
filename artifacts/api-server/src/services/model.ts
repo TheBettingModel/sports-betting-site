@@ -44,7 +44,7 @@ const HOME_ADVANTAGE: Record<string, number> = {
   NBA:    0.060,
   MLB:    0.040,
   NHL:    0.045,
-  WNBA:   0.045,
+  WNBA:   0.030,  // WNBA home edge is ~2–3 pts, smaller than NBA (shorter travel, smaller arenas)
   NCAAF:  0.075,
   NCAAB:  0.065,
   Soccer: 0.050,
@@ -108,14 +108,14 @@ export const SPORT_DEFAULT_WEIGHTS: Record<string, FactorWeights> = {
   },
   // ── WNBA / NBA: multi-factor efficiency model ─────────────────────────────
   WNBA: {
-    recordWeight:     0.30,
+    recordWeight:     0.28,  // slightly reduced — schedule strength not captured
     efgWeight:        0.28,  // eFG% differential — strongest per-possession signal
     toWeight:         0.22,  // turnover% (note: lower is better, applied reversed)
     orebWeight:       0.004, // offensive rebounds per game
     defWeight:        0.003, // (BLK + STL) per game
-    formWeight:       0.12,
-    netRatingWeight:  0.003,
-    restWeight:       0.009,
+    formWeight:       0.14,  // recent form matters more in a compact WNBA schedule
+    netRatingWeight:  0.012, // last-10 point diff is a better quality signal than 0.003
+    restWeight:       0.022, // rest/B2B is significant on a 40-game schedule
   },
   NBA: {
     recordWeight:     0.30,
@@ -631,6 +631,13 @@ function computeBasketballProjection(
     // Tier 3: Rest
     const restDiff = hs.restDays - as_.restDays;
     prob += Math.max(-0.035, Math.min(0.035, restDiff * (fw["restWeight"] ?? 0.009)));
+
+    // Back-to-back penalty: explicit –3 % for teams on zero/one day rest.
+    // The weight-based restDiff only captures relative rest; this captures the
+    // absolute fatigue hit of playing on consecutive days (material in WNBA/NBA).
+    const b2bPenalty = sport === "WNBA" ? 0.030 : 0.020;
+    if (hs.restDays <= 1)  prob -= b2bPenalty;  // home team on B2B — hurts home
+    if (as_.restDays <= 1) prob += b2bPenalty;  // away team on B2B — hurts away = helps home
   }
 
   prob = 0.5 + (prob - 0.5) * multiplier;
@@ -745,21 +752,38 @@ function finalizeResult(
     vegasImplied     = americanToImplied(vegasHomeOdds);
   }
 
-  const edge       = Math.round((prob - vegasImplied) * 1000) / 10;
+  const edge = Math.round((prob - vegasImplied) * 1000) / 10;
+
+  // ── Vegas spread anchor (WNBA) ──────────────────────────────────────────────
+  // When the model's projected spread diverges from Vegas by more than 5 points,
+  // treat Vegas as more informed and cap the effective edge. This prevents
+  // "Strong Buy" on games where we and Vegas have fundamentally different reads.
+  const projSprdForAnchor = Math.round((0.5 - prob) * 20 * 2) / 2;
+  const vgSprdForAnchor   = Math.round((0.5 - vegasImplied) * 20 * 2) / 2;
+  const spreadGap         = Math.abs(projSprdForAnchor - vgSprdForAnchor);
+  // For WNBA, cap edge at +8 when spread gap ≥ 5 (stays Buy at most, never Strong Buy)
+  // and at +5 when gap ≥ 8 (floor is Neutral boundary — don't recommend marginal plays)
+  const anchoredEdge =
+    sport === "WNBA" && spreadGap >= 8 ? Math.sign(edge) * Math.min(Math.abs(edge), 5) :
+    sport === "WNBA" && spreadGap >= 5 ? Math.sign(edge) * Math.min(Math.abs(edge), 8) :
+    edge;
+
   const confidence = deviation >= 18 ? "High" : deviation >= 9 ? "Medium" : "Low";
   const valueRating =
-    edge >= 10 ? "Strong Buy" : edge >= 5 ? "Buy" : edge <= -5 ? "Fade" : "Neutral";
+    anchoredEdge >= 10 ? "Strong Buy" :
+    anchoredEdge >= 5  ? "Buy"        :
+    anchoredEdge <= -5 ? "Fade"       : "Neutral";
 
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
 
   // Determine the pick-side odds for price adjustment (home if edge > 0, else away)
-  const pickIsHome = edge >= 0;
+  const pickIsHome = anchoredEdge >= 0;
   const pickOdds   = pickIsHome ? vegasHomeOdds : vegasAwayOdds;
   const priceAdj   = getPriceAdjustment(pickOdds);
 
   const confidenceNum = getNumericConfidence(deviation);
   const { sharpScore, sharpSignal } = getSharpMarketSignal(
-    edge,
+    anchoredEdge,
     pickOdds,
     opts.pinnacleHomeOdds,
     opts.pinnacleAwayOdds,
@@ -780,10 +804,10 @@ function finalizeResult(
     lineMoveConfirms === false ? Math.max(0,  sharpScore - 1) :
     sharpScore;
 
-  const units           = getDynamicUnits(edge, confidenceNum, valueRating);
+  const units           = getDynamicUnits(anchoredEdge, confidenceNum, valueRating);
   const { finalModelScore, finalModelTier, finalModelStars } =
-    getUniversalFinalRating(edge, confidenceNum, effectiveSharpScore, priceAdj);
-  const podScore = getPodScore(finalModelScore, effectiveSharpScore, edge);
+    getUniversalFinalRating(anchoredEdge, confidenceNum, effectiveSharpScore, priceAdj);
+  const podScore = getPodScore(finalModelScore, effectiveSharpScore, anchoredEdge);
 
   // modelScore is now the universal final rating (backward-compat field name)
   const modelScore = finalModelScore;

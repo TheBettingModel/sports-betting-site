@@ -358,8 +358,10 @@ export async function refreshAll(): Promise<{
           gameDate: game.gameDate,
           gameTime: game.gameTime,
           status: game.status,
-          homeScore: game.homeScore ?? null,
-          awayScore: game.awayScore ?? null,
+          // Preserve a valid score once captured — ESPN sometimes returns 0 on
+          // subsequent refreshes even after a game has finished.
+          homeScore: sql`COALESCE(NULLIF(EXCLUDED.home_score, 0), ${gamesTable.homeScore})`,
+          awayScore: sql`COALESCE(NULLIF(EXCLUDED.away_score, 0), ${gamesTable.awayScore})`,
           homeTeamRecord: game.homeTeamRecord,
           awayTeamRecord: game.awayTeamRecord,
           homeWinPct: proj.homeWinPct,
