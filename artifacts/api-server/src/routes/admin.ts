@@ -104,6 +104,9 @@ function isValidSession(token: string): boolean {
 
 function requireMasterKey(req: Request, res: Response, next: NextFunction): void {
   if (!MASTER_KEY) {
+    // Fail-closed: a missing MASTER_API_KEY is always a hard error.
+    // NODE_ENV may be unset or misconfigured in production, so we never
+    // use it as a bypass gate — an absent key is never safe to ignore.
     res.status(503).json({ error: "Admin access not configured: set MASTER_API_KEY" });
     return;
   }
