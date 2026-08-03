@@ -61,16 +61,18 @@ export default function ResultsScreen() {
 
   const listItems: ListItem[] = [];
 
-  // Only build the list when we have graded picks — otherwise the FlatList
-  // stays empty and ListEmptyComponent shows the "no picks yet" state.
-  if (overall && overall.totalPicks > 0) {
+  // Always show the summary card once data has loaded (even 0-0).
+  // Only add the per-sport breakdown when there are actually graded picks.
+  if (overall) {
     listItems.push({ type: 'header-summary' });
 
-    const gradedSports = bySport.filter(s => s.wins + s.losses > 0);
-    if (gradedSports.length > 0) {
-      listItems.push({ type: 'header-sport' });
-      for (const stat of gradedSports) {
-        listItems.push({ type: 'sport-row', stat });
+    if (overall.totalPicks > 0) {
+      const gradedSports = bySport.filter(s => s.wins + s.losses > 0);
+      if (gradedSports.length > 0) {
+        listItems.push({ type: 'header-sport' });
+        for (const stat of gradedSports) {
+          listItems.push({ type: 'sport-row', stat });
+        }
       }
     }
   }
