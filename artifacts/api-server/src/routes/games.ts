@@ -10,8 +10,10 @@ import { getLineupMatchup } from "../services/mlbLineups";
 import { getVenueWeather, computeWeatherEffect } from "../services/weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage } from "../services/nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "../services/nflInjuries";
+import { getWnbaTeamInjuryImpact, computeWnbaInjuryAdvantage } from "../services/wnbaInjuries";
 import type { GoalieMatchup } from "../services/nhlGoalies";
 import type { TeamInjuryImpact } from "../services/nflInjuries";
+import type { WnbaTeamInjuryImpact } from "../services/wnbaInjuries";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
@@ -93,11 +95,12 @@ export async function refreshAll(): Promise<{
   // Running these inside the per-game loop would serialize 15+ HTTP calls
   // (worst case 15 × 8s timeout ≈ 2 minutes). Pre-batching bounds latency to
   // the slowest single request (~1s for Open-Meteo, ~2s for NHL).
-  const weatherMap  = new Map<string, Awaited<ReturnType<typeof getVenueWeather>>>();
-  const goalieMap   = new Map<string, Awaited<ReturnType<typeof getGoalieMatchup>>>();
-  const injuryMap   = new Map<string, Awaited<ReturnType<typeof getTeamInjuryImpact>>>();
-  const bullpenMap  = new Map<string, Awaited<ReturnType<typeof getBullpenMatchup>>>();
-  const lineupMap   = new Map<string, Awaited<ReturnType<typeof getLineupMatchup>>>();
+  const weatherMap    = new Map<string, Awaited<ReturnType<typeof getVenueWeather>>>();
+  const goalieMap     = new Map<string, Awaited<ReturnType<typeof getGoalieMatchup>>>();
+  const injuryMap     = new Map<string, Awaited<ReturnType<typeof getTeamInjuryImpact>>>();
+  const wnbaInjuryMap = new Map<string, WnbaTeamInjuryImpact>(); // keyed by ESPN team ID
+  const bullpenMap    = new Map<string, Awaited<ReturnType<typeof getBullpenMatchup>>>();
+  const lineupMap     = new Map<string, Awaited<ReturnType<typeof getLineupMatchup>>>();
 
   await Promise.all([
     // Weather — one call per outdoor MLB/NFL venue (dome stadiums resolve instantly)
@@ -125,6 +128,19 @@ export async function refreshAll(): Promise<{
         const impact = await getTeamInjuryImpact(abbr);
         injuryMap.set(abbr, impact);
       }),
+    // WNBA injuries — one ESPN report covers all 12 teams; keyed by ESPN team ID.
+    // Pre-batch so all WNBA games share a single fetch (3-hour TTL in the service).
+    (async () => {
+      const wnbaTeamIds = fetchedGames
+        .filter((g) => g.sport === "WNBA")
+        .flatMap((g) => [g.homeTeamId, g.awayTeamId])
+        .filter((id): id is string => !!id)
+        .filter((id, i, arr) => arr.indexOf(id) === i); // unique
+      for (const teamId of wnbaTeamIds) {
+        const impact = await getWnbaTeamInjuryImpact(teamId);
+        wnbaInjuryMap.set(teamId, impact);
+      }
+    })(),
     // MLB bullpen fatigue — one batch call fetches all teams; single cache per day
     (async () => {
       const mlbGames = fetchedGames.filter((g) => g.sport === "MLB");
@@ -220,10 +236,12 @@ export async function refreshAll(): Promise<{
         : undefined;
 
     // ── Phase 3: look up pre-fetched signals (already resolved above) ─────────
-    const venueWeather  = weatherMap.get(game.espnId) ?? null;
-    const goalieMatchup = goalieMap.get(game.espnId) ?? ({ home: null, away: null } as GoalieMatchup);
-    const homeInjury    = injuryMap.get(game.homeTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
-    const awayInjury    = injuryMap.get(game.awayTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
+    const venueWeather   = weatherMap.get(game.espnId) ?? null;
+    const goalieMatchup  = goalieMap.get(game.espnId) ?? ({ home: null, away: null } as GoalieMatchup);
+    const homeInjury     = injuryMap.get(game.homeTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
+    const awayInjury     = injuryMap.get(game.awayTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
+    const homeWnbaInjury = wnbaInjuryMap.get(game.homeTeamId ?? "") ?? ({ impactScore: 0, keyInjuries: [] } as WnbaTeamInjuryImpact);
+    const awayWnbaInjury = wnbaInjuryMap.get(game.awayTeamId ?? "") ?? ({ impactScore: 0, keyInjuries: [] } as WnbaTeamInjuryImpact);
     const bullpenMatchup = bullpenMap.get(game.espnId) ?? { home: null, away: null };
     const lineupMatchup  = lineupMap.get(game.espnId) ?? { home: { confirmed: false, batterCount: 0 }, away: { confirmed: false, batterCount: 0 } };
 
@@ -235,6 +253,8 @@ export async function refreshAll(): Promise<{
       : undefined;
     const injuryAdvantage = game.sport === "NFL"
       ? computeInjuryAdvantage(homeInjury, awayInjury)
+      : game.sport === "WNBA"
+      ? computeWnbaInjuryAdvantage(homeWnbaInjury, awayWnbaInjury)
       : undefined;
     const bullpenEffect = game.sport === "MLB"
       ? computeBullpenAdvantage(bullpenMatchup)
@@ -333,11 +353,19 @@ export async function refreshAll(): Promise<{
         awayGoalieName:    goalieMatchup.away?.name ?? null,
         awayGoalieSavePct: goalieMatchup.away?.savePct ?? null,
         awayGoalieGaa:     goalieMatchup.away?.gaa ?? null,
-        // Phase 3: NFL injuries
-        homeInjuryImpact: game.sport === "NFL" ? homeInjury.impactScore : null,
-        awayInjuryImpact: game.sport === "NFL" ? awayInjury.impactScore : null,
-        homeKeyInjuries:  game.sport === "NFL" ? JSON.stringify(homeInjury.keyInjuries) : null,
-        awayKeyInjuries:  game.sport === "NFL" ? JSON.stringify(awayInjury.keyInjuries) : null,
+        // Phase 3: NFL / WNBA injuries (shared columns)
+        homeInjuryImpact:
+          game.sport === "NFL"  ? homeInjury.impactScore :
+          game.sport === "WNBA" ? homeWnbaInjury.impactScore : null,
+        awayInjuryImpact:
+          game.sport === "NFL"  ? awayInjury.impactScore :
+          game.sport === "WNBA" ? awayWnbaInjury.impactScore : null,
+        homeKeyInjuries:
+          game.sport === "NFL"  ? JSON.stringify(homeInjury.keyInjuries) :
+          game.sport === "WNBA" ? JSON.stringify(homeWnbaInjury.keyInjuries) : null,
+        awayKeyInjuries:
+          game.sport === "NFL"  ? JSON.stringify(awayInjury.keyInjuries) :
+          game.sport === "WNBA" ? JSON.stringify(awayWnbaInjury.keyInjuries) : null,
         // Phase 4: MLB bullpen fatigue
         homeBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.home?.weightedPitches ?? null) : null,
         awayBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.away?.weightedPitches ?? null) : null,
@@ -415,10 +443,19 @@ export async function refreshAll(): Promise<{
           awayGoalieName:    goalieMatchup.away?.name ?? null,
           awayGoalieSavePct: goalieMatchup.away?.savePct ?? null,
           awayGoalieGaa:     goalieMatchup.away?.gaa ?? null,
-          homeInjuryImpact: game.sport === "NFL" ? homeInjury.impactScore : null,
-          awayInjuryImpact: game.sport === "NFL" ? awayInjury.impactScore : null,
-          homeKeyInjuries:  game.sport === "NFL" ? JSON.stringify(homeInjury.keyInjuries) : null,
-          awayKeyInjuries:  game.sport === "NFL" ? JSON.stringify(awayInjury.keyInjuries) : null,
+          // Phase 3: NFL / WNBA injuries (shared columns, refreshed each run)
+          homeInjuryImpact:
+            game.sport === "NFL"  ? homeInjury.impactScore :
+            game.sport === "WNBA" ? homeWnbaInjury.impactScore : null,
+          awayInjuryImpact:
+            game.sport === "NFL"  ? awayInjury.impactScore :
+            game.sport === "WNBA" ? awayWnbaInjury.impactScore : null,
+          homeKeyInjuries:
+            game.sport === "NFL"  ? JSON.stringify(homeInjury.keyInjuries) :
+            game.sport === "WNBA" ? JSON.stringify(homeWnbaInjury.keyInjuries) : null,
+          awayKeyInjuries:
+            game.sport === "NFL"  ? JSON.stringify(awayInjury.keyInjuries) :
+            game.sport === "WNBA" ? JSON.stringify(awayWnbaInjury.keyInjuries) : null,
           // Phase 4: MLB bullpen fatigue (refreshed each run — fatigue changes daily)
           homeBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.home?.weightedPitches ?? null) : null,
           awayBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.away?.weightedPitches ?? null) : null,

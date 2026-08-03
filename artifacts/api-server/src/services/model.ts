@@ -640,6 +640,13 @@ function computeBasketballProjection(
     if (as_.restDays <= 1) prob += b2bPenalty;  // away team on B2B — hurts away = helps home
   }
 
+  // WNBA injury/availability adjustment.
+  // Stars in a 12-player roster have outsized per-game impact; this is the
+  // single biggest missing signal for WNBA (bigger than it is for NBA).
+  if (sport === "WNBA" && opts.injuryAdvantage != null) {
+    prob += opts.injuryAdvantage;
+  }
+
   prob = 0.5 + (prob - 0.5) * multiplier;
   const noiseRange = (hs && as_) ? 6 : 10;
   const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
