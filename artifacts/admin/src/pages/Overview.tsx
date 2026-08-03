@@ -1,5 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   BrainCircuit, AlertTriangle, Clock, TrendingUp,
   Activity, Rss,
@@ -51,7 +52,28 @@ const FEED_STATUS_TEXT: Record<FeedHealthEntry["status"], string> = {
   stale: "text-yellow-400",
 };
 
+const ALERT_SEVERITY_RING: Record<string, string> = {
+  critical: "ring-1 ring-red-500/60 border-red-500/40",
+  warning:  "ring-1 ring-yellow-400/50 border-yellow-400/30",
+};
+
+const ALERT_SEVERITY_BADGE: Record<string, string> = {
+  critical: "bg-red-500/15 text-red-400",
+  warning:  "bg-yellow-500/15 text-yellow-400",
+};
+
 function FeedHealthGrid({ entries }: { entries: FeedHealthEntry[] }) {
+  const [, navigate] = useLocation();
+
+  function handleChipClick(sport: string) {
+    navigate("/alerts");
+    // Give the Alerts page a tick to mount, then scroll to the sport group
+    setTimeout(() => {
+      const el = document.getElementById(`sport-${sport.toLowerCase()}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }
+
   return (
     <div className="bg-card border border-border rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
@@ -67,21 +89,37 @@ function FeedHealthGrid({ entries }: { entries: FeedHealthEntry[] }) {
         </div>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-        {entries.map((e) => (
-          <div
-            key={e.sport}
-            className="flex flex-col items-center gap-1 bg-background border border-border rounded-md px-2 py-2.5"
-            title={e.lastChecked ? `Last checked ${timeAgo(e.lastChecked)}` : "No data yet"}
-          >
-            <span className={`inline-block w-2 h-2 rounded-full ${FEED_STATUS_DOT[e.status]}`} />
-            <span className="text-xs font-medium text-foreground text-center leading-tight">{e.sport}</span>
-            <span className={`text-[10px] ${FEED_STATUS_TEXT[e.status]}`}>
-              {e.status === "ok" && e.gameCount != null
-                ? `${e.gameCount} game${e.gameCount !== 1 ? "s" : ""}`
-                : FEED_STATUS_LABEL[e.status]}
-            </span>
-          </div>
-        ))}
+        {entries.map((e) => {
+          const alertRing = e.alertSeverity ? (ALERT_SEVERITY_RING[e.alertSeverity] ?? "") : "";
+          const alertBadge = e.alertSeverity ? (ALERT_SEVERITY_BADGE[e.alertSeverity] ?? "bg-zinc-700 text-zinc-300") : "";
+          const title = [
+            e.lastChecked ? `Last checked ${timeAgo(e.lastChecked)}` : "No data yet",
+            e.alertCount > 0 ? `${e.alertCount} active alert${e.alertCount !== 1 ? "s" : ""} (${e.alertSeverity})` : "",
+          ].filter(Boolean).join(" · ");
+
+          return (
+            <button
+              key={e.sport}
+              onClick={() => handleChipClick(e.sport)}
+              className={`relative flex flex-col items-center gap-1 bg-background border border-border rounded-md px-2 py-2.5 cursor-pointer hover:bg-accent/30 transition-colors text-left w-full ${alertRing}`}
+              title={title}
+            >
+              {/* Alert count badge — top-right corner */}
+              {e.alertCount > 0 && (
+                <span className={`absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[9px] font-bold px-1 ${alertBadge}`}>
+                  {e.alertCount}
+                </span>
+              )}
+              <span className={`inline-block w-2 h-2 rounded-full ${FEED_STATUS_DOT[e.status]}`} />
+              <span className="text-xs font-medium text-foreground text-center leading-tight">{e.sport}</span>
+              <span className={`text-[10px] ${FEED_STATUS_TEXT[e.status]}`}>
+                {e.status === "ok" && e.gameCount != null
+                  ? `${e.gameCount} game${e.gameCount !== 1 ? "s" : ""}`
+                  : FEED_STATUS_LABEL[e.status]}
+              </span>
+            </button>
+          );
+        })}
       </div>
       {entries[0]?.lastChecked && (
         <p className="text-[10px] text-muted-foreground mt-2 text-right">

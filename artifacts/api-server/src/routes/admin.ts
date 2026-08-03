@@ -181,6 +181,7 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
     activeDQAlerts,
     pendingPicks,
     recentRuns,
+    dqBySportSeverity,
   ] = await Promise.all([
     db.select().from(modelVersionsTable).where(eq(modelVersionsTable.status, "production")),
     db.select().from(modelVersionsTable).where(eq(modelVersionsTable.status, "challenger")),
@@ -201,6 +202,16 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
       .from(automationRunsTable)
       .orderBy(desc(automationRunsTable.startedAt))
       .limit(10),
+    // Per-sport active DQ alert counts + severity — used to overlay the feed health chips
+    db
+      .select({
+        sport: dataQualityAlertsTable.sport,
+        severity: dataQualityAlertsTable.severity,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(dataQualityAlertsTable)
+      .where(eq(dataQualityAlertsTable.isResolved, false))
+      .groupBy(dataQualityAlertsTable.sport, dataQualityAlertsTable.severity),
   ]);
 
   // Aggregate overall performance across all production models
@@ -239,6 +250,21 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
           ? "degraded"
           : "running";
 
+  // ── Per-sport DQ alert summary ────────────────────────────────────────────────
+  const SEVERITY_RANK: Record<string, number> = { critical: 3, warning: 2, info: 1 };
+  type SportAlertInfo = { worstSeverity: string | null; count: number };
+  const sportAlertMap = new Map<string, SportAlertInfo>();
+  for (const row of dqBySportSeverity) {
+    const key = row.sport ?? "Unknown";
+    const existing = sportAlertMap.get(key);
+    const rank = SEVERITY_RANK[row.severity] ?? 0;
+    const existingRank = SEVERITY_RANK[existing?.worstSeverity ?? ""] ?? -1;
+    sportAlertMap.set(key, {
+      worstSeverity: rank > existingRank ? row.severity : (existing?.worstSeverity ?? null),
+      count: (existing?.count ?? 0) + Number(row.count),
+    });
+  }
+
   // ── Feed health: derive per-sport status from the most recent ingestion run ──
   const TRACKED_SPORTS = ["MLB", "NFL", "NHL", "NBA", "WNBA", "NCAAB", "NCAAF", "Soccer", "UFC"];
   const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -259,21 +285,24 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
     Date.now() - new Date(freshestIngestion.startedAt).getTime() > STALE_THRESHOLD_MS;
 
   const feedHealth = TRACKED_SPORTS.map((sport) => {
+    const alertInfo = sportAlertMap.get(sport) ?? { worstSeverity: null, count: 0 };
     if (!freshness || isStale) {
-      return { sport, status: "stale" as const, gameCount: null, lastChecked: null };
+      return { sport, status: "stale" as const, gameCount: null, lastChecked: null, alertSeverity: alertInfo.worstSeverity, alertCount: alertInfo.count };
     }
     const val = freshness[sport];
     if (val === undefined) {
-      return { sport, status: "stale" as const, gameCount: null, lastChecked };
+      return { sport, status: "stale" as const, gameCount: null, lastChecked, alertSeverity: alertInfo.worstSeverity, alertCount: alertInfo.count };
     }
     if (val === "error") {
-      return { sport, status: "error" as const, gameCount: null, lastChecked };
+      return { sport, status: "error" as const, gameCount: null, lastChecked, alertSeverity: alertInfo.worstSeverity, alertCount: alertInfo.count };
     }
     return {
       sport,
       status: val > 0 ? ("ok" as const) : ("quiet" as const),
       gameCount: val,
       lastChecked,
+      alertSeverity: alertInfo.worstSeverity,
+      alertCount: alertInfo.count,
     };
   });
 

@@ -553,17 +553,18 @@ export function Alerts() {
             ) : (
               <div className="space-y-2">
                 {sortedSports.map((sport) => (
-                  <SportAlertGroup
-                    key={sport}
-                    sport={sport}
-                    alerts={dqBySport[sport]!}
-                    snooze={snoozeMap.get(sport)}
-                    onResolve={(id) => resolve.mutate({ type: "dq", id })}
-                    onSnooze={(s, hours, reason) => snoozeMutation.mutate({ sport: s, hours, reason })}
-                    onUnsnooze={(s) => unsnoozeMutation.mutate(s)}
-                    isResolving={resolve.isPending}
-                    isSnoozeMutating={snoozeMutation.isPending || unsnoozeMutation.isPending}
-                  />
+                  <div key={sport} id={`sport-${sport.toLowerCase()}`}>
+                    <SportAlertGroup
+                      sport={sport}
+                      alerts={dqBySport[sport]!}
+                      snooze={snoozeMap.get(sport)}
+                      onResolve={(id) => resolve.mutate({ type: "dq", id })}
+                      onSnooze={(s, hours, reason) => snoozeMutation.mutate({ sport: s, hours, reason })}
+                      onUnsnooze={(s) => unsnoozeMutation.mutate(s)}
+                      isResolving={resolve.isPending}
+                      isSnoozeMutating={snoozeMutation.isPending || unsnoozeMutation.isPending}
+                    />
+                  </div>
                 ))}
               </div>
             )}

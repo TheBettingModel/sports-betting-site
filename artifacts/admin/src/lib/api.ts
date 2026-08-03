@@ -160,6 +160,10 @@ export interface FeedHealthEntry {
   status: "ok" | "quiet" | "error" | "stale";
   gameCount: number | null;
   lastChecked: string | null;
+  /** Worst unresolved DQ alert severity for this sport, or null if none. */
+  alertSeverity: string | null;
+  /** Number of active unresolved DQ alerts for this sport. */
+  alertCount: number;
 }
 
 export interface AdminOverview {
