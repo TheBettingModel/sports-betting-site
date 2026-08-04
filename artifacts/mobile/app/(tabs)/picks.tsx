@@ -53,7 +53,6 @@ export default function PicksScreen() {
   const router = useRouter();
   const { isSubscribed } = useSubscription();
   const { selectedSport } = useSports();
-  const [showPlaysOnly, setShowPlaysOnly] = useState(true);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
@@ -117,9 +116,8 @@ export default function PicksScreen() {
   // On a specific sport tab: always show every rating — users drilling into a sport
   // want the full picture, not just qualifying plays.
   const PLAYS_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
-  const activeRatings = (selectedSport === 'All' && showPlaysOnly)
-    ? PLAYS_RATINGS
-    : [...RATING_ORDER];
+  // All tab shows only playable picks; sport-specific tabs show every rating.
+  const activeRatings = selectedSport === 'All' ? PLAYS_RATINGS : [...RATING_ORDER];
 
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
@@ -136,7 +134,7 @@ export default function PicksScreen() {
     }
     return items;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedGames, isSubscribed, showPlaysOnly]);
+  }, [sortedGames, isSubscribed]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -196,25 +194,6 @@ export default function PicksScreen() {
               </React.Fragment>
             ))}
           </View>
-          {/* Plays / All toggle — only meaningful on the All tab */}
-          {selectedSport === 'All' && <View style={[styles.togglePill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Pressable
-              onPress={() => setShowPlaysOnly(true)}
-              style={[styles.toggleOption, showPlaysOnly && { backgroundColor: colors.primary + '22' }]}
-            >
-              <Text style={[styles.toggleText, { color: showPlaysOnly ? colors.primary : colors.mutedForeground }]}>
-                PLAYS
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setShowPlaysOnly(false)}
-              style={[styles.toggleOption, !showPlaysOnly && { backgroundColor: colors.secondary }]}
-            >
-              <Text style={[styles.toggleText, { color: !showPlaysOnly ? colors.foreground : colors.mutedForeground }]}>
-                ALL
-              </Text>
-            </Pressable>
-          </View>}
         </View>
       )}
 
@@ -343,14 +322,6 @@ const styles = StyleSheet.create({
   summaryVal: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   summaryLabel: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 },
   stripDivider: { width: 1, marginVertical: 4 },
-  togglePill: {
-    borderRadius: 10, borderWidth: 1,
-    flexDirection: 'column', overflow: 'hidden',
-  },
-  toggleOption: {
-    paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center',
-  },
-  toggleText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   featuredSection: { paddingHorizontal: 16, marginTop: 12 },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   sectionLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.5, textTransform: 'uppercase' },
