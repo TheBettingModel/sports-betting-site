@@ -240,15 +240,14 @@ function getPriceAdjustment(odds: number): number {
  * 3.4 Dynamic unit sizing — scales bet size with conviction.
  * Returns 0 for Neutral/Fade (no bet), 0.5–3.0 for Buy/Strong Buy.
  */
-function getDynamicUnits(edge: number, confidenceNum: number, valueRating: string): number {
+function getDynamicUnits(edge: number, finalModelScore: number, valueRating: string): number {
   if (valueRating === "Fade" || valueRating === "Neutral") return 0;
-  // Units are primarily driven by the label so the badge and unit count always agree.
-  // Confidence acts as a secondary bump within each tier.
-  if (valueRating === "Strong Buy") {
-    return confidenceNum >= 85 ? 3.0 : 2.5;
-  }
-  // Buy
-  return confidenceNum >= 75 ? 2.0 : 1.5;
+  // Unit sizing is driven by the composite displayed score (finalModelScore, 0–100):
+  //   ≥85 → 3.0u  |  80–84 → 2.5u  |  70–79 → 2.0u  |  <70 → 1.5u
+  if (finalModelScore >= 85) return 3.0;
+  if (finalModelScore >= 80) return 2.5;
+  if (finalModelScore >= 70) return 2.0;
+  return 1.5;
 }
 
 /**
@@ -811,10 +810,10 @@ function finalizeResult(
     lineMoveConfirms === false ? Math.max(0,  sharpScore - 1) :
     sharpScore;
 
-  const units           = getDynamicUnits(anchoredEdge, confidenceNum, valueRating);
   const { finalModelScore, finalModelTier, finalModelStars } =
     getUniversalFinalRating(anchoredEdge, confidenceNum, effectiveSharpScore, priceAdj);
   const podScore = getPodScore(finalModelScore, effectiveSharpScore, anchoredEdge);
+  const units    = getDynamicUnits(anchoredEdge, finalModelScore, valueRating);
 
   // modelScore is now the universal final rating (backward-compat field name)
   const modelScore = finalModelScore;
@@ -947,10 +946,10 @@ function computeSoccerProjection(
 
   const confidenceNum = getNumericConfidence(deviation);
   const { sharpScore, sharpSignal } = getSharpMarketSignal(edge, pickOdds);
-  const units = getDynamicUnits(edge, confidenceNum, valueRating);
   const { finalModelScore, finalModelTier, finalModelStars } =
     getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
   const podScore = getPodScore(finalModelScore, sharpScore, edge);
+  const units    = getDynamicUnits(edge, finalModelScore, valueRating);
 
   const projectedSpread = Math.round((0.5 - modelHome) * 6 * 2) / 2;
   const vegasSpread     = Math.round((0.5 - vegasImpliedHome) * 6 * 2) / 2;
