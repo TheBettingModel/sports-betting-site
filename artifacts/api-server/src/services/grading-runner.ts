@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt, ne, not } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
@@ -177,6 +177,75 @@ export async function runGrading(): Promise<number> {
   }
 
   return graded;
+}
+
+/**
+ * Populate game_results rows for every game that is already marked "final"
+ * in the games table but is missing a corresponding game_results entry.
+ *
+ * This is the primary path by which game_results gets populated: the games
+ * refresh route marks games as "final" directly in the games table (either
+ * because ESPN returned a final status, or because the game dropped off the
+ * live feed). This function syncs that data into game_results so runGrading()
+ * has something to work with.
+ *
+ * Safe to call multiple times — idempotent via the unique index on gameId.
+ *
+ * Returns the number of rows newly written.
+ */
+export async function syncGameResults(): Promise<number> {
+  // Find all final games with scores recorded
+  const finalGames = await db
+    .select({
+      id:        gamesTable.id,
+      homeScore: gamesTable.homeScore,
+      awayScore: gamesTable.awayScore,
+    })
+    .from(gamesTable)
+    .where(
+      and(
+        eq(gamesTable.status, "final"),
+        isNotNull(gamesTable.homeScore),
+        isNotNull(gamesTable.awayScore),
+      ),
+    );
+
+  if (finalGames.length === 0) return 0;
+
+  // Find which ones already have a game_results row
+  const finalIds = finalGames.map((g) => g.id);
+  const existing = await db
+    .select({ gameId: gameResultsTable.gameId })
+    .from(gameResultsTable)
+    .where(inArray(gameResultsTable.gameId, finalIds));
+
+  const existingIds = new Set(existing.map((r) => r.gameId));
+  const missing = finalGames.filter((g) => !existingIds.has(g.id));
+
+  if (missing.length === 0) return 0;
+
+  let synced = 0;
+  for (const game of missing) {
+    const homeScore = game.homeScore!;
+    const awayScore = game.awayScore!;
+    try {
+      await db.insert(gameResultsTable).values({
+        gameId:        game.id,
+        homeScore,
+        awayScore,
+        homeTeamWon:   homeScore > awayScore,
+        gradingSource: "games_table_sync",
+      });
+      synced++;
+    } catch {
+      // Unique-constraint violation means another process beat us — skip.
+    }
+  }
+
+  if (synced > 0) {
+    logger.info({ synced }, "syncGameResults: back-filled game_results from games table");
+  }
+  return synced;
 }
 
 /**

@@ -17,7 +17,7 @@ import type { WnbaTeamInjuryImpact } from "../services/wnbaInjuries";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { processGameSnapshot } from "../services/snapshot";
-import { runGrading } from "../services/grading-runner";
+import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
 
@@ -496,6 +496,13 @@ export async function refreshAll(): Promise<{
 
   // EMA learning pass (keeps confidenceMultiplier up to date)
   await runLearning();
+
+  // Recover any past-date games still stuck in a non-final status (handles
+  // the case where the server was down / restarted after games finished)
+  await recoverStaleGames();
+
+  // Ensure game_results rows exist for every game already marked "final"
+  await syncGameResults();
 
   // Grade any picks that now have a completed game result
   const picksGraded = await runGrading();

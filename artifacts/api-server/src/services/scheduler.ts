@@ -18,7 +18,7 @@ import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, pub
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
-import { runGrading, recoverStaleGames } from "./grading-runner";
+import { runGrading, recoverStaleGames, syncGameResults } from "./grading-runner";
 import { runAnalytics } from "./analytics";
 import { checkPendingPushReceipts } from "./pushReceipts";
 import { runDriftMonitor } from "./driftMonitor";
@@ -593,6 +593,9 @@ async function runResultGrading(): Promise<void> {
         snapshots++;
       } catch (_) { /* continue */ }
     }
+
+    // Sync game_results from games already marked "final" (primary grading path)
+    await syncGameResults();
 
     // Recover any games stuck in non-final status from past dates
     const recovered = await recoverStaleGames();

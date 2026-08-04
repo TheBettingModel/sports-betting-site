@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
+import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -56,5 +57,22 @@ app.listen(port, (err) => {
   // Start automation scheduler after server is up
   if (process.env["NODE_ENV"] !== "test") {
     startScheduler();
+
+    // On startup, immediately recover any games that finished while the server
+    // was down (stale = non-final status from a past date), then grade pending
+    // picks. This ensures restarts after overnight downtime don't leave the
+    // Record tab empty until the hourly scheduler fires.
+    void (async () => {
+      try {
+        await recoverStaleGames();
+        await syncGameResults();
+        const graded = await runGrading();
+        if (graded > 0) {
+          logger.info({ graded }, "Startup: graded picks from stale games");
+        }
+      } catch (err) {
+        logger.warn({ err }, "Startup: catch-up grading failed — non-fatal");
+      }
+    })();
   }
 });
