@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoaded, ClerkLoading } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
@@ -142,8 +143,8 @@ export default function RootLayout() {
         {/* ClerkLoading renders while the Clerk SDK initialises — prevents a
             blank black screen on cold launch while auth state is resolving. */}
         <ClerkLoading>
-          {/* Solid black placeholder while Clerk initialises — prevents white flash */}
-          <></>
+          {/* Solid black placeholder while Clerk JS loads — matches splash screen background */}
+          <View style={{ flex: 1, backgroundColor: '#000000' }} />
         </ClerkLoading>
         <ClerkLoaded>
           <SafeAreaProvider>
