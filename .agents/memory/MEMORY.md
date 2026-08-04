@@ -9,3 +9,4 @@
 - [MLB Bullpen + Lineup signals](mlb-bullpen-lineup-signals.md) — Phase 4 model signals; boxscore hydrate on schedule endpoint doesn't work — fetch /game/{gamePk}/boxscore separately; lineup cache needs seeding before parallel lookups.
 - [EAS provisioning profile regeneration](eas-provisioning-profile-fix.md) — force EAS to create a fresh profile via GraphQL delete; also how to fix missing Apple Team on stored ASC API key.
 - [OpenAPI spec sync requirement](openapi-spec-sync.md) — every new API route must be in lib/api-spec/openapi.yaml or mobile hooks won't exist; run codegen after edits; bump iOS buildNumber before each TestFlight submit.
+- [EAS Update env vars](eas-update-env-vars.md) — eas update ignores eas.json env block; must pass all EXPO_PUBLIC_* vars explicitly on CLI or production bundle breaks auth/API.
