@@ -38,12 +38,53 @@ const router = Router();
 
 router.use("/__clerk", authLimiter);
 
+async function proxyToClerk(req: Request, res: Response, targetBase: string) {
+  const clerkPath = req.path.replace(/^\/__clerk/, "");
+  const targetUrl = `${targetBase}${clerkPath}${req.url.includes("?") ? "?" + req.url.split("?")[1] : ""}`;
+
+  const forwardHeaders: Record<string, string> = {};
+  const passthroughHeaders = [
+    "content-type", "accept", "authorization", "cookie",
+    "clerk-api-version", "x-clerk-auth-reason", "x-clerk-auth-status",
+    "x-mobile-token", "user-agent", "origin", "referer",
+  ];
+  for (const h of passthroughHeaders) {
+    const v = req.headers[h];
+    if (v) forwardHeaders[h] = v as string;
+  }
+
+  try {
+    const upstream = await fetch(targetUrl, {
+      method: req.method,
+      headers: forwardHeaders,
+    });
+
+    const skipHeaders = new Set([
+      "transfer-encoding", "content-encoding", "content-length",
+      "connection", "keep-alive",
+    ]);
+    res.status(upstream.status);
+    for (const [key, value] of upstream.headers.entries()) {
+      if (skipHeaders.has(key.toLowerCase())) continue;
+      res.setHeader(key, value);
+    }
+
+    const buf = await upstream.arrayBuffer();
+    res.send(Buffer.from(buf));
+  } catch (err: any) {
+    res.status(502).json({ error: "Clerk proxy error", detail: err?.message });
+  }
+}
+
+// Forward Clerk JS npm CDN requests (clerk.browser.js, etc.)
+router.all("/__clerk/npm/*path", async (req: Request, res: Response) => {
+  await proxyToClerk(req, res, CLERK_FRONTEND_API);
+});
+
 router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
-  // Strip /api/__clerk prefix so we forward just /v1/...
   const clerkPath = req.path.replace(/^\/__clerk/, "");
   const targetUrl = `${CLERK_FRONTEND_API}${clerkPath}${req.url.includes("?") ? "?" + req.url.split("?")[1] : ""}`;
 
-  // Forward all headers except host; cookies are critical for session continuity
   const forwardHeaders: Record<string, string> = {};
   const passthroughHeaders = [
     "content-type", "accept", "authorization", "cookie",
@@ -71,32 +112,19 @@ router.all("/__clerk/v1/*path", async (req: Request, res: Response) => {
       }
     }
 
-    const upstream = await fetch(targetUrl, {
-      method: req.method,
-      headers: forwardHeaders,
-      body,
-    });
-
+    const upstream = await fetch(targetUrl, { method: req.method, headers: forwardHeaders, body });
     const responseBody = await upstream.text();
 
-    // Log non-2xx responses so we can diagnose Clerk errors
     if (upstream.status >= 400) {
       console.error(`[clerk-proxy] ${req.method} ${clerkPath} → ${upstream.status}`, responseBody.slice(0, 1000));
     }
 
     res.status(upstream.status);
-
-    // Forward response headers — skip encoding/length headers since we've
-    // already decoded the body via fetch (re-encoding mismatch corrupts JSON)
-    const skipHeaders = new Set([
-      "transfer-encoding", "content-encoding", "content-length",
-      "connection", "keep-alive",
-    ]);
+    const skipHeaders = new Set(["transfer-encoding", "content-encoding", "content-length", "connection", "keep-alive"]);
     for (const [key, value] of upstream.headers.entries()) {
       if (skipHeaders.has(key.toLowerCase())) continue;
       res.setHeader(key, value);
     }
-
     res.send(responseBody);
   } catch (err: any) {
     res.status(502).json({ error: "Clerk proxy error", detail: err?.message });
