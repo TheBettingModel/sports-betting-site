@@ -115,7 +115,10 @@ export default function MembershipScreen() {
 
   const handlePurchase = async () => {
     const pkg = selected === 'monthly' ? monthlyPkg : annualPkg;
-    if (!pkg) return;
+    if (!pkg) {
+      setErrorMsg('Subscription options are unavailable. Please check your connection and try again.');
+      return;
+    }
     setErrorMsg('');
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {

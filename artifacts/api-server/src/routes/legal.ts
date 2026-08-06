@@ -535,4 +535,199 @@ router.get("/terms", (_req, res) => {
   res.send(TERMS_HTML);
 });
 
+// ── Support ───────────────────────────────────────────────────────────────────
+
+const SUPPORT_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — TheBettingModel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --card: #111118;
+      --border: #1e1e2e;
+      --fg: #f0f0f5;
+      --muted: #8888aa;
+      --gold: #d4a843;
+      --radius: 12px;
+    }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.7;
+      padding: 0 16px 60px;
+    }
+    header {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 0 32px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: var(--muted); }
+    main { max-width: 680px; margin: 0 auto; padding-top: 36px; }
+    section { margin-bottom: 36px; }
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    p { color: var(--muted); font-size: 15px; margin-bottom: 12px; }
+    ul { color: var(--muted); font-size: 15px; padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--fg);
+      margin-bottom: 8px;
+    }
+    .contact-btn {
+      display: inline-block;
+      background: var(--gold);
+      color: #000;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      margin-top: 8px;
+    }
+    .contact-btn:hover { opacity: 0.88; text-decoration: none; }
+    footer {
+      max-width: 680px;
+      margin: 48px auto 0;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">TheBettingModel</div>
+    <h1>Support</h1>
+    <p class="meta">We're here to help — typical response within 24 hours.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Contact Us</h2>
+      <div class="card">
+        <h3>Email Support</h3>
+        <p>For account issues, subscription questions, billing, or anything else, email us directly and we'll get back to you within 24 hours.</p>
+        <a class="contact-btn" href="mailto:Jacqueskaune@gmail.com">Email Support</a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="card">
+        <h3>How do I cancel my subscription?</h3>
+        <p>
+          Open the Settings app on your iPhone → tap your name → Subscriptions → find TheBettingModel → tap Cancel Subscription.
+          Your Pro access continues until the end of the current billing period.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>How do I restore a purchase I already made?</h3>
+        <p>
+          Open the app and go to the Membership screen. Tap <strong style="color:#f0f0f5">Restore Purchases</strong> at the bottom.
+          Make sure you are signed in with the same Apple ID used for the original purchase.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>I was charged but the app says I'm not subscribed.</h3>
+        <p>
+          Tap <strong style="color:#f0f0f5">Restore Purchases</strong> on the Membership screen to sync your purchase.
+          If the issue persists after restoring, email us with your Apple ID email and we'll investigate.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>How do I request a refund?</h3>
+        <p>
+          All purchases are processed through the Apple App Store. To request a refund, visit
+          <a href="https://reportaproblem.apple.com" target="_blank">reportaproblem.apple.com</a>
+          and sign in with your Apple ID.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>I'm not receiving push notifications.</h3>
+        <p>
+          Go to your iPhone Settings → Notifications → TheBettingModel and make sure notifications are allowed.
+          Then open the app, go to Profile → Notification Settings, and confirm your preferred sports are enabled.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>How does the model work?</h3>
+        <p>
+          TheBettingModel uses a machine-learning model trained on historical game data, real-time odds,
+          line movement, team and player signals, and public betting market data. Picks are updated daily
+          and graded automatically after each game. Past performance is not a guarantee of future results.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>How do I delete my account?</h3>
+        <p>
+          Go to Profile in the app and tap <strong style="color:#f0f0f5">Delete Account</strong>, or email us at
+          <a href="mailto:Jacqueskaune@gmail.com">Jacqueskaune@gmail.com</a> and we'll delete your data within 30 days.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Still need help?</h2>
+      <p>
+        If your question isn't covered above, email us at
+        <a href="mailto:Jacqueskaune@gmail.com">Jacqueskaune@gmail.com</a>.
+        Please include your Apple ID email and a description of the issue so we can assist you quickly.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    &copy; ${new Date().getFullYear()} TheBettingModel. All rights reserved. &nbsp;·&nbsp;
+    <a href="/api/privacy">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="/api/terms">Terms of Use</a>
+  </footer>
+</body>
+</html>`;
+
+router.get("/support", (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.send(SUPPORT_HTML);
+});
+
 export default router;
