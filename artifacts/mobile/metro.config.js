@@ -10,6 +10,16 @@ const config = getDefaultConfig(projectRoot);
 // into the pnpm store (node_modules/.pnpm/...)
 config.watchFolders = [workspaceRoot];
 
+// Override the transform profile to "default" so that Babel fully downlevels
+// private class fields (#x, #y, etc.) before hermesc sees them. The Linux
+// hermesc binary bundled with RN 0.81 does not support native private fields,
+// even though the iOS/Android Hermes runtimes do. "hermes-stable" (expo default)
+// skips that transform assuming Hermes handles it; "default" applies it explicitly.
+config.transformer = {
+  ...config.transformer,
+  unstable_transformProfile: 'default',
+};
+
 config.resolver = {
   ...config.resolver,
   // Allow Metro to resolve packages from the workspace root node_modules

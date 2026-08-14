@@ -775,10 +775,17 @@ function finalizeResult(
     edge;
 
   const confidence = deviation >= 18 ? "High" : deviation >= 9 ? "Medium" : "Low";
+
+  // MLB and WNBA use higher thresholds while the model recalibrates — only publish
+  // picks where the edge is convincing enough to overcome the current confidence deficit.
+  const strongBuyThreshold = (sport === "MLB" || sport === "WNBA") ? 12 : 10;
+  const buyThreshold        = (sport === "MLB" || sport === "WNBA") ? 8  : 5;
+  const fadeThreshold       = (sport === "MLB" || sport === "WNBA") ? -8 : -5;
+
   const valueRating =
-    anchoredEdge >= 10 ? "Strong Buy" :
-    anchoredEdge >= 5  ? "Buy"        :
-    anchoredEdge <= -5 ? "Fade"       : "Neutral";
+    anchoredEdge >= strongBuyThreshold ? "Strong Buy" :
+    anchoredEdge >= buyThreshold       ? "Buy"        :
+    anchoredEdge <= fadeThreshold      ? "Fade"       : "Neutral";
 
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
 

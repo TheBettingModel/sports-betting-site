@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoaded, ClerkLoading } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
@@ -69,6 +69,15 @@ function RootLayoutNav({ showDisclaimer }: { showDisclaimer: boolean }) {
 }
 
 export default function RootLayout() {
+  // If Clerk hasn't initialised within 10 s, show a retry prompt instead of
+  // staying black forever. The timer is cleared as soon as ClerkLoaded fires
+  // (via the ClerkLoaded branch rendering), so it only triggers on genuine hangs.
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setClerkTimedOut(true), 10_000);
+    return () => clearTimeout(t);
+  }, []);
+
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -140,11 +149,24 @@ export default function RootLayout() {
         tokenCache={tokenCache}
         proxyUrl={proxyUrl}
       >
-        {/* ClerkLoading renders while the Clerk SDK initialises — prevents a
-            blank black screen on cold launch while auth state is resolving. */}
+        {/* ClerkLoading renders while Clerk initialises. After 10 s we show a
+            retry prompt so the app never stays black forever on a stalled init. */}
         <ClerkLoading>
-          {/* Solid black placeholder while Clerk JS loads — matches splash screen background */}
-          <View style={{ flex: 1, backgroundColor: '#000000' }} />
+          <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
+            {clerkTimedOut ? (
+              <>
+                <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 20, fontFamily: 'Inter_400Regular' }}>
+                  Taking longer than expected…
+                </Text>
+                <Pressable
+                  onPress={() => Updates.reloadAsync()}
+                  style={{ backgroundColor: '#84CC16', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 }}
+                >
+                  <Text style={{ color: '#000', fontFamily: 'Inter_700Bold', fontSize: 14 }}>Tap to Retry</Text>
+                </Pressable>
+              </>
+            ) : null}
+          </View>
         </ClerkLoading>
         <ClerkLoaded>
           <SafeAreaProvider>

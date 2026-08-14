@@ -231,6 +231,9 @@ export async function runLearning(): Promise<void> {
     const actualHomeWin    = game.homeScore > game.awayScore;
     const predictedHomeWin = game.homeWinPct > 50;
 
+    // Soccer draws get a neutral treatment: no clear directional winner.
+    const isDraw = game.sport === "Soccer" && game.homeScore === game.awayScore;
+
     // ── Primary learning signal: pick outcomes ────────────────────────────────
     // Use graded pick results (win/loss) as the correctness signal so the model
     // learns from what subscribers actually see, not just whether the home team
@@ -241,10 +244,11 @@ export async function runLearning(): Promise<void> {
       : (predictedHomeWin === actualHomeWin);
 
     // Calibrated model probability and Brier score for this game.
-    // Brier score remains home-win based — it measures probabilistic calibration
-    // of the underlying model, independent of the pick selection direction.
-    const modelProb  = game.homeWinPct / 100;
-    const brierScore = (modelProb - (actualHomeWin ? 1.0 : 0.0)) ** 2;
+    // For Soccer draws use outcome = 0.5 (neither team won) so the Brier score
+    // reflects genuine uncertainty rather than penalising the home-win prediction.
+    const modelProb      = game.homeWinPct / 100;
+    const actualOutcome  = isDraw ? 0.5 : (actualHomeWin ? 1.0 : 0.0);
+    const brierScore     = (modelProb - actualOutcome) ** 2;
 
     // Mark outcome on the game row
     await db
@@ -279,12 +283,16 @@ export async function runLearning(): Promise<void> {
         currentFw,
       );
 
-      updatedFactorWeights = nudgeFactorWeights(
-        currentFw,
-        contributions,
-        actualHomeWin,
-        modelProb,
-      );
+      // Skip factor weight nudging for Soccer draws — there is no directional
+      // winner so nudging toward/away from "home win" would teach the wrong lesson.
+      if (!isDraw) {
+        updatedFactorWeights = nudgeFactorWeights(
+          currentFw,
+          contributions,
+          actualHomeWin,
+          modelProb,
+        );
+      }
 
       logger.debug(
         {

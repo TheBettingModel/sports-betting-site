@@ -12,3 +12,4 @@
 - [EAS Update env vars](eas-update-env-vars.md) — eas update ignores eas.json env block; must pass all EXPO_PUBLIC_* vars explicitly on CLI or production bundle breaks auth/API.
 - [Production build env detection](production-build-env.md) — use NODE_ENV==="production" not CI==="true" to gate source maps; Clerk npm CDN proxy needed for /npm/* path.
 - [Apple Review IAP Submission Flow](apple-review-iap-submission.md) — exact 4-item sequence; EULA requirement; first-time group rule; RevenueCat Missing Metadata cause.
+- [OTA Update fix for RN 0.81](ota-update-rn081-fix.md) — eas update needs babel-preset-expo@54.0.12 pinned + unstable_transformProfile:'default' in metro.config.js; Linux hermesc can't handle private class fields.
