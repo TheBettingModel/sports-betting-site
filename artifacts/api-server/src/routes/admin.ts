@@ -147,7 +147,7 @@ router.post("/admin/session", sessionAuthLimiter, (req, res): void => {
     return;
   }
 
-  const key = req.body?.key as string | undefined;
+  const key = req.headers["x-master-key"] as string | undefined;
   if (!key || key !== MASTER_KEY) {
     recordFailedAttempt(ip);
     res.status(401).json({ error: "Invalid key" });
