@@ -19,7 +19,7 @@
  */
 
 import { eq, and, isNull } from "drizzle-orm";
-import { db, gamesTable, modelWeightsTable } from "@workspace/db";
+import { db, gamesTable, modelWeightsTable, pickResultsTable, publishedPicksTable } from "@workspace/db";
 import type { FactorWeights } from "@workspace/db";
 import { logger } from "../lib/logger";
 import {
@@ -179,6 +179,33 @@ function factorToWeightKey(factor: string): string | null {
 }
 
 /**
+ * Fetch graded pick outcomes (win/loss, ignoring push/void) for a given game.
+ * Returns the pick win rate and a boolean `correct` signal, or null when no
+ * graded picks exist for the game (caller should fall back to home-win binary).
+ *
+ * This is the primary learning signal: it aligns model self-evaluation with
+ * the picks subscribers actually see, rather than the raw home-win outcome
+ * which may be orthogonal to the published spread/total/moneyline selection.
+ */
+async function fetchPickAccuracyForGame(
+  gameId: string,
+): Promise<{ correct: boolean; winRate: number } | null> {
+  const picks = await db
+    .select({ result: pickResultsTable.result })
+    .from(pickResultsTable)
+    .innerJoin(publishedPicksTable, eq(pickResultsTable.pickId, publishedPicksTable.id))
+    .where(eq(publishedPicksTable.gameId, gameId));
+
+  const wins   = picks.filter(p => p.result === "win").length;
+  const losses = picks.filter(p => p.result === "loss").length;
+  const total  = wins + losses;
+  if (total === 0) return null;
+
+  const winRate = wins / total;
+  return { correct: winRate >= 0.5, winRate };
+}
+
+/**
  * Process all completed games whose outcomes haven't been learned from yet.
  * Updates model_weights with:
  *   - Binary accuracy EMA (for the confidence multiplier and user-facing display)
@@ -203,9 +230,19 @@ export async function runLearning(): Promise<void> {
 
     const actualHomeWin    = game.homeScore > game.awayScore;
     const predictedHomeWin = game.homeWinPct > 50;
-    const correct          = predictedHomeWin === actualHomeWin;
 
-    // Calibrated model probability and Brier score for this game
+    // ── Primary learning signal: pick outcomes ────────────────────────────────
+    // Use graded pick results (win/loss) as the correctness signal so the model
+    // learns from what subscribers actually see, not just whether the home team
+    // won. Falls back to home-win binary for games with no published picks.
+    const pickAccuracy = await fetchPickAccuracyForGame(game.id);
+    const correct = pickAccuracy !== null
+      ? pickAccuracy.correct
+      : (predictedHomeWin === actualHomeWin);
+
+    // Calibrated model probability and Brier score for this game.
+    // Brier score remains home-win based — it measures probabilistic calibration
+    // of the underlying model, independent of the pick selection direction.
     const modelProb  = game.homeWinPct / 100;
     const brierScore = (modelProb - (actualHomeWin ? 1.0 : 0.0)) ** 2;
 
@@ -250,7 +287,16 @@ export async function runLearning(): Promise<void> {
       );
 
       logger.debug(
-        { sport: game.sport, gameId: game.id, correct, brierScore: brierScore.toFixed(4), contributions, updatedFactorWeights },
+        {
+          sport: game.sport,
+          gameId: game.id,
+          correct,
+          learningSignal: pickAccuracy !== null ? "picks" : "home-win",
+          pickWinRate: pickAccuracy?.winRate,
+          brierScore: brierScore.toFixed(4),
+          contributions,
+          updatedFactorWeights,
+        },
         "Learning: factor weights updated",
       );
     } catch (err) {
