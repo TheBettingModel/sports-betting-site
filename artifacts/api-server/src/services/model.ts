@@ -782,7 +782,7 @@ function finalizeResult(
   const buyThreshold        = (sport === "MLB" || sport === "WNBA") ? 8  : 5;
   const fadeThreshold       = (sport === "MLB" || sport === "WNBA") ? -8 : -5;
 
-  const valueRating =
+  let valueRating =
     anchoredEdge >= strongBuyThreshold ? "Strong Buy" :
     anchoredEdge >= buyThreshold       ? "Buy"        :
     anchoredEdge <= fadeThreshold      ? "Fade"       : "Neutral";
@@ -792,6 +792,15 @@ function finalizeResult(
   // Determine the pick-side odds for price adjustment (home if edge > 0, else away)
   const pickIsHome = anchoredEdge >= 0;
   const pickOdds   = pickIsHome ? vegasHomeOdds : vegasAwayOdds;
+
+  // Moneyline cap: never publish a Strong Buy or Buy on a favourite heavier than
+  // -150. Even with genuine edge, the implied probability required to profit
+  // long-term at -200 is ~67% — compounding vig makes it nearly impossible to
+  // sustain. Downgrade to Neutral so subscribers don't over-stake on chalk.
+  const MONEYLINE_CAP = -150;
+  if ((valueRating === "Strong Buy" || valueRating === "Buy") && pickOdds < MONEYLINE_CAP) {
+    valueRating = "Neutral";
+  }
   const priceAdj   = getPriceAdjustment(pickOdds);
 
   const confidenceNum = getNumericConfidence(deviation);
