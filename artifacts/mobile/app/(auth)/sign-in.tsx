@@ -58,6 +58,13 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  // Resend cooldown — prevents OTP spam by enforcing a 60-second wait
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
   // ── Step 1: send OTP ──────────────────────────────────────────────────────
   const handleSendCode = async () => {
@@ -71,6 +78,7 @@ export default function SignInScreen() {
         return;
       }
       setStage('code');
+      setCooldown(60);
     } catch (err: any) {
       setErrorMsg(err?.message ?? 'Could not send code. Please try again.');
     } finally {
@@ -245,8 +253,14 @@ export default function SignInScreen() {
               : <Text style={s.btnTxt}>Sign In</Text>}
           </Pressable>
 
-          <Pressable onPress={handleSendCode} style={s.link} disabled={loading}>
-            <Text style={s.linkTxt}>Resend code</Text>
+          <Pressable
+            onPress={() => { handleSendCode(); }}
+            style={s.link}
+            disabled={loading || cooldown > 0}
+          >
+            <Text style={[s.linkTxt, cooldown > 0 && { color: C.muted }]}>
+              {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+            </Text>
           </Pressable>
           <Pressable onPress={() => { setStage('email'); setCode(''); setErrorMsg(null); }} style={s.link}>
             <Text style={s.linkTxt}>← Change email</Text>
@@ -306,13 +320,13 @@ export default function SignInScreen() {
         />
 
         <Pressable
-          style={[s.btn, (!email.trim() || loading) && s.off]}
+          style={[s.btn, (!email.trim() || loading || cooldown > 0) && s.off]}
           onPress={handleSendCode}
-          disabled={!email.trim() || loading}
+          disabled={!email.trim() || loading || cooldown > 0}
         >
           {loading
             ? <ActivityIndicator size="small" color={C.primaryFg} />
-            : <Text style={s.btnTxt}>Send Code</Text>}
+            : <Text style={s.btnTxt}>{cooldown > 0 ? `Wait ${cooldown}s` : 'Send Code'}</Text>}
         </Pressable>
 
         <View style={s.footer}>
