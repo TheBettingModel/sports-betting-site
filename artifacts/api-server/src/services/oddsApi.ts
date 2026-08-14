@@ -40,10 +40,24 @@ const SOCCER_LEAGUE_KEY: Record<string, string> = {
   "UCL":         "soccer_uefa_champs_league",
 };
 
-/** Resolve TBM sport/league → The Odds API sport key, or null if unsupported */
+/**
+ * Resolve TBM sport/league → The Odds API sport key, or null if unsupported.
+ *
+ * NFL special-case: the preseason uses a separate Odds API key
+ * ("americanfootball_nfl_preseason"). We switch to it automatically
+ * from August 1 through September 10 each year, which covers every
+ * preseason week without hard-coding specific dates.
+ */
 export function resolveOddsApiKey(sport: string, league?: string | null): string | null {
   if (sport === "Soccer") {
     return league ? (SOCCER_LEAGUE_KEY[league] ?? null) : "soccer_usa_mls";
+  }
+  if (sport === "NFL") {
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-indexed
+    const day = now.getDate();
+    const isPreseason = month === 8 || (month === 9 && day <= 10);
+    return isPreseason ? "americanfootball_nfl_preseason" : "americanfootball_nfl";
   }
   return SPORT_KEY[sport] ?? null;
 }
