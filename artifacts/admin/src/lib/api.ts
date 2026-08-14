@@ -166,6 +166,10 @@ export interface FeedHealthEntry {
   alertSeverity: string | null;
   /** Number of active unresolved DQ alerts for this sport. */
   alertCount: number;
+  /** Games analyzed today that landed below the publication threshold (Neutral/Fade). */
+  suppressedCount: number | null;
+  /** Games today with qualifying picks (Strong Buy/Buy). */
+  publishedCount: number | null;
 }
 
 export interface AdminOverview {

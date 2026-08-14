@@ -117,6 +117,10 @@ function FeedHealthGrid({ entries }: { entries: FeedHealthEntry[] }) {
                   ? `${e.gameCount} game${e.gameCount !== 1 ? "s" : ""}`
                   : FEED_STATUS_LABEL[e.status]}
               </span>
+              {/* Show suppressed indicator when games exist but none qualify */}
+              {e.status === "ok" && e.publishedCount === 0 && (e.suppressedCount ?? 0) > 0 && (
+                <span className="text-[9px] text-yellow-400 font-medium">0 picks</span>
+              )}
             </button>
           );
         })}

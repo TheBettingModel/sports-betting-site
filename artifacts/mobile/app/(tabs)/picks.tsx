@@ -111,6 +111,24 @@ export default function PicksScreen() {
   }, [allGames]);
   const liveGamesCount = data?.liveGamesCount ?? 0;
 
+  // Sports that have games today but zero qualifying picks (Strong Buy / Buy) on
+  // the All tab — shown as a muted footer so subscribers know the model ran on
+  // those games and found no edge, rather than wondering if coverage is broken.
+  const noEdgeSports = useMemo(() => {
+    if (selectedSport !== 'All') return [];
+    const stats: Record<string, { total: number; qualifying: number }> = {};
+    for (const g of allGames) {
+      if (!stats[g.sport]) stats[g.sport] = { total: 0, qualifying: 0 };
+      stats[g.sport].total++;
+      if (g.projection.valueRating === 'Strong Buy' || g.projection.valueRating === 'Buy') {
+        stats[g.sport].qualifying++;
+      }
+    }
+    return Object.entries(stats)
+      .filter(([, s]) => s.total > 0 && s.qualifying === 0)
+      .map(([sport, s]) => ({ sport, total: s.total }));
+  }, [allGames, selectedSport]);
+
   // Build list with rating section headers.
   // On the All tab: respect the Plays/All toggle (default: Plays only).
   // On a specific sport tab: always show every rating — users drilling into a sport
@@ -282,6 +300,25 @@ export default function PicksScreen() {
             message={selectedSport === 'All' ? 'No picks available yet today. Pull down to refresh.' : undefined}
           />
         }
+        ListFooterComponent={
+          noEdgeSports.length > 0 ? (
+            <View style={[styles.noEdgeFooter, { borderTopColor: colors.border }]}>
+              <Text style={[styles.noEdgeTitle, { color: colors.mutedForeground }]}>
+                ANALYZED · NO EDGE FOUND
+              </Text>
+              <View style={styles.noEdgeRow}>
+                {noEdgeSports.map(({ sport, total }) => (
+                  <View key={sport} style={[styles.noEdgeChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                    <Text style={[styles.noEdgeChipSport, { color: colors.mutedForeground }]}>{sport}</Text>
+                    <Text style={[styles.noEdgeChipCount, { color: colors.mutedForeground }]}>
+                      {total} {total === 1 ? 'game' : 'games'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null
+        }
         contentContainerStyle={{ paddingBottom: insets.bottom + (Platform.OS === 'web' ? 34 : 0) + 90 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -341,4 +378,20 @@ const styles = StyleSheet.create({
   ratingBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
   ratingCount: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   ratingHint: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 },
+  // ── No-edge footer ────────────────────────────────────────────────────────────
+  noEdgeFooter: {
+    marginTop: 24, marginHorizontal: 16, paddingTop: 20,
+    borderTopWidth: 1,
+  },
+  noEdgeTitle: {
+    fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.5,
+    marginBottom: 10,
+  },
+  noEdgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  noEdgeChip: {
+    borderRadius: 8, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2,
+  },
+  noEdgeChipSport: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+  noEdgeChipCount: { fontSize: 10, fontFamily: 'Inter_500Medium' },
 });

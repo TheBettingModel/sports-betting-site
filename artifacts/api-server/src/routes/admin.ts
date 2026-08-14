@@ -22,6 +22,7 @@ import {
   automationRunsTable,
   backtestRunsTable,
   dataQualityAlertsTable,
+  gamesTable,
   modelDriftAlertsTable,
   modelVersionsTable,
   performanceMetricsTable,
@@ -268,6 +269,35 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
     });
   }
 
+  // ── Today's pick quality distribution by sport ────────────────────────────────
+  // Counts how many of today's games landed in qualifying tiers (Strong Buy / Buy)
+  // vs suppressed tiers (Neutral / Fade) so the admin can see when the threshold
+  // is filtering out many picks for a sport.
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayPickDist = await db
+    .select({
+      sport: gamesTable.sport,
+      valueRating: gamesTable.valueRating,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(gamesTable)
+    .where(eq(gamesTable.gameDate, todayStr))
+    .groupBy(gamesTable.sport, gamesTable.valueRating);
+
+  type PickDistEntry = { suppressedCount: number; publishedCount: number };
+  const pickDistMap = new Map<string, PickDistEntry>();
+  for (const row of todayPickDist) {
+    if (!pickDistMap.has(row.sport)) {
+      pickDistMap.set(row.sport, { suppressedCount: 0, publishedCount: 0 });
+    }
+    const entry = pickDistMap.get(row.sport)!;
+    if (row.valueRating === "Strong Buy" || row.valueRating === "Buy") {
+      entry.publishedCount += row.count;
+    } else {
+      entry.suppressedCount += row.count;
+    }
+  }
+
   // ── Feed health: derive per-sport status from the most recent ingestion run ──
   const TRACKED_SPORTS = ["MLB", "NFL", "NHL", "NBA", "WNBA", "NCAAB", "NCAAF", "Soccer", "UFC"];
   const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -299,6 +329,7 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
     if (val === "error") {
       return { sport, status: "error" as const, gameCount: null, lastChecked, alertSeverity: alertInfo.worstSeverity, alertCount: alertInfo.count };
     }
+    const pd = pickDistMap.get(sport);
     return {
       sport,
       status: val > 0 ? ("ok" as const) : ("quiet" as const),
@@ -306,6 +337,8 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
       lastChecked,
       alertSeverity: alertInfo.worstSeverity,
       alertCount: alertInfo.count,
+      suppressedCount: pd?.suppressedCount ?? null,
+      publishedCount: pd?.publishedCount ?? null,
     };
   });
 
