@@ -8,7 +8,7 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, desc, gte, and, ne } from "drizzle-orm";
+import { eq, desc, gte, and, ne, or } from "drizzle-orm";
 import {
   db,
   pickResultsTable,
@@ -106,7 +106,12 @@ router.get(
           gamesTable,
           eq(publishedPicksTable.gameId, gamesTable.id),
         )
-        .where(and(gte(gamesTable.gameDate, cutoffDate), ne(pickResultsTable.result, "pending")))
+        .where(and(
+          gte(gamesTable.gameDate, cutoffDate),
+          ne(pickResultsTable.result, "pending"),
+          // Exclude NFL preseason — regular season always starts Sep 11 or later
+          or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
+        ))
         .orderBy(desc(pickResultsTable.gradedAt));
 
       // ── Overall ───────────────────────────────────────────────────────────
@@ -257,6 +262,8 @@ router.get(
           and(
             gte(gamesTable.gameDate, cutoffDate),
             ne(pickResultsTable.result, "pending"),
+            // Exclude NFL preseason — regular season always starts Sep 11 or later
+            or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
           ),
         );
 
