@@ -832,11 +832,11 @@ function finalizeResult(
   const pickOdds   = pickIsHome ? vegasHomeOdds : vegasAwayOdds;
 
   // Moneyline cap: never publish a Strong Buy or Buy on a favourite heavier than
-  // -150. Even with genuine edge, the implied probability required to profit
-  // long-term at -200 is ~67% — compounding vig makes it nearly impossible to
-  // sustain. Downgrade to Neutral so subscribers don't over-stake on chalk.
-  const MONEYLINE_CAP = -150;
-  if ((valueRating === "Strong Buy" || valueRating === "Buy") && pickOdds < MONEYLINE_CAP) {
+  // -160. At -160 the implied probability required to profit long-term is ~61.5%;
+  // compounding vig makes it nearly impossible to sustain positive EV. Downgrade
+  // to Neutral so subscribers don't over-stake on heavy chalk.
+  const MONEYLINE_CAP = -160;
+  if ((valueRating === "Strong Buy" || valueRating === "Buy") && pickOdds <= MONEYLINE_CAP) {
     valueRating = "Neutral";
   }
   const priceAdj   = getPriceAdjustment(pickOdds);
@@ -996,6 +996,13 @@ function computeSoccerProjection(
 
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
   const pickOdds = edge >= 0 ? vegasHomeOdds : vegasAwayOdds;
+
+  // Apply the same -160 moneyline cap as all other sports.
+  let soccerValueRating = valueRating;
+  if ((soccerValueRating === "Strong Buy" || soccerValueRating === "Buy") && pickOdds <= -160) {
+    soccerValueRating = "Neutral";
+  }
+
   const priceAdj = getPriceAdjustment(pickOdds);
 
   const confidenceNum = getNumericConfidence(deviation);
@@ -1003,7 +1010,7 @@ function computeSoccerProjection(
   const { finalModelScore, finalModelTier, finalModelStars } =
     getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
   const podScore = getPodScore(finalModelScore, sharpScore, edge);
-  const units    = getDynamicUnits(edge, finalModelScore, valueRating);
+  const units    = getDynamicUnits(edge, finalModelScore, soccerValueRating);
 
   const projectedSpread = Math.round((0.5 - modelHome) * 6 * 2) / 2;
   const vegasSpread     = Math.round((0.5 - vegasImpliedHome) * 6 * 2) / 2;
@@ -1016,7 +1023,7 @@ function computeSoccerProjection(
     confidence,
     projectedSpread,
     projectedTotal,
-    valueRating,
+    valueRating: soccerValueRating,
     modelScore: finalModelScore,
     edge,
     vegasSpread,
