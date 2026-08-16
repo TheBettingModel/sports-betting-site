@@ -14,3 +14,4 @@
 - [Apple Review IAP Submission Flow](apple-review-iap-submission.md) — exact 4-item sequence; EULA requirement; first-time group rule; RevenueCat Missing Metadata cause.
 - [OTA Update fix for RN 0.81](ota-update-rn081-fix.md) — eas update needs babel-preset-expo@54.0.12 pinned + unstable_transformProfile:'default' in metro.config.js; Linux hermesc can't handle private class fields.
 - [Model Upgrade Phase 4](model-upgrade-phase4.md) — scheduler signal wiring (Tasks 103-105); NBA stats endpoint; NHL PP%/PK%; NFL divisional/dome/turnover signals; what was skipped and why.
+- [Mobile build domain priority](mobile-build-domain-priority.md) — build.js must check EXPO_PUBLIC_DOMAIN before REPLIT_DEV_DOMAIN; also EXPO_PUBLIC_DOMAIN must be set as a Replit env var; Metro port changed to 8083.
