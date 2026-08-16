@@ -463,6 +463,18 @@ export interface ComputeOptions {
   // ── MLB / NFL / NHL / NCAAF / NCAAB — DB-sourced run/point/goal stats ──
   homeDbStats?: DbTeamStats;
   awayDbStats?: DbTeamStats;
+  // ── NFL situational signals ──────────────────────────────────────────────
+  /** True when both teams are in the same division — apply edge compression */
+  nflIsDivisional?: boolean;
+  /** Probability shift from dome/outdoor mismatch. Positive = home advantage. Range [-0.03, +0.03] */
+  nflDomeMismatch?: number;
+  /** Probability shift from season turnover margin differential. Range [-0.03, +0.03] */
+  nflTurnoverAdvantage?: number;
+  // ── NHL special teams ────────────────────────────────────────────────────
+  /** NHL home team season PP% and PK% */
+  nhlHomeSpecialTeams?: { ppPct: number; pkPct: number };
+  /** NHL away team season PP% and PK% */
+  nhlAwaySpecialTeams?: { ppPct: number; pkPct: number };
 }
 
 // ── Factor contribution breakdown (used by learning engine) ──────────────────
@@ -711,6 +723,32 @@ function computeRunsModel(
   // NFL injury adjustment — missing starters (especially QB) materially shifts win prob.
   if (sport === "NFL" && opts.injuryAdvantage != null) {
     prob += opts.injuryAdvantage;
+  }
+
+  // NHL special teams (PP%, PK%) — season-level advantage layered on top of goalie signal.
+  // A 5 pp PP% gap (22% vs 17%) ≈ +2 pp win probability.
+  if (sport === "NHL" && opts.nhlHomeSpecialTeams != null && opts.nhlAwaySpecialTeams != null) {
+    const ppAdv = opts.nhlHomeSpecialTeams.ppPct - opts.nhlAwaySpecialTeams.ppPct;
+    const pkAdv = opts.nhlHomeSpecialTeams.pkPct - opts.nhlAwaySpecialTeams.pkPct;
+    prob += Math.max(-0.04, Math.min(0.04, ppAdv * 0.40 + pkAdv * 0.20));
+  }
+
+  // NFL situational adjustments — applied after injury and before calibration
+  if (sport === "NFL") {
+    // Divisional matchups historically play 3-4 pts tighter than the model projects —
+    // coaches know each other well, tendencies are mapped. Compress edge by 8%.
+    if (opts.nflIsDivisional) {
+      prob = 0.5 + (prob - 0.5) * 0.92;
+    }
+    // Dome/outdoor mismatch: away dome team playing outdoors takes a penalty
+    if (opts.nflDomeMismatch != null) {
+      prob += opts.nflDomeMismatch;
+    }
+    // Season turnover margin differential — TO margin is the #1 per-game NFL predictor.
+    // Teams with +3 or better margin win ~75% of games.
+    if (opts.nflTurnoverAdvantage != null) {
+      prob += opts.nflTurnoverAdvantage;
+    }
   }
 
   prob = 0.5 + (prob - 0.5) * multiplier;

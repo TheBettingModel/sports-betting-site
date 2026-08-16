@@ -1,5 +1,5 @@
 /**
- * NHL Starting Goalie Service — NHL Web API (free, no key)
+ * NHL Goalie + Special Teams Service — NHL Web API (free, no key)
  *
  * Goalie save% and GAA are the single most predictive individual-game
  * variables in hockey — more than team quality for any given game.
@@ -149,6 +149,97 @@ export async function getGoalieMatchup(
   );
 
   return matchup;
+}
+
+// ── NHL Special Teams (Power Play / Penalty Kill) ────────────────────────────
+//
+// Fetched once per scheduler run from the NHL standings endpoint which contains
+// season PP% and PK% for every team. A 5 percentage-point PP% advantage
+// (e.g. 22% vs 17%) translates to roughly +2.5 pp win probability.
+//
+// Scale: ±0.04 max probability shift (PP% delta * 0.40 + PK% delta * 0.20).
+
+export interface NhlTeamSpecialTeams {
+  ppPct: number;  // power play %, 0–1 (e.g. 0.220 = 22%)
+  pkPct: number;  // penalty kill %, 0–1 (e.g. 0.820 = 82%)
+}
+
+const LEAGUE_AVG_PP_PCT = 0.195;
+const LEAGUE_AVG_PK_PCT = 0.805;
+
+const stCache = new Map<string, { teams: Record<string, NhlTeamSpecialTeams>; fetchedAt: number }>();
+const ST_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — PP/PK changes slowly
+
+interface NhlStandingRecord {
+  teamAbbrev?:     { default?: string };
+  powerPlayPct?:   number;
+  penaltyKillPct?: number;
+}
+interface NhlStandingsResponse {
+  standings?: NhlStandingRecord[];
+}
+
+async function fetchAllNhlSpecialTeams(): Promise<Record<string, NhlTeamSpecialTeams>> {
+  try {
+    const resp = await fetch("https://api-web.nhle.com/v1/standings/now", {
+      signal: AbortSignal.timeout(10_000),
+      headers: { "User-Agent": "TheBettingModel/2.0" },
+    });
+    if (!resp.ok) throw new Error(`NHL standings ${resp.status}`);
+    const data = (await resp.json()) as NhlStandingsResponse;
+    const result: Record<string, NhlTeamSpecialTeams> = {};
+    for (const row of data.standings ?? []) {
+      const abbr = row.teamAbbrev?.default;
+      if (!abbr) continue;
+      result[abbr] = {
+        ppPct: row.powerPlayPct   ?? LEAGUE_AVG_PP_PCT,
+        pkPct: row.penaltyKillPct ?? LEAGUE_AVG_PK_PCT,
+      };
+    }
+    return result;
+  } catch (err) {
+    logger.warn({ err }, "NHL special teams: standings fetch failed");
+    return {};
+  }
+}
+
+/**
+ * Returns season PP% and PK% for an NHL team (ESPN abbr → NHL abbr via ESPN_TO_NHL map).
+ * Falls back to league averages when data is unavailable.
+ */
+export async function getNhlTeamSpecialTeams(espnAbbr: string): Promise<NhlTeamSpecialTeams> {
+  const cacheKey = "all";
+  const cached = stCache.get(cacheKey);
+  let teams: Record<string, NhlTeamSpecialTeams>;
+
+  if (cached && Date.now() - cached.fetchedAt < ST_TTL_MS) {
+    teams = cached.teams;
+  } else {
+    teams = await fetchAllNhlSpecialTeams();
+    if (Object.keys(teams).length > 0) {
+      stCache.set(cacheKey, { teams, fetchedAt: Date.now() });
+    } else if (cached) {
+      teams = cached.teams; // stale fallback
+    }
+  }
+
+  const code = nhlCode(espnAbbr);
+  return teams[code] ?? teams[espnAbbr] ?? { ppPct: LEAGUE_AVG_PP_PCT, pkPct: LEAGUE_AVG_PK_PCT };
+}
+
+/**
+ * Compute a [-0.04, +0.04] probability advantage for the home team based on
+ * the season power play % and penalty kill % differential.
+ * Positive = home team has the special-teams edge.
+ */
+export function computeNhlSpecialTeamsAdvantage(
+  home: NhlTeamSpecialTeams,
+  away: NhlTeamSpecialTeams,
+): number {
+  const ppAdv = home.ppPct - away.ppPct;
+  const pkAdv = home.pkPct - away.pkPct;
+  const raw   = ppAdv * 0.40 + pkAdv * 0.20;
+  return Math.max(-0.04, Math.min(0.04, raw));
 }
 
 /**

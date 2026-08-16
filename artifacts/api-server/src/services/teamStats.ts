@@ -574,6 +574,181 @@ export async function getDbTeamStats(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// NBA: ESPN team stats (same WnbaTeamStats shape, different endpoint)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const NBA_TTL_MS = 4 * 60 * 60 * 1000; // 4 h — same cadence as WNBA
+const nbaCache = new Map<string, { stats: WnbaTeamStats; fetchedAt: number }>();
+let nbaRefreshInProgress: Promise<void> | null = null;
+
+async function fetchNbaTeamForm(teamId: string): Promise<FormResult> {
+  const defaults: FormResult = {
+    last5WinPct: 0.5, last10WinPct: 0.5,
+    last5PointDiff: 0, last10PointDiff: 0,
+    restDays: 2,
+  };
+  try {
+    const year = new Date().getFullYear();
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/schedule?season=${year}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) return defaults;
+
+    const data = await resp.json() as { events?: unknown[] };
+    const events = (data.events ?? []) as Array<{
+      date: string;
+      competitions: Array<{
+        status: { type: { completed: boolean } };
+        competitors: Array<{
+          team?: { id?: string };
+          score?: string | { displayValue?: string };
+          winner?: boolean;
+        }>;
+      }>;
+    }>;
+
+    const getScore = (raw: string | { displayValue?: string } | undefined): number =>
+      parseInt(typeof raw === "string" ? raw : (raw?.displayValue ?? "0"), 10) || 0;
+
+    const completed = events
+      .filter((e) => e.competitions[0]?.status?.type?.completed)
+      .map((e) => {
+        const comp   = e.competitions[0]!;
+        const myTeam = comp.competitors.find((c) => c.team?.id === teamId);
+        const opp    = comp.competitors.find((c) => c.team?.id !== teamId);
+        const myScore  = getScore(myTeam?.score);
+        const oppScore = getScore(opp?.score);
+        return {
+          date: e.date,
+          myScore,
+          oppScore,
+          won: myScore > oppScore,
+          pointDiff: myScore - oppScore,
+        };
+      })
+      .filter((g) => g.myScore > 0 || g.oppScore > 0);
+
+    if (completed.length === 0) return defaults;
+
+    const avg = (arr: number[]) =>
+      arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+
+    const last5  = completed.slice(-5);
+    const last10 = completed.slice(-10);
+
+    const last5WinPct    = last5.length  > 0 ? last5.filter((g)  => g.won).length  / last5.length  : 0.5;
+    const last10WinPct   = last10.length > 0 ? last10.filter((g) => g.won).length  / last10.length : 0.5;
+    const last5PointDiff  = avg(last5.map((g)  => g.pointDiff));
+    const last10PointDiff = avg(last10.map((g) => g.pointDiff));
+
+    const lastDate = new Date(completed[completed.length - 1]!.date);
+    const today    = new Date();
+    const restDays = Math.max(0, Math.min(7,
+      Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
+    ));
+
+    return { last5WinPct, last10WinPct, last5PointDiff, last10PointDiff, restDays };
+  } catch {
+    return defaults;
+  }
+}
+
+async function fetchNbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats | null> {
+  try {
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/statistics`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) return null;
+
+    const data = await resp.json() as { results?: { stats?: { categories?: EspnStatCat[] } } };
+    const cats: EspnStatCat[] = data.results?.stats?.categories ?? [];
+
+    const ppg      = findStat(cats, "offensive", "avgPoints");
+    const afga     = findStat(cats, "offensive", "avgFieldGoalsAttempted");
+    const afta     = findStat(cats, "offensive", "avgFreeThrowsAttempted");
+    const afgm     = findStat(cats, "offensive", "avgFieldGoalsMade");
+    const a3pa     = findStat(cats, "offensive", "avgThreePointFieldGoalsAttempted");
+    const apg      = findStat(cats, "offensive", "avgAssists");
+    const topg     = findStat(cats, "offensive", "avgTurnovers");
+    const orpg     = findStat(cats, "offensive", "avgOffensiveRebounds");
+    const efg      = findStat(cats, "offensive", "shootingEfficiency");
+    const ftPct    = findStat(cats, "offensive", "freeThrowPct")    / 100;
+    const threePct = findStat(cats, "offensive", "threePointPct")   / 100;
+    const spg      = findStat(cats, "defensive", "avgSteals");
+    const bpg      = findStat(cats, "defensive", "avgBlocks");
+    const drebPg   = findStat(cats, "defensive", "avgDefensiveRebounds");
+
+    const possEst   = Math.max(1, afga + 0.44 * afta + topg - orpg);
+    const tsPct     = (afga + afta) > 0 ? ppg / (2 * (afga + 0.44 * afta)) : 0.55;
+    const toPct     = topg / possEst;
+    const astPct    = afgm > 0 ? apg / afgm : 0.50;
+    const threeRate = afga > 0 ? a3pa / afga : 0.35;
+    const ftRate    = afga > 0 ? afta / afga : 0.30;
+
+    const form = await fetchNbaTeamForm(teamId);
+
+    return {
+      teamId,
+      ppg,
+      efgPercent:           efg,
+      trueShootingPercent:  tsPct,
+      paceApprox:           possEst,
+      turnoverPercent:      toPct,
+      assistPercent:        astPct,
+      orebPg:               orpg,
+      threePointRate:       threeRate,
+      threePointPct:        threePct,
+      ftRate,
+      ftPct,
+      spg,
+      bpg,
+      drebPg,
+      ...form,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function refreshAllNbaStats(teamIds: string[]): Promise<void> {
+  if (teamIds.length === 0) return;
+  logger.info({ count: teamIds.length }, "TeamStats: refreshing NBA team stats");
+  const now = Date.now();
+
+  await Promise.allSettled(
+    teamIds.map(async (teamId) => {
+      const stats = await fetchNbaTeamStatsSingle(teamId);
+      if (stats) nbaCache.set(teamId, { stats, fetchedAt: now });
+    }),
+  );
+}
+
+/**
+ * Returns advanced stats for an NBA team by ESPN numeric team ID.
+ * Uses the same WnbaTeamStats shape so the basketball model works for both leagues.
+ * Results are cached for 4 hours; a background refresh fires when the cache expires.
+ */
+export async function getNbaTeamStats(teamId: string): Promise<WnbaTeamStats | undefined> {
+  if (!teamId) return undefined;
+
+  const cached = nbaCache.get(teamId);
+  const fresh  = cached && Date.now() - cached.fetchedAt < NBA_TTL_MS;
+
+  if (fresh) return cached.stats;
+
+  // Background refresh: collect all currently-tracked NBA team IDs
+  if (!nbaRefreshInProgress) {
+    const allIds = teamId ? [teamId, ...Array.from(nbaCache.keys()).filter((k) => k !== teamId)] : [];
+    nbaRefreshInProgress = refreshAllNbaStats(allIds).finally(() => {
+      nbaRefreshInProgress = null;
+    });
+  }
+
+  if (cached) return cached.stats; // return stale while refreshing
+
+  await nbaRefreshInProgress;
+  return nbaCache.get(teamId)?.stats;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Server startup warm-up
 // ─────────────────────────────────────────────────────────────────────────────
 

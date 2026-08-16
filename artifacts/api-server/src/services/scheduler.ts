@@ -14,7 +14,7 @@
 
 import cron from "node-cron";
 import { eq, and, desc, ne, gte, gt, lt } from "drizzle-orm";
-import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable, pushTokensTable } from "@workspace/db";
+import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable, pushTokensTable, gamesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { processGameSnapshot } from "./snapshot";
@@ -24,7 +24,16 @@ import { checkPendingPushReceipts } from "./pushReceipts";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
-import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, warmUpTeamStatsCache } from "./teamStats";
+import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, getNbaTeamStats, warmUpTeamStatsCache } from "./teamStats";
+import { getOddsForGame } from "./oddsApi";
+import { getProbablePitchers, computePitcherAdvantage } from "./mlbPitchers";
+import { getBullpenMatchup, computeBullpenAdvantage } from "./mlbBullpen";
+import { getLineupMatchup } from "./mlbLineups";
+import { getVenueWeather, computeWeatherEffect } from "./weatherService";
+import { getGoalieMatchup, computeGoalieAdvantage, getNhlTeamSpecialTeams, computeNhlSpecialTeamsAdvantage } from "./nhlGoalies";
+import { getTeamInjuryImpact, computeInjuryAdvantage } from "./nflInjuries";
+import { getWnbaTeamInjuryImpact, computeWnbaInjuryAdvantage } from "./wnbaInjuries";
+import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 
@@ -409,6 +418,19 @@ async function runOddsIngestion(): Promise<void> {
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
 
+    // Pre-fetch existing game rows so we can detect line movement (opening vs current odds)
+    const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const existingRows = await db.select({
+      id:              gamesTable.id,
+      openingHomeOdds: gamesTable.openingHomeOdds,
+      openingAwayOdds: gamesTable.openingAwayOdds,
+    }).from(gamesTable).where(eq(gamesTable.gameDate, todayDateStr));
+    const existingByGameId = new Map(existingRows.map((r) => [r.id, r]));
+
+    /** Convert American moneyline to vig-inclusive implied probability */
+    const impliedProb = (odds: number) =>
+      odds < 0 ? Math.abs(odds) / (Math.abs(odds) + 100) : 100 / (odds + 100);
+
     // Per-sport counts stored in dataSourceFreshness:
     //   number  → games fetched (0 = off-season / no games)
     //   "error" → ESPN fetch failed for that sport
@@ -431,15 +453,19 @@ async function runOddsIngestion(): Promise<void> {
       for (const game of games) {
         try {
           // Fetch advanced team analytics (all cached after first call per run).
-          // WNBA/NBA: ESPN stats (4h TTL). Soccer: DB goals (1h TTL).
-          // MLB/NFL/NHL/NCAAF/NCAAB: DB runs/points (1h TTL).
+          // WNBA: ESPN WNBA stats (4h TTL). NBA: ESPN NBA stats (4h TTL).
+          // Soccer: DB goals (1h TTL). MLB/NFL/NHL/NCAAF/NCAAB: DB runs/points (1h TTL).
           const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
             await Promise.all([
-              (game.sport === "WNBA" || game.sport === "NBA")
+              game.sport === "WNBA"
                 ? getWnbaTeamStats(game.homeTeamId ?? "")
+                : game.sport === "NBA"
+                ? getNbaTeamStats(game.homeTeamId ?? "")
                 : Promise.resolve(undefined),
-              (game.sport === "WNBA" || game.sport === "NBA")
+              game.sport === "WNBA"
                 ? getWnbaTeamStats(game.awayTeamId ?? "")
+                : game.sport === "NBA"
+                ? getNbaTeamStats(game.awayTeamId ?? "")
                 : Promise.resolve(undefined),
               game.sport === "Soccer"
                 ? getSoccerTeamStats(game.homeTeamId ?? "")
@@ -455,6 +481,75 @@ async function runOddsIngestion(): Promise<void> {
                 : Promise.resolve(undefined),
             ]);
 
+          // ── Phase 2: multi-book odds + pitcher + line movement ─────────────
+          const gameOdds = await getOddsForGame(
+            game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
+          );
+          const starters = game.sport === "MLB"
+            ? await getProbablePitchers(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+            : { home: null, away: null };
+          const pitcherAdvantage = game.sport === "MLB" ? computePitcherAdvantage(starters) : undefined;
+
+          // Line movement: did the home team's implied probability increase since opening?
+          const existingRow      = existingByGameId.get(game.espnId);
+          const currentHomeOdds  = gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds ?? null;
+          const lineMovedTowardHome: boolean | undefined =
+            existingRow?.openingHomeOdds != null && currentHomeOdds != null
+              ? impliedProb(currentHomeOdds) > impliedProb(existingRow.openingHomeOdds)
+              : undefined;
+
+          // ── Phase 3: external signals (each service caches; no redundant calls) ──
+          const venueWeather = (game.sport === "MLB" || game.sport === "NFL")
+            ? await getVenueWeather(game.sport, game.homeTeamAbbr, game.gameDate, game.gameTime ?? "7:00 PM ET")
+            : null;
+          const weatherEffect = venueWeather && !venueWeather.isDome
+            ? computeWeatherEffect(venueWeather, game.sport)
+            : null;
+
+          const goalieMatchup = game.sport === "NHL"
+            ? await getGoalieMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+            : null;
+          const goalieAdvantage = game.sport === "NHL" && goalieMatchup
+            ? computeGoalieAdvantage(goalieMatchup)
+            : undefined;
+
+          const [homeNhlST, awayNhlST] = game.sport === "NHL"
+            ? await Promise.all([
+                getNhlTeamSpecialTeams(game.homeTeamAbbr),
+                getNhlTeamSpecialTeams(game.awayTeamAbbr),
+              ])
+            : [null, null] as [null, null];
+
+          const [homeInjury, awayInjury] = game.sport === "NFL"
+            ? await Promise.all([
+                getTeamInjuryImpact(game.homeTeamAbbr),
+                getTeamInjuryImpact(game.awayTeamAbbr),
+              ])
+            : [null, null] as [null, null];
+          const [homeWnbaInj, awayWnbaInj] = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
+            ? await Promise.all([
+                getWnbaTeamInjuryImpact(game.homeTeamId),
+                getWnbaTeamInjuryImpact(game.awayTeamId),
+              ])
+            : [null, null] as [null, null];
+          const injuryAdvantage =
+            game.sport === "NFL"   && homeInjury  && awayInjury
+              ? computeInjuryAdvantage(homeInjury, awayInjury)
+              : game.sport === "WNBA" && homeWnbaInj && awayWnbaInj
+              ? computeWnbaInjuryAdvantage(homeWnbaInj, awayWnbaInj)
+              : undefined;
+
+          const bullpenMatchup = game.sport === "MLB"
+            ? await getBullpenMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+            : null;
+          const bullpenEffect = game.sport === "MLB" && bullpenMatchup
+            ? computeBullpenAdvantage(bullpenMatchup)
+            : null;
+
+          const nflSignals = game.sport === "NFL"
+            ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
+            : null;
+
           const proj = computeProjection(
             game.espnId,
             game.sport,
@@ -466,10 +561,33 @@ async function runOddsIngestion(): Promise<void> {
               homeRoadRecord:    game.homeRoadRecord,
               awayHomeRecord:    game.awayHomeRecord,
               awayRoadRecord:    game.awayRoadRecord,
-              realVegasHomeOdds: game.vegasHomeOdds,
-              realVegasAwayOdds: game.vegasAwayOdds,
-              realVegasDrawOdds: game.vegasDrawOdds,
-              realVegasOverUnder: game.vegasOverUnder,
+              // Consensus odds preferred over ESPN single book
+              realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
+              realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
+              realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+              realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
+              // Phase 2 signals
+              pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
+              pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
+              consensusHomeOdds: gameOdds?.consensusHomeOdds,
+              consensusAwayOdds: gameOdds?.consensusAwayOdds,
+              lineMovedTowardHome,
+              pitcherAdvantage,
+              // Phase 3 signals
+              goalieAdvantage,
+              injuryAdvantage,
+              bullpenAdvantage:       bullpenEffect?.probabilityAdj,
+              bullpenTotalAdjustment: bullpenEffect?.totalAdj,
+              weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
+              weatherWindMph:   venueWeather?.windSpeedMph,
+              weatherPrecipMm:  venueWeather?.precipitationMm,
+              // NHL special teams
+              nhlHomeSpecialTeams: homeNhlST ?? undefined,
+              nhlAwaySpecialTeams: awayNhlST ?? undefined,
+              // NFL situational
+              nflIsDivisional:      nflSignals?.isDivisional,
+              nflDomeMismatch:      nflSignals?.domeMismatch,
+              nflTurnoverAdvantage: nflSignals?.turnoverAdvantage,
               homeTeamStats,
               awayTeamStats,
               homeSoccerStats,
@@ -546,11 +664,15 @@ async function runResultGrading(): Promise<void> {
       try {
         const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
           await Promise.all([
-            (game.sport === "WNBA" || game.sport === "NBA")
+            game.sport === "WNBA"
               ? getWnbaTeamStats(game.homeTeamId ?? "")
+              : game.sport === "NBA"
+              ? getNbaTeamStats(game.homeTeamId ?? "")
               : Promise.resolve(undefined),
-            (game.sport === "WNBA" || game.sport === "NBA")
+            game.sport === "WNBA"
               ? getWnbaTeamStats(game.awayTeamId ?? "")
+              : game.sport === "NBA"
+              ? getNbaTeamStats(game.awayTeamId ?? "")
               : Promise.resolve(undefined),
             game.sport === "Soccer"
               ? getSoccerTeamStats(game.homeTeamId ?? "")
@@ -566,6 +688,66 @@ async function runResultGrading(): Promise<void> {
               : Promise.resolve(undefined),
           ]);
 
+        // Phase 2 + 3 signals (all services cache internally; no extra HTTP overhead)
+        const gameOdds = await getOddsForGame(
+          game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
+        );
+        const starters = game.sport === "MLB"
+          ? await getProbablePitchers(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+          : { home: null, away: null };
+        const pitcherAdvantage = game.sport === "MLB" ? computePitcherAdvantage(starters) : undefined;
+
+        const venueWeather = (game.sport === "MLB" || game.sport === "NFL")
+          ? await getVenueWeather(game.sport, game.homeTeamAbbr, game.gameDate, game.gameTime ?? "7:00 PM ET")
+          : null;
+        const weatherEffect = venueWeather && !venueWeather.isDome
+          ? computeWeatherEffect(venueWeather, game.sport)
+          : null;
+
+        const goalieMatchup = game.sport === "NHL"
+          ? await getGoalieMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+          : null;
+        const goalieAdvantage = game.sport === "NHL" && goalieMatchup
+          ? computeGoalieAdvantage(goalieMatchup)
+          : undefined;
+
+        const [homeNhlST, awayNhlST] = game.sport === "NHL"
+          ? await Promise.all([
+              getNhlTeamSpecialTeams(game.homeTeamAbbr),
+              getNhlTeamSpecialTeams(game.awayTeamAbbr),
+            ])
+          : [null, null] as [null, null];
+
+        const [homeInjury, awayInjury] = game.sport === "NFL"
+          ? await Promise.all([
+              getTeamInjuryImpact(game.homeTeamAbbr),
+              getTeamInjuryImpact(game.awayTeamAbbr),
+            ])
+          : [null, null] as [null, null];
+        const [homeWnbaInj, awayWnbaInj] = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
+          ? await Promise.all([
+              getWnbaTeamInjuryImpact(game.homeTeamId),
+              getWnbaTeamInjuryImpact(game.awayTeamId),
+            ])
+          : [null, null] as [null, null];
+        const injuryAdvantage =
+          game.sport === "NFL"  && homeInjury  && awayInjury
+            ? computeInjuryAdvantage(homeInjury, awayInjury)
+            : game.sport === "WNBA" && homeWnbaInj && awayWnbaInj
+            ? computeWnbaInjuryAdvantage(homeWnbaInj, awayWnbaInj)
+            : undefined;
+
+        const bullpenMatchup = game.sport === "MLB"
+          ? await getBullpenMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+          : null;
+        const bullpenEffect = game.sport === "MLB" && bullpenMatchup
+          ? computeBullpenAdvantage(bullpenMatchup)
+          : null;
+
+        const nflSignals = game.sport === "NFL"
+          ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
+          : null;
+
         const proj = computeProjection(
           game.espnId,
           game.sport,
@@ -577,10 +759,27 @@ async function runResultGrading(): Promise<void> {
             homeRoadRecord:    game.homeRoadRecord,
             awayHomeRecord:    game.awayHomeRecord,
             awayRoadRecord:    game.awayRoadRecord,
-            realVegasHomeOdds: game.vegasHomeOdds,
-            realVegasAwayOdds: game.vegasAwayOdds,
-            realVegasDrawOdds: game.vegasDrawOdds,
-            realVegasOverUnder: game.vegasOverUnder,
+            realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
+            realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
+            realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+            realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
+            pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
+            pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
+            consensusHomeOdds: gameOdds?.consensusHomeOdds,
+            consensusAwayOdds: gameOdds?.consensusAwayOdds,
+            pitcherAdvantage,
+            goalieAdvantage,
+            injuryAdvantage,
+            bullpenAdvantage:       bullpenEffect?.probabilityAdj,
+            bullpenTotalAdjustment: bullpenEffect?.totalAdj,
+            weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
+            weatherWindMph:   venueWeather?.windSpeedMph,
+            weatherPrecipMm:  venueWeather?.precipitationMm,
+            nhlHomeSpecialTeams: homeNhlST ?? undefined,
+            nhlAwaySpecialTeams: awayNhlST ?? undefined,
+            nflIsDivisional:      nflSignals?.isDivisional,
+            nflDomeMismatch:      nflSignals?.domeMismatch,
+            nflTurnoverAdvantage: nflSignals?.turnoverAdvantage,
             homeTeamStats,
             awayTeamStats,
             homeSoccerStats,

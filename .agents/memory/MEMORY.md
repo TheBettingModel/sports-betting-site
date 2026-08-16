@@ -13,3 +13,4 @@
 - [Production build env detection](production-build-env.md) — use NODE_ENV==="production" not CI==="true" to gate source maps; Clerk npm CDN proxy needed for /npm/* path.
 - [Apple Review IAP Submission Flow](apple-review-iap-submission.md) — exact 4-item sequence; EULA requirement; first-time group rule; RevenueCat Missing Metadata cause.
 - [OTA Update fix for RN 0.81](ota-update-rn081-fix.md) — eas update needs babel-preset-expo@54.0.12 pinned + unstable_transformProfile:'default' in metro.config.js; Linux hermesc can't handle private class fields.
+- [Model Upgrade Phase 4](model-upgrade-phase4.md) — scheduler signal wiring (Tasks 103-105); NBA stats endpoint; NHL PP%/PK%; NFL divisional/dome/turnover signals; what was skipped and why.
