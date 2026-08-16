@@ -38,8 +38,14 @@ function validateSecret(req: Request, res: Response): boolean {
     return false;
   }
   const authHeader = req.headers["authorization"] ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  if (token !== WEBHOOK_SECRET) {
+  const token = (authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "").trim();
+  if (token !== WEBHOOK_SECRET.trim()) {
+    logger.warn("RevenueCat webhook auth failed", {
+      tokenLength: token.length,
+      secretLength: WEBHOOK_SECRET.trim().length,
+      tokenFirst4: token.slice(0, 4),
+      secretFirst4: WEBHOOK_SECRET.trim().slice(0, 4),
+    });
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
