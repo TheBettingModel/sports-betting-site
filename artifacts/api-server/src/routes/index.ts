@@ -13,6 +13,7 @@ import preferencesRouter from "./preferences";
 import clerkProxyRouter from "./clerk-proxy";
 import legalRouter from "./legal";
 import resultsRouter from "./results";
+import subscriptionsRouter from "./subscriptions";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(preferencesRouter);
 router.use(clerkProxyRouter);
 router.use(legalRouter);
 router.use(resultsRouter);
+router.use(subscriptionsRouter);
 
 export default router;

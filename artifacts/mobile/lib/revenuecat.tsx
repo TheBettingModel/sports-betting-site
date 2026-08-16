@@ -4,6 +4,7 @@ import Purchases from "react-native-purchases";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useAuth, useUser } from "@clerk/expo";
+import { syncSubscription } from "@workspace/api-client-react";
 
 const REVENUECAT_TEST_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
@@ -68,17 +69,42 @@ function useSubscriptionContext() {
     staleTime: 300_000,
   });
 
+  /**
+   * Syncs an active RevenueCat entitlement to our server DB.
+   * Called after every purchase and restore as a safety net for missed webhooks.
+   */
+  async function syncEntitlementToServer(customerInfo: Awaited<ReturnType<typeof Purchases.getCustomerInfo>>) {
+    const proEntitlement = customerInfo.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER];
+    if (!proEntitlement) return; // nothing to sync
+    try {
+      await syncSubscription({
+        entitlementId: REVENUECAT_ENTITLEMENT_IDENTIFIER,
+        expiresAt: proEntitlement.expirationDate ?? null,
+        isActive: true,
+      });
+    } catch (err) {
+      // Non-fatal: webhook may have already written the record
+      console.warn("[RevenueCat] subscription sync failed:", err);
+    }
+  }
+
   const purchaseMutation = useMutation({
     mutationFn: async (pkg: any) => {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       return customerInfo;
     },
-    onSuccess: () => customerInfoQuery.refetch(),
+    onSuccess: async (customerInfo) => {
+      await syncEntitlementToServer(customerInfo);
+      customerInfoQuery.refetch();
+    },
   });
 
   const restoreMutation = useMutation({
     mutationFn: () => Purchases.restorePurchases(),
-    onSuccess: () => customerInfoQuery.refetch(),
+    onSuccess: async (customerInfo) => {
+      await syncEntitlementToServer(customerInfo);
+      customerInfoQuery.refetch();
+    },
   });
 
   const rcSubscribed =

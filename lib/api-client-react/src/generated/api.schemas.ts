@@ -188,6 +188,23 @@ export interface UserPreferences {
   validTiers: string[];
 }
 
+export interface SubscriptionSyncRequest {
+  entitlementId: string;
+  expiresAt?: string | null;
+  isActive?: boolean;
+}
+
+export interface SubscriptionSyncResponse {
+  synced: boolean;
+  isSubscribed: boolean;
+}
+
+export interface SubscriptionStatusResponse {
+  isSubscribed: boolean;
+  entitlement?: string | null;
+  expiresAt?: string | null;
+}
+
 export interface UpdateUserPreferencesRequest {
   notifSports?: string[] | null;
   notifMinTier?: string;

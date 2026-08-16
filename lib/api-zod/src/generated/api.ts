@@ -279,3 +279,28 @@ export const UpdateUserPreferencesResponse = zod.object({
 })
 
 
+/**
+ * @summary Sync RevenueCat entitlement to server DB (fallback for missed webhooks)
+ */
+export const SyncSubscriptionBody = zod.object({
+  "entitlementId": zod.string(),
+  "expiresAt": zod.string().nullish(),
+  "isActive": zod.boolean().optional()
+})
+
+export const SyncSubscriptionResponse = zod.object({
+  "synced": zod.boolean(),
+  "isSubscribed": zod.boolean()
+})
+
+
+/**
+ * @summary Get current subscription status from server DB
+ */
+export const GetSubscriptionStatusResponse = zod.object({
+  "isSubscribed": zod.boolean(),
+  "entitlement": zod.string().nullish(),
+  "expiresAt": zod.string().nullish()
+})
+
+

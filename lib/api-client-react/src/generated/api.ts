@@ -33,6 +33,9 @@ import type {
   RegisterPushTokenRequest,
   ResultsRoiResponse,
   ResultsSummaryResponse,
+  SubscriptionStatusResponse,
+  SubscriptionSyncRequest,
+  SubscriptionSyncResponse,
   UpdateNotificationPreferencesRequest,
   UpdateUserPreferencesRequest,
   UserPreferences
@@ -1057,4 +1060,152 @@ export const useUpdateUserPreferences = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdateUserPreferencesMutationOptions(options));
     }
+
+export const getSyncSubscriptionUrl = () => {
+
+
+
+
+  return `/api/subscriptions/sync`
+}
+
+/**
+ * @summary Sync RevenueCat entitlement to server DB (fallback for missed webhooks)
+ */
+export const syncSubscription = async (subscriptionSyncRequest: SubscriptionSyncRequest, options?: RequestInit): Promise<SubscriptionSyncResponse> => {
+
+  return customFetch<SubscriptionSyncResponse>(getSyncSubscriptionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(subscriptionSyncRequest)
+  }
+);}
+
+
+
+
+
+export const getSyncSubscriptionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncSubscription>>, TError,{data: BodyType<SubscriptionSyncRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncSubscription>>, TError,{data: BodyType<SubscriptionSyncRequest>}, TContext> => {
+
+const mutationKey = ['syncSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncSubscription>>, {data: BodyType<SubscriptionSyncRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  syncSubscription(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof syncSubscription>>>
+    export type SyncSubscriptionMutationBody = BodyType<SubscriptionSyncRequest>
+    export type SyncSubscriptionMutationError = ErrorType<void>
+
+    /**
+ * @summary Sync RevenueCat entitlement to server DB (fallback for missed webhooks)
+ */
+export const useSyncSubscription = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncSubscription>>, TError,{data: BodyType<SubscriptionSyncRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncSubscription>>,
+        TError,
+        {data: BodyType<SubscriptionSyncRequest>},
+        TContext
+      > => {
+      return useMutation(getSyncSubscriptionMutationOptions(options));
+    }
+
+export const getGetSubscriptionStatusUrl = () => {
+
+
+
+
+  return `/api/subscriptions/status`
+}
+
+/**
+ * @summary Get current subscription status from server DB
+ */
+export const getSubscriptionStatus = async ( options?: RequestInit): Promise<SubscriptionStatusResponse> => {
+
+  return customFetch<SubscriptionStatusResponse>(getGetSubscriptionStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSubscriptionStatusQueryKey = () => {
+    return [
+    `/api/subscriptions/status`
+    ] as const;
+    }
+
+
+export const getGetSubscriptionStatusQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptionStatus>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionStatus>>> = ({ signal }) => getSubscriptionStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubscriptionStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionStatus>>>
+export type GetSubscriptionStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get current subscription status from server DB
+ */
+
+export function useGetSubscriptionStatus<TData = Awaited<ReturnType<typeof getSubscriptionStatus>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubscriptionStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
