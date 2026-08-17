@@ -61,36 +61,55 @@ const ADMIN_USER_IDS = new Set([
 // Must stay in sync with getClerkFrontendApi() in clerk-proxy.ts.
 const FALLBACK_JWKS_URL = "https://renewing-filly-49.clerk.accounts.dev/.well-known/jwks.json";
 
-function buildClerkJwksUrl(): string {
+// For production Replit-managed Clerk keys, the decoded frontend API domain
+// (clerk.<app>.replit.app) is a Replit proxy that is unreachable from inside
+// the deployed container. Instead, use the official Clerk API endpoint with
+// the secret key — always reachable externally regardless of environment.
+const CLERK_API_JWKS_URL = "https://api.clerk.com/v1/jwks";
+
+function buildClerkJwksUrl(): { url: string; useSecretKey: boolean } {
   const key = process.env["CLERK_PUBLISHABLE_KEY"] ?? process.env["VITE_CLERK_PUBLISHABLE_KEY"] ?? "";
   if (key) {
     const b64 = key.replace(/^pk_(test|live)_/, "");
     try {
       const domain = Buffer.from(b64, "base64").toString("utf-8").replace(/\$/, "");
-      // Use the decoded domain for both dev and production keys:
-      //   dev  → renewing-filly-49.clerk.accounts.dev
-      //   prod → clerk.thebettingmodel.replit.app   (public, reachable from server)
-      if (domain && domain.includes(".")) {
-        return `https://${domain}/.well-known/jwks.json`;
+      if (domain && domain.includes(".clerk.accounts.")) {
+        // Dev key — the decoded domain is a real Clerk accounts domain, reachable directly.
+        return { url: `https://${domain}/.well-known/jwks.json`, useSecretKey: false };
+      }
+      if (key.startsWith("pk_live_")) {
+        // Production Replit-managed key — fetch from Clerk's API using the secret key.
+        return { url: CLERK_API_JWKS_URL, useSecretKey: true };
       }
     } catch { /* fall through */ }
   }
-  return FALLBACK_JWKS_URL;
+  return { url: FALLBACK_JWKS_URL, useSecretKey: false };
 }
 
 type LocalJWKS = ReturnType<typeof createLocalJWKSet>;
 
 let _localJwks: LocalJWKS | null = null;
 let _jwksUrl: string | null = null;
+let _useSecretKey = false;
 let _lastFetchedAt = 0;
 const JWKS_REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 async function fetchAndCacheJwks(): Promise<void> {
-  const url = _jwksUrl ?? buildClerkJwksUrl();
+  const { url, useSecretKey } = _jwksUrl
+    ? { url: _jwksUrl, useSecretKey: _useSecretKey }
+    : buildClerkJwksUrl();
   if (!url) return;
   _jwksUrl = url;
+  _useSecretKey = useSecretKey;
+
+  const headers: Record<string, string> = {};
+  if (useSecretKey) {
+    const secret = process.env["CLERK_SECRET_KEY"];
+    if (secret) headers["Authorization"] = `Bearer ${secret}`;
+  }
+
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`JWKS fetch returned ${res.status}`);
     const json = await res.json() as object;
     _localJwks = createLocalJWKSet(json);
@@ -111,12 +130,13 @@ export function _setLocalJwksForTest(jwks: LocalJWKS | null): void {
 
 /** Call once at server startup to warm the JWKS cache. */
 export async function initJwks(): Promise<void> {
-  const url = buildClerkJwksUrl();
+  const { url, useSecretKey } = buildClerkJwksUrl();
   if (!url) {
     logger.warn("CLERK_PUBLISHABLE_KEY not set — JWT verification disabled");
     return;
   }
   _jwksUrl = url;
+  _useSecretKey = useSecretKey;
   await fetchAndCacheJwks();
 }
 
