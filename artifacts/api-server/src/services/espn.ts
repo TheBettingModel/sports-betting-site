@@ -142,6 +142,11 @@ interface EspnEvent {
 
 interface EspnScoreboard {
   events?: EspnEvent[];
+  season?: {
+    /** ESPN season type: 1=Preseason, 2=Regular, 3=Postseason */
+    type?: number;
+    slug?: string;
+  };
 }
 
 // ── FetchedGame ───────────────────────────────────────────────────────────────
@@ -339,6 +344,14 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
     });
 
     const data = (await resp.json()) as EspnScoreboard;
+
+    // Skip NFL preseason entirely — outcomes are near-random (starters barely
+    // play, coaches hide schemes). ESPN season.type === 1 means preseason.
+    if (sport === "NFL" && data.season?.type === 1) {
+      logger.info({ sportKey, seasonType: data.season.type }, "ESPN: skipping NFL preseason games");
+      return [];
+    }
+
     const events = data.events ?? [];
     const games: FetchedGame[] = [];
 

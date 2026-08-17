@@ -44,7 +44,7 @@ const HOME_ADVANTAGE: Record<string, number> = {
   NBA:    0.060,
   MLB:    0.040,
   NHL:    0.045,
-  WNBA:   0.030,  // WNBA home edge is ~2–3 pts, smaller than NBA (shorter travel, smaller arenas)
+  WNBA:   0.020,  // WNBA home edge reduced to ~2 pts — data shows 0.030 over-weights home advantage
   NCAAF:  0.075,
   NCAAB:  0.065,
   Soccer: 0.050,
@@ -814,11 +814,12 @@ function finalizeResult(
 
   const confidence = deviation >= 18 ? "High" : deviation >= 9 ? "Medium" : "Low";
 
-  // MLB and WNBA use higher thresholds while the model recalibrates — only publish
-  // picks where the edge is convincing enough to overcome the current confidence deficit.
-  const strongBuyThreshold = (sport === "MLB" || sport === "WNBA") ? 12 : 10;
-  const buyThreshold        = (sport === "MLB" || sport === "WNBA") ? 8  : 5;
-  const fadeThreshold       = (sport === "MLB" || sport === "WNBA") ? -8 : -5;
+  // MLB uses a higher threshold — Brier score 0.42 shows the model is poorly calibrated
+  // there; require a larger edge before committing subscribers' units.
+  // WNBA keeps its existing threshold while the home-advantage recalibration settles.
+  const strongBuyThreshold = sport === "MLB" ? 15 : (sport === "WNBA" ? 12 : 10);
+  const buyThreshold        = sport === "MLB" ? 10 : (sport === "WNBA" ? 8  : 5);
+  const fadeThreshold       = sport === "MLB" ? -10 : (sport === "WNBA" ? -8 : -5);
 
   let valueRating =
     anchoredEdge >= strongBuyThreshold ? "Strong Buy" :
@@ -838,6 +839,13 @@ function finalizeResult(
   const MONEYLINE_CAP = -160;
   if ((valueRating === "Strong Buy" || valueRating === "Buy") && pickOdds <= MONEYLINE_CAP) {
     valueRating = "Neutral";
+  }
+
+  // Strong Buy requires High confidence — the model needs both a large edge AND
+  // a decisive probability signal to justify maximum stake sizing. Medium confidence
+  // Strong Buys went 0-5 last week with catastrophic CLV; cap them at Buy.
+  if (valueRating === "Strong Buy" && confidence !== "High") {
+    valueRating = "Buy";
   }
   const priceAdj   = getPriceAdjustment(pickOdds);
 
@@ -1001,6 +1009,11 @@ function computeSoccerProjection(
   let soccerValueRating = valueRating;
   if ((soccerValueRating === "Strong Buy" || soccerValueRating === "Buy") && pickOdds <= -160) {
     soccerValueRating = "Neutral";
+  }
+
+  // Strong Buy requires High confidence — same rule as all other sports.
+  if (soccerValueRating === "Strong Buy" && confidence !== "High") {
+    soccerValueRating = "Buy";
   }
 
   const priceAdj = getPriceAdjustment(pickOdds);

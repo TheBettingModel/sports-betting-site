@@ -137,9 +137,19 @@ export function calculateUnits(
 // ── Closing-line value ────────────────────────────────────────────────────────
 
 /**
- * Calculate closing-line value as a percentage.
- * Positive CLV = our price was better (cheaper) than the closing line.
- * Negative CLV = closing line was sharper than our entry.
+ * Calculate closing-line value in percentage-point implied probability terms.
+ *
+ * CLV = (closing implied prob − our implied prob) × 100
+ *
+ * Positive CLV = we got a better price than where the market closed (good).
+ * Negative CLV = the market closed sharper than our entry (bad).
+ *
+ * We use the raw probability DIFFERENCE rather than dividing by the closing
+ * probability. The division form ((close − pred) / close × 100) creates a
+ * percentage CHANGE, which blows up to extreme values (±thousands) whenever
+ * the closing line is on a heavy underdog with a tiny implied probability.
+ * The difference form stays in the bounded range [-100, +100] percentage
+ * points and is the standard metric used in CLV research.
  */
 export function calculateClv(
   predictionOdds: number,
@@ -147,9 +157,12 @@ export function calculateClv(
 ): number {
   const predImplied = americanToImplied(predictionOdds);
   const closeImplied = americanToImplied(closingOdds);
-  if (closeImplied === 0) return 0;
-  const clv = ((closeImplied - predImplied) / closeImplied) * 100;
-  return Math.round(clv * 100) / 100;
+  if (closeImplied === 0 || predImplied === 0) return 0;
+  const clv = (closeImplied - predImplied) * 100;
+  // Clamp to a sensible range — values outside ±50pp signal a data error
+  // (e.g. a corrupted closing price), not a real edge gain/loss.
+  const clamped = Math.max(-50, Math.min(50, clv));
+  return Math.round(clamped * 100) / 100;
 }
 
 function americanToImplied(odds: number): number {
