@@ -29,6 +29,7 @@ import {
   pickResultsTable,
   publishedPicksTable,
   sportSnoozesTable,
+  subscribersTable,
   trainingDatasetsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
@@ -695,6 +696,67 @@ router.delete("/admin/sports/:sport/snooze", async (req, res): Promise<void> => 
   await db.delete(sportSnoozesTable).where(eq(sportSnoozesTable.sport, sport));
   logger.info({ sport }, "Admin: sport snooze removed");
   res.json({ message: `Snooze for ${sport} removed` });
+});
+
+// ── Subscriber management ─────────────────────────────────────────────────────
+
+/**
+ * POST /admin/subscribers/grant
+ * Body: { userId: string, expiresAt?: string (ISO) }
+ * Grants or refreshes pro access for a user. Safe to call multiple times.
+ */
+router.post("/admin/subscribers/grant", async (req, res): Promise<void> => {
+  const { userId, expiresAt: expiresAtStr } = req.body as { userId?: string; expiresAt?: string };
+  if (!userId) {
+    res.status(400).json({ error: "userId required" });
+    return;
+  }
+  const expiresAt = expiresAtStr
+    ? new Date(expiresAtStr)
+    : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+  await db
+    .insert(subscribersTable)
+    .values({ userId, entitlement: "pro", isActive: true, expiresAt })
+    .onConflictDoUpdate({
+      target: subscribersTable.userId,
+      set: { entitlement: "pro", isActive: true, expiresAt, updatedAt: new Date() },
+    });
+
+  logger.info({ userId, expiresAt }, "Admin: pro access granted");
+  res.json({ granted: true, userId, expiresAt });
+});
+
+/**
+ * POST /admin/subscribers/revoke
+ * Body: { userId: string }
+ * Revokes pro access for a user.
+ */
+router.post("/admin/subscribers/revoke", async (req, res): Promise<void> => {
+  const { userId } = req.body as { userId?: string };
+  if (!userId) {
+    res.status(400).json({ error: "userId required" });
+    return;
+  }
+  await db
+    .insert(subscribersTable)
+    .values({ userId, entitlement: "pro", isActive: false })
+    .onConflictDoUpdate({
+      target: subscribersTable.userId,
+      set: { isActive: false, updatedAt: new Date() },
+    });
+
+  logger.info({ userId }, "Admin: pro access revoked");
+  res.json({ revoked: true, userId });
+});
+
+/**
+ * GET /admin/subscribers
+ * Lists all subscriber records.
+ */
+router.get("/admin/subscribers", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(subscribersTable);
+  res.json(rows);
 });
 
 export default router;
