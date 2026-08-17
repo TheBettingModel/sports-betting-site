@@ -67,11 +67,10 @@ function buildClerkJwksUrl(): string {
     const b64 = key.replace(/^pk_(test|live)_/, "");
     try {
       const domain = Buffer.from(b64, "base64").toString("utf-8").replace(/\$/, "");
-      // Only use the decoded domain when it is a real Clerk accounts domain.
-      // Production Replit-managed Clerk keys decode to clerk.<app>.replit.app
-      // which is unreachable from inside the deployed server. Fall back to the
-      // dev instance URL that the mobile bundle's baked-in pk_test_ key uses.
-      if (domain && domain.includes(".clerk.accounts.")) {
+      // Use the decoded domain for both dev and production keys:
+      //   dev  → renewing-filly-49.clerk.accounts.dev
+      //   prod → clerk.thebettingmodel.replit.app   (public, reachable from server)
+      if (domain && domain.includes(".")) {
         return `https://${domain}/.well-known/jwks.json`;
       }
     } catch { /* fall through */ }
