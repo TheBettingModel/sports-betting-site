@@ -15,3 +15,4 @@
 - [OTA Update fix for RN 0.81](ota-update-rn081-fix.md) — eas update needs babel-preset-expo@54.0.12 pinned + unstable_transformProfile:'default' in metro.config.js; Linux hermesc can't handle private class fields.
 - [Model Upgrade Phase 4](model-upgrade-phase4.md) — scheduler signal wiring (Tasks 103-105); NBA stats endpoint; NHL PP%/PK%; NFL divisional/dome/turnover signals; what was skipped and why.
 - [Mobile build domain priority](mobile-build-domain-priority.md) — build.js must check EXPO_PUBLIC_DOMAIN before REPLIT_DEV_DOMAIN; also EXPO_PUBLIC_DOMAIN must be set as a Replit env var; Metro port changed to 8083.
+- [Clerk JWKS tenant mismatch](clerk-jwks-tenant-mismatch.md) — JWKS must always use dev Clerk instance (renewing-filly-49); pk_live_* decodes to an unreachable Replit proxy, never use api.clerk.com/v1/jwks.
