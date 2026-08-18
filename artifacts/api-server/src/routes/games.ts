@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
-import { db, gamesTable, modelWeightsTable } from "@workspace/db";
+import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
 import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
@@ -566,6 +566,23 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["live"])));
   const liveGamesCount = liveGamesRows.length;
 
+  // Fetch today's published picks so we can lock in units at the value that was
+  // set when the pick was first published. The games table is overwritten on every
+  // scheduler run so its units field can drift; published_picks.units never changes.
+  const todayPickRows = await db
+    .select({ gameId: publishedPicksTable.gameId, units: publishedPicksTable.units })
+    .from(publishedPicksTable)
+    .where(sql`DATE(${publishedPicksTable.publishedAt} AT TIME ZONE 'America/New_York') = ${today}::date`);
+  const publishedUnitsMap = new Map(todayPickRows.map((p) => [p.gameId, p.units]));
+
+  /** Apply locked-in published_picks.units to any game that has a published pick today. */
+  function overlayPublishedUnits<T extends AnyGame>(games: T[]): T[] {
+    return games.map((g) => {
+      const pu = publishedUnitsMap.get(g["id"] as string);
+      return pu != null ? { ...g, units: pu } : g;
+    });
+  }
+
   if (isSubscribed) {
     // Subscribers: apply sport filter directly — no locking needed
     const where =
@@ -580,7 +597,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       .orderBy(desc(gamesTable.modelScore));
 
     res.json({
-      games,
+      games: overlayPublishedUnits(games as AnyGame[]),
       lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
       totalGames: games.length,
       liveGamesCount,
@@ -605,10 +622,12 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
   );
 
   // Apply lock state across the full slate, then sport-filter for the response
-  const gatedAll = (allTodayGames as AnyGame[]).map((game) => {
-    const isFree = freeGameIds.has(game["id"] as string);
-    return isFree ? { ...game, isLocked: false } : lockGame(game);
-  });
+  const gatedAll = overlayPublishedUnits(
+    (allTodayGames as AnyGame[]).map((game) => {
+      const isFree = freeGameIds.has(game["id"] as string);
+      return isFree ? { ...game, isLocked: false } : lockGame(game);
+    }),
+  );
 
   const filtered =
     typeof sport === "string" && sport !== "All"
