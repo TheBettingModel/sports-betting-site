@@ -25,9 +25,18 @@ In `computeLineupAdvantage(home, away, homeStarterHand, awayStarterHand)`:
 ## Cap
 Expanded from ±0.04 to **±0.06** to allow platoon/career signal full range.
 
+## pitchHand fetch quirk
+The MLB schedule `hydrate=probablePitcher,team` does NOT include `pitchHand`. It must be fetched via a separate batch people call in `fetchSchedule`: `/api/v1/people?personIds=A,B,C` returns `pitchHand.code` on each person object. This is done in parallel with the per-pitcher stats fetch.
+
+## Career vs pitcher API — batter-side only
+The pitcher-side `vsPlayer&group=pitching` aggregate endpoint returns 0 splits publicly (requires auth). Use the batter-side endpoint instead: `/people/{batterId}/stats?stats=vsPlayer&group=hitting&opposingPlayerId={pitcherId}`. This requires one call per batter (9 parallel calls per lineup), cached per batter-pitcher pair for 4h. Key: `${batterId}-${pitcherId}`.
+
+## DB columns
+`home_starter_hand` and `away_starter_hand` added to `games` table (lib/db/src/schema/games.ts) with startup migration in `artifacts/api-server/src/index.ts`.
+
 ## Caches
 - Platoon splits: fetched alongside OPS in `fetchLineups` (30-min main lineup cache)
-- Career vsPlayer: 4-hour cache in `careerCache` keyed by pitcherId
+- Career vsPlayer: 4-hour cache per batter-pitcher pair (`careerPairCache`, key `batterId-pitcherId`)
 - Enrichment result: 30-min cache in `enrichmentCache` keyed by `homeId|awayId|homePlayerIds`
 
 ## Scheduler / games wiring

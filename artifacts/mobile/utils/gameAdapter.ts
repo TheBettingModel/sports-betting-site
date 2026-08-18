@@ -107,9 +107,11 @@ export function mapApiGame(g: GameProjection): Game {
       homeStarterName: g.homeStarterName ?? undefined,
       homeStarterEra: g.homeStarterEra ?? undefined,
       homeStarterRecentEra: g.homeStarterRecentEra ?? undefined,
+      homeStarterHand: (g.homeStarterHand === 'L' || g.homeStarterHand === 'R') ? g.homeStarterHand : undefined,
       awayStarterName: g.awayStarterName ?? undefined,
       awayStarterEra: g.awayStarterEra ?? undefined,
       awayStarterRecentEra: g.awayStarterRecentEra ?? undefined,
+      awayStarterHand: (g.awayStarterHand === 'L' || g.awayStarterHand === 'R') ? g.awayStarterHand : undefined,
       bestLineBook: g.bestLineBook ?? undefined,
       bestLineOdds: g.bestLineOdds ?? undefined,
       // Phase 3: weather

@@ -53,9 +53,11 @@ export interface Game {
     homeStarterName?: string;
     homeStarterEra?: number;
     homeStarterRecentEra?: number;
+    homeStarterHand?: 'L' | 'R';
     awayStarterName?: string;
     awayStarterEra?: number;
     awayStarterRecentEra?: number;
+    awayStarterHand?: 'L' | 'R';
     // Phase 2: best available line across all tracked books
     bestLineBook?: string;
     bestLineOdds?: number;

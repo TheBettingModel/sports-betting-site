@@ -232,28 +232,39 @@ async function fetchBatterPlatoonOps(
 
 // ── Career vs specific pitcher ────────────────────────────────────────────────
 
-/** 4-hour cache for career vsPlayer splits (change once or twice a season at most). */
-interface CareerCacheEntry {
-  data: Map<number, number>; // batterId → career OPS vs this pitcher
+/**
+ * Per batter–pitcher pair cache.
+ * Key: "${batterId}-${pitcherId}" → OPS (or null if PA < 5 or fetch failed).
+ * TTL: 4 hours — career splits change at most a few times per week.
+ */
+interface CareerPairEntry {
+  ops: number | null;
   fetchedAt: number;
 }
-const careerCache = new Map<number, CareerCacheEntry>();
+const careerPairCache = new Map<string, CareerPairEntry>();
 const CAREER_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 /**
- * Fetch all career batter-vs-pitcher matchup records for a given pitcher.
- * MLB Stats API: /people/{pitcherId}/stats?stats=vsPlayer&group=pitching
- * Returns map of batterId → career OPS against this pitcher, for batters with ≥5 PA.
+ * Fetch a single batter's career OPS vs a specific pitcher.
+ * Uses the MLB Stats API batter-side vsPlayer endpoint, which is publicly available
+ * (unlike the pitcher-side aggregate endpoint which requires auth and returns 0 splits).
+ *
+ * Caches each batter–pitcher pair for 4 hours.
+ * Returns null when PA < 5 (sample too small) or on any API failure.
  */
-async function fetchCareerOpsForBatters(pitcherId: number): Promise<Map<number, number>> {
-  const cached = careerCache.get(pitcherId);
+async function fetchBatterVsPitcherOps(
+  batterId: number,
+  pitcherId: number,
+): Promise<number | null> {
+  const key = `${batterId}-${pitcherId}`;
+  const cached = careerPairCache.get(key);
   if (cached && Date.now() - cached.fetchedAt < CAREER_CACHE_TTL_MS) {
-    return cached.data;
+    return cached.ops;
   }
 
   const url =
-    `https://statsapi.mlb.com/api/v1/people/${pitcherId}/stats` +
-    `?stats=vsPlayer&group=pitching&gameType=R`;
+    `https://statsapi.mlb.com/api/v1/people/${batterId}/stats` +
+    `?stats=vsPlayer&group=hitting&opposingPlayerId=${pitcherId}&gameType=R`;
 
   try {
     const resp = await fetch(url, {
@@ -261,71 +272,59 @@ async function fetchCareerOpsForBatters(pitcherId: number): Promise<Map<number, 
       headers: { "User-Agent": "TheBettingModel/2.0" },
     });
     if (!resp.ok) {
-      careerCache.set(pitcherId, { data: new Map(), fetchedAt: Date.now() });
-      return new Map();
+      careerPairCache.set(key, { ops: null, fetchedAt: Date.now() });
+      return null;
     }
 
     const data = (await resp.json()) as {
       stats: Array<{ type: { displayName: string }; splits: MlbVsPlayerSplit[] }>;
     };
-    const vsPlayerGroup = data.stats?.find((s) => s.type.displayName === "vsPlayer");
-    const splits = vsPlayerGroup?.splits ?? [];
 
-    const result = new Map<number, number>();
+    // API may return vsPlayerTotal (aggregated) or vsPlayer (split by season) — prefer total
+    const grp =
+      data.stats?.find((s) => s.type.displayName === "vsPlayerTotal") ??
+      data.stats?.find((s) => s.type.displayName === "vsPlayer");
+    const st = grp?.splits?.[0]?.stat;
 
-    for (const split of splits) {
-      const batterId = split.opponent?.id;
-      const st = split.stat;
-      if (!batterId || !st) continue;
-
+    let ops: number | null = null;
+    if (st) {
       const pa = st.plateAppearances ?? 0;
-      if (pa < 5) continue; // too small a sample to be meaningful
-
-      let ops: number | null = null;
-      if (st.ops) {
-        ops = parseFloat(st.ops);
-      } else if (st.obp && st.slg) {
-        ops = parseFloat(st.obp) + parseFloat(st.slg);
-      } else if (st.hits != null && st.atBats != null && pa > 0) {
-        // Approximate from raw counts: OBP ≈ (H + BB) / PA, SLG ≈ (H + 2.5×HR) / AB
-        const ab = st.atBats;
-        const h  = st.hits;
-        const hr = st.homeRuns ?? 0;
-        const bb = st.baseOnBalls ?? 0;
-        if (ab > 0) {
-          ops = (h + bb) / pa + (h + 2.5 * hr) / ab;
+      if (pa >= 5) {
+        if (st.ops) {
+          ops = parseFloat(st.ops);
+        } else if (st.obp && st.slg) {
+          ops = parseFloat(st.obp) + parseFloat(st.slg);
+        } else if (st.hits != null && st.atBats != null && st.atBats > 0 && pa > 0) {
+          const hr = st.homeRuns ?? 0;
+          const bb = st.baseOnBalls ?? 0;
+          ops = (st.hits + bb) / pa + (st.hits + 2.5 * hr) / st.atBats;
         }
-      }
-
-      if (ops != null && !isNaN(ops) && ops > 0.100 && ops < 2.500) {
-        result.set(batterId, ops);
       }
     }
 
-    careerCache.set(pitcherId, { data: result, fetchedAt: Date.now() });
-    return result;
+    if (ops != null && (isNaN(ops) || ops < 0.100 || ops > 2.500)) ops = null;
+    careerPairCache.set(key, { ops, fetchedAt: Date.now() });
+    return ops;
   } catch {
-    careerCache.set(pitcherId, { data: new Map(), fetchedAt: Date.now() });
-    return new Map();
+    careerPairCache.set(key, { ops: null, fetchedAt: Date.now() });
+    return null;
   }
 }
 
 /**
- * Given a pitcher's career vsPlayer map and a lineup's batter IDs,
- * return the lineup's average career OPS vs that pitcher.
- * Returns null when fewer than 3 lineup batters have sufficient history (≥5 PA).
+ * Compute the average career OPS for a lineup vs a specific opposing pitcher.
+ * Fetches each batter–pitcher pair in parallel (9 calls max, all cached 4 h).
+ * Returns null when fewer than 3 lineup batters have ≥5 career PA vs this pitcher.
  */
-function computeCareerMatchupOps(
-  careerMap: Map<number, number>,
+async function computeCareerOpsVsPitcher(
+  pitcherId: number,
   batterIds: number[],
-): number | null {
-  let sum = 0;
-  let count = 0;
-  for (const id of batterIds) {
-    const ops = careerMap.get(id);
-    if (ops != null) { sum += ops; count++; }
-  }
-  return count >= 3 ? sum / count : null;
+): Promise<number | null> {
+  const opsValues = await Promise.all(
+    batterIds.map((id) => fetchBatterVsPitcherOps(id, pitcherId)),
+  );
+  const valid = opsValues.filter((v): v is number => v != null);
+  return valid.length >= 3 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -528,21 +527,16 @@ export async function enrichLineupMatchup(
     return cached.data;
   }
 
-  // Fetch career splits for both pitchers in parallel
-  const [homePitcherCareer, awayPitcherCareer] = await Promise.all([
-    homeId ? fetchCareerOpsForBatters(homeId) : Promise.resolve(new Map<number, number>()),
-    awayId ? fetchCareerOpsForBatters(awayId) : Promise.resolve(new Map<number, number>()),
-  ]);
-
-  // Away batters face the HOME pitcher; home batters face the AWAY pitcher
-  const awayCareerVsHomePitcher =
-    homeId && matchup.away.playerIds?.length
-      ? computeCareerMatchupOps(homePitcherCareer, matchup.away.playerIds)
-      : null;
-  const homeCareerVsAwayPitcher =
+  // Fetch career OPS for both lineups vs their opposing pitcher in parallel.
+  // Home batters face the AWAY pitcher; away batters face the HOME pitcher.
+  const [homeCareerVsAwayPitcher, awayCareerVsHomePitcher] = await Promise.all([
     awayId && matchup.home.playerIds?.length
-      ? computeCareerMatchupOps(awayPitcherCareer, matchup.home.playerIds)
-      : null;
+      ? computeCareerOpsVsPitcher(awayId, matchup.home.playerIds)
+      : Promise.resolve(null),
+    homeId && matchup.away.playerIds?.length
+      ? computeCareerOpsVsPitcher(homeId, matchup.away.playerIds)
+      : Promise.resolve(null),
+  ]);
 
   if (homeCareerVsAwayPitcher != null || awayCareerVsHomePitcher != null) {
     logger.info(

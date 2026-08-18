@@ -80,10 +80,12 @@ export const gamesTable = pgTable("games", {
   homeStarterEra:  real("home_starter_era"),
   homeStarterWhip: real("home_starter_whip"),
   homeStarterRecentEra: real("home_starter_recent_era"),  // ERA over last 3 starts
+  homeStarterHand: text("home_starter_hand"),              // "L" or "R"
   awayStarterName: text("away_starter_name"),
   awayStarterEra:  real("away_starter_era"),
   awayStarterWhip: real("away_starter_whip"),
   awayStarterRecentEra: real("away_starter_recent_era"),
+  awayStarterHand: text("away_starter_hand"),              // "L" or "R"
 
   // ── Phase 3: environmental signals ───────────────────────────────────────────
 

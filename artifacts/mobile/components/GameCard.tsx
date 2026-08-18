@@ -233,19 +233,43 @@ export function GameCard({ game }: GameCardProps) {
          ══════════════════════════════════════════════ */}
       {showStarters && (
         <View style={[styles.startersRow, { backgroundColor: '#0a0a0a', borderColor: '#1a1a1a' }]}>
-          <Text style={[
-            styles.starterName,
-            { color: (hasEdge && pickIsHome) ? '#d1d5db' : colors.mutedForeground },
-          ]}>
-            {projection.homeStarterName ?? '—'}
-          </Text>
+          {/* Home starter: [LHP] Name  ERA */}
+          <View style={styles.starterBlock}>
+            {projection.homeStarterHand != null && (
+              <Text style={styles.starterHand}>{projection.homeStarterHand}HP</Text>
+            )}
+            <Text style={[
+              styles.starterName,
+              { color: (hasEdge && pickIsHome) ? '#d1d5db' : colors.mutedForeground },
+            ]}>
+              {projection.homeStarterName ?? '—'}
+            </Text>
+            {(projection.homeStarterRecentEra ?? projection.homeStarterEra) != null && (
+              <Text style={styles.starterEra}>
+                {(projection.homeStarterRecentEra ?? projection.homeStarterEra)!.toFixed(2)}
+              </Text>
+            )}
+          </View>
+
           <Text style={styles.starterSP}>SP</Text>
-          <Text style={[
-            styles.starterName,
-            { color: (hasEdge && !pickIsHome) ? '#d1d5db' : colors.mutedForeground },
-          ]}>
-            {projection.awayStarterName ?? '—'}
-          </Text>
+
+          {/* Away starter: ERA  Name [RHP] */}
+          <View style={[styles.starterBlock, styles.starterBlockRight]}>
+            {(projection.awayStarterRecentEra ?? projection.awayStarterEra) != null && (
+              <Text style={styles.starterEra}>
+                {(projection.awayStarterRecentEra ?? projection.awayStarterEra)!.toFixed(2)}
+              </Text>
+            )}
+            <Text style={[
+              styles.starterName,
+              { color: (hasEdge && !pickIsHome) ? '#d1d5db' : colors.mutedForeground },
+            ]}>
+              {projection.awayStarterName ?? '—'}
+            </Text>
+            {projection.awayStarterHand != null && (
+              <Text style={styles.starterHand}>{projection.awayStarterHand}HP</Text>
+            )}
+          </View>
         </View>
       )}
 
@@ -531,15 +555,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
+  starterBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+  },
+  starterBlockRight: {
+    justifyContent: 'flex-end',
+  },
   starterName: {
     fontSize: 10,
     fontFamily: 'Inter_600SemiBold',
+  },
+  starterHand: {
+    fontSize: 8,
+    fontFamily: 'Inter_700Bold',
+    color: '#4B5563',
+    letterSpacing: 0.3,
+  },
+  starterEra: {
+    fontSize: 9,
+    fontFamily: 'Inter_500Medium',
+    color: '#4B5563',
   },
   starterSP: {
     fontSize: 9,
     fontFamily: 'Inter_700Bold',
     color: '#6B7280',
     letterSpacing: 0.5,
+    marginHorizontal: 4,
   },
 
   // ── Metrics ───────────────────────────────────────────────────

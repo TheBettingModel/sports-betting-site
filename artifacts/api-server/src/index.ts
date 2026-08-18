@@ -35,6 +35,13 @@ async function applyStartupMigrations(): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "Startup migrations: push_tokens column check failed — non-fatal");
   }
+  try {
+    await db.execute(sql`ALTER TABLE games ADD COLUMN IF NOT EXISTS home_starter_hand TEXT`);
+    await db.execute(sql`ALTER TABLE games ADD COLUMN IF NOT EXISTS away_starter_hand TEXT`);
+    logger.info("Startup migrations: games starter hand columns ensured");
+  } catch (err) {
+    logger.warn({ err }, "Startup migrations: games starter hand columns failed — non-fatal");
+  }
 }
 
 app.listen(port, (err) => {

@@ -230,19 +230,46 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
   }
 
   const statsByPitcherId = new Map<number, PitcherStats>();
-  await Promise.allSettled(
-    [...pitcherIds].map(async (id) => {
+  // handMap populated by batch people call below — pitchHand is NOT in probablePitcher hydration
+  const handMap = new Map<number, "L" | "R">();
+
+  await Promise.all([
+    // Per-pitcher stats (ERA, FIP, etc.)
+    Promise.allSettled(
+      [...pitcherIds].map(async (id) => {
+        try {
+          const pitcher = games
+            .flatMap((g) => [g.teams.home.probablePitcher, g.teams.away.probablePitcher])
+            .find((p) => p?.id === id);
+          const stats = await fetchPitcherStats(id, pitcher?.fullName ?? "Unknown");
+          statsByPitcherId.set(id, stats);
+        } catch (err) {
+          logger.warn({ err, pitcherId: id }, "MLB pitchers: stat fetch failed for one pitcher");
+        }
+      }),
+    ),
+    // Batch people call to get pitchHand for all pitchers in one request
+    (async () => {
+      if (pitcherIds.size === 0) return;
       try {
-        const pitcher = games
-          .flatMap((g) => [g.teams.home.probablePitcher, g.teams.away.probablePitcher])
-          .find((p) => p?.id === id);
-        const stats = await fetchPitcherStats(id, pitcher?.fullName ?? "Unknown");
-        statsByPitcherId.set(id, stats);
-      } catch (err) {
-        logger.warn({ err, pitcherId: id }, "MLB pitchers: stat fetch failed for one pitcher");
+        const url = `https://statsapi.mlb.com/api/v1/people?personIds=${[...pitcherIds].join(",")}`;
+        const resp = await fetch(url, {
+          signal: AbortSignal.timeout(8_000),
+          headers: { "User-Agent": "TheBettingModel/2.0" },
+        });
+        if (!resp.ok) return;
+        const data = (await resp.json()) as {
+          people?: Array<{ id: number; pitchHand?: { code: string } }>;
+        };
+        for (const p of data.people ?? []) {
+          const code = p.pitchHand?.code;
+          if (code === "L" || code === "R") handMap.set(p.id, code);
+        }
+      } catch {
+        // non-fatal — pitchHand stays unknown for this run
       }
-    }),
-  );
+    })(),
+  ]);
 
   const LEAGUE_AVG_DEFAULTS: PitcherStats = {
     name: "Unknown",
@@ -264,22 +291,19 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
     const homeP = g.teams.home.probablePitcher;
     const awayP = g.teams.away.probablePitcher;
 
-    const toHand = (code?: string): "L" | "R" | null =>
-      code === "L" || code === "R" ? code : null;
-
     result.set(`${homeAbbr}|${awayAbbr}`, {
       home: homeP
         ? {
             ...(statsByPitcherId.get(homeP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: homeP.fullName }),
             playerId:  homeP.id,
-            pitchHand: toHand(homeP.pitchHand?.code),
+            pitchHand: handMap.get(homeP.id) ?? null,
           }
         : null,
       away: awayP
         ? {
             ...(statsByPitcherId.get(awayP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: awayP.fullName }),
             playerId:  awayP.id,
-            pitchHand: toHand(awayP.pitchHand?.code),
+            pitchHand: handMap.get(awayP.id) ?? null,
           }
         : null,
     });
