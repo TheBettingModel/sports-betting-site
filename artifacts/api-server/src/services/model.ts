@@ -298,8 +298,14 @@ function getSharpMarketSignal(
     pinnacleHomeOdds != null && pinnacleAwayOdds != null &&
     consensusHomeOdds != null && consensusAwayOdds != null;
 
+  // Use absolute edge magnitude throughout — a negative edge means the away
+  // team has the advantage, which is a valid signal in the correct direction.
+  const absEdge = Math.abs(edge);
+
   if (hasPinnacle) {
     // ── Phase 2: Pinnacle vs consensus divergence ─────────────────────────
+    // Compare Pinnacle's implied probability for the pick side vs the
+    // consensus market. pickIsHome selects the right odds for either direction.
     const pinnPickProb = pickIsHome
       ? impliedProbFromAmerican(pinnacleHomeOdds!)
       : impliedProbFromAmerican(pinnacleAwayOdds!);
@@ -307,7 +313,6 @@ function getSharpMarketSignal(
       ? impliedProbFromAmerican(consensusHomeOdds!)
       : impliedProbFromAmerican(consensusAwayOdds!);
 
-    // How much sharper Pinnacle is on the pick side vs the public market.
     // Positive = Pinnacle backs pick more than public books do (sharp signal).
     const divergence = pinnPickProb - consPickProb;
 
@@ -317,9 +322,8 @@ function getSharpMarketSignal(
     else if (divergence <= -0.04) score -= 3; // Pinnacle fading the pick
     else if (divergence <= -0.02) score -= 2;
 
-    // Secondary: model edge still matters even with Pinnacle confirmation
-    if (edge >= 10) score += 1;
-    else if (edge < 0) score -= 1;
+    // Secondary: large model edge (in either direction) adds confirmation
+    if (absEdge >= 10) score += 1;
 
     // Plus-money Pinnacle lines are even more meaningful (sharps like value)
     const pinnPickOdds = pickIsHome ? pinnacleHomeOdds! : pinnacleAwayOdds!;
@@ -327,14 +331,13 @@ function getSharpMarketSignal(
 
   } else {
     // ── Phase 1 fallback: single-book edge + odds scoring ─────────────────
-    if      (edge >= 8) score += 4;
-    else if (edge >= 5) score += 3;
-    else if (edge >= 3) score += 2;
-    else if (edge >= 1) score += 1;
-    else if (edge < 0)  score -= 2;
+    if      (absEdge >= 8) score += 4;
+    else if (absEdge >= 5) score += 3;
+    else if (absEdge >= 3) score += 2;
+    else if (absEdge >= 1) score += 1;
 
-    if (pickOdds > 100)                      score += 1;
-    else if (pickOdds <= -200 && edge < 5)   score -= 1;
+    if (pickOdds > 100)                         score += 1;  // plus-money bonus
+    else if (pickOdds <= -200 && absEdge < 5)   score -= 1;  // heavy chalk penalty
   }
 
   const sharpSignal =
