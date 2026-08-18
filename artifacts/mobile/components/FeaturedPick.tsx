@@ -146,14 +146,25 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
         {!isFade && !isNeutral && (
           <View style={styles.winBlock}>
             <Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>WIN PROBABILITY</Text>
-            <Text style={[styles.winPct, { color: colors.foreground }]}>
-              {projection.homeWinPct}%{' '}
-              <Text style={[styles.winSub, { color: colors.mutedForeground }]}>HOME WIN</Text>
-            </Text>
+            {(() => {
+              // Always show the PICK team's win probability, not always the home team's.
+              const pickIsHome = projection.edge >= 0;
+              const pickWinPct = pickIsHome
+                ? projection.homeWinPct
+                : Math.round(100 - (projection.homeWinPct ?? 50));
+              const pickWinLabel = pickIsHome ? 'HOME WIN' : 'AWAY WIN';
+              return (
+                <Text style={[styles.winPct, { color: colors.foreground }]}>
+                  {pickWinPct}%{' '}
+                  <Text style={[styles.winSub, { color: colors.mutedForeground }]}>{pickWinLabel}</Text>
+                </Text>
+              );
+            })()}
             <Text style={[styles.edgeText, { color: colors.primary }]}>
               EDGE: {pickTeam.abbr} +{edgeAbs.toFixed(1)}%
             </Text>
-            {sharpSignal && sharpSignal !== 'No Signal' && (
+            {/* Only show meaningful sharp signals — skip Neutral Signal */}
+            {(sharpSignal === 'Sharp Play' || sharpSignal === 'Value Watch') && (
               <Text style={[styles.sharpText, { color: colors.mutedForeground }]}>
                 {sharpSignal === 'Sharp Play' ? '⚡ ' : ''}
                 {sharpSignal.toUpperCase()}
