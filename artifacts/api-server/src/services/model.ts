@@ -850,16 +850,31 @@ function finalizeResult(
   // WNBA keeps its existing threshold while the home-advantage recalibration settles.
   const strongBuyThreshold = sport === "MLB" ? 15 : (sport === "WNBA" ? 12 : 10);
   const buyThreshold        = sport === "MLB" ? 10 : (sport === "WNBA" ? 8  : 5);
-  const fadeThreshold       = sport === "MLB" ? -10 : (sport === "WNBA" ? -8 : -5);
+
+  // Away picks require a higher bar than home picks.
+  // The model was calibrated on home team probabilities; away edges are less proven
+  // and need a larger margin before committing subscribers' units. UFC fights are at
+  // neutral venues — there is no meaningful home/away distinction, so away flip is
+  // disabled entirely for UFC.
+  const isAwayPick = anchoredEdge < 0;
+  const awayOffset =
+    sport === "UFC"  ? Infinity :          // never flip for UFC
+    sport === "MLB"  ? 8 :
+    sport === "WNBA" ? 5 : 3;
+  const effectiveStrongBuyThreshold = isAwayPick
+    ? strongBuyThreshold + awayOffset
+    : strongBuyThreshold;
+  const effectiveBuyThreshold = isAwayPick
+    ? buyThreshold + awayOffset
+    : buyThreshold;
 
   // Rate based on absolute edge magnitude — direction is captured by pickIsHome below.
-  // A -34% edge on the home team is a +34% edge on the away team; both deserve the
-  // same recommendation. Fade is retired: anything below the buy threshold in either
-  // direction is simply Neutral (no actionable edge for subscribers).
+  // Fade is retired: anything below the effective buy threshold in either direction
+  // is simply Neutral (no actionable edge for subscribers).
   const absAnchoredEdge = Math.abs(anchoredEdge);
   let valueRating =
-    absAnchoredEdge >= strongBuyThreshold ? "Strong Buy" :
-    absAnchoredEdge >= buyThreshold       ? "Buy"        : "Neutral";
+    absAnchoredEdge >= effectiveStrongBuyThreshold ? "Strong Buy" :
+    absAnchoredEdge >= effectiveBuyThreshold       ? "Buy"        : "Neutral";
 
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
 

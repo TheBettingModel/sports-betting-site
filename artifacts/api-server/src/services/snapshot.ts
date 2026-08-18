@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
@@ -148,14 +148,37 @@ async function writePredictionSnapshot(
  * Create a published pick and a pending pick_results row for tracking.
  * Strong Buy + Buy are marked public; Neutral and Fade are private.
  */
+/** Maximum public picks surfaced to subscribers per calendar day (ET). */
+const MAX_PUBLIC_PICKS_PER_DAY = 6;
+
 async function publishPick(
   predictionId: number,
   game: FetchedGame,
   proj: ProjectionResult,
   publishedAt: Date,
 ): Promise<void> {
-  const isPublic =
+  let isPublic =
     proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
+
+  // Enforce the daily cap — if we've already reached MAX_PUBLIC_PICKS_PER_DAY
+  // for today, demote this pick to private so subscribers aren't overwhelmed.
+  // Picks are processed in ESPN order; the model thresholds are the primary
+  // quality gate and the cap is a safety ceiling.
+  if (isPublic) {
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(publishedPicksTable)
+      .where(
+        and(
+          sql`DATE(published_at AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
+          eq(publishedPicksTable.isPublic, true),
+        ),
+      );
+    if (count >= MAX_PUBLIC_PICKS_PER_DAY) {
+      isPublic = false;
+    }
+  }
+
   const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
   const units = proj.units > 0 ? proj.units : 1.0;
   const pickIsHomePub = proj.edge >= 0;
