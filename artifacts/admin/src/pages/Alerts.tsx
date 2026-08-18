@@ -422,6 +422,8 @@ export function Alerts() {
     return a.localeCompare(b);
   });
 
+  const isLoading = driftLoading || dqLoading;
+
   // Scroll to a sport group when the page is opened via a hash link from the
   // Overview feed health chips (e.g. #sport-mlb). Runs once after data loads.
   useEffect(() => {
@@ -438,7 +440,6 @@ export function Alerts() {
   const activeDriftCount = driftAlerts.filter((a) => !a.isResolved).length;
   const activeDQCount = dqAlerts.filter((a) => !a.isResolved).length;
   const activeSnoozesCount = snoozesData?.snoozes.length ?? 0;
-  const isLoading = driftLoading || dqLoading;
 
   return (
     <div className="space-y-6">

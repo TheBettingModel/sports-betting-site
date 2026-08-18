@@ -399,16 +399,16 @@ router.get("/admin/automation", async (req, res): Promise<void> => {
   const limit = Math.min(parseInt((req.query.limit as string) ?? "50", 10), 200);
   const jobName = req.query.job as string | undefined;
 
-  const conditions = modelVersionId
-    ? [eq(backtestRunsTable.modelVersionId, modelVersionId)]
+  const conditions = jobName
+    ? [eq(automationRunsTable.jobName, jobName)]
     : [];
 
   const runs = await db
     .select()
-    .from(backtestRunsTable)
+    .from(automationRunsTable)
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(backtestRunsTable.startedAt))
-    .limit(50);
+    .orderBy(desc(automationRunsTable.startedAt))
+    .limit(limit);
 
   // Group by job name for summary
   const summary: Record<string, { last: Date | null; successRate: number; count: number }> = {};
