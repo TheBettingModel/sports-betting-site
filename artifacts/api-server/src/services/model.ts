@@ -358,12 +358,14 @@ function getUniversalFinalRating(
 ): { finalModelScore: number; finalModelTier: string; finalModelStars: number } {
   let score = 50;
 
-  // Edge (primary driver, ~40% of total)
-  if (edge >= 6) score += 18;
-  else if (edge >= 4) score += 14;
-  else if (edge >= 2) score += 8;
-  else if (edge > 0) score += 3;
-  else if (edge < 0) score -= 8;
+  // Edge (primary driver, ~40% of total).
+  // Use absolute value — a strong edge on the away team is just as valuable
+  // as an equivalent edge on the home team; direction is handled by pickIsHome.
+  const absEdge = Math.abs(edge);
+  if (absEdge >= 6) score += 18;
+  else if (absEdge >= 4) score += 14;
+  else if (absEdge >= 2) score += 8;
+  else if (absEdge > 0) score += 3;
 
   // Confidence (~25%)
   if (confidenceNum >= 88) score += 10;
@@ -398,11 +400,12 @@ function getUniversalFinalRating(
  * Higher = better candidate for the featured pick slot.
  */
 function getPodScore(finalModelScore: number, sharpScore: number, edge: number): number {
+  const absEdge = Math.abs(edge);
   let score = finalModelScore * 0.40;
   score += sharpScore * 2;          // sharp signal proxy
-  if (edge >= 6) score += 10;
-  else if (edge >= 4) score += 6;
-  else if (edge >= 2) score += 3;
+  if (absEdge >= 6) score += 10;
+  else if (absEdge >= 4) score += 6;
+  else if (absEdge >= 2) score += 3;
   return Math.round(Math.max(0, score));
 }
 
@@ -849,10 +852,14 @@ function finalizeResult(
   const buyThreshold        = sport === "MLB" ? 10 : (sport === "WNBA" ? 8  : 5);
   const fadeThreshold       = sport === "MLB" ? -10 : (sport === "WNBA" ? -8 : -5);
 
+  // Rate based on absolute edge magnitude — direction is captured by pickIsHome below.
+  // A -34% edge on the home team is a +34% edge on the away team; both deserve the
+  // same recommendation. Fade is retired: anything below the buy threshold in either
+  // direction is simply Neutral (no actionable edge for subscribers).
+  const absAnchoredEdge = Math.abs(anchoredEdge);
   let valueRating =
-    anchoredEdge >= strongBuyThreshold ? "Strong Buy" :
-    anchoredEdge >= buyThreshold       ? "Buy"        :
-    anchoredEdge <= fadeThreshold      ? "Fade"       : "Neutral";
+    absAnchoredEdge >= strongBuyThreshold ? "Strong Buy" :
+    absAnchoredEdge >= buyThreshold       ? "Buy"        : "Neutral";
 
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
 

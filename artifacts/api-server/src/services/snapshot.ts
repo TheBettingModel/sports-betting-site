@@ -104,11 +104,13 @@ async function writePredictionSnapshot(
     vegasTotal: proj.vegasTotal,
   };
 
-  // Implied probability from Vegas home odds (vig-inclusive)
-  const impliedProb =
-    proj.vegasHomeOdds > 0
-      ? 100 / (proj.vegasHomeOdds + 100)
-      : Math.abs(proj.vegasHomeOdds) / (Math.abs(proj.vegasHomeOdds) + 100);
+  const pickIsHome = proj.edge >= 0;
+  const pickOdds   = pickIsHome ? proj.vegasHomeOdds : proj.vegasAwayOdds;
+  const pickProb   = pickIsHome ? proj.homeWinPct / 100 : 1 - proj.homeWinPct / 100;
+  const impliedPickProb =
+    pickOdds > 0
+      ? 100 / (pickOdds + 100)
+      : Math.abs(pickOdds) / (Math.abs(pickOdds) + 100);
 
   const [inserted] = await db
     .insert(modelPredictionsTable)
@@ -117,11 +119,11 @@ async function writePredictionSnapshot(
       modelVersionId,
       sport: game.sport,
       market: "moneyline",
-      selection: "home", // model always outputs home win probability
-      odds: proj.vegasHomeOdds,
-      modelProbability: proj.homeWinPct / 100,
-      impliedProbability: impliedProb,
-      fairProbability: proj.homeWinPct / 100,
+      selection: pickIsHome ? "home" : "away",
+      odds: pickOdds,
+      modelProbability: pickProb,
+      impliedProbability: impliedPickProb,
+      fairProbability: pickProb,
       edge: proj.edge,
       confidence: proj.confidence,
       recommendation: proj.valueRating,
@@ -156,6 +158,7 @@ async function publishPick(
     proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
   const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
   const units = proj.units > 0 ? proj.units : 1.0;
+  const pickIsHomePub = proj.edge >= 0;
 
   const [pick] = await db
     .insert(publishedPicksTable)
@@ -164,8 +167,8 @@ async function publishPick(
       gameId: game.espnId,
       sport: game.sport,
       market: "moneyline",
-      selection: "home",
-      odds: proj.vegasHomeOdds,
+      selection: pickIsHomePub ? "home" : "away",
+      odds: pickIsHomePub ? proj.vegasHomeOdds : proj.vegasAwayOdds,
       units,
       recommendation: proj.valueRating,
       confidence: proj.confidence,
