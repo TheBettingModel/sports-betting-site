@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
-import { db, gamesTable, modelWeightsTable } from "@workspace/db";
+import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection } from "../services/model";
 import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
@@ -560,11 +560,42 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
 
   // Count live games for the "N games in progress" indicator — always scoped
   // to today's full slate regardless of sport filter or subscription status.
-  const liveGamesRows = await db
-    .select({ id: gamesTable.id })
-    .from(gamesTable)
-    .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["live"])));
+  const [liveGamesRows, todayPickRows] = await Promise.all([
+    db
+      .select({ id: gamesTable.id })
+      .from(gamesTable)
+      .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["live"]))),
+    // Fetch today's public published picks so we can pin the rating category.
+    // Units stay dynamic (updated each scheduler run), but once a pick is
+    // published as "Buy" it must stay in the Buy section for the day — the
+    // model re-running with a slightly lower score shouldn't move it to Neutral.
+    db
+      .select({ gameId: publishedPicksTable.gameId, recommendation: publishedPicksTable.recommendation })
+      .from(publishedPicksTable)
+      .where(
+        and(
+          sql`DATE(${publishedPicksTable.publishedAt} AT TIME ZONE 'America/New_York') = ${today}::date`,
+          eq(publishedPicksTable.isPublic, true),
+        ),
+      ),
+  ]);
   const liveGamesCount = liveGamesRows.length;
+
+  // Map gameId → locked-in rating from the time of publication.
+  const publishedRatingMap = new Map(todayPickRows.map((p) => [p.gameId, p.recommendation]));
+
+  /**
+   * Apply published rating override: keeps a game in its published section
+   * (e.g. "Buy") even if the model re-runs and downgrades it, while leaving
+   * games with no published pick showing their live rating.
+   * Units are intentionally NOT overridden — they remain dynamic.
+   */
+  function applyPublishedRatings<T extends AnyGame>(games: T[]): T[] {
+    return games.map((g) => {
+      const pinned = publishedRatingMap.get(g["id"] as string);
+      return pinned != null ? { ...g, valueRating: pinned } : g;
+    });
+  }
 
   if (isSubscribed) {
     // Subscribers: apply sport filter directly — no locking needed
@@ -580,7 +611,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       .orderBy(desc(gamesTable.modelScore));
 
     res.json({
-      games,
+      games: applyPublishedRatings(games as AnyGame[]),
       lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
       totalGames: games.length,
       liveGamesCount,
@@ -599,13 +630,22 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     .where(and(eq(gamesTable.gameDate, today), eq(gamesTable.status, "upcoming")))
     .orderBy(desc(gamesTable.modelScore));
 
-  // Build a set of game IDs that are free (top FREE_PICKS by modelScore)
+  // Apply published rating pins before determining free slots, so the free
+  // pick selection operates on the corrected ratings.
+  const ratedGames = applyPublishedRatings(allTodayGames as AnyGame[]);
+
+  // Free picks: top FREE_PICKS qualifying games (Strong Buy or Buy) by model
+  // score. Skipping Neutral/Fade ensures free slots aren't wasted on games
+  // that don't appear on the All tab, which only shows actionable picks.
+  const qualifyingGames = ratedGames.filter(
+    (g) => g["valueRating"] === "Strong Buy" || g["valueRating"] === "Buy",
+  );
   const freeGameIds = new Set(
-    allTodayGames.slice(0, FREE_PICKS).map((g) => g.id),
+    qualifyingGames.slice(0, FREE_PICKS).map((g) => g["id"] as string),
   );
 
   // Apply lock state across the full slate, then sport-filter for the response
-  const gatedAll = (allTodayGames as AnyGame[]).map((game) => {
+  const gatedAll = ratedGames.map((game) => {
     const isFree = freeGameIds.has(game["id"] as string);
     return isFree ? { ...game, isLocked: false } : lockGame(game);
   });
