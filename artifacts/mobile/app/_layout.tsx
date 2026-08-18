@@ -114,20 +114,25 @@ export default function RootLayout() {
   // updates channel configured). Skipped in Expo Go and dev builds to avoid
   // the black-screen flash caused by Updates.reloadAsync() in those environments.
   useEffect(() => {
+    console.log('[Updates] isEnabled:', Updates.isEnabled, 'channel:', Updates.channel, 'runtimeVersion:', Updates.runtimeVersion);
     if (!Updates.isEnabled) return;
     let cancelled = false;
     const checkUpdate = async () => {
       try {
+        console.log('[Updates] checking for update…');
         const check = await Updates.checkForUpdateAsync();
+        console.log('[Updates] isAvailable:', check.isAvailable);
         if (cancelled || !check.isAvailable) return;
+        console.log('[Updates] downloading update…');
         await Updates.fetchUpdateAsync();
+        console.log('[Updates] reloading…');
         if (!cancelled) await Updates.reloadAsync();
-      } catch {
-        // Silently ignore: network error or no update channel configured.
+      } catch (err) {
+        console.warn('[Updates] check failed:', err);
       }
     };
     // Delay so the splash screen dismisses before any potential reload
-    const t = setTimeout(checkUpdate, 3000);
+    const t = setTimeout(checkUpdate, 2000);
     return () => { cancelled = true; clearTimeout(t); };
   }, []);
 
