@@ -454,6 +454,18 @@ export interface ComputeOptions {
    * Tired pens give up more runs. Range [0, +1.0].
    */
   bullpenTotalAdjustment?: number;
+  /**
+   * MLB only: confirmed lineup quality advantage (home OPS avg − away OPS avg, scaled).
+   * Only non-zero when both lineups are confirmed. Range [-0.04, +0.04].
+   * Positive = home lineup stronger than away today.
+   */
+  lineupAdvantage?: number;
+  /**
+   * MLB only: park run factor for the home venue (100 = neutral, 117 = Coors).
+   * Values >100 compress win probability toward 0.5 (higher variance run environment).
+   * Values <100 expand win probability away from 0.5 (pitching/defense more deterministic).
+   */
+  parkFactor?: number;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -713,6 +725,22 @@ function computeRunsModel(
   // A fresh bullpen vs. a taxed one creates a real 6th-9th inning edge.
   if (sport === "MLB" && opts.bullpenAdvantage != null) {
     prob += opts.bullpenAdvantage;
+  }
+
+  // MLB lineup quality — confirmed OPS-weighted batting order advantage.
+  // Only applied when both lineups are confirmed; otherwise zero (falls back to
+  // team-average quality signals from Pythagorean / run-differential).
+  if (sport === "MLB" && opts.lineupAdvantage != null) {
+    prob += opts.lineupAdvantage;
+  }
+
+  // MLB park factor — adjusts win probability for the run environment of the venue.
+  // Hitter's parks (Coors: 117) increase variance → compress toward 0.5.
+  // Pitcher's parks (Petco: 92) reduce variance → expand away from 0.5.
+  // Effect is intentionally subtle (max ±2pp at the extremes).
+  if (sport === "MLB" && opts.parkFactor != null) {
+    const parkEffect = (opts.parkFactor - 100) / 100;
+    prob = 0.5 + (prob - 0.5) * (1 - parkEffect * 0.15);
   }
 
   // NHL goalie adjustment — save% drives more variance than team quality in hockey.

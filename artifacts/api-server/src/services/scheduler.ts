@@ -28,7 +28,8 @@ import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, getNbaTeamStats, 
 import { getOddsForGame } from "./oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "./mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "./mlbBullpen";
-import { getLineupMatchup } from "./mlbLineups";
+import { getLineupMatchup, computeLineupAdvantage } from "./mlbLineups";
+import { getParkFactor } from "./mlbParkFactors";
 import { getVenueWeather, computeWeatherEffect } from "./weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage, getNhlTeamSpecialTeams, computeNhlSpecialTeamsAdvantage } from "./nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "./nflInjuries";
@@ -546,6 +547,16 @@ async function runOddsIngestion(): Promise<void> {
             ? computeBullpenAdvantage(bullpenMatchup)
             : null;
 
+          const lineupMatchup = game.sport === "MLB"
+            ? await getLineupMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+            : null;
+          const lineupAdvantage = game.sport === "MLB" && lineupMatchup
+            ? computeLineupAdvantage(lineupMatchup.home, lineupMatchup.away)
+            : undefined;
+          const parkFactor = game.sport === "MLB"
+            ? getParkFactor(game.homeTeamAbbr)
+            : undefined;
+
           const nflSignals = game.sport === "NFL"
             ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
             : null;
@@ -578,6 +589,8 @@ async function runOddsIngestion(): Promise<void> {
               injuryAdvantage,
               bullpenAdvantage:       bullpenEffect?.probabilityAdj,
               bullpenTotalAdjustment: bullpenEffect?.totalAdj,
+              lineupAdvantage,
+              parkFactor,
               weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
               weatherWindMph:   venueWeather?.windSpeedMph,
               weatherPrecipMm:  venueWeather?.precipitationMm,

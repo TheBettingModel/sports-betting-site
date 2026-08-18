@@ -6,7 +6,8 @@ import { computeProjection } from "../services/model";
 import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "../services/mlbBullpen";
-import { getLineupMatchup } from "../services/mlbLineups";
+import { getLineupMatchup, computeLineupAdvantage } from "../services/mlbLineups";
+import { getParkFactor } from "../services/mlbParkFactors";
 import { getVenueWeather, computeWeatherEffect } from "../services/weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage } from "../services/nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "../services/nflInjuries";
@@ -259,6 +260,12 @@ export async function refreshAll(): Promise<{
     const bullpenEffect = game.sport === "MLB"
       ? computeBullpenAdvantage(bullpenMatchup)
       : null;
+    const lineupAdvantage = game.sport === "MLB"
+      ? computeLineupAdvantage(lineupMatchup.home, lineupMatchup.away)
+      : undefined;
+    const parkFactor = game.sport === "MLB"
+      ? getParkFactor(game.homeTeamAbbr)
+      : undefined;
 
     const proj = computeProjection(
       game.espnId,
@@ -288,6 +295,8 @@ export async function refreshAll(): Promise<{
         injuryAdvantage,
         bullpenAdvantage:        bullpenEffect?.probabilityAdj,
         bullpenTotalAdjustment:  bullpenEffect?.totalAdj,
+        lineupAdvantage,
+        parkFactor,
         weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
         weatherWindMph:   venueWeather?.windSpeedMph,
         weatherPrecipMm:  venueWeather?.precipitationMm,
