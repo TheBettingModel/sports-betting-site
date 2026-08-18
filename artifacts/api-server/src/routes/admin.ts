@@ -159,7 +159,7 @@ router.post("/admin/session", sessionAuthLimiter, (req, res): void => {
   clearFailedAttempts(ip);
 
   pruneExpiredSessions();
-  const token = req.headers["x-admin-token"] as string | undefined;
+  const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   sessions.set(token, { expiresAt });
 
