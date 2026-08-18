@@ -28,7 +28,7 @@ import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, getNbaTeamStats, 
 import { getOddsForGame } from "./oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "./mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "./mlbBullpen";
-import { getLineupMatchup, computeLineupAdvantage } from "./mlbLineups";
+import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup } from "./mlbLineups";
 import { getParkFactor } from "./mlbParkFactors";
 import { getVenueWeather, computeWeatherEffect } from "./weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage, getNhlTeamSpecialTeams, computeNhlSpecialTeamsAdvantage } from "./nhlGoalies";
@@ -550,8 +550,17 @@ async function runOddsIngestion(): Promise<void> {
           const lineupMatchup = game.sport === "MLB"
             ? await getLineupMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
             : null;
-          const lineupAdvantage = game.sport === "MLB" && lineupMatchup
-            ? computeLineupAdvantage(lineupMatchup.home, lineupMatchup.away)
+          // Enrich with career batter–pitcher matchup data (cached 30 min)
+          const enrichedLineup = game.sport === "MLB" && lineupMatchup
+            ? await enrichLineupMatchup(lineupMatchup, starters)
+            : null;
+          const lineupAdvantage = game.sport === "MLB" && enrichedLineup
+            ? computeLineupAdvantage(
+                enrichedLineup.home,
+                enrichedLineup.away,
+                starters.home?.pitchHand ?? null, // what AWAY batters face
+                starters.away?.pitchHand ?? null, // what HOME batters face
+              )
             : undefined;
           const parkFactor = game.sport === "MLB"
             ? getParkFactor(game.homeTeamAbbr)

@@ -23,6 +23,10 @@ import { logger } from "../lib/logger";
 
 export interface PitcherStats {
   name: string;
+  /** MLB Stats API player ID — used for career vs lineup lookups in mlbLineups. */
+  playerId: number | null;
+  /** Pitcher handedness: "L" or "R". Used for platoon split selection in lineups. */
+  pitchHand: "L" | "R" | null;
   /** Season ERA. League average ≈ 4.20 */
   seasonEra: number;
   /** Season WHIP. League average ≈ 1.25 */
@@ -169,6 +173,8 @@ async function fetchPitcherStats(pitcherId: number, name: string): Promise<Pitch
 
   return {
     name,
+    playerId:     null, // populated by fetchSchedule which has the pitcher's API id
+    pitchHand:    null, // populated by fetchSchedule from probablePitcher.pitchHand
     seasonEra:    isNaN(seasonEra)  ? LEAGUE_AVG_ERA  : seasonEra,
     seasonWhip:   isNaN(seasonWhip) ? LEAGUE_AVG_WHIP : seasonWhip,
     fip:          isNaN(fip)        ? LEAGUE_AVG_FIP  : Math.max(1.5, Math.min(7.0, fip)),
@@ -192,7 +198,7 @@ const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 interface MlbTeam {
   team: { id?: number; name?: string };
-  probablePitcher?: { id: number; fullName: string };
+  probablePitcher?: { id: number; fullName: string; pitchHand?: { code: string } };
 }
 
 interface MlbGame {
@@ -240,6 +246,7 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
 
   const LEAGUE_AVG_DEFAULTS: PitcherStats = {
     name: "Unknown",
+    playerId: null, pitchHand: null,
     seasonEra: LEAGUE_AVG_ERA, seasonWhip: LEAGUE_AVG_WHIP,
     fip: LEAGUE_AVG_FIP, kPct: LEAGUE_AVG_K_PCT, bbPct: LEAGUE_AVG_BB_PCT,
     kMinusBbPct: LEAGUE_AVG_KBB, recentEra: LEAGUE_AVG_ERA, recentIpAvg: 5.5,
@@ -257,9 +264,24 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
     const homeP = g.teams.home.probablePitcher;
     const awayP = g.teams.away.probablePitcher;
 
+    const toHand = (code?: string): "L" | "R" | null =>
+      code === "L" || code === "R" ? code : null;
+
     result.set(`${homeAbbr}|${awayAbbr}`, {
-      home: homeP ? (statsByPitcherId.get(homeP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: homeP.fullName }) : null,
-      away: awayP ? (statsByPitcherId.get(awayP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: awayP.fullName }) : null,
+      home: homeP
+        ? {
+            ...(statsByPitcherId.get(homeP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: homeP.fullName }),
+            playerId:  homeP.id,
+            pitchHand: toHand(homeP.pitchHand?.code),
+          }
+        : null,
+      away: awayP
+        ? {
+            ...(statsByPitcherId.get(awayP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: awayP.fullName }),
+            playerId:  awayP.id,
+            pitchHand: toHand(awayP.pitchHand?.code),
+          }
+        : null,
     });
   }
 

@@ -2,15 +2,21 @@
  * MLB Confirmed Lineup Service
  *
  * Fetches today's confirmed batting order lineups from the MLB Stats API (free).
- * When a lineup is confirmed (≥9 batters), also fetches season OPS for each
- * starter and computes a lineup quality score. This feeds directly into the
- * model so a full-strength lineup is treated differently from a replacement-heavy one.
+ * When a lineup is confirmed (≥9 batters), also fetches:
+ *   • Season OPS for each starter (overall quality baseline)
+ *   • Platoon splits (OPS vs L and vs R pitching) — selected based on opposing starter's hand
+ *   • Career OPS vs the specific opposing pitcher (via enrichLineupMatchup)
  *
- * Lineup confirmation: typically posted 1–3 hours before first pitch.
- * Cache TTL: 30 minutes — lineups can change up until ~15 min before game.
+ * Signal hierarchy in computeLineupAdvantage:
+ *   1. Career vs specific pitcher (most specific; requires ≥3 batters with ≥5 PA history)
+ *   2. Platoon OPS vs opposing pitcher's handedness (L/R split)
+ *   3. Overall season OPS (baseline fallback)
+ *
+ * Cache: main lineup cache 30 min; platoon fetched alongside OPS; career data 4 h.
  */
 
 import { logger } from "../lib/logger";
+import type { ProbableStarters } from "./mlbPitchers";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,6 +29,17 @@ export interface LineupStatus {
    * League average OPS ≈ 0.720.
    */
   lineupOps?: number;
+  /** Average OPS of the 9 starters vs left-handed pitching this season. */
+  platoonOpsVsL?: number;
+  /** Average OPS of the 9 starters vs right-handed pitching this season. */
+  platoonOpsVsR?: number;
+  /**
+   * Average career OPS of the 9 starters vs the specific opposing pitcher.
+   * Only populated after enrichLineupMatchup() and when ≥3 batters have ≥5 career PA vs him.
+   */
+  careerOpsVsPitcher?: number;
+  /** MLB player IDs for the 9 confirmed starters — needed for career vs pitcher lookups. */
+  playerIds?: number[];
 }
 
 export interface LineupMatchup {
@@ -43,7 +60,7 @@ const MLB_ID_TO_ESPN: Record<number, string> = {
 
 const LEAGUE_AVG_OPS = 0.720; // MLB 2024-2025 league average OPS
 
-// ── Cache ─────────────────────────────────────────────────────────────────────
+// ── Cache (main lineup) ───────────────────────────────────────────────────────
 
 interface CacheEntry {
   data: Map<string, LineupMatchup>;
@@ -92,7 +109,22 @@ interface MlbPersonResponse {
   }>;
 }
 
-// ── Batter OPS fetch ──────────────────────────────────────────────────────────
+interface MlbVsPlayerSplit {
+  opponent?: { id?: number };
+  stat?: {
+    ops?: string;
+    obp?: string;
+    slg?: string;
+    avg?: string;
+    plateAppearances?: number;
+    atBats?: number;
+    hits?: number;
+    homeRuns?: number;
+    baseOnBalls?: number;
+  };
+}
+
+// ── Batter OPS fetch (season) ─────────────────────────────────────────────────
 
 /**
  * Batch-fetch season OPS for a list of player IDs.
@@ -141,12 +173,168 @@ async function fetchBatterOps(playerIds: number[]): Promise<Map<number, number>>
   }
 }
 
+// ── Batter platoon splits (vs L / vs R) ──────────────────────────────────────
+
+/**
+ * Batch-fetch platoon OPS for a list of player IDs vs a specific pitcher handedness.
+ * Uses MLB Stats API statSplits with sitCodes=vl (vs left) or vr (vs right).
+ * Returns undefined for batters with insufficient platoon data (not forced to league avg).
+ */
+async function fetchBatterPlatoonOps(
+  playerIds: number[],
+  vsHand: "L" | "R",
+): Promise<Map<number, number>> {
+  if (playerIds.length === 0) return new Map();
+  const sitCode = vsHand === "L" ? "vl" : "vr";
+
+  const url =
+    `https://statsapi.mlb.com/api/v1/people` +
+    `?personIds=${playerIds.join(",")}` +
+    `&hydrate=stats(group=hitting,type=statSplits,sitCodes=${sitCode},season=2026,gameType=R)`;
+
+  try {
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(10_000),
+      headers: { "User-Agent": "TheBettingModel/2.0" },
+    });
+    if (!resp.ok) return new Map();
+
+    const data = (await resp.json()) as MlbPersonResponse;
+    const result = new Map<number, number>();
+
+    for (const person of data.people ?? []) {
+      // statSplits type may display as "statSplits" or "stat splits" — match either
+      const splitGroup = person.stats?.find(
+        (s) => s.type.displayName === "statSplits" || s.type.displayName === "stat splits",
+      );
+      const stat = splitGroup?.splits?.[0]?.stat;
+      if (!stat) continue;
+
+      let ops: number;
+      if (stat.ops) {
+        ops = parseFloat(stat.ops);
+      } else if (stat.onBasePct && stat.sluggingPct) {
+        ops = parseFloat(stat.onBasePct) + parseFloat(stat.sluggingPct);
+      } else {
+        continue;
+      }
+
+      if (!isNaN(ops) && ops > 0.200 && ops < 1.500) {
+        result.set(person.id, ops);
+      }
+    }
+
+    return result;
+  } catch {
+    return new Map();
+  }
+}
+
+// ── Career vs specific pitcher ────────────────────────────────────────────────
+
+/** 4-hour cache for career vsPlayer splits (change once or twice a season at most). */
+interface CareerCacheEntry {
+  data: Map<number, number>; // batterId → career OPS vs this pitcher
+  fetchedAt: number;
+}
+const careerCache = new Map<number, CareerCacheEntry>();
+const CAREER_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * Fetch all career batter-vs-pitcher matchup records for a given pitcher.
+ * MLB Stats API: /people/{pitcherId}/stats?stats=vsPlayer&group=pitching
+ * Returns map of batterId → career OPS against this pitcher, for batters with ≥5 PA.
+ */
+async function fetchCareerOpsForBatters(pitcherId: number): Promise<Map<number, number>> {
+  const cached = careerCache.get(pitcherId);
+  if (cached && Date.now() - cached.fetchedAt < CAREER_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const url =
+    `https://statsapi.mlb.com/api/v1/people/${pitcherId}/stats` +
+    `?stats=vsPlayer&group=pitching&gameType=R`;
+
+  try {
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { "User-Agent": "TheBettingModel/2.0" },
+    });
+    if (!resp.ok) {
+      careerCache.set(pitcherId, { data: new Map(), fetchedAt: Date.now() });
+      return new Map();
+    }
+
+    const data = (await resp.json()) as {
+      stats: Array<{ type: { displayName: string }; splits: MlbVsPlayerSplit[] }>;
+    };
+    const vsPlayerGroup = data.stats?.find((s) => s.type.displayName === "vsPlayer");
+    const splits = vsPlayerGroup?.splits ?? [];
+
+    const result = new Map<number, number>();
+
+    for (const split of splits) {
+      const batterId = split.opponent?.id;
+      const st = split.stat;
+      if (!batterId || !st) continue;
+
+      const pa = st.plateAppearances ?? 0;
+      if (pa < 5) continue; // too small a sample to be meaningful
+
+      let ops: number | null = null;
+      if (st.ops) {
+        ops = parseFloat(st.ops);
+      } else if (st.obp && st.slg) {
+        ops = parseFloat(st.obp) + parseFloat(st.slg);
+      } else if (st.hits != null && st.atBats != null && pa > 0) {
+        // Approximate from raw counts: OBP ≈ (H + BB) / PA, SLG ≈ (H + 2.5×HR) / AB
+        const ab = st.atBats;
+        const h  = st.hits;
+        const hr = st.homeRuns ?? 0;
+        const bb = st.baseOnBalls ?? 0;
+        if (ab > 0) {
+          ops = (h + bb) / pa + (h + 2.5 * hr) / ab;
+        }
+      }
+
+      if (ops != null && !isNaN(ops) && ops > 0.100 && ops < 2.500) {
+        result.set(batterId, ops);
+      }
+    }
+
+    careerCache.set(pitcherId, { data: result, fetchedAt: Date.now() });
+    return result;
+  } catch {
+    careerCache.set(pitcherId, { data: new Map(), fetchedAt: Date.now() });
+    return new Map();
+  }
+}
+
+/**
+ * Given a pitcher's career vsPlayer map and a lineup's batter IDs,
+ * return the lineup's average career OPS vs that pitcher.
+ * Returns null when fewer than 3 lineup batters have sufficient history (≥5 PA).
+ */
+function computeCareerMatchupOps(
+  careerMap: Map<number, number>,
+  batterIds: number[],
+): number | null {
+  let sum = 0;
+  let count = 0;
+  for (const id of batterIds) {
+    const ops = careerMap.get(id);
+    if (ops != null) { sum += ops; count++; }
+  }
+  return count >= 3 ? sum / count : null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getConfirmedBatters(players: MlbLineupPlayer[]): MlbLineupPlayer[] {
   return players.filter((p) => p.battingOrder != null && p.battingOrder > 0);
 }
 
+/** Full-average OPS with league-avg fallback for batters missing data. */
 function computeAvgOps(batters: MlbLineupPlayer[], opsMap: Map<number, number>): number {
   if (batters.length === 0) return LEAGUE_AVG_OPS;
   let sum = 0;
@@ -156,6 +344,27 @@ function computeAvgOps(batters: MlbLineupPlayer[], opsMap: Map<number, number>):
     count++;
   }
   return count > 0 ? sum / count : LEAGUE_AVG_OPS;
+}
+
+/**
+ * Average OPS only for batters that have data; returns undefined when fewer than
+ * half the lineup has data (avoids polluting platoon signal with league-avg imputation).
+ */
+function computeAvgOpsIfAvailable(
+  batters: MlbLineupPlayer[],
+  opsMap: Map<number, number>,
+): number | undefined {
+  if (batters.length === 0) return undefined;
+  let sum = 0;
+  let count = 0;
+  for (const b of batters) {
+    if (b.id != null && opsMap.has(b.id)) {
+      sum += opsMap.get(b.id)!;
+      count++;
+    }
+  }
+  // Need at least half the lineup to have real platoon data
+  return count >= Math.ceil(batters.length / 2) ? sum / count : undefined;
 }
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────
@@ -186,12 +395,21 @@ async function fetchLineups(dateStr: string): Promise<Map<string, LineupMatchup>
     if (away.length >= 9) for (const b of away) if (b.id) confirmedBatterIds.add(b.id);
   }
 
-  // ── Batch-fetch OPS for all confirmed batters (one API call) ──────────────
-  const batterOpsMap = confirmedBatterIds.size > 0
-    ? await fetchBatterOps([...confirmedBatterIds])
-    : new Map<number, number>();
+  // ── Batch-fetch OPS + platoon splits in parallel (three calls, all batters) ─
+  const confirmedIds = [...confirmedBatterIds];
+  const [batterOpsMap, platoonVLMap, platoonVRMap] = await Promise.all([
+    confirmedIds.length > 0
+      ? fetchBatterOps(confirmedIds)
+      : Promise.resolve(new Map<number, number>()),
+    confirmedIds.length > 0
+      ? fetchBatterPlatoonOps(confirmedIds, "L")
+      : Promise.resolve(new Map<number, number>()),
+    confirmedIds.length > 0
+      ? fetchBatterPlatoonOps(confirmedIds, "R")
+      : Promise.resolve(new Map<number, number>()),
+  ]);
 
-  // ── Second pass: build result map with OPS enrichment ────────────────────
+  // ── Second pass: build result map ────────────────────────────────────────
   const result = new Map<string, LineupMatchup>();
 
   for (const game of games) {
@@ -207,23 +425,39 @@ async function fetchLineups(dateStr: string): Promise<Map<string, LineupMatchup>
     const homeConfirmed = homeBatters.length >= 9;
     const awayConfirmed = awayBatters.length >= 9;
 
+    const homeIds = homeBatters.map((b) => b.id).filter((id): id is number => id != null);
+    const awayIds = awayBatters.map((b) => b.id).filter((id): id is number => id != null);
+
     result.set(`${homeAbbr}|${awayAbbr}`, {
       home: {
-        confirmed:  homeConfirmed,
-        batterCount: homeBatters.length,
-        lineupOps:  homeConfirmed ? computeAvgOps(homeBatters, batterOpsMap) : undefined,
+        confirmed:    homeConfirmed,
+        batterCount:  homeBatters.length,
+        lineupOps:    homeConfirmed ? computeAvgOps(homeBatters, batterOpsMap) : undefined,
+        platoonOpsVsL: homeConfirmed ? computeAvgOpsIfAvailable(homeBatters, platoonVLMap) : undefined,
+        platoonOpsVsR: homeConfirmed ? computeAvgOpsIfAvailable(homeBatters, platoonVRMap) : undefined,
+        playerIds:    homeConfirmed ? homeIds : undefined,
       },
       away: {
-        confirmed:  awayConfirmed,
-        batterCount: awayBatters.length,
-        lineupOps:  awayConfirmed ? computeAvgOps(awayBatters, batterOpsMap) : undefined,
+        confirmed:    awayConfirmed,
+        batterCount:  awayBatters.length,
+        lineupOps:    awayConfirmed ? computeAvgOps(awayBatters, batterOpsMap) : undefined,
+        platoonOpsVsL: awayConfirmed ? computeAvgOpsIfAvailable(awayBatters, platoonVLMap) : undefined,
+        platoonOpsVsR: awayConfirmed ? computeAvgOpsIfAvailable(awayBatters, platoonVRMap) : undefined,
+        playerIds:    awayConfirmed ? awayIds : undefined,
       },
     });
   }
 
   const confirmedCount = [...result.values()].filter((m) => m.home.confirmed && m.away.confirmed).length;
   logger.info(
-    { date: dateStr, games: result.size, bothConfirmed: confirmedCount, opsEnriched: confirmedBatterIds.size },
+    {
+      date: dateStr,
+      games: result.size,
+      bothConfirmed: confirmedCount,
+      opsEnriched: confirmedBatterIds.size,
+      platoonVL: platoonVLMap.size,
+      platoonVR: platoonVRMap.size,
+    },
     "MLB lineups: fetched",
   );
   return result;
@@ -256,21 +490,136 @@ export async function getLineupMatchup(
   return lineupMap.get(`${homeAbbr}|${awayAbbr}`) ?? { home: NOT_CONFIRMED, away: NOT_CONFIRMED };
 }
 
+// ── Career matchup enrichment ─────────────────────────────────────────────────
+
+/** Short-lived cache so the scheduler's per-minute runs don't re-fetch the same data. */
+interface EnrichmentCacheEntry {
+  data: LineupMatchup;
+  fetchedAt: number;
+}
+const enrichmentCache = new Map<string, EnrichmentCacheEntry>();
+const ENRICHMENT_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+
 /**
- * Compute a [-0.04, +0.04] lineup quality advantage for the home team.
+ * Enrich a LineupMatchup with career vs pitcher data.
  *
- * Requires both lineups to be confirmed. Returns 0 when lineups are unconfirmed
- * (model falls back to team-average quality signals).
+ * Must be called AFTER both getLineupMatchup() and getProbablePitchers() return.
+ * Uses each pitcher's MLB player ID to look up career batter–pitcher matchup records
+ * for the opposing confirmed lineup. Caches results for 30 minutes.
  *
- * Each 0.010 OPS gap across 9 starters ≈ 0.003 win probability shift.
- * A .780 vs .700 OPS differential (strong vs. replacement lineup) ≈ +2.4pp.
+ * @param matchup   Result of getLineupMatchup()
+ * @param starters  Result of getProbablePitchers() — provides pitcher IDs
  */
-export function computeLineupAdvantage(home: LineupStatus, away: LineupStatus): number {
+export async function enrichLineupMatchup(
+  matchup: LineupMatchup,
+  starters: ProbableStarters,
+): Promise<LineupMatchup> {
+  const homeId = starters.home?.playerId ?? null;
+  const awayId = starters.away?.playerId ?? null;
+
+  const cacheKey = [
+    homeId ?? "x",
+    awayId ?? "x",
+    matchup.home.playerIds?.join(",") ?? "",
+  ].join("|");
+
+  const cached = enrichmentCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < ENRICHMENT_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  // Fetch career splits for both pitchers in parallel
+  const [homePitcherCareer, awayPitcherCareer] = await Promise.all([
+    homeId ? fetchCareerOpsForBatters(homeId) : Promise.resolve(new Map<number, number>()),
+    awayId ? fetchCareerOpsForBatters(awayId) : Promise.resolve(new Map<number, number>()),
+  ]);
+
+  // Away batters face the HOME pitcher; home batters face the AWAY pitcher
+  const awayCareerVsHomePitcher =
+    homeId && matchup.away.playerIds?.length
+      ? computeCareerMatchupOps(homePitcherCareer, matchup.away.playerIds)
+      : null;
+  const homeCareerVsAwayPitcher =
+    awayId && matchup.home.playerIds?.length
+      ? computeCareerMatchupOps(awayPitcherCareer, matchup.home.playerIds)
+      : null;
+
+  if (homeCareerVsAwayPitcher != null || awayCareerVsHomePitcher != null) {
+    logger.info(
+      { homeCareerOps: homeCareerVsAwayPitcher, awayCareerOps: awayCareerVsHomePitcher },
+      "MLB lineups: career vs pitcher enrichment applied",
+    );
+  }
+
+  const result: LineupMatchup = {
+    home: {
+      ...matchup.home,
+      careerOpsVsPitcher: homeCareerVsAwayPitcher ?? undefined,
+    },
+    away: {
+      ...matchup.away,
+      careerOpsVsPitcher: awayCareerVsHomePitcher ?? undefined,
+    },
+  };
+
+  enrichmentCache.set(cacheKey, { data: result, fetchedAt: Date.now() });
+  return result;
+}
+
+// ── Lineup advantage computation ──────────────────────────────────────────────
+
+/**
+ * Select the most informative OPS for a lineup given the opposing pitcher's handedness.
+ * Priority: platoon split (if available) > overall OPS > league average.
+ */
+function selectBestOps(lineup: LineupStatus, vsHand: "L" | "R" | null | undefined): number {
+  if (vsHand === "L" && lineup.platoonOpsVsL != null) return lineup.platoonOpsVsL;
+  if (vsHand === "R" && lineup.platoonOpsVsR != null) return lineup.platoonOpsVsR;
+  return lineup.lineupOps ?? LEAGUE_AVG_OPS;
+}
+
+/**
+ * Compute a [-0.06, +0.06] lineup quality + matchup advantage for the home team.
+ *
+ * Requires both lineups to be confirmed; returns 0 when unconfirmed.
+ *
+ * Signal layers (each falls back to the previous when unavailable):
+ *   1. Career OPS vs this specific pitcher (40% blend when ≥3 batters have ≥5 PA history)
+ *   2. Platoon OPS vs the pitcher's handedness (L/R split)
+ *   3. Overall season OPS (baseline)
+ *
+ * @param home           Home team lineup status
+ * @param away           Away team lineup status
+ * @param homeStarterHand Home team starter's handedness — what AWAY batters face
+ * @param awayStarterHand Away team starter's handedness — what HOME batters face
+ */
+export function computeLineupAdvantage(
+  home: LineupStatus,
+  away: LineupStatus,
+  homeStarterHand?: "L" | "R" | null,
+  awayStarterHand?: "L" | "R" | null,
+): number {
   if (!home.confirmed || !away.confirmed) return 0;
   if (home.lineupOps == null || away.lineupOps == null) return 0;
 
-  const diff = home.lineupOps - away.lineupOps;
-  // Scale: 0.010 OPS × 0.30 = 0.003 probability shift per 10-point OPS gap
-  const raw  = diff * 0.30;
-  return Math.max(-0.04, Math.min(0.04, raw));
+  // Step 1: base OPS using platoon splits vs the opposing pitcher's handedness
+  // Home batters face the AWAY pitcher → select vs awayStarterHand
+  // Away batters face the HOME pitcher → select vs homeStarterHand
+  const homeBaseOps = selectBestOps(home, awayStarterHand);
+  const awayBaseOps = selectBestOps(away, homeStarterHand);
+
+  // Step 2: blend in career matchup data when available
+  // 60/40 split — career is most specific but sample sizes can be small
+  const homeOps = home.careerOpsVsPitcher != null
+    ? homeBaseOps * 0.60 + home.careerOpsVsPitcher * 0.40
+    : homeBaseOps;
+  const awayOps = away.careerOpsVsPitcher != null
+    ? awayBaseOps * 0.60 + away.careerOpsVsPitcher * 0.40
+    : awayBaseOps;
+
+  const diff = homeOps - awayOps;
+  // Scale: 0.010 OPS × 0.30 = 0.003 win-probability shift per 10-point OPS gap.
+  // Cap expanded to ±0.06 (from ±0.04) to allow platoon/career signal full range.
+  const raw = diff * 0.30;
+  return Math.max(-0.06, Math.min(0.06, raw));
 }
