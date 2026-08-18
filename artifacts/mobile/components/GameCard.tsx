@@ -199,6 +199,7 @@ export function GameCard({ game }: GameCardProps) {
               {homeDisplay}
             </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+            {!isUFC && <Text style={styles.homeAwayLabel}>HOME</Text>}
           </View>
         </View>
 
@@ -223,6 +224,7 @@ export function GameCard({ game }: GameCardProps) {
               {awayDisplay}
             </Text>
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
+            {!isUFC && <Text style={styles.homeAwayLabel}>AWAY</Text>}
           </View>
           <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={34} />
         </View>
@@ -532,6 +534,13 @@ const styles = StyleSheet.create({
   record: {
     fontSize: 9,
     fontFamily: 'Inter_500Medium',
+  },
+  homeAwayLabel: {
+    fontSize: 8,
+    fontFamily: 'Inter_700Bold',
+    color: '#374151',
+    letterSpacing: 0.8,
+    marginTop: 1,
   },
   matchupCenter: {
     flex: 1,
