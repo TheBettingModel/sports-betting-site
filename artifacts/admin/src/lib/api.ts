@@ -134,6 +134,10 @@ export const adminApi = {
     api.delete<{ message: string }>(`/admin/sports/${sport}/snooze`),
   resetDriftBaseline: () =>
     api.post<{ resolved: number; newAlerts: number; message: string }>("/admin/alerts/drift/reset-baseline"),
+  lossReviews: (sport?: string, limit = 30) =>
+    api.get<LossReviewsResult>(
+      `/admin/loss-reviews?limit=${limit}${sport && sport !== "ALL" ? `&sport=${sport}` : ""}`,
+    ),
 };
 
 export const modelApi = {
@@ -372,4 +376,34 @@ export interface CompareResult {
     challengerMeetsWinRate: boolean | null;
   };
   sampleSize: number;
+}
+
+export interface LossReviewEntry {
+  pickId: number;
+  sport: string;
+  market: string;
+  selection: string;
+  recommendation: string;
+  confidence: string;
+  publishedAt: string;
+  modelProbability: number;
+  finalRating: number | null;
+  finalScore: string | null;
+  clv: number | null;
+  gradedAt: string | null;
+  review: {
+    status?: string;
+    primaryClassification?: string;
+    flags?: string[];
+    summary?: string;
+    evidence?: {
+      factorEvidence?: Array<{ factor: string; contribution: number }>;
+    };
+  } | null;
+}
+
+export interface LossReviewsResult {
+  reviews: LossReviewEntry[];
+  patterns: Array<{ classification: string; sampleSize: number }>;
+  dataAsOf: string;
 }

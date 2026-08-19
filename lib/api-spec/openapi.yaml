@@ -129,6 +129,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModelStatsResponse"
 
+  /admin/loss-reviews:
+    get:
+      operationId: getAdminLossReviews
+      tags: [admin]
+      summary: Get internal evidence-based reviews for graded losses
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Recent loss reviews and recurring evidence patterns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LossReviewsResponse"
+
   /push-tokens:
     post:
       operationId: registerPushToken
@@ -635,6 +661,62 @@ components:
         - overallAccuracy
         - totalPredictions
         - dataAsOf
+
+    LossReviewEntry:
+      type: object
+      properties:
+        pickId:
+          type: integer
+        sport:
+          type: string
+        market:
+          type: string
+        selection:
+          type: string
+        recommendation:
+          type: string
+        confidence:
+          type: string
+        publishedAt:
+          type: string
+        modelProbability:
+          type: number
+        finalRating:
+          type: [number, "null"]
+        finalScore:
+          type: [string, "null"]
+        clv:
+          type: [number, "null"]
+        gradedAt:
+          type: [string, "null"]
+        review:
+          type: [object, "null"]
+          additionalProperties: true
+      required: [pickId, sport, market, selection, recommendation, confidence, publishedAt, modelProbability, review]
+
+    LossReviewPattern:
+      type: object
+      properties:
+        classification:
+          type: string
+        sampleSize:
+          type: integer
+      required: [classification, sampleSize]
+
+    LossReviewsResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/LossReviewEntry"
+        patterns:
+          type: array
+          items:
+            $ref: "#/components/schemas/LossReviewPattern"
+        dataAsOf:
+          type: string
+      required: [reviews, patterns, dataAsOf]
 
     RegisterPushTokenRequest:
       type: object

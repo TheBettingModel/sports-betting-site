@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
 import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
+import { runLearning } from "./services/learning";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -42,6 +43,21 @@ async function applyStartupMigrations(): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "Startup migrations: games starter hand columns failed — non-fatal");
   }
+  try {
+    await db.execute(sql`
+      ALTER TABLE pick_results
+      ADD COLUMN IF NOT EXISTS learning_review JSONB,
+      ADD COLUMN IF NOT EXISTS learning_processed_at TIMESTAMP
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS pick_results_learning_unprocessed_idx
+      ON pick_results (result, graded_at)
+      WHERE learning_processed_at IS NULL
+    `);
+    logger.info("Startup migrations: pick-results learning review fields ensured");
+  } catch (err) {
+    logger.warn({ err }, "Startup migrations: pick-results learning fields failed — non-fatal");
+  }
 }
 
 app.listen(port, (err) => {
@@ -74,6 +90,9 @@ app.listen(port, (err) => {
         await recoverStaleGames();
         await syncGameResults();
         const graded = await runGrading();
+        // Grading establishes the immutable result. Learning only consumes
+        // those already-graded rows and is idempotent per pick result.
+        await runLearning();
         if (graded > 0) {
           logger.info({ graded }, "Startup: graded picks from stale games");
         }

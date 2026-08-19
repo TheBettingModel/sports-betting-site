@@ -15,7 +15,7 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { adminLimiter, sessionAuthLimiter } from "../middleware/rateLimiter";
 import {
   db,
@@ -24,6 +24,7 @@ import {
   dataQualityAlertsTable,
   gamesTable,
   modelDriftAlertsTable,
+  modelPredictionsTable,
   modelVersionsTable,
   performanceMetricsTable,
   pickResultsTable,
@@ -175,6 +176,66 @@ router.delete("/admin/session", (req, res): void => {
 });
 
 router.use("/admin", requireMasterKey);
+
+/**
+ * GET /api/admin/loss-reviews
+ *
+ * Internal, evidence-based postgame reviews. This endpoint deliberately stays
+ * behind the admin session so subscriber-facing API responses never expose
+ * model diagnostics.
+ */
+router.get("/admin/loss-reviews", async (req, res): Promise<void> => {
+  const sport = typeof req.query.sport === "string" ? req.query.sport : undefined;
+  const requestedLimit = Number(req.query.limit);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.max(1, Math.min(Math.floor(requestedLimit), 100))
+    : 30;
+  const conditions = [
+    eq(pickResultsTable.result, "loss"),
+    isNotNull(pickResultsTable.learningReview),
+  ];
+  if (sport) conditions.push(eq(publishedPicksTable.sport, sport));
+
+  const reviews = await db
+    .select({
+      pickId: publishedPicksTable.id,
+      sport: publishedPicksTable.sport,
+      market: publishedPicksTable.market,
+      selection: publishedPicksTable.selection,
+      recommendation: publishedPicksTable.recommendation,
+      confidence: publishedPicksTable.confidence,
+      publishedAt: publishedPicksTable.publishedAt,
+      modelProbability: modelPredictionsTable.modelProbability,
+      finalRating: modelPredictionsTable.finalRating,
+      finalScore: pickResultsTable.finalScore,
+      clv: pickResultsTable.clv,
+      gradedAt: pickResultsTable.gradedAt,
+      review: pickResultsTable.learningReview,
+    })
+    .from(pickResultsTable)
+    .innerJoin(publishedPicksTable, eq(pickResultsTable.pickId, publishedPicksTable.id))
+    .innerJoin(modelPredictionsTable, eq(publishedPicksTable.predictionId, modelPredictionsTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(pickResultsTable.gradedAt))
+    .limit(limit);
+
+  const patterns = new Map<string, number>();
+  for (const row of reviews) {
+    const review = row.review as Record<string, unknown> | null;
+    const classification = typeof review?.primaryClassification === "string"
+      ? review.primaryClassification
+      : "unclassified";
+    patterns.set(classification, (patterns.get(classification) ?? 0) + 1);
+  }
+
+  res.json({
+    reviews,
+    patterns: [...patterns.entries()]
+      .map(([classification, sampleSize]) => ({ classification, sampleSize }))
+      .sort((a, b) => b.sampleSize - a.sampleSize),
+    dataAsOf: new Date().toISOString(),
+  });
+});
 
 // ── Overview ──────────────────────────────────────────────────────────────────
 

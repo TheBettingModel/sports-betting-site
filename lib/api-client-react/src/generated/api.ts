@@ -22,10 +22,12 @@ import type {
 import type {
   DeregisterPushTokenRequest,
   GamesTodayResponse,
+  GetAdminLossReviewsParams,
   GetGamesTodayParams,
   GetResultsRoiParams,
   GetResultsSummaryParams,
   HealthStatus,
+  LossReviewsResponse,
   ModelStatsHistoryResponse,
   ModelStatsResponse,
   NotificationPreferences,
@@ -611,6 +613,90 @@ export function useGetModelStats<TData = Awaited<ReturnType<typeof getModelStats
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetModelStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminLossReviewsUrl = (params?: GetAdminLossReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/loss-reviews?${stringifiedParams}` : `/api/admin/loss-reviews`
+}
+
+/**
+ * @summary Get internal evidence-based reviews for graded losses
+ */
+export const getAdminLossReviews = async (params?: GetAdminLossReviewsParams, options?: RequestInit): Promise<LossReviewsResponse> => {
+
+  return customFetch<LossReviewsResponse>(getGetAdminLossReviewsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminLossReviewsQueryKey = (params?: GetAdminLossReviewsParams,) => {
+    return [
+    `/api/admin/loss-reviews`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminLossReviewsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminLossReviews>>, TError = ErrorType<unknown>>(params?: GetAdminLossReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminLossReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminLossReviewsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminLossReviews>>> = ({ signal }) => getAdminLossReviews(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminLossReviews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminLossReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminLossReviews>>>
+export type GetAdminLossReviewsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get internal evidence-based reviews for graded losses
+ */
+
+export function useGetAdminLossReviews<TData = Awaited<ReturnType<typeof getAdminLossReviews>>, TError = ErrorType<unknown>>(
+ params?: GetAdminLossReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminLossReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminLossReviewsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

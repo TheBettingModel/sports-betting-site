@@ -17,9 +17,10 @@ import { eq, and, desc, ne, gte, gt, lt } from "drizzle-orm";
 import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable, pushTokensTable, gamesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
-import { processGameSnapshot } from "./snapshot";
+import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
 import { runGrading, recoverStaleGames, syncGameResults } from "./grading-runner";
 import { runAnalytics } from "./analytics";
+import { runLearning } from "./learning";
 import { checkPendingPushReceipts } from "./pushReceipts";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
@@ -618,7 +619,59 @@ async function runOddsIngestion(): Promise<void> {
               awayDbStats,
             },
           );
-          await processGameSnapshot(game, proj);
+          const decisionContext = createPredictionDecisionContext(
+            game,
+            weightsBySport[game.sport] ?? null,
+            {
+              homeHomeRecord: game.homeHomeRecord,
+              homeRoadRecord: game.homeRoadRecord,
+              awayHomeRecord: game.awayHomeRecord,
+              awayRoadRecord: game.awayRoadRecord,
+              realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
+              realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
+              realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+              realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
+              pinnacleHomeOdds: gameOdds?.pinnacleHomeOdds,
+              pinnacleAwayOdds: gameOdds?.pinnacleAwayOdds,
+              consensusHomeOdds: gameOdds?.consensusHomeOdds,
+              consensusAwayOdds: gameOdds?.consensusAwayOdds,
+              lineMovedTowardHome,
+              pitcherAdvantage,
+              goalieAdvantage,
+              injuryAdvantage,
+              bullpenAdvantage: bullpenEffect?.probabilityAdj,
+              bullpenTotalAdjustment: bullpenEffect?.totalAdj,
+              lineupAdvantage,
+              parkFactor,
+              weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
+              weatherWindMph: venueWeather?.windSpeedMph,
+              weatherPrecipMm: venueWeather?.precipitationMm,
+              nhlHomeSpecialTeams: homeNhlST ?? undefined,
+              nhlAwaySpecialTeams: awayNhlST ?? undefined,
+              nflIsDivisional: nflSignals?.isDivisional,
+              nflDomeMismatch: nflSignals?.domeMismatch,
+              nflTurnoverAdvantage: nflSignals?.turnoverAdvantage,
+              homeTeamStats,
+              awayTeamStats,
+              homeSoccerStats,
+              awaySoccerStats,
+              homeDbStats,
+              awayDbStats,
+            },
+            {
+              homeStarter: starters.home ?? null,
+              awayStarter: starters.away ?? null,
+              homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
+              awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
+              homeGoalie: goalieMatchup?.home ?? null,
+              awayGoalie: goalieMatchup?.away ?? null,
+              homeInjuries: game.sport === "NFL" ? homeInjury?.keyInjuries ?? [] :
+                game.sport === "WNBA" ? homeWnbaInj?.keyInjuries ?? [] : [],
+              awayInjuries: game.sport === "NFL" ? awayInjury?.keyInjuries ?? [] :
+                game.sport === "WNBA" ? awayWnbaInj?.keyInjuries ?? [] : [],
+            },
+          );
+          await processGameSnapshot(game, proj, decisionContext);
           processed++;
         } catch (err) {
           logger.warn({ err, gameId: game.espnId }, "Scheduler: odds-ingestion game error");
@@ -766,9 +819,63 @@ async function runResultGrading(): Promise<void> {
           ? computeBullpenAdvantage(bullpenMatchup)
           : null;
 
+        const lineupMatchup = game.sport === "MLB"
+          ? await getLineupMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+          : null;
+        const enrichedLineup = game.sport === "MLB" && lineupMatchup
+          ? await enrichLineupMatchup(lineupMatchup, starters)
+          : null;
+        const lineupAdvantage = game.sport === "MLB" && enrichedLineup
+          ? computeLineupAdvantage(
+              enrichedLineup.home,
+              enrichedLineup.away,
+              starters.home?.pitchHand ?? null,
+              starters.away?.pitchHand ?? null,
+            )
+          : undefined;
+        const parkFactor = game.sport === "MLB"
+          ? getParkFactor(game.homeTeamAbbr)
+          : undefined;
+
         const nflSignals = game.sport === "NFL"
           ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
           : null;
+
+        const projectionOptions = {
+          homeHomeRecord:    game.homeHomeRecord,
+          homeRoadRecord:    game.homeRoadRecord,
+          awayHomeRecord:    game.awayHomeRecord,
+          awayRoadRecord:    game.awayRoadRecord,
+          realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
+          realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
+          realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+          realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
+          pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
+          pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
+          consensusHomeOdds: gameOdds?.consensusHomeOdds,
+          consensusAwayOdds: gameOdds?.consensusAwayOdds,
+          pitcherAdvantage,
+          goalieAdvantage,
+          injuryAdvantage,
+          bullpenAdvantage:       bullpenEffect?.probabilityAdj,
+          bullpenTotalAdjustment: bullpenEffect?.totalAdj,
+          lineupAdvantage,
+          parkFactor,
+          weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
+          weatherWindMph:   venueWeather?.windSpeedMph,
+          weatherPrecipMm:  venueWeather?.precipitationMm,
+          nhlHomeSpecialTeams: homeNhlST ?? undefined,
+          nhlAwaySpecialTeams: awayNhlST ?? undefined,
+          nflIsDivisional:      nflSignals?.isDivisional,
+          nflDomeMismatch:      nflSignals?.domeMismatch,
+          nflTurnoverAdvantage: nflSignals?.turnoverAdvantage,
+          homeTeamStats,
+          awayTeamStats,
+          homeSoccerStats,
+          awaySoccerStats,
+          homeDbStats,
+          awayDbStats,
+        };
 
         const proj = computeProjection(
           game.espnId,
@@ -776,41 +883,26 @@ async function runResultGrading(): Promise<void> {
           game.homeTeamRecord,
           game.awayTeamRecord,
           weightsBySport[game.sport] ?? null,
+          projectionOptions,
+        );
+        const decisionContext = createPredictionDecisionContext(
+          game,
+          weightsBySport[game.sport] ?? null,
+          projectionOptions,
           {
-            homeHomeRecord:    game.homeHomeRecord,
-            homeRoadRecord:    game.homeRoadRecord,
-            awayHomeRecord:    game.awayHomeRecord,
-            awayRoadRecord:    game.awayRoadRecord,
-            realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
-            realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
-            realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
-            realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
-            pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
-            pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
-            consensusHomeOdds: gameOdds?.consensusHomeOdds,
-            consensusAwayOdds: gameOdds?.consensusAwayOdds,
-            pitcherAdvantage,
-            goalieAdvantage,
-            injuryAdvantage,
-            bullpenAdvantage:       bullpenEffect?.probabilityAdj,
-            bullpenTotalAdjustment: bullpenEffect?.totalAdj,
-            weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
-            weatherWindMph:   venueWeather?.windSpeedMph,
-            weatherPrecipMm:  venueWeather?.precipitationMm,
-            nhlHomeSpecialTeams: homeNhlST ?? undefined,
-            nhlAwaySpecialTeams: awayNhlST ?? undefined,
-            nflIsDivisional:      nflSignals?.isDivisional,
-            nflDomeMismatch:      nflSignals?.domeMismatch,
-            nflTurnoverAdvantage: nflSignals?.turnoverAdvantage,
-            homeTeamStats,
-            awayTeamStats,
-            homeSoccerStats,
-            awaySoccerStats,
-            homeDbStats,
-            awayDbStats,
+            homeStarter: starters.home ?? null,
+            awayStarter: starters.away ?? null,
+            homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
+            awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
+            homeGoalie: goalieMatchup?.home ?? null,
+            awayGoalie: goalieMatchup?.away ?? null,
+            homeInjuries: game.sport === "NFL" ? homeInjury?.keyInjuries ?? [] :
+              game.sport === "WNBA" ? homeWnbaInj?.keyInjuries ?? [] : [],
+            awayInjuries: game.sport === "NFL" ? awayInjury?.keyInjuries ?? [] :
+              game.sport === "WNBA" ? awayWnbaInj?.keyInjuries ?? [] : [],
           },
         );
-        await processGameSnapshot(game, proj);
+        await processGameSnapshot(game, proj, decisionContext);
         snapshots++;
       } catch (_) { /* continue */ }
     }
@@ -825,6 +917,7 @@ async function runResultGrading(): Promise<void> {
     }
 
     const graded = await runGrading();
+    await runLearning();
 
     await finishRun(runId, "completed", graded);
     logger.info({ snapshots, recovered, graded }, "Scheduler: result-grading complete");

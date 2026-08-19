@@ -207,6 +207,42 @@ export const GetModelStatsResponse = zod.object({
 
 
 /**
+ * @summary Get internal evidence-based reviews for graded losses
+ */
+export const getAdminLossReviewsQueryLimitMax = 100;
+
+
+
+export const GetAdminLossReviewsQueryParams = zod.object({
+  "sport": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().min(1).max(getAdminLossReviewsQueryLimitMax).optional()
+})
+
+export const GetAdminLossReviewsResponse = zod.object({
+  "reviews": zod.array(zod.object({
+  "pickId": zod.number(),
+  "sport": zod.string(),
+  "market": zod.string(),
+  "selection": zod.string(),
+  "recommendation": zod.string(),
+  "confidence": zod.string(),
+  "publishedAt": zod.string(),
+  "modelProbability": zod.number(),
+  "finalRating": zod.number().nullish(),
+  "finalScore": zod.string().nullish(),
+  "clv": zod.number().nullish(),
+  "gradedAt": zod.string().nullish(),
+  "review": zod.record(zod.string(), zod.unknown()).nullable()
+})),
+  "patterns": zod.array(zod.object({
+  "classification": zod.string(),
+  "sampleSize": zod.number()
+})),
+  "dataAsOf": zod.string()
+})
+
+
+/**
  * @summary Register a device push token
  */
 export const RegisterPushTokenBody = zod.object({

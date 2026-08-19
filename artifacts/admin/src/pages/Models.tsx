@@ -8,7 +8,7 @@ import {
 import {
   adminApi, modelApi,
   type ModelVersion, type SportStat, type WeeklyHistoryEntry,
-  type RoiByRatingEntry, type RoiBySportEntry,
+  type RoiByRatingEntry, type RoiBySportEntry, type LossReviewEntry,
 } from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
@@ -410,6 +410,73 @@ function TierTable({ stats }: TierTableProps) {
   );
 }
 
+// ── Loss review panel ─────────────────────────────────────────────────────────
+
+function LossReviewPanel({
+  reviews,
+  patterns,
+  isLoading,
+}: {
+  reviews: LossReviewEntry[];
+  patterns: Array<{ classification: string; sampleSize: number }>;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Recent Loss Reviews</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Evidence from the saved decision, market movement, availability, and data quality.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {patterns.slice(0, 3).map((pattern) => (
+            <span key={pattern.classification} className="px-2 py-1 rounded bg-muted text-[11px] text-muted-foreground">
+              {pattern.classification.replaceAll("_", " ")} · n={pattern.sampleSize}
+            </span>
+          ))}
+        </div>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading loss reviews…</p>
+      ) : reviews.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No reviewed losses yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {reviews.slice(0, 8).map((loss) => (
+            <article key={loss.pickId} className="rounded-md border border-border bg-background/40 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  {loss.sport} · {loss.market} · {loss.selection.toUpperCase()}
+                  {loss.finalScore ? <span className="text-muted-foreground font-normal"> · Final {loss.finalScore}</span> : null}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {(loss.modelProbability * 100).toFixed(0)}% model probability
+                  {loss.clv != null ? ` · ${loss.clv >= 0 ? "+" : ""}${loss.clv.toFixed(2)} CLV` : ""}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">{loss.review?.summary}</p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(loss.review?.flags ?? []).map((flag) => (
+                  <span key={flag} className="rounded bg-destructive/10 px-1.5 py-0.5 text-[11px] text-destructive">
+                    {flag.replaceAll("_", " ")}
+                  </span>
+                ))}
+                {(loss.review?.evidence?.factorEvidence ?? []).slice(0, 3).map((factor) => (
+                  <span key={factor.factor} className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                    {factor.factor}: {factor.contribution > 0 ? "+" : ""}{(factor.contribution * 100).toFixed(1)}pp
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Performance Panel ─────────────────────────────────────────────────────────
 
 function PerformancePanel() {
@@ -431,6 +498,12 @@ function PerformancePanel() {
     queryKey: ["model-roi"],
     queryFn: () => modelApi.roi("season"),
     refetchInterval: 120_000,
+  });
+
+  const { data: lossReviewData, isLoading: lossReviewsLoading } = useQuery({
+    queryKey: ["loss-reviews", selectedSport],
+    queryFn: () => adminApi.lossReviews(selectedSport),
+    refetchInterval: 60_000,
   });
 
   const stats = statsData?.stats ?? [];
@@ -567,6 +640,11 @@ function PerformancePanel() {
           </p>
         )}
       </div>
+      <LossReviewPanel
+        reviews={lossReviewData?.reviews ?? []}
+        patterns={lossReviewData?.patterns ?? []}
+        isLoading={lossReviewsLoading}
+      />
     </div>
   );
 }

@@ -32,6 +32,11 @@ export const pickResultsTable = pgTable(
     // [{ timestamp, previousResult, newResult, reason, performedBy }]
     gradeAudit: jsonb("grade_audit").notNull().default([]),
 
+    // Immutable-prediction outcome review written by the learning engine after
+    // a decisive grade. It records evidence, not a claimed causal explanation.
+    learningReview: jsonb("learning_review").$type<Record<string, unknown>>(),
+    learningProcessedAt: timestamp("learning_processed_at", { withTimezone: true }),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -42,6 +47,7 @@ export const pickResultsTable = pgTable(
     uniqueIndex("pick_results_pick_id_idx").on(t.pickId),
     index("pick_results_result_idx").on(t.result),
     index("pick_results_graded_at_idx").on(t.gradedAt),
+    index("pick_results_learning_processed_idx").on(t.learningProcessedAt),
   ],
 );
 

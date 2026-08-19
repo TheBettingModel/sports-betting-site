@@ -162,6 +162,43 @@ export interface ModelStatsResponse {
   dataAsOf: string;
 }
 
+/**
+ * @nullable
+ */
+export type LossReviewEntryReview = { [key: string]: unknown } | null;
+
+export interface LossReviewEntry {
+  pickId: number;
+  sport: string;
+  market: string;
+  selection: string;
+  recommendation: string;
+  confidence: string;
+  publishedAt: string;
+  modelProbability: number;
+  /** @nullable */
+  finalRating?: number | null;
+  /** @nullable */
+  finalScore?: string | null;
+  /** @nullable */
+  clv?: number | null;
+  /** @nullable */
+  gradedAt?: string | null;
+  /** @nullable */
+  review: LossReviewEntryReview;
+}
+
+export interface LossReviewPattern {
+  classification: string;
+  sampleSize: number;
+}
+
+export interface LossReviewsResponse {
+  reviews: LossReviewEntry[];
+  patterns: LossReviewPattern[];
+  dataAsOf: string;
+}
+
 export interface RegisterPushTokenRequest {
   token: string;
   platform: string;
@@ -221,5 +258,14 @@ period?: string;
 
 export type GetResultsRoiParams = {
 period?: string;
+};
+
+export type GetAdminLossReviewsParams = {
+sport?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
 };
 

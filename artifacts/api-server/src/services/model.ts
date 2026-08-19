@@ -139,7 +139,7 @@ export const SPORT_DEFAULT_WEIGHTS: Record<string, FactorWeights> = {
 };
 
 /** Merge stored factorWeights with sport defaults, sport defaults win for missing keys */
-function effectiveWeights(sport: string, stored: FactorWeights | null | undefined): FactorWeights {
+export function effectiveWeights(sport: string, stored: FactorWeights | null | undefined): FactorWeights {
   const defaults = SPORT_DEFAULT_WEIGHTS[sport] ?? SPORT_DEFAULT_WEIGHTS["MLB"]!;
   if (!stored) return defaults;
   // Stored values override defaults; missing stored keys fall back to defaults

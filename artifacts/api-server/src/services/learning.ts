@@ -213,7 +213,7 @@ async function fetchPickAccuracyForGame(
  *   - Per-factor weights (magnitude + Brier scaled)
  *   - Per-tier accuracy (Elite / Strong / Playable)
  */
-export async function runLearning(): Promise<void> {
+async function runLegacyGameLearning(): Promise<void> {
   const unprocessed = await db
     .select()
     .from(gamesTable)
@@ -400,3 +400,7 @@ export async function runLearning(): Promise<void> {
 
   logger.info({ count: unprocessed.length }, "Learning: update complete");
 }
+
+// The v1 learner remains in this module temporarily for historical reference,
+// but production callers use the per-pick v2 engine below.
+export { runLearning } from "./learningEngine";

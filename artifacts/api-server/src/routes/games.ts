@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
-import { computeProjection } from "../services/model";
+import { computeProjection, type ComputeOptions } from "../services/model";
 import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "../services/mlbBullpen";
@@ -17,7 +17,7 @@ import type { TeamInjuryImpact } from "../services/nflInjuries";
 import type { WnbaTeamInjuryImpact } from "../services/wnbaInjuries";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
-import { processGameSnapshot } from "../services/snapshot";
+import { createPredictionDecisionContext, processGameSnapshot } from "../services/snapshot";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
@@ -276,45 +276,64 @@ export async function refreshAll(): Promise<{
       ? getParkFactor(game.homeTeamAbbr)
       : undefined;
 
+    const projectionOptions: ComputeOptions = {
+      homeHomeRecord:    game.homeHomeRecord,
+      homeRoadRecord:    game.homeRoadRecord,
+      awayHomeRecord:    game.awayHomeRecord,
+      awayRoadRecord:    game.awayRoadRecord,
+      // Consensus odds preferred over ESPN single book
+      realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
+      realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
+      realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+      realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
+      // Phase 2 signals
+      pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
+      pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
+      consensusHomeOdds: gameOdds?.consensusHomeOdds,
+      consensusAwayOdds: gameOdds?.consensusAwayOdds,
+      lineMovedTowardHome,
+      pitcherAdvantage,
+      // Phase 3 signals
+      goalieAdvantage,
+      injuryAdvantage,
+      bullpenAdvantage:        bullpenEffect?.probabilityAdj,
+      bullpenTotalAdjustment:  bullpenEffect?.totalAdj,
+      lineupAdvantage,
+      parkFactor,
+      weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
+      weatherWindMph:   venueWeather?.windSpeedMph,
+      weatherPrecipMm:  venueWeather?.precipitationMm,
+      homeTeamStats,
+      awayTeamStats,
+      homeSoccerStats,
+      awaySoccerStats,
+      homeDbStats,
+      awayDbStats,
+    };
+
     const proj = computeProjection(
       game.espnId,
       game.sport,
       game.homeTeamRecord,
       game.awayTeamRecord,
       w,
+      projectionOptions,
+    );
+    const decisionContext = createPredictionDecisionContext(
+      game,
+      w,
+      projectionOptions,
       {
-        homeHomeRecord:    game.homeHomeRecord,
-        homeRoadRecord:    game.homeRoadRecord,
-        awayHomeRecord:    game.awayHomeRecord,
-        awayRoadRecord:    game.awayRoadRecord,
-        // Consensus odds preferred over ESPN single book
-        realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
-        realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
-        realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
-        realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
-        // Phase 2 signals
-        pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
-        pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,
-        consensusHomeOdds: gameOdds?.consensusHomeOdds,
-        consensusAwayOdds: gameOdds?.consensusAwayOdds,
-        lineMovedTowardHome,
-        pitcherAdvantage,
-        // Phase 3 signals
-        goalieAdvantage,
-        injuryAdvantage,
-        bullpenAdvantage:        bullpenEffect?.probabilityAdj,
-        bullpenTotalAdjustment:  bullpenEffect?.totalAdj,
-        lineupAdvantage,
-        parkFactor,
-        weatherTotalAdjustment: (weatherEffect?.totalAdjustment ?? 0) + (bullpenEffect?.totalAdj ?? 0),
-        weatherWindMph:   venueWeather?.windSpeedMph,
-        weatherPrecipMm:  venueWeather?.precipitationMm,
-        homeTeamStats,
-        awayTeamStats,
-        homeSoccerStats,
-        awaySoccerStats,
-        homeDbStats,
-        awayDbStats,
+        homeStarter: starters.home ?? null,
+        awayStarter: starters.away ?? null,
+        homeLineupConfirmed: enrichedLineup.home.confirmed,
+        awayLineupConfirmed: enrichedLineup.away.confirmed,
+        homeGoalie: goalieMatchup.home ?? null,
+        awayGoalie: goalieMatchup.away ?? null,
+        homeInjuries: game.sport === "NFL" ? homeInjury.keyInjuries :
+          game.sport === "WNBA" ? homeWnbaInjury.keyInjuries : [],
+        awayInjuries: game.sport === "NFL" ? awayInjury.keyInjuries :
+          game.sport === "WNBA" ? awayWnbaInjury.keyInjuries : [],
       },
     );
 
@@ -490,7 +509,7 @@ export async function refreshAll(): Promise<{
       });
 
     // Snapshot pipeline: odds, predictions, results, closing lines
-    await processGameSnapshot(game, proj);
+    await processGameSnapshot(game, proj, decisionContext);
 
     upserted++;
     sports.add(game.sport);
@@ -516,9 +535,6 @@ export async function refreshAll(): Promise<{
     // this is likely a transient fetch failure. Leave existing statuses alone.
   }
 
-  // EMA learning pass (keeps confidenceMultiplier up to date)
-  await runLearning();
-
   // Recover any past-date games still stuck in a non-final status (handles
   // the case where the server was down / restarted after games finished)
   await recoverStaleGames();
@@ -528,6 +544,8 @@ export async function refreshAll(): Promise<{
 
   // Grade any picks that now have a completed game result
   const picksGraded = await runGrading();
+  // Only learn from a completed grade, never from the mutable game outcome.
+  await runLearning();
 
   lastRefreshedAt = new Date();
   logger.info(

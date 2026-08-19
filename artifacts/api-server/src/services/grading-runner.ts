@@ -13,6 +13,7 @@ import {
   gradeMoneyline,
   gradeSpread,
   gradeTotal,
+  gradeSoccer3Way,
   calculateClv,
   calculateUnits,
   type GradeResult,
@@ -54,6 +55,20 @@ export async function runGrading(): Promise<number> {
 
   const pickMap = new Map(picks.map((p) => [p.id, p]));
 
+  // Market lines live in the immutable prediction snapshot. Never grade a
+  // spread or total against the latest mutable games row.
+  const predictionIds = picks.map((pick) => pick.predictionId);
+  const predictionRows = predictionIds.length > 0
+    ? await db
+        .select({
+          id: modelPredictionsTable.id,
+          featureSnapshot: modelPredictionsTable.featureSnapshot,
+        })
+        .from(modelPredictionsTable)
+        .where(inArray(modelPredictionsTable.id, predictionIds))
+    : [];
+  const predictionMap = new Map(predictionRows.map((row) => [row.id, row]));
+
   // 3. Load game results for relevant games
   const gameIds = [...new Set(picks.map((p) => p.gameId))];
   const gameResults = await db
@@ -82,25 +97,27 @@ export async function runGrading(): Promise<number> {
 
     // ── Grade the pick ────────────────────────────────────────────────────
     let grade: GradeResult = "pending";
+    const snapshot = predictionMap.get(pick.predictionId)?.featureSnapshot as Record<string, unknown> | undefined;
 
     if (pick.market === "moneyline") {
-      grade = gradeMoneyline(
-        pick.selection,
-        gameResult.homeScore,
-        gameResult.awayScore,
-      );
-    } else if (pick.market === "spread" && pick.odds != null) {
-      // spread stored in odds column for spread picks; fall back to 0
+      grade = pick.sport === "Soccer"
+        ? gradeSoccer3Way(pick.selection, gameResult.homeScore, gameResult.awayScore)
+        : gradeMoneyline(pick.selection, gameResult.homeScore, gameResult.awayScore);
+    } else if (pick.market === "spread") {
+      const spread = snapshot?.vegasSpread;
+      if (typeof spread !== "number") continue;
       grade = gradeSpread(
         pick.selection,
-        0,
+        spread,
         gameResult.homeScore,
         gameResult.awayScore,
       );
-    } else if (pick.market === "total" && pick.odds != null) {
+    } else if (pick.market === "total") {
+      const total = snapshot?.vegasTotal;
+      if (typeof total !== "number") continue;
       grade = gradeTotal(
         pick.selection,
-        0,
+        total,
         gameResult.homeScore,
         gameResult.awayScore,
       );
@@ -391,6 +408,15 @@ export async function overridePickGrade(
       gradedAt: new Date(),
       gradingSource: "manual_override",
       gradeAudit: [...currentAudit, auditEntry],
+      // Existing learning is never silently applied twice after a correction.
+      // The stored review exposes the original evidence and the override audit
+      // tells admins that a supervised rebuild is needed before retraining.
+      learningReview: {
+        ...(existing.learningReview as Record<string, unknown> ?? {}),
+        status: "superseded_by_manual_override",
+        reviewedResult: newResult,
+        supersededAt: new Date().toISOString(),
+      },
     })
     .where(eq(pickResultsTable.id, pickResultId));
 

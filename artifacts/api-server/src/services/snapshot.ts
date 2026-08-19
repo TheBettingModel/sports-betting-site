@@ -9,10 +9,70 @@ import {
   publishedPicksTable,
   pickResultsTable,
 } from "@workspace/db";
-import type { ProjectionResult } from "./model";
+import type { ModelWeights } from "@workspace/db";
+import {
+  computeFactorContributions,
+  effectiveWeights,
+  type ComputeOptions,
+  type ProjectionResult,
+} from "./model";
 import type { FetchedGame } from "./espn";
 import { getBootstrapIds } from "./bootstrap";
 import { logger } from "../lib/logger";
+
+export interface PredictionDecisionContext {
+  factorWeights: Record<string, number>;
+  factorContributions: Record<string, number>;
+  confidenceMultiplier: number;
+  inputSignals: Record<string, unknown>;
+  availability: Record<string, unknown>;
+  dataQuality: {
+    capturedAt: string;
+    missingSignals: string[];
+    source: "refresh";
+  };
+}
+
+/**
+ * Capture reproducible pregame evidence next to every new prediction. The
+ * context is constructed before the mutable games row is upserted, so later
+ * score, odds, lineup, and injury refreshes cannot rewrite the decision.
+ */
+export function createPredictionDecisionContext(
+  game: FetchedGame,
+  modelWeights: ModelWeights | null,
+  options: ComputeOptions,
+  availability: Record<string, unknown>,
+): PredictionDecisionContext {
+  const factorWeights = effectiveWeights(game.sport, modelWeights?.factorWeights);
+  const factorContributions = computeFactorContributions(
+    game.sport,
+    game.homeTeamRecord,
+    game.awayTeamRecord,
+    options,
+    factorWeights,
+  );
+  const missingSignals = [
+    options.realVegasHomeOdds == null || options.realVegasAwayOdds == null ? "market_odds" : null,
+    game.sport === "MLB" && options.pitcherAdvantage == null ? "probable_pitchers" : null,
+    game.sport === "NHL" && options.goalieAdvantage == null ? "goalie_confirmation" : null,
+    game.sport === "NFL" && options.injuryAdvantage == null ? "injury_report" : null,
+    game.sport === "WNBA" && options.injuryAdvantage == null ? "player_availability" : null,
+  ].filter((signal): signal is string => signal !== null);
+
+  return {
+    factorWeights,
+    factorContributions,
+    confidenceMultiplier: modelWeights?.confidenceMultiplier ?? 1,
+    inputSignals: options as Record<string, unknown>,
+    availability,
+    dataQuality: {
+      capturedAt: new Date().toISOString(),
+      missingSignals,
+      source: "refresh",
+    },
+  };
+}
 
 // ── Odds snapshot ─────────────────────────────────────────────────────────────
 
@@ -73,6 +133,7 @@ async function writePredictionSnapshot(
   proj: ProjectionResult,
   modelVersionId: number,
   capturedAt: Date,
+  decisionContext?: PredictionDecisionContext,
 ): Promise<number | null> {
   // Guard: one prediction per game + model version + market
   const [existing] = await db
@@ -91,6 +152,7 @@ async function writePredictionSnapshot(
 
   // Build the feature snapshot: exact inputs used by computeProjection
   const featureSnapshot = {
+    schemaVersion: decisionContext ? 2 : 1,
     homeRecord: game.homeTeamRecord,
     awayRecord: game.awayTeamRecord,
     homeTeamAbbr: game.homeTeamAbbr,
@@ -102,6 +164,16 @@ async function writePredictionSnapshot(
     vegasAwayOdds: proj.vegasAwayOdds,
     vegasSpread: proj.vegasSpread,
     vegasTotal: proj.vegasTotal,
+    ...(decisionContext ? {
+      decision: {
+        factorWeights: decisionContext.factorWeights,
+        factorContributions: decisionContext.factorContributions,
+        confidenceMultiplier: decisionContext.confidenceMultiplier,
+        inputSignals: decisionContext.inputSignals,
+        availability: decisionContext.availability,
+        dataQuality: decisionContext.dataQuality,
+      },
+    } : {}),
   };
 
   const pickIsHome = proj.edge >= 0;
@@ -305,6 +377,7 @@ async function writeClosingLines(
 export async function processGameSnapshot(
   game: FetchedGame,
   proj: ProjectionResult,
+  decisionContext?: PredictionDecisionContext,
 ): Promise<void> {
   const { espnSportsbookId, marketIds, modelVersionIds } =
     await getBootstrapIds();
@@ -330,6 +403,7 @@ export async function processGameSnapshot(
         proj,
         modelVersionId,
         now,
+        decisionContext,
       );
       if (predictionId !== null) {
         await publishPick(predictionId, game, proj, now);
