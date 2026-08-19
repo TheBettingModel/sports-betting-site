@@ -35,10 +35,23 @@ const SPORT_ACCENT: Record<string, string> = {
 
 const DEFAULT_ACCENT = '#4B5563';
 
+/**
+ * ESPN's numeric-ID CDN path 404s for these newer WNBA franchises even though
+ * the scoreboard exposes a valid abbreviation-based asset. Keep this narrow
+ * override until ESPN adds the numeric assets.
+ */
+const WNBA_LOGO_OVERRIDES: Record<string, string> = {
+  TOR: 'https://a.espncdn.com/i/teamlogos/wnba/500/tor.png',
+  GS: 'https://a.espncdn.com/i/teamlogos/wnba/500/gs.png',
+};
+
 export function TeamLogo({ sport, abbr, logoUrl, size = 40 }: TeamLogoProps) {
   const [imgFailed, setImgFailed] = useState(false);
 
-  const showImage = !!logoUrl && !imgFailed;
+  const resolvedLogoUrl = sport === 'WNBA'
+    ? (WNBA_LOGO_OVERRIDES[abbr.toUpperCase()] ?? logoUrl)
+    : logoUrl;
+  const showImage = !!resolvedLogoUrl && !imgFailed;
   const accent    = SPORT_ACCENT[sport] ?? DEFAULT_ACCENT;
   const fontSize  = Math.round(size * 0.33);
   const borderWidth = size >= 36 ? 2 : 1.5;
@@ -46,7 +59,7 @@ export function TeamLogo({ sport, abbr, logoUrl, size = 40 }: TeamLogoProps) {
   if (showImage) {
     return (
       <Image
-        source={{ uri: logoUrl }}
+          source={{ uri: resolvedLogoUrl }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
         contentFit="contain"
         transition={120}
