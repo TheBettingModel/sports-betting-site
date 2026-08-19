@@ -58,26 +58,26 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
 
         {/* ── Logo matchup row ── */}
         <View style={styles.matchupRow}>
-          {/* Home team */}
+          {/* Away team */}
           <View style={styles.teamCol}>
-            <TeamLogo sport={sport} abbr={homeTeam.abbr} size={64} />
-            <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
-            <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+            <TeamLogo sport={sport} abbr={awayTeam.abbr} logoUrl={awayTeam.logoUrl} size={64} />
+            <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
+            <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
           </View>
 
           {/* Centre: vs + full names */}
           <View style={styles.vsCol}>
             <Text style={[styles.vsText, { color: colors.mutedForeground }]}>vs</Text>
             <Text style={[styles.fullNames, { color: colors.mutedForeground }]} numberOfLines={2}>
-              {homeTeam.city} {homeTeam.name}{'\n'}{awayTeam.city} {awayTeam.name}
+              {awayTeam.city} {awayTeam.name}{'\n'}{homeTeam.city} {homeTeam.name}
             </Text>
           </View>
 
-          {/* Away team */}
+          {/* Home team */}
           <View style={styles.teamCol}>
-            <TeamLogo sport={sport} abbr={awayTeam.abbr} size={64} />
-            <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{awayTeam.abbr}</Text>
-            <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
+            <TeamLogo sport={sport} abbr={homeTeam.abbr} logoUrl={homeTeam.logoUrl} size={64} />
+            <Text style={[styles.teamAbbr, { color: colors.foreground }]}>{homeTeam.abbr}</Text>
+            <Text style={[styles.teamRecord, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
           </View>
         </View>
 
@@ -85,22 +85,6 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
         {hasPitchers && (
           <View style={[styles.pitcherRow, { backgroundColor: colors.muted, borderColor: colors.border }]}>
             <View style={styles.pitcherSide}>
-              {homeStarter && (
-                <>
-                  <Text style={[styles.pitcherLabel, { color: colors.mutedForeground }]}>SP</Text>
-                  <Text style={[styles.pitcherName, { color: colors.foreground }]} numberOfLines={1}>
-                    {homeStarter.name.split(' ').pop()}
-                  </Text>
-                  {homeStarter.era != null && (
-                    <Text style={[styles.pitcherEra, { color: colors.primary }]}>
-                      {homeStarter.era.toFixed(2)} ERA
-                    </Text>
-                  )}
-                </>
-              )}
-            </View>
-            <Text style={[styles.pitcherVs, { color: colors.mutedForeground }]}>vs</Text>
-            <View style={[styles.pitcherSide, styles.pitcherSideRight]}>
               {awayStarter && (
                 <>
                   <Text style={[styles.pitcherLabel, { color: colors.mutedForeground }]}>SP</Text>
@@ -110,6 +94,22 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
                   {awayStarter.era != null && (
                     <Text style={[styles.pitcherEra, { color: colors.primary }]}>
                       {awayStarter.era.toFixed(2)} ERA
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+            <Text style={[styles.pitcherVs, { color: colors.mutedForeground }]}>vs</Text>
+            <View style={[styles.pitcherSide, styles.pitcherSideRight]}>
+              {homeStarter && (
+                <>
+                  <Text style={[styles.pitcherLabel, { color: colors.mutedForeground }]}>SP</Text>
+                  <Text style={[styles.pitcherName, { color: colors.foreground }]} numberOfLines={1}>
+                    {homeStarter.name.split(' ').pop()}
+                  </Text>
+                  {homeStarter.era != null && (
+                    <Text style={[styles.pitcherEra, { color: colors.primary }]}>
+                      {homeStarter.era.toFixed(2)} ERA
                     </Text>
                   )}
                 </>
