@@ -179,38 +179,13 @@ export function GameCard({ game }: GameCardProps) {
         </Text>
       </View>
 
-      {/* Logos row: Logo + abbr + record  |  vs  |  record + abbr + Logo */}
+      {/* Logos row: away team on the left  |  vs  |  home team on the right */}
       <View style={styles.matchupRow}>
 
-        {/* Home team */}
-        <View style={styles.teamBlock}>
-          <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={34} />
-          <View style={styles.teamMeta}>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.teamAbbr,
-                {
-                  color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground,
-                  fontSize: isUFC ? 13 : 15,
-                },
-              ]}
-            >
-              {homeDisplay}
-            </Text>
-            <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
-            {!isUFC && <Text style={styles.homeAwayLabel}>HOME</Text>}
-          </View>
-        </View>
-
-        {/* VS centre */}
-        <View style={styles.matchupCenter}>
-          <Text style={[styles.vs, { color: '#4B5563' }]}>vs</Text>
-        </View>
-
         {/* Away team */}
-        <View style={[styles.teamBlock, styles.teamBlockRight]}>
-          <View style={[styles.teamMeta, styles.teamMetaRight]}>
+        <View style={styles.teamBlock}>
+          <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={34} />
+          <View style={styles.teamMeta}>
             <Text
               numberOfLines={1}
               style={[
@@ -226,7 +201,32 @@ export function GameCard({ game }: GameCardProps) {
             <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
             {!isUFC && <Text style={styles.homeAwayLabel}>AWAY</Text>}
           </View>
-          <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={34} />
+        </View>
+
+        {/* VS centre */}
+        <View style={styles.matchupCenter}>
+          <Text style={[styles.vs, { color: '#4B5563' }]}>vs</Text>
+        </View>
+
+        {/* Home team */}
+        <View style={[styles.teamBlock, styles.teamBlockRight]}>
+          <View style={[styles.teamMeta, styles.teamMetaRight]}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.teamAbbr,
+                {
+                  color: (hasEdge && pickIsHome) || !hasEdge ? colors.foreground : colors.mutedForeground,
+                  fontSize: isUFC ? 13 : 15,
+                },
+              ]}
+            >
+              {homeDisplay}
+            </Text>
+            <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+            {!isUFC && <Text style={styles.homeAwayLabel}>HOME</Text>}
+          </View>
+          <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={34} />
         </View>
       </View>
 
@@ -235,32 +235,10 @@ export function GameCard({ game }: GameCardProps) {
          ══════════════════════════════════════════════ */}
       {showStarters && (
         <View style={[styles.startersRow, { backgroundColor: '#0a0a0a', borderColor: '#1a1a1a' }]}>
-          {/* Home starter: [LHP] Name  ERA */}
+          {/* Away starter: [RHP] Name  ERA */}
           <View style={styles.starterBlock}>
-            {projection.homeStarterHand != null && (
-              <Text style={styles.starterHand}>{projection.homeStarterHand}HP</Text>
-            )}
-            <Text style={[
-              styles.starterName,
-              { color: (hasEdge && pickIsHome) ? '#d1d5db' : colors.mutedForeground },
-            ]}>
-              {projection.homeStarterName ?? '—'}
-            </Text>
-            {(projection.homeStarterRecentEra ?? projection.homeStarterEra) != null && (
-              <Text style={styles.starterEra}>
-                {(projection.homeStarterRecentEra ?? projection.homeStarterEra)!.toFixed(2)}
-              </Text>
-            )}
-          </View>
-
-          <Text style={styles.starterSP}>SP</Text>
-
-          {/* Away starter: ERA  Name [RHP] */}
-          <View style={[styles.starterBlock, styles.starterBlockRight]}>
-            {(projection.awayStarterRecentEra ?? projection.awayStarterEra) != null && (
-              <Text style={styles.starterEra}>
-                {(projection.awayStarterRecentEra ?? projection.awayStarterEra)!.toFixed(2)}
-              </Text>
+            {projection.awayStarterHand != null && (
+              <Text style={styles.starterHand}>{projection.awayStarterHand}HP</Text>
             )}
             <Text style={[
               styles.starterName,
@@ -268,8 +246,30 @@ export function GameCard({ game }: GameCardProps) {
             ]}>
               {projection.awayStarterName ?? '—'}
             </Text>
-            {projection.awayStarterHand != null && (
-              <Text style={styles.starterHand}>{projection.awayStarterHand}HP</Text>
+            {(projection.awayStarterRecentEra ?? projection.awayStarterEra) != null && (
+              <Text style={styles.starterEra}>
+                {(projection.awayStarterRecentEra ?? projection.awayStarterEra)!.toFixed(2)}
+              </Text>
+            )}
+          </View>
+
+          <Text style={styles.starterSP}>SP</Text>
+
+          {/* Home starter: ERA  Name [LHP] */}
+          <View style={[styles.starterBlock, styles.starterBlockRight]}>
+            {(projection.homeStarterRecentEra ?? projection.homeStarterEra) != null && (
+              <Text style={styles.starterEra}>
+                {(projection.homeStarterRecentEra ?? projection.homeStarterEra)!.toFixed(2)}
+              </Text>
+            )}
+            <Text style={[
+              styles.starterName,
+              { color: (hasEdge && pickIsHome) ? '#d1d5db' : colors.mutedForeground },
+            ]}>
+              {projection.homeStarterName ?? '—'}
+            </Text>
+            {projection.homeStarterHand != null && (
+              <Text style={styles.starterHand}>{projection.homeStarterHand}HP</Text>
             )}
           </View>
         </View>
