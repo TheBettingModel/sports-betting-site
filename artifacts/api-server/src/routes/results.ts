@@ -109,10 +109,10 @@ router.get(
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
           ne(pickResultsTable.result, "pending"),
-          // Only count picks that were actually published to subscribers (Strong Buy / Buy).
-          // Fade and Neutral picks are private — subscribers never see or act on them,
-          // so including their results would misrepresent the model's real track record.
-          eq(publishedPicksTable.isPublic, true),
+          // The Record tab is the model's complete performance ledger. Include
+          // every graded prediction, including Neutral/Fade picks that were not
+          // surfaced in the subscriber picks feed, so a sport cannot disappear
+          // simply because none of its plays cleared the public-pick threshold.
           // Exclude NFL preseason — regular season always starts Sep 11 or later
           or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
         ))

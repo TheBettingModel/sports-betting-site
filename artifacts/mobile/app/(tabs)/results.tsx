@@ -25,7 +25,7 @@ type SportStat = {
   winRate: number;
   unitsWonLost: number;
   currentStreak: number;
-  currentStreakDir: 'W' | 'L' | 'P';
+  currentStreakDir: string;
 };
 
 type ListItem =
@@ -67,7 +67,9 @@ export default function ResultsScreen() {
     listItems.push({ type: 'header-summary' });
 
     if (overall.totalPicks > 0) {
-      const gradedSports = bySport.filter(s => s.wins + s.losses > 0);
+      // A sport with only pushes still has recorded games and belongs in the
+      // ledger. Do not hide it merely because it has no decisive result yet.
+      const gradedSports = bySport.filter(s => s.totalPicks > 0);
       if (gradedSports.length > 0) {
         listItems.push({ type: 'header-sport' });
         for (const stat of gradedSports) {
@@ -91,7 +93,7 @@ export default function ResultsScreen() {
               <View style={styles.summaryLeft}>
                 <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>OVERALL RECORD</Text>
                 <Text style={[styles.recordText, { color: colors.foreground }]}>
-                  {overall.wins}–{overall.losses}
+                  {overall.wins}–{overall.losses}{overall.pushes > 0 ? `–${overall.pushes}` : ''}
                 </Text>
                 <View style={[styles.winRatePill, { backgroundColor: colors.primary + '20' }]}>
                   <Text style={[styles.winRatePillText, { color: colors.primary }]}>
@@ -132,7 +134,7 @@ export default function ResultsScreen() {
               <View>
                 <Text style={[styles.sportName, { color: colors.foreground }]}>{stat.sport}</Text>
                 <Text style={[styles.sportRecord, { color: colors.mutedForeground }]}>
-                  {stat.wins}–{stat.losses}
+                  {stat.wins}–{stat.losses}{stat.pushes > 0 ? `–${stat.pushes}` : ''}
                 </Text>
               </View>
             </View>
