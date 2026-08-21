@@ -10,6 +10,11 @@ For user-visible JavaScript changes in the installed app, publish the matching
 production OTA update in addition to the API deployment. A server deployment
 cannot add new client refresh behavior to an app that is already installed.
 
+When the app uses an app-version runtime policy, every installed App Store
+version needs an update with its exact runtime version. Inspect the production
+channel before publishing; publish compatible bundles for each live runtime,
+then restore the source app version for the pending store release.
+
 **Why:** The `env` keys in `eas.json` (`build.production.env`, etc.) are only applied by `eas build`. Running `eas update` without those vars baked a bundle with empty strings for `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_DOMAIN`, `EXPO_PUBLIC_REVENUECAT_*`, etc. The production app appeared as a signed-out guest with no data on all tabs.
 
 Installed builds check for this compatible update when they open, making an OTA
