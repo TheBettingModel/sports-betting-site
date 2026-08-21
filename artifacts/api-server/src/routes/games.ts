@@ -3,7 +3,12 @@ import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection, type ComputeOptions } from "../services/model";
-import { getOddsForGame, getBestLine, displayBookName } from "../services/oddsApi";
+import {
+  getOddsForGame,
+  getBestLine,
+  displayBookName,
+  firstValidAmericanOdds,
+} from "../services/oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "../services/mlbBullpen";
 import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup } from "../services/mlbLineups";
@@ -56,7 +61,10 @@ const router: IRouter = Router();
 
 /** In-memory cache: when we last successfully refreshed */
 let lastRefreshedAt: Date | null = null;
-const STALE_MS = 60 * 60 * 1000; // 1 hour
+// Keep the server-side game slate close to the live odds cadence. The mobile
+// client refetches while the Picks tab is open, but this shared guard ensures
+// only one full model refresh is needed per interval.
+const STALE_MS = 10 * 60 * 1000; // 10 minutes
 
 function isStale(): boolean {
   if (!lastRefreshedAt) return true;
@@ -75,7 +83,8 @@ export async function refreshAll(): Promise<{
   sportsRefreshed: string[];
   picksGraded: number;
 }> {
-  // Also fetch existing game rows so we can preserve opening odds and detect line movement
+  // Also fetch existing market values. A temporary missing provider response
+  // must not turn a valid game into a fabricated 50/50, zero-edge projection.
   const todayDateStr = new Date()
     .toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
 
@@ -86,6 +95,11 @@ export async function refreshAll(): Promise<{
       id: gamesTable.id,
       openingHomeOdds: gamesTable.openingHomeOdds,
       openingAwayOdds: gamesTable.openingAwayOdds,
+       vegasHomeOdds: gamesTable.vegasHomeOdds,
+       vegasAwayOdds: gamesTable.vegasAwayOdds,
+       vegasDrawOdds: gamesTable.vegasDrawOdds,
+       bestLineBook: gamesTable.bestLineBook,
+       bestLineOdds: gamesTable.bestLineOdds,
     }).from(gamesTable).where(eq(gamesTable.gameDate, todayDateStr)),
   ]);
 
@@ -225,8 +239,21 @@ export async function refreshAll(): Promise<{
 
     // ── Phase 2c: line movement ───────────────────────────────────────────────
     const existingRow = existingByGameId.get(game.espnId);
-    const currentHomeOdds = gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds ?? null;
-    const currentAwayOdds = gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds ?? null;
+    const currentHomeOdds = firstValidAmericanOdds(
+      gameOdds?.consensusHomeOdds,
+      game.vegasHomeOdds,
+      existingRow?.vegasHomeOdds,
+    );
+    const currentAwayOdds = firstValidAmericanOdds(
+      gameOdds?.consensusAwayOdds,
+      game.vegasAwayOdds,
+      existingRow?.vegasAwayOdds,
+    );
+    const currentDrawOdds = firstValidAmericanOdds(
+      gameOdds?.consensusDrawOdds,
+      game.vegasDrawOdds,
+      existingRow?.vegasDrawOdds,
+    );
     // Opening odds: preserved from first observation; falls back to current on first insert.
     const openingHomeOdds = existingRow?.openingHomeOdds ?? currentHomeOdds;
     const openingAwayOdds = existingRow?.openingAwayOdds ?? currentAwayOdds;
@@ -282,9 +309,9 @@ export async function refreshAll(): Promise<{
       awayHomeRecord:    game.awayHomeRecord,
       awayRoadRecord:    game.awayRoadRecord,
       // Consensus odds preferred over ESPN single book
-      realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
-      realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
-      realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+      realVegasHomeOdds: currentHomeOdds,
+      realVegasAwayOdds: currentAwayOdds,
+      realVegasDrawOdds: currentDrawOdds,
       realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
       // Phase 2 signals
       pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
@@ -377,8 +404,8 @@ export async function refreshAll(): Promise<{
         awayStarterWhip:     starters.away?.seasonWhip ?? null,
         awayStarterRecentEra: starters.away?.recentEra ?? null,
         awayStarterHand:     starters.away?.pitchHand ?? null,
-        bestLineBook: bestLine ? displayBookName(bestLine.book) : null,
-        bestLineOdds: bestLine?.odds ?? null,
+        bestLineBook: bestLine ? displayBookName(bestLine.book) : (existingRow?.bestLineBook ?? null),
+        bestLineOdds: bestLine?.odds ?? (existingRow?.bestLineOdds ?? null),
         // Phase 3: weather (null for domes or unsupported sports)
         weatherWindMph:  venueWeather?.isDome ? null : (venueWeather?.windSpeedMph ?? null),
         weatherPrecipMm: venueWeather?.isDome ? null : (venueWeather?.precipitationMm ?? null),

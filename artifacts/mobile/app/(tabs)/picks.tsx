@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Platform,
@@ -55,6 +55,16 @@ export default function PicksScreen() {
   const { selectedSport } = useSports();
 
   const { data, isLoading, refetch } = useGetGamesToday();
+
+  useEffect(() => {
+    // Keep an open Picks screen current without relying on a manual
+    // pull-to-refresh. The API performs the heavier model refresh at most
+    // once per ten minutes across callers.
+    const refreshId = setInterval(() => {
+      void refetch();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(refreshId);
+  }, [refetch]);
   const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
     mutation: { onSuccess: () => refetch() },
   });

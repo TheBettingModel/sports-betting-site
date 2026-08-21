@@ -159,7 +159,26 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+// The game-refresh job runs every 15 minutes. Keep this shorter than that
+// cadence so each scheduled refresh has a chance to retrieve a new market,
+// while still avoiding duplicate requests inside one refresh.
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/** A moneyline of 0 is an absent feed value, never a real American price. */
+export function isValidAmericanOdds(value: number | null | undefined): value is number {
+  return value != null && Number.isFinite(value) && value !== 0;
+}
+
+/**
+ * Return the first usable moneyline in priority order. A caller can supply
+ * fresh Odds API data, a current secondary feed, then the last verified
+ * stored line without risking an invalid zero-value overwrite.
+ */
+export function firstValidAmericanOdds(
+  ...candidates: Array<number | null | undefined>
+): number | undefined {
+  return candidates.find(isValidAmericanOdds);
+}
 
 // ── Core fetch ────────────────────────────────────────────────────────────────
 
