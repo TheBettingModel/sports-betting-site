@@ -30,7 +30,6 @@ const RATING_ORDER = ['Strong Buy', 'Buy', 'Neutral', 'Fade'] as const;
 type Rating = typeof RATING_ORDER[number];
 const ACTIONABLE_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
 const ALL_PLAYS_LIMIT = 6;
-const SPORT_PLAYS_LIMIT = 5;
 
 const RATING_COLORS: Record<Rating, string> = {
   'Strong Buy': '#84CC16',
@@ -74,7 +73,7 @@ export default function PicksScreen() {
   const { selectedSport } = useSports();
 
   const { data, isLoading, refetch } = useGetGamesToday();
-  const [showNoEdgeGames, setShowNoEdgeGames] = useState(false);
+  const [showLowerConvictionGames, setShowLowerConvictionGames] = useState(false);
 
   useEffect(() => {
     // Keep an open Picks screen current without relying on a manual
@@ -136,28 +135,31 @@ export default function PicksScreen() {
     })[0] ?? null;
   }, [allGames]);
 
-  // The feed is intentionally concise: six qualified plays across the full
-  // slate, or five when drilling into a sport. This is a display limit only;
-  // all games remain available to the model and the full analyzed count stays
-  // visible in the summary/footer.
+  // The All tab stays curated across the full slate. A sport tab shows every
+  // qualified play the model grades, while Neutral/Fade decisions stay in the
+  // compact disclosure at the bottom.
   const actionableGames = useMemo(
     () => sortedGames.filter(g =>
       ACTIONABLE_RATINGS.includes(g.projection.valueRating as Rating),
     ),
     [sortedGames],
   );
-  const neutralGames = useMemo(
-    () => sortedGames.filter(g => g.projection.valueRating === 'Neutral'),
+  const lowerConvictionGames = useMemo(
+    () => sortedGames.filter(g => !ACTIONABLE_RATINGS.includes(g.projection.valueRating as Rating)),
     [sortedGames],
   );
+  const lowerConvictionCounts = useMemo(() => ({
+    neutral: lowerConvictionGames.filter(g => g.projection.valueRating === 'Neutral').length,
+    fade: lowerConvictionGames.filter(g => g.projection.valueRating === 'Fade').length,
+  }), [lowerConvictionGames]);
   const displayedGames = useMemo(
-    () => actionableGames.slice(0, selectedSport === 'All' ? ALL_PLAYS_LIMIT : SPORT_PLAYS_LIMIT),
+    () => selectedSport === 'All' ? actionableGames.slice(0, ALL_PLAYS_LIMIT) : actionableGames,
     [actionableGames, selectedSport],
   );
   const lockedCount = displayedGames.filter(g => g.isLocked === true).length;
 
   useEffect(() => {
-    setShowNoEdgeGames(false);
+    setShowLowerConvictionGames(false);
   }, [selectedSport]);
 
   // Per-sport game counts — drives the count badge on each sport pill
@@ -186,8 +188,8 @@ export default function PicksScreen() {
       .map(([sport, s]) => ({ sport, total: s.total }));
   }, [allGames, selectedSport]);
 
-  // Build the capped list with rating section headers. Neutral and Fade games
-  // remain part of the analyzed dataset, but never appear as recommendations.
+  // Build the actionable list with rating section headers. Neutral and Fade
+  // games remain compact supplemental context, never recommendation cards.
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
     let pickIndex = 0;
@@ -357,12 +359,12 @@ export default function PicksScreen() {
           />
         }
         ListFooterComponent={
-          selectedSport !== 'All' && neutralGames.length > 0 ? (
+          selectedSport !== 'All' && lowerConvictionGames.length > 0 ? (
             <View style={[styles.noEdgeFooter, { borderTopColor: colors.border }]}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${neutralGames.length} games analyzed with no betting edge`}
-                onPress={() => setShowNoEdgeGames(current => !current)}
+                accessibilityLabel={`View ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`}
+                onPress={() => setShowLowerConvictionGames(current => !current)}
                 style={({ pressed }) => [
                   styles.noEdgeToggle,
                   { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.78 : 1 },
@@ -370,19 +372,21 @@ export default function PicksScreen() {
               >
                 <View style={styles.noEdgeToggleCopy}>
                   <Text style={[styles.noEdgeTitle, { color: colors.mutedForeground }]}>
-                    {neutralGames.length} {neutralGames.length === 1 ? 'GAME' : 'GAMES'} ANALYZED · NO EDGE
+                    {lowerConvictionCounts.neutral} NEUTRAL · {lowerConvictionCounts.fade} FADE
                   </Text>
                   <Text style={[styles.noEdgeSubtitle, { color: colors.mutedForeground }]}>
-                    No qualified play on these matchups
+                    Lower-conviction model grades
                   </Text>
                 </View>
                 <Text style={[styles.noEdgeAction, { color: colors.primary }]}>
-                  {showNoEdgeGames ? 'HIDE' : 'VIEW GAMES'}
+                  {showLowerConvictionGames ? 'HIDE' : 'VIEW GRADES'}
                 </Text>
               </Pressable>
-              {showNoEdgeGames && (
+              {showLowerConvictionGames && (
                 <View style={styles.noEdgeGameList}>
-                  {neutralGames.map(game => (
+                  {lowerConvictionGames.map(game => {
+                    const rating = game.projection.valueRating as Rating;
+                    return (
                     <View
                       key={game.id}
                       style={[styles.noEdgeGameRow, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -396,13 +400,16 @@ export default function PicksScreen() {
                         </Text>
                       </View>
                       <View style={styles.noEdgeGameMeta}>
-                        <Text style={[styles.noEdgeGameRating, { color: colors.mutedForeground }]}>NEUTRAL</Text>
+                        <Text style={[styles.noEdgeGameRating, { color: RATING_COLORS[rating] }]}>
+                          {rating.toUpperCase()}
+                        </Text>
                         <Text style={[styles.noEdgeGameLine, { color: colors.mutedForeground }]}>
                           {neutralMarketLabel(game)}
                         </Text>
                       </View>
                     </View>
-                  ))}
+                    );
+                  })}
                 </View>
               )}
             </View>
