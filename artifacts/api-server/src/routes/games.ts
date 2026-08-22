@@ -4,10 +4,10 @@ import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspa
 import { fetchAllSports } from "../services/espn";
 import { computeProjection, type ComputeOptions } from "../services/model";
 import {
-  getOddsForGame,
+  getOddsForGameWithStatus,
   getBestLine,
   displayBookName,
-  firstValidMoneylineMarketForSport,
+  selectActionableMoneylineMarket,
 } from "../services/oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "../services/mlbBullpen";
@@ -231,13 +231,14 @@ export async function refreshAll(): Promise<{
     // ── Phase 2a: multi-book odds (30-min cache) ──────────────────────────────
     // Replaces ESPN's single-book moneyline with a consensus price and adds
     // Pinnacle's line for the sharp-money divergence signal.
-    const gameOdds = await getOddsForGame(
+    const oddsLookup = await getOddsForGameWithStatus(
       game.sport,
       game.league ?? null,
       game.homeTeamName,
       game.awayTeamName,
       game.commenceTimeISO,
     );
+    const gameOdds = oddsLookup.odds;
 
     // ── Phase 2b: MLB probable starters (4-hour cache) ────────────────────────
     const starters = game.sport === "MLB"
@@ -254,21 +255,14 @@ export async function refreshAll(): Promise<{
 
     // ── Phase 2c: line movement ───────────────────────────────────────────────
     const existingRow = existingByGameId.get(game.espnId);
-    const oddsApiMarket = gameOdds
-      ? {
-          homeOdds: gameOdds.consensusHomeOdds,
-          awayOdds: gameOdds.consensusAwayOdds,
-          drawOdds: gameOdds.consensusDrawOdds,
-        }
-      : null;
     const espnMarket = {
       homeOdds: game.vegasHomeOdds,
       awayOdds: game.vegasAwayOdds,
       drawOdds: game.vegasDrawOdds,
     };
-    const currentMarket = firstValidMoneylineMarketForSport(
+    const currentMarket = selectActionableMoneylineMarket(
       game.sport,
-      oddsApiMarket,
+      oddsLookup,
       espnMarket,
     );
     const currentHomeOdds = currentMarket?.homeOdds;

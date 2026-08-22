@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeProjection, removeVig2 } from "./model";
+import { selectActionableMoneylineMarket } from "./oddsApi";
 
 describe("two-way market edge safeguards", () => {
   it("removes vig before comparing a model to the home or away market", () => {
@@ -41,6 +42,30 @@ describe("two-way market edge safeguards", () => {
     expect(projection.finalModelScore).toBeLessThanOrEqual(59);
     expect(projection.podScore).toBe(0);
     expect(projection.units).toBe(0);
+  });
+
+  it("keeps a conflicting live provider event from being revived by ESPN fallback odds", () => {
+    const market = selectActionableMoneylineMarket(
+      "MLB",
+      { odds: null, marketBlockedByProviderStart: true },
+      { homeOdds: -120, awayOdds: 100 },
+    );
+    const projection = computeProjection(
+      "provider-start-conflict",
+      "MLB",
+      "60-40",
+      "40-60",
+      null,
+      {
+        realVegasHomeOdds: market?.homeOdds,
+        realVegasAwayOdds: market?.awayOdds,
+      },
+    );
+
+    expect(market).toBeUndefined();
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.units).toBe(0);
+    expect(projection.podScore).toBe(0);
   });
 
   it("never gives a blocked neutral play an elite-looking score or POD ranking", () => {

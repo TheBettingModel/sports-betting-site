@@ -96,6 +96,12 @@ export interface MoneylineMarket {
   drawOdds?: number | null | undefined;
 }
 
+export interface OddsLookupResult {
+  odds: GameOdds | null;
+  /** A matching provider event is already live, so no secondary feed may revive it as pregame. */
+  marketBlockedByProviderStart: boolean;
+}
+
 interface OddsApiOutcome {
   name: string;
   price: number;    // American odds
@@ -161,6 +167,8 @@ interface CacheEntry {
   /** Map keyed by "{normalizedHome}|{normalizedAway}" — value is an array to
    *  support doubleheaders where the same teams play twice on the same day. */
   games: Map<string, GameOdds[]>;
+  /** Raw provider start times, retained even when that event has no usable odds. */
+  providerCommenceTimes: Map<string, string[]>;
   fetchedAt: number;
 }
 
@@ -169,6 +177,8 @@ const cache = new Map<string, CacheEntry>();
 // cadence so each scheduled refresh has a chance to retrieve a new market,
 // while still avoiding duplicate requests inside one refresh.
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+/** A failed refresh may only use data that would still qualify as fresh normally. */
+export const ACTIONABLE_ODDS_CACHE_MAX_AGE_MS = CACHE_TTL_MS;
 
 const MAX_REASONABLE_AMERICAN_ODDS = 2_000;
 
@@ -235,6 +245,63 @@ export function isPregameCommenceTime(commenceTime: string, now = Date.now()): b
   return Number.isFinite(commenceMs) && commenceMs > now;
 }
 
+/** Cached odds are actionable only within the same bounded freshness window as normal cache hits. */
+export function isActionableOddsCache(fetchedAt: number, now = Date.now()): boolean {
+  return Number.isFinite(fetchedAt)
+    && fetchedAt <= now
+    && now - fetchedAt <= ACTIONABLE_ODDS_CACHE_MAX_AGE_MS;
+}
+
+/**
+ * Select an unstarted provider market for an ESPN event. Both source start
+ * times must still be pregame; this prevents a delayed ESPN status from
+ * reviving an Odds API entry that has crossed its own kickoff.
+ */
+export function selectPregameGameOdds(
+  entries: readonly GameOdds[] | undefined,
+  commenceTimeISO?: string,
+  now = Date.now(),
+): GameOdds | null {
+  const pregameEntries = entries?.filter((entry) => isPregameCommenceTime(entry.commenceTime, now)) ?? [];
+  if (pregameEntries.length === 0) return null;
+  if (!commenceTimeISO) return pregameEntries[0]!;
+  if (!isPregameCommenceTime(commenceTimeISO, now)) return null;
+
+  const espnMs = new Date(commenceTimeISO).getTime();
+  if (!Number.isFinite(espnMs)) return null;
+
+  // Multiple entries (doubleheader): pick the one whose commence_time is
+  // closest to the ESPN game time. Reject same-team games that are too far
+  // apart instead of assigning tomorrow's or a live market to this event.
+  const closest = pregameEntries.reduce((best, cur) => {
+    const bestDiff = Math.abs(new Date(best.commenceTime).getTime() - espnMs);
+    const curDiff  = Math.abs(new Date(cur.commenceTime).getTime() - espnMs);
+    return curDiff < bestDiff ? cur : best;
+  });
+  const differenceMs = Math.abs(new Date(closest.commenceTime).getTime() - espnMs);
+  const MAX_START_TIME_DIFFERENCE_MS = 8 * 60 * 60 * 1000;
+  return Number.isFinite(differenceMs) && differenceMs <= MAX_START_TIME_DIFFERENCE_MS
+    ? closest
+    : null;
+}
+
+/** Choose one complete market, unless the corresponding provider event is already live. */
+export function selectActionableMoneylineMarket(
+  sport: string,
+  oddsLookup: OddsLookupResult,
+  fallbackMarket: MoneylineMarket,
+): (MoneylineMarket & { homeOdds: number; awayOdds: number; drawOdds?: number }) | undefined {
+  if (oddsLookup.marketBlockedByProviderStart) return undefined;
+  const providerMarket = oddsLookup.odds
+    ? {
+        homeOdds: oddsLookup.odds.consensusHomeOdds,
+        awayOdds: oddsLookup.odds.consensusAwayOdds,
+        drawOdds: oddsLookup.odds.consensusDrawOdds,
+      }
+    : null;
+  return firstValidMoneylineMarketForSport(sport, providerMarket, fallbackMarket);
+}
+
 /**
  * Return the first usable moneyline in priority order. A caller can supply
  * fresh Odds API data, a current secondary feed, then the last verified
@@ -253,7 +320,9 @@ const PUBLIC_BOOKS = new Set([
   "unibet_us", "barstool", "wynnbet", "betus", "mybookieag",
 ]);
 
-async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOdds[]>> {
+async function fetchAndNormalise(
+  oddsApiKey: string,
+): Promise<Pick<CacheEntry, "games" | "providerCommenceTimes">> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) throw new Error("ODDS_API_KEY secret is not set");
 
@@ -277,11 +346,16 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
 
   const games = (await resp.json()) as OddsApiGame[];
   const result = new Map<string, GameOdds[]>();
+  const providerCommenceTimes = new Map<string, string[]>();
 
   for (const g of games) {
-    if (!isPregameCommenceTime(g.commence_time)) continue;
-
     const key = matchKey(g.home_team, g.away_team);
+    const existingTimes = providerCommenceTimes.get(key);
+    if (existingTimes) {
+      existingTimes.push(g.commence_time);
+    } else {
+      providerCommenceTimes.set(key, [g.commence_time]);
+    }
 
     // ── Separate Pinnacle from public books ───────────────────────────────
     const pinnacleBook = g.bookmakers.find((b) => b.key === "pinnacle");
@@ -404,7 +478,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
     { oddsApiKey, games: result.size, hasPinnacle: games.some(g => g.bookmakers.some(b => b.key === "pinnacle")) },
     "OddsAPI: normalised",
   );
-  return result;
+  return { games: result, providerCommenceTimes };
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -427,12 +501,16 @@ export async function fetchOddsForSport(
   }
 
   try {
-    const games = await fetchAndNormalise(oddsApiKey);
-    cache.set(oddsApiKey, { games, fetchedAt: Date.now() });
-    return games;
+    const normalised = await fetchAndNormalise(oddsApiKey);
+    cache.set(oddsApiKey, { ...normalised, fetchedAt: Date.now() });
+    return normalised.games;
   } catch (err) {
-    logger.error({ err, oddsApiKey }, "OddsAPI: fetch failed — using cached/empty data");
-    return cached?.games ?? new Map();
+    const cachedIsActionable = cached != null && isActionableOddsCache(cached.fetchedAt);
+    logger.error(
+      { err, oddsApiKey, cachedIsActionable },
+      "OddsAPI: fetch failed — using fresh cached or empty data",
+    );
+    return cachedIsActionable ? cached!.games : new Map();
   }
 }
 
@@ -500,24 +578,70 @@ export async function getOddsForGame(
   awayTeamName: string,
   commenceTimeISO?: string,
 ): Promise<GameOdds | null> {
+  return (await getOddsForGameWithStatus(
+    sport,
+    league,
+    homeTeamName,
+    awayTeamName,
+    commenceTimeISO,
+  )).odds;
+}
+
+/**
+ * Fetch odds plus the provider-start safety state used when selecting a
+ * secondary market. A known live provider event makes the market unavailable.
+ */
+export async function getOddsForGameWithStatus(
+  sport: string,
+  league: string | null | undefined,
+  homeTeamName: string,
+  awayTeamName: string,
+  commenceTimeISO?: string,
+): Promise<OddsLookupResult> {
   const gamesMap = await fetchOddsForSport(sport, league);
   const key = matchKey(homeTeamName, awayTeamName);
-  const entries = gamesMap.get(key);
-  if (!entries || entries.length === 0) return null;
-  if (!commenceTimeISO) return entries[0]!;
+  const oddsApiKey = resolveOddsApiKey(sport, league);
+  const cached = oddsApiKey ? cache.get(oddsApiKey) : undefined;
+  const providerCommenceTimes = cached && isActionableOddsCache(cached.fetchedAt)
+    ? cached.providerCommenceTimes.get(key)
+    : undefined;
+  return resolveOddsLookup(gamesMap.get(key), commenceTimeISO, Date.now(), providerCommenceTimes);
+}
 
+/** Resolve a provider event's actionable status for one scheduled game. */
+export function resolveOddsLookup(
+  entries: readonly GameOdds[] | undefined,
+  commenceTimeISO?: string,
+  now = Date.now(),
+  providerCommenceTimes: readonly string[] = entries?.map((entry) => entry.commenceTime) ?? [],
+): OddsLookupResult {
+  const providerMatch = selectClosestProviderCommenceTime(providerCommenceTimes, commenceTimeISO);
+  const marketBlockedByProviderStart = providerMatch != null
+    && !isPregameCommenceTime(providerMatch, now);
+  return {
+    odds: marketBlockedByProviderStart
+      ? null
+      : selectPregameGameOdds(entries, commenceTimeISO, now),
+    marketBlockedByProviderStart,
+  };
+}
+
+function selectClosestProviderCommenceTime(
+  commenceTimes: readonly string[],
+  commenceTimeISO?: string,
+): string | null {
+  if (!commenceTimes.length) return null;
+  if (!commenceTimeISO) return commenceTimes[0]!;
   const espnMs = new Date(commenceTimeISO).getTime();
   if (!Number.isFinite(espnMs)) return null;
-
-  // Multiple entries (doubleheader): pick the one whose commence_time is
-  // closest to the ESPN game time. Reject same-team games that are too far
-  // apart instead of assigning tomorrow's or a live market to this event.
-  const closest = entries.reduce((best, cur) => {
-    const bestDiff = Math.abs(new Date(best.commenceTime).getTime() - espnMs);
-    const curDiff  = Math.abs(new Date(cur.commenceTime).getTime() - espnMs);
+  const validTimes = commenceTimes.filter((time) => Number.isFinite(new Date(time).getTime()));
+  if (validTimes.length === 0) return commenceTimes[0]!;
+  const closest = validTimes.reduce((best, cur) => {
+    const bestDiff = Math.abs(new Date(best).getTime() - espnMs);
+    const curDiff = Math.abs(new Date(cur).getTime() - espnMs);
     return curDiff < bestDiff ? cur : best;
   });
-  const differenceMs = Math.abs(new Date(closest.commenceTime).getTime() - espnMs);
+  const differenceMs = Math.abs(new Date(closest).getTime() - espnMs);
   const MAX_START_TIME_DIFFERENCE_MS = 8 * 60 * 60 * 1000;
   return Number.isFinite(differenceMs) && differenceMs <= MAX_START_TIME_DIFFERENCE_MS
     ? closest

@@ -26,7 +26,7 @@ import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, getNbaTeamStats, warmUpTeamStatsCache } from "./teamStats";
-import { firstValidMoneylineMarketForSport, getOddsForGame } from "./oddsApi";
+import { getOddsForGameWithStatus, selectActionableMoneylineMarket } from "./oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "./mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "./mlbBullpen";
 import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup } from "./mlbLineups";
@@ -484,9 +484,10 @@ async function runOddsIngestion(): Promise<void> {
             ]);
 
           // ── Phase 2: multi-book odds + pitcher + line movement ─────────────
-          const gameOdds = await getOddsForGame(
+          const oddsLookup = await getOddsForGameWithStatus(
             game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
           );
+          const gameOdds = oddsLookup.odds;
           const starters = game.sport === "MLB"
             ? await getProbablePitchers(
                 game.homeTeamAbbr,
@@ -499,21 +500,14 @@ async function runOddsIngestion(): Promise<void> {
 
           // Line movement: did the home team's implied probability increase since opening?
           const existingRow = existingByGameId.get(game.espnId);
-          const oddsApiMarket = gameOdds
-            ? {
-                homeOdds: gameOdds.consensusHomeOdds,
-                awayOdds: gameOdds.consensusAwayOdds,
-                drawOdds: gameOdds.consensusDrawOdds,
-              }
-            : null;
           const espnMarket = {
             homeOdds: game.vegasHomeOdds,
             awayOdds: game.vegasAwayOdds,
             drawOdds: game.vegasDrawOdds,
           };
-          const currentMarket = firstValidMoneylineMarketForSport(
+          const currentMarket = selectActionableMoneylineMarket(
             game.sport,
-            oddsApiMarket,
+            oddsLookup,
             espnMarket,
           );
           const currentHomeOdds = currentMarket?.homeOdds;
@@ -793,9 +787,10 @@ async function runResultGrading(): Promise<void> {
           ]);
 
         // Phase 2 + 3 signals (all services cache internally; no extra HTTP overhead)
-        const gameOdds = await getOddsForGame(
+        const oddsLookup = await getOddsForGameWithStatus(
           game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
         );
+        const gameOdds = oddsLookup.odds;
         const starters = game.sport === "MLB"
           ? await getProbablePitchers(
               game.homeTeamAbbr,
@@ -880,21 +875,14 @@ async function runResultGrading(): Promise<void> {
           ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
           : null;
 
-        const oddsApiMarket = gameOdds
-          ? {
-              homeOdds: gameOdds.consensusHomeOdds,
-              awayOdds: gameOdds.consensusAwayOdds,
-              drawOdds: gameOdds.consensusDrawOdds,
-            }
-          : null;
         const espnMarket = {
           homeOdds: game.vegasHomeOdds,
           awayOdds: game.vegasAwayOdds,
           drawOdds: game.vegasDrawOdds,
         };
-        const currentMarket = firstValidMoneylineMarketForSport(
+        const currentMarket = selectActionableMoneylineMarket(
           game.sport,
-          oddsApiMarket,
+          oddsLookup,
           espnMarket,
         );
 

@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACTIONABLE_ODDS_CACHE_MAX_AGE_MS,
   firstValidMoneylineMarket,
   firstValidMoneylineMarketForSport,
   hasValidMoneylineMarket,
   firstValidAmericanOdds,
+  isActionableOddsCache,
   isPregameCommenceTime,
   isValidAmericanOdds,
   isValidMarketPoint,
+  resolveOddsLookup,
+  selectActionableMoneylineMarket,
+  selectPregameGameOdds,
 } from "./oddsApi";
 
 describe("American odds validation", () => {
@@ -30,6 +35,99 @@ describe("American odds validation", () => {
     expect(isPregameCommenceTime("2026-08-22T18:05:00.000Z", now)).toBe(true);
     expect(isPregameCommenceTime("2026-08-22T17:59:59.000Z", now)).toBe(false);
     expect(isPregameCommenceTime("not-a-date", now)).toBe(false);
+  });
+
+  it("allows a failed-refresh cache only within the actionable freshness window", () => {
+    const now = Date.UTC(2026, 7, 22, 18, 0, 0);
+    expect(isActionableOddsCache(now - ACTIONABLE_ODDS_CACHE_MAX_AGE_MS, now)).toBe(true);
+    expect(isActionableOddsCache(now - ACTIONABLE_ODDS_CACHE_MAX_AGE_MS - 1, now)).toBe(false);
+    expect(isActionableOddsCache(now + 1, now)).toBe(false);
+  });
+
+  it("never selects a provider entry after the provider market has started", () => {
+    const now = Date.UTC(2026, 7, 22, 18, 0, 0);
+    const startedMarket = {
+      consensusHomeOdds: -120,
+      consensusAwayOdds: 100,
+      bookmakerOdds: [],
+      commenceTime: "2026-08-22T17:59:00.000Z",
+    };
+
+    expect(selectPregameGameOdds(
+      [startedMarket],
+      "2026-08-22T18:30:00.000Z",
+      now,
+    )).toBeNull();
+  });
+
+  it("rejects a future provider market when ESPN's scheduled start has already passed", () => {
+    const now = Date.UTC(2026, 7, 22, 18, 0, 0);
+    const futureProviderMarket = {
+      consensusHomeOdds: -120,
+      consensusAwayOdds: 100,
+      bookmakerOdds: [],
+      commenceTime: "2026-08-22T18:30:00.000Z",
+    };
+
+    expect(selectPregameGameOdds(
+      [futureProviderMarket],
+      "2026-08-22T17:59:00.000Z",
+      now,
+    )).toBeNull();
+  });
+
+  it("does not fall back to ESPN prices when the matching provider event is already live", () => {
+    const fallbackMarket = { homeOdds: -120, awayOdds: 100 };
+
+    expect(selectActionableMoneylineMarket(
+      "MLB",
+      { odds: null, marketBlockedByProviderStart: true },
+      fallbackMarket,
+    )).toBeUndefined();
+
+    expect(selectActionableMoneylineMarket(
+      "MLB",
+      { odds: null, marketBlockedByProviderStart: false },
+      fallbackMarket,
+    )).toEqual(fallbackMarket);
+  });
+
+  it("carries a started provider entry through lookup into the ESPN fallback block", () => {
+    const now = Date.UTC(2026, 7, 22, 18, 0, 0);
+    const lookup = resolveOddsLookup(
+      [{
+        consensusHomeOdds: -120,
+        consensusAwayOdds: 100,
+        bookmakerOdds: [],
+        commenceTime: "2026-08-22T17:59:00.000Z",
+      }],
+      "2026-08-22T18:30:00.000Z",
+      now,
+    );
+
+    expect(lookup).toEqual({ odds: null, marketBlockedByProviderStart: true });
+    expect(selectActionableMoneylineMarket(
+      "MLB",
+      lookup,
+      { homeOdds: -120, awayOdds: 100 },
+    )).toBeUndefined();
+  });
+
+  it("blocks ESPN fallback when a live provider event has no valid normalized moneyline", () => {
+    const now = Date.UTC(2026, 7, 22, 18, 0, 0);
+    const lookup = resolveOddsLookup(
+      undefined,
+      "2026-08-22T18:30:00.000Z",
+      now,
+      ["2026-08-22T17:59:00.000Z"],
+    );
+
+    expect(lookup).toEqual({ odds: null, marketBlockedByProviderStart: true });
+    expect(selectActionableMoneylineMarket(
+      "MLB",
+      lookup,
+      { homeOdds: -120, awayOdds: 100 },
+    )).toBeUndefined();
   });
 
   it("keeps a stored valid moneyline when the new response is empty", () => {

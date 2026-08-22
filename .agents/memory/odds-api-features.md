@@ -28,7 +28,7 @@ Only credible, future-starting American prices may become pregame market data: w
 
 **Why:** Live/post-start and malformed prices can be extreme enough to manufacture false model edge, premium ratings, and polluted learning evidence.
 
-**How to apply:** Filter provider events after their start time and reject invalid prices before consensus, best-line, prediction, snapshot, or closing-line logic. Do not combine sides from different sources or reuse a stored game-row quote as fresh decision evidence. Recheck the scheduled start immediately before persistence in case provider status lags. Preserve the last valid pregame snapshot for closing-line analysis; never replace it with a later live/final quote or a model projection.
+**How to apply:** Retain provider event timing separately from usable prices so a matched live, suspended, or malformed provider event blocks any secondary-feed fallback, but never consume its odds. Reject invalid prices before consensus, best-line, prediction, snapshot, or closing-line logic. Do not combine sides from different sources or reuse a stored game-row quote as fresh decision evidence. Recheck the scheduled start immediately before persistence in case provider status lags. Preserve the last valid pregame snapshot for closing-line analysis; never replace it with a later live/final quote or a model projection.
 
 Prediction snapshots should store the selected side's no-vig market probability as `fairProbability`, separate from the model probability.
 
