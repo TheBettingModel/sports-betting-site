@@ -1,0 +1,1681 @@
+1. MLB MODEL — COMPLETE REQUIREMENTS
+
+MLB is arguably the most data-intensive model because individual player matchups, pitching, weather, bullpen usage and park environment can dramatically alter one game.
+
+A. Historical database
+
+The model should maintain multi-season history at the game, team, pitcher, hitter and market level.
+
+Every historical MLB game should store at minimum:
+
+Game information
+
+Date
+Season
+Game ID
+Away team
+Home team
+Venue
+Start time
+Day/night
+Doubleheader status
+Final score
+Extra innings
+Home/away result
+Run differential
+First-five score
+First inning score
+
+Market history
+
+Opening ML
+Closing ML
+Opening run line
+Closing run line
+Opening total
+Closing total
+F5 ML
+F5 spread
+F5 total
+NRFI/YRFI price
+Individual sportsbook prices
+Consensus price
+Sharp-book price
+
+You want this because eventually the model needs to know things such as:
+
+“Historically, when my MLB model gives a road underdog a 4–6% edge at +120 to +160 with positive CLV, how has that profile performed?”
+
+B. Starting pitcher engine
+
+This should be one of the strongest pieces of the entire MLB system.
+
+Do not rely primarily on:
+
+Wins
+ERA
+Previous-game results
+
+Use underlying skill.
+
+Track:
+
+Core pitcher statistics
+
+ERA
+FIP
+xFIP
+SIERA
+xERA
+WHIP
+K%
+BB%
+K-BB%
+HR/9
+BABIP
+LOB%
+GB%
+FB%
+Hard-hit %
+Barrel %
+Exit velocity
+xwOBA
+xBA
+xSLG
+
+Pitch-quality data
+
+Velocity
+Velocity change
+Spin rate
+Horizontal movement
+Vertical movement
+Pitch usage
+Whiff %
+Chase %
+Called strike %
+CSW %
+Contact %
+Zone %
+First-pitch strike %
+
+And split by pitch:
+
+Fastball
+Sinker
+Cutter
+Slider
+Curve
+Changeup
+Splitter
+
+This allows you to compare pitcher repertoire against opposing hitter weaknesses.
+
+C. Pitcher recent-form engine
+
+Season statistics should not be enough.
+
+Keep rolling windows:
+
+Last 1 start
+Last 3 starts
+Last 5 starts
+Last 10 starts
+Last 30 days
+Season
+Career baseline
+
+Monitor:
+
+Velocity decline/increase
+Strikeout change
+Walk change
+Whiff change
+Pitch mix change
+Hard contact
+Command
+Workload
+Pitch count
+
+But apply regression toward long-term skill.
+
+A pitcher throwing one dominant game should not suddenly receive a massive rating increase.
+
+D. Pitcher handedness / platoon engine
+
+Track performance against:
+
+LHB
+RHB
+
+Including:
+
+wOBA
+xwOBA
+K%
+BB%
+ISO
+SLG
+Hard-hit %
+HR rate
+
+Then compare that with today's projected lineup.
+
+A pitcher facing seven hitters from his weaker platoon side should receive a meaningful adjustment.
+
+E. Offensive projection engine
+
+Maintain team offense by:
+
+Overall
+Vs RHP
+Vs LHP
+Home
+Road
+Last 7 days
+Last 14
+Last 30
+Season
+
+Important metrics:
+
+wRC+
+wOBA
+xwOBA
+OPS
+ISO
+OBP
+SLG
+K%
+BB%
+BABIP
+Hard-hit %
+Barrel %
+Exit velocity
+Contact %
+Chase %
+Runs/game
+
+But preferably calculate offense from projected players, not just team averages.
+
+F. Lineup engine
+
+This is essential.
+
+Store:
+
+Projected lineup
+Confirmed lineup
+Batting order
+Player handedness
+Player offensive rating
+Injury status
+Rest status
+Replacement player
+Lineup strength
+
+Calculate something like:
+
+Expected Lineup Strength
+
+based on all nine hitters and their likely plate-appearance share.
+
+Then compare:
+
+Projected lineup vs normal lineup
+
+Examples:
+
++4.2% stronger
+-8.1% weaker
+
+Once lineups are confirmed, recalculate the game.
+
+G. Batter-vs-pitch-type matchup
+
+More useful than blindly using traditional BvP samples.
+
+Compare:
+
+Pitcher's arsenal
+
+against
+
+Opponent performance against those pitch types.
+
+Example:
+
+Pitcher:
+
+Slider 38%
+Fastball 35%
+Changeup 17%
+
+Opponent:
+
+Excellent vs fastballs
+Poor vs sliders
+Average vs changeups
+
+Generate a matchup adjustment.
+
+H. Bullpen engine
+
+This should be almost as important as the starter for full-game markets.
+
+Store reliever-level data:
+
+ERA
+FIP
+xFIP
+SIERA
+K%
+BB%
+xwOBA
+Stuff/velocity
+Handedness
+Leverage role
+
+Then availability:
+
+Pitches yesterday
+Pitches last 2 days
+Pitches last 3
+Consecutive appearances
+Days rest
+Closer available?
+Setup man available?
+Injuries
+
+Calculate:
+
+Effective Bullpen Strength Today
+
+not merely season bullpen strength.
+
+I. Park and weather engine
+
+Store park factors for:
+
+Runs
+HR
+Doubles
+Triples
+Left-handed hitters
+Right-handed hitters
+
+Weather:
+
+Temperature
+Wind speed
+Wind direction
+Humidity
+Air density
+Precipitation
+Roof status
+
+Calculate:
+
+Run Environment Adjustment
+
+and
+
+Home Run Environment Adjustment
+
+This becomes particularly important for:
+
+Totals
+F5 totals
+NRFI/YRFI
+Run lines
+J. Umpire engine
+
+When reliable assignments are available:
+
+Strike zone
+Called-strike tendencies
+Walk rates
+Strikeout rates
+Historical run environment
+Home bias
+
+Don't over-weight it.
+
+Treat it as a smaller contextual adjustment.
+
+K. Rest and travel
+
+Track:
+
+Consecutive games
+Travel distance
+Previous city's timezone
+Late previous game
+Day game after night game
+Doubleheader
+Long road trip
+Home stand
+L. Simulation engine
+
+After player/team projections are created, run game simulations.
+
+Ideally:
+
+10,000–100,000 simulations/game
+
+Output:
+
+Home win %
+Away win %
+Home -1.5 %
+Away +1.5 %
+Over probability
+Under probability
+F5 ML
+F5 spread
+F5 total
+NRFI
+YRFI
+
+You don't necessarily need literal Monte Carlo for every implementation, but conceptually the model should produce full probability distributions rather than a single score.
+
+M. Fair-price engine
+
+This is critical.
+
+Example:
+
+Model:
+
+Yankees win = 58.2%
+
+Fair decimal:
+
+1 / .582 = 1.718
+
+Fair American:
+
+approximately -139
+
+Sportsbook:
+
+-120
+
+Now you have a potential pricing edge.
+
+Calculate:
+
+Model probability
+Implied sportsbook probability
+Vig-free probability
+Edge
+Expected value
+N. Remove sportsbook vig
+
+Never compare the model blindly to raw implied probability.
+
+For both sides, determine the book's overround and derive no-vig market probabilities.
+
+Then calculate:
+
+Model probability – market no-vig probability
+
+This is a cleaner definition of edge.
+
+O. Sportsbook comparison
+
+For each play store:
+
+FanDuel
+DraftKings
+BetMGM
+Caesars
+Fanatics
+Sharp books where available
+
+Calculate:
+
+Best odds
+Worst odds
+Median odds
+Consensus odds
+Sharpest price
+Line disagreement
+Line-shop value
+Stale price
+P. Line movement
+
+Track snapshots continuously:
+
+Opening
+12h
+6h
+3h
+1h
+30m
+10m
+Close
+
+Detect:
+
+Steam
+Reverse line movement
+Sharp-book leadership
+Consensus movement
+Outlier books
+Stale prices
+Q. Market timing
+
+Produce:
+
+Bet Now
+Neutral
+Wait
+
+based on historical movement behavior and current market signals.
+
+R. MLB market-specific models
+
+Do not treat all markets identically.
+
+Maintain separate models for:
+
+Moneyline
+
+Full game probability.
+
+Run line
+
+Requires run-distribution modeling.
+
+Total
+
+Requires projected run distribution.
+
+First Five
+
+Weights starting pitchers much more heavily and bullpen almost zero.
+
+NRFI/YRFI
+
+Focus heavily on:
+
+First-inning pitcher ability
+Top-three hitters
+First-inning scoring rates
+HR environment
+Walk tendency
+
+These should be separate sub-models.
+
+S. Recommendation engine
+
+Do not bet every positive edge.
+
+Create progression:
+
+Pass
+No meaningful advantage.
+
+Watch
+Interesting but below threshold.
+
+Lean
+Small validated edge.
+
+Play
+Strong enough combination of probability + market + price.
+
+Elite
+Rare, highest-quality setup.
+
+Inputs should include:
+
+Edge
+Confidence
+Calibration
+Price
+Market quality
+Data quality
+Lineup confirmation
+Sharp signal
+CLV history
+Historical profile performance
+T. Price guardrails
+
+Very important.
+
+Avoid automatically recommending something like:
+
+Dodgers -360
+
+just because win probability is high.
+
+Your engine should evaluate expected value, not likelihood alone.
+
+U. Game-by-game learning record
+
+THIS is where the app can become substantially stronger.
+
+Every single prediction should create a permanent record before the game begins.
+
+Store:
+
+Prediction snapshot
+Game
+Timestamp
+Model version
+Market
+Pick
+Model probability
+Fair price
+Book probability
+No-vig probability
+Edge
+Confidence
+POD score
+Recommendation
+Units
+Sportsbook
+Betting line
+Feature snapshot
+
+Everything the model knew:
+
+Pitcher ratings
+Lineup rating
+Bullpen rating
+Weather
+Park
+Market movement
+Sharp signals
+Rest
+Injuries
+
+Never overwrite this record.
+
+V. Closing line value
+
+After market close store:
+
+Closing price
+Closing spread
+Closing total
+Closing no-vig probability
+
+Calculate CLV.
+
+Example:
+
+You recommended:
+
++125
+
+Market closed:
+
++105
+
+That is strong information even if the bet happened to lose.
+
+W. Post-game analysis
+
+Store:
+
+Win/loss/push
+Units
+ROI
+Final score
+Predicted score
+Prediction error
+Probability calibration error
+Closing line
+CLV
+
+But also diagnose:
+
+Was the process wrong?
+
+or
+
+Was the result simply variance?
+
+Those are not the same.
+
+X. Calibration
+
+This is one of the most important concepts in professional modeling.
+
+If TBM labels 1,000 events:
+
+60% probability
+
+approximately 600 should win.
+
+Analyze buckets:
+
+50–52%
+52–55%
+55–58%
+58–60%
+60–65%
+65–70%
+70%+
+
+If your 65% predictions win 55%, your probabilities are overconfident.
+
+Correct the calibration.
+
+Y. MLB self-learning engine
+
+Your system should learn things such as:
+
+Starter model slightly overvalues recent strikeout increases.
+
+Bullpen fatigue signal provides additional predictive power.
+
+Wind adjustment is too aggressive.
+
+Road favorites between -150 and -200 are historically overestimated.
+
+F5 under edges above 4% produce stronger CLV than full-game unders.
+
+But learning must happen out of sample.
+
+Never change weights simply because the last ten games lost.
+
+Z. MLB performance segmentation
+
+Analyze results by:
+
+Market
+Team
+Home/road
+Favorite/underdog
+Odds bucket
+Edge bucket
+Confidence
+POD score
+Starting pitcher tier
+Bullpen rating
+Lineup status
+Sharp signal
+Market grade
+Book
+Day/night
+Month
+Weather
+Park
+Model version
+
+That is your MLB learning laboratory.
+
+2. NFL MODEL
+
+NFL requires a different architecture because games are less frequent and injury/context information carries enormous importance.
+
+Historical data
+
+Store many seasons, but account for league evolution.
+
+Game:
+
+Score
+Spread
+Total
+Moneyline
+Opening/closing prices
+Home/away
+Surface
+Stadium
+Roof
+Weather
+Team strength
+
+Use efficiency rather than W/L record.
+
+Include:
+
+EPA/play
+Offensive EPA
+Defensive EPA
+Success rate
+Early-down EPA
+Dropback EPA
+Rush EPA
+Explosive play %
+Third down
+Red zone
+
+Opponent-adjust metrics.
+
+Quarterback engine
+
+QB should be one of the most important variables.
+
+Track:
+
+EPA/dropback
+CPOE
+Pressure performance
+Clean-pocket performance
+Sack avoidance
+Turnover-worthy plays
+Deep passing
+Play action
+Scramble value
+Injury
+
+And:
+
+Starter → backup downgrade
+
+must be explicitly quantified.
+
+Offensive line
+
+Track:
+
+Pass blocking
+Run blocking
+Pressure allowed
+Sack rate
+Injuries
+Starter continuity
+
+Then match against opponent:
+
+Pass rush
+Pressure %
+Blitz %
+Defensive front quality
+Skill positions
+
+Track:
+
+WR availability
+Target share
+Separation
+YPRR
+RB efficiency
+TE involvement
+injuries
+Defense
+
+Track:
+
+EPA
+Coverage quality
+Pressure
+Explosive plays allowed
+Run defense
+Red-zone defense
+Matchup engine
+
+Critical.
+
+Examples:
+
+Blitz-heavy defense vs QB weak under pressure
+Elite rushing team vs weak rush defense
+Explosive passing offense vs defense vulnerable deep
+Coaching
+
+Track:
+
+Pace
+Neutral pass rate
+Fourth-down aggression
+Early-down play calling
+Time management
+Weather
+
+Especially:
+
+Wind
+Rain
+Snow
+Temperature
+
+Wind should materially affect:
+
+Passing
+Kicking
+Totals
+Rest/travel
+
+Track:
+
+Short week
+Thursday
+Monday turnaround
+Bye
+International games
+Time zones
+Travel distance
+Injury-adjusted power rating
+
+Every player should ideally have a point-value impact.
+
+QB highest.
+
+Then:
+
+OL
+WR
+CB
+pass rush
+etc.
+NFL simulation outputs
+
+Generate probabilities for:
+
+ML
+Spread
+Total
+Team total
+First half where supported
+Market history
+
+NFL markets are exceptionally efficient.
+
+Therefore line movement and CLV should carry major weight.
+
+Track every movement snapshot.
+
+Game-by-game learning
+
+Same architecture:
+
+Prediction snapshot → market close → result → CLV → calibration → segmentation.
+
+NFL segmentation:
+
+Favorites
+Underdogs
+Home dogs
+Road favorites
+Spread buckets
+Totals
+Weather
+QB injuries
+Rest situations
+Divisional games
+Prime time
+3. WNBA MODEL
+
+WNBA should not simply copy NBA weighting.
+
+Differences matter:
+
+Smaller league
+Greater player-impact concentration
+More schedule compression
+Greater sensitivity to injuries/availability
+Potentially less efficient markets
+Team efficiency
+
+Track:
+
+Offensive rating
+Defensive rating
+Net rating
+Pace
+eFG%
+TS%
+Turnover %
+Offensive rebound %
+Free throw rate
+Player impact
+
+Track:
+
+Minutes
+Usage
+On/off
+Offensive impact
+Defensive impact
+Replacement value
+
+Star availability should materially change projections.
+
+Lineup/rotation engine
+
+Because of roster size, rotation changes can be substantial.
+
+Track:
+
+Starting five
+Expected minutes
+Bench rotation
+Injuries
+Minutes restrictions
+Rest
+
+WNBA schedule can create meaningful fatigue.
+
+Track:
+
+Back-to-back
+Games in 3 days
+Games in 5 days
+Travel
+Road trip length
+Matchup
+
+Track:
+
+Pace clash
+Interior defense
+perimeter shooting
+rebounding
+turnover creation
+free throw generation
+Market model
+
+Generate:
+
+ML
+Spread
+Total
+
+Use the exact same:
+
+Fair price → no-vig → edge → price validation → recommendation.
+
+Learning
+
+Segment by:
+
+Favorite/dog
+Spread
+Total
+Travel
+Injury status
+Rest
+Pace
+Edge
+Confidence
+Price
+CLV
+4. SOCCER MODEL
+
+Soccer requires probabilistic modeling different from American sports because the draw is a major outcome.
+
+Historical database
+
+Store:
+
+League
+Competition
+Match
+Venue
+Result
+xG
+Shots
+Shots on target
+Possession
+Cards
+Corners
+
+Market:
+
+1X2
+Asian handicap
+Totals
+BTTS
+Opening/closing lines
+Team-strength engine
+
+Maintain separate:
+
+Attack strength
+Defense strength
+
+Home/away adjusted.
+
+Prefer:
+
+xG
+xGA
+
+over raw goals alone.
+
+Expected goal model
+
+Generate:
+
+λ Home
+
+λ Away
+
+Then build score distributions using Poisson-style or more sophisticated goal models.
+
+This produces probabilities for:
+
+Home
+Draw
+Away
+Totals
+BTTS
+Asian handicaps
+Exact scores if desired
+Player availability
+
+Track:
+
+Starting XI
+Injuries
+Suspensions
+Goalkeeper
+Star attackers
+Defensive players
+Rotation
+
+Extremely important in:
+
+Cups
+European competitions
+Congested schedules
+Rest/travel
+
+Track:
+
+Days rest
+International travel
+Midweek match
+European match
+International break
+Competition context
+
+Model differently:
+
+League
+Cup
+Knockout
+Group stage
+Tournament
+Two-leg ties
+
+Team incentives change.
+
+Draw model
+
+Must explicitly model draws rather than forcing binary outcomes.
+
+Analyze:
+
+Expected goal total
+Team parity
+Tactical styles
+Game state
+Competition
+
+Low-xG balanced games generally create greater draw probability.
+
+Market intelligence
+
+Soccer markets often vary substantially by book.
+
+Track:
+
+Sharp Asian markets
+1X2 movement
+Handicap movement
+Totals movement
+Soccer learning
+
+Segment:
+
+League
+Country
+Tournament
+Favorite size
+Home/away
+Draw
+Total
+Team tier
+xG bucket
+Market
+Price
+Edge
+CLV
+
+A critical principle:
+
+Never assume a model that works in EPL works identically in MLS or international tournaments.
+
+Maintain league-specific calibration.
+
+5. NBA MODEL
+
+NBA requires strong player and lineup modeling because player availability can shift fair spreads dramatically.
+
+Historical game information
+
+Store:
+
+Teams
+Score
+Pace
+Spread
+Total
+Moneyline
+Opening line
+Closing line
+Team efficiency
+
+Track:
+
+Offensive rating
+Defensive rating
+Net rating
+Pace
+eFG%
+TS%
+TOV%
+ORB%
+FT rate
+
+Opponent adjust these.
+
+Player impact
+
+Track:
+
+Minutes
+Usage
+BPM/EPM/RAPM-style value
+On/off
+Shooting
+creation
+defensive impact
+Injury engine
+
+Critical.
+
+For every player:
+
+Status
+Probability of playing
+Expected minutes
+Replacement
+Estimated point-spread impact
+
+Example:
+
+Star out:
+
+-4.1 points
+
+Second starter out:
+
+-1.3
+
+But interactions matter.
+
+Two missing creators can have nonlinear effects.
+
+Rotation engine
+
+Predict:
+
+Starting lineup
+Bench
+minutes
+garbage-time probabilities
+Rest/fatigue
+
+Track:
+
+Back-to-back
+3 in 4
+4 in 6
+travel
+altitude
+road trip
+Matchups
+
+Analyze:
+
+Rim offense vs rim defense
+Three-point profile
+Rebounding
+Turnovers
+transition
+pick-and-roll
+pace
+Schedule context
+
+Account for:
+
+Regular season
+Playoffs
+Play-in
+Late-season motivation
+Tanking
+Clinched playoff position
+NBA simulation
+
+Output:
+
+ML
+Spread
+Total
+First half
+First quarter if modeled
+Market movement
+
+NBA line movement often reflects injury information.
+
+Track:
+
+Before injury news
+After injury news
+Confirmed lineup
+close
+NBA learning
+
+Segment:
+
+Rest
+injuries
+favorites
+underdogs
+spreads
+totals
+playoff mode
+pace
+edge
+confidence
+CLV
+THE UNIVERSAL TBM LEARNING SYSTEM
+
+This is arguably more important than any individual sport feature.
+
+All five sports should feed one standardized historical table.
+
+For every model prediction:
+
+prediction_id
+game_id
+sport
+date
+model_version
+
+
+market
+pick
+book
+odds
+
+
+model_probability
+market_probability
+no_vig_probability
+
+
+fair_price
+edge
+confidence
+
+
+final_score
+result
+units
+
+
+opening_line
+bet_line
+closing_line
+CLV
+
+Plus a complete snapshot of the features used.
+
+NEVER MODIFY HISTORICAL PREDICTIONS
+
+This is critical.
+
+Once a game's prediction is generated:
+
+freeze it.
+
+If the model changes later, historical predictions should remain associated with:
+
+model_version = X
+
+Otherwise you accidentally rewrite history and your performance statistics become meaningless.
+
+MODEL VERSIONING
+
+Every meaningful change should create a new version:
+
+MLB_v3.1
+MLB_v3.2
+MLB_v4.0
+
+Store:
+
+Date deployed
+Features changed
+Weight changes
+Training data
+Calibration method
+Performance before/after
+WALK-FORWARD TESTING
+
+Do not randomly train and test sports time-series data.
+
+Use chronological testing.
+
+Example:
+
+Train:
+
+2022–2024
+
+Validate:
+
+2025
+
+Test:
+
+2026
+
+Then roll forward.
+
+This better represents real betting.
+
+OUT-OF-SAMPLE VALIDATION
+
+Never optimize based solely on ROI.
+
+Evaluate:
+
+Log Loss
+
+Probability accuracy.
+
+Brier Score
+
+Calibration.
+
+CLV
+
+Market information capture.
+
+ROI
+
+Actual betting performance.
+
+Drawdown
+
+Risk.
+
+SELF-IMPROVEMENT ENGINE
+
+I would build the eventual TBM learning loop as:
+
+Game Generated
+      ↓
+Prediction Frozen
+      ↓
+Market Moves
+      ↓
+Closing Line Stored
+      ↓
+Game Ends
+      ↓
+Result Graded
+      ↓
+Prediction Error Measured
+      ↓
+CLV Measured
+      ↓
+Feature Performance Updated
+      ↓
+Calibration Updated
+      ↓
+Candidate Weight Changes Tested
+      ↓
+Walk-Forward Validation
+      ↓
+Only Validated Improvements Deploy
+
+Notice something important:
+
+The model does NOT automatically change itself after every loss.
+
+Instead:
+
+It collects evidence after every game.
+
+Then proposed changes are tested across hundreds/thousands of historical observations before deployment.
+
+That prevents the model from chasing noise.
+
+AUTOMATED ERROR ANALYSIS
+
+Every losing prediction should automatically be categorized.
+
+For example:
+
+Prediction miss
+
+Model significantly underestimated opponent.
+
+Lineup miss
+
+Late lineup change altered game assumptions.
+
+Pitcher/player miss
+
+Key player materially underperformed.
+
+Market miss
+
+Closing line moved strongly against TBM.
+
+Good process / bad outcome
+
+TBM beat closing line but lost.
+
+Variance
+
+Projection was reasonable; result fell in normal probability tail.
+
+This allows much better learning than simply counting wins and losses.
+
+FEATURE PERFORMANCE DATABASE
+
+For every model input, eventually measure:
+
+Correlation with outcome
+Predictive contribution
+Stability
+CLV contribution
+Importance
+Interaction effects
+
+Then detect:
+
+Useful features
+
+vs
+
+noise.
+
+DRIFT DETECTION
+
+Models decay.
+
+Monitor whether relationships change.
+
+Example:
+
+MLB rule changes.
+
+NBA offensive environment changes.
+
+NFL kickoff/rules change.
+
+Soccer league style changes.
+
+Your system should monitor:
+
+calibration drift
+scoring environment
+market efficiency
+feature effectiveness
+MARKET PERFORMANCE LEARNING
+
+A hugely important concept:
+
+TBM should eventually know where it is good.
+
+Example:
+
+MLB Moneyline
++7.8% ROI
+Strong
+
+
+MLB Run Line
+-3.4%
+Weak
+
+
+WNBA Dogs +3 to +8
++9.2%
+Strong
+
+
+Soccer Draw
+-6.3%
+Weak
+
+Then recommendations can incorporate historical model competence.
+
+MODEL CONFIDENCE SHOULD BE CALIBRATED
+
+Confidence should not just be manually derived from edge.
+
+It should answer:
+
+Historically, how reliable are predictions like this?
+
+That means a 74 confidence rating should have empirical meaning.
+
+DATA QUALITY SCORE
+
+Every game should also receive a data-quality score.
+
+Example:
+
+100
+
+Everything confirmed.
+
+80
+
+Minor data incomplete.
+
+60
+
+Important lineup uncertain.
+
+40
+
+Major information missing.
+
+Then lower confidence accordingly.
+
+UNCERTAINTY MODELING
+
+Don't only calculate:
+
+Team A = 58%
+
+Calculate uncertainty around it.
+
+Example:
+
+Expected probability: 58.2%
+Uncertainty interval: 54–62%
+
+If uncertainty is high, reduce wager confidence.
+
+CORRELATION CONTROLS
+
+If TBM recommends:
+
+Yankees ML
+Yankees -1.5
+Yankees F5 ML
+
+those are correlated.
+
+Do not treat them like three independent bets.
+
+Track exposure at:
+
+Game
+Team
+Market
+Sport
+Day
+
+level.
+
+BANKROLL ENGINE
+
+Eventually use fractional Kelly or another disciplined approach.
+
+Conceptually:
+
+Bet size = edge × confidence × bankroll adjustment × correlation adjustment
+
+with maximum caps.
+
+Not:
+
+“I really like this game, 5 units.”
+
+THE MOST IMPORTANT DATA FOR EVERY SPORT
+
+Every model should ultimately store five layers:
+
+Layer 1 — Raw Data
+
+What happened.
+
+Layer 2 — Features
+
+What the model knew.
+
+Layer 3 — Prediction
+
+What TBM believed.
+
+Layer 4 — Market
+
+What sportsbooks believed.
+
+Layer 5 — Outcome
+
+Who was right and why.
+
+That gives you a genuine learning system.
+
+THE END GOAL FOR TBM
+
+The final platform should be able to say:
+
+“We have analyzed 43,281 historical predictions. MLB home underdogs with a 3–6% model edge, confirmed lineups, positive sharp-book agreement and +2% or better CLV have historically produced stronger calibration and ROI. Today's matchup falls into that profile.”
+
+That's substantially more powerful than:
+
+“The Yankees have a 6% edge.”
+
+And this is the architectural distinction between a basic picks algorithm and the self-improving sports analytics platform you are trying to build.
+
+For the new app, I would make this entire framework mandatory: raw historical data + pregame snapshots + fair probability + market comparison + closing line + grading + calibration + segmented performance + controlled model retraining. Without that feedback loop, even an excellent initial model eventually stagnates.
