@@ -46,6 +46,22 @@ const RATING_HINT: Record<Rating, string> = {
   'Fade':       'BET THE OTHER SIDE',
 };
 
+function formatOdds(odds: number): string {
+  return odds > 0 ? `+${odds}` : `${odds}`;
+}
+
+function neutralMarketLabel(game: Game): string {
+  const { awayOdds, homeOdds } = game.vegasLine;
+  const isValidPrice = (odds: number) =>
+    Number.isFinite(odds) && Math.abs(odds) >= 100 && Math.abs(odds) <= 2000;
+
+  if (!isValidPrice(awayOdds) || !isValidPrice(homeOdds)) {
+    return 'MARKET LINE UNAVAILABLE';
+  }
+
+  return `ML ${formatOdds(awayOdds)} / ${formatOdds(homeOdds)}`;
+}
+
 type ListItem =
   | { type: 'header'; rating: Rating; count: number }
   | { type: 'game'; game: Game; locked: boolean };
@@ -58,6 +74,7 @@ export default function PicksScreen() {
   const { selectedSport } = useSports();
 
   const { data, isLoading, refetch } = useGetGamesToday();
+  const [showNoEdgeGames, setShowNoEdgeGames] = useState(false);
 
   useEffect(() => {
     // Keep an open Picks screen current without relying on a manual
@@ -129,11 +146,19 @@ export default function PicksScreen() {
     ),
     [sortedGames],
   );
+  const neutralGames = useMemo(
+    () => sortedGames.filter(g => g.projection.valueRating === 'Neutral'),
+    [sortedGames],
+  );
   const displayedGames = useMemo(
     () => actionableGames.slice(0, selectedSport === 'All' ? ALL_PLAYS_LIMIT : SPORT_PLAYS_LIMIT),
     [actionableGames, selectedSport],
   );
   const lockedCount = displayedGames.filter(g => g.isLocked === true).length;
+
+  useEffect(() => {
+    setShowNoEdgeGames(false);
+  }, [selectedSport]);
 
   // Per-sport game counts — drives the count badge on each sport pill
   const sportGameCounts = useMemo(() => {
@@ -255,8 +280,9 @@ export default function PicksScreen() {
       {!isLoading && (
         <View style={[styles.sectionLabelRow, { marginHorizontal: 16, marginTop: 20, marginBottom: 4 }]}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            {selectedSport === 'All' ? 'TOP PLAYS' : `${selectedSport} TOP PLAYS`}
-            {displayedGames.length > 0 && ` · ${displayedGames.length}`}
+            {selectedSport === 'All'
+              ? `TOP PLAYS${displayedGames.length > 0 ? ` · ${displayedGames.length}` : ''}`
+              : `${displayedGames.length} PICKS · ${sortedGames.length} GAMES ANALYZED`}
           </Text>
           <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
         </View>
@@ -322,13 +348,65 @@ export default function PicksScreen() {
         ListEmptyComponent={
           <EmptyState
             sport={selectedSport !== 'All' ? selectedSport : undefined}
+            title={selectedSport !== 'All' && sortedGames.length > 0
+              ? `No ${selectedSport} bets today`
+              : undefined}
             message={selectedSport === 'All'
               ? 'No qualified plays available today. Pull down to refresh.'
               : 'No qualified plays in this sport today.'}
           />
         }
         ListFooterComponent={
-          noEdgeSports.length > 0 ? (
+          selectedSport !== 'All' && neutralGames.length > 0 ? (
+            <View style={[styles.noEdgeFooter, { borderTopColor: colors.border }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${neutralGames.length} games analyzed with no betting edge`}
+                onPress={() => setShowNoEdgeGames(current => !current)}
+                style={({ pressed }) => [
+                  styles.noEdgeToggle,
+                  { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.78 : 1 },
+                ]}
+              >
+                <View style={styles.noEdgeToggleCopy}>
+                  <Text style={[styles.noEdgeTitle, { color: colors.mutedForeground }]}>
+                    {neutralGames.length} {neutralGames.length === 1 ? 'GAME' : 'GAMES'} ANALYZED · NO EDGE
+                  </Text>
+                  <Text style={[styles.noEdgeSubtitle, { color: colors.mutedForeground }]}>
+                    No qualified play on these matchups
+                  </Text>
+                </View>
+                <Text style={[styles.noEdgeAction, { color: colors.primary }]}>
+                  {showNoEdgeGames ? 'HIDE' : 'VIEW GAMES'}
+                </Text>
+              </Pressable>
+              {showNoEdgeGames && (
+                <View style={styles.noEdgeGameList}>
+                  {neutralGames.map(game => (
+                    <View
+                      key={game.id}
+                      style={[styles.noEdgeGameRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    >
+                      <View style={styles.noEdgeGameMatchup}>
+                        <Text style={[styles.noEdgeGameTeams, { color: colors.foreground }]}>
+                          {game.awayTeam.abbr} <Text style={{ color: colors.mutedForeground }}>@</Text> {game.homeTeam.abbr}
+                        </Text>
+                        <Text style={[styles.noEdgeGameTime, { color: colors.mutedForeground }]}>
+                          {game.gameTime}
+                        </Text>
+                      </View>
+                      <View style={styles.noEdgeGameMeta}>
+                        <Text style={[styles.noEdgeGameRating, { color: colors.mutedForeground }]}>NEUTRAL</Text>
+                        <Text style={[styles.noEdgeGameLine, { color: colors.mutedForeground }]}>
+                          {neutralMarketLabel(game)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : noEdgeSports.length > 0 ? (
             <View style={[styles.noEdgeFooter, { borderTopColor: colors.border }]}>
               <Text style={[styles.noEdgeTitle, { color: colors.mutedForeground }]}>
                 ANALYZED · NO EDGE FOUND
@@ -410,10 +488,28 @@ const styles = StyleSheet.create({
     marginTop: 24, marginHorizontal: 16, paddingTop: 20,
     borderTopWidth: 1,
   },
+  noEdgeToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12,
+  },
+  noEdgeToggleCopy: { flex: 1, marginRight: 12 },
   noEdgeTitle: {
     fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.5,
     marginBottom: 10,
   },
+  noEdgeSubtitle: { fontSize: 11, fontFamily: 'Inter_500Medium' },
+  noEdgeAction: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  noEdgeGameList: { gap: 8, marginTop: 8 },
+  noEdgeGameRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10,
+  },
+  noEdgeGameMatchup: { flex: 1, marginRight: 12 },
+  noEdgeGameTeams: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  noEdgeGameTime: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 3 },
+  noEdgeGameMeta: { alignItems: 'flex-end' },
+  noEdgeGameRating: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  noEdgeGameLine: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 3 },
   noEdgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   noEdgeChip: {
     borderRadius: 8, borderWidth: 1,

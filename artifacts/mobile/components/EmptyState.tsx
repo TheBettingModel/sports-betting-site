@@ -23,19 +23,20 @@ const DEFAULT_MESSAGE = {
 
 interface EmptyStateProps {
   sport?: string;
+  title?: string;
   message?: string;
 }
 
-export function EmptyState({ sport, message }: EmptyStateProps) {
+export function EmptyState({ sport, title, message }: EmptyStateProps) {
   const colors = useColors();
-  const cfg = (sport && SPORT_MESSAGES[sport]) ?? DEFAULT_MESSAGE;
+  const cfg = sport ? (SPORT_MESSAGES[sport] ?? DEFAULT_MESSAGE) : DEFAULT_MESSAGE;
 
   return (
     <View style={s.container}>
       <View style={[s.iconCircle, { backgroundColor: colors.muted, borderColor: colors.border }]}>
         <Feather name={cfg.icon as any} size={26} color={colors.mutedForeground} />
       </View>
-      <Text style={[s.title, { color: colors.foreground }]}>{cfg.title}</Text>
+      <Text style={[s.title, { color: colors.foreground }]}>{title ?? cfg.title}</Text>
       <Text style={[s.sub, { color: colors.mutedForeground }]}>
         {message ?? cfg.sub}
       </Text>
