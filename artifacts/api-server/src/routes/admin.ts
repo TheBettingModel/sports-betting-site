@@ -15,7 +15,7 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { and, desc, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { adminLimiter, sessionAuthLimiter } from "../middleware/rateLimiter";
 import {
   db,
@@ -178,20 +178,29 @@ router.delete("/admin/session", (req, res): void => {
 router.use("/admin", requireMasterKey);
 
 /**
- * GET /api/admin/loss-reviews
- *
  * Internal, evidence-based postgame reviews. This endpoint deliberately stays
  * behind the admin session so subscriber-facing API responses never expose
  * model diagnostics.
  */
-router.get("/admin/loss-reviews", async (req, res): Promise<void> => {
+async function sendOutcomeReviews(
+  req: Request,
+  res: Response,
+  forcedResult?: "win" | "loss",
+): Promise<void> {
   const sport = typeof req.query.sport === "string" ? req.query.sport : undefined;
+  const requestedResult = forcedResult ?? (
+    req.query.result === "win" || req.query.result === "loss"
+      ? req.query.result
+      : "all"
+  );
   const requestedLimit = Number(req.query.limit);
   const limit = Number.isFinite(requestedLimit)
     ? Math.max(1, Math.min(Math.floor(requestedLimit), 100))
     : 30;
   const conditions = [
-    eq(pickResultsTable.result, "loss"),
+    requestedResult === "all"
+      ? inArray(pickResultsTable.result, ["win", "loss"])
+      : eq(pickResultsTable.result, requestedResult),
     isNotNull(pickResultsTable.learningReview),
   ];
   if (sport) conditions.push(eq(publishedPicksTable.sport, sport));
@@ -204,6 +213,7 @@ router.get("/admin/loss-reviews", async (req, res): Promise<void> => {
       selection: publishedPicksTable.selection,
       recommendation: publishedPicksTable.recommendation,
       confidence: publishedPicksTable.confidence,
+      result: pickResultsTable.result,
       publishedAt: publishedPicksTable.publishedAt,
       modelProbability: modelPredictionsTable.modelProbability,
       finalRating: modelPredictionsTable.finalRating,
@@ -234,7 +244,18 @@ router.get("/admin/loss-reviews", async (req, res): Promise<void> => {
       .map(([classification, sampleSize]) => ({ classification, sampleSize }))
       .sort((a, b) => b.sampleSize - a.sampleSize),
     dataAsOf: new Date().toISOString(),
+    resultFilter: requestedResult,
   });
+}
+
+/** GET /api/admin/outcome-reviews — completed win/loss reviews for model analysis. */
+router.get("/admin/outcome-reviews", async (req, res): Promise<void> => {
+  await sendOutcomeReviews(req, res);
+});
+
+/** Backward-compatible loss-only view retained for existing clients. */
+router.get("/admin/loss-reviews", async (req, res): Promise<void> => {
+  await sendOutcomeReviews(req, res, "loss");
 });
 
 // ── Overview ──────────────────────────────────────────────────────────────────
@@ -497,9 +518,7 @@ router.get("/admin/alerts", async (req, res): Promise<void> => {
   // "all" returns both resolved and active; "true"/"false" filter accordingly
   const resolvedAll = resolvedParam === "all";
   const resolved = resolvedParam === "true";
-  const sport = req.params.sport;
-
-  const { durationHours, snoozedUntil, reason, snoozedBy = "admin" } = req.body ?? {};
+  const sport = typeof req.query.sport === "string" ? req.query.sport : undefined;
 
   const [driftAlerts, dqAlerts] = await Promise.all([
     db
@@ -541,12 +560,6 @@ router.get("/admin/alerts", async (req, res): Promise<void> => {
 router.post("/admin/alerts/drift/reset-baseline", async (req, res): Promise<void> => {
   const now = new Date();
 
-  const [snooze] = await db
-    .select()
-    .from(sportSnoozesTable)
-    .where(eq(sportSnoozesTable.sport, sport))
-    .limit(1);
-
   // 1. Count + resolve all unresolved drift alerts
   const unresolvedBefore = await db
     .select({ id: modelDriftAlertsTable.id })
@@ -584,12 +597,6 @@ router.post("/admin/alerts/:type/:id/resolve", async (req, res): Promise<void> =
 
   const resolvedBy = req.body?.resolvedBy ?? "admin";
   const now = new Date();
-
-  const [snooze] = await db
-    .select()
-    .from(sportSnoozesTable)
-    .where(eq(sportSnoozesTable.sport, sport))
-    .limit(1);
 
   if (type === "drift") {
     await db

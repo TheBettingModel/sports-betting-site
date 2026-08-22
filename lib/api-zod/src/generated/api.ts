@@ -243,6 +243,47 @@ export const GetAdminLossReviewsResponse = zod.object({
 
 
 /**
+ * @summary Get internal evidence-based reviews for graded wins and losses
+ */
+export const getAdminOutcomeReviewsQueryResultDefault = `all`;
+export const getAdminOutcomeReviewsQueryLimitMax = 100;
+
+
+
+export const GetAdminOutcomeReviewsQueryParams = zod.object({
+  "sport": zod.coerce.string().optional(),
+  "result": zod.enum(['all', 'win', 'loss']).default(getAdminOutcomeReviewsQueryResultDefault),
+  "limit": zod.coerce.number().min(1).max(getAdminOutcomeReviewsQueryLimitMax).optional()
+})
+
+export const GetAdminOutcomeReviewsResponse = zod.object({
+  "reviews": zod.array(zod.object({
+  "pickId": zod.number(),
+  "sport": zod.string(),
+  "market": zod.string(),
+  "selection": zod.string(),
+  "recommendation": zod.string(),
+  "confidence": zod.string(),
+  "publishedAt": zod.string(),
+  "modelProbability": zod.number(),
+  "finalRating": zod.number().nullish(),
+  "finalScore": zod.string().nullish(),
+  "clv": zod.number().nullish(),
+  "gradedAt": zod.string().nullish(),
+  "review": zod.record(zod.string(), zod.unknown()).nullable()
+}).and(zod.object({
+  "result": zod.enum(['win', 'loss'])
+}))),
+  "patterns": zod.array(zod.object({
+  "classification": zod.string(),
+  "sampleSize": zod.number()
+})),
+  "dataAsOf": zod.string(),
+  "resultFilter": zod.enum(['all', 'win', 'loss'])
+})
+
+
+/**
  * @summary Register a device push token
  */
 export const RegisterPushTokenBody = zod.object({

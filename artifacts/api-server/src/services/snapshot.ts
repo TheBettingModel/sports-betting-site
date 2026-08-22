@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
@@ -340,7 +340,7 @@ async function writeClosingLines(
   const totId = marketIds["total"];
   if (!mlId || !spId || !totId) return;
 
-  const rows = [
+  const fallbackRows = [
     { marketId: mlId, selection: "home", closingPrice: proj.vegasHomeOdds, closingLine: null as number | null },
     { marketId: mlId, selection: "away", closingPrice: proj.vegasAwayOdds, closingLine: null as number | null },
     { marketId: spId, selection: "home", closingPrice: -110, closingLine: proj.vegasSpread },
@@ -349,15 +349,34 @@ async function writeClosingLines(
     { marketId: totId, selection: "under", closingPrice: -110, closingLine: proj.vegasTotal },
   ];
 
-  for (const r of rows) {
+  const cutoff = new Date(game.commenceTimeISO).getTime();
+  for (const r of fallbackRows) {
+    const [lastPregame] = Number.isFinite(cutoff)
+      ? await db
+          .select({ price: oddsSnapshotsTable.price, line: oddsSnapshotsTable.line })
+          .from(oddsSnapshotsTable)
+          .where(
+            and(
+              eq(oddsSnapshotsTable.gameId, game.espnId),
+              eq(oddsSnapshotsTable.marketId, r.marketId),
+              eq(oddsSnapshotsTable.selection, r.selection),
+              lte(oddsSnapshotsTable.capturedAt, new Date(cutoff)),
+            ),
+          )
+          .orderBy(desc(oddsSnapshotsTable.capturedAt))
+          .limit(1)
+      : [];
+    const closingPrice = lastPregame?.price ?? r.closingPrice;
+    const closingLine = lastPregame?.line ?? r.closingLine;
+
     await db
       .insert(closingLinesTable)
       .values({
         gameId: game.espnId,
         marketId: r.marketId,
         selection: r.selection,
-        closingPrice: r.closingPrice,
-        closingLine: r.closingLine,
+        closingPrice,
+        closingLine,
         capturedAt,
       })
       .onConflictDoNothing(); // uniqueIndex on (gameId, marketId, selection)
@@ -393,11 +412,11 @@ export async function processGameSnapshot(
   }
 
   try {
-    // 1. Odds snapshot (every refresh)
-    await writeOddsSnapshot(game, proj, now, espnSportsbookId, marketIds);
-
-    // 2. Prediction + pick (once, before game is final)
-    if (game.status !== "final") {
+    // 1. Capture and publish only while the game is genuinely upcoming.
+    // Live/post-start provider prices must never become a new "pregame" model
+    // decision or overwrite the market evidence used for later learning.
+    if (game.status === "upcoming") {
+      await writeOddsSnapshot(game, proj, now, espnSportsbookId, marketIds);
       const predictionId = await writePredictionSnapshot(
         game,
         proj,
@@ -410,7 +429,8 @@ export async function processGameSnapshot(
       }
     }
 
-    // 3. Result + closing lines (when final)
+    // 2. Result + closing lines (when final). Closing price is sourced from
+    // the final valid pregame snapshot rather than the current final/live feed.
     if (game.status === "final") {
       await writeGameResult(game);
       await writeClosingLines(game, proj, now, marketIds);

@@ -6,17 +6,23 @@
  */
 
 export type OutcomeReview = {
-  version: 1;
+  version: 2;
   status: "reviewed" | "insufficient_pregame_evidence";
   reviewedAt: string;
   reviewedResult: "win" | "loss";
   primaryClassification: string;
   flags: string[];
   summary: string;
+  improvementActions: Array<{
+    area: "calibration" | "data_quality" | "market" | "availability" | "factor_review" | "monitoring";
+    priority: "high" | "medium" | "low";
+    action: string;
+  }>;
   evidence: {
     modelProbability: number;
     impliedProbability: number | null;
     closingLineValue: number | null;
+    calibrationError: number;
     dataQuality: Record<string, unknown>;
     factorEvidence: Array<{
       factor: string;
@@ -41,8 +47,75 @@ function toNumber(value: unknown): number | null {
 }
 
 function normaliseAvailability(value: unknown): string {
+  if (value == null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(normaliseAvailability).sort().join(",")}]`;
   const record = asRecord(value);
-  return JSON.stringify(record, Object.keys(record).sort());
+  return `{${Object.keys(record).sort().map((key) =>
+    `${JSON.stringify(key)}:${normaliseAvailability(record[key])}`,
+  ).join(",")}}`;
+}
+
+function buildImprovementActions(input: {
+  result: "win" | "loss";
+  modelProbability: number;
+  clv: number | null;
+  missingSignals: string[];
+  availabilityChanged: boolean;
+  factorEvidence: Array<{ factor: string; agreedWithOutcome: boolean | null }>;
+}): OutcomeReview["improvementActions"] {
+  const actions: OutcomeReview["improvementActions"] = [];
+
+  if (input.missingSignals.length > 0) {
+    actions.push({
+      area: "data_quality",
+      priority: "high",
+      action: `Improve pregame coverage for: ${input.missingSignals.join(", ")}.`,
+    });
+  }
+  if (input.availabilityChanged) {
+    actions.push({
+      area: "availability",
+      priority: "high",
+      action: "Review late lineup, starter, goalie, or injury changes before publishing similar picks.",
+    });
+  }
+  if (input.clv != null && input.clv < 0) {
+    actions.push({
+      area: "market",
+      priority: "medium",
+      action: "Monitor adverse market movement and require confirmation before raising conviction.",
+    });
+  }
+
+  const misleading = input.factorEvidence
+    .filter((factor) => factor.agreedWithOutcome === false)
+    .slice(0, 2)
+    .map((factor) => factor.factor);
+  if (misleading.length > 0) {
+    actions.push({
+      area: "factor_review",
+      priority: "medium",
+      action: `Track ${misleading.join(" and ")} against a larger sample before changing factor weights.`,
+    });
+  }
+  if (input.result === "loss" && input.modelProbability >= 0.65) {
+    actions.push({
+      area: "calibration",
+      priority: "high",
+      action: "Dampen high-confidence probabilities until this confidence band is better calibrated.",
+    });
+  }
+  if (actions.length === 0) {
+    actions.push({
+      area: "monitoring",
+      priority: "low",
+      action: input.result === "win"
+        ? "Retain this signal mix and confirm it across a larger sample."
+        : "Record this outcome as variance; do not make a one-game model change.",
+    });
+  }
+
+  return actions.slice(0, 4);
 }
 
 export function isDecisionSnapshot(snapshot: unknown): snapshot is JsonRecord {
@@ -66,17 +139,23 @@ export function buildOutcomeReview(input: {
 
   if (!isDecisionSnapshot(snapshot)) {
     return {
-      version: 1,
+        version: 2,
       status: "insufficient_pregame_evidence",
       reviewedAt: new Date().toISOString(),
       reviewedResult: input.result,
       primaryClassification: "insufficient_pregame_evidence",
       flags: ["historical_snapshot_missing_decision_evidence"],
       summary: "This historical pick was graded, but its pregame decision evidence was not retained. It is excluded from factor learning rather than reconstructed from later data.",
+        improvementActions: [{
+          area: "data_quality",
+          priority: "high",
+          action: "Save an immutable pregame decision snapshot before using future outcomes for factor learning.",
+        }],
       evidence: {
         modelProbability: input.modelProbability,
         impliedProbability: input.impliedProbability,
         closingLineValue: input.clv,
+          calibrationError: Math.abs(input.modelProbability - (input.result === "win" ? 1 : 0)),
         dataQuality: {},
         factorEvidence: [],
         availabilityChanged: false,
@@ -84,8 +163,14 @@ export function buildOutcomeReview(input: {
     };
   }
 
-  const selectedHome = input.selection === "home";
-  const actualHome = input.result === "win" ? selectedHome : !selectedHome;
+  const selectedHome = input.selection === "home"
+    ? true
+    : input.selection === "away"
+      ? false
+      : null;
+  const actualHome = selectedHome == null
+    ? null
+    : input.result === "win" ? selectedHome : !selectedHome;
   const factorEvidence = Object.entries(contributions)
     .map(([factor, rawContribution]) => {
       const contribution = toNumber(rawContribution);
@@ -94,8 +179,8 @@ export function buildOutcomeReview(input: {
       return {
         factor,
         contribution,
-        supportedPick: selectedHome === factorFavoursHome,
-        agreedWithOutcome: actualHome === factorFavoursHome,
+       supportedPick: selectedHome == null ? null : selectedHome === factorFavoursHome,
+       agreedWithOutcome: actualHome == null ? null : actualHome === factorFavoursHome,
       };
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
@@ -119,6 +204,9 @@ export function buildOutcomeReview(input: {
   if (availabilityChanged) flags.push("availability_changed_after_snapshot");
   if (input.clv != null && input.clv < 0) flags.push("market_moved_against_pick");
   if (supportShare != null && supportShare < 0.65) flags.push("conflicting_model_signals");
+  if (input.result === "loss" && input.modelProbability >= 0.65) {
+    flags.push("high_confidence_miss");
+  }
   if (
     input.result === "loss" &&
     input.clv != null &&
@@ -153,17 +241,26 @@ export function buildOutcomeReview(input: {
   }
 
   return {
-    version: 1,
+    version: 2,
     status: "reviewed",
     reviewedAt: new Date().toISOString(),
     reviewedResult: input.result,
     primaryClassification,
     flags,
     summary: summaryParts.join(" "),
+    improvementActions: buildImprovementActions({
+      result: input.result,
+      modelProbability: input.modelProbability,
+      clv: input.clv,
+      missingSignals,
+      availabilityChanged,
+      factorEvidence,
+    }),
     evidence: {
       modelProbability: input.modelProbability,
       impliedProbability: input.impliedProbability,
       closingLineValue: input.clv,
+      calibrationError: Math.abs(input.modelProbability - (input.result === "win" ? 1 : 0)),
       dataQuality,
       factorEvidence: factorEvidence.slice(0, 8),
       availabilityChanged,

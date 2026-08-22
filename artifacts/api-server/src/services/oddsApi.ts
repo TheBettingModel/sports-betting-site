@@ -164,9 +164,25 @@ const cache = new Map<string, CacheEntry>();
 // while still avoiding duplicate requests inside one refresh.
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-/** A moneyline of 0 is an absent feed value, never a real American price. */
+const MAX_REASONABLE_AMERICAN_ODDS = 2_000;
+
+/**
+ * A credible pregame American moneyline is an integer with an absolute value
+ * between 100 and 2,000. Values outside that range are almost always missing,
+ * decimal-format, or in-play feed values and must never drive a pregame pick.
+ */
 export function isValidAmericanOdds(value: number | null | undefined): value is number {
-  return value != null && Number.isFinite(value) && value !== 0;
+  return value != null
+    && Number.isFinite(value)
+    && Number.isInteger(value)
+    && Math.abs(value) >= 100
+    && Math.abs(value) <= MAX_REASONABLE_AMERICAN_ODDS;
+}
+
+/** The Odds API may retain in-play markets briefly; never consume them as pregame odds. */
+export function isPregameCommenceTime(commenceTime: string, now = Date.now()): boolean {
+  const commenceMs = new Date(commenceTime).getTime();
+  return Number.isFinite(commenceMs) && commenceMs > now;
 }
 
 /**
@@ -210,9 +226,11 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
   logger.debug({ oddsApiKey, remaining, used }, "OddsAPI: request consumed");
 
   const games = (await resp.json()) as OddsApiGame[];
-  const result = new Map<string, GameOdds>();
+  const result = new Map<string, GameOdds[]>();
 
   for (const g of games) {
+    if (!isPregameCommenceTime(g.commence_time)) continue;
+
     const key = matchKey(g.home_team, g.away_team);
 
     // ── Separate Pinnacle from public books ───────────────────────────────
@@ -227,10 +245,14 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
     if (pinnacleBook) {
       const h2h = pinnacleBook.markets.find((m) => m.key === "h2h");
       if (h2h) {
-        pinnacleHomeOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
-        pinnacleAwayOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
+        const homePrice = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
+        const awayPrice = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
+        if (isValidAmericanOdds(homePrice) && isValidAmericanOdds(awayPrice)) {
+          pinnacleHomeOdds = homePrice;
+          pinnacleAwayOdds = awayPrice;
+        }
         const draw = h2h.outcomes.find((o) => o.name.toLowerCase() === "draw");
-        if (draw) pinnacleDrawOdds = draw.price;
+        if (draw && isValidAmericanOdds(draw.price)) pinnacleDrawOdds = draw.price;
       }
     }
 
@@ -245,9 +267,11 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       const homeOut = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team));
       const awayOut = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team));
       const drawOut = h2h.outcomes.find((o) => o.name.toLowerCase() === "draw");
-      if (homeOut) homeProbs.push(impliedProb(homeOut.price));
-      if (awayOut) awayProbs.push(impliedProb(awayOut.price));
-      if (drawOut) drawProbs.push(impliedProb(drawOut.price));
+      if (isValidAmericanOdds(homeOut?.price) && isValidAmericanOdds(awayOut?.price)) {
+        homeProbs.push(impliedProb(homeOut.price));
+        awayProbs.push(impliedProb(awayOut.price));
+      }
+      if (drawOut && isValidAmericanOdds(drawOut.price)) drawProbs.push(impliedProb(drawOut.price));
     }
 
     // Fall back to Pinnacle for consensus if no US public books have the game
@@ -297,7 +321,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       if (!h2h) continue;
       const bHomeOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
       const bAwayOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
-      if (bHomeOdds != null && bAwayOdds != null) {
+      if (isValidAmericanOdds(bHomeOdds) && isValidAmericanOdds(bAwayOdds)) {
         bookmakerOdds.push({ book: book.key, homeOdds: bHomeOdds, awayOdds: bAwayOdds });
       }
     }
@@ -372,6 +396,7 @@ export function getBestLine(
 
   for (const b of gameOdds.bookmakerOdds) {
     const odds = pickIsHome ? b.homeOdds : b.awayOdds;
+    if (!isValidAmericanOdds(odds)) continue;
     if (best == null || impliedProb(odds) < impliedProb(best.odds)) {
       // Lower implied probability = higher payout = better for the bettor
       best = { book: b.book, odds };

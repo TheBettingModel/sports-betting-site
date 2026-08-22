@@ -410,9 +410,9 @@ function TierTable({ stats }: TierTableProps) {
   );
 }
 
-// ── Loss review panel ─────────────────────────────────────────────────────────
+// ── Outcome review panel ──────────────────────────────────────────────────────
 
-function LossReviewPanel({
+function OutcomeReviewPanel({
   reviews,
   patterns,
   isLoading,
@@ -425,9 +425,9 @@ function LossReviewPanel({
     <div className="bg-card border border-border rounded-lg p-4 space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Recent Loss Reviews</h2>
+          <h2 className="text-sm font-semibold text-foreground">Recent Outcome Reviews</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Evidence from the saved decision, market movement, availability, and data quality.
+            Evidence and safe follow-ups from saved pregame decisions, market movement, availability, and data quality.
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -441,7 +441,7 @@ function LossReviewPanel({
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading loss reviews…</p>
       ) : reviews.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No reviewed losses yet.</p>
+        <p className="text-sm text-muted-foreground">No reviewed outcomes yet.</p>
       ) : (
         <div className="space-y-2">
           {reviews.slice(0, 8).map((loss) => (
@@ -450,6 +450,9 @@ function LossReviewPanel({
                 <p className="text-sm font-medium text-foreground">
                   {loss.sport} · {loss.market} · {loss.selection.toUpperCase()}
                   {loss.finalScore ? <span className="text-muted-foreground font-normal"> · Final {loss.finalScore}</span> : null}
+                </p>
+                <p className={`text-xs font-medium ${loss.result === "win" ? "text-emerald-400" : "text-red-400"}`}>
+                  {loss.result.toUpperCase()}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {(loss.modelProbability * 100).toFixed(0)}% model probability
@@ -466,6 +469,11 @@ function LossReviewPanel({
                 {(loss.review?.evidence?.factorEvidence ?? []).slice(0, 3).map((factor) => (
                   <span key={factor.factor} className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                     {factor.factor}: {factor.contribution > 0 ? "+" : ""}{(factor.contribution * 100).toFixed(1)}pp
+                  </span>
+                ))}
+                {(loss.review?.improvementActions ?? []).slice(0, 2).map((item) => (
+                  <span key={`${item.area}-${item.action}`} className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
+                    {item.action}
                   </span>
                 ))}
               </div>
@@ -500,9 +508,9 @@ function PerformancePanel() {
     refetchInterval: 120_000,
   });
 
-  const { data: lossReviewData, isLoading: lossReviewsLoading } = useQuery({
-    queryKey: ["loss-reviews", selectedSport],
-    queryFn: () => adminApi.lossReviews(selectedSport),
+  const { data: outcomeReviewData, isLoading: outcomeReviewsLoading } = useQuery({
+    queryKey: ["outcome-reviews", selectedSport],
+    queryFn: () => adminApi.outcomeReviews(selectedSport),
     refetchInterval: 60_000,
   });
 
@@ -640,10 +648,10 @@ function PerformancePanel() {
           </p>
         )}
       </div>
-      <LossReviewPanel
-        reviews={lossReviewData?.reviews ?? []}
-        patterns={lossReviewData?.patterns ?? []}
-        isLoading={lossReviewsLoading}
+      <OutcomeReviewPanel
+        reviews={outcomeReviewData?.reviews ?? []}
+        patterns={outcomeReviewData?.patterns ?? []}
+        isLoading={outcomeReviewsLoading}
       />
     </div>
   );

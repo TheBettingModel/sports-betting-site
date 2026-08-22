@@ -22,3 +22,10 @@ openingHomeOdds: sql`COALESCE(${gamesTable.openingHomeOdds}, EXCLUDED.opening_ho
 
 ## Line movement in model
 `lineMovedTowardHome?: boolean` passed in ComputeOptions. In `finalizeResult()`, converted to `lineMoveConfirms` (relative to pick direction). Adjusts sharp score ±1.
+
+## Pregame market integrity
+Only credible, future-starting American prices may become pregame market data: whole-number prices from ±100 through ±2000, with both sides present for a two-way book. Model edge compares the selected probability to the no-vig two-way market, not a raw one-sided implied probability.
+
+**Why:** Live/post-start and malformed prices can be extreme enough to manufacture false model edge, premium ratings, and polluted learning evidence.
+
+**How to apply:** Filter provider events after their start time and reject invalid prices before consensus, best-line, prediction, snapshot, or closing-line logic. Preserve the last valid pregame snapshot for closing-line analysis; never replace it with a later live/final quote.

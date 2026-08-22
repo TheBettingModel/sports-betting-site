@@ -130,6 +130,7 @@ export async function runLearning(): Promise<void> {
     .select({
       pickResultId: pickResultsTable.id,
       result: pickResultsTable.result,
+      finalScore: pickResultsTable.finalScore,
       clv: pickResultsTable.clv,
       pickId: publishedPicksTable.id,
       sport: publishedPicksTable.sport,

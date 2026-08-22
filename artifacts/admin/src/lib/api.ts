@@ -134,6 +134,14 @@ export const adminApi = {
     api.delete<{ message: string }>(`/admin/sports/${sport}/snooze`),
   resetDriftBaseline: () =>
     api.post<{ resolved: number; newAlerts: number; message: string }>("/admin/alerts/drift/reset-baseline"),
+  outcomeReviews: (
+    sport?: string,
+    result: "all" | "win" | "loss" = "all",
+    limit = 30,
+  ) =>
+    api.get<OutcomeReviewsResult>(
+      `/admin/outcome-reviews?limit=${limit}&result=${result}${sport && sport !== "ALL" ? `&sport=${sport}` : ""}`,
+    ),
   lossReviews: (sport?: string, limit = 30) =>
     api.get<LossReviewsResult>(
       `/admin/loss-reviews?limit=${limit}${sport && sport !== "ALL" ? `&sport=${sport}` : ""}`,
@@ -378,13 +386,14 @@ export interface CompareResult {
   sampleSize: number;
 }
 
-export interface LossReviewEntry {
+export interface OutcomeReviewEntry {
   pickId: number;
   sport: string;
   market: string;
   selection: string;
   recommendation: string;
   confidence: string;
+  result: "win" | "loss";
   publishedAt: string;
   modelProbability: number;
   finalRating: number | null;
@@ -396,14 +405,25 @@ export interface LossReviewEntry {
     primaryClassification?: string;
     flags?: string[];
     summary?: string;
+    improvementActions?: Array<{
+      area: string;
+      priority: "high" | "medium" | "low";
+      action: string;
+    }>;
     evidence?: {
       factorEvidence?: Array<{ factor: string; contribution: number }>;
+      calibrationError?: number;
     };
   } | null;
 }
 
-export interface LossReviewsResult {
-  reviews: LossReviewEntry[];
+export type LossReviewEntry = OutcomeReviewEntry;
+
+export interface OutcomeReviewsResult {
+  reviews: OutcomeReviewEntry[];
   patterns: Array<{ classification: string; sampleSize: number }>;
   dataAsOf: string;
+  resultFilter: "all" | "win" | "loss";
 }
+
+export type LossReviewsResult = OutcomeReviewsResult;

@@ -14,7 +14,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import { createLocalJWKSet, jwtVerify } from "jose";
+import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import { eq } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
 import { logger } from "../lib/logger";
@@ -101,7 +101,7 @@ async function fetchAndCacheJwks(): Promise<void> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`JWKS fetch returned ${res.status}`);
-    const json = await res.json() as object;
+    const json = await res.json() as JSONWebKeySet;
     _localJwks = createLocalJWKSet(json);
     _lastFetchedAt = Date.now();
     logger.info({ jwksUrl: url }, "Clerk JWKS fetched and cached locally");

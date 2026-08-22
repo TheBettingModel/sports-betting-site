@@ -188,6 +188,18 @@ export interface LossReviewEntry {
   review: LossReviewEntryReview;
 }
 
+export type OutcomeReviewEntryResult = typeof OutcomeReviewEntryResult[keyof typeof OutcomeReviewEntryResult];
+
+
+export const OutcomeReviewEntryResult = {
+  win: 'win',
+  loss: 'loss',
+} as const;
+
+export type OutcomeReviewEntry = LossReviewEntry & {
+  result: OutcomeReviewEntryResult;
+};
+
 export interface LossReviewPattern {
   classification: string;
   sampleSize: number;
@@ -197,6 +209,22 @@ export interface LossReviewsResponse {
   reviews: LossReviewEntry[];
   patterns: LossReviewPattern[];
   dataAsOf: string;
+}
+
+export type OutcomeReviewsResponseResultFilter = typeof OutcomeReviewsResponseResultFilter[keyof typeof OutcomeReviewsResponseResultFilter];
+
+
+export const OutcomeReviewsResponseResultFilter = {
+  all: 'all',
+  win: 'win',
+  loss: 'loss',
+} as const;
+
+export interface OutcomeReviewsResponse {
+  reviews: OutcomeReviewEntry[];
+  patterns: LossReviewPattern[];
+  dataAsOf: string;
+  resultFilter: OutcomeReviewsResponseResultFilter;
 }
 
 export interface RegisterPushTokenRequest {
@@ -268,4 +296,23 @@ sport?: string;
  */
 limit?: number;
 };
+
+export type GetAdminOutcomeReviewsParams = {
+sport?: string;
+result?: GetAdminOutcomeReviewsResult;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAdminOutcomeReviewsResult = typeof GetAdminOutcomeReviewsResult[keyof typeof GetAdminOutcomeReviewsResult];
+
+
+export const GetAdminOutcomeReviewsResult = {
+  all: 'all',
+  win: 'win',
+  loss: 'loss',
+} as const;
 

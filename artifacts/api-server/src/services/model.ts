@@ -174,6 +174,23 @@ function americanToImplied(odds: number): number {
   return Math.abs(odds) / (Math.abs(odds) + 100);
 }
 
+function isCredibleAmericanOdds(odds: number | null | undefined): odds is number {
+  return odds != null
+    && Number.isFinite(odds)
+    && Number.isInteger(odds)
+    && Math.abs(odds) >= 100
+    && Math.abs(odds) <= 2_000;
+}
+
+/** Remove two-way market vig before comparing a model probability with the price. */
+export function removeVig2(homeOdds: number, awayOdds: number): { home: number; away: number } {
+  const rawHome = americanToImplied(homeOdds);
+  const rawAway = americanToImplied(awayOdds);
+  const total = rawHome + rawAway;
+  if (!Number.isFinite(total) || total <= 0) return { home: 0.5, away: 0.5 };
+  return { home: rawHome / total, away: rawAway / total };
+}
+
 function impliedToAmerican(prob: number): number {
   const p = Math.max(0.01, Math.min(0.99, prob));
   if (p >= 0.5) return -Math.round((p / (1 - p)) * 100);
@@ -811,33 +828,36 @@ function finalizeResult(
 
   let vegasHomeOdds: number;
   let vegasAwayOdds: number;
-  let vegasImplied: number;
+  let vegasHomeFairProbability: number;
 
-  if (opts.realVegasHomeOdds != null && opts.realVegasAwayOdds != null) {
+  if (isCredibleAmericanOdds(opts.realVegasHomeOdds) && isCredibleAmericanOdds(opts.realVegasAwayOdds)) {
     vegasHomeOdds = opts.realVegasHomeOdds;
     vegasAwayOdds = opts.realVegasAwayOdds;
-    vegasImplied  = americanToImplied(vegasHomeOdds);
-  } else if (opts.realVegasHomeOdds != null) {
+    const fairMarket = removeVig2(vegasHomeOdds, vegasAwayOdds);
+    vegasHomeFairProbability = fairMarket.home;
+  } else if (isCredibleAmericanOdds(opts.realVegasHomeOdds)) {
     vegasHomeOdds = opts.realVegasHomeOdds;
-    vegasImplied  = americanToImplied(vegasHomeOdds);
-    vegasAwayOdds = impliedToAmerican(1 - vegasImplied);
+    vegasHomeFairProbability = americanToImplied(vegasHomeOdds);
+    vegasAwayOdds = impliedToAmerican(1 - vegasHomeFairProbability);
   } else {
     const naiveProb  = 0.5 + (homeWinRate - 0.5) * 0.3;
     const vegasNoise = hashNoise(gameId + "v", 6, 3);
     const vegasProb  = Math.max(0.1, Math.min(0.9, naiveProb + vegasNoise));
     vegasHomeOdds    = impliedToAmerican(vegasProb);
     vegasAwayOdds    = impliedToAmerican(1 - vegasProb);
-    vegasImplied     = americanToImplied(vegasHomeOdds);
+    vegasHomeFairProbability = vegasProb;
   }
 
-  const edge = Math.round((prob - vegasImplied) * 1000) / 10;
+  // Edge is always stored from the home perspective. For an away pick the
+  // magnitude therefore represents away model probability minus away fair price.
+  const edge = Math.round((prob - vegasHomeFairProbability) * 1000) / 10;
 
   // ── Vegas spread anchor (WNBA) ──────────────────────────────────────────────
   // When the model's projected spread diverges from Vegas by more than 5 points,
   // treat Vegas as more informed and cap the effective edge. This prevents
   // "Strong Buy" on games where we and Vegas have fundamentally different reads.
   const projSprdForAnchor = Math.round((0.5 - prob) * 20 * 2) / 2;
-  const vgSprdForAnchor   = Math.round((0.5 - vegasImplied) * 20 * 2) / 2;
+  const vgSprdForAnchor   = Math.round((0.5 - vegasHomeFairProbability) * 20 * 2) / 2;
   const spreadGap         = Math.abs(projSprdForAnchor - vgSprdForAnchor);
   // For WNBA, cap edge at +8 when spread gap ≥ 5 (stays Buy at most, never Strong Buy)
   // and at +5 when gap ≥ 8 (floor is Neutral boundary — don't recommend marginal plays)
@@ -925,16 +945,27 @@ function finalizeResult(
     lineMoveConfirms === false ? Math.max(0,  sharpScore - 1) :
     sharpScore;
 
-  const { finalModelScore, finalModelTier, finalModelStars } =
+  let { finalModelScore, finalModelTier, finalModelStars } =
     getUniversalFinalRating(anchoredEdge, confidenceNum, effectiveSharpScore, priceAdj);
-  const podScore = getPodScore(finalModelScore, effectiveSharpScore, anchoredEdge);
+
+  // Score/tier are subscriber-facing conviction signals. If a quality gate
+  // rejects the wager, do not present a premium-looking score for a no-bet.
+  if (valueRating === "Neutral") {
+    finalModelScore = Math.min(finalModelScore, 59);
+    finalModelTier = finalModelScore >= 50 ? "Watchlist" : "Pass";
+    finalModelStars = finalModelScore >= 50 ? 2 : 1;
+  }
+
+  const podScore = valueRating === "Neutral"
+    ? 0
+    : getPodScore(finalModelScore, effectiveSharpScore, anchoredEdge);
   const units    = getDynamicUnits(anchoredEdge, finalModelScore, valueRating);
 
   // modelScore is now the universal final rating (backward-compat field name)
   const modelScore = finalModelScore;
 
   const projectedSpread = Math.round((0.5 - prob) * 20 * 2) / 2;
-  const vegasSpread     = Math.round((0.5 - vegasImplied) * 20 * 2) / 2;
+  const vegasSpread     = Math.round((0.5 - vegasHomeFairProbability) * 20 * 2) / 2;
 
   const defaultTotal   = DEFAULT_TOTALS[sport] ?? 45.0;
   const baseTotal      = opts.realVegasOverUnder ?? defaultTotal;

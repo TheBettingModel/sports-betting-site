@@ -84,4 +84,22 @@ describe("loss review diagnostics", () => {
     expect(review.flags).toContain("missing_or_stale_pregame_data");
     expect(review.flags).toContain("availability_changed_after_snapshot");
   });
+
+  it("creates a safe calibration follow-up for a high-confidence loss", () => {
+    const review = buildOutcomeReview({
+      snapshot: completeSnapshot,
+      selection: "home",
+      result: "loss",
+      modelProbability: 0.74,
+      impliedProbability: 0.58,
+      clv: null,
+      currentAvailability: completeSnapshot.decision.availability,
+    });
+
+    expect(review.flags).toContain("high_confidence_miss");
+    expect(review.evidence.calibrationError).toBeCloseTo(0.74);
+    expect(review.improvementActions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ area: "calibration", priority: "high" }),
+    ]));
+  });
 });

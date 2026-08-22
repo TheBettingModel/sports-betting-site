@@ -241,7 +241,7 @@ describe("autoResolveSportAlerts", () => {
 
   it("resolves an unresolved zero_games_feed alert when the sport returns >0 games", async () => {
     // The update should be called and resolve the alert
-    const updateBuilder = setupDbForIngestion();
+    const updateBuilder = makeUpdateBuilder();
     (mockDb.update as Mock).mockReturnValue(updateBuilder);
 
     await _autoResolveSportAlerts({ NFL: 5 });
@@ -259,7 +259,7 @@ describe("autoResolveSportAlerts", () => {
   });
 
   it("does NOT resolve alerts for sports that still have 0 games", async () => {
-    const updateBuilder = setupDbForIngestion();
+    const updateBuilder = makeUpdateBuilder();
     (mockDb.update as Mock).mockReturnValue(updateBuilder);
 
     await _autoResolveSportAlerts({ NFL: 0, NBA: 0 });
@@ -269,7 +269,7 @@ describe("autoResolveSportAlerts", () => {
   });
 
   it("does NOT resolve alerts for sports with 'error' fetch status", async () => {
-    const updateBuilder = setupDbForIngestion();
+    const updateBuilder = makeUpdateBuilder();
     (mockDb.update as Mock).mockReturnValue(updateBuilder);
 
     await _autoResolveSportAlerts({ NFL: "error" });
