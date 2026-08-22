@@ -7,7 +7,7 @@ import {
   getOddsForGame,
   getBestLine,
   displayBookName,
-  firstValidAmericanOdds,
+  firstValidMoneylineMarketForSport,
 } from "../services/oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "../services/mlbBullpen";
@@ -176,10 +176,20 @@ export async function refreshAll(): Promise<{
       if (mlbGames.length === 0) return;
       // First call populates the shared in-memory cache for todayDateStr
       const first = mlbGames[0]!;
-      await getLineupMatchup(first.homeTeamAbbr, first.awayTeamAbbr, first.gameDate);
+      await getLineupMatchup(
+        first.homeTeamAbbr,
+        first.awayTeamAbbr,
+        first.gameDate,
+        first.commenceTimeISO,
+      );
       // Remaining calls are served from cache (no additional HTTP requests)
       for (const g of mlbGames) {
-        const lm = await getLineupMatchup(g.homeTeamAbbr, g.awayTeamAbbr, g.gameDate);
+        const lm = await getLineupMatchup(
+          g.homeTeamAbbr,
+          g.awayTeamAbbr,
+          g.gameDate,
+          g.commenceTimeISO,
+        );
         lineupMap.set(g.espnId, lm);
       }
     })(),
@@ -231,7 +241,12 @@ export async function refreshAll(): Promise<{
 
     // ── Phase 2b: MLB probable starters (4-hour cache) ────────────────────────
     const starters = game.sport === "MLB"
-      ? await getProbablePitchers(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+      ? await getProbablePitchers(
+          game.homeTeamAbbr,
+          game.awayTeamAbbr,
+          game.gameDate,
+          game.commenceTimeISO,
+        )
       : { home: null, away: null };
     const pitcherAdvantage = game.sport === "MLB"
       ? computePitcherAdvantage(starters)
@@ -239,21 +254,26 @@ export async function refreshAll(): Promise<{
 
     // ── Phase 2c: line movement ───────────────────────────────────────────────
     const existingRow = existingByGameId.get(game.espnId);
-    const currentHomeOdds = firstValidAmericanOdds(
-      gameOdds?.consensusHomeOdds,
-      game.vegasHomeOdds,
-      existingRow?.vegasHomeOdds,
+    const oddsApiMarket = gameOdds
+      ? {
+          homeOdds: gameOdds.consensusHomeOdds,
+          awayOdds: gameOdds.consensusAwayOdds,
+          drawOdds: gameOdds.consensusDrawOdds,
+        }
+      : null;
+    const espnMarket = {
+      homeOdds: game.vegasHomeOdds,
+      awayOdds: game.vegasAwayOdds,
+      drawOdds: game.vegasDrawOdds,
+    };
+    const currentMarket = firstValidMoneylineMarketForSport(
+      game.sport,
+      oddsApiMarket,
+      espnMarket,
     );
-    const currentAwayOdds = firstValidAmericanOdds(
-      gameOdds?.consensusAwayOdds,
-      game.vegasAwayOdds,
-      existingRow?.vegasAwayOdds,
-    );
-    const currentDrawOdds = firstValidAmericanOdds(
-      gameOdds?.consensusDrawOdds,
-      game.vegasDrawOdds,
-      existingRow?.vegasDrawOdds,
-    );
+    const currentHomeOdds = currentMarket?.homeOdds;
+    const currentAwayOdds = currentMarket?.awayOdds;
+    const currentDrawOdds = currentMarket?.drawOdds ?? undefined;
     // Opening odds: preserved from first observation; falls back to current on first insert.
     const openingHomeOdds = existingRow?.openingHomeOdds ?? currentHomeOdds;
     const openingAwayOdds = existingRow?.openingAwayOdds ?? currentAwayOdds;

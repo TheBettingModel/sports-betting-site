@@ -48,6 +48,14 @@ export interface PitcherStats {
   recentEra: number;
   /** Average innings per start over last 3 outings. Proxy for arm depth. */
   recentIpAvg: number;
+  /** Season innings; used to shrink small-sample rate stats toward neutral. */
+  seasonIp: number;
+  /** Season batters faced; corroborates workload when innings are sparse. */
+  seasonBattersFaced: number;
+  /** Average pitches thrown over recent starts. Proxy for current expected length. */
+  recentPitchCountAvg: number;
+  /** Number of valid recent starts contributing to workload/form. */
+  recentStartCount: number;
 }
 
 export interface ProbableStarters {
@@ -156,6 +164,7 @@ async function fetchPitcherStats(pitcherId: number, name: string): Promise<Pitch
 
   let recentEraSum = 0;
   let recentIpSum  = 0;
+  let recentPitchSum = 0;
   let count        = 0;
 
   for (const start of lastStarts) {
@@ -164,6 +173,7 @@ async function fetchPitcherStats(pitcherId: number, name: string): Promise<Pitch
     if (!isNaN(era) && ip > 0) {
       recentEraSum += era;
       recentIpSum  += ip;
+      recentPitchSum += start.stat.numberOfPitches ?? 0;
       count++;
     }
   }
@@ -183,6 +193,10 @@ async function fetchPitcherStats(pitcherId: number, name: string): Promise<Pitch
     kMinusBbPct,
     recentEra:    isNaN(recentEra)  ? seasonEra : recentEra,
     recentIpAvg:  isNaN(recentIpAvg) ? 5.5 : recentIpAvg,
+    seasonIp,
+    seasonBattersFaced: seasonBf,
+    recentPitchCountAvg: count > 0 ? recentPitchSum / count : 80,
+    recentStartCount: count,
   };
 }
 
@@ -196,12 +210,25 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+/** MLB and ESPN event IDs differ, so use matchup plus precise scheduled start. */
+export function makePitcherGameKey(
+  homeAbbr: string,
+  awayAbbr: string,
+  commenceTimeISO: string,
+): string | null {
+  const startMs = Date.parse(commenceTimeISO);
+  if (!Number.isFinite(startMs)) return null;
+  return `${homeAbbr}|${awayAbbr}|${new Date(startMs).toISOString().slice(0, 16)}`;
+}
+
 interface MlbTeam {
   team: { id?: number; name?: string };
   probablePitcher?: { id: number; fullName: string; pitchHand?: { code: string } };
 }
 
 interface MlbGame {
+  /** Precise MLB start time, used to distinguish same-day doubleheader legs. */
+  gameDate?: string;
   teams: { home: MlbTeam; away: MlbTeam };
 }
 
@@ -277,6 +304,7 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
     seasonEra: LEAGUE_AVG_ERA, seasonWhip: LEAGUE_AVG_WHIP,
     fip: LEAGUE_AVG_FIP, kPct: LEAGUE_AVG_K_PCT, bbPct: LEAGUE_AVG_BB_PCT,
     kMinusBbPct: LEAGUE_AVG_KBB, recentEra: LEAGUE_AVG_ERA, recentIpAvg: 5.5,
+    seasonIp: 0, seasonBattersFaced: 0, recentPitchCountAvg: 80, recentStartCount: 0,
   };
 
   const result = new Map<string, ProbableStarters>();
@@ -291,7 +319,15 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
     const homeP = g.teams.home.probablePitcher;
     const awayP = g.teams.away.probablePitcher;
 
-    result.set(`${homeAbbr}|${awayAbbr}`, {
+    const gameKey = g.gameDate
+      ? makePitcherGameKey(homeAbbr, awayAbbr, g.gameDate)
+      : null;
+    if (!gameKey) {
+      logger.warn({ homeAbbr, awayAbbr }, "MLB pitchers: skipped game without valid start time");
+      continue;
+    }
+
+    result.set(gameKey, {
       home: homeP
         ? {
             ...(statsByPitcherId.get(homeP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: homeP.fullName }),
@@ -322,6 +358,7 @@ export async function getProbablePitchers(
   homeAbbr: string,
   awayAbbr: string,
   dateStr: string,
+  commenceTimeISO: string,
 ): Promise<ProbableStarters> {
   const cached = cache.get(dateStr);
   let scheduleMap: Map<string, ProbableStarters>;
@@ -338,7 +375,9 @@ export async function getProbablePitchers(
     }
   }
 
-  return scheduleMap.get(`${homeAbbr}|${awayAbbr}`) ?? { home: null, away: null };
+  const gameKey = makePitcherGameKey(homeAbbr, awayAbbr, commenceTimeISO);
+  if (!gameKey) return { home: null, away: null };
+  return scheduleMap.get(gameKey) ?? { home: null, away: null };
 }
 
 /**
@@ -382,13 +421,25 @@ export function computePitcherAdvantage(starters: ProbableStarters): number {
   // ── Weighted blend ─────────────────────────────────────────────────────────
   const blended = fipDiff * 0.45 + recentDiff * 0.30 + kbbDiffEraEq * 0.25;
 
-  // ── Workload scaling ───────────────────────────────────────────────────────
+  // ── Workload and sample-reliability scaling ─────────────────────────────────
   // If average recent IP is low, starter carries less of the game → reduce impact.
   // Full credit at ≥6.0 IP avg; floors at 60% for a true bullpen game (≤3.0 IP avg).
   const homeIp = home?.recentIpAvg ?? 5.5;
   const awayIp = away?.recentIpAvg ?? 5.5;
   const avgIp  = (homeIp + awayIp) / 2;
   const workloadFactor = Math.min(1.0, Math.max(0.60, avgIp / 6.0));
+  const avgPitches = ((home?.recentPitchCountAvg ?? 80) + (away?.recentPitchCountAvg ?? 80)) / 2;
+  const pitchCountFactor = Math.min(1.0, Math.max(0.65, avgPitches / 90));
+
+  // Early-season or limited-workload rate stats are noisy. Require both a
+  // meaningful innings sample and batters-faced sample before granting full
+  // conviction; the floor preserves a modest signal without inventing certainty.
+  const reliability = (pitcher: PitcherStats | null | undefined) => {
+    const innings = Math.min(1, (pitcher?.seasonIp ?? 0) / 60);
+    const batters = Math.min(1, (pitcher?.seasonBattersFaced ?? 0) / 250);
+    return Math.max(0.35, Math.min(1, (innings + batters) / 2));
+  };
+  const sampleFactor = Math.min(reliability(home), reliability(away));
 
   // ── Times-through-order adjustment ────────────────────────────────────────
   // When both starters go deep, both face the lineup 3× — this increases
@@ -397,6 +448,6 @@ export function computePitcherAdvantage(starters: ProbableStarters): number {
 
   // ── Final score: scale to probability, apply workload, cap ────────────────
   // Each ERA-equivalent point in blended ≈ 0.025 win probability shift.
-  const raw = blended * 0.025 * workloadFactor + ttoAdj;
+  const raw = blended * 0.025 * workloadFactor * pitchCountFactor * sampleFactor + ttoAdj;
   return Math.max(-0.08, Math.min(0.08, raw));
 }

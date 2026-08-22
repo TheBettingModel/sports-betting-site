@@ -26,7 +26,7 @@ import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
 import { computeProjection } from "./model";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, getNbaTeamStats, warmUpTeamStatsCache } from "./teamStats";
-import { getOddsForGame } from "./oddsApi";
+import { firstValidMoneylineMarketForSport, getOddsForGame } from "./oddsApi";
 import { getProbablePitchers, computePitcherAdvantage } from "./mlbPitchers";
 import { getBullpenMatchup, computeBullpenAdvantage } from "./mlbBullpen";
 import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup } from "./mlbLineups";
@@ -488,13 +488,37 @@ async function runOddsIngestion(): Promise<void> {
             game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
           );
           const starters = game.sport === "MLB"
-            ? await getProbablePitchers(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+            ? await getProbablePitchers(
+                game.homeTeamAbbr,
+                game.awayTeamAbbr,
+                game.gameDate,
+                game.commenceTimeISO,
+              )
             : { home: null, away: null };
           const pitcherAdvantage = game.sport === "MLB" ? computePitcherAdvantage(starters) : undefined;
 
           // Line movement: did the home team's implied probability increase since opening?
-          const existingRow      = existingByGameId.get(game.espnId);
-          const currentHomeOdds  = gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds ?? null;
+          const existingRow = existingByGameId.get(game.espnId);
+          const oddsApiMarket = gameOdds
+            ? {
+                homeOdds: gameOdds.consensusHomeOdds,
+                awayOdds: gameOdds.consensusAwayOdds,
+                drawOdds: gameOdds.consensusDrawOdds,
+              }
+            : null;
+          const espnMarket = {
+            homeOdds: game.vegasHomeOdds,
+            awayOdds: game.vegasAwayOdds,
+            drawOdds: game.vegasDrawOdds,
+          };
+          const currentMarket = firstValidMoneylineMarketForSport(
+            game.sport,
+            oddsApiMarket,
+            espnMarket,
+          );
+          const currentHomeOdds = currentMarket?.homeOdds;
+          const currentAwayOdds = currentMarket?.awayOdds;
+          const currentDrawOdds = currentMarket?.drawOdds ?? undefined;
           const lineMovedTowardHome: boolean | undefined =
             existingRow?.openingHomeOdds != null && currentHomeOdds != null
               ? impliedProb(currentHomeOdds) > impliedProb(existingRow.openingHomeOdds)
@@ -549,7 +573,12 @@ async function runOddsIngestion(): Promise<void> {
             : null;
 
           const lineupMatchup = game.sport === "MLB"
-            ? await getLineupMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+            ? await getLineupMatchup(
+                game.homeTeamAbbr,
+                game.awayTeamAbbr,
+                game.gameDate,
+                game.commenceTimeISO,
+              )
             : null;
           // Enrich with career batter–pitcher matchup data (cached 30 min)
           const enrichedLineup = game.sport === "MLB" && lineupMatchup
@@ -583,9 +612,9 @@ async function runOddsIngestion(): Promise<void> {
               awayHomeRecord:    game.awayHomeRecord,
               awayRoadRecord:    game.awayRoadRecord,
               // Consensus odds preferred over ESPN single book
-              realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
-              realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
-              realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+              realVegasHomeOdds: currentHomeOdds,
+              realVegasAwayOdds: currentAwayOdds,
+              realVegasDrawOdds: currentDrawOdds,
               realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
               // Phase 2 signals
               pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
@@ -627,9 +656,9 @@ async function runOddsIngestion(): Promise<void> {
               homeRoadRecord: game.homeRoadRecord,
               awayHomeRecord: game.awayHomeRecord,
               awayRoadRecord: game.awayRoadRecord,
-              realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
-              realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
-              realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+              realVegasHomeOdds: currentHomeOdds,
+              realVegasAwayOdds: currentAwayOdds,
+              realVegasDrawOdds: currentDrawOdds,
               realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
               pinnacleHomeOdds: gameOdds?.pinnacleHomeOdds,
               pinnacleAwayOdds: gameOdds?.pinnacleAwayOdds,
@@ -768,7 +797,12 @@ async function runResultGrading(): Promise<void> {
           game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
         );
         const starters = game.sport === "MLB"
-          ? await getProbablePitchers(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+          ? await getProbablePitchers(
+              game.homeTeamAbbr,
+              game.awayTeamAbbr,
+              game.gameDate,
+              game.commenceTimeISO,
+            )
           : { home: null, away: null };
         const pitcherAdvantage = game.sport === "MLB" ? computePitcherAdvantage(starters) : undefined;
 
@@ -820,7 +854,12 @@ async function runResultGrading(): Promise<void> {
           : null;
 
         const lineupMatchup = game.sport === "MLB"
-          ? await getLineupMatchup(game.homeTeamAbbr, game.awayTeamAbbr, game.gameDate)
+          ? await getLineupMatchup(
+              game.homeTeamAbbr,
+              game.awayTeamAbbr,
+              game.gameDate,
+              game.commenceTimeISO,
+            )
           : null;
         const enrichedLineup = game.sport === "MLB" && lineupMatchup
           ? await enrichLineupMatchup(lineupMatchup, starters)
@@ -841,14 +880,32 @@ async function runResultGrading(): Promise<void> {
           ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
           : null;
 
+        const oddsApiMarket = gameOdds
+          ? {
+              homeOdds: gameOdds.consensusHomeOdds,
+              awayOdds: gameOdds.consensusAwayOdds,
+              drawOdds: gameOdds.consensusDrawOdds,
+            }
+          : null;
+        const espnMarket = {
+          homeOdds: game.vegasHomeOdds,
+          awayOdds: game.vegasAwayOdds,
+          drawOdds: game.vegasDrawOdds,
+        };
+        const currentMarket = firstValidMoneylineMarketForSport(
+          game.sport,
+          oddsApiMarket,
+          espnMarket,
+        );
+
         const projectionOptions = {
           homeHomeRecord:    game.homeHomeRecord,
           homeRoadRecord:    game.homeRoadRecord,
           awayHomeRecord:    game.awayHomeRecord,
           awayRoadRecord:    game.awayRoadRecord,
-          realVegasHomeOdds: gameOdds?.consensusHomeOdds ?? game.vegasHomeOdds,
-          realVegasAwayOdds: gameOdds?.consensusAwayOdds ?? game.vegasAwayOdds,
-          realVegasDrawOdds: gameOdds?.consensusDrawOdds ?? game.vegasDrawOdds,
+          realVegasHomeOdds: currentMarket?.homeOdds,
+          realVegasAwayOdds: currentMarket?.awayOdds,
+          realVegasDrawOdds: currentMarket?.drawOdds ?? undefined,
           realVegasOverUnder: gameOdds?.total ?? game.vegasOverUnder,
           pinnacleHomeOdds:  gameOdds?.pinnacleHomeOdds,
           pinnacleAwayOdds:  gameOdds?.pinnacleAwayOdds,

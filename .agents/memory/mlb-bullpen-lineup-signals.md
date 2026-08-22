@@ -21,6 +21,10 @@ Fatigue formula: `Σ(reliefPitches × weight)` where yesterday=1.0, 2 days ago=0
 
 **Route optimization:** Seed the cache with the first game's await, then sequential lookups for remaining games — avoids 15 concurrent fetches all missing the cache simultaneously.
 
+**Doubleheader identity rule:** Keep the date-level fetch cache, but index both lineup and probable-starter results by home team, away team, and the precise scheduled UTC start. MLB and ESPN event IDs differ, so a matchup-only key is unsafe when the same teams play twice on one date. Never use a formatted display time or an ordered “first/second game” fallback.
+
+**Why:** The second game could overwrite the first game’s lineup or starting pitchers, silently pairing the wrong evidence with an otherwise valid moneyline pick. Bullpen fatigue remains intentionally team/date scoped because both games share the same recent relief workload.
+
 ## Schema (`lib/db/src/schema/games.ts`)
 
 Added 6 columns: `homeBullpenFatigue`, `awayBullpenFatigue` (real, weighted pitch count), `homeBullpenLabel`, `awayBullpenLabel` (text: Fresh/Moderate/Tired/Exhausted), `homeLineupConfirmed`, `awayLineupConfirmed` (boolean). All nullable (non-MLB = null).

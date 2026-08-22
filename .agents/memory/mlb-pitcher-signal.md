@@ -12,7 +12,9 @@ MLB Stats API (free, no key): `https://statsapi.mlb.com/api/v1/`
 **Critical:** Must include `team` in hydrate to get `teams.home.team.id`. Without it, abbreviation and id are both missing. Team abbreviation is never returned from the schedule endpoint.
 
 ## Team matching
-The schedule returns team `id` (numeric) but NOT `abbreviation`. ESPN abbreviations differ from MLB abbreviations for some teams (AZ vs ARI, etc.). Use the static `MLB_ID_TO_ESPN` map in `mlbPitchers.ts` to convert MLB team ID → ESPN abbreviation, then key the schedule map as `"homeAbbr|awayAbbr"`.
+The schedule returns team `id` (numeric) but NOT `abbreviation`. ESPN abbreviations differ from MLB abbreviations for some teams (AZ vs ARI, etc.). Use the static `MLB_ID_TO_ESPN` map in `mlbPitchers.ts` to convert MLB team ID → ESPN abbreviation.
+
+For a game identity, combine the converted home/away abbreviations with the precise MLB schedule start timestamp. Do not use a matchup-only key: same-day doubleheaders have distinct starters but identical teams.
 
 ## Pitcher stats endpoint
 `/people/{id}/stats?stats=season,gameLog&group=pitching&season=2026&gameType=R`
@@ -24,6 +26,8 @@ The schedule returns team `id` (numeric) but NOT `abbreviation`. ESPN abbreviati
 **Why:** Season aggregate is cumulative ERA. Recent ERA averages the season ERA values at the time of each of the last 3 starts — a reasonable proxy for current form since it shows ERA trajectory.
 
 ## Model integration
-`computePitcherAdvantage()` in `mlbPitchers.ts` returns a value in `[-0.08, +0.08]` probability shift. Injected into `computeRunsModel()` after team-level stats, before the confidence multiplier step. Blends season ERA (30%) and recent ERA (70%).
+`computePitcherAdvantage()` returns a value in `[-0.08, +0.08]` probability shift. It blends FIP, recent ERA, and K-BB%, then shrinks the result for a low innings/batters-faced sample or a low recent pitch-count/workload profile.
 
 **Why 70% recent:** Single-game outcomes are dominated by the specific pitcher on the mound, not season averages. A Cy Young caliber ace with a 6-run recent outing matters more than his 2.50 season ERA.
+
+**How to apply:** Missing probable starters must block a published MLB full-game pick rather than quietly using league-average defaults. Defaults are acceptable only to keep internal numeric response fields stable.

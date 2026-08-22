@@ -90,6 +90,12 @@ export interface GameOdds {
   commenceTime: string;
 }
 
+export interface MoneylineMarket {
+  homeOdds: number | null | undefined;
+  awayOdds: number | null | undefined;
+  drawOdds?: number | null | undefined;
+}
+
 interface OddsApiOutcome {
   name: string;
   price: number;    // American odds
@@ -177,6 +183,50 @@ export function isValidAmericanOdds(value: number | null | undefined): value is 
     && Number.isInteger(value)
     && Math.abs(value) >= 100
     && Math.abs(value) <= MAX_REASONABLE_AMERICAN_ODDS;
+}
+
+/** Reject non-finite or obviously malformed spread/total values from provider data. */
+export function isValidMarketPoint(
+  value: number | null | undefined,
+  kind: "spread" | "total",
+): value is number {
+  if (value == null || !Number.isFinite(value)) return false;
+  return kind === "spread"
+    ? Math.abs(value) <= 100
+    : value > 0 && value <= 500;
+}
+
+/** A two-way moneyline is usable only when both prices came from the same market. */
+export function hasValidMoneylineMarket(
+  market: Pick<MoneylineMarket, "homeOdds" | "awayOdds"> | null | undefined,
+): market is MoneylineMarket & { homeOdds: number; awayOdds: number } {
+  return market != null
+    && isValidAmericanOdds(market.homeOdds)
+    && isValidAmericanOdds(market.awayOdds);
+}
+
+/** Soccer is a three-outcome market; a missing or invalid draw price invalidates the whole market. */
+export function hasValidMoneylineMarketForSport(
+  sport: string,
+  market: MoneylineMarket | null | undefined,
+): market is MoneylineMarket & { homeOdds: number; awayOdds: number; drawOdds?: number } {
+  return hasValidMoneylineMarket(market)
+    && (sport !== "Soccer" || isValidAmericanOdds(market.drawOdds));
+}
+
+/** Select a complete market without mixing one side from a newer feed with the other from an older feed. */
+export function firstValidMoneylineMarket(
+  ...markets: Array<MoneylineMarket | null | undefined>
+): (MoneylineMarket & { homeOdds: number; awayOdds: number }) | undefined {
+  return markets.find(hasValidMoneylineMarket);
+}
+
+/** Select a complete market using the outcome requirements of the sport. */
+export function firstValidMoneylineMarketForSport(
+  sport: string,
+  ...markets: Array<MoneylineMarket | null | undefined>
+): (MoneylineMarket & { homeOdds: number; awayOdds: number; drawOdds?: number }) | undefined {
+  return markets.find((market) => hasValidMoneylineMarketForSport(sport, market));
 }
 
 /** The Odds API may retain in-play markets briefly; never consume them as pregame odds. */
@@ -290,6 +340,9 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
     const consensusHomeOdds = probToAmerican(avgHome);
     const consensusAwayOdds = probToAmerican(avgAway);
     const consensusDrawOdds = avgDraw != null ? probToAmerican(avgDraw) : undefined;
+    if (!hasValidMoneylineMarket({ homeOdds: consensusHomeOdds, awayOdds: consensusAwayOdds })) {
+      continue;
+    }
 
     // ── Spreads — prefer Pinnacle, else first public book ─────────────────
     let spread: number | undefined;
@@ -300,7 +353,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
         const homeSpread = spreadsMarket.outcomes.find((o) =>
           normalizeName(o.name) === normalizeName(g.home_team),
         );
-        if (homeSpread?.point != null) spread = homeSpread.point;
+          if (isValidMarketPoint(homeSpread?.point, "spread")) spread = homeSpread.point;
       }
     }
 
@@ -310,7 +363,7 @@ async function fetchAndNormalise(oddsApiKey: string): Promise<Map<string, GameOd
       const totalsMarket = spreadSource.markets.find((m) => m.key === "totals");
       if (totalsMarket) {
         const overLine = totalsMarket.outcomes.find((o) => o.name.toLowerCase() === "over");
-        if (overLine?.point != null) total = overLine.point;
+          if (isValidMarketPoint(overLine?.point, "total")) total = overLine.point;
       }
     }
 
@@ -451,14 +504,22 @@ export async function getOddsForGame(
   const key = matchKey(homeTeamName, awayTeamName);
   const entries = gamesMap.get(key);
   if (!entries || entries.length === 0) return null;
-  if (entries.length === 1 || !commenceTimeISO) return entries[0]!;
+  if (!commenceTimeISO) return entries[0]!;
+
+  const espnMs = new Date(commenceTimeISO).getTime();
+  if (!Number.isFinite(espnMs)) return null;
 
   // Multiple entries (doubleheader): pick the one whose commence_time is
-  // closest to the ESPN game time.
-  const espnMs = new Date(commenceTimeISO).getTime();
-  return entries.reduce((best, cur) => {
+  // closest to the ESPN game time. Reject same-team games that are too far
+  // apart instead of assigning tomorrow's or a live market to this event.
+  const closest = entries.reduce((best, cur) => {
     const bestDiff = Math.abs(new Date(best.commenceTime).getTime() - espnMs);
     const curDiff  = Math.abs(new Date(cur.commenceTime).getTime() - espnMs);
     return curDiff < bestDiff ? cur : best;
   });
+  const differenceMs = Math.abs(new Date(closest.commenceTime).getTime() - espnMs);
+  const MAX_START_TIME_DIFFERENCE_MS = 8 * 60 * 60 * 1000;
+  return Number.isFinite(differenceMs) && differenceMs <= MAX_START_TIME_DIFFERENCE_MS
+    ? closest
+    : null;
 }

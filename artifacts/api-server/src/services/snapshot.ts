@@ -20,6 +20,11 @@ import {
 import type { FetchedGame } from "./espn";
 import { getBootstrapIds } from "./bootstrap";
 import { logger } from "../lib/logger";
+import {
+  hasValidMoneylineMarketForSport,
+  isValidAmericanOdds,
+  isPregameCommenceTime,
+} from "./oddsApi";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -32,6 +37,20 @@ export interface PredictionDecisionContext {
     missingSignals: string[];
     source: "refresh";
   };
+}
+
+/** Required evidence for an actionable pregame moneyline decision. */
+export function isPredictionDecisionEligible(
+  game: FetchedGame,
+  decisionContext: PredictionDecisionContext | undefined,
+): boolean {
+  if (!decisionContext) return false;
+  const missing = new Set(decisionContext.dataQuality.missingSignals);
+  if (missing.has("market_odds") || missing.has("market_started_or_invalid")) return false;
+  // MLB starter quality is a full-game input, not a neutral fallback. Retain the
+  // game for display, but do not turn an unannounced/scratched starter into a pick.
+  if (game.sport === "MLB" && missing.has("probable_pitchers")) return false;
+  return true;
 }
 
 /**
@@ -53,8 +72,14 @@ export function createPredictionDecisionContext(
     options,
     factorWeights,
   );
+  const hasValidMarket = hasValidMoneylineMarketForSport(game.sport, {
+    homeOdds: options.realVegasHomeOdds,
+    awayOdds: options.realVegasAwayOdds,
+    drawOdds: options.realVegasDrawOdds,
+  });
   const missingSignals = [
-    options.realVegasHomeOdds == null || options.realVegasAwayOdds == null ? "market_odds" : null,
+    !hasValidMarket ? "market_odds" : null,
+    !isPregameCommenceTime(game.commenceTimeISO) ? "market_started_or_invalid" : null,
     game.sport === "MLB" && options.pitcherAdvantage == null ? "probable_pitchers" : null,
     game.sport === "NHL" && options.goalieAdvantage == null ? "goalie_confirmation" : null,
     game.sport === "NFL" && options.injuryAdvantage == null ? "injury_report" : null,
@@ -78,8 +103,8 @@ export function createPredictionDecisionContext(
 // ── Odds snapshot ─────────────────────────────────────────────────────────────
 
 /**
- * Persist Vegas odds from the ESPN feed into odds_snapshots.
- * Writes six rows per game: home/away moneyline, home/away spread, over/under.
+ * Persist only verified moneyline prices as immutable pregame evidence.
+ * Synthetic spread/total values must never be recorded as market history.
  */
 async function writeOddsSnapshot(
   game: FetchedGame,
@@ -87,19 +112,24 @@ async function writeOddsSnapshot(
   capturedAt: Date,
   espnSportsbookId: number,
   marketIds: Record<string, number>,
+  decisionContext?: PredictionDecisionContext,
 ): Promise<void> {
   const mlId = marketIds["moneyline"];
-  const spId = marketIds["spread"];
-  const totId = marketIds["total"];
-  if (!mlId || !spId || !totId) return;
+  const marketMissing = decisionContext?.dataQuality.missingSignals.includes("market_odds") ?? true;
+  if (!mlId || marketMissing || !hasValidMoneylineMarketForSport(game.sport, {
+    homeOdds: proj.vegasHomeOdds,
+    awayOdds: proj.vegasAwayOdds,
+    drawOdds: game.sport === "Soccer" ? proj.vegasDrawOdds : undefined,
+  })) {
+    return;
+  }
 
   const rows = [
     { marketId: mlId, selection: "home", price: proj.vegasHomeOdds, line: null as number | null },
     { marketId: mlId, selection: "away", price: proj.vegasAwayOdds, line: null as number | null },
-    { marketId: spId, selection: "home", price: -110, line: proj.vegasSpread },
-    { marketId: spId, selection: "away", price: -110, line: -proj.vegasSpread },
-    { marketId: totId, selection: "over", price: -110, line: proj.vegasTotal },
-    { marketId: totId, selection: "under", price: -110, line: proj.vegasTotal },
+    ...(game.sport === "Soccer"
+      ? [{ marketId: mlId, selection: "draw", price: proj.vegasDrawOdds, line: null as number | null }]
+      : []),
   ];
 
   for (const r of rows) {
@@ -136,6 +166,14 @@ async function writePredictionSnapshot(
   capturedAt: Date,
   decisionContext?: PredictionDecisionContext,
 ): Promise<number | null> {
+  if (!isPredictionDecisionEligible(game, decisionContext) || !hasValidMoneylineMarketForSport(game.sport, {
+    homeOdds: proj.vegasHomeOdds,
+    awayOdds: proj.vegasAwayOdds,
+    drawOdds: game.sport === "Soccer" ? proj.vegasDrawOdds : undefined,
+  })) {
+    return null;
+  }
+
   // Guard: one prediction per game + model version + market
   const [existing] = await db
     .select({ id: modelPredictionsTable.id })
@@ -332,28 +370,21 @@ async function writeGameResult(game: FetchedGame): Promise<void> {
  */
 async function writeClosingLines(
   game: FetchedGame,
-  proj: ProjectionResult,
   capturedAt: Date,
   marketIds: Record<string, number>,
 ): Promise<void> {
   if (game.status !== "final") return;
 
   const mlId = marketIds["moneyline"];
-  const spId = marketIds["spread"];
-  const totId = marketIds["total"];
-  if (!mlId || !spId || !totId) return;
-
-  const fallbackRows = [
-    { marketId: mlId, selection: "home", closingPrice: proj.vegasHomeOdds, closingLine: null as number | null },
-    { marketId: mlId, selection: "away", closingPrice: proj.vegasAwayOdds, closingLine: null as number | null },
-    { marketId: spId, selection: "home", closingPrice: -110, closingLine: proj.vegasSpread },
-    { marketId: spId, selection: "away", closingPrice: -110, closingLine: -proj.vegasSpread },
-    { marketId: totId, selection: "over", closingPrice: -110, closingLine: proj.vegasTotal },
-    { marketId: totId, selection: "under", closingPrice: -110, closingLine: proj.vegasTotal },
-  ];
+  if (!mlId) return;
 
   const cutoff = new Date(game.commenceTimeISO).getTime();
-  for (const r of fallbackRows) {
+  if (!Number.isFinite(cutoff)) return;
+
+  const selections = game.sport === "Soccer"
+    ? ["home", "away", "draw"] as const
+    : ["home", "away"] as const;
+  for (const selection of selections) {
     const [lastPregame] = Number.isFinite(cutoff)
       ? await db
           .select({ price: oddsSnapshotsTable.price, line: oddsSnapshotsTable.line })
@@ -361,25 +392,27 @@ async function writeClosingLines(
           .where(
             and(
               eq(oddsSnapshotsTable.gameId, game.espnId),
-              eq(oddsSnapshotsTable.marketId, r.marketId),
-              eq(oddsSnapshotsTable.selection, r.selection),
+              eq(oddsSnapshotsTable.marketId, mlId),
+              eq(oddsSnapshotsTable.selection, selection),
+              eq(oddsSnapshotsTable.isAvailable, true),
+              eq(oddsSnapshotsTable.isStale, false),
+              eq(oddsSnapshotsTable.marketStatus, "open"),
               lte(oddsSnapshotsTable.capturedAt, new Date(cutoff)),
             ),
           )
           .orderBy(desc(oddsSnapshotsTable.capturedAt))
           .limit(1)
       : [];
-    const closingPrice = lastPregame?.price ?? r.closingPrice;
-    const closingLine = lastPregame?.line ?? r.closingLine;
+    if (!lastPregame || !isValidAmericanOdds(lastPregame.price)) continue;
 
     await db
       .insert(closingLinesTable)
       .values({
         gameId: game.espnId,
-        marketId: r.marketId,
-        selection: r.selection,
-        closingPrice,
-        closingLine,
+        marketId: mlId,
+        selection,
+        closingPrice: lastPregame.price,
+        closingLine: lastPregame.line,
         capturedAt,
       })
       .onConflictDoNothing(); // uniqueIndex on (gameId, marketId, selection)
@@ -418,8 +451,8 @@ export async function processGameSnapshot(
     // 1. Capture and publish only while the game is genuinely upcoming.
     // Live/post-start provider prices must never become a new "pregame" model
     // decision or overwrite the market evidence used for later learning.
-    if (game.status === "upcoming") {
-      await writeOddsSnapshot(game, proj, now, espnSportsbookId, marketIds);
+    if (game.status === "upcoming" && isPregameCommenceTime(game.commenceTimeISO)) {
+      await writeOddsSnapshot(game, proj, now, espnSportsbookId, marketIds, decisionContext);
       const predictionId = await writePredictionSnapshot(
         game,
         proj,
@@ -436,7 +469,7 @@ export async function processGameSnapshot(
     // the final valid pregame snapshot rather than the current final/live feed.
     if (game.status === "final") {
       await writeGameResult(game);
-      await writeClosingLines(game, proj, now, marketIds);
+      await writeClosingLines(game, now, marketIds);
     }
   } catch (err) {
     logger.error({ err, gameId: game.espnId }, "processGameSnapshot error");

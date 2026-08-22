@@ -22,6 +22,25 @@ describe("two-way market edge safeguards", () => {
 
     expect(Math.abs(projection.vegasHomeOdds)).toBeLessThanOrEqual(2_000);
     expect(Math.abs(projection.vegasAwayOdds)).toBeLessThanOrEqual(2_000);
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.podScore).toBe(0);
+    expect(projection.units).toBe(0);
+  });
+
+  it("never publishes a recommendation from a one-sided market", () => {
+    const projection = computeProjection(
+      "one-sided-odds-game",
+      "MLB",
+      "100-0",
+      "0-100",
+      null,
+      { realVegasHomeOdds: 130, realVegasAwayOdds: 0 },
+    );
+
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.finalModelScore).toBeLessThanOrEqual(59);
+    expect(projection.podScore).toBe(0);
+    expect(projection.units).toBe(0);
   });
 
   it("never gives a blocked neutral play an elite-looking score or POD ranking", () => {
@@ -37,6 +56,24 @@ describe("two-way market edge safeguards", () => {
     expect(projection.valueRating).toBe("Neutral");
     expect(projection.finalModelScore).toBeLessThanOrEqual(59);
     expect(projection.finalModelTier).not.toBe("Elite");
+    expect(projection.podScore).toBe(0);
+    expect(projection.units).toBe(0);
+  });
+});
+
+describe("three-way market edge safeguards", () => {
+  it("never publishes a recommendation from an incomplete Soccer market", () => {
+    const projection = computeProjection(
+      "incomplete-soccer-odds",
+      "Soccer",
+      "20-4-2",
+      "5-6-15",
+      null,
+      { realVegasHomeOdds: 125, realVegasAwayOdds: 220, realVegasDrawOdds: 0 },
+    );
+
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.finalModelScore).toBeLessThanOrEqual(59);
     expect(projection.podScore).toBe(0);
     expect(projection.units).toBe(0);
   });

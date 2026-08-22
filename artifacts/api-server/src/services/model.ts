@@ -830,16 +830,23 @@ function finalizeResult(
   let vegasAwayOdds: number;
   let vegasHomeFairProbability: number;
 
-  if (isCredibleAmericanOdds(opts.realVegasHomeOdds) && isCredibleAmericanOdds(opts.realVegasAwayOdds)) {
+  const verifiedMoneylineMarket =
+    isCredibleAmericanOdds(opts.realVegasHomeOdds)
+    && isCredibleAmericanOdds(opts.realVegasAwayOdds);
+  const hasVerifiedMoneylineMarket = verifiedMoneylineMarket;
+
+  if (
+    verifiedMoneylineMarket
+    && isCredibleAmericanOdds(opts.realVegasHomeOdds)
+    && isCredibleAmericanOdds(opts.realVegasAwayOdds)
+  ) {
     vegasHomeOdds = opts.realVegasHomeOdds;
     vegasAwayOdds = opts.realVegasAwayOdds;
     const fairMarket = removeVig2(vegasHomeOdds, vegasAwayOdds);
     vegasHomeFairProbability = fairMarket.home;
-  } else if (isCredibleAmericanOdds(opts.realVegasHomeOdds)) {
-    vegasHomeOdds = opts.realVegasHomeOdds;
-    vegasHomeFairProbability = americanToImplied(vegasHomeOdds);
-    vegasAwayOdds = impliedToAmerican(1 - vegasHomeFairProbability);
   } else {
+    // Keep the numeric response shape backward-compatible for existing clients,
+    // but never treat a one-sided or missing market as a priced betting market.
     const naiveProb  = 0.5 + (homeWinRate - 0.5) * 0.3;
     const vegasNoise = hashNoise(gameId + "v", 6, 3);
     const vegasProb  = Math.max(0.1, Math.min(0.9, naiveProb + vegasNoise));
@@ -898,6 +905,12 @@ function finalizeResult(
   let valueRating =
     absAnchoredEdge >= effectiveStrongBuyThreshold ? "Strong Buy" :
     absAnchoredEdge >= effectiveBuyThreshold       ? "Buy"        : "Neutral";
+
+  // A moneyline recommendation requires one complete, credible pregame market.
+  // Without it, any model/market edge is unverifiable and must stay a no-bet.
+  if (!hasVerifiedMoneylineMarket) {
+    valueRating = "Neutral";
+  }
 
   // ── Phase 1: enhanced scoring ─────────────────────────────────────────────
 
@@ -1058,20 +1071,27 @@ function computeSoccerProjection(
   let vegasDrawOdds: number;
   let vegasImpliedHome: number;
 
-  if (opts.realVegasHomeOdds != null && opts.realVegasDrawOdds != null) {
-    const rawHome = americanToImplied(opts.realVegasHomeOdds);
-    const rawDraw = americanToImplied(opts.realVegasDrawOdds);
-    let rawAway: number;
-    if (opts.realVegasAwayOdds != null) {
-      rawAway = americanToImplied(opts.realVegasAwayOdds);
-    } else {
-      rawAway = Math.max(0.05, 1.06 - rawHome - rawDraw);
-    }
+  const verifiedSoccerMarket =
+    isCredibleAmericanOdds(opts.realVegasHomeOdds)
+    && isCredibleAmericanOdds(opts.realVegasAwayOdds)
+    && isCredibleAmericanOdds(opts.realVegasDrawOdds)
+      ? {
+          homeOdds: opts.realVegasHomeOdds,
+          awayOdds: opts.realVegasAwayOdds,
+          drawOdds: opts.realVegasDrawOdds,
+        }
+      : null;
+  const hasVerifiedSoccerMarket = verifiedSoccerMarket != null;
+
+  if (verifiedSoccerMarket) {
+    const rawHome = americanToImplied(verifiedSoccerMarket.homeOdds);
+    const rawDraw = americanToImplied(verifiedSoccerMarket.drawOdds);
+    const rawAway = americanToImplied(verifiedSoccerMarket.awayOdds);
     const [nvHome, ,] = removeVig3(rawHome, rawDraw, rawAway);
     vegasImpliedHome = nvHome;
-    vegasHomeOdds    = opts.realVegasHomeOdds;
-    vegasDrawOdds    = opts.realVegasDrawOdds;
-    vegasAwayOdds    = opts.realVegasAwayOdds ?? impliedToAmerican(1 - rawHome - rawDraw);
+    vegasHomeOdds    = verifiedSoccerMarket.homeOdds;
+    vegasDrawOdds    = verifiedSoccerMarket.drawOdds;
+    vegasAwayOdds    = verifiedSoccerMarket.awayOdds;
   } else {
     const vegNoise = hashNoise(gameId + "sv", 6, 3);
     const simHome  = Math.max(0.10, Math.min(0.75, modelHome + vegNoise));
@@ -1091,6 +1111,9 @@ function computeSoccerProjection(
 
   // Apply the same -160 moneyline cap as all other sports.
   let soccerValueRating = valueRating;
+  if (!hasVerifiedSoccerMarket) {
+    soccerValueRating = "Neutral";
+  }
   if ((soccerValueRating === "Strong Buy" || soccerValueRating === "Buy") && pickOdds <= -160) {
     soccerValueRating = "Neutral";
   }
@@ -1104,9 +1127,16 @@ function computeSoccerProjection(
 
   const confidenceNum = getNumericConfidence(deviation);
   const { sharpScore, sharpSignal } = getSharpMarketSignal(edge, pickOdds);
-  const { finalModelScore, finalModelTier, finalModelStars } =
+  let { finalModelScore, finalModelTier, finalModelStars } =
     getUniversalFinalRating(edge, confidenceNum, sharpScore, priceAdj);
-  const podScore = getPodScore(finalModelScore, sharpScore, edge);
+  if (soccerValueRating === "Neutral") {
+    finalModelScore = Math.min(finalModelScore, 59);
+    finalModelTier = finalModelScore >= 50 ? "Watchlist" : "Pass";
+    finalModelStars = finalModelScore >= 50 ? 2 : 1;
+  }
+  const podScore = soccerValueRating === "Neutral"
+    ? 0
+    : getPodScore(finalModelScore, sharpScore, edge);
   const units    = getDynamicUnits(edge, finalModelScore, soccerValueRating);
 
   const projectedSpread = Math.round((0.5 - modelHome) * 6 * 2) / 2;

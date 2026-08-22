@@ -82,6 +82,9 @@ interface MlbLineups {
 }
 
 interface MlbScheduleGame {
+  gamePk?: number;
+  /** Precise scheduled start from the MLB Stats API, used to distinguish doubleheaders. */
+  gameDate?: string;
   teams?: {
     home?: { team?: { id?: number } };
     away?: { team?: { id?: number } };
@@ -366,6 +369,20 @@ function computeAvgOpsIfAvailable(
   return count >= Math.ceil(batters.length / 2) ? sum / count : undefined;
 }
 
+/**
+ * MLB and ESPN use different game IDs. A matchup plus its precise scheduled start
+ * is the stable cross-provider identity, including for same-day doubleheaders.
+ */
+export function makeLineupGameKey(
+  homeAbbr: string,
+  awayAbbr: string,
+  commenceTimeISO: string,
+): string | null {
+  const startMs = Date.parse(commenceTimeISO);
+  if (!Number.isFinite(startMs)) return null;
+  return `${homeAbbr}|${awayAbbr}|${new Date(startMs).toISOString().slice(0, 16)}`;
+}
+
 // ── Fetch ─────────────────────────────────────────────────────────────────────
 
 async function fetchLineups(dateStr: string): Promise<Map<string, LineupMatchup>> {
@@ -427,7 +444,15 @@ async function fetchLineups(dateStr: string): Promise<Map<string, LineupMatchup>
     const homeIds = homeBatters.map((b) => b.id).filter((id): id is number => id != null);
     const awayIds = awayBatters.map((b) => b.id).filter((id): id is number => id != null);
 
-    result.set(`${homeAbbr}|${awayAbbr}`, {
+    const gameKey = game.gameDate
+      ? makeLineupGameKey(homeAbbr, awayAbbr, game.gameDate)
+      : null;
+    if (!gameKey) {
+      logger.warn({ gamePk: game.gamePk, homeAbbr, awayAbbr }, "MLB lineups: skipped game without valid start time");
+      continue;
+    }
+
+    result.set(gameKey, {
       home: {
         confirmed:    homeConfirmed,
         batterCount:  homeBatters.length,
@@ -470,6 +495,7 @@ export async function getLineupMatchup(
   homeAbbr: string,
   awayAbbr: string,
   dateStr: string,
+  commenceTimeISO: string,
 ): Promise<LineupMatchup> {
   const cached = cache.get(dateStr);
   let lineupMap: Map<string, LineupMatchup>;
@@ -486,7 +512,9 @@ export async function getLineupMatchup(
     }
   }
 
-  return lineupMap.get(`${homeAbbr}|${awayAbbr}`) ?? { home: NOT_CONFIRMED, away: NOT_CONFIRMED };
+  const gameKey = makeLineupGameKey(homeAbbr, awayAbbr, commenceTimeISO);
+  if (!gameKey) return { home: NOT_CONFIRMED, away: NOT_CONFIRMED };
+  return lineupMap.get(gameKey) ?? { home: NOT_CONFIRMED, away: NOT_CONFIRMED };
 }
 
 // ── Career matchup enrichment ─────────────────────────────────────────────────
@@ -520,6 +548,7 @@ export async function enrichLineupMatchup(
     homeId ?? "x",
     awayId ?? "x",
     matchup.home.playerIds?.join(",") ?? "",
+    matchup.away.playerIds?.join(",") ?? "",
   ].join("|");
 
   const cached = enrichmentCache.get(cacheKey);
