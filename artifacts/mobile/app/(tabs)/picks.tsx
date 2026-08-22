@@ -28,6 +28,9 @@ const SKELETON_COUNT = 6;
 
 const RATING_ORDER = ['Strong Buy', 'Buy', 'Neutral', 'Fade'] as const;
 type Rating = typeof RATING_ORDER[number];
+const ACTIONABLE_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
+const ALL_PLAYS_LIMIT = 6;
+const SPORT_PLAYS_LIMIT = 5;
 
 const RATING_COLORS: Record<Rating, string> = {
   'Strong Buy': '#84CC16',
@@ -98,11 +101,16 @@ export default function PicksScreen() {
     return c;
   }, [sortedGames]);
 
-  // Featured top pick — always from ALL games regardless of sport filter
+  // Featured top pick — always from the strongest actionable games across all
+  // sports, regardless of the selected sport filter. Neutral games should
+  // never be promoted as the day's top play.
   const topPick = useMemo(() => {
-    if (allGames.length === 0) return null;
-    const unlocked = allGames.filter(g => !g.isLocked);
-    const pool = unlocked.length > 0 ? unlocked : allGames;
+    const actionable = allGames.filter(g =>
+      ACTIONABLE_RATINGS.includes(g.projection.valueRating as Rating),
+    );
+    if (actionable.length === 0) return null;
+    const unlocked = actionable.filter(g => !g.isLocked);
+    const pool = unlocked.length > 0 ? unlocked : actionable;
     return [...pool].sort((a, b) => {
       const ra = RATING_ORDER.indexOf(a.projection.valueRating as Rating);
       const rb = RATING_ORDER.indexOf(b.projection.valueRating as Rating);
@@ -111,7 +119,21 @@ export default function PicksScreen() {
     })[0] ?? null;
   }, [allGames]);
 
-  const lockedCount = filteredGames.filter(g => g.isLocked === true).length;
+  // The feed is intentionally concise: six qualified plays across the full
+  // slate, or five when drilling into a sport. This is a display limit only;
+  // all games remain available to the model and the full analyzed count stays
+  // visible in the summary/footer.
+  const actionableGames = useMemo(
+    () => sortedGames.filter(g =>
+      ACTIONABLE_RATINGS.includes(g.projection.valueRating as Rating),
+    ),
+    [sortedGames],
+  );
+  const displayedGames = useMemo(
+    () => actionableGames.slice(0, selectedSport === 'All' ? ALL_PLAYS_LIMIT : SPORT_PLAYS_LIMIT),
+    [actionableGames, selectedSport],
+  );
+  const lockedCount = displayedGames.filter(g => g.isLocked === true).length;
 
   // Per-sport game counts — drives the count badge on each sport pill
   const sportGameCounts = useMemo(() => {
@@ -139,19 +161,13 @@ export default function PicksScreen() {
       .map(([sport, s]) => ({ sport, total: s.total }));
   }, [allGames, selectedSport]);
 
-  // Build list with rating section headers.
-  // On the All tab: respect the Plays/All toggle (default: Plays only).
-  // On a specific sport tab: always show every rating — users drilling into a sport
-  // want the full picture, not just qualifying plays.
-  const PLAYS_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
-  // All tab shows only playable picks; sport-specific tabs show every rating.
-  const activeRatings = selectedSport === 'All' ? PLAYS_RATINGS : [...RATING_ORDER];
-
+  // Build the capped list with rating section headers. Neutral and Fade games
+  // remain part of the analyzed dataset, but never appear as recommendations.
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
     let pickIndex = 0;
-    for (const rating of activeRatings) {
-      const group = sortedGames.filter(g => g.projection.valueRating === rating);
+    for (const rating of ACTIONABLE_RATINGS) {
+      const group = displayedGames.filter(g => g.projection.valueRating === rating);
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
       for (const game of group) {
@@ -161,8 +177,7 @@ export default function PicksScreen() {
       }
     }
     return items;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedGames, isSubscribed]);
+  }, [displayedGames, isSubscribed]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -240,8 +255,8 @@ export default function PicksScreen() {
       {!isLoading && (
         <View style={[styles.sectionLabelRow, { marginHorizontal: 16, marginTop: 20, marginBottom: 4 }]}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            {selectedSport === 'All' ? 'ALL GAMES' : `${selectedSport} GAMES`}
-            {sortedGames.length > 0 && ` · ${sortedGames.length}`}
+            {selectedSport === 'All' ? 'TOP PLAYS' : `${selectedSport} TOP PLAYS`}
+            {displayedGames.length > 0 && ` · ${displayedGames.length}`}
           </Text>
           <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
         </View>
@@ -251,7 +266,7 @@ export default function PicksScreen() {
       {!isLoading && lockedCount > 0 && (
         <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
           <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
-            🔒 Showing {filteredGames.filter(g => !g.isLocked).length} of {filteredGames.length} picks — unlock all with Pro
+            🔒 Showing {displayedGames.filter(g => !g.isLocked).length} of {displayedGames.length} plays — unlock all with Pro
           </Text>
         </View>
       )}
@@ -307,7 +322,9 @@ export default function PicksScreen() {
         ListEmptyComponent={
           <EmptyState
             sport={selectedSport !== 'All' ? selectedSport : undefined}
-            message={selectedSport === 'All' ? 'No picks available yet today. Pull down to refresh.' : undefined}
+            message={selectedSport === 'All'
+              ? 'No qualified plays available today. Pull down to refresh.'
+              : 'No qualified plays in this sport today.'}
           />
         }
         ListFooterComponent={

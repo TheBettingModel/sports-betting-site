@@ -13,6 +13,7 @@ import type { ModelWeights } from "@workspace/db";
 import {
   computeFactorContributions,
   effectiveWeights,
+  removeVig2,
   type ComputeOptions,
   type ProjectionResult,
 } from "./model";
@@ -183,6 +184,8 @@ async function writePredictionSnapshot(
     pickOdds > 0
       ? 100 / (pickOdds + 100)
       : Math.abs(pickOdds) / (Math.abs(pickOdds) + 100);
+  const fairMarket = removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
+  const fairPickProbability = pickIsHome ? fairMarket.home : fairMarket.away;
 
   const [inserted] = await db
     .insert(modelPredictionsTable)
@@ -195,7 +198,7 @@ async function writePredictionSnapshot(
       odds: pickOdds,
       modelProbability: pickProb,
       impliedProbability: impliedPickProb,
-      fairProbability: pickProb,
+      fairProbability: fairPickProbability,
       edge: proj.edge,
       confidence: proj.confidence,
       recommendation: proj.valueRating,

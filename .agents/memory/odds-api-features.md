@@ -29,3 +29,9 @@ Only credible, future-starting American prices may become pregame market data: w
 **Why:** Live/post-start and malformed prices can be extreme enough to manufacture false model edge, premium ratings, and polluted learning evidence.
 
 **How to apply:** Filter provider events after their start time and reject invalid prices before consensus, best-line, prediction, snapshot, or closing-line logic. Preserve the last valid pregame snapshot for closing-line analysis; never replace it with a later live/final quote.
+
+Prediction snapshots should store the selected side's no-vig market probability as `fairProbability`, separate from the model probability.
+
+**Why:** Keeping those measurements distinct makes later closing-line and calibration analysis trustworthy instead of silently treating the model output as market fair value.
+
+**How to apply:** When writing an immutable prediction snapshot, remove vig from the valid two-way odds first, then select the home/away probability matching the published side.
