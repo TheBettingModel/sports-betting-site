@@ -57,7 +57,7 @@ function requireModelRegistryAdmin(req: Request, res: Response, next: NextFuncti
 // Model versions govern live recommendations. Keep every registry operation
 // behind server-side master authorization; actor labels are never trusted from
 // the request body.
-router.use(requireModelRegistryAdmin);
+router.use("/models", requireModelRegistryAdmin);
 
 // ── List ──────────────────────────────────────────────────────────────────────
 
