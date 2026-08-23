@@ -30,6 +30,7 @@ import {
   isPregameCommenceTime,
 } from "./oddsApi";
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
+import { applyMlbMaterialPregameRevision } from "./materialPregameRevisions";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -176,6 +177,7 @@ async function writePredictionSnapshot(
   modelVersionId: number,
   capturedAt: Date,
   decisionContext?: PredictionDecisionContext,
+  featureSnapshot?: Record<string, unknown>,
 ): Promise<number | null> {
   if (!isPredictionDecisionEligible(game, decisionContext) || !hasValidMoneylineMarketForSport(game.sport, {
     homeOdds: proj.vegasHomeOdds,
@@ -201,7 +203,7 @@ async function writePredictionSnapshot(
   if (existing) return null; // Already exists — do not overwrite
 
   // Build the feature snapshot: exact inputs used by computeProjection
-  const featureSnapshot = {
+  const snapshot = featureSnapshot ?? {
     schemaVersion: decisionContext ? 3 : 1,
     modelVersion: {
       id: modelVersionId,
@@ -260,7 +262,7 @@ async function writePredictionSnapshot(
       finalRating: proj.finalModelScore,
       marketIntelligenceGrade: proj.finalModelTier,
       sharpSignals: { sharpScore: proj.sharpScore, sharpSignal: proj.sharpSignal },
-      featureSnapshot,
+       featureSnapshot: snapshot,
       predictionTimestamp: capturedAt,
       dataCutoffTimestamp: capturedAt,
       isChallenger: false,
@@ -479,15 +481,52 @@ export async function processGameSnapshot(
     // decision or overwrite the market evidence used for later learning.
     if (game.status === "upcoming" && isPregameCommenceTime(game.commenceTimeISO)) {
       await writeOddsSnapshot(game, proj, now, espnSportsbookId, marketIds, decisionContext);
+      const featureSnapshot = {
+        schemaVersion: decisionContext ? 3 : 1,
+        modelVersion: {
+          id: modelVersionId,
+          decisionEvidenceVersion: decisionContext?.dataQuality.evidence?.schemaVersion ?? null,
+        },
+        homeRecord: game.homeTeamRecord,
+        awayRecord: game.awayTeamRecord,
+        homeTeamAbbr: game.homeTeamAbbr,
+        awayTeamAbbr: game.awayTeamAbbr,
+        sport: game.sport,
+        gameDate: game.gameDate,
+        gameId: game.espnId,
+        vegasHomeOdds: proj.vegasHomeOdds,
+        vegasAwayOdds: proj.vegasAwayOdds,
+        vegasSpread: proj.vegasSpread,
+        vegasTotal: proj.vegasTotal,
+        ...(decisionContext ? {
+          decision: {
+            factorWeights: decisionContext.factorWeights,
+            factorContributions: decisionContext.factorContributions,
+            confidenceMultiplier: decisionContext.confidenceMultiplier,
+            inputSignals: decisionContext.inputSignals,
+            availability: decisionContext.availability,
+            dataQuality: decisionContext.dataQuality,
+          },
+        } : {}),
+      };
       const predictionId = await writePredictionSnapshot(
         game,
         proj,
         modelVersionId,
         now,
         decisionContext,
+        featureSnapshot,
       );
       if (predictionId !== null) {
         await publishPick(predictionId, game, proj, now);
+      } else {
+        await applyMlbMaterialPregameRevision(
+          game,
+          proj,
+          modelVersionId,
+          featureSnapshot,
+          isPredictionDecisionEligible(game, decisionContext),
+        );
       }
     }
 

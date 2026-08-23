@@ -40,8 +40,9 @@ import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 
-// Track the last date we sent a Strong Buy notification so we only fire once per day
-let lastNotificationDate: string | null = null;
+// Track the current effective Strong Buy set so an unchanged 30-minute refresh
+// does not re-notify, while a newly effective revision can alert immediately.
+let lastStrongBuyNotificationSignature: string | null = null;
 
 // ── Active-job guard ──────────────────────────────────────────────────────────
 
@@ -357,17 +358,14 @@ async function checkAndRaiseFetchErrorAlerts(
 // ── Push notification helper ──────────────────────────────────────────────────
 
 /**
- * Query for Strong Buy picks published today and send a push notification
- * to Pro subscribers. Fires at most once per calendar day (UTC) to avoid
- * re-notifying on every 30-minute odds-ingestion run.
+ * Query the current effective Strong Buy picks published today and notify Pro
+ * subscribers only when that set changes. This lets a pregame data revision
+ * notify promptly without re-notifying on unchanged ingestion runs.
  */
 async function maybeSendStrongBuyNotification(): Promise<void> {
   const todayUtc = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-  if (lastNotificationDate === todayUtc) {
-    return; // already sent today
-  }
 
-  // Find all Strong Buy picks published today
+  // Find all effective Strong Buy picks published today.
   const startOfDay = new Date(`${todayUtc}T00:00:00.000Z`);
   const strongBuys = await db
     .select({
@@ -380,10 +378,16 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
       and(
         eq(publishedPicksTable.recommendation, "Strong Buy"),
         gte(publishedPicksTable.publishedAt, startOfDay),
+        eq(publishedPicksTable.isEffective, true),
       ),
     );
 
-  if (strongBuys.length === 0) return;
+  if (strongBuys.length === 0) {
+    lastStrongBuyNotificationSignature = null;
+    return;
+  }
+  const signature = strongBuys.map((pick) => pick.id).sort((a, b) => a - b).join(",");
+  if (signature === lastStrongBuyNotificationSignature) return;
 
   // Build a simple summary for the notification body
   const sportCounts: Record<string, number> = {};
@@ -397,10 +401,10 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
 
   try {
     await sendStrongBuyNotification(strongBuys.length, topPick);
-    lastNotificationDate = todayUtc; // mark sent for today
+    lastStrongBuyNotificationSignature = signature;
   } catch (err) {
     logger.error({ err }, "Scheduler: failed to send Strong Buy push notification");
-    // Don't set lastNotificationDate so we retry on the next run
+    // Don't update the signature so we retry on the next run.
   }
 }
 
@@ -759,7 +763,7 @@ async function runOddsIngestion(): Promise<void> {
     // Raise critical alerts for sports where ESPN fetch is consistently failing.
     await checkAndRaiseFetchErrorAlerts(runId, sportCounts);
 
-    // Send push notifications for Strong Buy picks — once per calendar day only.
+    // Notify when the current effective Strong Buy set changes.
     await maybeSendStrongBuyNotification();
 
     logger.info({ processed, sportCounts }, "Scheduler: odds-ingestion complete");

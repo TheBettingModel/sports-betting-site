@@ -1,0 +1,504 @@
+import { createHash } from "crypto";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import {
+  db,
+  gamesTable,
+  mlbPolicyRevisionsTable,
+  modelPredictionsTable,
+  pickResultsTable,
+  publishedPicksTable,
+} from "@workspace/db";
+import type { FetchedGame } from "./espn";
+import type { ProjectionResult } from "./model";
+import { removeVig2 } from "./model";
+import {
+  hasValidMoneylineMarketForSport,
+  isPregameCommenceTime,
+} from "./oddsApi";
+import {
+  publishedPickEffectivenessLock,
+  publishedPickEffectivenessWriterLock,
+} from "./publishedPickReconciliation";
+
+const MAX_PUBLIC_PICKS_PER_DAY = 6;
+const MATERIAL_EDGE_DELTA = 3;
+const MATERIAL_PROBABILITY_DELTA = 0.025;
+const MATERIAL_ODDS_DELTA = 15;
+
+type MlbRecommendation = "Strong Buy" | "Buy" | "Neutral" | "Fade";
+
+class PregameCutoffReachedError extends Error {
+  constructor() {
+    super("Pregame revision cutoff reached");
+  }
+}
+
+export interface MaterialPregameDecision {
+  selection: "home" | "away";
+  odds: number;
+  modelProbability: number;
+  edge: number;
+  confidence: string;
+  recommendation: MlbRecommendation;
+  units: number;
+  podScore: number;
+  finalRating: number;
+  marketIntelligenceGrade: string;
+}
+
+interface PriorDecision extends MaterialPregameDecision {
+  featureSnapshot: Record<string, unknown>;
+}
+
+export interface MaterialChange {
+  changed: boolean;
+  reasons: string[];
+}
+
+function stableJson(value: unknown): string {
+  if (value == null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(",")}}`;
+}
+
+function hash(value: unknown): string {
+  return createHash("sha256").update(stableJson(value)).digest("hex");
+}
+
+function numberOr(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function recordOrEmpty(value: unknown): Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+/**
+ * Produces a stable evidence identity from the inputs that can change a
+ * pregame MLB decision. Refresh timestamps and cache ages are intentionally
+ * excluded so ordinary scheduler runs do not churn immutable records.
+ */
+export function materialMlbEvidenceFingerprint(snapshot: Record<string, unknown>): string | null {
+  const decision = recordOrEmpty(snapshot.decision);
+  const availability = recordOrEmpty(decision.availability);
+  const dataQuality = recordOrEmpty(decision.dataQuality);
+  if (Object.keys(decision).length === 0) return null;
+
+  const lineup = (side: "home" | "away") => {
+    const value = recordOrEmpty(availability[`${side}Lineup`]);
+    return {
+      confirmed: availability[`${side}LineupConfirmed`] === true,
+      batterCount: numberOr(value.batterCount),
+    };
+  };
+  const starter = (side: "home" | "away") => {
+    const value = recordOrEmpty(availability[`${side}Starter`]);
+    return {
+      playerId: value.playerId ?? null,
+      name: value.name ?? null,
+      pitchHand: value.pitchHand ?? null,
+      seasonEra: numberOr(value.seasonEra),
+      seasonWhip: numberOr(value.seasonWhip),
+      recentEra: numberOr(value.recentEra),
+      fip: numberOr(value.fip),
+      kMinusBbPct: numberOr(value.kMinusBbPct),
+    };
+  };
+  const bullpen = (side: "home" | "away") => {
+    const value = recordOrEmpty(availability[`${side}Bullpen`]);
+    return {
+      fatigueLabel: value.fatigueLabel ?? null,
+      weightedPitches: numberOr(value.weightedPitches),
+      gamesLast3Days: numberOr(value.gamesLast3Days),
+    };
+  };
+  const weather = recordOrEmpty(availability.venueWeather);
+
+  return hash({
+    missingSignals: Array.isArray(dataQuality.missingSignals) ? dataQuality.missingSignals : [],
+    homeStarter: starter("home"),
+    awayStarter: starter("away"),
+    homeLineup: lineup("home"),
+    awayLineup: lineup("away"),
+    homeBullpen: bullpen("home"),
+    awayBullpen: bullpen("away"),
+    weather: {
+      isDome: weather.isDome ?? null,
+      windSpeedMph: numberOr(weather.windSpeedMph),
+      windDirectionDeg: numberOr(weather.windDirectionDeg),
+      precipitationMm: numberOr(weather.precipitationMm),
+      temperatureCelsius: numberOr(weather.temperatureCelsius),
+    },
+  });
+}
+
+export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
+  const selection = proj.edge >= 0 ? "home" : "away";
+  const odds = selection === "home" ? proj.vegasHomeOdds : proj.vegasAwayOdds;
+  const recommendation: MlbRecommendation = (
+    proj.valueRating === "Strong Buy" ||
+    proj.valueRating === "Buy" ||
+    proj.valueRating === "Fade"
+  )
+    ? proj.valueRating
+    : "Neutral";
+  return {
+    selection,
+    odds,
+    modelProbability: selection === "home" ? proj.homeWinPct / 100 : 1 - proj.homeWinPct / 100,
+    edge: proj.edge,
+    confidence: proj.confidence,
+    recommendation,
+    units: proj.units > 0 ? proj.units : 1,
+    podScore: proj.podScore,
+    finalRating: proj.finalModelScore,
+    marketIntelligenceGrade: proj.finalModelTier,
+  };
+}
+
+/**
+ * Recommendation and side changes are always material. Within the same
+ * recommendation, revisions require a meaningful market/model move or a
+ * changed pitcher, lineup, bullpen, weather, or data-quality fingerprint.
+ */
+export function assessMlbMaterialPregameChange(
+  previous: PriorDecision,
+  current: MaterialPregameDecision,
+  currentEvidenceFingerprint: string | null,
+): MaterialChange {
+  const reasons: string[] = [];
+  if (previous.recommendation !== current.recommendation) reasons.push("recommendation_changed");
+  if (previous.selection !== current.selection) reasons.push("selection_changed");
+  if (Math.abs(Math.abs(previous.edge) - Math.abs(current.edge)) >= MATERIAL_EDGE_DELTA) {
+    reasons.push("edge_changed");
+  }
+  if (Math.abs(previous.modelProbability - current.modelProbability) >= MATERIAL_PROBABILITY_DELTA) {
+    reasons.push("model_probability_changed");
+  }
+  if (Math.abs(previous.odds - current.odds) >= MATERIAL_ODDS_DELTA) reasons.push("market_price_changed");
+
+  const priorEvidenceFingerprint = materialMlbEvidenceFingerprint(previous.featureSnapshot);
+  if (
+    currentEvidenceFingerprint != null &&
+    priorEvidenceFingerprint != null &&
+    currentEvidenceFingerprint !== priorEvidenceFingerprint
+  ) {
+    reasons.push("validated_evidence_changed");
+  }
+  return { changed: reasons.length > 0, reasons };
+}
+
+function revisionManifest(
+  priorPredictionId: number,
+  current: MaterialPregameDecision,
+  evidenceFingerprint: string | null,
+  reasons: string[],
+) {
+  return {
+    version: "mlb-pregame-data-revision-v1",
+    revisionType: "material_pregame_data",
+    priorPredictionId,
+    currentDecision: current,
+    evidenceFingerprint,
+    reasons,
+  };
+}
+
+export function isMlbMaterialPregameRevisionEligible(
+  game: FetchedGame,
+  proj: ProjectionResult,
+  eligible: boolean,
+): boolean {
+  return (
+    game.sport === "MLB" &&
+    game.status === "upcoming" &&
+    eligible &&
+    isPregameCommenceTime(game.commenceTimeISO) &&
+    hasValidMoneylineMarketForSport("MLB", {
+      homeOdds: proj.vegasHomeOdds,
+      awayOdds: proj.vegasAwayOdds,
+    })
+  );
+}
+
+/**
+ * Replaces an effective MLB pregame decision only when the current validated
+ * projection has changed materially. The previous prediction and pick remain
+ * immutable audit records; the previous pending result becomes void.
+ */
+export async function applyMlbMaterialPregameRevision(
+  game: FetchedGame,
+  proj: ProjectionResult,
+  modelVersionId: number,
+  featureSnapshot: Record<string, unknown>,
+  eligible: boolean,
+): Promise<boolean> {
+  if (!isMlbMaterialPregameRevisionEligible(game, proj, eligible)) {
+    return false;
+  }
+
+  const current = currentMlbPregameDecision(proj);
+  const evidenceFingerprint = materialMlbEvidenceFingerprint(featureSnapshot);
+  try {
+    return await db.transaction(async (tx) => {
+    await tx.execute(publishedPickEffectivenessWriterLock());
+    await tx.execute(publishedPickEffectivenessLock(game.espnId, "moneyline"));
+
+    const [stillEligible] = await tx
+      .select({ id: gamesTable.id })
+      .from(gamesTable)
+      .where(and(
+        eq(gamesTable.id, game.espnId),
+        eq(gamesTable.status, "upcoming"),
+      ))
+      .limit(1);
+    if (!stillEligible) return false;
+
+    const [activePick] = await tx
+      .select()
+      .from(publishedPicksTable)
+      .where(and(
+        eq(publishedPicksTable.gameId, game.espnId),
+        eq(publishedPicksTable.market, "moneyline"),
+        eq(publishedPicksTable.isEffective, true),
+      ))
+      .limit(1);
+    if (!activePick) return false;
+
+    const [priorPrediction] = await tx
+      .select()
+      .from(modelPredictionsTable)
+      .where(eq(modelPredictionsTable.id, activePick.predictionId))
+      .limit(1);
+    if (!priorPrediction) return false;
+
+    const prior: PriorDecision = {
+      selection: activePick.selection === "away" ? "away" : "home",
+      odds: activePick.odds ?? priorPrediction.odds ?? 0,
+      modelProbability: priorPrediction.modelProbability,
+      edge: priorPrediction.edge,
+      confidence: activePick.confidence,
+      recommendation: activePick.recommendation as MlbRecommendation,
+      units: activePick.units,
+      podScore: priorPrediction.podScore ?? 0,
+      finalRating: priorPrediction.finalRating ?? 0,
+      marketIntelligenceGrade: priorPrediction.marketIntelligenceGrade ?? "",
+      featureSnapshot: recordOrEmpty(priorPrediction.featureSnapshot),
+    };
+    const change = assessMlbMaterialPregameChange(prior, current, evidenceFingerprint);
+    if (!change.changed) return false;
+
+    const manifest = revisionManifest(priorPrediction.id, current, evidenceFingerprint, change.reasons);
+    const materialHash = hash(manifest);
+    const revisionKey = `pregame-data-${game.espnId}-${materialHash.slice(0, 16)}`;
+    const revisionCreatedAt = new Date();
+    let [revision] = await tx
+      .select()
+      .from(mlbPolicyRevisionsTable)
+      .where(eq(mlbPolicyRevisionsTable.revisionKey, revisionKey))
+      .limit(1);
+    if (!revision) {
+      const [created] = await tx
+        .insert(mlbPolicyRevisionsTable)
+        .values({
+          revisionKey,
+          sport: "MLB",
+          market: "moneyline",
+          policyManifest: manifest,
+          policyHash: materialHash,
+          reason: `Automated material pregame refresh: ${change.reasons.join(", ")}`,
+          createdBy: "automation",
+          activatedAt: revisionCreatedAt,
+        })
+        .onConflictDoNothing()
+        .returning();
+      revision = created;
+      if (!revision) {
+        [revision] = await tx
+          .select()
+          .from(mlbPolicyRevisionsTable)
+          .where(eq(mlbPolicyRevisionsTable.revisionKey, revisionKey))
+          .limit(1);
+      }
+    }
+    if (!revision || revision.policyHash !== materialHash) {
+      throw new Error("Could not create a stable MLB pregame data revision.");
+    }
+
+    const [alreadyWritten] = await tx
+      .select({ id: modelPredictionsTable.id })
+      .from(modelPredictionsTable)
+      .where(and(
+        eq(modelPredictionsTable.gameId, game.espnId),
+        eq(modelPredictionsTable.modelVersionId, modelVersionId),
+        eq(modelPredictionsTable.market, "moneyline"),
+        eq(modelPredictionsTable.policyRevisionId, revision.id),
+      ))
+      .limit(1);
+    if (alreadyWritten) return false;
+
+    // Take a row lock and use PostgreSQL's wall-clock time immediately before
+    // writing a replacement. `CURRENT_TIMESTAMP` is transaction-start time,
+    // so `clock_timestamp()` is required after a potentially long lock wait.
+    const predictionCutoffCheck = await tx.execute(sql`
+      SELECT id
+      FROM games
+      WHERE id = ${game.espnId}
+        AND status = 'upcoming'
+        AND starts_at > clock_timestamp()
+      FOR UPDATE
+    `);
+    if (predictionCutoffCheck.rows.length === 0) {
+      throw new PregameCutoffReachedError();
+    }
+    const now = new Date();
+
+    const revisionSnapshot = {
+      ...featureSnapshot,
+      schemaVersion: 5,
+      pregameDataRevision: {
+        id: revision.id,
+        revisionKey: revision.revisionKey,
+        materialHash,
+        priorPredictionId: priorPrediction.id,
+        priorDecision: {
+          selection: prior.selection,
+          recommendation: prior.recommendation,
+          odds: prior.odds,
+          edge: prior.edge,
+          modelProbability: prior.modelProbability,
+        },
+        currentDecision: current,
+        evidenceFingerprint,
+        reasons: change.reasons,
+        appliedAt: now.toISOString(),
+      },
+    };
+
+    const fairMarket = removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
+    const [insertedPrediction] = await tx
+      .insert(modelPredictionsTable)
+      .values({
+        gameId: game.espnId,
+        modelVersionId,
+        policyRevisionId: revision.id,
+        supersedesPredictionId: priorPrediction.id,
+        sport: "MLB",
+        market: "moneyline",
+        selection: current.selection,
+        odds: current.odds,
+        modelProbability: current.modelProbability,
+        impliedProbability: current.odds > 0
+          ? 100 / (current.odds + 100)
+          : Math.abs(current.odds) / (Math.abs(current.odds) + 100),
+        fairProbability: current.selection === "home" ? fairMarket.home : fairMarket.away,
+        edge: current.edge,
+        confidence: current.confidence,
+        recommendation: current.recommendation,
+        units: current.units,
+        podScore: current.recommendation === "Neutral" ? 0 : current.podScore,
+        finalRating: current.finalRating,
+        marketIntelligenceGrade: current.marketIntelligenceGrade,
+        sharpSignals: { sharpScore: proj.sharpScore, sharpSignal: proj.sharpSignal },
+        featureSnapshot: revisionSnapshot,
+        predictionTimestamp: now,
+        dataCutoffTimestamp: now,
+        isChallenger: false,
+      })
+      .returning({ id: modelPredictionsTable.id });
+    if (!insertedPrediction) return false;
+
+    const [{ publicCount }] = await tx
+      .select({ publicCount: sql<number>`count(*)::int` })
+      .from(publishedPicksTable)
+      .where(and(
+        eq(publishedPicksTable.isPublic, true),
+        eq(publishedPicksTable.isEffective, true),
+        sql`DATE(${publishedPicksTable.publishedAt} AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
+      ));
+    const isPublic = (current.recommendation === "Buy" || current.recommendation === "Strong Buy")
+      && Number(publicCount) - (activePick.isPublic ? 1 : 0) < MAX_PUBLIC_PICKS_PER_DAY;
+
+    // The reads above can wait on database work. Recheck at the last safe
+    // point before the effective decision is replaced; throwing rolls back the
+    // newly inserted prediction as well as every pending mutation.
+    const replacementCutoffCheck = await tx.execute(sql`
+      SELECT id
+      FROM games
+      WHERE id = ${game.espnId}
+        AND status = 'upcoming'
+        AND starts_at > clock_timestamp()
+      FOR UPDATE
+    `);
+    if (replacementCutoffCheck.rows.length === 0) {
+      throw new PregameCutoffReachedError();
+    }
+
+    await tx
+      .update(publishedPicksTable)
+      .set({ isEffective: false, supersededAt: now })
+      .where(eq(publishedPicksTable.id, activePick.id));
+    const supersessionAudit = JSON.stringify([{
+      timestamp: now.toISOString(),
+      previousResult: "pending",
+      newResult: "void",
+      performedBy: "automation",
+      reason: `Superseded before start by MLB material pregame revision ${revision.revisionKey}`,
+    }]);
+    await tx
+      .update(pickResultsTable)
+      .set({
+        result: "void",
+        unitsWonLost: 0,
+        gradedAt: now,
+        gradingSource: "pregame_data_revision",
+        gradeAudit: sql`COALESCE(${pickResultsTable.gradeAudit}, '[]'::jsonb) || ${supersessionAudit}::jsonb`,
+      })
+      .where(and(
+        eq(pickResultsTable.pickId, activePick.id),
+        eq(pickResultsTable.result, "pending"),
+      ));
+
+    const [pick] = await tx
+      .insert(publishedPicksTable)
+      .values({
+        predictionId: insertedPrediction.id,
+        policyRevisionId: revision.id,
+        supersedesPickId: activePick.id,
+        gameId: game.espnId,
+        sport: "MLB",
+        market: "moneyline",
+        selection: current.selection,
+        odds: current.odds,
+        units: current.units,
+        recommendation: current.recommendation,
+        confidence: current.confidence,
+        isPlayOfDay: current.marketIntelligenceGrade === "Elite" || current.podScore >= 50,
+        isPublic,
+        isEffective: true,
+        publishedAt: now,
+      })
+      .returning({ id: publishedPicksTable.id });
+    if (!pick) throw new Error("Failed to create effective MLB material revision pick.");
+
+    await tx
+      .update(publishedPicksTable)
+      .set({ supersededByPickId: pick.id })
+      .where(eq(publishedPicksTable.id, activePick.id));
+    await tx.insert(pickResultsTable).values({
+      pickId: pick.id,
+      result: "pending",
+      unitsRisked: current.units,
+      unitsWonLost: 0,
+      gradeAudit: [],
+    });
+    return true;
+    });
+  } catch (error) {
+    if (error instanceof PregameCutoffReachedError) return false;
+    throw error;
+  }
+}

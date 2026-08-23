@@ -43,3 +43,14 @@ correct.
 transaction-scoped `SHARE ROW EXCLUSIVE` lock on published picks. That also
 protects the one-statement winner selection from pre-change application
 instances during a rolling deployment.
+
+For a pregame revision that can wait on advisory locks, enforce the start
+cutoff inside the locked transaction with PostgreSQL `clock_timestamp()`, and
+roll back the full transaction if either pre-write cutoff check fails.
+
+**Why:** `CURRENT_TIMESTAMP` is frozen at transaction start, so it can approve
+a revision after first pitch when the transaction waited behind a lock.
+
+**How to apply:** Use the same game/market effectiveness lock for revisions and
+grading, then recheck `status='upcoming'` and `starts_at > clock_timestamp()`
+immediately before writing or replacing an effective decision.

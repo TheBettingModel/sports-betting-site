@@ -21,6 +21,10 @@ import {
 import { fetchSportGamesByDate, SOCCER_SPORT_KEYS } from "./espn";
 import { runAnalytics } from "./analytics";
 import { logger } from "../lib/logger";
+import {
+  publishedPickEffectivenessLock,
+  publishedPickEffectivenessWriterLock,
+} from "./publishedPickReconciliation";
 
 /**
  * Process all effective pending pick_results rows that have a completed game_result.
@@ -166,28 +170,50 @@ export async function runGrading(): Promise<number> {
       reason: "ESPN final score",
     };
 
-    // ── Update pick_results ───────────────────────────────────────────────
-    await db
-      .update(pickResultsTable)
-      .set({
-        result: grade,
-        unitsWonLost: Math.round(unitsWonLost * 100) / 100,
-        finalScore: `${gameResult.homeScore}-${gameResult.awayScore}`,
-        clv,
-        gradedAt: new Date(),
-        gradingSource: "espn",
-        gradeAudit: [auditEntry],
-      })
-      .where(eq(pickResultsTable.id, pendingRow.pickResultId));
+    // ── Grade under the same lock used by pregame revisions ───────────────
+    // A revision can void a pending pick immediately before first pitch.
+    // Recheck the pick is still pending and effective after acquiring this
+    // lock so a stale grading candidate cannot overwrite that void.
+    const applied = await db.transaction(async (tx) => {
+      await tx.execute(publishedPickEffectivenessWriterLock());
+      await tx.execute(publishedPickEffectivenessLock(pick.gameId, pick.market));
+      const [stillPending] = await tx
+        .select({ id: pickResultsTable.id })
+        .from(pickResultsTable)
+        .innerJoin(publishedPicksTable, eq(pickResultsTable.pickId, publishedPicksTable.id))
+        .where(and(
+          eq(pickResultsTable.id, pendingRow.pickResultId),
+          eq(pickResultsTable.result, "pending"),
+          eq(publishedPicksTable.isEffective, true),
+        ))
+        .limit(1);
+      if (!stillPending) return false;
 
-    // ── Backwrite grade to model_predictions ──────────────────────────────
-    // Allows ROI tracking by sport/tier directly from the predictions table.
-    await db
-      .update(modelPredictionsTable)
-      .set({ grade })
-      .where(eq(modelPredictionsTable.id, pick.predictionId));
+      await tx
+        .update(pickResultsTable)
+        .set({
+          result: grade,
+          unitsWonLost: Math.round(unitsWonLost * 100) / 100,
+          finalScore: `${gameResult.homeScore}-${gameResult.awayScore}`,
+          clv,
+          gradedAt: new Date(),
+          gradingSource: "espn",
+          gradeAudit: [auditEntry],
+        })
+        .where(and(
+          eq(pickResultsTable.id, pendingRow.pickResultId),
+          eq(pickResultsTable.result, "pending"),
+        ));
 
-    graded++;
+      // Allows ROI tracking by sport/tier directly from the immutable
+      // prediction linked to the still-effective pick.
+      await tx
+        .update(modelPredictionsTable)
+        .set({ grade })
+        .where(eq(modelPredictionsTable.id, pick.predictionId));
+      return true;
+    });
+    if (applied) graded++;
   }
 
   if (graded > 0) {
