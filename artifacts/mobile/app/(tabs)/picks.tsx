@@ -61,54 +61,67 @@ function neutralMarketLabel(game: Game): string {
   return `ML ${formatOdds(awayOdds)} / ${formatOdds(homeOdds)}`;
 }
 
-type MlbModelLean = {
-  team: string;
-  winProbability: number;
-  moneyline: number;
+type MlbForecastState = 'model-lean' | 'no-bet' | 'awaiting-data' | 'locked';
+
+type MlbForecast = {
+  game: Game;
+  state: MlbForecastState;
+  projectedTeam?: string;
+  winProbability?: number;
+  marketOdds?: number;
+  awaitingReason?: string;
 };
 
-/**
- * A Model Lean is a pregame MLB forecast with every market/starter guardrail
- * still present, but not enough edge to qualify as a wager. Keep this separate
- * from the server's Buy/Strong Buy policy rather than styling it as a pick.
- */
-function getMlbModelLean(game: Game): MlbModelLean | null {
+function getMlbForecast(game: Game): MlbForecast {
   const validPrice = (odds: number) =>
     Number.isFinite(odds) && Math.abs(odds) >= 100 && Math.abs(odds) <= 2000;
   const hasNamedStarter = (name: string | undefined) => Boolean(name?.trim());
 
-  if (
-    game.sport !== 'MLB' ||
-    game.status !== 'upcoming' ||
-    game.isLocked ||
-    game.projection.valueRating !== 'Neutral' ||
-    game.projection.edge === 0 ||
-    !hasNamedStarter(game.projection.homeStarterName) ||
-    !hasNamedStarter(game.projection.awayStarterName) ||
-    !validPrice(game.vegasLine.homeOdds) ||
-    !validPrice(game.vegasLine.awayOdds)
-  ) {
-    return null;
+  if (game.isLocked) {
+    return { game, state: 'locked' };
   }
 
-  const pickIsHome = game.projection.edge > 0;
-  const moneyline = pickIsHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds;
-  // The -160 MLB favourite ceiling applies to the visible forecast surface too,
-  // so a price-blocked side can never be mistaken for a softer recommendation.
-  if (moneyline <= -160) return null;
+  const hasStarters =
+    hasNamedStarter(game.projection.homeStarterName) &&
+    hasNamedStarter(game.projection.awayStarterName);
+  const hasMarket =
+    validPrice(game.vegasLine.homeOdds) &&
+    validPrice(game.vegasLine.awayOdds);
+
+  if (!hasStarters || !hasMarket) {
+    return {
+      game,
+      state: 'awaiting-data',
+      awaitingReason: !hasStarters ? 'PROBABLE STARTERS PENDING' : 'MARKET LINE PENDING',
+    };
+  }
+
+  const projectedHome = game.projection.homeWinPct >= 50;
+  const edgeSideIsHome = game.projection.edge >= 0;
+  const edgeSideOdds = edgeSideIsHome
+    ? game.vegasLine.homeOdds
+    : game.vegasLine.awayOdds;
+  const hasModelLean =
+    game.projection.valueRating === 'Neutral' &&
+    game.projection.edge !== 0 &&
+    edgeSideOdds > -160;
 
   return {
-    team: pickIsHome ? game.homeTeam.abbr : game.awayTeam.abbr,
-    winProbability: pickIsHome
+    game,
+    state: hasModelLean ? 'model-lean' : 'no-bet',
+    projectedTeam: projectedHome ? game.homeTeam.abbr : game.awayTeam.abbr,
+    winProbability: projectedHome
       ? game.projection.homeWinPct
       : 100 - game.projection.homeWinPct,
-    moneyline,
+    marketOdds: projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds,
   };
 }
 
 type ListItem =
   | { type: 'header'; rating: Rating; count: number }
-  | { type: 'game'; game: Game; locked: boolean };
+  | { type: 'game'; game: Game; locked: boolean }
+  | { type: 'projection-header'; count: number }
+  | { type: 'projection'; forecast: MlbForecast };
 
 export default function PicksScreen() {
   const colors = useColors();
@@ -119,7 +132,6 @@ export default function PicksScreen() {
 
   const { data, isLoading, refetch } = useGetGamesToday();
   const [showLowerConvictionGames, setShowLowerConvictionGames] = useState(false);
-
   useEffect(() => {
     // Keep an open Picks screen current without relying on a manual
     // pull-to-refresh. The API performs the heavier model refresh at most
@@ -197,9 +209,17 @@ export default function PicksScreen() {
     neutral: lowerConvictionGames.filter(g => g.projection.valueRating === 'Neutral').length,
     fade: lowerConvictionGames.filter(g => g.projection.valueRating === 'Fade').length,
   }), [lowerConvictionGames]);
-  const mlbModelLeanCount = useMemo(
-    () => lowerConvictionGames.filter(game => getMlbModelLean(game) !== null).length,
-    [lowerConvictionGames],
+  const mlbForecasts = useMemo(
+    () => selectedSport === 'MLB'
+      ? sortedGames
+          .filter(game =>
+            game.sport === 'MLB' &&
+            game.status === 'upcoming' &&
+            !ACTIONABLE_RATINGS.includes(game.projection.valueRating as Rating),
+          )
+          .map(getMlbForecast)
+      : [],
+    [selectedSport, sortedGames],
   );
   const displayedGames = useMemo(
     () => selectedSport === 'All' ? actionableGames.slice(0, ALL_PLAYS_LIMIT) : actionableGames,
@@ -237,8 +257,8 @@ export default function PicksScreen() {
       .map(([sport, s]) => ({ sport, total: s.total }));
   }, [allGames, selectedSport]);
 
-  // Build the actionable list with rating section headers. Neutral and Fade
-  // games remain compact supplemental context, never recommendation cards.
+  // Build the recommended plays list. On the MLB tab, every remaining upcoming
+  // game receives a compact forecast row after the actual wagers.
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
     let pickIndex = 0;
@@ -252,8 +272,14 @@ export default function PicksScreen() {
         pickIndex++;
       }
     }
+    if (selectedSport === 'MLB' && mlbForecasts.length > 0) {
+      items.push({ type: 'projection-header', count: mlbForecasts.length });
+      for (const forecast of mlbForecasts) {
+        items.push({ type: 'projection', forecast });
+      }
+    }
     return items;
-  }, [displayedGames, isSubscribed]);
+  }, [displayedGames, isSubscribed, mlbForecasts, selectedSport]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -333,7 +359,9 @@ export default function PicksScreen() {
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             {selectedSport === 'All'
               ? `TOP PLAYS${displayedGames.length > 0 ? ` · ${displayedGames.length}` : ''}`
-              : `${displayedGames.length} PICKS · ${sortedGames.length} GAMES ANALYZED`}
+              : selectedSport === 'MLB'
+                ? `RECOMMENDED PLAYS · ${displayedGames.length}`
+                : `${displayedGames.length} PICKS · ${sortedGames.length} GAMES ANALYZED`}
           </Text>
           <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
         </View>
@@ -365,6 +393,97 @@ export default function PicksScreen() {
         </View>
       );
     }
+    if (item.type === 'projection-header') {
+      return (
+        <View style={[styles.forecastHeader, { borderTopColor: colors.border }]}>
+          <View>
+            <Text style={[styles.forecastTitle, { color: colors.foreground }]}>
+              ALL MLB PROJECTIONS
+            </Text>
+            <Text style={[styles.forecastSubtitle, { color: colors.mutedForeground }]}>
+              {item.count} upcoming {item.count === 1 ? 'game' : 'games'} · forecasts only
+            </Text>
+          </View>
+          <View style={[styles.forecastBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Text style={[styles.forecastBadgeText, { color: colors.mutedForeground }]}>
+              {item.count}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+    if (item.type === 'projection') {
+      const { forecast } = item;
+      const isLockedForecast = forecast.state === 'locked';
+      const statusLabel = forecast.state === 'model-lean'
+        ? 'MODEL LEAN'
+        : forecast.state === 'no-bet'
+          ? 'NO BET'
+          : forecast.state === 'awaiting-data'
+            ? 'AWAITING DATA'
+            : 'PRO FORECAST';
+      const statusColor = forecast.state === 'model-lean'
+        ? colors.primary
+        : forecast.state === 'awaiting-data'
+          ? colors.gold
+          : colors.mutedForeground;
+      const rowContent = (
+        <>
+          <View style={styles.forecastMatchup}>
+            <Text style={[styles.forecastTeams, { color: colors.foreground }]}>
+              {forecast.game.awayTeam.abbr} <Text style={{ color: colors.mutedForeground }}>@</Text> {forecast.game.homeTeam.abbr}
+            </Text>
+            <Text style={[styles.forecastTime, { color: colors.mutedForeground }]}>
+              {forecast.game.gameTime}
+            </Text>
+          </View>
+          <View style={styles.forecastDetails}>
+            <Text style={[styles.forecastStatus, { color: statusColor }]}>
+              {statusLabel}
+            </Text>
+            {forecast.state === 'awaiting-data' ? (
+              <Text style={[styles.forecastDataNote, { color: colors.mutedForeground }]}>
+                {forecast.awaitingReason}
+              </Text>
+            ) : isLockedForecast ? (
+              <Text style={[styles.forecastDataNote, { color: colors.mutedForeground }]}>
+                UNLOCK TO VIEW
+              </Text>
+            ) : (
+              <>
+                <Text style={[styles.forecastProjection, { color: colors.foreground }]}>
+                  {forecast.projectedTeam} · {forecast.winProbability}%
+                </Text>
+                <Text style={[styles.forecastMarket, { color: colors.mutedForeground }]}>
+                  MARKET {formatOdds(forecast.marketOdds!)}
+                </Text>
+              </>
+            )}
+            <Text style={[styles.forecastDisclaimer, { color: colors.mutedForeground }]}>
+              FORECAST ONLY
+            </Text>
+          </View>
+        </>
+      );
+
+      return isLockedForecast ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Unlock the ${forecast.game.awayTeam.abbr} at ${forecast.game.homeTeam.abbr} MLB forecast`}
+          onPress={() => router.push('/membership')}
+          style={({ pressed }) => [
+            styles.forecastRow,
+            { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.78 : 1 },
+          ]}
+        >
+          {rowContent}
+        </Pressable>
+      ) : (
+        <View style={[styles.forecastRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {rowContent}
+        </View>
+      );
+    }
     if (item.locked) {
       return <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={lockedCount} />;
     }
@@ -391,9 +510,12 @@ export default function PicksScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <FlatList
         data={listItems}
-        keyExtractor={(item) =>
-          item.type === 'header' ? `hdr-${item.rating}` : item.game.id
-        }
+        keyExtractor={(item) => {
+          if (item.type === 'header') return `hdr-${item.rating}`;
+          if (item.type === 'projection-header') return 'hdr-mlb-projections';
+          if (item.type === 'projection') return `forecast-${item.forecast.game.id}`;
+          return item.game.id;
+        }}
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
@@ -408,15 +530,11 @@ export default function PicksScreen() {
           />
         }
         ListFooterComponent={
-          selectedSport !== 'All' && lowerConvictionGames.length > 0 ? (
+          selectedSport !== 'All' && selectedSport !== 'MLB' && lowerConvictionGames.length > 0 ? (
             <View style={[styles.noEdgeFooter, { borderTopColor: colors.border }]}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={
-                  selectedSport === 'MLB' && mlbModelLeanCount > 0
-                    ? `View ${mlbModelLeanCount} MLB Model Lean forecasts, ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`
-                    : `View ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`
-                }
+                accessibilityLabel={`View ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`}
                 onPress={() => setShowLowerConvictionGames(current => !current)}
                 style={({ pressed }) => [
                   styles.noEdgeToggle,
@@ -425,14 +543,10 @@ export default function PicksScreen() {
               >
                 <View style={styles.noEdgeToggleCopy}>
                   <Text style={[styles.noEdgeTitle, { color: colors.mutedForeground }]}>
-                    {selectedSport === 'MLB' && mlbModelLeanCount > 0
-                      ? `MLB FORECASTS · ${mlbModelLeanCount} MODEL LEAN`
-                      : `${lowerConvictionCounts.neutral} NEUTRAL · ${lowerConvictionCounts.fade} FADE`}
+                    {`${lowerConvictionCounts.neutral} NEUTRAL · ${lowerConvictionCounts.fade} FADE`}
                   </Text>
                   <Text style={[styles.noEdgeSubtitle, { color: colors.mutedForeground }]}>
-                    {selectedSport === 'MLB' && mlbModelLeanCount > 0
-                      ? `${lowerConvictionCounts.neutral} Neutral · ${lowerConvictionCounts.fade} Fade — forecasts only, not bets`
-                      : 'Lower-conviction model grades'}
+                    Lower-conviction model grades
                   </Text>
                 </View>
                 <Text style={[styles.noEdgeAction, { color: colors.primary }]}>
@@ -443,48 +557,28 @@ export default function PicksScreen() {
                 <View style={styles.noEdgeGameList}>
                   {lowerConvictionGames.map(game => {
                     const rating = game.projection.valueRating as Rating;
-                    const modelLean = getMlbModelLean(game);
                     return (
-                    <View
-                      key={game.id}
-                      style={[
-                        styles.noEdgeGameRow,
-                        { backgroundColor: modelLean ? colors.secondary : colors.card, borderColor: colors.border },
-                      ]}
-                    >
-                      <View style={styles.noEdgeGameMatchup}>
-                        <Text style={[styles.noEdgeGameTeams, { color: colors.foreground }]}>
-                          {game.awayTeam.abbr} <Text style={{ color: colors.mutedForeground }}>@</Text> {game.homeTeam.abbr}
-                        </Text>
-                        <Text style={[styles.noEdgeGameTime, { color: colors.mutedForeground }]}>
-                          {game.gameTime}
-                        </Text>
+                      <View
+                        key={game.id}
+                        style={[styles.noEdgeGameRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      >
+                        <View style={styles.noEdgeGameMatchup}>
+                          <Text style={[styles.noEdgeGameTeams, { color: colors.foreground }]}>
+                            {game.awayTeam.abbr} <Text style={{ color: colors.mutedForeground }}>@</Text> {game.homeTeam.abbr}
+                          </Text>
+                          <Text style={[styles.noEdgeGameTime, { color: colors.mutedForeground }]}>
+                            {game.gameTime}
+                          </Text>
+                        </View>
+                        <View style={styles.noEdgeGameMeta}>
+                          <Text style={[styles.noEdgeGameRating, { color: RATING_COLORS[rating] }]}>
+                            {rating.toUpperCase()}
+                          </Text>
+                          <Text style={[styles.noEdgeGameLine, { color: colors.mutedForeground }]}>
+                            {neutralMarketLabel(game)}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.noEdgeGameMeta}>
-                        {modelLean ? (
-                          <>
-                            <Text style={[styles.modelLeanLabel, { color: colors.mutedForeground }]}>
-                              MODEL LEAN
-                            </Text>
-                            <Text style={[styles.modelLeanDetail, { color: colors.foreground }]}>
-                              {modelLean.team} · {modelLean.winProbability}% · ML {formatOdds(modelLean.moneyline)}
-                            </Text>
-                            <Text style={[styles.modelLeanDisclaimer, { color: colors.mutedForeground }]}>
-                              FORECAST ONLY
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text style={[styles.noEdgeGameRating, { color: RATING_COLORS[rating] }]}>
-                              {rating.toUpperCase()}
-                            </Text>
-                            <Text style={[styles.noEdgeGameLine, { color: colors.mutedForeground }]}>
-                              {neutralMarketLabel(game)}
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    </View>
                     );
                   })}
                 </View>
@@ -567,6 +661,31 @@ const styles = StyleSheet.create({
   ratingBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, borderWidth: 1 },
   ratingCount: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   ratingHint: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 },
+  // ── MLB forecasts ───────────────────────────────────────────────────────────
+  forecastHeader: {
+    marginHorizontal: 16, marginTop: 28, marginBottom: 8, paddingTop: 18,
+    borderTopWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  forecastTitle: { fontSize: 12, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  forecastSubtitle: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 4 },
+  forecastBadge: {
+    minWidth: 26, height: 26, borderRadius: 13, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  forecastBadgeText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  forecastRow: {
+    marginHorizontal: 16, marginBottom: 8, borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 11, flexDirection: 'row', alignItems: 'center',
+  },
+  forecastMatchup: { flex: 1, marginRight: 12 },
+  forecastTeams: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  forecastTime: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 4 },
+  forecastDetails: { alignItems: 'flex-end', maxWidth: '57%' },
+  forecastStatus: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  forecastProjection: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 4 },
+  forecastMarket: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 2 },
+  forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
+  forecastDisclaimer: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8, marginTop: 4 },
   // ── No-edge footer ────────────────────────────────────────────────────────────
   noEdgeFooter: {
     marginTop: 24, marginHorizontal: 16, paddingTop: 20,
