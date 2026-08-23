@@ -29,9 +29,10 @@ export const publishedPicksTable = pgTable(
 
     isPlayOfDay: boolean("is_play_of_day").notNull().default(false),
     isPublic: boolean("is_public").notNull().default(true),
-    // Exactly one current recommendation is selected per game + market by the
-    // revision transaction. Prior rows stay intact for audit and history.
-    isEffective: boolean("is_effective").notNull().default(true),
+    // Existing rows receive false when this column is first published. A
+    // data-only reconciliation then selects the latest legacy pick per market
+    // before the API accepts requests, avoiding a unique-index collision.
+    isEffective: boolean("is_effective").notNull().default(false),
     supersededAt: timestamp("superseded_at", { withTimezone: true }),
 
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),

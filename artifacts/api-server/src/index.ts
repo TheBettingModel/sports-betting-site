@@ -4,6 +4,7 @@ import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
 import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
 import { runLearning } from "./services/learning";
+import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -60,45 +61,59 @@ async function applyStartupMigrations(): Promise<void> {
   }
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
+async function startServer(): Promise<void> {
+  // This data-only reconciliation runs after the managed schema publish and
+  // before traffic or schedulers can consume published picks. It makes the
+  // new partial uniqueness guarantee deployable against legacy overlaps.
+  try {
+    await reconcileLegacyPublishedPickEffectiveness();
+  } catch (err) {
+    logger.error({ err }, "Legacy published-pick reconciliation failed");
     process.exit(1);
   }
 
-  logger.info({ port }, "Server listening");
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
 
-  // Ensure schema additions are present (idempotent — safe on every restart)
-  applyStartupMigrations().catch((err) =>
-    logger.warn({ err }, "Startup migrations failed — continuing"),
-  );
+    logger.info({ port }, "Server listening");
 
-  // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
-  // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)
-  initJwks().catch((err) => logger.warn({ err }, "JWKS init failed"));
+    // Ensure schema additions are present (idempotent — safe on every restart)
+    applyStartupMigrations().catch((err) =>
+      logger.warn({ err }, "Startup migrations failed — continuing"),
+    );
 
-  // Start automation scheduler after server is up
-  if (process.env["NODE_ENV"] !== "test") {
-    startScheduler();
+    // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
+    // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)
+    initJwks().catch((err) => logger.warn({ err }, "JWKS init failed"));
 
-    // On startup, immediately recover any games that finished while the server
-    // was down (stale = non-final status from a past date), then grade pending
-    // picks. This ensures restarts after overnight downtime don't leave the
-    // Record tab empty until the hourly scheduler fires.
-    void (async () => {
-      try {
-        await recoverStaleGames();
-        await syncGameResults();
-        const graded = await runGrading();
-        // Grading establishes the immutable result. Learning only consumes
-        // those already-graded rows and is idempotent per pick result.
-        await runLearning();
-        if (graded > 0) {
-          logger.info({ graded }, "Startup: graded picks from stale games");
+    // Start automation scheduler after server is up
+    if (process.env["NODE_ENV"] !== "test") {
+      startScheduler();
+
+      // On startup, immediately recover any games that finished while the server
+      // was down (stale = non-final status from a past date), then grade pending
+      // picks. This ensures restarts after overnight downtime don't leave the
+      // Record tab empty until the hourly scheduler fires.
+      void (async () => {
+        try {
+          await recoverStaleGames();
+          await syncGameResults();
+          const graded = await runGrading();
+          // Grading establishes the immutable result. Learning only consumes
+          // those already-graded rows and is idempotent per pick result.
+          await runLearning();
+          if (graded > 0) {
+            logger.info({ graded }, "Startup: graded picks from stale games");
+          }
+        } catch (err) {
+          logger.warn({ err }, "Startup: catch-up grading failed — non-fatal");
         }
-      } catch (err) {
-        logger.warn({ err }, "Startup: catch-up grading failed — non-fatal");
-      }
-    })();
-  }
-});
+      })();
+    }
+  });
+}
+
+void startServer();

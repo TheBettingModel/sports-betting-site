@@ -20,6 +20,7 @@ import {
 import type { FetchedGame } from "./espn";
 import { getBootstrapIds } from "./bootstrap";
 import { logger } from "../lib/logger";
+import { publishedPickEffectivenessLock } from "./publishedPickReconciliation";
 import {
   hasValidMoneylineMarketForSport,
   isValidAmericanOdds,
@@ -285,59 +286,65 @@ async function publishPick(
   proj: ProjectionResult,
   publishedAt: Date,
 ): Promise<void> {
-  let isPublic =
-    proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
+  await db.transaction(async (tx) => {
+    await tx.execute(publishedPickEffectivenessLock(game.espnId, "moneyline"));
+    let isPublic =
+      proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
 
-  // Enforce the daily cap — if we've already reached MAX_PUBLIC_PICKS_PER_DAY
-  // for today, demote this pick to private so subscribers aren't overwhelmed.
-  // Picks are processed in ESPN order; the model thresholds are the primary
-  // quality gate and the cap is a safety ceiling.
-  if (isPublic) {
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(publishedPicksTable)
-      .where(
-        and(
-          sql`DATE(published_at AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
-          eq(publishedPicksTable.isPublic, true),
-        ),
-      );
-    if (count >= MAX_PUBLIC_PICKS_PER_DAY) {
-      isPublic = false;
+    // Enforce the daily cap — if we've already reached MAX_PUBLIC_PICKS_PER_DAY
+    // for today, demote this pick to private so subscribers aren't overwhelmed.
+    // Picks are processed in ESPN order; the model thresholds are the primary
+    // quality gate and the cap is a safety ceiling.
+    if (isPublic) {
+      const [{ count }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(publishedPicksTable)
+        .where(
+          and(
+            sql`DATE(published_at AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
+            eq(publishedPicksTable.isPublic, true),
+          ),
+        );
+      if (count >= MAX_PUBLIC_PICKS_PER_DAY) {
+        isPublic = false;
+      }
     }
-  }
 
-  const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
-  const units = proj.units > 0 ? proj.units : 1.0;
-  const pickIsHomePub = proj.edge >= 0;
+    const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
+    const units = proj.units > 0 ? proj.units : 1.0;
+    const pickIsHomePub = proj.edge >= 0;
 
-  const [pick] = await db
-    .insert(publishedPicksTable)
-    .values({
-      predictionId,
-      gameId: game.espnId,
-      sport: game.sport,
-      market: "moneyline",
-      selection: pickIsHomePub ? "home" : "away",
-      odds: pickIsHomePub ? proj.vegasHomeOdds : proj.vegasAwayOdds,
-      units,
-      recommendation: proj.valueRating,
-      confidence: proj.confidence,
-      isPlayOfDay,
-      isPublic,
-      publishedAt,
-    })
-    .returning({ id: publishedPicksTable.id });
+    const [pick] = await tx
+      .insert(publishedPicksTable)
+      .values({
+        predictionId,
+        gameId: game.espnId,
+        sport: game.sport,
+        market: "moneyline",
+        selection: pickIsHomePub ? "home" : "away",
+        odds: pickIsHomePub ? proj.vegasHomeOdds : proj.vegasAwayOdds,
+        units,
+        recommendation: proj.valueRating,
+        confidence: proj.confidence,
+        isPlayOfDay,
+        isPublic,
+        // The schema default is deliberately false for safe rollout of legacy
+        // data. Every newly published baseline decision is immediately current.
+        isEffective: true,
+        publishedAt,
+      })
+      .returning({ id: publishedPicksTable.id });
 
-  if (!pick) return;
+    if (!pick) return;
 
-  // Seed a pending pick_results row so the grader can find it
-  await db.insert(pickResultsTable).values({
-    pickId: pick.id,
-    result: "pending",
-    unitsRisked: units,
-    unitsWonLost: 0,
-    gradeAudit: [],
+    // Seed a pending pick_results row so the grader can find it
+    await tx.insert(pickResultsTable).values({
+      pickId: pick.id,
+      result: "pending",
+      unitsRisked: units,
+      unitsWonLost: 0,
+      gradeAudit: [],
+    });
   });
 }
 

@@ -16,3 +16,17 @@ creates duplicate grading, or accidentally alters a game after first pitch.
 Retain superseded records for audit, settle a superseded pregame pending result
 as an explicit void with its policy-revision audit entry, and grade only the
 effective decision against the final score.
+
+For a managed production rollout, introduce the effective-selection column
+with a false default so legacy overlapping rows do not block the partial unique
+index. Before serving traffic, run a data-only reconciliation that selects the
+newest legacy pick per game/market. All current-decision writers and that
+reconciliation must use the same transaction-scoped game/market advisory lock.
+
+**Why:** Production schema publishing cannot safely create the unique index
+when historical duplicate picks inherit an effective=true default. A shared
+lock avoids selecting a legacy winner over a concurrently published decision.
+
+**How to apply:** Do not add custom production migrations or startup DDL for
+this case; let Publish apply the schema diff, then reconcile legacy data
+idempotently at application startup before accepting requests.
