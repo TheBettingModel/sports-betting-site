@@ -61,6 +61,9 @@ export interface HealthStatus {
 export interface GameProjection {
   id: string;
   sport: string;
+  league?: string | null;
+  isLocked?: boolean;
+  homeTeamId?: string | null;
   homeTeamAbbr: string;
   homeTeamName: string;
   homeTeamRecord: string;
@@ -69,6 +72,7 @@ export interface GameProjection {
   awayTeamName: string;
   awayTeamRecord: string;
   awayTeamLogo?: string | null;
+  awayTeamId?: string | null;
   gameTime: string;
   gameDate: string;
   status: string;
@@ -81,10 +85,40 @@ export interface GameProjection {
   valueRating: string;
   modelScore: number;
   edge: number;
+  confidenceNum?: number;
+  units?: number;
+  sharpScore?: number;
+  sharpSignal?: string;
+  finalModelScore?: number;
+  finalModelTier?: string;
+  finalModelStars?: number;
+  podScore?: number;
   vegasSpread: number;
   vegasTotal: number;
   vegasHomeOdds: number;
   vegasAwayOdds: number;
+  vegasDrawOdds?: number;
+  openingHomeOdds?: number | null;
+  openingAwayOdds?: number | null;
+  homeStarterName?: string | null;
+  homeStarterEra?: number | null;
+  homeStarterRecentEra?: number | null;
+  homeStarterHand?: string | null;
+  awayStarterName?: string | null;
+  awayStarterEra?: number | null;
+  awayStarterRecentEra?: number | null;
+  awayStarterHand?: string | null;
+  bestLineBook?: string | null;
+  bestLineOdds?: number | null;
+  weatherWindMph?: number | null;
+  weatherTotalAdj?: number | null;
+  weatherSummary?: string | null;
+  homeGoalieName?: string | null;
+  homeGoalieSavePct?: number | null;
+  awayGoalieName?: string | null;
+  awayGoalieSavePct?: number | null;
+  homeKeyInjuries?: string | null;
+  awayKeyInjuries?: string | null;
   predictionCorrect?: boolean | null;
 }
 
@@ -92,6 +126,8 @@ export interface GamesTodayResponse {
   games: GameProjection[];
   lastUpdated: string;
   totalGames: number;
+  liveGamesCount: number;
+  isSubscribed: boolean;
 }
 
 export interface RefreshResponse {

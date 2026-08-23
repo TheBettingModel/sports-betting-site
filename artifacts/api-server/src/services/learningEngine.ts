@@ -161,7 +161,10 @@ export function nextConfidenceMultiplier(input: {
   if (learningProfileForSport(input.sport).confidenceMode === "legacy") {
     if (input.accuracy > 0.58) return Math.min(1.3, input.current + 0.02);
     if (input.accuracy < 0.45) return Math.max(0.7, input.current - 0.02);
-    return input.current;
+    // Ordinary results should not leave MLB indefinitely discounted or boosted
+    // by a past cold/hot streak. Keep the legacy guardrails at the extremes,
+    // but restore 10% of the remaining distance to neutral per learned result.
+    return Math.max(0.7, Math.min(1.3, input.current + (1 - input.current) * 0.1));
   }
   // Poor probability calibration immediately removes any previous boost. This
   // prevents a stale high multiplier from keeping a struggling sport overconfident.
@@ -172,6 +175,26 @@ export function nextConfidenceMultiplier(input: {
     return Math.min(1.15, input.current + 0.01);
   }
   return Math.max(0.8, Math.min(1.05, input.current + (1 - input.current) * 0.1));
+}
+
+/**
+ * Set the existing MLB aggregate confidence to its neutral baseline once.
+ * Immutable prediction snapshots retain the multiplier they were created with;
+ * only future projections use this corrected current setting.
+ */
+export async function normalizeMlbConfidenceRecovery(): Promise<boolean> {
+  const [normalized] = await db
+    .update(modelWeightsTable)
+    .set({
+      confidenceMultiplier: 1,
+      mlbConfidenceRecoveryNormalizedAt: new Date(),
+    })
+    .where(and(
+      eq(modelWeightsTable.sport, "MLB"),
+      isNull(modelWeightsTable.mlbConfidenceRecoveryNormalizedAt),
+    ))
+    .returning({ id: modelWeightsTable.id });
+  return normalized != null;
 }
 
 /**
@@ -290,7 +313,13 @@ export async function runLearning(): Promise<void> {
         confidenceMultiplier: nextMultiplier, factorWeights: nextWeights, lastLearnedAt: new Date(),
       };
       if (existing) await tx.update(modelWeightsTable).set(values).where(eq(modelWeightsTable.id, existing.id));
-      else await tx.insert(modelWeightsTable).values({ sport: row.sport, ...values });
+      else await tx.insert(modelWeightsTable).values({
+        sport: row.sport,
+        ...values,
+        ...(row.sport === "MLB"
+          ? { mlbConfidenceRecoveryNormalizedAt: new Date() }
+          : {}),
+      });
       await tx.update(pickResultsTable).set({ learningReview: review }).where(eq(pickResultsTable.id, row.pickResultId));
       return true;
     });

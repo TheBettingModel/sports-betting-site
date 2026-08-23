@@ -48,6 +48,9 @@ export const modelWeightsTable = pgTable("model_weights", {
   // > 1.0 = model is performing well, amplify edges.
   // < 1.0 = model is underperforming, dampen edges.
   confidenceMultiplier: real("confidence_multiplier").notNull().default(1.0),
+  // Marks the one-time MLB recovery baseline normalization. This affects only
+  // future projection confidence, never immutable historic decisions.
+  mlbConfidenceRecoveryNormalizedAt: timestamp("mlb_confidence_recovery_normalized_at", { withTimezone: true }),
 
   // Per-factor learned weights. Null on first insert; bootstrapped from hardcoded
   // sport defaults on the first graded game and updated by the learning engine thereafter.

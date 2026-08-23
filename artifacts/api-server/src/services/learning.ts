@@ -403,4 +403,4 @@ async function runLegacyGameLearning(): Promise<void> {
 
 // The v1 learner remains in this module temporarily for historical reference,
 // but production callers use the per-pick v2 engine below.
-export { runLearning } from "./learningEngine";
+export { normalizeMlbConfidenceRecovery, runLearning } from "./learningEngine";

@@ -11,4 +11,6 @@ export interface GamesTodayResponse {
   games: GameProjection[];
   lastUpdated: string;
   totalGames: number;
+  liveGamesCount: number;
+  isSubscribed: boolean;
 }

@@ -3,7 +3,7 @@ import { logger } from "./lib/logger";
 import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
 import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
-import { runLearning } from "./services/learning";
+import { normalizeMlbConfidenceRecovery, runLearning } from "./services/learning";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
 import { db } from "@workspace/db";
@@ -60,9 +60,26 @@ async function applyStartupMigrations(): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "Startup migrations: pick-results learning fields failed — non-fatal");
   }
+  try {
+    await db.execute(sql`
+      ALTER TABLE model_weights
+      ADD COLUMN IF NOT EXISTS mlb_confidence_recovery_normalized_at TIMESTAMPTZ
+    `);
+    logger.info("Startup migrations: MLB confidence recovery marker ensured");
+  } catch (err) {
+    logger.warn({ err }, "Startup migrations: MLB confidence recovery marker failed — non-fatal");
+  }
 }
 
 async function startServer(): Promise<void> {
+  await applyStartupMigrations();
+  try {
+    const normalized = await normalizeMlbConfidenceRecovery();
+    logger.info({ normalized }, "MLB confidence recovery baseline checked");
+  } catch (err) {
+    logger.error({ err }, "MLB confidence recovery baseline failed");
+    process.exit(1);
+  }
   // This data-only reconciliation runs after the managed schema publish and
   // before traffic or schedulers can consume published picks. It makes the
   // new partial uniqueness guarantee deployable against legacy overlaps.
@@ -95,11 +112,6 @@ async function startServer(): Promise<void> {
     }
 
     logger.info({ port }, "Server listening");
-
-    // Ensure schema additions are present (idempotent — safe on every restart)
-    applyStartupMigrations().catch((err) =>
-      logger.warn({ err }, "Startup migrations failed — continuing"),
-    );
 
     // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
     // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)

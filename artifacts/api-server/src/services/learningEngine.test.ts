@@ -32,6 +32,30 @@ describe("MLB legacy calibration profile", () => {
     })).toBeLessThanOrEqual(1);
   });
 
+  it("brings normal MLB performance steadily back toward neutral confidence", () => {
+    expect(nextConfidenceMultiplier({
+      sport: "MLB",
+      current: 0.7,
+      accuracy: 0.52,
+      brier: 0.5,
+      totalPredictions: 40,
+    })).toBeCloseTo(0.73);
+    expect(nextConfidenceMultiplier({
+      sport: "MLB",
+      current: 1.3,
+      accuracy: 0.52,
+      brier: 0.1,
+      totalPredictions: 40,
+    })).toBeCloseTo(1.27);
+    expect(nextConfidenceMultiplier({
+      sport: "MLB",
+      current: 1,
+      accuracy: 0.45,
+      brier: 0.5,
+      totalPredictions: 40,
+    })).toBe(1);
+  });
+
   it("restores MLB's wider Brier-scaled factor adjustment bounds", () => {
     const mlb = nudgeWeights({
       sport: "MLB",

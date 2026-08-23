@@ -61,6 +61,51 @@ function neutralMarketLabel(game: Game): string {
   return `ML ${formatOdds(awayOdds)} / ${formatOdds(homeOdds)}`;
 }
 
+type MlbModelLean = {
+  team: string;
+  winProbability: number;
+  moneyline: number;
+};
+
+/**
+ * A Model Lean is a pregame MLB forecast with every market/starter guardrail
+ * still present, but not enough edge to qualify as a wager. Keep this separate
+ * from the server's Buy/Strong Buy policy rather than styling it as a pick.
+ */
+function getMlbModelLean(game: Game): MlbModelLean | null {
+  const validPrice = (odds: number) =>
+    Number.isFinite(odds) && Math.abs(odds) >= 100 && Math.abs(odds) <= 2000;
+  const hasNamedStarter = (name: string | undefined) => Boolean(name?.trim());
+
+  if (
+    game.sport !== 'MLB' ||
+    game.status !== 'upcoming' ||
+    game.isLocked ||
+    game.projection.valueRating !== 'Neutral' ||
+    game.projection.edge === 0 ||
+    !hasNamedStarter(game.projection.homeStarterName) ||
+    !hasNamedStarter(game.projection.awayStarterName) ||
+    !validPrice(game.vegasLine.homeOdds) ||
+    !validPrice(game.vegasLine.awayOdds)
+  ) {
+    return null;
+  }
+
+  const pickIsHome = game.projection.edge > 0;
+  const moneyline = pickIsHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds;
+  // The -160 MLB favourite ceiling applies to the visible forecast surface too,
+  // so a price-blocked side can never be mistaken for a softer recommendation.
+  if (moneyline <= -160) return null;
+
+  return {
+    team: pickIsHome ? game.homeTeam.abbr : game.awayTeam.abbr,
+    winProbability: pickIsHome
+      ? game.projection.homeWinPct
+      : 100 - game.projection.homeWinPct,
+    moneyline,
+  };
+}
+
 type ListItem =
   | { type: 'header'; rating: Rating; count: number }
   | { type: 'game'; game: Game; locked: boolean };
@@ -152,6 +197,10 @@ export default function PicksScreen() {
     neutral: lowerConvictionGames.filter(g => g.projection.valueRating === 'Neutral').length,
     fade: lowerConvictionGames.filter(g => g.projection.valueRating === 'Fade').length,
   }), [lowerConvictionGames]);
+  const mlbModelLeanCount = useMemo(
+    () => lowerConvictionGames.filter(game => getMlbModelLean(game) !== null).length,
+    [lowerConvictionGames],
+  );
   const displayedGames = useMemo(
     () => selectedSport === 'All' ? actionableGames.slice(0, ALL_PLAYS_LIMIT) : actionableGames,
     [actionableGames, selectedSport],
@@ -363,7 +412,11 @@ export default function PicksScreen() {
             <View style={[styles.noEdgeFooter, { borderTopColor: colors.border }]}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`View ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`}
+                accessibilityLabel={
+                  selectedSport === 'MLB' && mlbModelLeanCount > 0
+                    ? `View ${mlbModelLeanCount} MLB Model Lean forecasts, ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`
+                    : `View ${lowerConvictionCounts.neutral} Neutral and ${lowerConvictionCounts.fade} Fade model grades`
+                }
                 onPress={() => setShowLowerConvictionGames(current => !current)}
                 style={({ pressed }) => [
                   styles.noEdgeToggle,
@@ -372,10 +425,14 @@ export default function PicksScreen() {
               >
                 <View style={styles.noEdgeToggleCopy}>
                   <Text style={[styles.noEdgeTitle, { color: colors.mutedForeground }]}>
-                    {lowerConvictionCounts.neutral} NEUTRAL · {lowerConvictionCounts.fade} FADE
+                    {selectedSport === 'MLB' && mlbModelLeanCount > 0
+                      ? `MLB FORECASTS · ${mlbModelLeanCount} MODEL LEAN`
+                      : `${lowerConvictionCounts.neutral} NEUTRAL · ${lowerConvictionCounts.fade} FADE`}
                   </Text>
                   <Text style={[styles.noEdgeSubtitle, { color: colors.mutedForeground }]}>
-                    Lower-conviction model grades
+                    {selectedSport === 'MLB' && mlbModelLeanCount > 0
+                      ? `${lowerConvictionCounts.neutral} Neutral · ${lowerConvictionCounts.fade} Fade — forecasts only, not bets`
+                      : 'Lower-conviction model grades'}
                   </Text>
                 </View>
                 <Text style={[styles.noEdgeAction, { color: colors.primary }]}>
@@ -386,10 +443,14 @@ export default function PicksScreen() {
                 <View style={styles.noEdgeGameList}>
                   {lowerConvictionGames.map(game => {
                     const rating = game.projection.valueRating as Rating;
+                    const modelLean = getMlbModelLean(game);
                     return (
                     <View
                       key={game.id}
-                      style={[styles.noEdgeGameRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      style={[
+                        styles.noEdgeGameRow,
+                        { backgroundColor: modelLean ? colors.secondary : colors.card, borderColor: colors.border },
+                      ]}
                     >
                       <View style={styles.noEdgeGameMatchup}>
                         <Text style={[styles.noEdgeGameTeams, { color: colors.foreground }]}>
@@ -400,12 +461,28 @@ export default function PicksScreen() {
                         </Text>
                       </View>
                       <View style={styles.noEdgeGameMeta}>
-                        <Text style={[styles.noEdgeGameRating, { color: RATING_COLORS[rating] }]}>
-                          {rating.toUpperCase()}
-                        </Text>
-                        <Text style={[styles.noEdgeGameLine, { color: colors.mutedForeground }]}>
-                          {neutralMarketLabel(game)}
-                        </Text>
+                        {modelLean ? (
+                          <>
+                            <Text style={[styles.modelLeanLabel, { color: colors.mutedForeground }]}>
+                              MODEL LEAN
+                            </Text>
+                            <Text style={[styles.modelLeanDetail, { color: colors.foreground }]}>
+                              {modelLean.team} · {modelLean.winProbability}% · ML {formatOdds(modelLean.moneyline)}
+                            </Text>
+                            <Text style={[styles.modelLeanDisclaimer, { color: colors.mutedForeground }]}>
+                              FORECAST ONLY
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={[styles.noEdgeGameRating, { color: RATING_COLORS[rating] }]}>
+                              {rating.toUpperCase()}
+                            </Text>
+                            <Text style={[styles.noEdgeGameLine, { color: colors.mutedForeground }]}>
+                              {neutralMarketLabel(game)}
+                            </Text>
+                          </>
+                        )}
                       </View>
                     </View>
                     );
@@ -517,6 +594,9 @@ const styles = StyleSheet.create({
   noEdgeGameMeta: { alignItems: 'flex-end' },
   noEdgeGameRating: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   noEdgeGameLine: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 3 },
+  modelLeanLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+  modelLeanDetail: { fontSize: 11, fontFamily: 'Inter_700Bold', marginTop: 3 },
+  modelLeanDisclaimer: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8, marginTop: 3 },
   noEdgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   noEdgeChip: {
     borderRadius: 8, borderWidth: 1,

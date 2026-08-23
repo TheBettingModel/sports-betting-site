@@ -429,6 +429,14 @@ components:
           type: string
         sport:
           type: string
+        league:
+          type: string
+          nullable: true
+        isLocked:
+          type: boolean
+        homeTeamId:
+          type: string
+          nullable: true
         homeTeamAbbr:
           type: string
         homeTeamName:
@@ -445,6 +453,9 @@ components:
         awayTeamRecord:
           type: string
         awayTeamLogo:
+          type: string
+          nullable: true
+        awayTeamId:
           type: string
           nullable: true
         gameTime:
@@ -473,6 +484,22 @@ components:
           type: integer
         edge:
           type: number
+        confidenceNum:
+          type: integer
+        units:
+          type: number
+        sharpScore:
+          type: integer
+        sharpSignal:
+          type: string
+        finalModelScore:
+          type: integer
+        finalModelTier:
+          type: string
+        finalModelStars:
+          type: integer
+        podScore:
+          type: number
         vegasSpread:
           type: number
         vegasTotal:
@@ -481,6 +508,71 @@ components:
           type: integer
         vegasAwayOdds:
           type: integer
+        vegasDrawOdds:
+          type: integer
+        openingHomeOdds:
+          type: integer
+          nullable: true
+        openingAwayOdds:
+          type: integer
+          nullable: true
+        homeStarterName:
+          type: string
+          nullable: true
+        homeStarterEra:
+          type: number
+          nullable: true
+        homeStarterRecentEra:
+          type: number
+          nullable: true
+        homeStarterHand:
+          type: string
+          nullable: true
+        awayStarterName:
+          type: string
+          nullable: true
+        awayStarterEra:
+          type: number
+          nullable: true
+        awayStarterRecentEra:
+          type: number
+          nullable: true
+        awayStarterHand:
+          type: string
+          nullable: true
+        bestLineBook:
+          type: string
+          nullable: true
+        bestLineOdds:
+          type: integer
+          nullable: true
+        weatherWindMph:
+          type: number
+          nullable: true
+        weatherTotalAdj:
+          type: number
+          nullable: true
+        weatherSummary:
+          type: string
+          nullable: true
+        homeGoalieName:
+          type: string
+          nullable: true
+        homeGoalieSavePct:
+          type: number
+          nullable: true
+        awayGoalieName:
+          type: string
+          nullable: true
+        awayGoalieSavePct:
+          type: number
+          nullable: true
+        homeKeyInjuries:
+          type: string
+          nullable: true
+        awayKeyInjuries:
+          type: string
+          nullable: true
         predictionCorrect:
           type: boolean
           nullable: true
@@ -519,10 +611,16 @@ components:
           type: string
         totalGames:
           type: integer
+        liveGamesCount:
+          type: integer
+        isSubscribed:
+          type: boolean
       required:
         - games
         - lastUpdated
         - totalGames
+        - liveGamesCount
+        - isSubscribed
 
     RefreshResponse:
       type: object
