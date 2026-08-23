@@ -23,11 +23,12 @@ import { runAnalytics } from "./analytics";
 import { logger } from "../lib/logger";
 
 /**
- * Process all pending pick_results rows that have a completed game_result.
+ * Process all effective pending pick_results rows that have a completed game_result.
  * Updates result, units, CLV, grading timestamp, and appends an audit entry.
  *
- * This function is idempotent — picks already graded (result ≠ "pending")
- * are skipped. Re-grading via override is handled by updatePickGrade().
+ * This function is idempotent — picks already settled (including pregame
+ * policy-superseded rows marked `void`) are skipped. Re-grading via override
+ * is handled by updatePickGrade().
  *
  * Returns the number of picks newly graded.
  */
@@ -40,7 +41,11 @@ export async function runGrading(): Promise<number> {
       unitsRisked: pickResultsTable.unitsRisked,
     })
     .from(pickResultsTable)
-    .where(eq(pickResultsTable.result, "pending"));
+    .innerJoin(publishedPicksTable, eq(pickResultsTable.pickId, publishedPicksTable.id))
+    .where(and(
+      eq(pickResultsTable.result, "pending"),
+      eq(publishedPicksTable.isEffective, true),
+    ));
 
   if (pendingRows.length === 0) return 0;
 

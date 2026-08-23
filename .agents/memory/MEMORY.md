@@ -18,3 +18,4 @@
 - [Clerk JWKS tenant mismatch](clerk-jwks-tenant-mismatch.md) — JWKS must always use dev Clerk instance (renewing-filly-49); pk_live_* decodes to an unreachable Replit proxy, never use api.clerk.com/v1/jwks.
 - [MLB Lineup Matchup Signal](mlb-lineup-matchup-signal.md) — platoon splits + career vs pitcher; direction rule: awayStarterHand selects home OPS, homeStarterHand selects away OPS; cap ±0.06.
 - [ESPN logo URL exceptions](espn-logo-url-exceptions.md) — prefer scoreboard `team.logo`; numeric-ID CDN paths 404 for newer WNBA teams.
+- [MLB policy revisions](mlb-policy-revisions.md) — revise only unstarted picks immutably; effective selection and supersession prevent history rewrites.

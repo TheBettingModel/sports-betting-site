@@ -29,6 +29,9 @@ import type {
   GetResultsSummaryParams,
   HealthStatus,
   LossReviewsResponse,
+  MlbPolicyRevisionApplyResult,
+  MlbPolicyRevisionInput,
+  MlbPolicyRevisionList,
   ModelStatsHistoryResponse,
   ModelStatsResponse,
   NotificationPreferences,
@@ -794,6 +797,154 @@ export function useGetAdminOutcomeReviews<TData = Awaited<ReturnType<typeof getA
 
 
 
+
+export const getGetMlbPolicyRevisionsUrl = () => {
+
+
+
+
+  return `/api/admin/mlb-policy-revisions`
+}
+
+/**
+ * @summary List immutable MLB moneyline policy revisions and audit counts
+ */
+export const getMlbPolicyRevisions = async ( options?: RequestInit): Promise<MlbPolicyRevisionList> => {
+
+  return customFetch<MlbPolicyRevisionList>(getGetMlbPolicyRevisionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMlbPolicyRevisionsQueryKey = () => {
+    return [
+    `/api/admin/mlb-policy-revisions`
+    ] as const;
+    }
+
+
+export const getGetMlbPolicyRevisionsQueryOptions = <TData = Awaited<ReturnType<typeof getMlbPolicyRevisions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMlbPolicyRevisions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMlbPolicyRevisionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMlbPolicyRevisions>>> = ({ signal }) => getMlbPolicyRevisions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMlbPolicyRevisions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMlbPolicyRevisionsQueryResult = NonNullable<Awaited<ReturnType<typeof getMlbPolicyRevisions>>>
+export type GetMlbPolicyRevisionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List immutable MLB moneyline policy revisions and audit counts
+ */
+
+export function useGetMlbPolicyRevisions<TData = Awaited<ReturnType<typeof getMlbPolicyRevisions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMlbPolicyRevisions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMlbPolicyRevisionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApplyMlbPolicyRevisionUrl = () => {
+
+
+
+
+  return `/api/admin/mlb-policy-revisions`
+}
+
+/**
+ * @summary Apply an authorized MLB policy revision to unstarted games only
+ */
+export const applyMlbPolicyRevision = async (mlbPolicyRevisionInput: MlbPolicyRevisionInput, options?: RequestInit): Promise<MlbPolicyRevisionApplyResult> => {
+
+  return customFetch<MlbPolicyRevisionApplyResult>(getApplyMlbPolicyRevisionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(mlbPolicyRevisionInput)
+  }
+);}
+
+
+
+
+
+export const getApplyMlbPolicyRevisionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyMlbPolicyRevision>>, TError,{data: BodyType<MlbPolicyRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyMlbPolicyRevision>>, TError,{data: BodyType<MlbPolicyRevisionInput>}, TContext> => {
+
+const mutationKey = ['applyMlbPolicyRevision'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyMlbPolicyRevision>>, {data: BodyType<MlbPolicyRevisionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  applyMlbPolicyRevision(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyMlbPolicyRevisionMutationResult = NonNullable<Awaited<ReturnType<typeof applyMlbPolicyRevision>>>
+    export type ApplyMlbPolicyRevisionMutationBody = BodyType<MlbPolicyRevisionInput>
+    export type ApplyMlbPolicyRevisionMutationError = ErrorType<void>
+
+    /**
+ * @summary Apply an authorized MLB policy revision to unstarted games only
+ */
+export const useApplyMlbPolicyRevision = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyMlbPolicyRevision>>, TError,{data: BodyType<MlbPolicyRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyMlbPolicyRevision>>,
+        TError,
+        {data: BodyType<MlbPolicyRevisionInput>},
+        TContext
+      > => {
+      return useMutation(getApplyMlbPolicyRevisionMutationOptions(options));
+    }
 
 export const getRegisterPushTokenUrl = () => {
 

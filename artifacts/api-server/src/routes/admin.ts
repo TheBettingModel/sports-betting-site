@@ -39,6 +39,10 @@ import { transitionModelStatus, rollbackModel } from "../services/modelRegistry"
 import { schedulerJobs, getAutomationRuns } from "../services/scheduler";
 import { runDriftMonitor } from "../services/driftMonitor";
 import { logger } from "../lib/logger";
+import {
+  applyMlbPolicyRevision,
+  listMlbPolicyRevisionAudit,
+} from "../services/mlbPolicyRevisions";
 
 const router: IRouter = Router();
 
@@ -193,6 +197,39 @@ router.delete("/admin/session", (req, res): void => {
 });
 
 router.use("/admin", requireMasterKey);
+
+/**
+ * List immutable MLB policy revisions with their affected decision counts.
+ * This is intentionally admin-only because it exposes model policy controls.
+ */
+router.get("/admin/mlb-policy-revisions", async (_req, res): Promise<void> => {
+  const revisions = await listMlbPolicyRevisionAudit();
+  res.json({ revisions, count: revisions.length });
+});
+
+/**
+ * Create/apply an auditable policy revision to only future MLB games. Existing
+ * snapshots and grades are never updated; revised decisions are new rows.
+ */
+router.post("/admin/mlb-policy-revisions", async (req, res): Promise<void> => {
+  try {
+    const { revisionKey, reason, policy } = req.body ?? {};
+    if (typeof revisionKey !== "string" || typeof reason !== "string") {
+      res.status(400).json({ error: "revisionKey and reason are required" });
+      return;
+    }
+    const actor = getVerifiedAdminPrincipal(req);
+    if (!actor) {
+      res.status(401).json({ error: "Valid administrator credentials required" });
+      return;
+    }
+    const result = await applyMlbPolicyRevision({ revisionKey, reason, policy, actor });
+    res.status(201).json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unable to apply MLB policy revision";
+    res.status(400).json({ error: message });
+  }
+});
 
 /**
  * Internal, evidence-based postgame reviews. This endpoint deliberately stays

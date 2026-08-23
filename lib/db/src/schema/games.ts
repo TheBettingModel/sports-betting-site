@@ -31,6 +31,9 @@ export const gamesTable = pgTable("games", {
 
   gameTime: text("game_time").notNull(),
   gameDate: date("game_date", { mode: "string" }).notNull(),
+  // Provider kickoff/first-pitch timestamp. Policy revisions require this
+  // explicit cutoff instead of attempting to parse the display gameTime.
+  startsAt: timestamp("starts_at", { withTimezone: true }),
 
   // upcoming | live | final
   status: text("status").notNull().default("upcoming"),

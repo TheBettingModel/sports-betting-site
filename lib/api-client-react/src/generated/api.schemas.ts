@@ -5,6 +5,55 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type MlbMoneylinePolicyVersion = typeof MlbMoneylinePolicyVersion[keyof typeof MlbMoneylinePolicyVersion];
+
+
+export const MlbMoneylinePolicyVersion = {
+  'mlb-moneyline-policy-v1': 'mlb-moneyline-policy-v1',
+} as const;
+
+export interface MlbMoneylinePolicy {
+  version?: MlbMoneylinePolicyVersion;
+  buyThreshold?: number;
+  strongBuyThreshold?: number;
+  awayOffset?: number;
+  maxFavoriteOdds?: number;
+}
+
+export interface MlbPolicyRevisionInput {
+  /** @minLength 3 */
+  revisionKey: string;
+  /** @minLength 8 */
+  reason: string;
+  policy?: MlbMoneylinePolicy;
+}
+
+export interface MlbPolicyRevision {
+  id: number;
+  revisionKey: string;
+  sport: string;
+  market: string;
+  policyManifest: MlbMoneylinePolicy;
+  policyHash: string;
+  reason: string;
+  createdBy: string;
+  activatedAt: string;
+  affectedPredictions?: number;
+  effectivePicks?: number;
+}
+
+export interface MlbPolicyRevisionList {
+  revisions: MlbPolicyRevision[];
+  count: number;
+}
+
+export interface MlbPolicyRevisionApplyResult {
+  revision: MlbPolicyRevision;
+  createdPredictions: number;
+  effectivePicks: number;
+  skipped: number;
+}
+
 export interface HealthStatus {
   status: string;
 }

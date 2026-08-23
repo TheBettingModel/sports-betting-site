@@ -261,13 +261,10 @@ async function writePredictionSnapshot(
       dataCutoffTimestamp: capturedAt,
       isChallenger: false,
     })
-    .onConflictDoNothing({
-      target: [
-        modelPredictionsTable.gameId,
-        modelPredictionsTable.modelVersionId,
-        modelPredictionsTable.market,
-      ],
-    })
+    // The explicit pre-insert lookup above preserves the one-original-decision
+    // rule. Do not name a conflict target here: policy revisions extend the
+    // database identity with policy_revision_id.
+    .onConflictDoNothing()
     .returning({ id: modelPredictionsTable.id });
 
   return inserted?.id ?? null;

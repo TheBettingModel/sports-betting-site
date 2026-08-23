@@ -284,6 +284,80 @@ export const GetAdminOutcomeReviewsResponse = zod.object({
 
 
 /**
+ * @summary List immutable MLB moneyline policy revisions and audit counts
+ */
+export const GetMlbPolicyRevisionsResponse = zod.object({
+  "revisions": zod.array(zod.object({
+  "id": zod.number(),
+  "revisionKey": zod.string(),
+  "sport": zod.string(),
+  "market": zod.string(),
+  "policyManifest": zod.object({
+  "version": zod.enum(['mlb-moneyline-policy-v1']).optional(),
+  "buyThreshold": zod.number().optional(),
+  "strongBuyThreshold": zod.number().optional(),
+  "awayOffset": zod.number().optional(),
+  "maxFavoriteOdds": zod.number().optional()
+}),
+  "policyHash": zod.string(),
+  "reason": zod.string(),
+  "createdBy": zod.string(),
+  "activatedAt": zod.coerce.date(),
+  "affectedPredictions": zod.number().optional(),
+  "effectivePicks": zod.number().optional()
+})),
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Apply an authorized MLB policy revision to unstarted games only
+ */
+export const applyMlbPolicyRevisionBodyRevisionKeyMin = 3;
+
+export const applyMlbPolicyRevisionBodyReasonMin = 8;
+
+
+
+export const ApplyMlbPolicyRevisionBody = zod.object({
+  "revisionKey": zod.string().min(applyMlbPolicyRevisionBodyRevisionKeyMin),
+  "reason": zod.string().min(applyMlbPolicyRevisionBodyReasonMin),
+  "policy": zod.object({
+  "version": zod.enum(['mlb-moneyline-policy-v1']).optional(),
+  "buyThreshold": zod.number().optional(),
+  "strongBuyThreshold": zod.number().optional(),
+  "awayOffset": zod.number().optional(),
+  "maxFavoriteOdds": zod.number().optional()
+}).optional()
+})
+
+export const ApplyMlbPolicyRevisionResponse = zod.object({
+  "revision": zod.object({
+  "id": zod.number(),
+  "revisionKey": zod.string(),
+  "sport": zod.string(),
+  "market": zod.string(),
+  "policyManifest": zod.object({
+  "version": zod.enum(['mlb-moneyline-policy-v1']).optional(),
+  "buyThreshold": zod.number().optional(),
+  "strongBuyThreshold": zod.number().optional(),
+  "awayOffset": zod.number().optional(),
+  "maxFavoriteOdds": zod.number().optional()
+}),
+  "policyHash": zod.string(),
+  "reason": zod.string(),
+  "createdBy": zod.string(),
+  "activatedAt": zod.coerce.date(),
+  "affectedPredictions": zod.number().optional(),
+  "effectivePicks": zod.number().optional()
+}),
+  "createdPredictions": zod.number(),
+  "effectivePicks": zod.number(),
+  "skipped": zod.number()
+})
+
+
+/**
  * @summary Register a device push token
  */
 export const RegisterPushTokenBody = zod.object({

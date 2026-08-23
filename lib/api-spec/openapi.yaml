@@ -188,6 +188,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/OutcomeReviewsResponse"
 
+  /admin/mlb-policy-revisions:
+    get:
+      operationId: getMlbPolicyRevisions
+      tags: [admin]
+      summary: List immutable MLB moneyline policy revisions and audit counts
+      responses:
+        "200":
+          description: MLB policy revisions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlbPolicyRevisionList"
+    post:
+      operationId: applyMlbPolicyRevision
+      tags: [admin]
+      summary: Apply an authorized MLB policy revision to unstarted games only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MlbPolicyRevisionInput"
+      responses:
+        "201":
+          description: Policy revision applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlbPolicyRevisionApplyResult"
+        "400":
+          description: Invalid immutable revision request
+        "401":
+          description: Unauthorized
+
   /push-tokens:
     post:
       operationId: registerPushToken
@@ -323,6 +357,63 @@ paths:
 
 components:
   schemas:
+    MlbMoneylinePolicy:
+      type: object
+      properties:
+        version:
+          type: string
+          enum: [mlb-moneyline-policy-v1]
+        buyThreshold:
+          type: number
+        strongBuyThreshold:
+          type: number
+        awayOffset:
+          type: number
+        maxFavoriteOdds:
+          type: integer
+    MlbPolicyRevisionInput:
+      type: object
+      required: [revisionKey, reason]
+      properties:
+        revisionKey:
+          type: string
+          minLength: 3
+        reason:
+          type: string
+          minLength: 8
+        policy:
+          $ref: "#/components/schemas/MlbMoneylinePolicy"
+    MlbPolicyRevision:
+      type: object
+      required: [id, revisionKey, sport, market, policyManifest, policyHash, reason, createdBy, activatedAt]
+      properties:
+        id: { type: integer }
+        revisionKey: { type: string }
+        sport: { type: string }
+        market: { type: string }
+        policyManifest: { $ref: "#/components/schemas/MlbMoneylinePolicy" }
+        policyHash: { type: string }
+        reason: { type: string }
+        createdBy: { type: string }
+        activatedAt: { type: string, format: date-time }
+        affectedPredictions: { type: integer }
+        effectivePicks: { type: integer }
+    MlbPolicyRevisionList:
+      type: object
+      required: [revisions, count]
+      properties:
+        revisions:
+          type: array
+          items: { $ref: "#/components/schemas/MlbPolicyRevision" }
+        count: { type: integer }
+    MlbPolicyRevisionApplyResult:
+      type: object
+      required: [revision, createdPredictions, effectivePicks, skipped]
+      properties:
+        revision: { $ref: "#/components/schemas/MlbPolicyRevision" }
+        createdPredictions: { type: integer }
+        effectivePicks: { type: integer }
+        skipped: { type: integer }
     HealthStatus:
       type: object
       properties:

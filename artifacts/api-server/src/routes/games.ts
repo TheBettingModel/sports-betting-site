@@ -425,6 +425,7 @@ export async function refreshAll(): Promise<{
         awayTeamRecord: game.awayTeamRecord,
         gameTime: game.gameTime,
         gameDate: game.gameDate,
+        startsAt: new Date(game.commenceTimeISO),
         status: game.status,
         homeScore: game.homeScore ?? null,
         awayScore: game.awayScore ?? null,
@@ -490,6 +491,7 @@ export async function refreshAll(): Promise<{
           awayTeamLogo: game.awayTeamLogo ?? null,
           gameDate: game.gameDate,
           gameTime: game.gameTime,
+          startsAt: new Date(game.commenceTimeISO),
           status: game.status,
           // Preserve a valid score once captured — ESPN sometimes returns 0 on
           // subsequent refreshes even after a game has finished.
@@ -662,17 +664,17 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       .select({ id: gamesTable.id })
       .from(gamesTable)
       .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["live"]))),
-    // Fetch today's public published picks so we can pin the rating category.
-    // Units stay dynamic (updated each scheduler run), but once a pick is
-    // published as "Buy" it must stay in the Buy section for the day — the
-    // model re-running with a slightly lower score shouldn't move it to Neutral.
+    // Resolve every effective decision, not only public bets. An authorized
+    // policy revision may supersede a formerly-public Buy with a Neutral; the
+    // feed must reflect that effective no-bet instead of resurrecting the
+    // mutable games-table rating.
     db
       .select({ gameId: publishedPicksTable.gameId, recommendation: publishedPicksTable.recommendation })
       .from(publishedPicksTable)
       .where(
         and(
           sql`DATE(${publishedPicksTable.publishedAt} AT TIME ZONE 'America/New_York') = ${today}::date`,
-          eq(publishedPicksTable.isPublic, true),
+          eq(publishedPicksTable.isEffective, true),
         ),
       ),
   ]);

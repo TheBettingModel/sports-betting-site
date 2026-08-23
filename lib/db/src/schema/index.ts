@@ -21,6 +21,8 @@ export * from "./closing-lines";
 
 // ── Model registry & predictions ─────────────────────────────────────────────
 export * from "./model-versions";
+export * from "./mlb-policy-revisions";
+export * from "./model-prediction-duplicate-archive";
 export * from "./model-predictions";
 export * from "./published-picks";
 export * from "./pick-results";
