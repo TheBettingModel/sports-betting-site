@@ -8,7 +8,10 @@ import {
   publishedPicksTable,
   pickResultsTable,
 } from "@workspace/db";
-import { publishedPickEffectivenessLock } from "./publishedPickReconciliation";
+import {
+  publishedPickEffectivenessLock,
+  publishedPickEffectivenessWriterLock,
+} from "./publishedPickReconciliation";
 
 export interface MlbMoneylinePolicy {
   version: "mlb-moneyline-policy-v1";
@@ -253,6 +256,7 @@ export async function applyMlbPolicyRevision(
     const outcome = await db.transaction(async (tx) => {
       // hashtext is scoped to this transaction and serializes only this
       // game/market, allowing doubleheaders and unrelated games to proceed.
+      await tx.execute(publishedPickEffectivenessWriterLock());
       await tx.execute(publishedPickEffectivenessLock(candidate.gameId, "moneyline"));
       // Recheck against the database after the lock is acquired. The original
       // candidate list may have waited behind another game; no decision may be

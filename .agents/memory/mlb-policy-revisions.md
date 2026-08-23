@@ -30,3 +30,16 @@ lock avoids selecting a legacy winner over a concurrently published decision.
 **How to apply:** Do not add custom production migrations or startup DDL for
 this case; let Publish apply the schema diff, then reconcile legacy data
 idempotently at application startup before accepting requests.
+
+The legacy reconciliation must be set-based, not one transaction per
+game/market. It runs before the API opens its port and deployment readiness
+times out if production history is processed sequentially.
+
+**Why:** Production history can be large enough for a per-group startup loop
+to miss the deployment health-check deadline even though the reconciliation is
+correct.
+
+**How to apply:** Use one transaction with the rollout lock and a
+transaction-scoped `SHARE ROW EXCLUSIVE` lock on published picks. That also
+protects the one-statement winner selection from pre-change application
+instances during a rolling deployment.

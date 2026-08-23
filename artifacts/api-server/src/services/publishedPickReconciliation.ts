@@ -1,5 +1,5 @@
-import { and, desc, eq, sql } from "drizzle-orm";
-import { db, publishedPicksTable } from "@workspace/db";
+import { sql } from "drizzle-orm";
+import { db } from "@workspace/db";
 import { logger } from "../lib/logger";
 
 /**
@@ -9,6 +9,20 @@ import { logger } from "../lib/logger";
  */
 export function publishedPickEffectivenessLock(gameId: string, market: string) {
   return sql`SELECT pg_advisory_xact_lock(hashtext(${`${gameId}:${market}`}))`;
+}
+
+/**
+ * Writers take a shared rollout lock while choosing an effective pick. Startup
+ * reconciliation takes the matching exclusive lock, preventing a writer from
+ * racing its one-statement legacy backfill without serializing normal writers
+ * against each other.
+ */
+export function publishedPickEffectivenessWriterLock() {
+  return sql`SELECT pg_advisory_xact_lock_shared(hashtext('published-picks-effective-rollout'))`;
+}
+
+function publishedPickEffectivenessReconciliationLock() {
+  return sql`SELECT pg_advisory_xact_lock(hashtext('published-picks-effective-rollout'))`;
 }
 
 /**
@@ -22,47 +36,34 @@ export function publishedPickEffectivenessLock(gameId: string, market: string) {
  * history. For an unresolved group, newest publishedAt wins; id breaks ties.
  */
 export async function reconcileLegacyPublishedPickEffectiveness(): Promise<void> {
-  const unresolved = await db.execute(sql`
-    SELECT game_id, market
-    FROM published_picks
-    GROUP BY game_id, market
-    HAVING COUNT(*) FILTER (WHERE is_effective = true) = 0
-  `);
-
-  for (const group of unresolved.rows as Array<{ game_id: string; market: string }>) {
-    await db.transaction(async (tx) => {
-      await tx.execute(publishedPickEffectivenessLock(group.game_id, group.market));
-
-      // A current publisher may have won the lock first. Preserve its current
-      // choice rather than overwriting it with an older legacy decision.
-      const [existingEffective] = await tx
-        .select({ id: publishedPicksTable.id })
-        .from(publishedPicksTable)
-        .where(and(
-          eq(publishedPicksTable.gameId, group.game_id),
-          eq(publishedPicksTable.market, group.market),
-          eq(publishedPicksTable.isEffective, true),
-        ))
-        .limit(1);
-      if (existingEffective) return;
-
-      const [latestLegacyPick] = await tx
-        .select({ id: publishedPicksTable.id })
-        .from(publishedPicksTable)
-        .where(and(
-          eq(publishedPicksTable.gameId, group.game_id),
-          eq(publishedPicksTable.market, group.market),
-        ))
-        .orderBy(desc(publishedPicksTable.publishedAt), desc(publishedPicksTable.id))
-        .limit(1);
-      if (!latestLegacyPick) return;
-
-      await tx
-        .update(publishedPicksTable)
-        .set({ isEffective: true })
-        .where(eq(publishedPicksTable.id, latestLegacyPick.id));
-    });
-  }
+  await db.transaction(async (tx) => {
+    await tx.execute(publishedPickEffectivenessReconciliationLock());
+    // During a rolling deployment, an older API binary does not yet take the
+    // rollout advisory lock. This transaction-scoped table lock conflicts with
+    // its inserts and updates, so the winner selection below cannot race an
+    // old writer into violating the partial unique index.
+    await tx.execute(sql`LOCK TABLE published_picks IN SHARE ROW EXCLUSIVE MODE`);
+    await tx.execute(sql`
+      WITH unresolved_groups AS (
+        SELECT game_id, market
+        FROM published_picks
+        GROUP BY game_id, market
+        HAVING COUNT(*) FILTER (WHERE is_effective = true) = 0
+      ),
+      selected_legacy_picks AS (
+        SELECT DISTINCT ON (pick.game_id, pick.market) pick.id
+        FROM published_picks AS pick
+        INNER JOIN unresolved_groups AS unresolved
+          ON unresolved.game_id = pick.game_id
+         AND unresolved.market = pick.market
+        ORDER BY pick.game_id, pick.market, pick.published_at DESC NULLS LAST, pick.id DESC
+      )
+      UPDATE published_picks AS pick
+      SET is_effective = true
+      FROM selected_legacy_picks AS selected
+      WHERE pick.id = selected.id
+    `);
+  });
 
   logger.info("Legacy published-pick effectiveness reconciliation completed");
 }

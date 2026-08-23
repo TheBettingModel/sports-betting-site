@@ -20,7 +20,10 @@ import {
 import type { FetchedGame } from "./espn";
 import { getBootstrapIds } from "./bootstrap";
 import { logger } from "../lib/logger";
-import { publishedPickEffectivenessLock } from "./publishedPickReconciliation";
+import {
+  publishedPickEffectivenessLock,
+  publishedPickEffectivenessWriterLock,
+} from "./publishedPickReconciliation";
 import {
   hasValidMoneylineMarketForSport,
   isValidAmericanOdds,
@@ -287,6 +290,7 @@ async function publishPick(
   publishedAt: Date,
 ): Promise<void> {
   await db.transaction(async (tx) => {
+    await tx.execute(publishedPickEffectivenessWriterLock());
     await tx.execute(publishedPickEffectivenessLock(game.espnId, "moneyline"));
     let isPublic =
       proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
