@@ -10,7 +10,7 @@ import {
 } from "@workspace/db";
 import type { FetchedGame } from "./espn";
 import type { ProjectionResult } from "./model";
-import { removeVig2 } from "./model";
+import { MLB_MAX_FAVORITE_ODDS, removeVig2 } from "./model";
 import {
   hasValidMoneylineMarketForSport,
   isPregameCommenceTime,
@@ -138,13 +138,22 @@ export function materialMlbEvidenceFingerprint(snapshot: Record<string, unknown>
 export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
   const selection = proj.edge >= 0 ? "home" : "away";
   const odds = selection === "home" ? proj.vegasHomeOdds : proj.vegasAwayOdds;
-  const recommendation: MlbRecommendation = (
+  let recommendation: MlbRecommendation = (
     proj.valueRating === "Strong Buy" ||
     proj.valueRating === "Buy" ||
     proj.valueRating === "Fade"
   )
     ? proj.valueRating
     : "Neutral";
+  // Defend the immutable replacement path independently of its caller. The
+  // regular projection already applies this price gate, but a pregame revision
+  // must never revive a retired -200-style favorite if that changes later.
+  if (
+    (recommendation === "Strong Buy" || recommendation === "Buy") &&
+    odds <= MLB_MAX_FAVORITE_ODDS
+  ) {
+    recommendation = "Neutral";
+  }
   return {
     selection,
     odds,
@@ -152,8 +161,8 @@ export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPrega
     edge: proj.edge,
     confidence: proj.confidence,
     recommendation,
-    units: proj.units > 0 ? proj.units : 1,
-    podScore: proj.podScore,
+    units: recommendation === "Neutral" ? 1 : proj.units > 0 ? proj.units : 1,
+    podScore: recommendation === "Neutral" ? 0 : proj.podScore,
     finalRating: proj.finalModelScore,
     marketIntelligenceGrade: proj.finalModelTier,
   };

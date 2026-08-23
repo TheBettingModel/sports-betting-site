@@ -519,13 +519,6 @@ function PerformancePanel() {
   const overallAccuracy = statsData?.overallAccuracy ?? 0;
   const totalPicks = statsData?.totalPredictions ?? 0;
 
-  // Overall Brier score (average across sports)
-  const sportsWithBrier = stats.filter((s) => s.brierScore != null);
-  const overallBrier =
-    sportsWithBrier.length > 0
-      ? sportsWithBrier.reduce((sum, s) => sum + (s.brierScore ?? 0), 0) / sportsWithBrier.length
-      : null;
-
   // Overall avg CLV
   const sportsWithClv = stats.filter((s) => s.avgClv != null);
   const overallAvgClv =
@@ -567,11 +560,6 @@ function PerformancePanel() {
           }
           sub="closing line value"
           highlight={overallAvgClv != null ? (overallAvgClv >= 0 ? "#4ade80" : "#f87171") : undefined}
-        />
-        <StatCard
-          label="Avg Brier Score"
-          value={overallBrier != null ? overallBrier.toFixed(3) : "—"}
-          sub="lower is better"
         />
       </div>
 

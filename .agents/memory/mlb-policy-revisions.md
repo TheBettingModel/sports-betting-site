@@ -54,3 +54,14 @@ a revision after first pitch when the transaction waited behind a lock.
 **How to apply:** Use the same game/market effectiveness lock for revisions and
 grading, then recheck `status='upcoming'` and `starts_at > clock_timestamp()`
 immediately before writing or replacing an effective decision.
+
+MLB moneyline favorites at -160 or shorter are always Neutral. That ceiling
+must apply to the initial projection, manual policy revisions, and automatic
+pregame replacements; a policy may be stricter but must never relax it.
+
+**Why:** A one-time repair can be undone when an ordinary refresh calculates a
+new effective decision through a looser model path.
+
+**How to apply:** Share the ceiling across all decision writers and run a
+fixed-key, idempotent pregame repair at startup for any active future pick that
+was published at a retired, more expensive price.

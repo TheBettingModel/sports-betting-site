@@ -68,14 +68,14 @@ describe("two-way market edge safeguards", () => {
     expect(projection.podScore).toBe(0);
   });
 
-  it("still blocks extremely heavy MLB chalk", () => {
+  it("blocks MLB favorites at the approved -160 ceiling", () => {
     const projection = computeProjection(
       "extreme-heavy-chalk-neutral",
       "MLB",
       "100-0",
       "0-100",
       null,
-      { realVegasHomeOdds: -225, realVegasAwayOdds: 185 },
+      { realVegasHomeOdds: -160, realVegasAwayOdds: 140 },
     );
 
     expect(projection.valueRating).toBe("Neutral");

@@ -20,11 +20,48 @@ import { effectiveWeights, SPORT_DEFAULT_WEIGHTS } from "./model";
 import { buildOutcomeReview, isDecisionSnapshot } from "./lossReview";
 import { logger } from "../lib/logger";
 
-const EMA_ALPHA = 0.08;
 const MIN_FACTOR_SAMPLE = 15;
+const BRIER_RANDOM_BASELINE = 0.25;
 
-function ema(previous: number, next: number): number {
-  return previous * (1 - EMA_ALPHA) + next * EMA_ALPHA;
+interface LearningProfile {
+  emaAlpha: number;
+  minimumWeight: number;
+  maximumWeight: number;
+  useBaselineRelativeBounds: boolean;
+  brierSeverityMaximum: number;
+  confidenceMode: "legacy" | "calibration-gated";
+}
+
+const CALIBRATION_GATED_PROFILE: LearningProfile = {
+  emaAlpha: 0.08,
+  minimumWeight: 0.0005,
+  maximumWeight: Number.POSITIVE_INFINITY,
+  useBaselineRelativeBounds: true,
+  brierSeverityMaximum: 1.5,
+  confidenceMode: "calibration-gated",
+};
+
+/**
+ * MLB deliberately retains the pre-v2 calibration response. Its outcomes still
+ * flow through the immutable per-pick learner; only the sport's learning
+ * sensitivity and confidence bounds use the established MLB profile.
+ */
+export const LEGACY_MLB_LEARNING_PROFILE: LearningProfile = {
+  emaAlpha: 0.15,
+  minimumWeight: 0.002,
+  maximumWeight: 0.60,
+  useBaselineRelativeBounds: false,
+  brierSeverityMaximum: 2,
+  confidenceMode: "legacy",
+};
+
+export function learningProfileForSport(sport: string): LearningProfile {
+  return sport === "MLB" ? LEGACY_MLB_LEARNING_PROFILE : CALIBRATION_GATED_PROFILE;
+}
+
+export function emaForSport(sport: string, previous: number, next: number): number {
+  const alpha = learningProfileForSport(sport).emaAlpha;
+  return previous * (1 - alpha) + next * alpha;
 }
 
 function factorWeightKey(factor: string): string | null {
@@ -46,8 +83,11 @@ function factorWeightKey(factor: string): string | null {
   return map[factor] ?? null;
 }
 
-function boundedWeight(value: number, baseline: number): number {
-  const lower = Math.max(0.0005, baseline * 0.5);
+function boundedWeight(value: number, baseline: number, profile: LearningProfile): number {
+  if (!profile.useBaselineRelativeBounds) {
+    return Math.max(profile.minimumWeight, Math.min(profile.maximumWeight, value));
+  }
+  const lower = Math.max(profile.minimumWeight, baseline * 0.5);
   const upper = Math.max(lower, baseline * 1.5);
   return Math.max(lower, Math.min(upper, value));
 }
@@ -55,15 +95,16 @@ function boundedWeight(value: number, baseline: number): number {
 function boundedWeights(sport: string, stored: FactorWeights | null | undefined): FactorWeights {
   const baseline = SPORT_DEFAULT_WEIGHTS[sport] ?? SPORT_DEFAULT_WEIGHTS.MLB!;
   const effective = effectiveWeights(sport, stored);
+  const profile = learningProfileForSport(sport);
   return Object.fromEntries(
     Object.entries(effective).map(([key, value]) => [
       key,
-      boundedWeight(value, baseline[key] ?? value),
+      boundedWeight(value, baseline[key] ?? value, profile),
     ]),
   );
 }
 
-function nudgeWeights(input: {
+export function nudgeWeights(input: {
   sport: string;
   current: FactorWeights | null | undefined;
   contributions: Record<string, unknown>;
@@ -73,6 +114,7 @@ function nudgeWeights(input: {
   sampleSize: number;
 }): FactorWeights {
   const updated = boundedWeights(input.sport, input.current);
+  const profile = learningProfileForSport(input.sport);
   if (input.sampleSize < MIN_FACTOR_SAMPLE) return updated;
   if (input.selection !== "home" && input.selection !== "away") return updated;
 
@@ -88,29 +130,39 @@ function nudgeWeights(input: {
   const selectedHome = input.selection === "home";
   const actualHome = input.result === "win" ? selectedHome : !selectedHome;
   const brier = (input.modelProbability - (input.result === "win" ? 1 : 0)) ** 2;
-  const severity = Math.max(0.5, Math.min(1.5, brier / 0.25));
+  const severity = Math.max(0.5, Math.min(profile.brierSeverityMaximum, brier / BRIER_RANDOM_BASELINE));
 
   for (const [factor, contribution] of numeric) {
     const key = factorWeightKey(factor);
     if (!key || !(key in updated)) continue;
     const baselineWeight = baseline[key] ?? updated[key] ?? 0.01;
     const factorCorrect = (contribution > 0) === actualHome;
-    const share = Math.min(1, Math.max(0.1, Math.abs(contribution) / totalMagnitude));
-    const delta = factorCorrect
-      ? 0.0015 * share * (2 - severity)
-      : -0.0025 * share * severity;
-    updated[key] = boundedWeight((updated[key] ?? baselineWeight) + delta, baselineWeight);
+    const magnitudeRatio = Math.abs(contribution) / totalMagnitude;
+    const delta = profile.confidenceMode === "legacy"
+      ? factorCorrect
+        ? 0.004 * Math.max(0.25, Math.min(2, magnitudeRatio * 5)) * Math.max(0.25, 2 - severity)
+        : -0.003 * Math.max(0.25, Math.min(2, magnitudeRatio * 5)) * severity
+      : factorCorrect
+        ? 0.0015 * Math.min(1, Math.max(0.1, magnitudeRatio)) * (2 - severity)
+        : -0.0025 * Math.min(1, Math.max(0.1, magnitudeRatio)) * severity;
+    updated[key] = boundedWeight((updated[key] ?? baselineWeight) + delta, baselineWeight, profile);
   }
 
   return updated;
 }
 
-function nextConfidenceMultiplier(input: {
+export function nextConfidenceMultiplier(input: {
+  sport: string;
   current: number;
   accuracy: number;
   brier: number;
   totalPredictions: number;
 }): number {
+  if (learningProfileForSport(input.sport).confidenceMode === "legacy") {
+    if (input.accuracy > 0.58) return Math.min(1.3, input.current + 0.02);
+    if (input.accuracy < 0.45) return Math.max(0.7, input.current - 0.02);
+    return input.current;
+  }
   // Poor probability calibration immediately removes any previous boost. This
   // prevents a stale high multiplier from keeping a struggling sport overconfident.
   if (input.brier > 0.28 || input.accuracy < 0.48) {
@@ -208,8 +260,12 @@ export async function runLearning(): Promise<void> {
       const [existing] = await tx.select().from(modelWeightsTable)
         .where(eq(modelWeightsTable.sport, row.sport)).limit(1);
       const correct = result === "win";
-      const nextAccuracy = ema(existing?.accuracyRate ?? 0.5, correct ? 1 : 0);
-      const nextBrier = ema(existing?.brierScore ?? 0.25, (row.modelProbability - (correct ? 1 : 0)) ** 2);
+      const nextAccuracy = emaForSport(row.sport, existing?.accuracyRate ?? 0.5, correct ? 1 : 0);
+      const nextBrier = emaForSport(
+        row.sport,
+        existing?.brierScore ?? BRIER_RANDOM_BASELINE,
+        (row.modelProbability - (correct ? 1 : 0)) ** 2,
+      );
       const nextTotal = (existing?.totalPredictions ?? 0) + 1;
       const tier = row.marketIntelligenceGrade ?? "Watchlist";
       const nextWeights = nudgeWeights({
@@ -217,16 +273,20 @@ export async function runLearning(): Promise<void> {
         result, modelProbability: row.modelProbability, sampleSize: existing?.totalPredictions ?? 0,
       });
       const nextMultiplier = nextConfidenceMultiplier({
-        current: existing?.confidenceMultiplier ?? 1, accuracy: nextAccuracy, brier: nextBrier, totalPredictions: nextTotal,
+        sport: row.sport,
+        current: existing?.confidenceMultiplier ?? 1,
+        accuracy: nextAccuracy,
+        brier: nextBrier,
+        totalPredictions: nextTotal,
       });
       const values = {
         accuracyRate: nextAccuracy, brierScore: nextBrier, totalPredictions: nextTotal,
         correctPredictions: (existing?.correctPredictions ?? 0) + (correct ? 1 : 0),
-        strongBuyAccuracy: row.recommendation === "Strong Buy" ? ema(existing?.strongBuyAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.strongBuyAccuracy ?? 0.5),
-        buyAccuracy: row.recommendation === "Buy" ? ema(existing?.buyAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.buyAccuracy ?? 0.5),
-        eliteAccuracy: tier === "Elite" ? ema(existing?.eliteAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.eliteAccuracy ?? 0.5),
-        strongAccuracy: tier === "Strong" ? ema(existing?.strongAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.strongAccuracy ?? 0.5),
-        playableAccuracy: tier === "Playable" ? ema(existing?.playableAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.playableAccuracy ?? 0.5),
+        strongBuyAccuracy: row.recommendation === "Strong Buy" ? emaForSport(row.sport, existing?.strongBuyAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.strongBuyAccuracy ?? 0.5),
+        buyAccuracy: row.recommendation === "Buy" ? emaForSport(row.sport, existing?.buyAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.buyAccuracy ?? 0.5),
+        eliteAccuracy: tier === "Elite" ? emaForSport(row.sport, existing?.eliteAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.eliteAccuracy ?? 0.5),
+        strongAccuracy: tier === "Strong" ? emaForSport(row.sport, existing?.strongAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.strongAccuracy ?? 0.5),
+        playableAccuracy: tier === "Playable" ? emaForSport(row.sport, existing?.playableAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.playableAccuracy ?? 0.5),
         confidenceMultiplier: nextMultiplier, factorWeights: nextWeights, lastLearnedAt: new Date(),
       };
       if (existing) await tx.update(modelWeightsTable).set(values).where(eq(modelWeightsTable.id, existing.id));

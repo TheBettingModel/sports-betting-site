@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lte, sql, type SQL } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -12,6 +12,7 @@ import {
   publishedPickEffectivenessLock,
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
+import { MLB_MAX_FAVORITE_ODDS } from "./model";
 
 export interface MlbMoneylinePolicy {
   version: "mlb-moneyline-policy-v1";
@@ -26,13 +27,25 @@ export const DEFAULT_MLB_MONEYLINE_POLICY: MlbMoneylinePolicy = {
   buyThreshold: 7,
   strongBuyThreshold: 12,
   awayOffset: 3,
-  maxFavoriteOdds: -220,
+  maxFavoriteOdds: MLB_MAX_FAVORITE_ODDS,
 };
 
 export interface PolicyDecision {
   recommendation: "Strong Buy" | "Buy" | "Neutral";
   units: number;
   blockedReason: string | null;
+}
+
+export function isMlbFavoritePriceCapViolation(
+  recommendation: string,
+  odds: number | null,
+  maxFavoriteOdds = MLB_MAX_FAVORITE_ODDS,
+): boolean {
+  return (
+    (recommendation === "Buy" || recommendation === "Strong Buy") &&
+    odds != null &&
+    odds <= maxFavoriteOdds
+  );
 }
 
 function isCredibleOdds(odds: number | null): odds is number {
@@ -91,9 +104,11 @@ function normalizePolicy(value: unknown): MlbMoneylinePolicy {
     !Number.isFinite(policy.buyThreshold) || policy.buyThreshold < 1 ||
     !Number.isFinite(policy.strongBuyThreshold) || policy.strongBuyThreshold < policy.buyThreshold ||
     !Number.isFinite(policy.awayOffset) || policy.awayOffset < 0 ||
-    !Number.isInteger(policy.maxFavoriteOdds) || policy.maxFavoriteOdds > -100 || policy.maxFavoriteOdds < -500
+    !Number.isInteger(policy.maxFavoriteOdds) ||
+    policy.maxFavoriteOdds > -100 ||
+    policy.maxFavoriteOdds < MLB_MAX_FAVORITE_ODDS
   ) {
-    throw new Error("Invalid MLB moneyline policy thresholds.");
+    throw new Error(`Invalid MLB moneyline policy thresholds. The favorite cap cannot be looser than ${MLB_MAX_FAVORITE_ODDS}.`);
   }
   return policy;
 }
@@ -142,6 +157,8 @@ export interface ApplyMlbPolicyRevisionInput {
   reason: string;
   actor: string;
   policy?: unknown;
+  /** Used only by the automatic -160 repair to avoid rewriting compliant picks. */
+  onlyPriceCapViolations?: boolean;
 }
 
 export interface ApplyMlbPolicyRevisionResult {
@@ -149,6 +166,31 @@ export interface ApplyMlbPolicyRevisionResult {
   createdPredictions: number;
   effectivePicks: number;
   skipped: number;
+}
+
+class PolicyRevisionPregameCutoffReachedError extends Error {
+  constructor() {
+    super("Pregame policy revision cutoff reached");
+  }
+}
+
+/**
+ * Locks the game row against concurrent updates and checks PostgreSQL's live
+ * wall clock. Call it immediately before an immutable effective-pick mutation.
+ */
+export async function hasFutureMlbPolicyRevisionCutoff(
+  tx: { execute: (query: SQL) => Promise<{ rows: unknown[] }> },
+  gameId: string,
+): Promise<boolean> {
+  const cutoffCheck = await tx.execute(sql`
+    SELECT id
+    FROM games
+    WHERE id = ${gameId}
+      AND status = 'upcoming'
+      AND starts_at > clock_timestamp()
+    FOR UPDATE
+  `);
+  return cutoffCheck.rows.length > 0;
 }
 
 /**
@@ -214,6 +256,7 @@ export async function applyMlbPolicyRevision(
       gameId: gamesTable.id,
       modelVersionId: modelPredictionsTable.modelVersionId,
       predictionId: modelPredictionsTable.id,
+      recommendation: publishedPicksTable.recommendation,
       selection: modelPredictionsTable.selection,
       odds: modelPredictionsTable.odds,
       edge: modelPredictionsTable.edge,
@@ -229,14 +272,22 @@ export async function applyMlbPolicyRevision(
       sportsbookId: modelPredictionsTable.sportsbookId,
       lineShoppingInfo: modelPredictionsTable.lineShoppingInfo,
     })
-    .from(modelPredictionsTable)
+    .from(publishedPicksTable)
+    .innerJoin(modelPredictionsTable, eq(publishedPicksTable.predictionId, modelPredictionsTable.id))
     .innerJoin(gamesTable, eq(modelPredictionsTable.gameId, gamesTable.id))
     .where(and(
       eq(gamesTable.sport, "MLB"),
       eq(gamesTable.status, "upcoming"),
       gt(gamesTable.startsAt, now),
       eq(modelPredictionsTable.market, "moneyline"),
-      isNull(modelPredictionsTable.policyRevisionId),
+      eq(publishedPicksTable.market, "moneyline"),
+      eq(publishedPicksTable.isEffective, true),
+      input.onlyPriceCapViolations
+        ? inArray(publishedPicksTable.recommendation, ["Buy", "Strong Buy"])
+        : sql`TRUE`,
+      input.onlyPriceCapViolations
+        ? lte(modelPredictionsTable.odds, policy.maxFavoriteOdds)
+        : sql`TRUE`,
     ))
     .orderBy(desc(modelPredictionsTable.predictionTimestamp));
 
@@ -244,6 +295,13 @@ export async function applyMlbPolicyRevision(
   let effectivePicks = 0;
   let skipped = 0;
   for (const candidate of candidates) {
+    if (
+      input.onlyPriceCapViolations &&
+      !isMlbFavoritePriceCapViolation(candidate.recommendation, candidate.odds, policy.maxFavoriteOdds)
+    ) {
+      skipped++;
+      continue;
+    }
     const snapshot = candidate.featureSnapshot as Record<string, unknown>;
     const decision = evaluateMlbMoneylinePolicy({
       edge: candidate.edge,
@@ -253,7 +311,9 @@ export async function applyMlbPolicyRevision(
       missingSignals: missingSignals(snapshot),
     }, policy);
 
-    const outcome = await db.transaction(async (tx) => {
+    let outcome: { created: boolean; effective: boolean };
+    try {
+      outcome = await db.transaction(async (tx) => {
       // hashtext is scoped to this transaction and serializes only this
       // game/market, allowing doubleheaders and unrelated games to proceed.
       await tx.execute(publishedPickEffectivenessWriterLock());
@@ -261,16 +321,9 @@ export async function applyMlbPolicyRevision(
       // Recheck against the database after the lock is acquired. The original
       // candidate list may have waited behind another game; no decision may be
       // revised once its recorded first-pitch cutoff has passed.
-      const [stillEligible] = await tx
-        .select({ id: gamesTable.id })
-        .from(gamesTable)
-        .where(and(
-          eq(gamesTable.id, candidate.gameId),
-          eq(gamesTable.status, "upcoming"),
-          gt(gamesTable.startsAt, new Date()),
-        ))
-        .limit(1);
-      if (!stillEligible) return { created: false, effective: false };
+      if (!await hasFutureMlbPolicyRevisionCutoff(tx, candidate.gameId)) {
+        return { created: false, effective: false };
+      }
       const [alreadyWritten] = await tx
         .select({ id: modelPredictionsTable.id })
         .from(modelPredictionsTable)
@@ -333,6 +386,12 @@ export async function applyMlbPolicyRevision(
         ));
       const isPublic = (decision.recommendation === "Buy" || decision.recommendation === "Strong Buy")
         && Number(publicCount) < 6;
+      // The reads and immutable prediction insert above can take time. Recheck
+      // at the last safe point so a pick can never be voided/replaced after its
+      // recorded first pitch. Throwing rolls back the inserted prediction too.
+      if (!await hasFutureMlbPolicyRevisionCutoff(tx, candidate.gameId)) {
+        throw new PolicyRevisionPregameCutoffReachedError();
+      }
       // Deactivate before inserting the replacement so the partial unique
       // index enforces exactly one effective game/market row at commit.
       if (active.length > 0) {
@@ -407,13 +466,36 @@ export async function applyMlbPolicyRevision(
         gradeAudit: [],
       });
       return { created: true, effective: true };
-    });
+      });
+    } catch (error) {
+      if (error instanceof PolicyRevisionPregameCutoffReachedError) {
+        skipped++;
+        continue;
+      }
+      throw error;
+    }
     if (outcome.created) createdPredictions++;
     if (outcome.effective) effectivePicks++;
     if (!outcome.created) skipped++;
   }
 
   return { revision, createdPredictions, effectivePicks, skipped };
+}
+
+const MLB_FAVORITE_PRICE_CAP_REPAIR_KEY = "mlb-favorite-cap-160";
+
+/**
+ * On deployment, replace only current unstarted picks that were published under
+ * the retired, looser price ceiling. The fixed revision key makes restarts safe.
+ */
+export async function applyMlbFavoritePriceCapRepair(): Promise<ApplyMlbPolicyRevisionResult> {
+  return applyMlbPolicyRevision({
+    revisionKey: MLB_FAVORITE_PRICE_CAP_REPAIR_KEY,
+    reason: "Enforce the approved -160 MLB favorite price ceiling.",
+    actor: "system",
+    policy: DEFAULT_MLB_MONEYLINE_POLICY,
+    onlyPriceCapViolations: true,
+  });
 }
 
 export async function listMlbPolicyRevisionAudit() {

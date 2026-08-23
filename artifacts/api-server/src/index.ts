@@ -5,6 +5,7 @@ import { initJwks } from "./middleware/requireSubscriber";
 import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
 import { runLearning } from "./services/learning";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
+import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -69,6 +70,21 @@ async function startServer(): Promise<void> {
     await reconcileLegacyPublishedPickEffectiveness();
   } catch (err) {
     logger.error({ err }, "Legacy published-pick reconciliation failed");
+    process.exit(1);
+  }
+  try {
+    const repair = await applyMlbFavoritePriceCapRepair();
+    logger.info(
+      {
+        revisionKey: repair.revision.revisionKey,
+        createdPredictions: repair.createdPredictions,
+        effectivePicks: repair.effectivePicks,
+        skipped: repair.skipped,
+      },
+      "MLB favorite-price cap repair completed",
+    );
+  } catch (err) {
+    logger.error({ err }, "MLB favorite-price cap repair failed");
     process.exit(1);
   }
 

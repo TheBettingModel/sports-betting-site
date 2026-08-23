@@ -3,6 +3,7 @@ import type { FetchedGame } from "./espn";
 import type { ProjectionResult } from "./model";
 import {
   assessMlbMaterialPregameChange,
+  currentMlbPregameDecision,
   isMlbMaterialPregameRevisionEligible,
   materialMlbEvidenceFingerprint,
   type MaterialPregameDecision,
@@ -103,5 +104,23 @@ describe("material MLB pregame revisions", () => {
       proj,
       true,
     )).toBe(false);
+  });
+
+  it("cannot reintroduce a Buy at the retired -200 MLB favorite price", () => {
+    const decision = currentMlbPregameDecision({
+      ...baseDecision,
+      vegasHomeOdds: -200,
+      vegasAwayOdds: 170,
+      edge: 8,
+      valueRating: "Buy",
+      homeWinPct: 62,
+      confidence: "High",
+      units: 1.5,
+      podScore: 40,
+      finalModelScore: 70,
+      finalModelTier: "Strong",
+    } as unknown as ProjectionResult);
+
+    expect(decision).toMatchObject({ odds: -200, recommendation: "Neutral", units: 1, podScore: 0 });
   });
 });

@@ -138,6 +138,9 @@ export const SPORT_DEFAULT_WEIGHTS: Record<string, FactorWeights> = {
   },
 };
 
+/** MLB moneyline favorites at this price or shorter are always a no-bet. */
+export const MLB_MAX_FAVORITE_ODDS = -160;
+
 /** Merge stored factorWeights with sport defaults, sport defaults win for missing keys */
 export function effectiveWeights(sport: string, stored: FactorWeights | null | undefined): FactorWeights {
   const defaults = SPORT_DEFAULT_WEIGHTS[sport] ?? SPORT_DEFAULT_WEIGHTS["MLB"]!;
@@ -933,9 +936,9 @@ function finalizeResult(
   const pickIsHome = anchoredEdge >= 0;
   const pickOdds   = pickIsHome ? vegasHomeOdds : vegasAwayOdds;
 
-  // MLB's richer pregame evidence supports credible moderate favorites. Extremely
-  // heavy chalk remains excluded because the price leaves little room for error.
-  const MONEYLINE_CAP = sport === "MLB" ? -220 : -160;
+  // MLB uses its approved -160 ceiling. This export is also used by the
+  // immutable policy-revision path so a later refresh cannot bypass the cap.
+  const MONEYLINE_CAP = sport === "MLB" ? MLB_MAX_FAVORITE_ODDS : -160;
   if ((valueRating === "Strong Buy" || valueRating === "Buy") && pickOdds <= MONEYLINE_CAP) {
     valueRating = "Neutral";
   }
