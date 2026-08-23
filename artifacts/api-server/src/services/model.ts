@@ -886,11 +886,12 @@ function finalizeResult(
 
   const confidence = deviation >= 18 ? "High" : deviation >= 9 ? "Medium" : "Low";
 
-  // MLB uses a higher threshold — Brier score 0.42 shows the model is poorly calibrated
-  // there; require a larger edge before committing subscribers' units.
+  // MLB remains selective, but the full pitcher/lineup/bullpen/weather foundation
+  // now supports a wider actionable band. The hard evidence gate below continues
+  // to reject incomplete starters or invalid pregame moneylines.
   // WNBA keeps its existing threshold while the home-advantage recalibration settles.
-  const strongBuyThreshold = sport === "MLB" ? 15 : (sport === "WNBA" ? 12 : 10);
-  const buyThreshold        = sport === "MLB" ? 10 : (sport === "WNBA" ? 8  : 5);
+  const strongBuyThreshold = sport === "MLB" ? 12 : (sport === "WNBA" ? 12 : 10);
+  const buyThreshold        = sport === "MLB" ? 7  : (sport === "WNBA" ? 8  : 5);
 
   // Away picks require a higher bar than home picks.
   // The model was calibrated on home team probabilities; away edges are less proven
@@ -900,7 +901,7 @@ function finalizeResult(
   const isAwayPick = anchoredEdge < 0;
   const awayOffset =
     sport === "UFC"  ? Infinity :          // never flip for UFC
-    sport === "MLB"  ? 8 :
+    sport === "MLB"  ? 3 :
     sport === "WNBA" ? 5 : 3;
   const effectiveStrongBuyThreshold = isAwayPick
     ? strongBuyThreshold + awayOffset
@@ -932,11 +933,9 @@ function finalizeResult(
   const pickIsHome = anchoredEdge >= 0;
   const pickOdds   = pickIsHome ? vegasHomeOdds : vegasAwayOdds;
 
-  // Moneyline cap: never publish a Strong Buy or Buy on a favourite heavier than
-  // -160. At -160 the implied probability required to profit long-term is ~61.5%;
-  // compounding vig makes it nearly impossible to sustain positive EV. Downgrade
-  // to Neutral so subscribers don't over-stake on heavy chalk.
-  const MONEYLINE_CAP = -160;
+  // MLB's richer pregame evidence supports credible moderate favorites. Extremely
+  // heavy chalk remains excluded because the price leaves little room for error.
+  const MONEYLINE_CAP = sport === "MLB" ? -220 : -160;
   if ((valueRating === "Strong Buy" || valueRating === "Buy") && pickOdds <= MONEYLINE_CAP) {
     valueRating = "Neutral";
   }

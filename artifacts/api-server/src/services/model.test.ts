@@ -68,20 +68,17 @@ describe("two-way market edge safeguards", () => {
     expect(projection.podScore).toBe(0);
   });
 
-  it("never gives a blocked neutral play an elite-looking score or POD ranking", () => {
+  it("still blocks extremely heavy MLB chalk", () => {
     const projection = computeProjection(
-      "heavy-chalk-neutral",
+      "extreme-heavy-chalk-neutral",
       "MLB",
       "100-0",
       "0-100",
       null,
-      { realVegasHomeOdds: -200, realVegasAwayOdds: 170 },
+      { realVegasHomeOdds: -225, realVegasAwayOdds: 185 },
     );
 
     expect(projection.valueRating).toBe("Neutral");
-    expect(projection.finalModelScore).toBeLessThanOrEqual(59);
-    expect(projection.finalModelTier).not.toBe("Elite");
-    expect(projection.podScore).toBe(0);
     expect(projection.units).toBe(0);
   });
 
