@@ -9,9 +9,7 @@
     "scheme": "mobile",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/278c23a8-5a4b-4c28-baa2-f8331d5bee7a",
       "enabled": true,
