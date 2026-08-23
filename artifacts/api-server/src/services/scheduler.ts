@@ -18,20 +18,21 @@ import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, pub
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
+import { assessMlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { runGrading, recoverStaleGames, syncGameResults } from "./grading-runner";
 import { runAnalytics } from "./analytics";
 import { runLearning } from "./learning";
 import { checkPendingPushReceipts } from "./pushReceipts";
 import { runDriftMonitor } from "./driftMonitor";
 import { invalidateBootstrapCache } from "./bootstrap";
-import { computeProjection } from "./model";
+import { computeProjection, type ComputeOptions } from "./model";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats, getNbaTeamStats, warmUpTeamStatsCache } from "./teamStats";
 import { getOddsForGameWithStatus, selectActionableMoneylineMarket } from "./oddsApi";
-import { getProbablePitchers, computePitcherAdvantage } from "./mlbPitchers";
-import { getBullpenMatchup, computeBullpenAdvantage } from "./mlbBullpen";
-import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup } from "./mlbLineups";
+import { getProbablePitchers, computePitcherAdvantage, getProbablePitcherCacheMeta } from "./mlbPitchers";
+import { getBullpenMatchup, computeBullpenAdvantage, getBullpenCacheMeta } from "./mlbBullpen";
+import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup, getLineupCacheMeta } from "./mlbLineups";
 import { getParkFactor } from "./mlbParkFactors";
-import { getVenueWeather, computeWeatherEffect } from "./weatherService";
+import { getVenueWeather, computeWeatherEffect, getVenueWeatherCacheMeta } from "./weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage, getNhlTeamSpecialTeams, computeNhlSpecialTeamsAdvantage } from "./nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "./nflInjuries";
 import { getWnbaTeamInjuryImpact, computeWnbaInjuryAdvantage } from "./wnbaInjuries";
@@ -593,6 +594,34 @@ async function runOddsIngestion(): Promise<void> {
           const nflSignals = game.sport === "NFL"
             ? await computeNflSituationalSignals(game.homeTeamAbbr, game.awayTeamAbbr)
             : null;
+          const mlbAvailability = {
+            homeStarter: starters.home ?? null,
+            awayStarter: starters.away ?? null,
+            homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
+            awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
+            homeLineup: enrichedLineup?.home ?? null,
+            awayLineup: enrichedLineup?.away ?? null,
+            homeBullpen: bullpenMatchup?.home ?? null,
+            awayBullpen: bullpenMatchup?.away ?? null,
+            venueWeather,
+            startersMeta: getProbablePitcherCacheMeta(game.gameDate),
+            bullpenMeta: getBullpenCacheMeta(game.gameDate),
+            lineupsMeta: getLineupCacheMeta(game.gameDate),
+            weatherMeta: getVenueWeatherCacheMeta(
+              game.sport,
+              game.homeTeamAbbr,
+              game.gameDate,
+              game.gameTime ?? "7:00 PM ET",
+            ),
+          };
+          const mlbEvidence = game.sport === "MLB"
+            ? assessMlbDecisionEvidence(game, {
+                realVegasHomeOdds: currentHomeOdds,
+                realVegasAwayOdds: currentAwayOdds,
+                homeDbStats,
+                awayDbStats,
+              }, mlbAvailability)
+            : null;
 
           const proj = computeProjection(
             game.espnId,
@@ -640,6 +669,8 @@ async function runOddsIngestion(): Promise<void> {
               awaySoccerStats,
               homeDbStats,
               awayDbStats,
+              mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
+              mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
             },
           );
           const decisionContext = createPredictionDecisionContext(
@@ -680,12 +711,11 @@ async function runOddsIngestion(): Promise<void> {
               awaySoccerStats,
               homeDbStats,
               awayDbStats,
+              mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
+              mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
             },
             {
-              homeStarter: starters.home ?? null,
-              awayStarter: starters.away ?? null,
-              homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
-              awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
+              ...mlbAvailability,
               homeGoalie: goalieMatchup?.home ?? null,
               awayGoalie: goalieMatchup?.away ?? null,
               homeInjuries: game.sport === "NFL" ? homeInjury?.keyInjuries ?? [] :
@@ -693,6 +723,7 @@ async function runOddsIngestion(): Promise<void> {
               awayInjuries: game.sport === "NFL" ? awayInjury?.keyInjuries ?? [] :
                 game.sport === "WNBA" ? awayWnbaInj?.keyInjuries ?? [] : [],
             },
+            mlbEvidence ?? undefined,
           );
           await processGameSnapshot(game, proj, decisionContext);
           processed++;
@@ -886,7 +917,7 @@ async function runResultGrading(): Promise<void> {
           espnMarket,
         );
 
-        const projectionOptions = {
+        const projectionOptions: ComputeOptions = {
           homeHomeRecord:    game.homeHomeRecord,
           homeRoadRecord:    game.homeRoadRecord,
           awayHomeRecord:    game.awayHomeRecord,
@@ -921,6 +952,32 @@ async function runResultGrading(): Promise<void> {
           homeDbStats,
           awayDbStats,
         };
+        const mlbAvailability = {
+          homeStarter: starters.home ?? null,
+          awayStarter: starters.away ?? null,
+          homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
+          awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
+          homeLineup: enrichedLineup?.home ?? null,
+          awayLineup: enrichedLineup?.away ?? null,
+          homeBullpen: bullpenMatchup?.home ?? null,
+          awayBullpen: bullpenMatchup?.away ?? null,
+          venueWeather,
+          startersMeta: getProbablePitcherCacheMeta(game.gameDate),
+          bullpenMeta: getBullpenCacheMeta(game.gameDate),
+          lineupsMeta: getLineupCacheMeta(game.gameDate),
+          weatherMeta: getVenueWeatherCacheMeta(
+            game.sport,
+            game.homeTeamAbbr,
+            game.gameDate,
+            game.gameTime ?? "7:00 PM ET",
+          ),
+        };
+        let mlbEvidence;
+        if (game.sport === "MLB") {
+          mlbEvidence = assessMlbDecisionEvidence(game, projectionOptions, mlbAvailability);
+          projectionOptions.mlbEvidenceMultiplier = mlbEvidence.confidenceMultiplier;
+          projectionOptions.mlbRecommendationBlocked = mlbEvidence.recommendationBlocked;
+        }
 
         const proj = computeProjection(
           game.espnId,
@@ -935,10 +992,7 @@ async function runResultGrading(): Promise<void> {
           weightsBySport[game.sport] ?? null,
           projectionOptions,
           {
-            homeStarter: starters.home ?? null,
-            awayStarter: starters.away ?? null,
-            homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
-            awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
+            ...mlbAvailability,
             homeGoalie: goalieMatchup?.home ?? null,
             awayGoalie: goalieMatchup?.away ?? null,
             homeInjuries: game.sport === "NFL" ? homeInjury?.keyInjuries ?? [] :
@@ -946,6 +1000,7 @@ async function runResultGrading(): Promise<void> {
             awayInjuries: game.sport === "NFL" ? awayInjury?.keyInjuries ?? [] :
               game.sport === "WNBA" ? awayWnbaInj?.keyInjuries ?? [] : [],
           },
+          mlbEvidence,
         );
         await processGameSnapshot(game, proj, decisionContext);
         snapshots++;

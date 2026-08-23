@@ -489,6 +489,13 @@ export interface ComputeOptions {
    * Values <100 expand win probability away from 0.5 (pitching/defense more deterministic).
    */
   parkFactor?: number;
+  /**
+   * MLB only: shared evidence-quality multiplier from the pregame decision
+   * assessment. Missing secondary evidence compresses probability toward 50%.
+   */
+  mlbEvidenceMultiplier?: number;
+  /** MLB only: required pregame evidence is absent, so this must remain a no-bet. */
+  mlbRecommendationBlocked?: boolean;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -803,6 +810,10 @@ function computeRunsModel(
   }
 
   prob = 0.5 + (prob - 0.5) * multiplier;
+  if (sport === "MLB" && opts.mlbEvidenceMultiplier != null) {
+    const evidenceMultiplier = Math.max(0.55, Math.min(1, opts.mlbEvidenceMultiplier));
+    prob = 0.5 + (prob - 0.5) * evidenceMultiplier;
+  }
   const noiseRange = (hs && as_) ? 7 : 10;
   const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
   prob = Math.max(0.20, Math.min(0.82, prob + noise));
@@ -909,6 +920,9 @@ function finalizeResult(
   // A moneyline recommendation requires one complete, credible pregame market.
   // Without it, any model/market edge is unverifiable and must stay a no-bet.
   if (!hasVerifiedMoneylineMarket) {
+    valueRating = "Neutral";
+  }
+  if (sport === "MLB" && opts.mlbRecommendationBlocked) {
     valueRating = "Neutral";
   }
 

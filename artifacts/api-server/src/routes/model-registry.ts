@@ -13,13 +13,14 @@
  * GET    /api/models/:id/history          — deployment history for a model version
  */
 
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import {
   db,
   backtestRunsTable,
   deploymentHistoryTable,
   modelComparisonsTable,
+  modelVersionsTable,
   performanceMetricsTable,
 } from "@workspace/db";
 import {
@@ -35,8 +36,28 @@ import {
   MIN_SAMPLE_SIZE_FOR_PRODUCTION,
   MIN_WIN_RATE_FOR_PRODUCTION,
 } from "../services/modelRegistry";
+import { evaluateMlbPromotionGate, type MlbGateMetrics } from "../services/mlbPromotionGate";
+import { getVerifiedAdminPrincipal } from "./admin";
 
 const router: IRouter = Router();
+function requireModelRegistryAdmin(req: Request, res: Response, next: NextFunction): void {
+  const principal = getVerifiedAdminPrincipal(req);
+  if (!process.env["MASTER_API_KEY"]) {
+    res.status(503).json({ error: "Model registry access is not configured" });
+    return;
+  }
+  if (!principal) {
+    res.status(401).json({ error: "Valid X-Master-Key or X-Admin-Token header required" });
+    return;
+  }
+  res.locals.modelRegistryPrincipal = principal;
+  next();
+}
+
+// Model versions govern live recommendations. Keep every registry operation
+// behind server-side master authorization; actor labels are never trusted from
+// the request body.
+router.use(requireModelRegistryAdmin);
 
 // ── List ──────────────────────────────────────────────────────────────────────
 
@@ -151,6 +172,34 @@ router.get("/models/compare", async (req, res): Promise<void> => {
 
   const cm = championMetrics[0] ?? null;
   const chm = challengerMetrics[0] ?? null;
+  const mlbGate = champion.status === "production"
+    && champion.sport === "MLB" && champion.market === "moneyline"
+    && challenger.sport === "MLB" && challenger.market === "moneyline" && cm && chm
+    ? evaluateMlbPromotionGate({
+        champion: cm as MlbGateMetrics,
+        challenger: chm as MlbGateMetrics,
+        championBacktest: championBacktest[0]
+          ? {
+              id: championBacktest[0].id,
+              datasetId: championBacktest[0].datasetId,
+              testWindowStart: championBacktest[0].testWindowStart,
+              testWindowEnd: championBacktest[0].testWindowEnd,
+              sampleSize: championBacktest[0].sampleSize,
+              test: ((championBacktest[0].metrics as Record<string, unknown> | null)?.test ?? null) as { netUnits?: number; maxDrawdown?: number | null } | null,
+            }
+          : null,
+        challengerBacktest: challengerBacktest[0]
+          ? {
+              id: challengerBacktest[0].id,
+              datasetId: challengerBacktest[0].datasetId,
+              testWindowStart: challengerBacktest[0].testWindowStart,
+              testWindowEnd: challengerBacktest[0].testWindowEnd,
+              sampleSize: challengerBacktest[0].sampleSize,
+              test: ((challengerBacktest[0].metrics as Record<string, unknown> | null)?.test ?? null) as { netUnits?: number; maxDrawdown?: number | null } | null,
+            }
+          : null,
+      })
+    : null;
 
   // Determine verdict
   let verdict: "champion_better" | "challenger_better" | "inconclusive" | "insufficient_data" =
@@ -172,6 +221,15 @@ router.get("/models/compare", async (req, res): Promise<void> => {
       verdict = "inconclusive";
     }
   }
+  if (mlbGate) {
+    verdict = mlbGate.verdict === "passed" ? "challenger_better" : "inconclusive";
+  }
+  const championComparisonMetrics = mlbGate
+    ? { performanceMetrics: cm, mlbPromotionGate: mlbGate }
+    : cm;
+  const challengerComparisonMetrics = mlbGate
+    ? { performanceMetrics: chm, mlbPromotionGate: mlbGate }
+    : chm;
 
   // Upsert a model_comparisons row for record-keeping
   const today = new Date().toISOString().slice(0, 10);
@@ -190,8 +248,8 @@ router.get("/models/compare", async (req, res): Promise<void> => {
     await db
       .update(modelComparisonsTable)
       .set({
-        championMetrics: cm ?? null,
-        challengerMetrics: chm ?? null,
+        championMetrics: championComparisonMetrics ?? null,
+        challengerMetrics: challengerComparisonMetrics ?? null,
         verdict,
         sampleSize: chSample,
       })
@@ -204,8 +262,8 @@ router.get("/models/compare", async (req, res): Promise<void> => {
       market: challenger.market,
       comparisonPeriodStart: chm?.periodStart ?? today,
       comparisonPeriodEnd: today,
-      championMetrics: cm ?? null,
-      challengerMetrics: chm ?? null,
+      championMetrics: championComparisonMetrics ?? null,
+      challengerMetrics: challengerComparisonMetrics ?? null,
       verdict,
       sampleSize: chSample,
     });
@@ -223,6 +281,7 @@ router.get("/models/compare", async (req, res): Promise<void> => {
       latestBacktest: challengerBacktest[0] ?? null,
     },
     verdict,
+    mlbPromotionGate: mlbGate,
     promotionThresholds: {
       minSampleSize: MIN_SAMPLE_SIZE_FOR_PRODUCTION,
       minWinRate: MIN_WIN_RATE_FOR_PRODUCTION,
@@ -335,18 +394,18 @@ router.patch("/models/:id/status", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid model version id" }); return; }
 
-  const { newStatus, performedBy, notes, approvedBy, masterApproved } = req.body ?? {};
-  if (!newStatus || !performedBy) {
-    res.status(400).json({ error: "newStatus and performedBy are required" });
+  const { newStatus, notes } = req.body ?? {};
+  if (!newStatus) {
+    res.status(400).json({ error: "newStatus is required" });
     return;
   }
 
   const version = await transitionModelStatus(id, {
     newStatus,
-    performedBy,
+    performedBy: res.locals.modelRegistryPrincipal as string,
     notes,
-    approvedBy,
-    masterApproved: masterApproved === true,
+    approvedBy: res.locals.modelRegistryPrincipal as string,
+    masterApproved: true,
   });
 
   res.json(version);
@@ -362,16 +421,12 @@ router.post("/models/:id/rollback", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid model version id" }); return; }
 
-  const { performedBy, masterApproved, notes } = req.body ?? {};
-  if (!performedBy) {
-    res.status(400).json({ error: "performedBy is required" });
-    return;
-  }
+  const { notes } = req.body ?? {};
 
   const result = await rollbackModel(
     id,
-    performedBy,
-    masterApproved === true,
+    res.locals.modelRegistryPrincipal as string,
+    true,
     notes,
   );
 

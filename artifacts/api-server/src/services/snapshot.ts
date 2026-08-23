@@ -25,6 +25,7 @@ import {
   isValidAmericanOdds,
   isPregameCommenceTime,
 } from "./oddsApi";
+import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -36,6 +37,7 @@ export interface PredictionDecisionContext {
     capturedAt: string;
     missingSignals: string[];
     source: "refresh";
+    evidence?: MlbDecisionEvidence;
   };
 }
 
@@ -63,6 +65,7 @@ export function createPredictionDecisionContext(
   modelWeights: ModelWeights | null,
   options: ComputeOptions,
   availability: Record<string, unknown>,
+  precomputedMlbEvidence?: MlbDecisionEvidence,
 ): PredictionDecisionContext {
   const factorWeights = effectiveWeights(game.sport, modelWeights?.factorWeights);
   const factorContributions = computeFactorContributions(
@@ -77,10 +80,13 @@ export function createPredictionDecisionContext(
     awayOdds: options.realVegasAwayOdds,
     drawOdds: options.realVegasDrawOdds,
   });
+  const mlbEvidence = game.sport === "MLB"
+    ? precomputedMlbEvidence ?? assessMlbDecisionEvidence(game, options, availability)
+    : undefined;
   const missingSignals = [
     !hasValidMarket ? "market_odds" : null,
     !isPregameCommenceTime(game.commenceTimeISO) ? "market_started_or_invalid" : null,
-    game.sport === "MLB" && options.pitcherAdvantage == null ? "probable_pitchers" : null,
+    ...(mlbEvidence?.missingSignals ?? []),
     game.sport === "NHL" && options.goalieAdvantage == null ? "goalie_confirmation" : null,
     game.sport === "NFL" && options.injuryAdvantage == null ? "injury_report" : null,
     game.sport === "WNBA" && options.injuryAdvantage == null ? "player_availability" : null,
@@ -94,8 +100,9 @@ export function createPredictionDecisionContext(
     availability,
     dataQuality: {
       capturedAt: new Date().toISOString(),
-      missingSignals,
+      missingSignals: [...new Set(missingSignals)],
       source: "refresh",
+      evidence: mlbEvidence,
     },
   };
 }
@@ -191,7 +198,11 @@ async function writePredictionSnapshot(
 
   // Build the feature snapshot: exact inputs used by computeProjection
   const featureSnapshot = {
-    schemaVersion: decisionContext ? 2 : 1,
+    schemaVersion: decisionContext ? 3 : 1,
+    modelVersion: {
+      id: modelVersionId,
+      decisionEvidenceVersion: decisionContext?.dataQuality.evidence?.schemaVersion ?? null,
+    },
     homeRecord: game.homeTeamRecord,
     awayRecord: game.awayTeamRecord,
     homeTeamAbbr: game.homeTeamAbbr,
@@ -249,6 +260,13 @@ async function writePredictionSnapshot(
       predictionTimestamp: capturedAt,
       dataCutoffTimestamp: capturedAt,
       isChallenger: false,
+    })
+    .onConflictDoNothing({
+      target: [
+        modelPredictionsTable.gameId,
+        modelPredictionsTable.modelVersionId,
+        modelPredictionsTable.market,
+      ],
     })
     .returning({ id: modelPredictionsTable.id });
 

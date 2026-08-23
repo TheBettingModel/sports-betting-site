@@ -58,6 +58,41 @@ async function applyStartupMigrations(): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "Startup migrations: pick-results learning fields failed — non-fatal");
   }
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS model_prediction_duplicate_archive (
+        prediction_id INTEGER PRIMARY KEY,
+        archived_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        payload JSONB NOT NULL
+      )
+    `);
+    await db.execute(sql`
+      INSERT INTO model_prediction_duplicate_archive (prediction_id, payload)
+      SELECT id, to_jsonb(model_predictions)
+      FROM (
+        SELECT *,
+          ROW_NUMBER() OVER (
+            PARTITION BY game_id, model_version_id, market
+            ORDER BY created_at ASC, id ASC
+          ) AS duplicate_rank
+        FROM model_predictions
+      ) AS model_predictions
+      WHERE duplicate_rank > 1
+      ON CONFLICT (prediction_id) DO NOTHING
+    `);
+    await db.execute(sql`
+      DELETE FROM model_predictions
+      WHERE id IN (SELECT prediction_id FROM model_prediction_duplicate_archive)
+    `);
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS model_predictions_game_model_market_unique
+      ON model_predictions (game_id, model_version_id, market)
+    `);
+    logger.info("Startup migrations: model prediction identity constraint ensured; historical duplicates archived");
+  } catch (err) {
+    logger.error({ err }, "Startup migrations: model prediction identity constraint failed");
+    throw err;
+  }
 }
 
 app.listen(port, (err) => {

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, real, boolean, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, real, boolean, jsonb, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { gamesTable } from "./games";
 import { modelVersionsTable } from "./model-versions";
 import { sportsbooksTable } from "./sportsbooks";
@@ -65,6 +65,11 @@ export const modelPredictionsTable = pgTable(
     index("model_predictions_sport_idx").on(t.sport),
     index("model_predictions_prediction_ts_idx").on(t.predictionTimestamp),
     index("model_predictions_challenger_idx").on(t.isChallenger),
+    uniqueIndex("model_predictions_game_model_market_unique").on(
+      t.gameId,
+      t.modelVersionId,
+      t.market,
+    ),
   ],
 );
 

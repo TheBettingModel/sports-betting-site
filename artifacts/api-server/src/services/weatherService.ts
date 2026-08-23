@@ -12,6 +12,7 @@
  */
 
 import { logger } from "../lib/logger";
+import type { MlbSignalCacheMeta } from "./mlbPitchers";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,25 @@ function parseGameHourET(gameTime: string): number {
   if (ampm === "PM" && h !== 12) h += 12;
   if (ampm === "AM" && h === 12) h = 0;
   return h;
+}
+
+export function getVenueWeatherCacheMeta(
+  sport: string,
+  homeTeamAbbr: string,
+  gameDate: string,
+  gameTime: string,
+): MlbSignalCacheMeta {
+  const venue = getVenue(sport, homeTeamAbbr);
+  if (venue?.isDome) return { sourceCapturedAt: null, cacheAgeMs: 0, stale: false };
+  if (!venue) return { sourceCapturedAt: null, cacheAgeMs: null, stale: true };
+  const cached = cache.get(`${homeTeamAbbr}:${gameDate}:${parseGameHourET(gameTime)}`);
+  if (!cached) return { sourceCapturedAt: null, cacheAgeMs: null, stale: true };
+  const cacheAgeMs = Math.max(0, Date.now() - cached.fetchedAt);
+  return {
+    sourceCapturedAt: new Date(cached.fetchedAt).toISOString(),
+    cacheAgeMs,
+    stale: cacheAgeMs >= TTL_MS,
+  };
 }
 
 /**

@@ -9,11 +9,11 @@ import {
   displayBookName,
   selectActionableMoneylineMarket,
 } from "../services/oddsApi";
-import { getProbablePitchers, computePitcherAdvantage } from "../services/mlbPitchers";
-import { getBullpenMatchup, computeBullpenAdvantage } from "../services/mlbBullpen";
-import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup } from "../services/mlbLineups";
+import { getProbablePitchers, computePitcherAdvantage, getProbablePitcherCacheMeta } from "../services/mlbPitchers";
+import { getBullpenMatchup, computeBullpenAdvantage, getBullpenCacheMeta } from "../services/mlbBullpen";
+import { getLineupMatchup, computeLineupAdvantage, enrichLineupMatchup, getLineupCacheMeta } from "../services/mlbLineups";
 import { getParkFactor } from "../services/mlbParkFactors";
-import { getVenueWeather, computeWeatherEffect } from "../services/weatherService";
+import { getVenueWeather, computeWeatherEffect, getVenueWeatherCacheMeta } from "../services/weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage } from "../services/nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "../services/nflInjuries";
 import { getWnbaTeamInjuryImpact, computeWnbaInjuryAdvantage } from "../services/wnbaInjuries";
@@ -23,6 +23,7 @@ import type { WnbaTeamInjuryImpact } from "../services/wnbaInjuries";
 import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { runLearning } from "../services/learning";
 import { createPredictionDecisionContext, processGameSnapshot } from "../services/snapshot";
+import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
@@ -351,6 +352,32 @@ export async function refreshAll(): Promise<{
       homeDbStats,
       awayDbStats,
     };
+    const mlbAvailability = {
+      homeStarter: starters.home ?? null,
+      awayStarter: starters.away ?? null,
+      homeLineupConfirmed: enrichedLineup.home.confirmed,
+      awayLineupConfirmed: enrichedLineup.away.confirmed,
+      homeLineup: enrichedLineup.home,
+      awayLineup: enrichedLineup.away,
+      homeBullpen: bullpenMatchup.home ?? null,
+      awayBullpen: bullpenMatchup.away ?? null,
+      venueWeather,
+      startersMeta: getProbablePitcherCacheMeta(game.gameDate),
+      bullpenMeta: getBullpenCacheMeta(game.gameDate),
+      lineupsMeta: getLineupCacheMeta(game.gameDate),
+      weatherMeta: getVenueWeatherCacheMeta(
+        game.sport,
+        game.homeTeamAbbr,
+        game.gameDate,
+        game.gameTime ?? "7:00 PM ET",
+      ),
+    };
+    let mlbEvidence;
+    if (game.sport === "MLB") {
+      mlbEvidence = assessMlbDecisionEvidence(game, projectionOptions, mlbAvailability);
+      projectionOptions.mlbEvidenceMultiplier = mlbEvidence.confidenceMultiplier;
+      projectionOptions.mlbRecommendationBlocked = mlbEvidence.recommendationBlocked;
+    }
 
     const proj = computeProjection(
       game.espnId,
@@ -365,10 +392,7 @@ export async function refreshAll(): Promise<{
       w,
       projectionOptions,
       {
-        homeStarter: starters.home ?? null,
-        awayStarter: starters.away ?? null,
-        homeLineupConfirmed: enrichedLineup.home.confirmed,
-        awayLineupConfirmed: enrichedLineup.away.confirmed,
+        ...mlbAvailability,
         homeGoalie: goalieMatchup.home ?? null,
         awayGoalie: goalieMatchup.away ?? null,
         homeInjuries: game.sport === "NFL" ? homeInjury.keyInjuries :
@@ -376,6 +400,7 @@ export async function refreshAll(): Promise<{
         awayInjuries: game.sport === "NFL" ? awayInjury.keyInjuries :
           game.sport === "WNBA" ? awayWnbaInjury.keyInjuries : [],
       },
+      mlbEvidence,
     );
 
     // ── Phase 2d: best available line ──────────────────────────────────────────

@@ -84,6 +84,44 @@ describe("two-way market edge safeguards", () => {
     expect(projection.podScore).toBe(0);
     expect(projection.units).toBe(0);
   });
+
+  it("compresses MLB confidence for incomplete secondary evidence and blocks required evidence failures", () => {
+    const fullEvidence = computeProjection(
+      "mlb-evidence-compression",
+      "MLB",
+      "100-0",
+      "0-100",
+      null,
+      { realVegasHomeOdds: 120, realVegasAwayOdds: -140, mlbEvidenceMultiplier: 1 },
+    );
+    const compressed = computeProjection(
+      "mlb-evidence-compression",
+      "MLB",
+      "100-0",
+      "0-100",
+      null,
+      { realVegasHomeOdds: 120, realVegasAwayOdds: -140, mlbEvidenceMultiplier: 0.6 },
+    );
+    const blocked = computeProjection(
+      "mlb-evidence-blocked",
+      "MLB",
+      "100-0",
+      "0-100",
+      null,
+      {
+        realVegasHomeOdds: 120,
+        realVegasAwayOdds: -140,
+        mlbRecommendationBlocked: true,
+      },
+    );
+
+    expect(Math.abs(compressed.homeWinPct - 50)).toBeLessThan(
+      Math.abs(fullEvidence.homeWinPct - 50),
+    );
+    expect(blocked.valueRating).toBe("Neutral");
+    expect(blocked.units).toBe(0);
+    expect(blocked.podScore).toBe(0);
+  });
 });
 
 describe("three-way market edge safeguards", () => {

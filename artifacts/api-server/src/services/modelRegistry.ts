@@ -18,10 +18,12 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
   deploymentHistoryTable,
+  modelComparisonsTable,
   modelVersionsTable,
   performanceMetricsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { isPassingMlbPromotionGate, type MlbPromotionGate } from "./mlbPromotionGate";
 
 // ── Promotion thresholds ──────────────────────────────────────────────────────
 
@@ -281,6 +283,60 @@ export async function transitionModelStatus(
     throw new Error(
       `Transition to "${newStatus}" requires master approval (masterApproved: true).`,
     );
+  }
+  const requiresMlbGate = current.sport === "MLB" && current.market === "moneyline";
+  let comparisonGate: MlbPromotionGate | null = null;
+  if (requiresMlbGate && (newStatus === "approved" || newStatus === "production")) {
+    const [serverComparison] = await db
+      .select({
+        championVersionId: modelComparisonsTable.championVersionId,
+        challengerMetrics: modelComparisonsTable.challengerMetrics,
+      })
+      .from(modelComparisonsTable)
+      .where(
+        and(
+          eq(modelComparisonsTable.challengerVersionId, modelVersionId),
+          eq(modelComparisonsTable.sport, "MLB"),
+          eq(modelComparisonsTable.market, "moneyline"),
+          eq(modelComparisonsTable.verdict, "challenger_better"),
+        ),
+      )
+      .orderBy(desc(modelComparisonsTable.updatedAt))
+      .limit(1);
+    const storedMetrics = serverComparison?.challengerMetrics as {
+      mlbPromotionGate?: unknown;
+    } | null | undefined;
+    if (!serverComparison || !isPassingMlbPromotionGate(storedMetrics?.mlbPromotionGate)) {
+      throw new Error("MLB moneyline approval requires a server-generated passing comparison.");
+    }
+    const [incumbent] = await db
+      .select({ id: modelVersionsTable.id })
+      .from(modelVersionsTable)
+      .where(
+        and(
+          eq(modelVersionsTable.sport, "MLB"),
+          eq(modelVersionsTable.market, "moneyline"),
+          eq(modelVersionsTable.status, "production"),
+        ),
+      )
+      .limit(1);
+    if (!incumbent || serverComparison.championVersionId !== incumbent.id) {
+      throw new Error("MLB moneyline approval requires comparison against the current production incumbent.");
+    }
+    comparisonGate = storedMetrics.mlbPromotionGate;
+  }
+  if (requiresMlbGate && newStatus === "approved") {
+    if (!approvedBy) {
+      throw new Error("MLB moneyline approval requires a named approver.");
+    }
+  }
+  if (requiresMlbGate && newStatus === "production") {
+    if (!comparisonGate || !current.approvedBy) {
+      throw new Error("MLB moneyline production requires a passed, explicitly approved promotion gate.");
+    }
+    if (!approvedBy || approvedBy === current.approvedBy) {
+      throw new Error("MLB moneyline production requires independent named master approval.");
+    }
   }
 
   // ── Promotion guard (approved → production) ───────────────────────────────

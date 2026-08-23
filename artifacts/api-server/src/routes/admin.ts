@@ -15,6 +15,7 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { createHash } from "crypto";
 import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { adminLimiter, sessionAuthLimiter } from "../middleware/rateLimiter";
 import {
@@ -103,6 +104,22 @@ function isValidSession(token: string): boolean {
   pruneExpiredSessions();
   const session = sessions.get(token);
   return session !== undefined && session.expiresAt > new Date();
+}
+
+/**
+ * Returns a server-verified administrator principal. Session principals use a
+ * one-way token fingerprint so approval identities are distinguishable without
+ * persisting or exposing the session secret.
+ */
+export function getVerifiedAdminPrincipal(req: Request): string | null {
+  if (!MASTER_KEY) return null;
+  const sessionToken = req.headers["x-admin-token"] as string | undefined;
+  if (sessionToken && isValidSession(sessionToken)) {
+    const fingerprint = createHash("sha256").update(sessionToken).digest("hex").slice(0, 16);
+    return `admin-session:${fingerprint}`;
+  }
+  const key = req.headers["x-master-key"] as string | undefined;
+  return key === MASTER_KEY ? "master-key" : null;
 }
 
 function requireMasterKey(req: Request, res: Response, next: NextFunction): void {
@@ -691,7 +708,11 @@ router.post("/admin/models/:id/deploy", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid model version id" }); return; }
 
-  const performedBy = req.body?.performedBy ?? "admin";
+  const performedBy = getVerifiedAdminPrincipal(req);
+  if (!performedBy) {
+    res.status(401).json({ error: "Authenticated admin principal required" });
+    return;
+  }
   const notes = req.body?.notes;
 
   const version = await transitionModelStatus(id, {
@@ -710,7 +731,11 @@ router.post("/admin/models/:id/rollback", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid model version id" }); return; }
 
-  const performedBy = req.body?.performedBy ?? "admin";
+  const performedBy = getVerifiedAdminPrincipal(req);
+  if (!performedBy) {
+    res.status(401).json({ error: "Authenticated admin principal required" });
+    return;
+  }
   const notes = req.body?.notes;
 
   const result = await rollbackModel(id, performedBy, true, notes);

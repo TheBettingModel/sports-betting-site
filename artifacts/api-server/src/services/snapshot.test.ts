@@ -65,4 +65,26 @@ describe("prediction decision context market gates", () => {
     expect(context.dataQuality.missingSignals).toContain("probable_pitchers");
     expect(isPredictionDecisionEligible(game, context)).toBe(false);
   });
+
+  it("stores immutable MLB signal provenance with the decision context", () => {
+    const game = gameWithStart(new Date(Date.now() + 60_000).toISOString());
+    const context = createPredictionDecisionContext(
+      game,
+      null,
+      { realVegasHomeOdds: -120, realVegasAwayOdds: 100 },
+      {
+        homeStarter: { name: "Home Starter" },
+        awayStarter: { name: "Away Starter" },
+        homeLineupConfirmed: false,
+        awayLineupConfirmed: false,
+        homeBullpen: null,
+        awayBullpen: null,
+        venueWeather: null,
+      },
+    );
+
+    expect(context.dataQuality.evidence?.schemaVersion).toBe("mlb-full-game-evidence-v1");
+    expect(context.dataQuality.evidence?.signals.weather.available).toBe(false);
+    expect(context.dataQuality.evidence?.confidenceMultiplier).toBeLessThan(1);
+  });
 });

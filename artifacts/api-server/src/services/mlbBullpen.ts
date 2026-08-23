@@ -21,6 +21,7 @@
  */
 
 import { logger } from "../lib/logger";
+import type { MlbSignalCacheMeta } from "./mlbPitchers";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,17 @@ interface CacheEntry {
 }
 const cache = new Map<string, CacheEntry>(); // key: date string YYYY-MM-DD
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+export function getBullpenCacheMeta(dateStr: string): MlbSignalCacheMeta {
+  const cached = cache.get(dateStr);
+  if (!cached) return { sourceCapturedAt: null, cacheAgeMs: null, stale: true };
+  const cacheAgeMs = Math.max(0, Date.now() - cached.fetchedAt);
+  return {
+    sourceCapturedAt: new Date(cached.fetchedAt).toISOString(),
+    cacheAgeMs,
+    stale: cacheAgeMs >= CACHE_TTL_MS,
+  };
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

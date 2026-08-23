@@ -16,6 +16,7 @@
  */
 
 import { logger } from "../lib/logger";
+import type { MlbSignalCacheMeta } from "./mlbPitchers";
 import type { ProbableStarters } from "./mlbPitchers";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -68,6 +69,17 @@ interface CacheEntry {
 }
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 30 * 60 * 1000;
+
+export function getLineupCacheMeta(dateStr: string): MlbSignalCacheMeta {
+  const cached = cache.get(dateStr);
+  if (!cached) return { sourceCapturedAt: null, cacheAgeMs: null, stale: true };
+  const cacheAgeMs = Math.max(0, Date.now() - cached.fetchedAt);
+  return {
+    sourceCapturedAt: new Date(cached.fetchedAt).toISOString(),
+    cacheAgeMs,
+    stale: cacheAgeMs >= CACHE_TTL_MS,
+  };
+}
 
 // ── MLB Stats API types ───────────────────────────────────────────────────────
 

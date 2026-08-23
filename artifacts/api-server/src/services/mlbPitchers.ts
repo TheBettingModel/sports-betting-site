@@ -62,6 +62,11 @@ export interface ProbableStarters {
   home: PitcherStats | null;
   away: PitcherStats | null;
 }
+export interface MlbSignalCacheMeta {
+  sourceCapturedAt: string | null;
+  cacheAgeMs: number | null;
+  stale: boolean;
+}
 
 // ── MLB Stats API team ID → ESPN abbreviation ─────────────────────────────────
 const MLB_ID_TO_ESPN: Record<number, string> = {
@@ -209,6 +214,17 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+export function getProbablePitcherCacheMeta(dateStr: string): MlbSignalCacheMeta {
+  const cached = cache.get(dateStr);
+  if (!cached) return { sourceCapturedAt: null, cacheAgeMs: null, stale: true };
+  const cacheAgeMs = Math.max(0, Date.now() - cached.fetchedAt);
+  return {
+    sourceCapturedAt: new Date(cached.fetchedAt).toISOString(),
+    cacheAgeMs,
+    stale: cacheAgeMs >= CACHE_TTL_MS,
+  };
+}
 
 /** MLB and ESPN event IDs differ, so use matchup plus precise scheduled start. */
 export function makePitcherGameKey(
