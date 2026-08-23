@@ -16,12 +16,16 @@ The schedule returns team `id` (numeric) but NOT `abbreviation`. ESPN abbreviati
 
 For a game identity, combine the converted home/away abbreviations with the precise MLB schedule start timestamp. Do not use a matchup-only key: same-day doubleheaders have distinct starters but identical teams.
 
+If providers disagree on start time, only use a bounded time-tolerance fallback when it yields exactly one same-team game. Treat multiple candidates as ambiguous and block the signal rather than picking the nearest game.
+
+**Why:** A wrong starter pair can produce an invalid recommendation; an unavailable signal safely blocks publication until the provider data resolves.
+
 ## Pitcher stats endpoint
 `/people/{id}/stats?stats=season,gameLog&group=pitching&season=2026&gameType=R`
 
 - Season aggregate: `type.displayName === "season"` (NOT "statsSingleSeason")
 - Game log: `type.displayName === "gameLog"` — last 3 entries used for recent ERA
-- Cache TTL: 4 hours (pitcher assignments rarely change day-of)
+- Complete schedule data can remain cached for four hours, but incomplete probable-starter pairs must retry quickly before first pitch.
 
 **Why:** Season aggregate is cumulative ERA. Recent ERA averages the season ERA values at the time of each of the last 3 starts — a reasonable proxy for current form since it shows ERA trajectory.
 

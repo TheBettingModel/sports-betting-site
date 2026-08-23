@@ -9,8 +9,9 @@
  *   - Recent ERA over last 3 starts (hot/cold form signal)
  *   - Recent innings pitched avg — workload proxy for starter-depth / bullpen-game flag
  *
- * Cache TTL: 4 hours. Probable pitchers announced by morning; day-of scratches
- * are rare and typically announced hours before game time.
+ * Complete schedule data is cached for four hours. Games with an incomplete
+ * probable-starter pair are retried quickly before first pitch because MLB can
+ * publish or replace a starter throughout the day.
  *
  * Advantage computation blends FIP (primary), recent ERA (form), and K-BB%
  * (dominance signal) with a workload scaling factor that reduces starter
@@ -125,10 +126,14 @@ interface MlbStatGroup {
 
 // ── Pitcher stat fetch ────────────────────────────────────────────────────────
 
-async function fetchPitcherStats(pitcherId: number, name: string): Promise<PitcherStats> {
+async function fetchPitcherStats(
+  pitcherId: number,
+  name: string,
+  season: number,
+): Promise<PitcherStats> {
   const url =
     `https://statsapi.mlb.com/api/v1/people/${pitcherId}/stats` +
-    `?stats=season,gameLog&group=pitching&season=2026&gameType=R`;
+    `?stats=season,gameLog&group=pitching&season=${season}&gameType=R`;
 
   const resp = await fetch(url, {
     signal: AbortSignal.timeout(8_000),
@@ -208,12 +213,14 @@ async function fetchPitcherStats(pitcherId: number, name: string): Promise<Pitch
 // ── Schedule fetch + cache ────────────────────────────────────────────────────
 
 interface CacheEntry {
-  data: Map<string, ProbableStarters>; // key: "homeAbbr|awayAbbr"
+  data: Map<string, ProbableStarters>; // key: "homeAbbr|awayAbbr|start minute"
   fetchedAt: number;
 }
 
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+const INCOMPLETE_STARTER_RETRY_MS = 10 * 60 * 1000; // 10 minutes before first pitch
+const START_TIME_TOLERANCE_MS = 90 * 60 * 1000; // protects doubleheaders while allowing provider drift
 
 export function getProbablePitcherCacheMeta(dateStr: string): MlbSignalCacheMeta {
   const cached = cache.get(dateStr);
@@ -237,6 +244,68 @@ export function makePitcherGameKey(
   return `${homeAbbr}|${awayAbbr}|${new Date(startMs).toISOString().slice(0, 16)}`;
 }
 
+type PitcherMatchType = "exact" | "time_tolerance" | "unmatched" | "ambiguous";
+
+export interface ProbablePitcherMatch {
+  starters: ProbableStarters | null;
+  matchType: PitcherMatchType;
+  candidateStarts: string[];
+}
+
+function keyStartMs(gameKey: string): number | null {
+  const start = gameKey.split("|")[2];
+  if (!start) return null;
+  const startMs = Date.parse(`${start}:00.000Z`);
+  return Number.isFinite(startMs) ? startMs : null;
+}
+
+function hasCompleteStarterPair(starters: ProbableStarters | null | undefined): boolean {
+  return starters?.home != null && starters.away != null;
+}
+
+/**
+ * Resolve an ESPN game to the official MLB schedule. Exact start-minute matches
+ * are preferred. A unique nearby same-team game can tolerate normal provider
+ * time drift, while tied/ambiguous doubleheader candidates remain blocked.
+ */
+export function resolveProbablePitcherMatch(
+  scheduleMap: Map<string, ProbableStarters>,
+  homeAbbr: string,
+  awayAbbr: string,
+  commenceTimeISO: string,
+): ProbablePitcherMatch {
+  const exactKey = makePitcherGameKey(homeAbbr, awayAbbr, commenceTimeISO);
+  if (!exactKey) return { starters: null, matchType: "unmatched", candidateStarts: [] };
+  const exact = scheduleMap.get(exactKey);
+  if (exact) return { starters: exact, matchType: "exact", candidateStarts: [exactKey] };
+
+  const expectedStartMs = Date.parse(commenceTimeISO);
+  if (!Number.isFinite(expectedStartMs)) {
+    return { starters: null, matchType: "unmatched", candidateStarts: [] };
+  }
+
+  const prefix = `${homeAbbr}|${awayAbbr}|`;
+  const candidates = [...scheduleMap.entries()]
+    .filter(([key]) => key.startsWith(prefix))
+    .map(([key, starters]) => ({ key, starters, startMs: keyStartMs(key) }))
+    .filter((candidate): candidate is { key: string; starters: ProbableStarters; startMs: number } =>
+      candidate.startMs != null
+        && Math.abs(candidate.startMs - expectedStartMs) <= START_TIME_TOLERANCE_MS,
+    )
+    .sort((a, b) =>
+      Math.abs(a.startMs - expectedStartMs) - Math.abs(b.startMs - expectedStartMs),
+    );
+  const candidateStarts = candidates.map((candidate) => candidate.key);
+  if (candidates.length === 0) {
+    return { starters: null, matchType: "unmatched", candidateStarts };
+  }
+
+  if (candidates.length !== 1) {
+    return { starters: null, matchType: "ambiguous", candidateStarts };
+  }
+  return { starters: candidates[0]!.starters, matchType: "time_tolerance", candidateStarts };
+}
+
 interface MlbTeam {
   team: { id?: number; name?: string };
   probablePitcher?: { id: number; fullName: string; pitchHand?: { code: string } };
@@ -245,6 +314,7 @@ interface MlbTeam {
 interface MlbGame {
   /** Precise MLB start time, used to distinguish same-day doubleheader legs. */
   gameDate?: string;
+  season?: string;
   teams: { home: MlbTeam; away: MlbTeam };
 }
 
@@ -264,7 +334,13 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
   if (!resp.ok) throw new Error(`MLB schedule API ${resp.status}`);
 
   const schedule = (await resp.json()) as MlbSchedule;
-  const games    = schedule.dates?.[0]?.games ?? [];
+  // The Stats API can split schedule data across date buckets. Consume all of
+  // them instead of assuming the requested day is always dates[0].
+  const games = (schedule.dates ?? []).flatMap((date) => date.games ?? []);
+  const season = Number(games.find((game) => game.season)?.season ?? dateStr.slice(0, 4));
+  const statsSeason = Number.isInteger(season) && season > 1900
+    ? season
+    : new Date().getUTCFullYear();
 
   const pitcherIds = new Set<number>();
   for (const g of games) {
@@ -284,7 +360,7 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
           const pitcher = games
             .flatMap((g) => [g.teams.home.probablePitcher, g.teams.away.probablePitcher])
             .find((p) => p?.id === id);
-          const stats = await fetchPitcherStats(id, pitcher?.fullName ?? "Unknown");
+          const stats = await fetchPitcherStats(id, pitcher?.fullName ?? "Unknown", statsSeason);
           statsByPitcherId.set(id, stats);
         } catch (err) {
           logger.warn({ err, pitcherId: id }, "MLB pitchers: stat fetch failed for one pitcher");
@@ -362,10 +438,28 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
   }
 
   logger.info(
-    { date: dateStr, games: result.size, pitchersFound: statsByPitcherId.size },
+    {
+      date: dateStr,
+      games: result.size,
+      pitchersFound: statsByPitcherId.size,
+      incompleteGames: [...result.values()].filter((starters) => !hasCompleteStarterPair(starters)).length,
+      season: statsSeason,
+    },
     "MLB pitchers: schedule loaded",
   );
   return result;
+}
+
+function shouldRetryIncompletePitchers(
+  cached: CacheEntry | undefined,
+  match: ProbablePitcherMatch,
+  commenceTimeISO: string,
+): boolean {
+  if (!cached || hasCompleteStarterPair(match.starters)) return false;
+  const startMs = Date.parse(commenceTimeISO);
+  return Number.isFinite(startMs)
+    && startMs > Date.now()
+    && Date.now() - cached.fetchedAt >= INCOMPLETE_STARTER_RETRY_MS;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -376,24 +470,46 @@ export async function getProbablePitchers(
   dateStr: string,
   commenceTimeISO: string,
 ): Promise<ProbableStarters> {
-  const cached = cache.get(dateStr);
+  let cached = cache.get(dateStr);
   let scheduleMap: Map<string, ProbableStarters>;
 
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-    scheduleMap = cached.data;
+  const cachedMatch = cached
+    ? resolveProbablePitcherMatch(cached.data, homeAbbr, awayAbbr, commenceTimeISO)
+    : null;
+  const cacheIsFresh = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
+  if (cacheIsFresh && cachedMatch && !shouldRetryIncompletePitchers(cached, cachedMatch, commenceTimeISO)) {
+    scheduleMap = cached!.data;
   } else {
     try {
       scheduleMap = await fetchSchedule(dateStr);
-      cache.set(dateStr, { data: scheduleMap, fetchedAt: Date.now() });
+      cached = { data: scheduleMap, fetchedAt: Date.now() };
+      cache.set(dateStr, cached);
     } catch (err) {
       logger.error({ err, dateStr }, "MLB pitchers: schedule fetch failed");
       scheduleMap = cached?.data ?? new Map();
     }
   }
 
-  const gameKey = makePitcherGameKey(homeAbbr, awayAbbr, commenceTimeISO);
-  if (!gameKey) return { home: null, away: null };
-  return scheduleMap.get(gameKey) ?? { home: null, away: null };
+  const match = resolveProbablePitcherMatch(scheduleMap, homeAbbr, awayAbbr, commenceTimeISO);
+  if (!match.starters) {
+    logger.warn(
+      { dateStr, homeAbbr, awayAbbr, commenceTimeISO, matchType: match.matchType, candidateStarts: match.candidateStarts },
+      "MLB pitchers: no safe schedule matchup",
+    );
+    return { home: null, away: null };
+  }
+  if (!hasCompleteStarterPair(match.starters)) {
+    logger.info(
+      { dateStr, homeAbbr, awayAbbr, commenceTimeISO, matchType: match.matchType },
+      "MLB pitchers: schedule matchup is missing one or both probable starters",
+    );
+  } else if (match.matchType === "time_tolerance") {
+    logger.info(
+      { dateStr, homeAbbr, awayAbbr, commenceTimeISO },
+      "MLB pitchers: matched schedule with start-time tolerance",
+    );
+  }
+  return match.starters;
 }
 
 /**

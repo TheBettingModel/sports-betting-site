@@ -57,6 +57,33 @@ describe("MLB pregame decision evidence", () => {
     expect(evidence.signals.starters.cacheAgeMs).toBeNull();
   });
 
+  it("clears the required-evidence block when a late published starter completes the pair", () => {
+    const sharedAvailability = {
+      homeStarter: completeStarter("Home Starter"),
+      homeLineupConfirmed: false,
+      awayLineupConfirmed: false,
+      homeBullpen: null,
+      awayBullpen: null,
+      venueWeather: null,
+    };
+
+    const missingStarter = assessMlbDecisionEvidence(
+      game,
+      { realVegasHomeOdds: -120, realVegasAwayOdds: 105 },
+      { ...sharedAvailability, awayStarter: null },
+    );
+    const completePair = assessMlbDecisionEvidence(
+      game,
+      { realVegasHomeOdds: -120, realVegasAwayOdds: 105 },
+      { ...sharedAvailability, awayStarter: completeStarter("Late Away Starter") },
+    );
+
+    expect(missingStarter.recommendationBlocked).toBe(true);
+    expect(missingStarter.missingSignals).toContain("probable_pitchers");
+    expect(completePair.recommendationBlocked).toBe(false);
+    expect(completePair.missingSignals).not.toContain("probable_pitchers");
+  });
+
   it("compresses confidence rather than treating missing secondary evidence as neutral", () => {
     const evidence = assessMlbDecisionEvidence(
       game,
