@@ -1,6 +1,7 @@
 import {
   getCustomer,
   listCustomerActiveEntitlements,
+  listEntitlements,
 } from "@replit/revenuecat-sdk";
 import { getUncachableRevenueCatClient } from "./revenueCatClient.js";
 
@@ -25,6 +26,21 @@ async function main() {
     throw new Error(`RevenueCat customer lookup failed: ${JSON.stringify(customerError)}`);
   }
 
+  const { data: entitlementCatalog, error: catalogError } = await listEntitlements({
+    client,
+    path: { project_id: projectId!, },
+    query: { limit: 100 },
+  });
+  if (catalogError) {
+    throw new Error(`RevenueCat entitlement catalog lookup failed: ${JSON.stringify(catalogError)}`);
+  }
+  const proDefinition = entitlementCatalog?.items?.find(
+    (item) => item.lookup_key === "pro",
+  );
+  if (!proDefinition) {
+    throw new Error('RevenueCat entitlement catalog has no "pro" lookup key');
+  }
+
   const { data: entitlements, error } = await listCustomerActiveEntitlements({
     client,
     path: { project_id: projectId!, customer_id: customerId },
@@ -33,11 +49,14 @@ async function main() {
     throw new Error(`RevenueCat entitlement lookup failed: ${JSON.stringify(error)}`);
   }
 
-  const pro = entitlements?.items?.find((item) => item.entitlement_id === "pro");
+  const pro = entitlements?.items?.find(
+    (item) => item.entitlement_id === proDefinition.id,
+  );
   console.log(JSON.stringify({
     customerId,
     customerFound: Boolean(customer),
     proActive: Boolean(pro),
+    proDefinitionId: proDefinition.id,
     proEntitlement: pro
       ? {
           entitlementId: pro.entitlement_id,
