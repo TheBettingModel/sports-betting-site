@@ -1,5 +1,9 @@
 name: Publish production iOS update
 
+defaults:
+  tools:
+    pnpm: "10.26.1"
+
 jobs:
   publish_ios_update:
     name: Publish iOS OTA update
