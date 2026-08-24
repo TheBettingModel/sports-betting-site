@@ -20,3 +20,4 @@
 - [ESPN logo URL exceptions](espn-logo-url-exceptions.md) — prefer scoreboard `team.logo`; numeric-ID CDN paths 404 for newer WNBA teams.
 - [MLB policy revisions](mlb-policy-revisions.md) — revise only unstarted picks immutably; effective selection and supersession prevent history rewrites.
 - [Forecast feed boundaries](forecast-feed-boundaries.md) — individual sport tabs show full forecast coverage; the All tab remains a curated recommendations view.
+- [Mobile publish path](mobile-publish-path.md) — generic project Publish deploys web artifacts; iOS updates require an Expo Launch session.
