@@ -20,3 +20,9 @@ For this monorepo, use a custom EAS workflow job for OTA releases: install depen
 **Why:** A monorepo root has no Expo project configuration; generic working-directory settings do not change the built-in update job’s CLI location. The custom job also needs Node 20, the project’s pnpm version, and a non-interactive release message.
 
 **How to apply:** In a managed workflow, pin the required Node and pnpm versions, run a frozen install at the root, and invoke the update via the mobile package with an explicit production branch, iOS platform, message, and non-interactive flag. Confirm the final Expo log reports both the target runtime and update group.
+
+The App Store iOS build on the production channel uses runtime `1.0.1`. An OTA published for runtime `1.0.0` succeeds in Expo but is deliberately ignored by that installed binary.
+
+**Why:** Expo Updates only applies bundles whose runtime version matches the native app. App version/build number alone does not make an OTA compatible.
+
+**How to apply:** Before publishing, compare the latest production iOS build’s runtime in Expo with the runtime declared in the mobile app configuration. Keep them equal, and confirm the publish log reports that same runtime.
