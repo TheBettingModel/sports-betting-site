@@ -42,3 +42,20 @@ data.
 child-process invocation, publish directly to the production channel, and
 verify a fresh production API call returns the expected games before declaring
 the mobile empty state resolved.
+
+## Runtime coverage gate
+
+An EAS channel does not bridge runtime versions: a successful OTA publication
+only serves devices whose runtime exactly matches that bundle. Release
+verification must query the production manifest once for every supported
+installed runtime, not only the newest native build.
+
+**Why:** A single production channel contained active 1.0.0 and 1.0.1 iOS
+installs. Publishing only the newer runtime left older users on an earlier,
+broken bundle even though the workflow reported success.
+
+**How to apply:** Keep the supported-runtime list explicit in the OTA release
+workflow, publish the same JavaScript update to each compatible runtime, and
+fail the release if the primary runtime is not represented. Add a new runtime
+to that set when a compatible native build ships; retire an older runtime only
+after its installed population is no longer supported.
