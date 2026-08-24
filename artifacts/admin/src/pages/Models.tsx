@@ -555,7 +555,7 @@ function PerformancePanel() {
           label="Avg CLV"
           value={
             overallAvgClv != null
-              ? `${overallAvgClv > 0 ? "+" : ""}${(overallAvgClv * 100).toFixed(1)}%`
+              ? `${overallAvgClv > 0 ? "+" : ""}${overallAvgClv.toFixed(1)}%`
               : "—"
           }
           sub="closing line value"
