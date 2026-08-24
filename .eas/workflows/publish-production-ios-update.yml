@@ -2,15 +2,16 @@ name: Publish production iOS update
 
 defaults:
   tools:
+    node: "20"
     pnpm: "10.26.1"
-  run:
-    working_directory: artifacts/mobile
 
 jobs:
   publish_ios_update:
     name: Publish iOS OTA update
-    type: update
     environment: production
-    params:
-      branch: production
-      platform: ios
+    steps:
+      - uses: eas/checkout
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Publish iOS update
+        run: pnpm --dir artifacts/mobile exec eas update --branch production --platform ios --non-interactive
