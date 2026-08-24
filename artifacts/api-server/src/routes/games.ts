@@ -24,6 +24,7 @@ import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../service
 import { runLearning } from "../services/learning";
 import { createPredictionDecisionContext, processGameSnapshot } from "../services/snapshot";
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
+import { createMlbQualificationAudit } from "../services/mlbQualificationAudit";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
@@ -402,6 +403,10 @@ export async function refreshAll(): Promise<{
       },
       mlbEvidence,
     );
+    const mlbDecisionAudit = game.sport === "MLB"
+      ? createMlbQualificationAudit(proj, mlbEvidence)
+      : null;
+    const persistedMlbDecisionAudit = mlbDecisionAudit as Record<string, unknown> | null;
 
     // ── Phase 2d: best available line ──────────────────────────────────────────
     const pickIsHome = proj.edge >= 0;
@@ -430,6 +435,7 @@ export async function refreshAll(): Promise<{
         homeScore: game.homeScore ?? null,
         awayScore: game.awayScore ?? null,
         ...proj,
+        mlbDecisionAudit: persistedMlbDecisionAudit,
         // Phase 2: set once — opening odds preserved on conflict (not in set block)
         openingHomeOdds: openingHomeOdds ?? null,
         openingAwayOdds: openingAwayOdds ?? null,
@@ -523,6 +529,7 @@ export async function refreshAll(): Promise<{
           finalModelTier: proj.finalModelTier,
           finalModelStars: proj.finalModelStars,
           podScore: proj.podScore,
+          mlbDecisionAudit: persistedMlbDecisionAudit,
           // Phase 2: opening odds — use COALESCE to set once on first sighting;
           // if the row already has a non-null value, preserve it.
           openingHomeOdds: sql`COALESCE(${gamesTable.openingHomeOdds}, EXCLUDED.opening_home_odds)`,

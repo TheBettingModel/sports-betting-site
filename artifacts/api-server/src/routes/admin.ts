@@ -16,7 +16,7 @@
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { createHash } from "crypto";
-import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { adminLimiter, sessionAuthLimiter } from "../middleware/rateLimiter";
 import {
   db,
@@ -43,6 +43,14 @@ import {
   applyMlbPolicyRevision,
   listMlbPolicyRevisionAudit,
 } from "../services/mlbPolicyRevisions";
+import {
+  compareMlbQualificationPolicies,
+  DEFAULT_MLB_SHADOW_BUY_THRESHOLD,
+  evaluateMlbShadowPolicy,
+  summarizeMlbQualificationAudits,
+  type GradedMlbDecision,
+  type MlbQualificationAudit,
+} from "../services/mlbQualificationAudit";
 
 const router: IRouter = Router();
 
@@ -205,6 +213,169 @@ router.use("/admin", requireMasterKey);
 router.get("/admin/mlb-policy-revisions", async (_req, res): Promise<void> => {
   const revisions = await listMlbPolicyRevisionAudit();
   res.json({ revisions, count: revisions.length });
+});
+
+function parseIsoDate(value: unknown, name: string): string | undefined {
+  if (value == null || value === "") return undefined;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${name} must use YYYY-MM-DD.`);
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`${name} must be a real calendar date.`);
+  }
+  return value;
+}
+
+function parseShadowBuyThreshold(value: unknown): number {
+  if (value == null || value === "") return DEFAULT_MLB_SHADOW_BUY_THRESHOLD;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 12) {
+    throw new Error("shadowBuyThreshold must be greater than 0 and below 12.");
+  }
+  return parsed;
+}
+
+function asMlbQualificationAudit(value: unknown): MlbQualificationAudit | null {
+  if (!value || typeof value !== "object") return null;
+  const audit = value as Partial<MlbQualificationAudit>;
+  return audit.schemaVersion === "mlb-qualification-audit-v1"
+    && typeof audit.capturedAt === "string"
+    && (audit.selectedSide === "home" || audit.selectedSide === "away")
+    && typeof audit.edge === "number"
+    && audit.production != null
+    ? audit as MlbQualificationAudit
+    : null;
+}
+
+/**
+ * Read-only MLB policy observability. This endpoint intentionally returns
+ * audit data and hypothetical shadow classifications only; it never creates
+ * predictions, published picks, grading rows, push notifications, or learning
+ * inputs. The historical comparison reads immutable prediction/result evidence.
+ */
+router.get("/admin/mlb-qualification-audit", async (req, res): Promise<void> => {
+  try {
+    const nyToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const date = parseIsoDate(req.query.date, "date") ?? nyToday;
+    const dateFrom = parseIsoDate(req.query.dateFrom, "dateFrom");
+    const dateTo = parseIsoDate(req.query.dateTo, "dateTo");
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      res.status(400).json({ error: "dateFrom must be on or before dateTo." });
+      return;
+    }
+    const shadowBuyThreshold = parseShadowBuyThreshold(req.query.shadowBuyThreshold);
+
+    const [gameRows, historicalRows] = await Promise.all([
+      db
+        .select({
+          id: gamesTable.id,
+          gameDate: gamesTable.gameDate,
+          gameTime: gamesTable.gameTime,
+          startsAt: gamesTable.startsAt,
+          status: gamesTable.status,
+          awayTeamAbbr: gamesTable.awayTeamAbbr,
+          homeTeamAbbr: gamesTable.homeTeamAbbr,
+          audit: gamesTable.mlbDecisionAudit,
+        })
+        .from(gamesTable)
+        .where(and(
+          eq(gamesTable.sport, "MLB"),
+          eq(gamesTable.gameDate, date),
+          eq(gamesTable.status, "upcoming"),
+        ))
+        .orderBy(gamesTable.startsAt),
+      db
+        .select({
+          gameDate: gamesTable.gameDate,
+          predictionTimestamp: modelPredictionsTable.predictionTimestamp,
+          selection: modelPredictionsTable.selection,
+          odds: modelPredictionsTable.odds,
+          modelProbability: modelPredictionsTable.modelProbability,
+          recommendation: modelPredictionsTable.recommendation,
+          edge: modelPredictionsTable.edge,
+          confidence: modelPredictionsTable.confidence,
+          result: pickResultsTable.result,
+          clv: pickResultsTable.clv,
+        })
+        .from(modelPredictionsTable)
+        .innerJoin(publishedPicksTable, eq(publishedPicksTable.predictionId, modelPredictionsTable.id))
+        .innerJoin(pickResultsTable, eq(pickResultsTable.pickId, publishedPicksTable.id))
+        .innerJoin(gamesTable, eq(gamesTable.id, modelPredictionsTable.gameId))
+        .where(and(
+          eq(modelPredictionsTable.sport, "MLB"),
+          eq(modelPredictionsTable.market, "moneyline"),
+          eq(modelPredictionsTable.isChallenger, false),
+          eq(publishedPicksTable.isEffective, true),
+          inArray(pickResultsTable.result, ["win", "loss", "push"]),
+          ...(dateFrom ? [gte(gamesTable.gameDate, dateFrom)] : []),
+          ...(dateTo ? [lte(gamesTable.gameDate, dateTo)] : []),
+        ))
+        .orderBy(modelPredictionsTable.predictionTimestamp),
+    ]);
+
+    const games = gameRows.map((game) => {
+      const audit = asMlbQualificationAudit(game.audit);
+      return {
+        game: {
+          id: game.id,
+          date: game.gameDate,
+          time: game.gameTime,
+          startsAt: game.startsAt,
+          matchup: `${game.awayTeamAbbr} @ ${game.homeTeamAbbr}`,
+        },
+        auditStatus: audit ? "available" : "awaiting_refresh",
+        audit,
+        shadow: audit ? evaluateMlbShadowPolicy(audit, shadowBuyThreshold) : null,
+      };
+    });
+
+    const gradedRows: GradedMlbDecision[] = historicalRows.flatMap((row): GradedMlbDecision[] => {
+      if (
+        (row.selection !== "home" && row.selection !== "away")
+        || (row.result !== "win" && row.result !== "loss" && row.result !== "push")
+      ) {
+        return [];
+      }
+      return [{
+        selection: row.selection,
+        odds: row.odds,
+        modelProbability: row.modelProbability,
+        recommendation: row.recommendation,
+        edge: row.edge,
+        confidence: row.confidence,
+        result: row.result,
+        clv: row.clv,
+      }];
+    });
+
+    res.json({
+      date,
+      shadowPolicy: {
+        buyThreshold: shadowBuyThreshold,
+        scope: "analytics_only",
+        safeguardsPreserved: [
+          "strong_buy_threshold",
+          "away_threshold_offset",
+          "probable_starter_requirement",
+          "valid_pregame_market_requirement",
+          "favorite_price_cap",
+        ],
+      },
+      refreshSummary: summarizeMlbQualificationAudits(games.map((game) => game.audit)),
+      games,
+      historicalComparison: {
+        dateFrom: dateFrom ?? null,
+        dateTo: dateTo ?? null,
+        methodology: "Uses only existing, effective immutable MLB moneyline predictions with graded internal results. Games blocked before prediction creation are not estimated.",
+        ...compareMlbQualificationPolicies(gradedRows, shadowBuyThreshold),
+      },
+      dataAsOf: new Date().toISOString(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to build MLB qualification audit";
+    res.status(400).json({ error: message });
+  }
 });
 
 /**

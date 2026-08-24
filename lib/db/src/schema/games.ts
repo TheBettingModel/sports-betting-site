@@ -4,6 +4,7 @@ import {
   integer,
   real,
   boolean,
+  jsonb,
   timestamp,
   date,
 } from "drizzle-orm/pg-core";
@@ -124,6 +125,11 @@ export const gamesTable = pgTable("games", {
   // Posted 1–3 hours before first pitch; null / false before that.
   homeLineupConfirmed: boolean("home_lineup_confirmed"),
   awayLineupConfirmed: boolean("away_lineup_confirmed"),
+
+  // Current MLB-only decision audit. This is refreshed with the mutable game
+  // projection and is deliberately separate from immutable prediction history.
+  // It gives operators the exact evidence and policy gates behind Neutral rows.
+  mlbDecisionAudit: jsonb("mlb_decision_audit").$type<Record<string, unknown>>(),
 
   // Outcome tracking for learning
   predictionCorrect: boolean("prediction_correct"),
