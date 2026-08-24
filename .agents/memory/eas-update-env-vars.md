@@ -27,3 +27,18 @@ those values into agent memory, chat, or scripts. Then publish to the
 production EAS channel with a descriptive message.
 
 The `eas.json` `update` section key is also not valid and will cause `eas update` to error — do not add it.
+
+For the managed monorepo workflow, load the production environment object from
+the mobile `eas.json` at runtime and pass it directly to the spawned
+`eas update` process. Do not print or serialize individual values in workflow
+logs.
+
+**Why:** The workflow-level `environment: production` does not apply the
+`eas.json` build-profile environment to a custom OTA job. A release can report
+success while its bundle lacks the production API base URL and renders empty
+data.
+
+**How to apply:** Keep the environment transfer inside the workflow’s Node
+child-process invocation, publish directly to the production channel, and
+verify a fresh production API call returns the expected games before declaring
+the mobile empty state resolved.
