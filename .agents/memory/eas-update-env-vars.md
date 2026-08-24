@@ -59,3 +59,7 @@ workflow, publish the same JavaScript update to each compatible runtime, and
 fail the release if the primary runtime is not represented. Add a new runtime
 to that set when a compatible native build ships; retire an older runtime only
 after its installed population is no longer supported.
+
+This approach has been verified in practice: after publishing an
+environment-complete bundle to each matching runtime, an existing App Store
+install received the OTA and matched the web preview.
