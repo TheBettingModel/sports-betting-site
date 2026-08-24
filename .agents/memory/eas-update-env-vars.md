@@ -63,3 +63,8 @@ after its installed population is no longer supported.
 This approach has been verified in practice: after publishing an
 environment-complete bundle to each matching runtime, an existing App Store
 install received the OTA and matched the web preview.
+
+Managed Expo workflow runs can occasionally remain `IN_PROGRESS` without a
+builder log or timestamp change. Treat that as a publisher-queue stall, cancel
+the run cleanly, and do not keep launching duplicate releases; the last
+successful update remains live while the source stays ready for a later retry.
