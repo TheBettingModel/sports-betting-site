@@ -213,6 +213,8 @@ export default function PicksScreen() {
     return c;
   }, [allGames]);
   const liveGamesCount = data?.liveGamesCount ?? 0;
+  const allTabHasNoQualifiedPlays =
+    selectedSport === 'All' && allGames.length > 0 && displayedGames.length === 0;
 
   // Sports that have games today but zero qualifying picks (Strong Buy / Buy) on
   // the All tab — shown as a muted footer so subscribers know the model ran on
@@ -496,9 +498,13 @@ export default function PicksScreen() {
             sport={selectedSport !== 'All' ? selectedSport : undefined}
             title={selectedSport !== 'All' && sortedGames.length > 0
               ? `No ${selectedSport} bets today`
-              : undefined}
+              : allTabHasNoQualifiedPlays
+                ? 'No Qualified Plays Today'
+                : undefined}
             message={selectedSport === 'All'
-              ? 'No qualified plays available today. Pull down to refresh.'
+              ? allTabHasNoQualifiedPlays
+                ? `${allGames.length} games analyzed. No Strong Buy or Buy plays met the model threshold. Tap a sport above to explore forecast-only leans.`
+                : 'No qualified plays available today. Pull down to refresh.'
               : 'No qualified plays in this sport today.'}
           />
         }
