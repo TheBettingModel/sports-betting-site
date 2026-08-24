@@ -1,0 +1,11 @@
+name: Publish production iOS update
+
+jobs:
+  publish_ios_update:
+    name: Publish iOS OTA update
+    type: update
+    environment: production
+    working_directory: artifacts/mobile
+    params:
+      branch: production
+      platform: ios
