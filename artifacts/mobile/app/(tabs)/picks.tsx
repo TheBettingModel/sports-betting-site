@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
@@ -118,7 +119,7 @@ export default function PicksScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isSubscribed } = useSubscription();
-  const { selectedSport } = useSports();
+  const { selectedSport, setSelectedSport } = useSports();
 
   const { data, isLoading, refetch } = useGetGamesToday();
   useEffect(() => {
@@ -213,6 +214,12 @@ export default function PicksScreen() {
     return c;
   }, [allGames]);
   const liveGamesCount = data?.liveGamesCount ?? 0;
+  const firstForecastSport = useMemo(
+    () => allGames.find(g => g.status === 'upcoming')?.sport ?? allGames[0]?.sport ?? null,
+    [allGames],
+  );
+  const showAllTabForecastPrompt =
+    selectedSport === 'All' && allGames.length > 0 && displayedGames.length === 0;
 
   // Sports that have games today but zero qualifying picks (Strong Buy / Buy) on
   // the All tab — shown as a muted footer so subscribers know the model ran on
@@ -295,6 +302,37 @@ export default function PicksScreen() {
 
       {/* Sport filter pills */}
       <SportFilter gameCounts={sportGameCounts} />
+
+      {/* Make the individual sport forecast feeds discoverable when All has
+          no qualifying wagers to show. */}
+      {showAllTabForecastPrompt && firstForecastSport && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Browse ${firstForecastSport} forecast projections`}
+          onPress={() => setSelectedSport(firstForecastSport)}
+          style={({ pressed }) => [
+            styles.forecastPrompt,
+            {
+              backgroundColor: colors.secondary,
+              borderColor: colors.border,
+              opacity: pressed ? 0.78 : 1,
+            },
+          ]}
+        >
+          <View style={[styles.forecastPromptIcon, { backgroundColor: colors.primary + '22' }]}>
+            <Feather name="bar-chart-2" size={15} color={colors.primary} />
+          </View>
+          <View style={styles.forecastPromptCopy}>
+            <Text style={[styles.forecastPromptTitle, { color: colors.foreground }]}>
+              FORECASTS AVAILABLE BY SPORT
+            </Text>
+            <Text style={[styles.forecastPromptText, { color: colors.mutedForeground }]}>
+              Tap a sport above to see forecast-only leans.
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </Pressable>
+      )}
 
       {/* Summary strip + Plays/All toggle */}
       {!isLoading && sortedGames.length > 0 && (
@@ -496,10 +534,22 @@ export default function PicksScreen() {
             sport={selectedSport !== 'All' ? selectedSport : undefined}
             title={selectedSport !== 'All' && sortedGames.length > 0
               ? `No ${selectedSport} bets today`
+              : selectedSport === 'All' && allGames.length > 0
+                ? 'No Qualified Plays Today'
               : undefined}
             message={selectedSport === 'All'
-              ? 'No qualified plays available today. Pull down to refresh.'
+              ? allGames.length > 0
+                ? `${allGames.length} games analyzed. Browse a sport to see forecast-only leans.`
+                : 'No qualified plays available today. Pull down to refresh.'
               : 'No qualified plays in this sport today.'}
+            actionLabel={selectedSport === 'All' && allGames.length > 0 && firstForecastSport
+              ? `VIEW ${firstForecastSport.toUpperCase()} FORECASTS`
+              : undefined}
+            onAction={
+              selectedSport === 'All' && allGames.length > 0 && firstForecastSport
+                ? () => setSelectedSport(firstForecastSport)
+                : undefined
+            }
           />
         }
         ListFooterComponent={
@@ -549,6 +599,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 5,
   },
   badgeText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
+  forecastPrompt: {
+    marginHorizontal: 16, marginTop: 8, marginBottom: 4,
+    borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center',
+  },
+  forecastPromptIcon: {
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  forecastPromptCopy: { flex: 1, marginHorizontal: 10 },
+  forecastPromptTitle: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.9 },
+  forecastPromptText: { fontSize: 11, fontFamily: 'Inter_500Medium', marginTop: 3 },
   stripRow: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 16, marginTop: 4, marginBottom: 4, gap: 8,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 
@@ -25,9 +25,11 @@ interface EmptyStateProps {
   sport?: string;
   title?: string;
   message?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
-export function EmptyState({ sport, title, message }: EmptyStateProps) {
+export function EmptyState({ sport, title, message, actionLabel, onAction }: EmptyStateProps) {
   const colors = useColors();
   const cfg = sport ? (SPORT_MESSAGES[sport] ?? DEFAULT_MESSAGE) : DEFAULT_MESSAGE;
 
@@ -40,6 +42,24 @@ export function EmptyState({ sport, title, message }: EmptyStateProps) {
       <Text style={[s.sub, { color: colors.mutedForeground }]}>
         {message ?? cfg.sub}
       </Text>
+      {actionLabel && onAction && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          onPress={onAction}
+          style={({ pressed }) => [
+            s.action,
+            {
+              backgroundColor: colors.primary,
+              borderColor: colors.primary,
+              opacity: pressed ? 0.78 : 1,
+            },
+          ]}
+        >
+          <Text style={[s.actionText, { color: colors.primaryForeground }]}>{actionLabel}</Text>
+          <Feather name="arrow-right" size={15} color={colors.primaryForeground} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -53,4 +73,10 @@ const s = StyleSheet.create({
   },
   title: { fontSize: 17, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
   sub:   { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 19 },
+  action: {
+    marginTop: 4, borderRadius: 8, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  actionText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
 });
