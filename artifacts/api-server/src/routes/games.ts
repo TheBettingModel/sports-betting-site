@@ -40,8 +40,9 @@ const FREE_PICKS = 2;
  * numeric rendering — they should hide/replace locked rows using `isLocked`.
  */
 function lockGame(game: AnyGame): AnyGame {
+  const { mlbDecisionAudit: _internalAudit, ...publicGame } = game;
   return {
-    ...game,
+    ...publicGame,
     // Zero out model projection fields
     homeWinPct: 50,
     confidence: "Low",
@@ -57,6 +58,16 @@ function lockGame(game: AnyGame): AnyGame {
     // Signal to the client that this game is gated
     isLocked: true,
   };
+}
+
+/**
+ * MLB qualification diagnostics are operator-only. They remain accessible
+ * through the authenticated admin audit endpoint, never through this public
+ * subscriber/free game feed.
+ */
+function stripInternalDiagnostics(game: AnyGame): AnyGame {
+  const { mlbDecisionAudit: _internalAudit, ...publicGame } = game;
+  return publicGame;
 }
 
 const router: IRouter = Router();
@@ -717,7 +728,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       .orderBy(desc(gamesTable.modelScore));
 
     res.json({
-      games: applyPublishedRatings(games as AnyGame[]),
+      games: applyPublishedRatings(games as AnyGame[]).map(stripInternalDiagnostics),
       lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
       totalGames: games.length,
       liveGamesCount,
@@ -762,7 +773,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       : gatedAll;
 
   res.json({
-    games: filtered,
+    games: filtered.map(stripInternalDiagnostics),
     lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
     totalGames: filtered.length,
     liveGamesCount,
