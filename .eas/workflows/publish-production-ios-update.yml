@@ -14,4 +14,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Publish iOS update
-        run: pnpm --dir artifacts/mobile exec eas update --branch production --platform ios --message "Publish latest mobile update" --non-interactive
+        run: |
+          node <<'NODE'
+          const { spawnSync } = require('node:child_process');
+          const mobileEnv = require('./artifacts/mobile/eas.json').build.production.env;
+          const result = spawnSync(
+            'pnpm',
+            [
+              '--dir',
+              'artifacts/mobile',
+              'exec',
+              'eas',
+              'update',
+              '--channel',
+              'production',
+              '--platform',
+              'ios',
+              '--message',
+              'Restore production picks and sport tabs',
+              '--non-interactive',
+            ],
+            { env: { ...process.env, ...mobileEnv }, stdio: 'inherit' },
+          );
+          process.exit(result.status ?? 1);
+          NODE
