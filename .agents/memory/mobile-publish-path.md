@@ -14,3 +14,9 @@ Managed Expo OTA workflows require the Expo project itself to be linked to a Git
 **Why:** Expo’s managed workflow runner rejects updates with “No repository found” until the project link exists, even when the user’s GitHub connection can read the repository.
 
 **How to apply:** Before running an OTA workflow, verify the Expo project has its repository linked. If the MCP workflow runner reports no repository, direct the owner to link the repository in Expo’s project settings, then retry the same committed workflow.
+
+For this monorepo, use a custom EAS workflow job for OTA releases: install dependencies from the workspace root, then run `eas update` through the mobile workspace. The built-in `type: update` job runs from the repository root and cannot find the mobile app’s EAS project.
+
+**Why:** A monorepo root has no Expo project configuration; generic working-directory settings do not change the built-in update job’s CLI location. The custom job also needs Node 20, the project’s pnpm version, and a non-interactive release message.
+
+**How to apply:** In a managed workflow, pin the required Node and pnpm versions, run a frozen install at the root, and invoke the update via the mobile package with an explicit production branch, iOS platform, message, and non-interactive flag. Confirm the final Expo log reports both the target runtime and update group.
