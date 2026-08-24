@@ -14,4 +14,4 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Publish iOS update
-        run: pnpm --dir artifacts/mobile exec eas update --branch production --platform ios --non-interactive
+        run: pnpm --dir artifacts/mobile exec eas update --branch production --platform ios --message "Publish latest mobile update" --non-interactive
