@@ -34,6 +34,65 @@ afterEach(() => {
 });
 
 describe("MLB starter reliability", () => {
+  it("uses the three most recent starts when the MLB game log is oldest first", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2099-08-25T12:00:00.000Z"));
+    const date = "2099-08-25";
+    const start = "2099-08-25T23:10:00.000Z";
+    const seasonStat = {
+      era: "3.95",
+      whip: "1.10",
+      inningsPitched: "139.0",
+      strikeOuts: 160,
+      battersFaced: 540,
+      homeRuns: 12,
+      baseOnBalls: 30,
+      numberOfPitches: 95,
+    };
+    const chronologicalLog = [
+      { date: "2099-03-26", stat: { ...seasonStat, era: "67.50", inningsPitched: "0.2" } },
+      { date: "2099-04-01", stat: { ...seasonStat, era: "9.53", inningsPitched: "5.0" } },
+      { date: "2099-04-07", stat: { ...seasonStat, era: "5.25", inningsPitched: "6.1" } },
+      { date: "2099-08-05", stat: { ...seasonStat, era: "3.96", inningsPitched: "5.0" } },
+      { date: "2099-08-11", stat: { ...seasonStat, era: "3.88", inningsPitched: "5.0" } },
+      { date: "2099-08-19", stat: { ...seasonStat, era: "3.95", inningsPitched: "4.1" } },
+    ];
+
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/schedule?")) {
+        return new Response(JSON.stringify({
+          dates: [{ games: [{
+            gameDate: start,
+            season: "2099",
+            teams: {
+              home: { team: { id: 111 }, probablePitcher: { id: 1, fullName: "Home Starter" } },
+              away: { team: { id: 110 }, probablePitcher: { id: 2, fullName: "Away Starter" } },
+            },
+          }] }],
+        }));
+      }
+      if (url.includes("/people?personIds=")) {
+        return new Response(JSON.stringify({
+          people: [{ id: 1, pitchHand: { code: "R" } }, { id: 2, pitchHand: { code: "L" } }],
+        }));
+      }
+      return new Response(JSON.stringify({
+        stats: [
+          { type: { displayName: "season" }, splits: [{ stat: seasonStat }] },
+          { type: { displayName: "gameLog" }, splits: chronologicalLog },
+        ],
+      }));
+    }));
+
+    const starters = await getProbablePitchers("BOS", "BAL", date, start);
+
+    // The latest three cumulative ERAs are 3.96, 3.88, and 3.95. The old
+    // oldest-first selection would have incorrectly produced 27.43 instead.
+    expect(starters.home?.recentEra).toBeCloseTo((3.96 + 3.88 + 3.95) / 3, 6);
+    expect(starters.home?.seasonEra).toBe(3.95);
+  });
+
   it("shrinks the same skill gap when either starter has a thin workload sample", () => {
     const established = computePitcherAdvantage({
       home: pitcher({ fip: 2.8, recentEra: 2.9, kMinusBbPct: 0.23 }),

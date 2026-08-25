@@ -170,7 +170,12 @@ async function fetchPitcherStats(
 
   // ── Recent form (last 3 starts) ───────────────────────────────────────────
   const gameLogGroup = data.stats.find((s) => s.type.displayName === "gameLog");
-  const lastStarts   = (gameLogGroup?.splits ?? []).slice(0, 3);
+  // MLB Stats API returns the game log chronologically (oldest first). Sort
+  // explicitly before selecting form so the displayed "recent ERA" never
+  // accidentally averages the pitcher's first starts of the season.
+  const lastStarts = [...(gameLogGroup?.splits ?? [])]
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+    .slice(0, 3);
 
   let recentEraSum = 0;
   let recentIpSum  = 0;

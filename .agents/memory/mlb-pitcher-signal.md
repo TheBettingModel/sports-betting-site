@@ -25,9 +25,15 @@ If providers disagree on start time, only use a bounded time-tolerance fallback 
 
 - Season aggregate: `type.displayName === "season"` (NOT "statsSingleSeason")
 - Game log: `type.displayName === "gameLog"` — last 3 entries used for recent ERA
+- Game-log splits arrive oldest-to-newest; sort by date descending before selecting the
+  three recent starts.
 - Complete schedule data can remain cached for four hours, but incomplete probable-starter pairs must retry quickly before first pitch.
 
 **Why:** Season aggregate is cumulative ERA. Recent ERA averages the season ERA values at the time of each of the last 3 starts — a reasonable proxy for current form since it shows ERA trajectory.
+
+**Ordering rule:** Never assume the first game-log splits are recent. MLB returned Paul
+Skenes' opening starts first, which would turn 67.50, 9.53, and 5.25 into a misleading
+27.43 "recent ERA" late in the season.
 
 ## Model integration
 `computePitcherAdvantage()` returns a value in `[-0.08, +0.08]` probability shift. It blends FIP, recent ERA, and K-BB%, then shrinks the result for a low innings/batters-faced sample or a low recent pitch-count/workload profile.
