@@ -57,6 +57,8 @@ type Forecast = {
   projectedTeam?: string;
   winProbability?: number;
   marketOdds?: number;
+  edge?: number;
+  leanRank?: number;
   awaitingReason?: string;
 };
 
@@ -104,7 +106,25 @@ function getForecast(game: Game): Forecast {
       ? game.projection.homeWinPct
       : 100 - game.projection.homeWinPct,
     marketOdds: projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds,
+    edge: Math.abs(game.projection.edge),
   };
+}
+
+const FORECAST_STATE_ORDER: Record<ForecastState, number> = {
+  'model-lean': 0,
+  'no-bet': 1,
+  'awaiting-data': 2,
+  locked: 3,
+};
+
+function compareForecasts(a: Forecast, b: Forecast): number {
+  const stateOrder = FORECAST_STATE_ORDER[a.state] - FORECAST_STATE_ORDER[b.state];
+  if (stateOrder !== 0) return stateOrder;
+
+  const edgeOrder = (b.edge ?? -1) - (a.edge ?? -1);
+  if (edgeOrder !== 0) return edgeOrder;
+
+  return b.game.projection.modelScore - a.game.projection.modelScore;
 }
 
 type ListItem =
@@ -189,17 +209,23 @@ export default function PicksScreen() {
     ),
     [sortedGames],
   );
-  const forecasts = useMemo(
-    () => selectedSport !== 'All'
-      ? sortedGames
-          .filter(game =>
-            game.status === 'upcoming' &&
-            !ACTIONABLE_RATINGS.includes(game.projection.valueRating as Rating),
-          )
-          .map(getForecast)
-      : [],
-    [selectedSport, sortedGames],
-  );
+  const forecasts = useMemo(() => {
+    if (selectedSport === 'All') return [];
+
+    const ranked = sortedGames
+      .filter(game =>
+        game.status === 'upcoming' &&
+        !ACTIONABLE_RATINGS.includes(game.projection.valueRating as Rating),
+      )
+      .map(getForecast)
+      .sort(compareForecasts);
+
+    let leanRank = 0;
+    return ranked.map(forecast => ({
+      ...forecast,
+      leanRank: forecast.state === 'model-lean' ? ++leanRank : undefined,
+    }));
+  }, [selectedSport, sortedGames]);
   const displayedGames = useMemo(
     () => selectedSport === 'All' ? actionableGames.slice(0, ALL_PLAYS_LIMIT) : actionableGames,
     [actionableGames, selectedSport],
@@ -336,9 +362,22 @@ export default function PicksScreen() {
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             {selectedSport === 'All'
               ? `TOP PLAYS${displayedGames.length > 0 ? ` · ${displayedGames.length}` : ''}`
-              : `RECOMMENDED PLAYS · ${displayedGames.length}`}
+              : displayedGames.length > 0
+                ? `RECOMMENDED PLAYS · ${displayedGames.length}`
+                : 'NO QUALIFIED PLAYS TODAY'}
           </Text>
           <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
+        </View>
+      )}
+
+      {!isLoading && selectedSport !== 'All' && sortedGames.length > 0 && displayedGames.length === 0 && (
+        <View style={[styles.forecastNotice, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.forecastNoticeTitle, { color: colors.foreground }]}>
+            NOTHING CLEARED THE BUY THRESHOLD
+          </Text>
+          <Text style={[styles.forecastNoticeText, { color: colors.mutedForeground }]}>
+            Forecasts below are ranked by model edge. A higher win probability does not necessarily mean better betting value.
+          </Text>
         </View>
       )}
 
@@ -376,7 +415,10 @@ export default function PicksScreen() {
               ALL {selectedSport.toUpperCase()} PROJECTIONS
             </Text>
             <Text style={[styles.forecastSubtitle, { color: colors.mutedForeground }]}>
-              {item.count} upcoming {item.count === 1 ? 'game' : 'games'} · forecasts only
+              {item.count} upcoming {item.count === 1 ? 'game' : 'games'} · forecast-only context
+            </Text>
+            <Text style={[styles.forecastOrderNote, { color: colors.primary }]}>
+              RANKED BY MODEL EDGE · STRONGEST LEAN FIRST
             </Text>
           </View>
           <View style={[styles.forecastBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
@@ -391,7 +433,7 @@ export default function PicksScreen() {
       const { forecast } = item;
       const isLockedForecast = forecast.state === 'locked';
       const statusLabel = forecast.state === 'model-lean'
-        ? 'MODEL LEAN'
+        ? `MODEL LEAN · #${forecast.leanRank}`
         : forecast.state === 'no-bet'
           ? 'NO BET'
           : forecast.state === 'awaiting-data'
@@ -427,10 +469,10 @@ export default function PicksScreen() {
             ) : (
               <>
                 <Text style={[styles.forecastProjection, { color: colors.foreground }]}>
-                  {forecast.projectedTeam} · {forecast.winProbability}%
+                  {forecast.projectedTeam} · {forecast.winProbability}% WIN PROB
                 </Text>
                 <Text style={[styles.forecastMarket, { color: colors.mutedForeground }]}>
-                  MARKET {formatOdds(forecast.marketOdds!)}
+                  EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
                 </Text>
               </>
             )}
@@ -593,6 +635,7 @@ const styles = StyleSheet.create({
   },
   forecastTitle: { fontSize: 12, fontFamily: 'Inter_700Bold', letterSpacing: 1.2 },
   forecastSubtitle: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 4 },
+  forecastOrderNote: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.7, marginTop: 5 },
   forecastBadge: {
     minWidth: 26, height: 26, borderRadius: 13, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
@@ -611,6 +654,12 @@ const styles = StyleSheet.create({
   forecastMarket: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 2 },
   forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
   forecastDisclaimer: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8, marginTop: 4 },
+  forecastNotice: {
+    marginHorizontal: 16, marginTop: 4, borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 11,
+  },
+  forecastNoticeTitle: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  forecastNoticeText: { fontSize: 11, fontFamily: 'Inter_500Medium', lineHeight: 16, marginTop: 5 },
   // ── No-edge footer ────────────────────────────────────────────────────────────
   noEdgeFooter: {
     marginTop: 24, marginHorizontal: 16, paddingTop: 20,
