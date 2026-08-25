@@ -1162,8 +1162,8 @@ async function runPushTokenCleanup(): Promise<void> {
  * Start all scheduled jobs. Call once at server startup.
  */
 export function startScheduler(): void {
-  // Odds ingestion — every 15 minutes
-  cron.schedule("*/15 * * * *", () => {
+  // Odds ingestion — every 30 minutes
+  cron.schedule("*/30 * * * *", () => {
     void runOddsIngestion();
   });
 

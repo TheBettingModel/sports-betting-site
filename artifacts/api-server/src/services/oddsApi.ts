@@ -173,10 +173,9 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-// The game-refresh job runs every 15 minutes. Keep this shorter than that
-// cadence so each scheduled refresh has a chance to retrieve a new market,
-// while still avoiding duplicate requests inside one refresh.
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// Match the 30-minute game-refresh cadence while avoiding duplicate requests
+// from the scheduler, mobile refetches, or manual refreshes in that interval.
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 /** A failed refresh may only use data that would still qualify as fresh normally. */
 export const ACTIONABLE_ODDS_CACHE_MAX_AGE_MS = CACHE_TTL_MS;
 

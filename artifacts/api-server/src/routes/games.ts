@@ -77,7 +77,7 @@ let lastRefreshedAt: Date | null = null;
 // Keep the server-side game slate close to the live odds cadence. The mobile
 // client refetches while the Picks tab is open, but this shared guard ensures
 // only one full model refresh is needed per interval.
-const STALE_MS = 10 * 60 * 1000; // 10 minutes
+const STALE_MS = 30 * 60 * 1000; // 30 minutes
 
 function isStale(): boolean {
   if (!lastRefreshedAt) return true;
@@ -643,7 +643,7 @@ export async function refreshAll(): Promise<{
 
 /**
  * GET /api/games/today
- * Auto-refreshes from ESPN when data is stale (>1 hr old).
+ * Auto-refreshes from ESPN when data is stale (>30 minutes old).
  * Optional ?sport=NFL query param for server-side filtering.
  *
  * Subscriber gating:
