@@ -57,6 +57,27 @@ describe("MLB pregame decision evidence", () => {
     expect(evidence.signals.starters.cacheAgeMs).toBeNull();
   });
 
+  it("records rejected pitcher stats as the blocking reason instead of a neutral fallback", () => {
+    const evidence = assessMlbDecisionEvidence(
+      game,
+      { realVegasHomeOdds: -120, realVegasAwayOdds: 105 },
+      {
+        homeStarter: null,
+        awayStarter: completeStarter("Away Starter"),
+        starterQualityReasons: ["home_starter_stats_identity_mismatch"],
+        homeLineupConfirmed: false,
+        awayLineupConfirmed: false,
+        homeBullpen: null,
+        awayBullpen: null,
+        venueWeather: null,
+      },
+    );
+
+    expect(evidence.recommendationBlocked).toBe(true);
+    expect(evidence.missingSignals).toContain("probable_pitchers");
+    expect(evidence.qualityReasons).toContain("home_starter_stats_identity_mismatch");
+  });
+
   it("clears the required-evidence block when a late published starter completes the pair", () => {
     const sharedAvailability = {
       homeStarter: completeStarter("Home Starter"),

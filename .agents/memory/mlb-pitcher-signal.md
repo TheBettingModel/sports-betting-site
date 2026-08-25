@@ -40,4 +40,4 @@ Skenes' opening starts first, which would turn 67.50, 9.53, and 5.25 into a misl
 
 **Why 70% recent:** Single-game outcomes are dominated by the specific pitcher on the mound, not season averages. A Cy Young caliber ace with a 6-run recent outing matters more than his 2.50 season ERA.
 
-**How to apply:** Missing probable starters must block a published MLB full-game pick rather than quietly using league-average defaults. Defaults are acceptable only to keep internal numeric response fields stable.
+**How to apply:** Missing probable starters, failed stat requests, malformed numeric payloads, and player-identity mismatches must all block a published MLB full-game pick. Do not substitute league-average pitcher data for an unavailable source; return a zero pitcher adjustment and retain a machine-readable source-quality reason for the decision audit. If this evidence changes after a pick was published but before first pitch, immutably retire it to a Neutral decision—even during a current odds-feed outage—using the prior decision's market record for the audit trail.

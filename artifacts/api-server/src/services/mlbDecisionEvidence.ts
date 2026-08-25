@@ -144,8 +144,13 @@ export function assessMlbDecisionEvidence(
   const hasStarters = isCompleteStarter(availability.homeStarter)
     && isCompleteStarter(availability.awayStarter)
     && !sourceIsStale(availability, "starters");
+  const reportedStarterReasons = Array.isArray(availability.starterQualityReasons)
+    ? availability.starterQualityReasons.filter((reason): reason is string => typeof reason === "string")
+    : [];
   const starterReasons = hasStarters ? [] : [
-    "one_or_both_probable_starters_missing_or_partial",
+    ...(reportedStarterReasons.length > 0
+      ? reportedStarterReasons
+      : ["one_or_both_probable_starters_missing_or_partial"]),
     ...(sourceIsStale(availability, "starters") ? ["starter_evidence_stale"] : []),
   ];
   signals.starters = signal(

@@ -85,6 +85,7 @@ export function materialMlbEvidenceFingerprint(snapshot: Record<string, unknown>
   const decision = recordOrEmpty(snapshot.decision);
   const availability = recordOrEmpty(decision.availability);
   const dataQuality = recordOrEmpty(decision.dataQuality);
+  const evidence = recordOrEmpty(dataQuality.evidence);
   if (Object.keys(decision).length === 0) return null;
 
   const lineup = (side: "home" | "away") => {
@@ -119,6 +120,8 @@ export function materialMlbEvidenceFingerprint(snapshot: Record<string, unknown>
 
   return hash({
     missingSignals: Array.isArray(dataQuality.missingSignals) ? dataQuality.missingSignals : [],
+    recommendationBlocked: evidence.recommendationBlocked === true,
+    qualityReasons: Array.isArray(evidence.qualityReasons) ? evidence.qualityReasons : [],
     homeStarter: starter("home"),
     awayStarter: starter("away"),
     homeLineup: lineup("home"),
@@ -133,6 +136,25 @@ export function materialMlbEvidenceFingerprint(snapshot: Record<string, unknown>
       temperatureCelsius: numberOr(weather.temperatureCelsius),
     },
   });
+}
+
+function requiredMlbEvidenceWithdrawal(featureSnapshot: Record<string, unknown>): {
+  blocked: boolean;
+  qualityReasons: string[];
+} {
+  const decision = recordOrEmpty(featureSnapshot.decision);
+  const dataQuality = recordOrEmpty(decision.dataQuality);
+  const evidence = recordOrEmpty(dataQuality.evidence);
+  const missingSignals = Array.isArray(dataQuality.missingSignals)
+    ? dataQuality.missingSignals.filter((signal): signal is string => typeof signal === "string")
+    : [];
+  const qualityReasons = Array.isArray(evidence.qualityReasons)
+    ? evidence.qualityReasons.filter((reason): reason is string => typeof reason === "string")
+    : [];
+  return {
+    blocked: evidence.recommendationBlocked === true && missingSignals.includes("probable_pitchers"),
+    qualityReasons,
+  };
 }
 
 export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
@@ -220,16 +242,25 @@ export function isMlbMaterialPregameRevisionEligible(
   game: FetchedGame,
   proj: ProjectionResult,
   eligible: boolean,
+  featureSnapshot?: Record<string, unknown>,
 ): boolean {
+  const evidenceWithdrawal = featureSnapshot
+    ? requiredMlbEvidenceWithdrawal(featureSnapshot).blocked
+    : false;
   return (
     game.sport === "MLB" &&
     game.status === "upcoming" &&
-    eligible &&
     isPregameCommenceTime(game.commenceTimeISO) &&
-    hasValidMoneylineMarketForSport("MLB", {
-      homeOdds: proj.vegasHomeOdds,
-      awayOdds: proj.vegasAwayOdds,
-    })
+    (
+      evidenceWithdrawal ||
+      (
+        eligible &&
+        hasValidMoneylineMarketForSport("MLB", {
+          homeOdds: proj.vegasHomeOdds,
+          awayOdds: proj.vegasAwayOdds,
+        })
+      )
+    )
   );
 }
 
@@ -245,11 +276,11 @@ export async function applyMlbMaterialPregameRevision(
   featureSnapshot: Record<string, unknown>,
   eligible: boolean,
 ): Promise<boolean> {
-  if (!isMlbMaterialPregameRevisionEligible(game, proj, eligible)) {
+  if (!isMlbMaterialPregameRevisionEligible(game, proj, eligible, featureSnapshot)) {
     return false;
   }
 
-  const current = currentMlbPregameDecision(proj);
+  const evidenceWithdrawal = requiredMlbEvidenceWithdrawal(featureSnapshot);
   const evidenceFingerprint = materialMlbEvidenceFingerprint(featureSnapshot);
   try {
     return await db.transaction(async (tx) => {
@@ -297,8 +328,31 @@ export async function applyMlbMaterialPregameRevision(
       marketIntelligenceGrade: priorPrediction.marketIntelligenceGrade ?? "",
       featureSnapshot: recordOrEmpty(priorPrediction.featureSnapshot),
     };
+    // A source-quality withdrawal is intentionally independent of a current
+    // odds refresh. Preserve the prior selection/price for this immutable
+    // neutral record so an odds outage cannot keep a rejected pitcher pick live.
+    const current: MaterialPregameDecision = evidenceWithdrawal.blocked
+      ? {
+          selection: prior.selection,
+          odds: prior.odds,
+          modelProbability: 0.5,
+          edge: 0,
+          confidence: "Low",
+          recommendation: "Neutral",
+          units: 1,
+          podScore: 0,
+          finalRating: 0,
+          marketIntelligenceGrade: "",
+        }
+      : currentMlbPregameDecision(proj);
     const change = assessMlbMaterialPregameChange(prior, current, evidenceFingerprint);
-    if (!change.changed) return false;
+    if (evidenceWithdrawal.blocked && prior.recommendation !== "Neutral") {
+      change.reasons.push(
+        "required_pitcher_evidence_unavailable",
+        ...evidenceWithdrawal.qualityReasons.map((reason) => `pitcher_evidence:${reason}`),
+      );
+    }
+    if (change.reasons.length === 0) return false;
 
     const manifest = revisionManifest(priorPrediction.id, current, evidenceFingerprint, change.reasons);
     const materialHash = hash(manifest);
@@ -387,7 +441,15 @@ export async function applyMlbMaterialPregameRevision(
       },
     };
 
-    const fairMarket = removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
+    const retainedFairProbability = typeof priorPrediction.fairProbability === "number"
+      && Number.isFinite(priorPrediction.fairProbability)
+      ? Math.max(0.001, Math.min(0.999, priorPrediction.fairProbability))
+      : 0.5;
+    const fairMarket = evidenceWithdrawal.blocked
+      ? prior.selection === "home"
+        ? { home: retainedFairProbability, away: 1 - retainedFairProbability }
+        : { home: 1 - retainedFairProbability, away: retainedFairProbability }
+      : removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
     const [insertedPrediction] = await tx
       .insert(modelPredictionsTable)
       .values({

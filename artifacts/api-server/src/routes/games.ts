@@ -367,6 +367,7 @@ export async function refreshAll(): Promise<{
     const mlbAvailability = {
       homeStarter: starters.home ?? null,
       awayStarter: starters.away ?? null,
+      starterQualityReasons: starters.qualityReasons ?? [],
       homeLineupConfirmed: enrichedLineup.home.confirmed,
       awayLineupConfirmed: enrichedLineup.away.confirmed,
       homeLineup: enrichedLineup.home,

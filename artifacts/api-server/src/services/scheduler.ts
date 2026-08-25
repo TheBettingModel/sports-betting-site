@@ -601,6 +601,7 @@ async function runOddsIngestion(): Promise<void> {
           const mlbAvailability = {
             homeStarter: starters.home ?? null,
             awayStarter: starters.away ?? null,
+            starterQualityReasons: starters.qualityReasons ?? [],
             homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
             awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
             homeLineup: enrichedLineup?.home ?? null,
@@ -959,6 +960,7 @@ async function runResultGrading(): Promise<void> {
         const mlbAvailability = {
           homeStarter: starters.home ?? null,
           awayStarter: starters.away ?? null,
+          starterQualityReasons: starters.qualityReasons ?? [],
           homeLineupConfirmed: enrichedLineup?.home.confirmed ?? false,
           awayLineupConfirmed: enrichedLineup?.away.confirmed ?? false,
           homeLineup: enrichedLineup?.home ?? null,

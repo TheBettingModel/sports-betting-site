@@ -62,6 +62,8 @@ export interface PitcherStats {
 export interface ProbableStarters {
   home: PitcherStats | null;
   away: PitcherStats | null;
+  /** Machine-readable source/validation issues for the scheduled matchup. */
+  qualityReasons?: string[];
 }
 export interface MlbSignalCacheMeta {
   sourceCapturedAt: string | null;
@@ -95,18 +97,37 @@ const FIP_CONSTANT      = 3.10; // calibrated to equate FIP to ERA at league ave
  * Parse MLB Stats API innings-pitched string "175.2" → 175.667
  * The decimal portion represents outs (0 = 0 outs, .1 = 1 out = 1/3 IP, .2 = 2/3 IP).
  */
-function parseIP(ip: string | undefined): number {
-  if (!ip) return 0;
-  const [whole, thirds] = ip.split(".").map(Number);
-  return (whole ?? 0) + ((thirds ?? 0) / 3);
+function parseIP(ip: string | number | undefined): number {
+  const input = String(ip ?? "").trim();
+  if (!/^\d+(?:\.[012])?$/.test(input)) return Number.NaN;
+  const [whole, thirds] = input.split(".").map(Number);
+  return whole + ((thirds ?? 0) / 3);
+}
+
+function requiredNonNegativeNumber(value: unknown, field: string, pitcherId: number): number {
+  const parsed = typeof value === "number"
+    ? value
+    : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`invalid ${field} for pitcher ${pitcherId}`);
+  }
+  return parsed;
+}
+
+function requiredInnings(value: unknown, field: string, pitcherId: number): number {
+  const parsed = parseIP(typeof value === "string" || typeof value === "number" ? value : undefined);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`invalid ${field} for pitcher ${pitcherId}`);
+  }
+  return parsed;
 }
 
 // ── MLB Stats API types ───────────────────────────────────────────────────────
 
 interface MlbPitchingStat {
-  era?: string;
-  whip?: string;
-  inningsPitched?: string;
+  era?: string | number;
+  whip?: string | number;
+  inningsPitched?: string | number;
   strikeOuts?: number;
   battersFaced?: number;
   homeRuns?: number;
@@ -115,8 +136,9 @@ interface MlbPitchingStat {
 }
 
 interface MlbGameLogSplit {
-  date: string;
+  date?: string;
   stat: MlbPitchingStat;
+  player?: { id?: number };
 }
 
 interface MlbStatGroup {
@@ -141,23 +163,31 @@ async function fetchPitcherStats(
   });
   if (!resp.ok) throw new Error(`MLB Stats API ${resp.status} for pitcher ${pitcherId}`);
 
-  const data = (await resp.json()) as { stats: MlbStatGroup[] };
+  const data = (await resp.json()) as { stats?: MlbStatGroup[] };
+  if (!Array.isArray(data.stats)) {
+    throw new Error(`missing stats payload for pitcher ${pitcherId}`);
+  }
 
   // ── Season totals ─────────────────────────────────────────────────────────
   const seasonGroup = data.stats.find((s) => s.type.displayName === "season");
-  const seasonSplit  = seasonGroup?.splits?.[0]?.stat;
-  const latestLog    = (data.stats.find((s) => s.type.displayName === "gameLog")?.splits ?? [])[0]?.stat;
-
-  const seasonEra  = parseFloat(seasonSplit?.era  ?? latestLog?.era  ?? String(LEAGUE_AVG_ERA));
-  const seasonWhip = parseFloat(seasonSplit?.whip ?? latestLog?.whip ?? String(LEAGUE_AVG_WHIP));
+  const seasonSplit = seasonGroup?.splits?.[0];
+  if (!seasonSplit?.stat) {
+    throw new Error(`missing season stats for pitcher ${pitcherId}`);
+  }
+  if (seasonSplit.player?.id !== pitcherId) {
+    throw new Error(`season stats identity mismatch for pitcher ${pitcherId}`);
+  }
+  const seasonStat = seasonSplit.stat;
+  const seasonEra  = requiredNonNegativeNumber(seasonStat.era, "season ERA", pitcherId);
+  const seasonWhip = requiredNonNegativeNumber(seasonStat.whip, "season WHIP", pitcherId);
 
   // ── FIP and peripherals ───────────────────────────────────────────────────
   // Use season totals for FIP/K%/BB% — large sample is more reliable than recent.
-  const seasonIp  = parseIP(seasonSplit?.inningsPitched);
-  const seasonK   = seasonSplit?.strikeOuts    ?? 0;
-  const seasonBb  = seasonSplit?.baseOnBalls   ?? 0;
-  const seasonHr  = seasonSplit?.homeRuns      ?? 0;
-  const seasonBf  = seasonSplit?.battersFaced  ?? 0;
+  const seasonIp  = requiredInnings(seasonStat.inningsPitched, "season innings pitched", pitcherId);
+  const seasonK   = requiredNonNegativeNumber(seasonStat.strikeOuts, "season strikeouts", pitcherId);
+  const seasonBb  = requiredNonNegativeNumber(seasonStat.baseOnBalls, "season walks", pitcherId);
+  const seasonHr  = requiredNonNegativeNumber(seasonStat.homeRuns, "season home runs", pitcherId);
+  const seasonBf  = requiredNonNegativeNumber(seasonStat.battersFaced, "season batters faced", pitcherId);
 
   const fip =
     seasonIp > 10
@@ -170,12 +200,18 @@ async function fetchPitcherStats(
 
   // ── Recent form (last 3 starts) ───────────────────────────────────────────
   const gameLogGroup = data.stats.find((s) => s.type.displayName === "gameLog");
+  if (!gameLogGroup?.splits?.length) {
+    throw new Error(`missing game log for pitcher ${pitcherId}`);
+  }
   // MLB Stats API returns the game log chronologically (oldest first). Sort
   // explicitly before selecting form so the displayed "recent ERA" never
   // accidentally averages the pitcher's first starts of the season.
   const lastStarts = [...(gameLogGroup?.splits ?? [])]
-    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+    .sort((a, b) => Date.parse(b.date ?? "") - Date.parse(a.date ?? ""))
     .slice(0, 3);
+  if (lastStarts.length === 0 || lastStarts.some((start) => !Number.isFinite(Date.parse(start.date ?? "")))) {
+    throw new Error(`invalid game log date for pitcher ${pitcherId}`);
+  }
 
   let recentEraSum = 0;
   let recentIpSum  = 0;
@@ -183,34 +219,36 @@ async function fetchPitcherStats(
   let count        = 0;
 
   for (const start of lastStarts) {
-    const era = parseFloat(start.stat.era ?? "0");
-    const ip  = parseIP(start.stat.inningsPitched);
-    if (!isNaN(era) && ip > 0) {
-      recentEraSum += era;
-      recentIpSum  += ip;
-      recentPitchSum += start.stat.numberOfPitches ?? 0;
-      count++;
+    if (start.player?.id !== pitcherId) {
+      throw new Error(`game log identity mismatch for pitcher ${pitcherId}`);
     }
+    const era = requiredNonNegativeNumber(start.stat.era, "game log ERA", pitcherId);
+    const ip  = requiredInnings(start.stat.inningsPitched, "game log innings pitched", pitcherId);
+    const pitches = requiredNonNegativeNumber(start.stat.numberOfPitches, "game log pitch count", pitcherId);
+    recentEraSum += era;
+    recentIpSum  += ip;
+    recentPitchSum += pitches;
+    count++;
   }
 
-  const recentEra   = count > 0 ? recentEraSum / count : seasonEra;
-  const recentIpAvg = count > 0 ? recentIpSum  / count : 5.5;
+  const recentEra   = recentEraSum / count;
+  const recentIpAvg = recentIpSum  / count;
 
   return {
     name,
     playerId:     null, // populated by fetchSchedule which has the pitcher's API id
     pitchHand:    null, // populated by fetchSchedule from probablePitcher.pitchHand
-    seasonEra:    isNaN(seasonEra)  ? LEAGUE_AVG_ERA  : seasonEra,
-    seasonWhip:   isNaN(seasonWhip) ? LEAGUE_AVG_WHIP : seasonWhip,
-    fip:          isNaN(fip)        ? LEAGUE_AVG_FIP  : Math.max(1.5, Math.min(7.0, fip)),
+    seasonEra,
+    seasonWhip,
+    fip:          Math.max(1.5, Math.min(7.0, fip)),
     kPct,
     bbPct,
     kMinusBbPct,
-    recentEra:    isNaN(recentEra)  ? seasonEra : recentEra,
-    recentIpAvg:  isNaN(recentIpAvg) ? 5.5 : recentIpAvg,
+    recentEra,
+    recentIpAvg,
     seasonIp,
     seasonBattersFaced: seasonBf,
-    recentPitchCountAvg: count > 0 ? recentPitchSum / count : 80,
+    recentPitchCountAvg: recentPitchSum / count,
     recentStartCount: count,
   };
 }
@@ -354,6 +392,7 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
   }
 
   const statsByPitcherId = new Map<number, PitcherStats>();
+  const statFailureByPitcherId = new Map<number, string>();
   // handMap populated by batch people call below — pitchHand is NOT in probablePitcher hydration
   const handMap = new Map<number, "L" | "R">();
 
@@ -368,7 +407,12 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
           const stats = await fetchPitcherStats(id, pitcher?.fullName ?? "Unknown", statsSeason);
           statsByPitcherId.set(id, stats);
         } catch (err) {
-          logger.warn({ err, pitcherId: id }, "MLB pitchers: stat fetch failed for one pitcher");
+          const reason = err instanceof Error ? err.message : "unknown pitcher stats failure";
+          statFailureByPitcherId.set(id, reason);
+          logger.warn(
+            { err, pitcherId: id, reason },
+            "MLB pitchers: stat verification failed; starter excluded from model evidence",
+          );
         }
       }),
     ),
@@ -395,15 +439,6 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
     })(),
   ]);
 
-  const LEAGUE_AVG_DEFAULTS: PitcherStats = {
-    name: "Unknown",
-    playerId: null, pitchHand: null,
-    seasonEra: LEAGUE_AVG_ERA, seasonWhip: LEAGUE_AVG_WHIP,
-    fip: LEAGUE_AVG_FIP, kPct: LEAGUE_AVG_K_PCT, bbPct: LEAGUE_AVG_BB_PCT,
-    kMinusBbPct: LEAGUE_AVG_KBB, recentEra: LEAGUE_AVG_ERA, recentIpAvg: 5.5,
-    seasonIp: 0, seasonBattersFaced: 0, recentPitchCountAvg: 80, recentStartCount: 0,
-  };
-
   const result = new Map<string, ProbableStarters>();
 
   for (const g of games) {
@@ -424,22 +459,31 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
       continue;
     }
 
-    result.set(gameKey, {
-      home: homeP
-        ? {
-            ...(statsByPitcherId.get(homeP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: homeP.fullName }),
-            playerId:  homeP.id,
-            pitchHand: handMap.get(homeP.id) ?? null,
-          }
-        : null,
-      away: awayP
-        ? {
-            ...(statsByPitcherId.get(awayP.id) ?? { ...LEAGUE_AVG_DEFAULTS, name: awayP.fullName }),
-            playerId:  awayP.id,
-            pitchHand: handMap.get(awayP.id) ?? null,
-          }
-        : null,
-    });
+    const verifiedStarter = (pitcher: MlbTeam["probablePitcher"]): PitcherStats | null => {
+      if (!pitcher) return null;
+      const stats = statsByPitcherId.get(pitcher.id);
+      return stats
+        ? { ...stats, playerId: pitcher.id, pitchHand: handMap.get(pitcher.id) ?? null }
+        : null;
+    };
+    const statFailureReason = (side: "home" | "away", pitcher: MlbTeam["probablePitcher"]): string[] => {
+      if (!pitcher || statsByPitcherId.has(pitcher.id)) return [];
+      const failure = statFailureByPitcherId.get(pitcher.id) ?? "";
+      if (failure.includes("identity mismatch")) return [`${side}_starter_stats_identity_mismatch`];
+      if (failure.startsWith("invalid ") || failure.startsWith("missing ")) {
+        return [`${side}_starter_stats_malformed_or_incomplete`];
+      }
+      return [`${side}_starter_stats_fetch_failed`];
+    };
+    const home = verifiedStarter(homeP);
+    const away = verifiedStarter(awayP);
+    const qualityReasons = [
+      ...(!homeP ? ["home_probable_starter_missing"] : []),
+      ...(!awayP ? ["away_probable_starter_missing"] : []),
+      ...statFailureReason("home", homeP),
+      ...statFailureReason("away", awayP),
+    ];
+    result.set(gameKey, { home, away, qualityReasons });
   }
 
   logger.info(
@@ -501,7 +545,15 @@ export async function getProbablePitchers(
       { dateStr, homeAbbr, awayAbbr, commenceTimeISO, matchType: match.matchType, candidateStarts: match.candidateStarts },
       "MLB pitchers: no safe schedule matchup",
     );
-    return { home: null, away: null };
+    return {
+      home: null,
+      away: null,
+      qualityReasons: [
+        match.matchType === "ambiguous"
+          ? "starter_schedule_match_ambiguous"
+          : "starter_schedule_match_unavailable",
+      ],
+    };
   }
   if (!hasCompleteStarterPair(match.starters)) {
     logger.info(
@@ -537,22 +589,27 @@ export async function getProbablePitchers(
  */
 export function computePitcherAdvantage(starters: ProbableStarters): number {
   const { home, away } = starters;
+  // Never manufacture a generic pitcher signal when either scheduled starter
+  // is missing or failed source validation. The MLB decision-evidence gate will
+  // block publication in this state; returning zero also protects callers that
+  // compute a provisional projection before inspecting that gate.
+  if (!home || !away) return 0;
 
   // ── FIP differential ───────────────────────────────────────────────────────
-  const homeFip = home?.fip ?? LEAGUE_AVG_FIP;
-  const awayFip = away?.fip ?? LEAGUE_AVG_FIP;
+  const homeFip = home.fip;
+  const awayFip = away.fip;
   const fipDiff = awayFip - homeFip; // positive = home pitcher better
 
   // ── Recent ERA differential ────────────────────────────────────────────────
-  const homeRecent = home?.recentEra ?? (home?.seasonEra ?? LEAGUE_AVG_ERA);
-  const awayRecent = away?.recentEra ?? (away?.seasonEra ?? LEAGUE_AVG_ERA);
+  const homeRecent = home.recentEra;
+  const awayRecent = away.recentEra;
   const recentDiff = awayRecent - homeRecent; // positive = home pitcher better
 
   // ── K-BB% differential (scaled to ERA-equivalent units) ───────────────────
   // Each 1pp K-BB% gap ≈ 0.05 ERA-point advantage (conservative calibration).
   // Elite vs. replacement K-BB% gap (~0.20) ≈ 1 ERA-point equivalent.
-  const homeKBB = home?.kMinusBbPct ?? LEAGUE_AVG_KBB;
-  const awayKBB = away?.kMinusBbPct ?? LEAGUE_AVG_KBB;
+  const homeKBB = home.kMinusBbPct;
+  const awayKBB = away.kMinusBbPct;
   const kbbDiffEraEq = (homeKBB - awayKBB) * 5; // positive = home pitcher more dominant
 
   // ── Weighted blend ─────────────────────────────────────────────────────────
@@ -561,19 +618,19 @@ export function computePitcherAdvantage(starters: ProbableStarters): number {
   // ── Workload and sample-reliability scaling ─────────────────────────────────
   // If average recent IP is low, starter carries less of the game → reduce impact.
   // Full credit at ≥6.0 IP avg; floors at 60% for a true bullpen game (≤3.0 IP avg).
-  const homeIp = home?.recentIpAvg ?? 5.5;
-  const awayIp = away?.recentIpAvg ?? 5.5;
+  const homeIp = home.recentIpAvg;
+  const awayIp = away.recentIpAvg;
   const avgIp  = (homeIp + awayIp) / 2;
   const workloadFactor = Math.min(1.0, Math.max(0.60, avgIp / 6.0));
-  const avgPitches = ((home?.recentPitchCountAvg ?? 80) + (away?.recentPitchCountAvg ?? 80)) / 2;
+  const avgPitches = (home.recentPitchCountAvg + away.recentPitchCountAvg) / 2;
   const pitchCountFactor = Math.min(1.0, Math.max(0.65, avgPitches / 90));
 
   // Early-season or limited-workload rate stats are noisy. Require both a
   // meaningful innings sample and batters-faced sample before granting full
   // conviction; the floor preserves a modest signal without inventing certainty.
-  const reliability = (pitcher: PitcherStats | null | undefined) => {
-    const innings = Math.min(1, (pitcher?.seasonIp ?? 0) / 60);
-    const batters = Math.min(1, (pitcher?.seasonBattersFaced ?? 0) / 250);
+  const reliability = (pitcher: PitcherStats) => {
+    const innings = Math.min(1, pitcher.seasonIp / 60);
+    const batters = Math.min(1, pitcher.seasonBattersFaced / 250);
     return Math.max(0.35, Math.min(1, (innings + batters) / 2));
   };
   const sampleFactor = Math.min(reliability(home), reliability(away));

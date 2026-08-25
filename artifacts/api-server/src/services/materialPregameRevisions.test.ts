@@ -41,6 +41,24 @@ function featureSnapshot() {
   };
 }
 
+function blockedPitcherFeatureSnapshot() {
+  return {
+    decision: {
+      dataQuality: {
+        missingSignals: ["probable_pitchers"],
+        evidence: {
+          recommendationBlocked: true,
+          qualityReasons: ["home_starter_stats_identity_mismatch"],
+        },
+      },
+      availability: {
+        homeStarter: null,
+        awayStarter: { playerId: 2, name: "Away Starter", seasonEra: 4.1 },
+      },
+    },
+  };
+}
+
 function game(commenceTimeISO: string): FetchedGame {
   return {
     espnId: "MLB-test",
@@ -103,6 +121,47 @@ describe("material MLB pregame revisions", () => {
       game(new Date(Date.now() - 60_000).toISOString()),
       proj,
       true,
+    )).toBe(false);
+  });
+
+  it("allows an immutable neutral withdrawal when required pitcher evidence is rejected", () => {
+    const proj = { vegasHomeOdds: -125, vegasAwayOdds: 105 } as ProjectionResult;
+
+    expect(isMlbMaterialPregameRevisionEligible(
+      game(new Date(Date.now() + 60_000).toISOString()),
+      proj,
+      false,
+      blockedPitcherFeatureSnapshot(),
+    )).toBe(true);
+  });
+
+  it("allows the required-pitcher withdrawal even when the new odds feed is unavailable", () => {
+    const unavailableMarket = { vegasHomeOdds: 0, vegasAwayOdds: 0 } as ProjectionResult;
+
+    expect(isMlbMaterialPregameRevisionEligible(
+      game(new Date(Date.now() + 60_000).toISOString()),
+      unavailableMarket,
+      false,
+      blockedPitcherFeatureSnapshot(),
+    )).toBe(true);
+  });
+
+  it("does not use the withdrawal path for unrelated or unblocked missing data", () => {
+    const proj = { vegasHomeOdds: -125, vegasAwayOdds: 105 } as ProjectionResult;
+    const incomplete = {
+      decision: {
+        dataQuality: {
+          missingSignals: ["market_odds"],
+          evidence: { recommendationBlocked: false, qualityReasons: [] },
+        },
+      },
+    };
+
+    expect(isMlbMaterialPregameRevisionEligible(
+      game(new Date(Date.now() + 60_000).toISOString()),
+      proj,
+      false,
+      incomplete,
     )).toBe(false);
   });
 

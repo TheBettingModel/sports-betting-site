@@ -77,10 +77,14 @@ describe("MLB starter reliability", () => {
           people: [{ id: 1, pitchHand: { code: "R" } }, { id: 2, pitchHand: { code: "L" } }],
         }));
       }
+      const pitcherId = Number(url.match(/\/people\/(\d+)\/stats/)?.[1]);
       return new Response(JSON.stringify({
         stats: [
-          { type: { displayName: "season" }, splits: [{ stat: seasonStat }] },
-          { type: { displayName: "gameLog" }, splits: chronologicalLog },
+          { type: { displayName: "season" }, splits: [{ stat: seasonStat, player: { id: pitcherId } }] },
+          {
+            type: { displayName: "gameLog" },
+            splits: chronologicalLog.map((split) => ({ ...split, player: { id: pitcherId } })),
+          },
         ],
       }));
     }));
@@ -114,6 +118,133 @@ describe("MLB starter reliability", () => {
     expect(established).toBeGreaterThan(0);
     expect(thinSample).toBeGreaterThan(0);
     expect(thinSample).toBeLessThan(established);
+  });
+
+  it("excludes a pitcher with a malformed official stat instead of using league-average defaults", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2099-08-26T12:00:00.000Z"));
+    const date = "2099-08-26";
+    const start = "2099-08-26T23:10:00.000Z";
+    const completeStat = {
+      era: "3.50", whip: "1.15", inningsPitched: "80.0", strikeOuts: 90,
+      battersFaced: 320, homeRuns: 10, baseOnBalls: 25, numberOfPitches: 90,
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/schedule?")) {
+        return new Response(JSON.stringify({ dates: [{ games: [{
+          gameDate: start, season: "2099",
+          teams: {
+            home: { team: { id: 111 }, probablePitcher: { id: 1, fullName: "Home Starter" } },
+            away: { team: { id: 110 }, probablePitcher: { id: 2, fullName: "Away Starter" } },
+          },
+        }] }] }));
+      }
+      if (url.includes("/people?personIds=")) {
+        return new Response(JSON.stringify({ people: [] }));
+      }
+      const pitcherId = Number(url.match(/\/people\/(\d+)\/stats/)?.[1]);
+      const stat = pitcherId === 1 ? { ...completeStat, era: "not-a-number" } : completeStat;
+      return new Response(JSON.stringify({
+        stats: [
+          { type: { displayName: "season" }, splits: [{ stat, player: { id: pitcherId } }] },
+          { type: { displayName: "gameLog" }, splits: [{ date: "2099-08-20", stat: completeStat, player: { id: pitcherId } }] },
+        ],
+      }));
+    }));
+
+    const starters = await getProbablePitchers("BOS", "BAL", date, start);
+
+    expect(starters.home).toBeNull();
+    expect(starters.away?.seasonEra).toBe(3.5);
+    expect(starters.qualityReasons).toContain("home_starter_stats_malformed_or_incomplete");
+    expect(computePitcherAdvantage(starters)).toBe(0);
+  });
+
+  it("excludes a pitcher when MLB returns game-log stats for a different player identity", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2099-08-27T12:00:00.000Z"));
+    const date = "2099-08-27";
+    const start = "2099-08-27T23:10:00.000Z";
+    const completeStat = {
+      era: "3.50", whip: "1.15", inningsPitched: "80.0", strikeOuts: 90,
+      battersFaced: 320, homeRuns: 10, baseOnBalls: 25, numberOfPitches: 90,
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/schedule?")) {
+        return new Response(JSON.stringify({ dates: [{ games: [{
+          gameDate: start, season: "2099",
+          teams: {
+            home: { team: { id: 111 }, probablePitcher: { id: 1, fullName: "Home Starter" } },
+            away: { team: { id: 110 }, probablePitcher: { id: 2, fullName: "Away Starter" } },
+          },
+        }] }] }));
+      }
+      if (url.includes("/people?personIds=")) {
+        return new Response(JSON.stringify({ people: [] }));
+      }
+      const pitcherId = Number(url.match(/\/people\/(\d+)\/stats/)?.[1]);
+      return new Response(JSON.stringify({
+        stats: [
+          {
+            type: { displayName: "season" },
+            splits: [{ stat: completeStat, player: { id: pitcherId } }],
+          },
+          {
+            type: { displayName: "gameLog" },
+            splits: [{ date: "2099-08-20", stat: completeStat, player: { id: pitcherId === 1 ? 999 : pitcherId } }],
+          },
+        ],
+      }));
+    }));
+
+    const starters = await getProbablePitchers("BOS", "BAL", date, start);
+
+    expect(starters.home).toBeNull();
+    expect(starters.away?.seasonEra).toBe(3.5);
+    expect(starters.qualityReasons).toContain("home_starter_stats_identity_mismatch");
+  });
+
+  it("marks a failed individual stats request unavailable instead of manufacturing average stats", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2099-08-28T12:00:00.000Z"));
+    const date = "2099-08-28";
+    const start = "2099-08-28T23:10:00.000Z";
+    const completeStat = {
+      era: "3.50", whip: "1.15", inningsPitched: "80.0", strikeOuts: 90,
+      battersFaced: 320, homeRuns: 10, baseOnBalls: 25, numberOfPitches: 90,
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/schedule?")) {
+        return new Response(JSON.stringify({ dates: [{ games: [{
+          gameDate: start, season: "2099",
+          teams: {
+            home: { team: { id: 111 }, probablePitcher: { id: 1, fullName: "Home Starter" } },
+            away: { team: { id: 110 }, probablePitcher: { id: 2, fullName: "Away Starter" } },
+          },
+        }] }] }));
+      }
+      if (url.includes("/people?personIds=")) {
+        return new Response(JSON.stringify({ people: [] }));
+      }
+      const pitcherId = Number(url.match(/\/people\/(\d+)\/stats/)?.[1]);
+      if (pitcherId === 1) return new Response("upstream unavailable", { status: 503 });
+      return new Response(JSON.stringify({
+        stats: [
+          { type: { displayName: "season" }, splits: [{ stat: completeStat, player: { id: pitcherId } }] },
+          { type: { displayName: "gameLog" }, splits: [{ date: "2099-08-20", stat: completeStat, player: { id: pitcherId } }] },
+        ],
+      }));
+    }));
+
+    const starters = await getProbablePitchers("BOS", "BAL", date, start);
+
+    expect(starters.home).toBeNull();
+    expect(starters.away?.seasonEra).toBe(3.5);
+    expect(starters.qualityReasons).toContain("home_starter_stats_fetch_failed");
+    expect(computePitcherAdvantage(starters)).toBe(0);
   });
 
   it("matches a unique same-team game when provider start times drift slightly", () => {
@@ -249,10 +380,11 @@ describe("MLB starter reliability", () => {
           people: [{ id: 1, pitchHand: { code: "R" } }, { id: 2, pitchHand: { code: "L" } }],
         }));
       }
+      const pitcherId = Number(url.match(/\/people\/(\d+)\/stats/)?.[1]);
       return new Response(JSON.stringify({
         stats: [
-          { type: { displayName: "season" }, splits: [{ stat: completeStat }] },
-          { type: { displayName: "gameLog" }, splits: [{ stat: completeStat }] },
+          { type: { displayName: "season" }, splits: [{ stat: completeStat, player: { id: pitcherId } }] },
+          { type: { displayName: "gameLog" }, splits: [{ date: "2099-07-03", stat: completeStat, player: { id: pitcherId } }] },
         ],
       }));
     }));
