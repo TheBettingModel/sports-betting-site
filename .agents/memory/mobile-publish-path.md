@@ -26,3 +26,9 @@ The App Store iOS build on the production channel uses runtime `1.0.1`. An OTA p
 **Why:** Expo Updates only applies bundles whose runtime version matches the native app. App version/build number alone does not make an OTA compatible.
 
 **How to apply:** Before publishing, compare the latest production iOS build’s runtime in Expo with the runtime declared in the mobile app configuration. Keep them equal, and confirm the publish log reports that same runtime.
+
+Expo’s initial workflow-start response can display a stale commit even when an exact Git ref was accepted. Treat the subsequent workflow details and final publish log as authoritative.
+
+**Why:** The start response may reflect the last resolved branch snapshot, while `workflow_info` and the publish output identify the commit that was actually checked out and uploaded.
+
+**How to apply:** When publishing an OTA from a newly updated ref, verify the workflow’s `gitCommitHash` and the final `Commit` line in the publish log before deciding whether the release contains the intended UI change.
