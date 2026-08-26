@@ -28,6 +28,7 @@ If providers disagree on start time, only use a bounded time-tolerance fallback 
 - Game-log splits arrive oldest-to-newest; sort by date descending before selecting the
   three recent starts.
 - Complete schedule data can remain cached for four hours, but incomplete probable-starter pairs must retry quickly before first pitch.
+- Limit individual pitcher-stat validation to four concurrent requests. A full slate's unbounded request burst timed out in production and incorrectly made every otherwise confirmed starter unavailable.
 
 **Why:** Season aggregate is cumulative ERA. Recent ERA averages the season ERA values at the time of each of the last 3 starts — a reasonable proxy for current form since it shows ERA trajectory.
 
@@ -41,3 +42,5 @@ Skenes' opening starts first, which would turn 67.50, 9.53, and 5.25 into a misl
 **Why 70% recent:** Single-game outcomes are dominated by the specific pitcher on the mound, not season averages. A Cy Young caliber ace with a 6-run recent outing matters more than his 2.50 season ERA.
 
 **How to apply:** Missing probable starters, failed stat requests, malformed numeric payloads, and player-identity mismatches must all block a published MLB full-game pick. Do not substitute league-average pitcher data for an unavailable source; return a zero pitcher adjustment and retain a machine-readable source-quality reason for the decision audit. If this evidence changes after a pick was published but before first pitch, immutably retire it to a Neutral decision—even during a current odds-feed outage—using the prior decision's market record for the audit trail.
+
+When adding pitcher enrichment, preserve bounded concurrency and per-pitcher failure isolation: one slow source record must not erase otherwise validated matchup evidence.

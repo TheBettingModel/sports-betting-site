@@ -247,6 +247,67 @@ describe("MLB starter reliability", () => {
     expect(computePitcherAdvantage(starters)).toBe(0);
   });
 
+  it("limits concurrent pitcher-stat validation without blocking complete games", async () => {
+    const date = "2099-08-29";
+    const starts = ["20:00", "21:00", "22:00", "23:00"];
+    const completeStat = {
+      era: "3.50", whip: "1.15", inningsPitched: "80.0", strikeOuts: 90,
+      battersFaced: 320, homeRuns: 10, baseOnBalls: 25, numberOfPitches: 90,
+    };
+    let activeStatRequests = 0;
+    let maxConcurrentStatRequests = 0;
+
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/schedule?")) {
+        return new Response(JSON.stringify({
+          dates: [{
+            games: starts.map((time, index) => ({
+              gameDate: `2099-08-29T${time}:00.000Z`,
+              season: "2099",
+              teams: {
+                home: {
+                  team: { id: 111 },
+                  probablePitcher: { id: 100 + index * 2, fullName: `Home Starter ${index}` },
+                },
+                away: {
+                  team: { id: 110 },
+                  probablePitcher: { id: 101 + index * 2, fullName: `Away Starter ${index}` },
+                },
+              },
+            })),
+          }],
+        }));
+      }
+      if (url.includes("/people?personIds=")) {
+        return new Response(JSON.stringify({ people: [] }));
+      }
+
+      const pitcherId = Number(url.match(/\/people\/(\d+)\/stats/)?.[1]);
+      activeStatRequests++;
+      maxConcurrentStatRequests = Math.max(maxConcurrentStatRequests, activeStatRequests);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      activeStatRequests--;
+      return new Response(JSON.stringify({
+        stats: [
+          { type: { displayName: "season" }, splits: [{ stat: completeStat, player: { id: pitcherId } }] },
+          { type: { displayName: "gameLog" }, splits: [{ date: "2099-08-28", stat: completeStat, player: { id: pitcherId } }] },
+        ],
+      }));
+    }));
+
+    const starters = await getProbablePitchers(
+      "BOS",
+      "BAL",
+      date,
+      "2099-08-29T20:00:00.000Z",
+    );
+
+    expect(maxConcurrentStatRequests).toBe(4);
+    expect(starters.home?.name).toBe("Home Starter 0");
+    expect(starters.away?.name).toBe("Away Starter 0");
+  });
+
   it("matches a unique same-team game when provider start times drift slightly", () => {
     const actualStart = "2026-08-23T23:10:00.000Z";
     const schedule = new Map([

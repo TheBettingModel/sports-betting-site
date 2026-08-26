@@ -90,6 +90,9 @@ const LEAGUE_AVG_K_PCT  = 0.225;
 const LEAGUE_AVG_BB_PCT = 0.085;
 const LEAGUE_AVG_KBB    = 0.140;
 const FIP_CONSTANT      = 3.10; // calibrated to equate FIP to ERA at league average
+// The Stats API accepts individual pitcher-stat requests, but production can
+// time out an entire slate when every starter is requested at once.
+const PITCHER_STATS_CONCURRENCY = 4;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -385,26 +388,27 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
     ? season
     : new Date().getUTCFullYear();
 
-  const pitcherIds = new Set<number>();
+  const pitchersById = new Map<number, string>();
   for (const g of games) {
-    if (g.teams.home.probablePitcher?.id) pitcherIds.add(g.teams.home.probablePitcher.id);
-    if (g.teams.away.probablePitcher?.id) pitcherIds.add(g.teams.away.probablePitcher.id);
+    const homePitcher = g.teams.home.probablePitcher;
+    const awayPitcher = g.teams.away.probablePitcher;
+    if (homePitcher?.id) pitchersById.set(homePitcher.id, homePitcher.fullName);
+    if (awayPitcher?.id) pitchersById.set(awayPitcher.id, awayPitcher.fullName);
   }
+  const pitcherIds = new Set(pitchersById.keys());
 
   const statsByPitcherId = new Map<number, PitcherStats>();
   const statFailureByPitcherId = new Map<number, string>();
   // handMap populated by batch people call below — pitchHand is NOT in probablePitcher hydration
   const handMap = new Map<number, "L" | "R">();
 
-  await Promise.all([
-    // Per-pitcher stats (ERA, FIP, etc.)
-    Promise.allSettled(
-      [...pitcherIds].map(async (id) => {
+  const fetchAllPitcherStats = async () => {
+    const pitchers = [...pitchersById.entries()];
+    for (let start = 0; start < pitchers.length; start += PITCHER_STATS_CONCURRENCY) {
+      const batch = pitchers.slice(start, start + PITCHER_STATS_CONCURRENCY);
+      await Promise.all(batch.map(async ([id, name]) => {
         try {
-          const pitcher = games
-            .flatMap((g) => [g.teams.home.probablePitcher, g.teams.away.probablePitcher])
-            .find((p) => p?.id === id);
-          const stats = await fetchPitcherStats(id, pitcher?.fullName ?? "Unknown", statsSeason);
+          const stats = await fetchPitcherStats(id, name, statsSeason);
           statsByPitcherId.set(id, stats);
         } catch (err) {
           const reason = err instanceof Error ? err.message : "unknown pitcher stats failure";
@@ -414,8 +418,14 @@ async function fetchSchedule(dateStr: string): Promise<Map<string, ProbableStart
             "MLB pitchers: stat verification failed; starter excluded from model evidence",
           );
         }
-      }),
-    ),
+      }));
+    }
+  };
+
+  await Promise.all([
+    // Per-pitcher stats are deliberately bounded so a full slate cannot
+    // overwhelm the provider and lose every starter to the same timeout.
+    fetchAllPitcherStats(),
     // Batch people call to get pitchHand for all pitchers in one request
     (async () => {
       if (pitcherIds.size === 0) return;
