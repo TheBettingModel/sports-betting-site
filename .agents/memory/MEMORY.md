@@ -10,6 +10,7 @@
 - [EAS provisioning profile regeneration](eas-provisioning-profile-fix.md) — force EAS to create a fresh profile via GraphQL delete; also how to fix missing Apple Team on stored ASC API key.
 - [OpenAPI spec sync requirement](openapi-spec-sync.md) — every new API route must be in lib/api-spec/openapi.yaml or mobile hooks won't exist; run codegen after edits; bump iOS buildNumber before each TestFlight submit.
 - [EAS Update env vars](eas-update-env-vars.md) — eas update ignores eas.json env block; must pass all EXPO_PUBLIC_* vars explicitly on CLI or production bundle breaks auth/API.
+- [OTA release branch sync](ota-release-branch-sync.md) — mobile OTA publishing runs from a separate GitHub release branch; sync workspace UI changes there before starting the update workflow.
 - [Production build env detection](production-build-env.md) — use NODE_ENV==="production" not CI==="true" to gate source maps; Clerk npm CDN proxy needed for /npm/* path.
 - [Apple Review IAP Submission Flow](apple-review-iap-submission.md) — exact 4-item sequence; EULA requirement; first-time group rule; RevenueCat Missing Metadata cause.
 - [OTA Update fix for RN 0.81](ota-update-rn081-fix.md) — eas update needs babel-preset-expo@54.0.12 pinned + unstable_transformProfile:'default' in metro.config.js; Linux hermesc can't handle private class fields.
