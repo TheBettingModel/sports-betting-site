@@ -3,12 +3,19 @@ const path = require('path');
 
 const workspaceRoot = path.resolve(__dirname, '../..');
 const projectRoot = __dirname;
+const workspaceNodeModules = path.resolve(workspaceRoot, 'node_modules');
 
 const config = getDefaultConfig(projectRoot);
 
-// pnpm monorepo: watch the workspace root so Metro can follow symlinks
-// into the pnpm store (node_modules/.pnpm/...)
-config.watchFolders = [workspaceRoot];
+// pnpm monorepo: watch only the app and the workspace package that the
+// mobile artifact imports. Watching the entire workspace makes Metro traverse
+// disposable tooling directories (for example, a temporary skill directory)
+// and can crash startup when one disappears during the initial scan.
+config.watchFolders = [
+  projectRoot,
+  path.resolve(workspaceRoot, 'lib/api-client-react'),
+  workspaceNodeModules,
+];
 
 // Override the transform profile to "default" so that Babel fully downlevels
 // private class fields (#x, #y, etc.) before hermesc sees them. The Linux
