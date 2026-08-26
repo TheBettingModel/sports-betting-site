@@ -408,13 +408,13 @@ export default function PicksScreen() {
         <View style={[styles.forecastHeader, { borderTopColor: colors.border }]}>
           <View>
             <Text style={[styles.forecastTitle, { color: colors.foreground }]}>
-              {selectedSport.toUpperCase()} MODEL LEANS
+              ALL {selectedSport.toUpperCase()} PROJECTIONS
             </Text>
             <Text style={[styles.forecastSubtitle, { color: colors.mutedForeground }]}>
-              {item.count} upcoming {item.count === 1 ? 'game' : 'games'} · not official plays
+              {item.count} upcoming {item.count === 1 ? 'game' : 'games'}
             </Text>
             <Text style={[styles.forecastOrderNote, { color: colors.primary }]}>
-              RANKED BY VALUE EDGE · STRONGEST LEAN FIRST
+              RANKED BY VALUE EDGE · HIGHEST FIRST
             </Text>
           </View>
           <View style={[styles.forecastBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
@@ -429,7 +429,7 @@ export default function PicksScreen() {
       const { forecast } = item;
       const isLockedForecast = forecast.state === 'locked';
       const statusLabel = forecast.state === 'model-lean'
-        ? `MODEL LEAN · #${forecast.leanRank}`
+        ? `PICK · #${forecast.leanRank}`
         : forecast.state === 'no-bet'
           ? 'NO BET'
           : forecast.state === 'awaiting-data'
@@ -465,16 +465,13 @@ export default function PicksScreen() {
             ) : (
               <>
                 <Text style={[styles.forecastProjection, { color: colors.foreground }]}>
-                  {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'MODEL LEAN' : 'NO BET'}
+                  {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'PICK' : 'NO BET'}
                 </Text>
                 <Text style={[styles.forecastMarket, { color: colors.mutedForeground }]}>
                   VALUE EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
                 </Text>
               </>
             )}
-            <Text style={[styles.forecastDisclaimer, { color: colors.mutedForeground }]}>
-              FORECAST ONLY · NOT A PLAY
-            </Text>
           </View>
         </>
       );
@@ -541,7 +538,7 @@ export default function PicksScreen() {
                 : undefined}
             message={selectedSport === 'All'
               ? allTabHasNoQualifiedPlays
-                ? `${allGames.length} games analyzed. No Strong Buy or Buy plays met the model threshold. Tap a sport above to explore forecast-only leans.`
+                ? `${allGames.length} games analyzed. No Strong Buy or Buy plays met the model threshold. Tap a sport above to explore additional picks.`
                 : 'No qualified plays available today. Pull down to refresh.'
               : 'No qualified plays in this sport today.'}
           />
@@ -649,7 +646,6 @@ const styles = StyleSheet.create({
   forecastProjection: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 4 },
   forecastMarket: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 2 },
   forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
-  forecastDisclaimer: { fontSize: 8, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8, marginTop: 4 },
   forecastNotice: {
     marginHorizontal: 16, marginTop: 4, borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 11,
