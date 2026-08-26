@@ -55,7 +55,6 @@ type Forecast = {
   game: Game;
   state: ForecastState;
   projectedTeam?: string;
-  winProbability?: number;
   marketOdds?: number;
   edge?: number;
   leanRank?: number;
@@ -102,9 +101,6 @@ function getForecast(game: Game): Forecast {
     game,
     state: hasModelLean ? 'model-lean' : 'no-bet',
     projectedTeam: projectedHome ? game.homeTeam.abbr : game.awayTeam.abbr,
-    winProbability: projectedHome
-      ? game.projection.homeWinPct
-      : 100 - game.projection.homeWinPct,
     marketOdds: projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds,
     edge: Math.abs(game.projection.edge),
   };
@@ -412,13 +408,13 @@ export default function PicksScreen() {
         <View style={[styles.forecastHeader, { borderTopColor: colors.border }]}>
           <View>
             <Text style={[styles.forecastTitle, { color: colors.foreground }]}>
-              ALL {selectedSport.toUpperCase()} PROJECTIONS
+              {selectedSport.toUpperCase()} MODEL LEANS
             </Text>
             <Text style={[styles.forecastSubtitle, { color: colors.mutedForeground }]}>
-              {item.count} upcoming {item.count === 1 ? 'game' : 'games'} · forecast-only context
+              {item.count} upcoming {item.count === 1 ? 'game' : 'games'} · not official plays
             </Text>
             <Text style={[styles.forecastOrderNote, { color: colors.primary }]}>
-              RANKED BY MODEL EDGE · STRONGEST LEAN FIRST
+              RANKED BY VALUE EDGE · STRONGEST LEAN FIRST
             </Text>
           </View>
           <View style={[styles.forecastBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
@@ -469,15 +465,15 @@ export default function PicksScreen() {
             ) : (
               <>
                 <Text style={[styles.forecastProjection, { color: colors.foreground }]}>
-                  {forecast.projectedTeam} · {forecast.winProbability}% WIN PROB
+                  {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'MODEL LEAN' : 'NO BET'}
                 </Text>
                 <Text style={[styles.forecastMarket, { color: colors.mutedForeground }]}>
-                  EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
+                  VALUE EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
                 </Text>
               </>
             )}
             <Text style={[styles.forecastDisclaimer, { color: colors.mutedForeground }]}>
-              FORECAST ONLY
+              FORECAST ONLY · NOT A PLAY
             </Text>
           </View>
         </>
