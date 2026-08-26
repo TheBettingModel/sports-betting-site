@@ -320,6 +320,42 @@ export const GetAdminOutcomeReviewsResponse = zod.object({
 
 
 /**
+ * @summary Get auditable completed reviews for every model forecast
+ */
+export const getAdminForecastReviewsQueryLimitMax = 100;
+
+
+
+export const GetAdminForecastReviewsQueryParams = zod.object({
+  "sport": zod.coerce.string().optional(),
+  "market": zod.coerce.string().optional(),
+  "segment": zod.enum(['published', 'forecast_only']).optional(),
+  "qualification": zod.enum(['qualified', 'passed']).optional(),
+  "result": zod.enum(['all', 'win', 'loss', 'push', 'void', 'postponed']).optional(),
+  "limit": zod.coerce.number().min(1).max(getAdminForecastReviewsQueryLimitMax).optional()
+})
+
+export const GetAdminForecastReviewsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Idempotently backfill reviews for completed forecast snapshots
+ */
+export const RefreshAdminForecastReviewsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Compare qualified picks with passed forecast outcomes
+ */
+export const GetAdminForecastMetricsQueryParams = zod.object({
+  "sport": zod.coerce.string().optional(),
+  "market": zod.coerce.string().optional()
+})
+
+export const GetAdminForecastMetricsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary List immutable MLB moneyline policy revisions and audit counts
  */
 export const GetMlbPolicyRevisionsResponse = zod.object({

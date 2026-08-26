@@ -26,6 +26,7 @@ import { createPredictionDecisionContext, processGameSnapshot } from "../service
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
 import { createMlbQualificationAudit } from "../services/mlbQualificationAudit";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
+import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
 
@@ -633,6 +634,9 @@ export async function refreshAll(): Promise<{
   const picksGraded = await runGrading();
   // Only learn from a completed grade, never from the mutable game outcome.
   await runLearning();
+    // Forecast-only reviews use the same immutable snapshots but are kept out
+    // of subscriber-pick learning and model-weight updates.
+    await runForecastReviews();
 
   lastRefreshedAt = new Date();
   logger.info(

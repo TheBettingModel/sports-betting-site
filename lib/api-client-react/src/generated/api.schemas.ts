@@ -401,3 +401,55 @@ export const GetAdminOutcomeReviewsResult = {
   loss: 'loss',
 } as const;
 
+export type GetAdminForecastReviewsParams = {
+sport?: string;
+market?: string;
+segment?: GetAdminForecastReviewsSegment;
+qualification?: GetAdminForecastReviewsQualification;
+result?: GetAdminForecastReviewsResult;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAdminForecastReviewsSegment = typeof GetAdminForecastReviewsSegment[keyof typeof GetAdminForecastReviewsSegment];
+
+
+export const GetAdminForecastReviewsSegment = {
+  published: 'published',
+  forecast_only: 'forecast_only',
+} as const;
+
+export type GetAdminForecastReviewsQualification = typeof GetAdminForecastReviewsQualification[keyof typeof GetAdminForecastReviewsQualification];
+
+
+export const GetAdminForecastReviewsQualification = {
+  qualified: 'qualified',
+  passed: 'passed',
+} as const;
+
+export type GetAdminForecastReviewsResult = typeof GetAdminForecastReviewsResult[keyof typeof GetAdminForecastReviewsResult];
+
+
+export const GetAdminForecastReviewsResult = {
+  all: 'all',
+  win: 'win',
+  loss: 'loss',
+  push: 'push',
+  void: 'void',
+  postponed: 'postponed',
+} as const;
+
+export type GetAdminForecastReviews200 = { [key: string]: unknown };
+
+export type RefreshAdminForecastReviews200 = { [key: string]: unknown };
+
+export type GetAdminForecastMetricsParams = {
+sport?: string;
+market?: string;
+};
+
+export type GetAdminForecastMetrics200 = { [key: string]: unknown };
+

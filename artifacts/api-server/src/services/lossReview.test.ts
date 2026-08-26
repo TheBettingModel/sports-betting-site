@@ -15,6 +15,7 @@ describe("loss review diagnostics", () => {
     expect(isDecisionSnapshot(completeSnapshot)).toBe(true);
     expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 3 })).toBe(true);
     expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 4 })).toBe(true);
+    expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 5 })).toBe(true);
     expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 1 })).toBe(false);
     expect(isDecisionSnapshot({ schemaVersion: 3 })).toBe(false);
     expect(isDecisionSnapshot({ schemaVersion: 3, decision: {} })).toBe(false);

@@ -26,6 +26,7 @@ export * from "./model-prediction-duplicate-archive";
 export * from "./model-predictions";
 export * from "./published-picks";
 export * from "./pick-results";
+export * from "./forecast-reviews";
 
 // ── Feature store ─────────────────────────────────────────────────────────────
 export * from "./feature-definitions";

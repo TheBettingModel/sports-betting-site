@@ -125,9 +125,15 @@ export function isDecisionSnapshot(snapshot: unknown): snapshot is JsonRecord {
   const schemaVersion = record.schemaVersion;
   const decision = record.decision;
   // Version 2 is the original decision-evidence format. Version 3 is the
-  // current full-game snapshot and version 4 adds an immutable policy revision
-  // without removing the original decision evidence.
-  return (schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4)
+  // current full-game snapshot, version 4 adds the first immutable policy
+  // revision, and version 5 is the material-pregame revision shape. All retain
+  // the same complete decision evidence required for safe review and learning.
+  return (
+    schemaVersion === 2
+    || schemaVersion === 3
+    || schemaVersion === 4
+    || schemaVersion === 5
+  )
     && isRecord(decision)
     && isRecord(decision.factorContributions)
     && isRecord(decision.availability)

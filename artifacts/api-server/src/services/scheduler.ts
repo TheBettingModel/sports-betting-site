@@ -20,6 +20,7 @@ import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
 import { assessMlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { runGrading, recoverStaleGames, syncGameResults } from "./grading-runner";
+import { runForecastReviews } from "./forecastReviews";
 import { runAnalytics } from "./analytics";
 import { runLearning } from "./learning";
 import { checkPendingPushReceipts } from "./pushReceipts";
@@ -1024,9 +1025,10 @@ async function runResultGrading(): Promise<void> {
 
     const graded = await runGrading();
     await runLearning();
+    const forecastReviews = await runForecastReviews();
 
-    await finishRun(runId, "completed", graded);
-    logger.info({ snapshots, recovered, graded }, "Scheduler: result-grading complete");
+    await finishRun(runId, "completed", graded + forecastReviews.inserted);
+    logger.info({ snapshots, recovered, graded, forecastReviews }, "Scheduler: result-grading complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await finishRun(runId, "failed", 0, msg);

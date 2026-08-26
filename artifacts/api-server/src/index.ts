@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
 import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
+import { runForecastReviews } from "./services/forecastReviews";
 import { normalizeMlbConfidenceRecovery, runLearning } from "./services/learning";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
@@ -69,6 +70,76 @@ async function applyStartupMigrations(): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "Startup migrations: MLB confidence recovery marker failed — non-fatal");
   }
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS forecast_reviews (
+        id SERIAL PRIMARY KEY,
+        prediction_id INTEGER NOT NULL REFERENCES model_predictions(id),
+        game_id TEXT NOT NULL REFERENCES games(id),
+        model_version_id INTEGER NOT NULL,
+        sport TEXT NOT NULL,
+        market TEXT NOT NULL,
+        selection TEXT NOT NULL,
+        recommendation TEXT NOT NULL,
+        confidence TEXT NOT NULL,
+        odds INTEGER,
+        units REAL NOT NULL,
+        model_probability REAL NOT NULL,
+        implied_probability REAL,
+        fair_probability REAL,
+        edge REAL NOT NULL,
+        segment TEXT NOT NULL,
+        qualification_status TEXT NOT NULL,
+        published_pick_id INTEGER,
+        is_challenger BOOLEAN NOT NULL,
+        feature_snapshot JSONB NOT NULL,
+        snapshot_schema_version INTEGER,
+        prediction_timestamp TIMESTAMPTZ NOT NULL,
+        game_starts_at TIMESTAMPTZ,
+        review_version INTEGER NOT NULL DEFAULT 1,
+        review_status TEXT NOT NULL,
+        exclusion_reason TEXT,
+        result TEXT,
+        units_won_lost REAL,
+        final_score TEXT,
+        reviewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT forecast_reviews_prediction_id_unique UNIQUE (prediction_id)
+      )
+    `);
+    await db.execute(sql`
+      ALTER TABLE forecast_reviews
+      ADD COLUMN IF NOT EXISTS review_version INTEGER NOT NULL DEFAULT 1
+    `);
+    // Version 1 inferred start time from the mutable games row. Rebuild only
+    // those original v1-derived rows so every retained review uses immutable
+    // start evidence without rewriting already-corrected immutable reviews.
+    await db.execute(sql`
+      UPDATE forecast_reviews
+      SET review_version = 1
+      WHERE review_version < 2
+        AND feature_snapshot->>'gameStartsAt' IS NULL
+    `);
+    // Version 5 material-pregame revisions were initially omitted from the
+    // shared decision-evidence validator. Rebuild only those derived rows so
+    // valid revisions enter coverage metrics under the corrected validator.
+    await db.execute(sql`
+      UPDATE forecast_reviews
+      SET review_version = 1
+      WHERE review_version < 2
+        AND review_status = 'excluded'
+        AND exclusion_reason = 'invalid_or_incomplete_snapshot'
+        AND feature_snapshot->>'schemaVersion' = '5'
+    `);
+    await db.execute(sql`DELETE FROM forecast_reviews WHERE review_version < 2`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS forecast_reviews_game_id_idx ON forecast_reviews (game_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS forecast_reviews_sport_market_idx ON forecast_reviews (sport, market)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS forecast_reviews_status_idx ON forecast_reviews (review_status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS forecast_reviews_segment_idx ON forecast_reviews (segment, qualification_status)`);
+    logger.info("Startup migrations: forecast review ledger ensured");
+  } catch (err) {
+    logger.warn({ err }, "Startup migrations: forecast review ledger failed — non-fatal");
+  }
 }
 
 async function startServer(): Promise<void> {
@@ -133,6 +204,7 @@ async function startServer(): Promise<void> {
           // Grading establishes the immutable result. Learning only consumes
           // those already-graded rows and is idempotent per pick result.
           await runLearning();
+           await runForecastReviews();
           if (graded > 0) {
             logger.info({ graded }, "Startup: graded picks from stale games");
           }

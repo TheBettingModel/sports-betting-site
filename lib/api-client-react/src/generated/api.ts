@@ -22,6 +22,10 @@ import type {
 import type {
   DeregisterPushTokenRequest,
   GamesTodayResponse,
+  GetAdminForecastMetrics200,
+  GetAdminForecastMetricsParams,
+  GetAdminForecastReviews200,
+  GetAdminForecastReviewsParams,
   GetAdminLossReviewsParams,
   GetAdminOutcomeReviewsParams,
   GetGamesTodayParams,
@@ -36,6 +40,7 @@ import type {
   ModelStatsResponse,
   NotificationPreferences,
   OutcomeReviewsResponse,
+  RefreshAdminForecastReviews200,
   RefreshResponse,
   RegisterPushTokenRequest,
   ResultsRoiResponse,
@@ -786,6 +791,245 @@ export function useGetAdminOutcomeReviews<TData = Awaited<ReturnType<typeof getA
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminOutcomeReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminForecastReviewsUrl = (params?: GetAdminForecastReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/forecast-reviews?${stringifiedParams}` : `/api/admin/forecast-reviews`
+}
+
+/**
+ * @summary Get auditable completed reviews for every model forecast
+ */
+export const getAdminForecastReviews = async (params?: GetAdminForecastReviewsParams, options?: RequestInit): Promise<GetAdminForecastReviews200> => {
+
+  return customFetch<GetAdminForecastReviews200>(getGetAdminForecastReviewsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminForecastReviewsQueryKey = (params?: GetAdminForecastReviewsParams,) => {
+    return [
+    `/api/admin/forecast-reviews`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminForecastReviewsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminForecastReviews>>, TError = ErrorType<unknown>>(params?: GetAdminForecastReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminForecastReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminForecastReviewsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminForecastReviews>>> = ({ signal }) => getAdminForecastReviews(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminForecastReviews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminForecastReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminForecastReviews>>>
+export type GetAdminForecastReviewsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get auditable completed reviews for every model forecast
+ */
+
+export function useGetAdminForecastReviews<TData = Awaited<ReturnType<typeof getAdminForecastReviews>>, TError = ErrorType<unknown>>(
+ params?: GetAdminForecastReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminForecastReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminForecastReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRefreshAdminForecastReviewsUrl = () => {
+
+
+
+
+  return `/api/admin/forecast-reviews`
+}
+
+/**
+ * @summary Idempotently backfill reviews for completed forecast snapshots
+ */
+export const refreshAdminForecastReviews = async ( options?: RequestInit): Promise<RefreshAdminForecastReviews200> => {
+
+  return customFetch<RefreshAdminForecastReviews200>(getRefreshAdminForecastReviewsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshAdminForecastReviewsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshAdminForecastReviews>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshAdminForecastReviews>>, TError,void, TContext> => {
+
+const mutationKey = ['refreshAdminForecastReviews'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshAdminForecastReviews>>, void> = () => {
+
+
+          return  refreshAdminForecastReviews(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshAdminForecastReviewsMutationResult = NonNullable<Awaited<ReturnType<typeof refreshAdminForecastReviews>>>
+
+    export type RefreshAdminForecastReviewsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Idempotently backfill reviews for completed forecast snapshots
+ */
+export const useRefreshAdminForecastReviews = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshAdminForecastReviews>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshAdminForecastReviews>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRefreshAdminForecastReviewsMutationOptions(options));
+    }
+
+export const getGetAdminForecastMetricsUrl = (params?: GetAdminForecastMetricsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/forecast-metrics?${stringifiedParams}` : `/api/admin/forecast-metrics`
+}
+
+/**
+ * @summary Compare qualified picks with passed forecast outcomes
+ */
+export const getAdminForecastMetrics = async (params?: GetAdminForecastMetricsParams, options?: RequestInit): Promise<GetAdminForecastMetrics200> => {
+
+  return customFetch<GetAdminForecastMetrics200>(getGetAdminForecastMetricsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminForecastMetricsQueryKey = (params?: GetAdminForecastMetricsParams,) => {
+    return [
+    `/api/admin/forecast-metrics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminForecastMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminForecastMetrics>>, TError = ErrorType<unknown>>(params?: GetAdminForecastMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminForecastMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminForecastMetricsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminForecastMetrics>>> = ({ signal }) => getAdminForecastMetrics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminForecastMetrics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminForecastMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminForecastMetrics>>>
+export type GetAdminForecastMetricsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Compare qualified picks with passed forecast outcomes
+ */
+
+export function useGetAdminForecastMetrics<TData = Awaited<ReturnType<typeof getAdminForecastMetrics>>, TError = ErrorType<unknown>>(
+ params?: GetAdminForecastMetricsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminForecastMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminForecastMetricsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -146,6 +146,36 @@ export const adminApi = {
     api.get<LossReviewsResult>(
       `/admin/loss-reviews?limit=${limit}${sport && sport !== "ALL" ? `&sport=${sport}` : ""}`,
     ),
+  forecastMetrics: (sport?: string, market?: string) =>
+    api.get<{
+      metrics: {
+        all: ForecastMetricSummary;
+        published: ForecastMetricSummary;
+        forecastOnly: ForecastMetricSummary;
+        qualified: ForecastMetricSummary;
+        passed: ForecastMetricSummary;
+      };
+      dataAsOf: string;
+    }>(`/admin/forecast-metrics${sport && sport !== "ALL" ? `?sport=${sport}` : ""}${market ? `${sport && sport !== "ALL" ? "&" : "?"}market=${market}` : ""}`),
+  forecastReviews: (options?: {
+    sport?: string;
+    market?: string;
+    segment?: "published" | "forecast_only";
+    qualification?: "qualified" | "passed";
+    result?: string;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (options?.sport && options.sport !== "ALL") params.set("sport", options.sport);
+    if (options?.market) params.set("market", options.market);
+    if (options?.segment) params.set("segment", options.segment);
+    if (options?.qualification) params.set("qualification", options.qualification);
+    if (options?.result) params.set("result", options.result);
+    params.set("limit", String(options?.limit ?? 50));
+    return api.get<{ reviews: ForecastReview[]; count: number; dataAsOf: string }>(
+      `/admin/forecast-reviews?${params.toString()}`,
+    );
+  },
 };
 
 export const modelApi = {
@@ -427,3 +457,51 @@ export interface OutcomeReviewsResult {
 }
 
 export type LossReviewsResult = OutcomeReviewsResult;
+
+export interface ForecastMetricSummary {
+  reviewCount: number;
+  gradedCount: number;
+  excludedCount: number;
+  wins: number;
+  losses: number;
+  pushes: number;
+  voids: number;
+  sampleSize: number;
+  winRate: number | null;
+  netUnits: number;
+  roi: number | null;
+  brierScore: number | null;
+  calibrationError: number | null;
+}
+
+export interface ForecastReview {
+  id: number;
+  predictionId: number;
+  gameId: string;
+  modelVersionId: number;
+  sport: string;
+  market: string;
+  selection: string;
+  recommendation: string;
+  confidence: string;
+  odds: number | null;
+  units: number;
+  modelProbability: number;
+  impliedProbability: number | null;
+  fairProbability: number | null;
+  edge: number;
+  segment: "published" | "forecast_only";
+  qualificationStatus: "qualified" | "passed";
+  publishedPickId: number | null;
+  isChallenger: boolean;
+  snapshotSchemaVersion: number | null;
+  predictionTimestamp: string;
+  gameStartsAt: string | null;
+  reviewStatus: "graded" | "excluded";
+  exclusionReason: string | null;
+  result: "win" | "loss" | "push" | "void" | "postponed" | null;
+  unitsWonLost: number | null;
+  finalScore: string | null;
+  reviewedAt: string;
+  createdAt: string;
+}

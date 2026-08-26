@@ -23,3 +23,4 @@
 - [Mobile publish path](mobile-publish-path.md) — generic project Publish deploys web artifacts; iOS updates require an Expo Launch session.
 - [Expo Metro monorepo watch boundaries](expo-metro-monorepo-watch-boundaries.md) — watch stable sources plus root node_modules, never the whole workspace.
 - [Decision snapshot learning replay](decision-snapshot-learning-replay.md) — accept supported evidence versions; replay only records falsely marked insufficient, never completed reviews.
+- [Immutable forecast review evidence](forecast-review-evidence.md) — grade completed forecasts only from snapshot-saved pregame evidence; rebuild derived rows once by ledger version.

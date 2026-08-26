@@ -44,6 +44,13 @@ import {
   listMlbPolicyRevisionAudit,
 } from "../services/mlbPolicyRevisions";
 import {
+  listForecastReviews,
+  queryForecastMetrics,
+  runForecastReviews,
+  type ForecastQualification,
+  type ForecastSegment,
+} from "../services/forecastReviews";
+import {
   compareMlbQualificationPolicies,
   DEFAULT_MLB_SHADOW_BUY_THRESHOLD,
   evaluateMlbShadowPolicy,
@@ -481,6 +488,47 @@ router.get("/admin/outcome-reviews", async (req, res): Promise<void> => {
 /** Backward-compatible loss-only view retained for existing clients. */
 router.get("/admin/loss-reviews", async (req, res): Promise<void> => {
   await sendOutcomeReviews(req, res, "loss");
+});
+
+/**
+ * GET /api/admin/forecast-reviews — auditable reviews for all completed model
+ * predictions, including forecast-only rows and explicit exclusions.
+ */
+router.get("/admin/forecast-reviews", async (req, res): Promise<void> => {
+  const requestedLimit = Number(req.query.limit);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.max(1, Math.min(Math.floor(requestedLimit), 100))
+    : 50;
+  const segment = req.query.segment === "published" || req.query.segment === "forecast_only"
+    ? req.query.segment as ForecastSegment
+    : undefined;
+  const qualification = req.query.qualification === "qualified" || req.query.qualification === "passed"
+    ? req.query.qualification as ForecastQualification
+    : undefined;
+  const reviews = await listForecastReviews({
+    sport: typeof req.query.sport === "string" ? req.query.sport : undefined,
+    market: typeof req.query.market === "string" ? req.query.market : undefined,
+    segment,
+    qualification,
+    result: typeof req.query.result === "string" ? req.query.result : undefined,
+    limit,
+  });
+  res.json({ reviews, count: reviews.length, dataAsOf: new Date().toISOString() });
+});
+
+/** GET /api/admin/forecast-metrics — calibration and coverage comparisons. */
+router.get("/admin/forecast-metrics", async (req, res): Promise<void> => {
+  const metrics = await queryForecastMetrics({
+    sport: typeof req.query.sport === "string" ? req.query.sport : undefined,
+    market: typeof req.query.market === "string" ? req.query.market : undefined,
+  });
+  res.json({ metrics, dataAsOf: new Date().toISOString() });
+});
+
+/** POST /api/admin/forecast-reviews/refresh — idempotent backfill trigger. */
+router.post("/admin/forecast-reviews/refresh", async (_req, res): Promise<void> => {
+  const result = await runForecastReviews();
+  res.json({ ...result, refreshedAt: new Date().toISOString() });
 });
 
 // ── Overview ──────────────────────────────────────────────────────────────────
