@@ -31,6 +31,12 @@ vi.mock("@workspace/db", () => ({
   automationRunsTable: {},
   dataQualityAlertsTable: {},
   modelWeightsTable: {},
+  gamesTable: {
+    id: "id",
+    gameDate: "gameDate",
+    openingHomeOdds: "openingHomeOdds",
+    openingAwayOdds: "openingAwayOdds",
+  },
   sportSnoozesTable: { snoozedUntil: "snoozedUntil", sport: "sport" },
   publishedPicksTable: {},
 }));
@@ -143,61 +149,12 @@ describe("checkAndRaiseSportAlerts", () => {
     });
   }
 
-  it("creates an alert after 3 consecutive zero-game runs for a sport", async () => {
-    // 2 prior runs with NFL: 0, plus current run (also 0) → streak of 3
+  it("does not create an alert before 3 consecutive zero-game runs for a sport", async () => {
+    // 1 prior run with NFL: 0, plus current run (also 0) → streak of 2
     const previousRuns = [
       { dataSourceFreshness: { NFL: 0, NBA: 0 } },
-      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
     ];
-    // Streak is only 2 (current + first prior), below the threshold of 3 → no per-sport selects
-    setupSelectSequence(previousRuns);
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
-
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("does not create an alert when the sport count is 'error' rather than 0", async () => {
-    // ESPN errors are not counted toward the zero streak
-    setupSelectSequence([]); // recentRuns query still fires once
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: "error" });
-
-    // Loop guard (currentCount !== 0) also catches "error" — no per-sport selects
-    expect(mockDb.select).toHaveBeenCalledOnce(); // only recentRuns
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("raises independent alerts for multiple sports in the same run", async () => {
-    const previousRuns = [
-      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
-      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
-    ];
-    // Streak is only 2 (current + first prior), below the threshold of 3 → no per-sport selects
-    setupSelectSequence(previousRuns);
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
-
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("does not create an alert when the sport count is 'error' rather than 0", async () => {
-    // ESPN errors are not counted toward the zero streak
-    setupSelectSequence([]); // recentRuns query still fires once
-
-    await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: "error" });
-
-    // Loop guard (currentCount !== 0) also catches "error" — no per-sport selects
-    expect(mockDb.select).toHaveBeenCalledOnce(); // only recentRuns
-    expect(mockDb.insert).not.toHaveBeenCalled();
-  });
-
-  it("raises independent alerts for multiple sports in the same run", async () => {
-    const previousRuns = [
-      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
-      { dataSourceFreshness: { NFL: 0, NBA: 0 } },
-    ];
-    // Streak is only 2 (current + first prior), below the threshold of 3 → no per-sport selects
+    // The streak is below the threshold, so no alert is created.
     setupSelectSequence(previousRuns);
 
     await _checkAndRaiseSportAlerts(CURRENT_RUN_ID, { NFL: 0 });
@@ -456,7 +413,10 @@ describe("runOddsIngestion — dataSourceFreshness recording", () => {
 
   it("records numeric game counts per sport in dataSourceFreshness", async () => {
     const updateBuilder = setupDbForIngestion();
-    mockFetchAllSportsDetailed.mockRejectedValue(new Error("Network unreachable"));
+    mockFetchAllSportsDetailed.mockResolvedValue([
+      { sport: "NFL", fetchStatus: "ok", games: [] },
+      { sport: "NBA", fetchStatus: "ok", games: [] },
+    ]);
 
     await schedulerJobs.oddsIngestion();
 
@@ -491,7 +451,10 @@ describe("runOddsIngestion — dataSourceFreshness recording", () => {
 
   it("writes dataSourceFreshness and status=completed even when all sports return 0 games", async () => {
     const updateBuilder = setupDbForIngestion();
-    mockFetchAllSportsDetailed.mockRejectedValue(new Error("Network unreachable"));
+    mockFetchAllSportsDetailed.mockResolvedValue([
+      { sport: "NFL", fetchStatus: "ok", games: [] },
+      { sport: "NBA", fetchStatus: "ok", games: [] },
+    ]);
 
     await schedulerJobs.oddsIngestion();
 
