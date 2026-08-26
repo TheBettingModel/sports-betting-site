@@ -11,6 +11,16 @@ const completeSnapshot = {
 };
 
 describe("loss review diagnostics", () => {
+  it("accepts current decision snapshots while rejecting incomplete evidence", () => {
+    expect(isDecisionSnapshot(completeSnapshot)).toBe(true);
+    expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 3 })).toBe(true);
+    expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 4 })).toBe(true);
+    expect(isDecisionSnapshot({ ...completeSnapshot, schemaVersion: 1 })).toBe(false);
+    expect(isDecisionSnapshot({ schemaVersion: 3 })).toBe(false);
+    expect(isDecisionSnapshot({ schemaVersion: 3, decision: {} })).toBe(false);
+    expect(isDecisionSnapshot({ schemaVersion: 3, decision: null })).toBe(false);
+  });
+
   it("uses only saved pregame evidence and records adverse market movement", () => {
     const original = structuredClone(completeSnapshot);
     const review = buildOutcomeReview({

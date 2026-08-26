@@ -3,6 +3,7 @@ import {
   emaForSport,
   LEGACY_MLB_LEARNING_PROFILE,
   learningProfileForSport,
+  needsLearningProcessing,
   nextConfidenceMultiplier,
   nudgeWeights,
 } from "./learningEngine";
@@ -78,5 +79,38 @@ describe("MLB legacy calibration profile", () => {
 
     expect(mlb.recordWeight).toBeLessThan(0.194);
     expect(nba.recordWeight).toBeGreaterThan(0.294);
+  });
+});
+
+describe("learning replay eligibility", () => {
+  const currentSnapshot = {
+    schemaVersion: 3,
+    decision: {
+      factorContributions: { pythagorean: 0.1 },
+      availability: {},
+      dataQuality: { missingSignals: [] },
+    },
+  };
+
+  it("replays a current snapshot skipped only by the old version gate once", () => {
+    expect(needsLearningProcessing({
+      learningProcessedAt: new Date("2026-08-26T04:12:26.000Z"),
+      learningReview: { status: "insufficient_pregame_evidence" },
+      featureSnapshot: currentSnapshot,
+    })).toBe(true);
+
+    expect(needsLearningProcessing({
+      learningProcessedAt: new Date("2026-08-26T04:12:27.000Z"),
+      learningReview: { status: "reviewed" },
+      featureSnapshot: currentSnapshot,
+    })).toBe(false);
+  });
+
+  it("does not replay a genuinely incomplete historical snapshot", () => {
+    expect(needsLearningProcessing({
+      learningProcessedAt: new Date("2026-08-26T04:12:26.000Z"),
+      learningReview: { status: "insufficient_pregame_evidence" },
+      featureSnapshot: { schemaVersion: 3, decision: {} },
+    })).toBe(false);
   });
 });

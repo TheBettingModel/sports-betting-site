@@ -36,10 +36,12 @@ export type OutcomeReview = {
 
 type JsonRecord = Record<string, unknown>;
 
+function isRecord(value: unknown): value is JsonRecord {
+  return value != null && typeof value === "object" && !Array.isArray(value);
+}
+
 function asRecord(value: unknown): JsonRecord {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as JsonRecord
-    : {};
+  return isRecord(value) ? value : {};
 }
 
 function toNumber(value: unknown): number | null {
@@ -119,7 +121,17 @@ function buildImprovementActions(input: {
 }
 
 export function isDecisionSnapshot(snapshot: unknown): snapshot is JsonRecord {
-  return asRecord(snapshot).schemaVersion === 2;
+  const record = asRecord(snapshot);
+  const schemaVersion = record.schemaVersion;
+  const decision = record.decision;
+  // Version 2 is the original decision-evidence format. Version 3 is the
+  // current full-game snapshot and version 4 adds an immutable policy revision
+  // without removing the original decision evidence.
+  return (schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4)
+    && isRecord(decision)
+    && isRecord(decision.factorContributions)
+    && isRecord(decision.availability)
+    && isRecord(decision.dataQuality);
 }
 
 export function buildOutcomeReview(input: {

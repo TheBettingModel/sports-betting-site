@@ -6,7 +6,7 @@
  * snapshot are reviewed but intentionally excluded from factor retraining.
  */
 
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -177,6 +177,28 @@ export function nextConfidenceMultiplier(input: {
   return Math.max(0.8, Math.min(1.05, input.current + (1 - input.current) * 0.1));
 }
 
+function hasInsufficientEvidenceReview(value: unknown): boolean {
+  return value != null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && (value as Record<string, unknown>).status === "insufficient_pregame_evidence";
+}
+
+/**
+ * A result may be replayed only when the old validator falsely rejected a
+ * complete immutable snapshot. Completed reviews are never replayed, and a
+ * genuinely incomplete historical snapshot remains excluded.
+ */
+export function needsLearningProcessing(input: {
+  learningProcessedAt: Date | null;
+  learningReview: unknown;
+  featureSnapshot: unknown;
+}): boolean {
+  return input.learningProcessedAt == null
+    || (hasInsufficientEvidenceReview(input.learningReview)
+      && isDecisionSnapshot(input.featureSnapshot));
+}
+
 /**
  * Set the existing MLB aggregate confidence to its neutral baseline once.
  * Immutable prediction snapshots retain the multiplier they were created with;
@@ -201,12 +223,14 @@ export async function normalizeMlbConfidenceRecovery(): Promise<boolean> {
  * Review and learn from each newly graded decisive pick exactly once.
  */
 export async function runLearning(): Promise<void> {
-  const rows = await db
+  const candidateRows = await db
     .select({
       pickResultId: pickResultsTable.id,
       result: pickResultsTable.result,
       finalScore: pickResultsTable.finalScore,
       clv: pickResultsTable.clv,
+      learningProcessedAt: pickResultsTable.learningProcessedAt,
+      learningReview: pickResultsTable.learningReview,
       pickId: publishedPicksTable.id,
       sport: publishedPicksTable.sport,
       selection: publishedPicksTable.selection,
@@ -232,9 +256,25 @@ export async function runLearning(): Promise<void> {
     .where(
       and(
         inArray(pickResultsTable.result, ["win", "loss"]),
-        isNull(pickResultsTable.learningProcessedAt),
+          or(
+            isNull(pickResultsTable.learningProcessedAt),
+            // Before the snapshot-version fix, valid v3/v4 evidence was
+            // marked as insufficient and claimed without learning. Replay
+            // only that explicitly safe-to-retry state; genuinely incomplete
+            // snapshots remain permanently excluded.
+            and(
+              sql`${pickResultsTable.learningReview}->>'status' = 'insufficient_pregame_evidence'`,
+              sql`${modelPredictionsTable.featureSnapshot}->>'schemaVersion' IN ('2', '3', '4')`,
+            ),
+          ),
       ),
-    );
+      )
+      .orderBy(asc(pickResultsTable.gradedAt), asc(pickResultsTable.id));
+  const rows = candidateRows.filter((row) => needsLearningProcessing({
+    learningProcessedAt: row.learningProcessedAt,
+    learningReview: row.learningReview,
+    featureSnapshot: row.featureSnapshot,
+  }));
 
   if (rows.length === 0) return;
 
@@ -250,7 +290,10 @@ export async function runLearning(): Promise<void> {
         .where(and(
           eq(pickResultsTable.id, row.pickResultId),
           eq(pickResultsTable.result, row.result),
-          isNull(pickResultsTable.learningProcessedAt),
+          or(
+            isNull(pickResultsTable.learningProcessedAt),
+            sql`${pickResultsTable.learningReview}->>'status' = 'insufficient_pregame_evidence'`,
+          ),
         ))
         .returning({ id: pickResultsTable.id });
       if (!claim) return false;
