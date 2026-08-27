@@ -8,7 +8,7 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, desc, gte, and, ne, or } from "drizzle-orm";
+import { eq, desc, gte, and, inArray, ne, or } from "drizzle-orm";
 import {
   db,
   pickResultsTable,
@@ -17,9 +17,10 @@ import {
 } from "@workspace/db";
 import { rejectInvalidToken } from "../middleware/requireSubscriber";
 import { logger } from "../lib/logger";
+import { OFFICIAL_RECORD_RECOMMENDATIONS } from "../services/officialRecordPolicy";
 
-// Recommendation display order for ROI breakdown
-const RATING_ORDER = ["Strong Buy", "Buy", "Neutral", "Fade"];
+// Recommendation display order for the official performance ledger.
+const RATING_ORDER: readonly string[] = OFFICIAL_RECORD_RECOMMENDATIONS;
 
 const router: IRouter = Router();
 
@@ -78,7 +79,9 @@ router.get(
         cutoffDate = `${now.getFullYear()}-01-01`;
       }
 
-      // Fetch all graded picks in the period
+      // Fetch graded official plays in the period. Neutral/Fade projections are
+      // still retained and reviewed for calibration, but do not represent a
+      // subscriber-facing wager and must not affect the public record.
       const rows = await db
         .select({
           pickId: publishedPicksTable.id,
@@ -109,10 +112,7 @@ router.get(
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
           ne(pickResultsTable.result, "pending"),
-          // The Record tab is the model's complete performance ledger. Include
-          // every graded prediction, including Neutral/Fade picks that were not
-          // surfaced in the subscriber picks feed, so a sport cannot disappear
-          // simply because none of its plays cleared the public-pick threshold.
+          inArray(publishedPicksTable.recommendation, OFFICIAL_RECORD_RECOMMENDATIONS),
           // Exclude NFL preseason — regular season always starts Sep 11 or later
           or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
         ))
@@ -217,9 +217,8 @@ router.get(
 /**
  * GET /api/results/roi
  *
- * Returns win%, units won/lost, and ROI% broken down by sport and by rating
- * tier (Strong Buy / Buy / Neutral / Fade).  Uses the same period logic as
- * /results/summary.
+ * Returns official-play win%, units won/lost, and ROI% broken down by sport
+ * and recommendation tier. Uses the same period logic as /results/summary.
  *
  * This lets the admin and the learning engine verify that higher-rated picks
  * actually outperform lower-rated ones.
@@ -244,7 +243,8 @@ router.get(
         cutoffDate = `${now.getFullYear()}-01-01`;
       }
 
-      // Join pick_results → published_picks to get recommendation/sport/odds
+      // Neutral/Fade projections remain in the forecast-review dataset for
+      // model-quality analysis, but official ROI is limited to actual plays.
       const rows = await db
         .select({
           sport: publishedPicksTable.sport,
@@ -266,6 +266,7 @@ router.get(
           and(
             gte(gamesTable.gameDate, cutoffDate),
             ne(pickResultsTable.result, "pending"),
+            inArray(publishedPicksTable.recommendation, OFFICIAL_RECORD_RECOMMENDATIONS),
             // Exclude NFL preseason — regular season always starts Sep 11 or later
             or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
           ),
@@ -320,13 +321,11 @@ router.get(
         addRow(ratingMap.get(k)!, r);
       }
       const byRating = RATING_ORDER
-        .filter((k) => ratingMap.has(k))
-        .map((k) => ({ ...summarise(k, ratingMap.get(k)!), recommendation: k }))
-        .concat(
-          [...ratingMap.keys()]
-            .filter((k) => !RATING_ORDER.includes(k))
-            .map((k) => ({ ...summarise(k, ratingMap.get(k)!), recommendation: k })),
-        );
+        .filter((rating) => ratingMap.has(rating))
+        .map((rating) => ({
+          ...summarise(rating, ratingMap.get(rating)!),
+          recommendation: rating,
+        }));
 
       // ── By sport ──────────────────────────────────────────────────────────
       const sportMap = new Map<string, Bucket>();
