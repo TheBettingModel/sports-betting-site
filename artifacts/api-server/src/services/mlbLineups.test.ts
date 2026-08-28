@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getLineupMatchup, makeLineupGameKey } from "./mlbLineups";
 import { makePitcherGameKey } from "./mlbPitchers";
 
-const DATE = "2026-06-01";
-const FIRST_START = "2026-06-01T17:10:00.000Z";
-const SECOND_START = "2026-06-01T22:10:00.000Z";
+const DATE = "2027-06-01";
+const FIRST_START = "2027-06-01T17:10:00.000Z";
+const SECOND_START = "2027-06-01T22:10:00.000Z";
 
 function players(ids: number[]) {
   return ids.map((id, index) => ({ id, battingOrder: (index + 1) * 100 }));
@@ -53,6 +53,7 @@ describe("MLB doubleheader lineup identity", () => {
     expect(first.home.playerIds).toEqual(firstHome);
     expect(second.home.playerIds).toEqual(secondHome);
     expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("/schedule"))).toHaveLength(1);
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("season=2027"))).toBe(true);
   });
 
   it("uses a precise start timestamp rather than a display-time or matchup-only key", () => {

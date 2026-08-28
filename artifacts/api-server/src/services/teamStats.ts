@@ -27,8 +27,9 @@
  */
 
 import { db, gamesTable } from "@workspace/db";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { getSeasonContext } from "./season";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public interfaces
@@ -115,7 +116,7 @@ const soccerCache = new Map<string, { stats: SoccerTeamStats; fetchedAt: number 
 // Key: `${sport}:${teamId}`
 const dbStatsCache = new Map<string, { stats: DbTeamStats;    fetchedAt: number }>();
 
-let wnbaRefreshPromise: Promise<void> | null = null;
+const wnbaRefreshPromises = new Map<string, Promise<void>>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pythagorean exponents per sport (empirically derived)
@@ -198,8 +199,7 @@ function findFirstStat(cats: EspnStatCat[], candidates: Array<[string, string]>)
 
 /** WNBA regular seasons span summer. In Jan–Mar, the most recently completed season is active. */
 export function getActiveWnbaSeason(now = new Date()): number {
-  const year = now.getUTCFullYear();
-  return now.getUTCMonth() < 3 ? year - 1 : year;
+  return getSeasonContext("WNBA", now).startYear;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ interface FormResult {
   missing?: string[];
 }
 
-async function fetchWnbaTeamForm(teamId: string, season = getActiveWnbaSeason()): Promise<FormResult> {
+async function fetchWnbaTeamForm(teamId: string, season: number, targetDate: string): Promise<FormResult> {
   const defaults: FormResult = {
     last5WinPct: 0.5, last10WinPct: 0.5,
     last5PointDiff: 0, last10PointDiff: 0,
@@ -244,7 +244,7 @@ async function fetchWnbaTeamForm(teamId: string, season = getActiveWnbaSeason())
       parseInt(typeof raw === "string" ? raw : (raw?.displayValue ?? "0"), 10) || 0;
 
     const completed = events
-      .filter((e) => e.competitions[0]?.status?.type?.completed)
+      .filter((e) => e.competitions[0]?.status?.type?.completed && e.date.slice(0, 10) <= targetDate)
       .map((e) => {
         const comp   = e.competitions[0]!;
         const myTeam = comp.competitors.find((c) => c.team?.id === teamId);
@@ -275,7 +275,7 @@ async function fetchWnbaTeamForm(teamId: string, season = getActiveWnbaSeason())
     const last10PointDiff = avg(last10.map((g) => g.pointDiff));
 
     const lastDate = new Date(completed[completed.length - 1]!.date);
-    const today    = new Date();
+    const today    = new Date(`${targetDate}T12:00:00Z`);
     const restDays = Math.max(0, Math.min(7,
       Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
     ));
@@ -286,9 +286,12 @@ async function fetchWnbaTeamForm(teamId: string, season = getActiveWnbaSeason())
   }
 }
 
-async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats | null> {
+async function fetchWnbaTeamStatsSingle(
+  teamId: string,
+  sourceSeason: number,
+  targetDate: string,
+): Promise<WnbaTeamStats | null> {
   try {
-    const sourceSeason = getActiveWnbaSeason();
     const capturedAt = new Date().toISOString();
     const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/statistics?season=${sourceSeason}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -327,7 +330,7 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
     const threeRate  = afga > 0 ? a3pa / afga : 0.35;
     const ftRate     = afga > 0 ? afta / afga : 0.30;
 
-    const form = await fetchWnbaTeamForm(teamId, sourceSeason);
+    const form = await fetchWnbaTeamForm(teamId, sourceSeason, targetDate);
     const missing: string[] = [...(form.missing ?? [])];
     if (ppg <= 0) missing.push("avgPoints");
     if (efg <= 0) missing.push("shootingEfficiency");
@@ -383,14 +386,14 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
 // WNBA: cache management
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function refreshAllWnbaStats(): Promise<void> {
-  logger.info("TeamStats: refreshing all WNBA team stats");
+async function refreshAllWnbaStats(sourceSeason: number, targetDate: string): Promise<void> {
+  logger.info({ sourceSeason, targetDate }, "TeamStats: refreshing all WNBA team stats");
   const now = Date.now();
 
   const results = await Promise.allSettled(
     WNBA_TEAM_IDS.map(async (teamId) => {
-      const stats = await fetchWnbaTeamStatsSingle(teamId);
-      if (stats) wnbaCache.set(teamId, { stats, fetchedAt: now });
+      const stats = await fetchWnbaTeamStatsSingle(teamId, sourceSeason, targetDate);
+      if (stats) wnbaCache.set(`${sourceSeason}:${targetDate}:${teamId}`, { stats, fetchedAt: now });
     }),
   );
 
@@ -403,18 +406,24 @@ async function refreshAllWnbaStats(): Promise<void> {
  * Triggers a full cache refresh on first call or when the cache is expired.
  * Returns stale data immediately if available while a background refresh runs.
  */
-export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | undefined> {
+export async function getWnbaTeamStats(
+  teamId: string,
+  modeledGameDate: string | Date = new Date(),
+): Promise<WnbaTeamStats | undefined> {
   if (!teamId) return undefined;
 
-  const cached = wnbaCache.get(teamId);
+  const season = getSeasonContext("WNBA", modeledGameDate);
+  const cacheKey = `${season.startYear}:${season.targetDate}:${teamId}`;
+  const cached = wnbaCache.get(cacheKey);
   const fresh  = cached && Date.now() - cached.fetchedAt < WNBA_TTL_MS;
 
   if (fresh) return cached.stats;
 
-  if (!wnbaRefreshPromise) {
-    wnbaRefreshPromise = refreshAllWnbaStats().finally(() => {
-      wnbaRefreshPromise = null;
+  if (!wnbaRefreshPromises.has(cacheKey)) {
+    const refresh = refreshAllWnbaStats(season.startYear, season.targetDate).finally(() => {
+      wnbaRefreshPromises.delete(cacheKey);
     });
+    wnbaRefreshPromises.set(cacheKey, refresh);
   }
 
   // Do not mutate the cached snapshot: callers may retain it as evidence.
@@ -424,8 +433,8 @@ export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | 
       : cached.stats;
   }
 
-  await wnbaRefreshPromise;
-  return wnbaCache.get(teamId)?.stats;
+  await wnbaRefreshPromises.get(cacheKey);
+  return wnbaCache.get(cacheKey)?.stats;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -437,10 +446,16 @@ export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | 
  * Uses completed games in our DB — no external API needed.
  * Cached for 1 hour.
  */
-export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStats | undefined> {
+export async function getSoccerTeamStats(
+  teamId: string,
+  modeledGameDate: string | Date = new Date(),
+  league?: string | null,
+): Promise<SoccerTeamStats | undefined> {
   if (!teamId) return undefined;
 
-  const cached = soccerCache.get(teamId);
+  const season = getSeasonContext("Soccer", modeledGameDate, league);
+  const cacheKey = `${league ?? "unknown"}:${season.startYear}:${season.targetDate}:${teamId}`;
+  const cached = soccerCache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < SOCCER_TTL_MS) {
     return cached.stats;
   }
@@ -458,7 +473,10 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
       .where(
         and(
           eq(gamesTable.sport, "Soccer"),
+          ...(league ? [eq(gamesTable.league, league)] : []),
           eq(gamesTable.status, "final"),
+          gte(gamesTable.gameDate, season.startDate),
+          lte(gamesTable.gameDate, season.targetDate),
           or(
             eq(gamesTable.homeTeamId, teamId),
             eq(gamesTable.awayTeamId, teamId),
@@ -493,7 +511,7 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
 
     const lastDateStr = rows[0]!.gameDate;
     const lastDate    = new Date(lastDateStr + "T12:00:00Z");
-    const today       = new Date();
+    const today       = new Date(`${season.targetDate}T12:00:00Z`);
     const restDays    = Math.max(0, Math.min(14,
       Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
     ));
@@ -509,7 +527,7 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
       restDays,
     };
 
-    soccerCache.set(teamId, { stats, fetchedAt: Date.now() });
+    soccerCache.set(cacheKey, { stats, fetchedAt: Date.now() });
     return stats;
   } catch (err) {
     logger.warn({ err, teamId }, "TeamStats: failed to compute soccer stats from DB");
@@ -535,10 +553,13 @@ export async function getSoccerTeamStats(teamId: string): Promise<SoccerTeamStat
 export async function getDbTeamStats(
   teamId: string,
   sport: string,
+  modeledGameDate: string | Date = new Date(),
+  league?: string | null,
 ): Promise<DbTeamStats | undefined> {
   if (!teamId || !sport) return undefined;
 
-  const cacheKey = `${sport}:${teamId}`;
+  const season = getSeasonContext(sport, modeledGameDate, league);
+  const cacheKey = `${sport}:${league ?? ""}:${season.startYear}:${season.targetDate}:${teamId}`;
   const cached = dbStatsCache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < DB_STATS_TTL_MS) {
     return cached.stats;
@@ -557,7 +578,10 @@ export async function getDbTeamStats(
       .where(
         and(
           eq(gamesTable.sport, sport),
+          ...(league ? [eq(gamesTable.league, league)] : []),
           eq(gamesTable.status, "final"),
+          gte(gamesTable.gameDate, season.startDate),
+          lte(gamesTable.gameDate, season.targetDate),
           or(
             eq(gamesTable.homeTeamId, teamId),
             eq(gamesTable.awayTeamId, teamId),
@@ -618,7 +642,7 @@ export async function getDbTeamStats(
     // Rest days — use most recent game's date (rows sorted desc)
     const lastDateStr = games[0]!.gameDate;
     const lastDate    = new Date((lastDateStr ?? "") + "T12:00:00Z");
-    const today       = new Date();
+    const today       = new Date(`${season.targetDate}T12:00:00Z`);
     const restDays    = Math.max(0, Math.min(14,
       Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
     ));
@@ -652,17 +676,16 @@ export async function getDbTeamStats(
 
 const NBA_TTL_MS = 4 * 60 * 60 * 1000; // 4 h — same cadence as WNBA
 const nbaCache = new Map<string, { stats: WnbaTeamStats; fetchedAt: number }>();
-let nbaRefreshInProgress: Promise<void> | null = null;
+const nbaRefreshPromises = new Map<string, Promise<void>>();
 
-async function fetchNbaTeamForm(teamId: string): Promise<FormResult> {
+async function fetchNbaTeamForm(teamId: string, season: number, targetDate: string): Promise<FormResult> {
   const defaults: FormResult = {
     last5WinPct: 0.5, last10WinPct: 0.5,
     last5PointDiff: 0, last10PointDiff: 0,
     restDays: 2,
   };
   try {
-    const year = new Date().getFullYear();
-    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/schedule?season=${year}`;
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/schedule?season=${season}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) return defaults;
 
@@ -683,7 +706,7 @@ async function fetchNbaTeamForm(teamId: string): Promise<FormResult> {
       parseInt(typeof raw === "string" ? raw : (raw?.displayValue ?? "0"), 10) || 0;
 
     const completed = events
-      .filter((e) => e.competitions[0]?.status?.type?.completed)
+      .filter((e) => e.competitions[0]?.status?.type?.completed && e.date.slice(0, 10) <= targetDate)
       .map((e) => {
         const comp   = e.competitions[0]!;
         const myTeam = comp.competitors.find((c) => c.team?.id === teamId);
@@ -714,7 +737,7 @@ async function fetchNbaTeamForm(teamId: string): Promise<FormResult> {
     const last10PointDiff = avg(last10.map((g) => g.pointDiff));
 
     const lastDate = new Date(completed[completed.length - 1]!.date);
-    const today    = new Date();
+    const today    = new Date(`${targetDate}T12:00:00Z`);
     const restDays = Math.max(0, Math.min(7,
       Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
     ));
@@ -725,9 +748,9 @@ async function fetchNbaTeamForm(teamId: string): Promise<FormResult> {
   }
 }
 
-async function fetchNbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats | null> {
+async function fetchNbaTeamStatsSingle(teamId: string, season: number, targetDate: string): Promise<WnbaTeamStats | null> {
   try {
-    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/statistics`;
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/statistics?season=${season}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) return null;
 
@@ -756,10 +779,11 @@ async function fetchNbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats | 
     const threeRate = afga > 0 ? a3pa / afga : 0.35;
     const ftRate    = afga > 0 ? afta / afga : 0.30;
 
-    const form = await fetchNbaTeamForm(teamId);
+    const form = await fetchNbaTeamForm(teamId, season, targetDate);
 
     return {
       teamId,
+      evidence: { source: "espn", sourceSeason: season, capturedAt: new Date().toISOString(), stale: false, missing: [] },
       ppg,
       efgPercent:           efg,
       trueShootingPercent:  tsPct,
@@ -781,15 +805,15 @@ async function fetchNbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats | 
   }
 }
 
-async function refreshAllNbaStats(teamIds: string[]): Promise<void> {
+async function refreshAllNbaStats(teamIds: string[], season: number, targetDate: string): Promise<void> {
   if (teamIds.length === 0) return;
   logger.info({ count: teamIds.length }, "TeamStats: refreshing NBA team stats");
   const now = Date.now();
 
   await Promise.allSettled(
     teamIds.map(async (teamId) => {
-      const stats = await fetchNbaTeamStatsSingle(teamId);
-      if (stats) nbaCache.set(teamId, { stats, fetchedAt: now });
+      const stats = await fetchNbaTeamStatsSingle(teamId, season, targetDate);
+      if (stats) nbaCache.set(`${season}:${targetDate}:${teamId}`, { stats, fetchedAt: now });
     }),
   );
 }
@@ -799,26 +823,32 @@ async function refreshAllNbaStats(teamIds: string[]): Promise<void> {
  * Uses the same WnbaTeamStats shape so the basketball model works for both leagues.
  * Results are cached for 4 hours; a background refresh fires when the cache expires.
  */
-export async function getNbaTeamStats(teamId: string): Promise<WnbaTeamStats | undefined> {
+export async function getNbaTeamStats(
+  teamId: string,
+  modeledGameDate: string | Date = new Date(),
+): Promise<WnbaTeamStats | undefined> {
   if (!teamId) return undefined;
 
-  const cached = nbaCache.get(teamId);
+  const season = getSeasonContext("NBA", modeledGameDate);
+  const cacheKey = `${season.startYear}:${season.targetDate}:${teamId}`;
+  const cached = nbaCache.get(cacheKey);
   const fresh  = cached && Date.now() - cached.fetchedAt < NBA_TTL_MS;
 
   if (fresh) return cached.stats;
 
   // Background refresh: collect all currently-tracked NBA team IDs
-  if (!nbaRefreshInProgress) {
-    const allIds = teamId ? [teamId, ...Array.from(nbaCache.keys()).filter((k) => k !== teamId)] : [];
-    nbaRefreshInProgress = refreshAllNbaStats(allIds).finally(() => {
-      nbaRefreshInProgress = null;
+  if (!nbaRefreshPromises.has(cacheKey)) {
+    const allIds = [teamId];
+    const refresh = refreshAllNbaStats(allIds, season.startYear, season.targetDate).finally(() => {
+      nbaRefreshPromises.delete(cacheKey);
     });
+    nbaRefreshPromises.set(cacheKey, refresh);
   }
 
   if (cached) return cached.stats; // return stale while refreshing
 
-  await nbaRefreshInProgress;
-  return nbaCache.get(teamId)?.stats;
+  await nbaRefreshPromises.get(cacheKey);
+  return nbaCache.get(cacheKey)?.stats;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -830,5 +860,6 @@ export async function getNbaTeamStats(teamId: string): Promise<WnbaTeamStats | u
  * Call once from the server's startup sequence; does not block.
  */
 export function warmUpTeamStatsCache(): void {
-  void refreshAllWnbaStats();
+  const season = getSeasonContext("WNBA", new Date());
+  void refreshAllWnbaStats(season.startYear, season.targetDate);
 }

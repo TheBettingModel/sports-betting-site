@@ -18,6 +18,7 @@
 import { logger } from "../lib/logger";
 import type { MlbSignalCacheMeta } from "./mlbPitchers";
 import type { ProbableStarters } from "./mlbPitchers";
+import { getSeasonContext } from "./season";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -145,13 +146,13 @@ interface MlbVsPlayerSplit {
  * Batch-fetch season OPS for a list of player IDs.
  * Single API call — MLB Stats API supports comma-separated personIds.
  */
-async function fetchBatterOps(playerIds: number[]): Promise<Map<number, number>> {
+async function fetchBatterOps(playerIds: number[], season: number): Promise<Map<number, number>> {
   if (playerIds.length === 0) return new Map();
 
   const url =
     `https://statsapi.mlb.com/api/v1/people` +
     `?personIds=${playerIds.join(",")}` +
-    `&hydrate=stats(group=hitting,type=season,season=2026)&gameType=R`;
+    `&hydrate=stats(group=hitting,type=season,season=${season})&gameType=R`;
 
   try {
     const resp = await fetch(url, {
@@ -198,6 +199,7 @@ async function fetchBatterOps(playerIds: number[]): Promise<Map<number, number>>
 async function fetchBatterPlatoonOps(
   playerIds: number[],
   vsHand: "L" | "R",
+  season: number,
 ): Promise<Map<number, number>> {
   if (playerIds.length === 0) return new Map();
   const sitCode = vsHand === "L" ? "vl" : "vr";
@@ -205,7 +207,7 @@ async function fetchBatterPlatoonOps(
   const url =
     `https://statsapi.mlb.com/api/v1/people` +
     `?personIds=${playerIds.join(",")}` +
-    `&hydrate=stats(group=hitting,type=statSplits,sitCodes=${sitCode},season=2026,gameType=R)`;
+    `&hydrate=stats(group=hitting,type=statSplits,sitCodes=${sitCode},season=${season},gameType=R)`;
 
   try {
     const resp = await fetch(url, {
@@ -425,15 +427,16 @@ async function fetchLineups(dateStr: string): Promise<Map<string, LineupMatchup>
 
   // ── Batch-fetch OPS + platoon splits in parallel (three calls, all batters) ─
   const confirmedIds = [...confirmedBatterIds];
+  const season = getSeasonContext("MLB", dateStr).startYear;
   const [batterOpsMap, platoonVLMap, platoonVRMap] = await Promise.all([
     confirmedIds.length > 0
-      ? fetchBatterOps(confirmedIds)
+      ? fetchBatterOps(confirmedIds, season)
       : Promise.resolve(new Map<number, number>()),
     confirmedIds.length > 0
-      ? fetchBatterPlatoonOps(confirmedIds, "L")
+      ? fetchBatterPlatoonOps(confirmedIds, "L", season)
       : Promise.resolve(new Map<number, number>()),
     confirmedIds.length > 0
-      ? fetchBatterPlatoonOps(confirmedIds, "R")
+      ? fetchBatterPlatoonOps(confirmedIds, "R", season)
       : Promise.resolve(new Map<number, number>()),
   ]);
 

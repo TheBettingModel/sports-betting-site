@@ -25,3 +25,4 @@
 - [Expo Metro monorepo watch boundaries](expo-metro-monorepo-watch-boundaries.md) — watch stable sources plus root node_modules, never the whole workspace.
 - [Decision snapshot learning replay](decision-snapshot-learning-replay.md) — accept supported evidence versions; replay only records falsely marked insufficient, never completed reviews.
 - [Immutable forecast review evidence](forecast-review-evidence.md) — grade completed forecasts only from snapshot-saved pregame evidence; rebuild derived rows once by ledger version.
+- [Modeled-date season boundaries](modeled-date-season-boundaries.md) — season-scoped inputs follow the game date and league calendar, never the server’s current date or provider defaults.

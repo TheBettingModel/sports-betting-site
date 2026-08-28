@@ -28,6 +28,7 @@ import {
 } from "./model";
 import type { ComputeOptions } from "./model";
 import {
+  getNbaTeamStats,
   getWnbaTeamStats,
   getSoccerTeamStats,
   getDbTeamStats,
@@ -61,30 +62,32 @@ async function fetchStatsForGame(
   sport: string,
   homeTeamId: string | null,
   awayTeamId: string | null,
+  gameDate: string,
+  league?: string | null,
 ): Promise<Pick<ComputeOptions, "homeTeamStats" | "awayTeamStats" | "homeSoccerStats" | "awaySoccerStats" | "homeDbStats" | "awayDbStats">> {
   const hId = homeTeamId ?? "";
   const aId = awayTeamId ?? "";
 
   if (sport === "WNBA" || sport === "NBA") {
     const [homeTeamStats, awayTeamStats] = await Promise.all([
-      getWnbaTeamStats(hId),
-      getWnbaTeamStats(aId),
+      sport === "NBA" ? getNbaTeamStats(hId, gameDate) : getWnbaTeamStats(hId, gameDate),
+      sport === "NBA" ? getNbaTeamStats(aId, gameDate) : getWnbaTeamStats(aId, gameDate),
     ]);
     return { homeTeamStats, awayTeamStats };
   }
 
   if (sport === "Soccer") {
     const [homeSoccerStats, awaySoccerStats] = await Promise.all([
-      getSoccerTeamStats(hId),
-      getSoccerTeamStats(aId),
+      getSoccerTeamStats(hId, gameDate, league),
+      getSoccerTeamStats(aId, gameDate, league),
     ]);
     return { homeSoccerStats, awaySoccerStats };
   }
 
   if (["MLB", "NFL", "NHL", "NCAAF", "NCAAB"].includes(sport)) {
     const [homeDbStats, awayDbStats] = await Promise.all([
-      getDbTeamStats(hId, sport),
-      getDbTeamStats(aId, sport),
+      getDbTeamStats(hId, sport, gameDate, league),
+      getDbTeamStats(aId, sport, gameDate, league),
     ]);
     return { homeDbStats, awayDbStats };
   }
@@ -273,6 +276,8 @@ async function runLegacyGameLearning(): Promise<void> {
         game.sport,
         game.homeTeamId,
         game.awayTeamId,
+        game.gameDate,
+        game.league,
       );
 
       const contributions = computeFactorContributions(

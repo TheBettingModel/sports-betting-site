@@ -106,7 +106,7 @@ const pair = (
 export async function getWnbaGameContext(input: { homeTeamId: string; awayTeamId: string; gameTime: string | Date }): Promise<WnbaGameContext> {
   const capturedAt = new Date().toISOString(); const sourceSeason = season(new Date(input.gameTime));
   const [homeStats, awayStats, homeAvailability, awayAvailability, homeSchedule, awaySchedule] = await Promise.all([
-    getWnbaTeamStats(input.homeTeamId), getWnbaTeamStats(input.awayTeamId), getWnbaTeamInjuryImpact(input.homeTeamId), getWnbaTeamInjuryImpact(input.awayTeamId),
+    getWnbaTeamStats(input.homeTeamId, input.gameTime), getWnbaTeamStats(input.awayTeamId, input.gameTime), getWnbaTeamInjuryImpact(input.homeTeamId), getWnbaTeamInjuryImpact(input.awayTeamId),
     getWnbaScheduleContext(input.homeTeamId, input.awayTeamId, true, input.gameTime), getWnbaScheduleContext(input.awayTeamId, input.homeTeamId, false, input.gameTime),
   ]);
   const matchup = {

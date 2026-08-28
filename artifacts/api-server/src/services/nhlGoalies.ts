@@ -19,6 +19,7 @@
  */
 
 import { logger } from "../lib/logger";
+import { getSeasonContext } from "./season";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,9 +80,8 @@ interface NhlClubStats {
   goalies?: NhlGoalieRaw[];
 }
 
-async function fetchTeamGoalieStats(teamCode: string): Promise<GoalieStats | null> {
-  // Current season: NHL API uses "now" for the active/most-recent season
-  const url = `https://api-web.nhle.com/v1/club-stats/${teamCode}/now`;
+async function fetchTeamGoalieStats(teamCode: string, seasonId: string): Promise<GoalieStats | null> {
+  const url = `https://api-web.nhle.com/v1/club-stats/${teamCode}/${seasonId}`;
   try {
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(8_000),
@@ -126,9 +126,10 @@ export async function getGoalieMatchup(
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < TTL_MS) return cached.matchup;
 
+  const seasonId = getSeasonContext("NHL", dateStr).seasonId;
   const [home, away] = await Promise.allSettled([
-    fetchTeamGoalieStats(nhlCode(homeAbbr)),
-    fetchTeamGoalieStats(nhlCode(awayAbbr)),
+    fetchTeamGoalieStats(nhlCode(homeAbbr), seasonId),
+    fetchTeamGoalieStats(nhlCode(awayAbbr), seasonId),
   ]);
 
   const matchup: GoalieMatchup = {
@@ -179,9 +180,9 @@ interface NhlStandingsResponse {
   standings?: NhlStandingRecord[];
 }
 
-async function fetchAllNhlSpecialTeams(): Promise<Record<string, NhlTeamSpecialTeams>> {
+async function fetchAllNhlSpecialTeams(dateStr: string): Promise<Record<string, NhlTeamSpecialTeams>> {
   try {
-    const resp = await fetch("https://api-web.nhle.com/v1/standings/now", {
+    const resp = await fetch(`https://api-web.nhle.com/v1/standings/${dateStr}`, {
       signal: AbortSignal.timeout(10_000),
       headers: { "User-Agent": "TheBettingModel/2.0" },
     });
@@ -207,15 +208,18 @@ async function fetchAllNhlSpecialTeams(): Promise<Record<string, NhlTeamSpecialT
  * Returns season PP% and PK% for an NHL team (ESPN abbr → NHL abbr via ESPN_TO_NHL map).
  * Falls back to league averages when data is unavailable.
  */
-export async function getNhlTeamSpecialTeams(espnAbbr: string): Promise<NhlTeamSpecialTeams> {
-  const cacheKey = "all";
+export async function getNhlTeamSpecialTeams(
+  espnAbbr: string,
+  modeledGameDate: string | Date = new Date(),
+): Promise<NhlTeamSpecialTeams> {
+  const cacheKey = getSeasonContext("NHL", modeledGameDate).targetDate;
   const cached = stCache.get(cacheKey);
   let teams: Record<string, NhlTeamSpecialTeams>;
 
   if (cached && Date.now() - cached.fetchedAt < ST_TTL_MS) {
     teams = cached.teams;
   } else {
-    teams = await fetchAllNhlSpecialTeams();
+    teams = await fetchAllNhlSpecialTeams(cacheKey);
     if (Object.keys(teams).length > 0) {
       stCache.set(cacheKey, { teams, fetchedAt: Date.now() });
     } else if (cached) {

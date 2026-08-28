@@ -220,24 +220,24 @@ export async function refreshAll(): Promise<{
         game.sport === "WNBA"
           ? Promise.resolve(wnbaContext?.home.stats)
           : game.sport === "NBA"
-          ? getNbaTeamStats(game.homeTeamId ?? "")
+          ? getNbaTeamStats(game.homeTeamId ?? "", game.gameDate)
           : Promise.resolve(undefined),
         game.sport === "WNBA"
           ? Promise.resolve(wnbaContext?.away.stats)
           : game.sport === "NBA"
-          ? getNbaTeamStats(game.awayTeamId ?? "")
+          ? getNbaTeamStats(game.awayTeamId ?? "", game.gameDate)
           : Promise.resolve(undefined),
         game.sport === "Soccer"
-          ? getSoccerTeamStats(game.homeTeamId ?? "")
+          ? getSoccerTeamStats(game.homeTeamId ?? "", game.gameDate, game.league)
           : Promise.resolve(undefined),
         game.sport === "Soccer"
-          ? getSoccerTeamStats(game.awayTeamId ?? "")
+          ? getSoccerTeamStats(game.awayTeamId ?? "", game.gameDate, game.league)
           : Promise.resolve(undefined),
         DB_SPORTS.has(game.sport)
-          ? getDbTeamStats(game.homeTeamId ?? "", game.sport)
+          ? getDbTeamStats(game.homeTeamId ?? "", game.sport, game.gameDate, game.league)
           : Promise.resolve(undefined),
         DB_SPORTS.has(game.sport)
-          ? getDbTeamStats(game.awayTeamId ?? "", game.sport)
+          ? getDbTeamStats(game.awayTeamId ?? "", game.sport, game.gameDate, game.league)
           : Promise.resolve(undefined),
       ]);
 

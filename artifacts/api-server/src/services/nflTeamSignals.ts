@@ -22,6 +22,7 @@
  */
 
 import { logger } from "../lib/logger";
+import { getSeasonContext } from "./season";
 
 // ── NFL Division mapping ───────────────────────────────────────────────────────
 // Keyed by ESPN team abbreviation (matches what espn.ts returns in homeTeamAbbr)
@@ -89,15 +90,17 @@ interface ToCacheEntry {
 const toCache = new Map<string, ToCacheEntry>();
 const TO_TTL_MS = 4 * 60 * 60 * 1000; // 4 h
 
-async function fetchNflTurnoverStats(abbr: string): Promise<ToStats | null> {
+async function fetchNflTurnoverStats(abbr: string, modeledGameDate: string | Date): Promise<ToStats | null> {
   const espnId = NFL_ESPN_IDS[abbr];
   if (!espnId) return null;
 
-  const cached = toCache.get(abbr);
+  const season = getSeasonContext("NFL", modeledGameDate);
+  const cacheKey = `${season.startYear}:${abbr}`;
+  const cached = toCache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < TO_TTL_MS) return cached.stats;
 
   try {
-    const url  = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${espnId}/statistics`;
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${espnId}/statistics?season=${season.startYear}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8_000) });
     if (!resp.ok) throw new Error(`ESPN NFL stats ${resp.status}`);
 
@@ -125,7 +128,7 @@ async function fetchNflTurnoverStats(abbr: string): Promise<ToStats | null> {
     const margin    = takeaways - giveaways;
 
     const stats: ToStats = { takeaways, giveaways, margin };
-    toCache.set(abbr, { stats, fetchedAt: Date.now() });
+    toCache.set(cacheKey, { stats, fetchedAt: Date.now() });
     return stats;
   } catch (err) {
     logger.debug({ err, abbr }, "NFL turnover stats: fetch failed (using 0)");
@@ -156,6 +159,7 @@ export interface NflSituationalSignals {
 export async function computeNflSituationalSignals(
   homeAbbr: string,
   awayAbbr: string,
+  modeledGameDate: string | Date = new Date(),
 ): Promise<NflSituationalSignals> {
   // 1. Divisional flag
   const isDivisional =
@@ -181,8 +185,8 @@ export async function computeNflSituationalSignals(
   let turnoverAdvantage = 0;
   try {
     const [homeTO, awayTO] = await Promise.all([
-      fetchNflTurnoverStats(homeAbbr),
-      fetchNflTurnoverStats(awayAbbr),
+    fetchNflTurnoverStats(homeAbbr, modeledGameDate),
+    fetchNflTurnoverStats(awayAbbr, modeledGameDate),
     ]);
     if (homeTO && awayTO) {
       const marginDiff = homeTO.margin - awayTO.margin;
