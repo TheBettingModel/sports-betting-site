@@ -37,6 +37,8 @@
   box-shadow: 0 18px 44px rgba(0,0,0,.28);
 }
 .tbm-mono { font-family: var(--tbm-mono); }
+.tbm-outlook { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 9px; }
+.tbm-outlook > div + div { border-left: 1px solid var(--tbm-line); padding-left: 9px; }
 .tbm-label {
   color: var(--tbm-muted);
   font-size: 9px;
@@ -65,4 +67,8 @@
 
 @media (max-width: 420px) {
   .tbm-card { border-radius: 0 11px 11px 0; }
+}
+@media (max-width: 350px) {
+  .tbm-outlook { gap: 6px; }
+  .tbm-outlook > div + div { padding-left: 6px; }
 }
