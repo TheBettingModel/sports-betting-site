@@ -30,12 +30,15 @@ export function Simplified() {
   return (
     <main className="tbm-preview" style={{ padding: '42px 14px' }}>
       <article className="tbm-card" style={{ borderLeftWidth: 3 }}>
-        <header style={{ padding: '16px 16px 14px', borderBottom: '1px solid var(--tbm-line-soft)' }}>
-          <div className="tbm-label">{game.sport} <span style={{ color: 'var(--tbm-dim)' }}>•</span> {game.gameTime}</div>
+        <header style={{ padding: '15px 16px 14px', borderBottom: '1px solid var(--tbm-line-soft)', boxShadow: 'inset 3px 0 0 rgba(183,243,74,.32)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="tbm-label"><span style={{ color: 'var(--tbm-lime)' }}>MODEL BOARD</span> <span style={{ color: 'var(--tbm-dim)' }}>/</span> {game.sport}</div>
+            <div className="tbm-label" style={{ letterSpacing: '.08em' }}>{game.gameTime}</div>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Logo team={game.awayTeam} /><b style={{ fontSize: 14, letterSpacing: '.02em' }}>{game.awayTeam.abbr}</b></div>
-            <span className="tbm-mono" style={{ color: 'var(--tbm-dim)', fontSize: 10 }}>@</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><b style={{ fontSize: 14, letterSpacing: '.02em' }}>{game.homeTeam.abbr}</b><Logo team={game.homeTeam} /></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Logo team={game.awayTeam} /><div><b style={{ display: 'block', fontSize: 14, letterSpacing: '.02em' }}>{game.awayTeam.abbr}</b><span className="tbm-label" style={{ display: 'block', marginTop: 3, color: 'var(--tbm-dim)', letterSpacing: '.08em' }}>{game.awayTeam.record} AWAY</span></div></div>
+            <span className="tbm-mono" style={{ color: 'var(--tbm-dim)', fontSize: 10, borderBottom: '1px solid var(--tbm-line)', paddingBottom: 3 }}>AT</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, textAlign: 'right' }}><div><b style={{ display: 'block', fontSize: 14, letterSpacing: '.02em' }}>{game.homeTeam.abbr}</b><span className="tbm-label" style={{ display: 'block', marginTop: 3, color: 'var(--tbm-dim)', letterSpacing: '.08em' }}>{game.homeTeam.record} HOME</span></div><Logo team={game.homeTeam} /></div>
           </div>
         </header>
         <section style={{ padding: '16px' }}>
@@ -49,9 +52,15 @@ export function Simplified() {
             <span style={{ color: 'var(--tbm-dim)' }}>•</span>
             <span className="tbm-mono" style={{ color: 'var(--tbm-lime)', fontSize: 12, fontWeight: 700 }}>{game.projection.units?.toFixed(1)}U</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 14, padding: '17px 0 15px', borderBottom: '1px solid var(--tbm-line-soft)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 14, padding: '17px 0 13px', borderBottom: '1px solid var(--tbm-line-soft)' }}>
             <div><div className="tbm-label">Model win probability</div><div className="tbm-mono" style={{ marginTop: 6, color: 'var(--tbm-text)', fontSize: 31, fontWeight: 700, letterSpacing: '-.07em' }}>{model.toFixed(1)}%</div></div>
             <div style={{ paddingLeft: 14, borderLeft: '1px solid var(--tbm-line)' }}><div className="tbm-label">Market implied</div><div className="tbm-mono" style={{ marginTop: 11, color: 'var(--tbm-muted)', fontSize: 20, fontWeight: 700 }}>{market.toFixed(1)}%</div></div>
+          </div>
+          <div style={{ position: 'relative', height: 34, paddingTop: 15, borderBottom: '1px solid var(--tbm-line-soft)' }} aria-label={`Model ${model.toFixed(1)} percent, market ${market.toFixed(1)} percent`}>
+            <div style={{ height: 3, background: '#28312b' }}><div style={{ width: `${Math.min(model, 100)}%`, height: 3, background: 'var(--tbm-lime)' }} /></div>
+            <span style={{ position: 'absolute', top: 7, left: `${Math.min(model, 97)}%`, width: 1, height: 14, background: 'var(--tbm-lime)' }} />
+            <span style={{ position: 'absolute', top: 10, left: `${Math.min(market, 97)}%`, width: 1, height: 11, background: 'var(--tbm-muted)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, color: 'var(--tbm-dim)', fontSize: 8, fontWeight: 700, letterSpacing: '.1em' }}><span>0</span><span>PROBABILITY SCALE</span><span>100</span></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', paddingTop: 14 }}>
             <div><div className="tbm-label">Model edge</div><strong className="tbm-mono" style={{ display: 'block', marginTop: 4, color: 'var(--tbm-lime)', fontSize: 21 }}>+{Math.abs(game.projection.edge).toFixed(1)}%</strong></div>
@@ -60,7 +69,7 @@ export function Simplified() {
         </section>
         {expanded && <section style={{ padding: '0 16px 16px', animation: 'tbmReveal .24s ease-out' }}>
           <div style={{ paddingTop: 14, borderTop: '1px solid var(--tbm-line)' }}>
-            <div className="tbm-label" style={{ color: 'var(--tbm-text)' }}>Why TBM likes it</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><div className="tbm-label" style={{ color: 'var(--tbm-text)' }}>Analysis / model read</div><span className="tbm-label" style={{ color: 'var(--tbm-lime)', letterSpacing: '.08em' }}>LIVE SIGNAL</span></div>
             <p style={{ margin: '8px 0 14px', color: '#c7cec8', fontSize: 12, lineHeight: 1.5 }}>The model sees a wider price gap on Las Vegas than the current market is assigning.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div style={{ padding: '10px', border: '1px solid var(--tbm-line-soft)', background: 'var(--tbm-surface-2)' }}><div className="tbm-label">TBM fair price</div><b className="tbm-mono" style={{ display: 'block', marginTop: 5, fontSize: 14 }}>{american(fairOdds(model))}</b></div>
