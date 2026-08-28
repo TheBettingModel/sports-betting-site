@@ -3,7 +3,9 @@ import type { FetchedGame } from "./espn";
 import type { ProjectionResult } from "./model";
 import {
   assessMlbMaterialPregameChange,
+  assessWnbaMaterialPregameChange,
   currentMlbPregameDecision,
+  isMaterialPregameRevisionEligible,
   isMlbMaterialPregameRevisionEligible,
   materialMlbEvidenceFingerprint,
   type MaterialPregameDecision,
@@ -181,5 +183,46 @@ describe("material MLB pregame revisions", () => {
     } as unknown as ProjectionResult);
 
     expect(decision).toMatchObject({ odds: -200, recommendation: "Neutral", units: 1, podScore: 0 });
+  });
+});
+
+describe("material WNBA pregame revisions", () => {
+  const wnbaGame = (commenceTimeISO: string): FetchedGame => ({
+    ...game(commenceTimeISO),
+    espnId: "WNBA-test",
+    sport: "WNBA",
+  });
+
+  it("withdraws an earlier actionable underdog when the current decision is Neutral", () => {
+    const change = assessWnbaMaterialPregameChange(
+      { selection: "away", recommendation: "Strong Buy" },
+      { selection: "away", recommendation: "Neutral" },
+    );
+
+    expect(change).toEqual({ changed: true, reasons: ["recommendation_changed"] });
+  });
+
+  it("does not churn immutable WNBA decisions for ordinary price movement", () => {
+    const change = assessWnbaMaterialPregameChange(
+      { selection: "away", recommendation: "Neutral" },
+      { selection: "away", recommendation: "Neutral" },
+    );
+
+    expect(change).toEqual({ changed: false, reasons: [] });
+  });
+
+  it("allows a valid WNBA revision before start but never after start", () => {
+    const proj = { vegasHomeOdds: -1_895, vegasAwayOdds: 1_000 } as ProjectionResult;
+
+    expect(isMaterialPregameRevisionEligible(
+      wnbaGame(new Date(Date.now() + 60_000).toISOString()),
+      proj,
+      true,
+    )).toBe(true);
+    expect(isMaterialPregameRevisionEligible(
+      wnbaGame(new Date(Date.now() - 60_000).toISOString()),
+      proj,
+      true,
+    )).toBe(false);
   });
 });

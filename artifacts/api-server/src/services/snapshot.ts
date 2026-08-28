@@ -30,7 +30,7 @@ import {
   isPregameCommenceTime,
 } from "./oddsApi";
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
-import { applyMlbMaterialPregameRevision } from "./materialPregameRevisions";
+import { applyMaterialPregameRevision } from "./materialPregameRevisions";
 import type { WnbaGameContext } from "./wnbaContext";
 
 export interface PredictionDecisionContext {
@@ -592,7 +592,7 @@ export async function processGameSnapshot(
       if (predictionId !== null) {
         await publishPick(predictionId, game, proj, now);
       } else {
-        await applyMlbMaterialPregameRevision(
+        await applyMaterialPregameRevision(
           game,
           proj,
           modelVersionId,

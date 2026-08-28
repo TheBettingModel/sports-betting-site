@@ -25,7 +25,7 @@ const MATERIAL_EDGE_DELTA = 3;
 const MATERIAL_PROBABILITY_DELTA = 0.025;
 const MATERIAL_ODDS_DELTA = 15;
 
-type MlbRecommendation = "Strong Buy" | "Buy" | "Neutral" | "Fade";
+type MaterialRecommendation = "Strong Buy" | "Buy" | "Neutral" | "Fade";
 
 class PregameCutoffReachedError extends Error {
   constructor() {
@@ -39,7 +39,7 @@ export interface MaterialPregameDecision {
   modelProbability: number;
   edge: number;
   confidence: string;
-  recommendation: MlbRecommendation;
+  recommendation: MaterialRecommendation;
   units: number;
   podScore: number;
   finalRating: number;
@@ -157,10 +157,10 @@ function requiredMlbEvidenceWithdrawal(featureSnapshot: Record<string, unknown>)
   };
 }
 
-export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
+export function currentPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
   const selection = proj.edge >= 0 ? "home" : "away";
   const odds = selection === "home" ? proj.vegasHomeOdds : proj.vegasAwayOdds;
-  let recommendation: MlbRecommendation = (
+  let recommendation: MaterialRecommendation = (
     proj.valueRating === "Strong Buy" ||
     proj.valueRating === "Buy" ||
     proj.valueRating === "Fade"
@@ -188,6 +188,10 @@ export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPrega
     finalRating: proj.finalModelScore,
     marketIntelligenceGrade: proj.finalModelTier,
   };
+}
+
+export function currentMlbPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
+  return currentPregameDecision(proj);
 }
 
 /**
@@ -222,15 +226,32 @@ export function assessMlbMaterialPregameChange(
   return { changed: reasons.length > 0, reasons };
 }
 
+/**
+ * WNBA refreshes revise the effective pick only when the actionable decision
+ * changes. Ordinary price/probability movement remains in timestamped odds
+ * snapshots and must not churn immutable recommendation records.
+ */
+export function assessWnbaMaterialPregameChange(
+  previous: Pick<MaterialPregameDecision, "selection" | "recommendation">,
+  current: Pick<MaterialPregameDecision, "selection" | "recommendation">,
+): MaterialChange {
+  const reasons: string[] = [];
+  if (previous.recommendation !== current.recommendation) reasons.push("recommendation_changed");
+  if (previous.selection !== current.selection) reasons.push("selection_changed");
+  return { changed: reasons.length > 0, reasons };
+}
+
 function revisionManifest(
+  sport: string,
   priorPredictionId: number,
   current: MaterialPregameDecision,
   evidenceFingerprint: string | null,
   reasons: string[],
 ) {
   return {
-    version: "mlb-pregame-data-revision-v1",
+    version: `${sport.toLowerCase()}-pregame-data-revision-v1`,
     revisionType: "material_pregame_data",
+    sport,
     priorPredictionId,
     currentDecision: current,
     evidenceFingerprint,
@@ -238,24 +259,24 @@ function revisionManifest(
   };
 }
 
-export function isMlbMaterialPregameRevisionEligible(
+export function isMaterialPregameRevisionEligible(
   game: FetchedGame,
   proj: ProjectionResult,
   eligible: boolean,
   featureSnapshot?: Record<string, unknown>,
 ): boolean {
-  const evidenceWithdrawal = featureSnapshot
+  if (game.sport !== "MLB" && game.sport !== "WNBA") return false;
+  const evidenceWithdrawal = game.sport === "MLB" && featureSnapshot
     ? requiredMlbEvidenceWithdrawal(featureSnapshot).blocked
     : false;
   return (
-    game.sport === "MLB" &&
     game.status === "upcoming" &&
     isPregameCommenceTime(game.commenceTimeISO) &&
     (
       evidenceWithdrawal ||
       (
         eligible &&
-        hasValidMoneylineMarketForSport("MLB", {
+        hasValidMoneylineMarketForSport(game.sport, {
           homeOdds: proj.vegasHomeOdds,
           awayOdds: proj.vegasAwayOdds,
         })
@@ -264,24 +285,38 @@ export function isMlbMaterialPregameRevisionEligible(
   );
 }
 
+export function isMlbMaterialPregameRevisionEligible(
+  game: FetchedGame,
+  proj: ProjectionResult,
+  eligible: boolean,
+  featureSnapshot?: Record<string, unknown>,
+): boolean {
+  return game.sport === "MLB"
+    && isMaterialPregameRevisionEligible(game, proj, eligible, featureSnapshot);
+}
+
 /**
- * Replaces an effective MLB pregame decision only when the current validated
+ * Replaces an effective MLB or WNBA pregame decision only when the current validated
  * projection has changed materially. The previous prediction and pick remain
  * immutable audit records; the previous pending result becomes void.
  */
-export async function applyMlbMaterialPregameRevision(
+export async function applyMaterialPregameRevision(
   game: FetchedGame,
   proj: ProjectionResult,
   modelVersionId: number,
   featureSnapshot: Record<string, unknown>,
   eligible: boolean,
 ): Promise<boolean> {
-  if (!isMlbMaterialPregameRevisionEligible(game, proj, eligible, featureSnapshot)) {
+  if (!isMaterialPregameRevisionEligible(game, proj, eligible, featureSnapshot)) {
     return false;
   }
 
-  const evidenceWithdrawal = requiredMlbEvidenceWithdrawal(featureSnapshot);
-  const evidenceFingerprint = materialMlbEvidenceFingerprint(featureSnapshot);
+  const evidenceWithdrawal = game.sport === "MLB"
+    ? requiredMlbEvidenceWithdrawal(featureSnapshot)
+    : { blocked: false, qualityReasons: [] };
+  const evidenceFingerprint = game.sport === "MLB"
+    ? materialMlbEvidenceFingerprint(featureSnapshot)
+    : null;
   try {
     return await db.transaction(async (tx) => {
     await tx.execute(publishedPickEffectivenessWriterLock());
@@ -321,7 +356,7 @@ export async function applyMlbMaterialPregameRevision(
       modelProbability: priorPrediction.modelProbability,
       edge: priorPrediction.edge,
       confidence: activePick.confidence,
-      recommendation: activePick.recommendation as MlbRecommendation,
+      recommendation: activePick.recommendation as MaterialRecommendation,
       units: activePick.units,
       podScore: priorPrediction.podScore ?? 0,
       finalRating: priorPrediction.finalRating ?? 0,
@@ -344,8 +379,10 @@ export async function applyMlbMaterialPregameRevision(
           finalRating: 0,
           marketIntelligenceGrade: "",
         }
-      : currentMlbPregameDecision(proj);
-    const change = assessMlbMaterialPregameChange(prior, current, evidenceFingerprint);
+      : currentPregameDecision(proj);
+    const change = game.sport === "WNBA"
+      ? assessWnbaMaterialPregameChange(prior, current)
+      : assessMlbMaterialPregameChange(prior, current, evidenceFingerprint);
     if (evidenceWithdrawal.blocked && prior.recommendation !== "Neutral") {
       change.reasons.push(
         "required_pitcher_evidence_unavailable",
@@ -354,7 +391,13 @@ export async function applyMlbMaterialPregameRevision(
     }
     if (change.reasons.length === 0) return false;
 
-    const manifest = revisionManifest(priorPrediction.id, current, evidenceFingerprint, change.reasons);
+    const manifest = revisionManifest(
+      game.sport,
+      priorPrediction.id,
+      current,
+      evidenceFingerprint,
+      change.reasons,
+    );
     const materialHash = hash(manifest);
     const revisionKey = `pregame-data-${game.espnId}-${materialHash.slice(0, 16)}`;
     const revisionCreatedAt = new Date();
@@ -368,7 +411,7 @@ export async function applyMlbMaterialPregameRevision(
         .insert(mlbPolicyRevisionsTable)
         .values({
           revisionKey,
-          sport: "MLB",
+          sport: game.sport,
           market: "moneyline",
           policyManifest: manifest,
           policyHash: materialHash,
@@ -388,7 +431,7 @@ export async function applyMlbMaterialPregameRevision(
       }
     }
     if (!revision || revision.policyHash !== materialHash) {
-      throw new Error("Could not create a stable MLB pregame data revision.");
+      throw new Error(`Could not create a stable ${game.sport} pregame data revision.`);
     }
 
     const [alreadyWritten] = await tx
@@ -457,7 +500,7 @@ export async function applyMlbMaterialPregameRevision(
         modelVersionId,
         policyRevisionId: revision.id,
         supersedesPredictionId: priorPrediction.id,
-        sport: "MLB",
+        sport: game.sport,
         market: "moneyline",
         selection: current.selection,
         odds: current.odds,
@@ -517,7 +560,7 @@ export async function applyMlbMaterialPregameRevision(
       previousResult: "pending",
       newResult: "void",
       performedBy: "automation",
-      reason: `Superseded before start by MLB material pregame revision ${revision.revisionKey}`,
+      reason: `Superseded before start by ${game.sport} material pregame revision ${revision.revisionKey}`,
     }]);
     await tx
       .update(pickResultsTable)
@@ -540,7 +583,7 @@ export async function applyMlbMaterialPregameRevision(
         policyRevisionId: revision.id,
         supersedesPickId: activePick.id,
         gameId: game.espnId,
-        sport: "MLB",
+        sport: game.sport,
         market: "moneyline",
         selection: current.selection,
         odds: current.odds,
@@ -553,7 +596,7 @@ export async function applyMlbMaterialPregameRevision(
         publishedAt: now,
       })
       .returning({ id: publishedPicksTable.id });
-    if (!pick) throw new Error("Failed to create effective MLB material revision pick.");
+    if (!pick) throw new Error(`Failed to create effective ${game.sport} material revision pick.`);
 
     await tx
       .update(publishedPicksTable)
