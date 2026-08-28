@@ -319,6 +319,36 @@ const PUBLIC_BOOKS = new Set([
   "unibet_us", "barstool", "wynnbet", "betus", "mybookieag",
 ]);
 
+/**
+ * Books that can be surfaced to users as an actionable "best line".
+ *
+ * The provider response also includes offshore books, European books, and
+ * betting exchanges because the feed requests both US and EU regions. Those
+ * quotes remain available for internal market context, but should not be
+ * presented as a line a typical US bettor can readily access.
+ */
+const USER_FACING_BEST_LINE_BOOKS = new Set([
+  "draftkings",
+  "fanduel",
+  "betmgm",
+  "caesars",
+  "williamhill_us",
+  "betrivers",
+  "fanatics",
+  "hardrockbet",
+  "espnbet",
+  "betparx",
+  "ballybet",
+  "betfred_us",
+  "superbook",
+  "circasports",
+  "bet365_nj",
+  "bet365_oh",
+  "bet365_pa",
+  "bet365_in",
+  "bet365_az",
+]);
+
 async function fetchAndNormalise(
   oddsApiKey: string,
 ): Promise<Pick<CacheEntry, "games" | "providerCommenceTimes">> {
@@ -525,6 +555,7 @@ export function getBestLine(
   let best: { book: string; odds: number } | null = null;
 
   for (const b of gameOdds.bookmakerOdds) {
+    if (!USER_FACING_BEST_LINE_BOOKS.has(b.book)) continue;
     const odds = pickIsHome ? b.homeOdds : b.awayOdds;
     if (!isValidAmericanOdds(odds)) continue;
     if (best == null || impliedProb(odds) < impliedProb(best.odds)) {

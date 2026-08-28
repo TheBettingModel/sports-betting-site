@@ -5,6 +5,7 @@ import {
   firstValidMoneylineMarketForSport,
   hasValidMoneylineMarket,
   firstValidAmericanOdds,
+  getBestLine,
   isActionableOddsCache,
   isPregameCommenceTime,
   isValidAmericanOdds,
@@ -169,5 +170,38 @@ describe("American odds validation", () => {
     expect(isValidMarketPoint(8.5, "total")).toBe(true);
     expect(isValidMarketPoint(0, "total")).toBe(false);
     expect(isValidMarketPoint(999, "total")).toBe(false);
+  });
+});
+
+describe("best available line", () => {
+  const gameOdds = {
+    consensusHomeOdds: -144,
+    consensusAwayOdds: 120,
+    commenceTime: "2026-08-29T00:00:00.000Z",
+    bookmakerOdds: [
+      { book: "everygame", homeOdds: -145, awayOdds: 125 },
+      { book: "betfair_ex_eu", homeOdds: -132, awayOdds: 124 },
+      { book: "betrivers", homeOdds: -148, awayOdds: 123 },
+      { book: "fanduel", homeOdds: -144, awayOdds: 122 },
+      { book: "draftkings", homeOdds: -143, awayOdds: 119 },
+    ],
+  };
+
+  it("selects the best recognized US-facing price instead of an offshore or exchange quote", () => {
+    expect(getBestLine(gameOdds, false)).toEqual({ book: "betrivers", odds: 123 });
+  });
+
+  it("still selects the correct side of each eligible two-way market", () => {
+    expect(getBestLine(gameOdds, true)).toEqual({ book: "draftkings", odds: -143 });
+  });
+
+  it("omits best-line guidance when only non-actionable books are available", () => {
+    expect(getBestLine({
+      ...gameOdds,
+      bookmakerOdds: [
+        { book: "everygame", homeOdds: -145, awayOdds: 125 },
+        { book: "betfair_ex_eu", homeOdds: -132, awayOdds: 124 },
+      ],
+    }, false)).toBeNull();
   });
 });
