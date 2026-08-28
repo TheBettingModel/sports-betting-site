@@ -4,6 +4,7 @@ import {
   createPredictionDecisionContext,
   isPredictionDecisionEligible,
 } from "./snapshot";
+import type { WnbaGameContext } from "./wnbaContext";
 
 function gameWithStart(commenceTimeISO: string): FetchedGame {
   return {
@@ -86,5 +87,46 @@ describe("prediction decision context market gates", () => {
     expect(context.dataQuality.evidence?.schemaVersion).toBe("mlb-full-game-evidence-v1");
     expect(context.dataQuality.evidence?.signals.weather.available).toBe(false);
     expect(context.dataQuality.evidence?.confidenceMultiplier).toBeLessThan(1);
+  });
+});
+
+describe("WNBA immutable decision evidence", () => {
+  const wnbaGame = (): FetchedGame => ({
+    ...gameWithStart(new Date(Date.now() + 60_000).toISOString()),
+    sport: "WNBA",
+    homeTeamId: "20",
+    awayTeamId: "19",
+  });
+  const wnbaContext = (): WnbaGameContext => ({
+    capturedAt: "2026-08-22T00:00:00.000Z",
+    sourceSeason: 2026,
+    home: {
+      availability: { impactScore: 0, keyInjuries: [], evidence: { source: "espn", sourceSeason: 2026, capturedAt: "2026-08-22T00:00:00.000Z", stale: false, missing: [] } },
+      schedule: { restDays: null, backToBack: null, gamesLast3Days: null, gamesLast5Days: null, roadTripLength: null, priorVenue: null, priorOpponent: null, travelMiles: null, timezoneShiftHours: null, evidence: { source: "espn-schedule+static-team-location-map", sourceSeason: 2026, capturedAt: "2026-08-22T00:00:00.000Z", stale: false, missing: ["schedule"] } },
+    },
+    away: {
+      availability: { impactScore: 0, keyInjuries: [], evidence: { source: "espn", sourceSeason: 2026, capturedAt: "2026-08-22T00:00:00.000Z", stale: false, missing: [] } },
+      schedule: { restDays: null, backToBack: null, gamesLast3Days: null, gamesLast5Days: null, roadTripLength: null, priorVenue: null, priorOpponent: null, travelMiles: null, timezoneShiftHours: null, evidence: { source: "espn-schedule+static-team-location-map", sourceSeason: 2026, capturedAt: "2026-08-22T00:00:00.000Z", stale: false, missing: [] } },
+    },
+    matchup: {
+      pace: { home: null, away: null, missing: true },
+      perimeter: { home: null, away: null, missing: true },
+      reboundingInteriorProxy: { home: null, away: null, missing: true },
+      turnover: { home: null, away: null, missing: true },
+      freeThrow: { home: null, away: null, missing: true },
+    },
+    evidence: { immutable: true, missing: ["matchup.pace"] },
+  });
+
+  it("keeps WNBA unknown evidence as missing data without changing market eligibility", () => {
+    const game = wnbaGame();
+    const context = createPredictionDecisionContext(
+      game, null,
+      { realVegasHomeOdds: -120, realVegasAwayOdds: 100, injuryAdvantage: 0, wnbaContext: wnbaContext() },
+      { wnbaContext: wnbaContext() },
+    );
+    expect(context.dataQuality.missingSignals).toContain("wnba_matchup.pace");
+    expect(context.dataQuality.missingSignals).toContain("wnba_home_schedule.schedule");
+    expect(isPredictionDecisionEligible(game, context)).toBe(true);
   });
 });

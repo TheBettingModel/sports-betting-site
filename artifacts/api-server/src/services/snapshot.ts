@@ -31,6 +31,7 @@ import {
 } from "./oddsApi";
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { applyMlbMaterialPregameRevision } from "./materialPregameRevisions";
+import type { WnbaGameContext } from "./wnbaContext";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -43,6 +44,68 @@ export interface PredictionDecisionContext {
     missingSignals: string[];
     source: "refresh";
     evidence?: MlbDecisionEvidence;
+  };
+}
+
+function wnbaMissingSignals(context: WnbaGameContext | undefined): string[] {
+  if (!context) return ["wnba_context"];
+  return [
+    ...context.evidence.missing.map((signal) => `wnba_${signal}`),
+    ...(context.home.stats?.evidence?.missing ?? []).map((signal) => `wnba_home_stats.${signal}`),
+    ...(context.away.stats?.evidence?.missing ?? []).map((signal) => `wnba_away_stats.${signal}`),
+    ...(context.home.availability.evidence?.missing ?? []).map((signal) => `wnba_home_availability.${signal}`),
+    ...(context.away.availability.evidence?.missing ?? []).map((signal) => `wnba_away_availability.${signal}`),
+    ...context.home.schedule.evidence.missing.map((signal) => `wnba_home_schedule.${signal}`),
+    ...context.away.schedule.evidence.missing.map((signal) => `wnba_away_schedule.${signal}`),
+    ...(context.home.availability.evidence?.stale ? ["wnba_home_availability_stale"] : []),
+    ...(context.away.availability.evidence?.stale ? ["wnba_away_availability_stale"] : []),
+    ...(context.home.stats?.evidence?.stale ? ["wnba_home_stats_stale"] : []),
+    ...(context.away.stats?.evidence?.stale ? ["wnba_away_stats_stale"] : []),
+    ...(context.home.schedule.evidence.stale ? ["wnba_home_schedule_stale"] : []),
+    ...(context.away.schedule.evidence.stale ? ["wnba_away_schedule_stale"] : []),
+  ];
+}
+
+function buildWnbaSegmentation(
+  game: FetchedGame,
+  proj: ProjectionResult,
+  decisionContext?: PredictionDecisionContext,
+): Record<string, unknown> | undefined {
+  if (game.sport !== "WNBA") return undefined;
+  const context = decisionContext?.availability.wnbaContext as WnbaGameContext | undefined;
+  const side = proj.edge >= 0 ? "home" : "away";
+  const odds = side === "home" ? proj.vegasHomeOdds : proj.vegasAwayOdds;
+  const edge = Math.abs(proj.edge);
+  return {
+    version: "wnba-segmentation-v1",
+    side: { raw: side, bucketed: side },
+    market: { raw: "moneyline", bucketed: "moneyline" },
+    odds: {
+      raw: odds,
+      bucketed: odds == null ? null : odds <= -200 ? "favorite_200_plus" : odds < 0 ? "favorite" : odds < 200 ? "underdog" : "underdog_200_plus",
+    },
+    absoluteEdge: {
+      raw: edge,
+      bucketed: edge < 2 ? "under_2" : edge < 5 ? "2_to_under_5" : edge < 10 ? "5_to_under_10" : "10_plus",
+    },
+    confidence: { raw: proj.confidence, bucketed: proj.confidence },
+    recommendation: { raw: proj.valueRating, bucketed: proj.valueRating },
+    rest: {
+      homeDays: context?.home.schedule.restDays ?? null,
+      awayDays: context?.away.schedule.restDays ?? null,
+      homeBackToBack: context?.home.schedule.backToBack ?? null,
+      awayBackToBack: context?.away.schedule.backToBack ?? null,
+    },
+    travel: {
+      homeMiles: context?.home.schedule.travelMiles ?? null,
+      awayMiles: context?.away.schedule.travelMiles ?? null,
+      homeTimezoneShiftHours: context?.home.schedule.timezoneShiftHours ?? null,
+      awayTimezoneShiftHours: context?.away.schedule.timezoneShiftHours ?? null,
+    },
+    availability: context
+      ? { home: context.home.availability, away: context.away.availability }
+      : null,
+    pace: context?.matchup.pace ?? { home: null, away: null, missing: true },
   };
 }
 
@@ -95,6 +158,7 @@ export function createPredictionDecisionContext(
     game.sport === "NHL" && options.goalieAdvantage == null ? "goalie_confirmation" : null,
     game.sport === "NFL" && options.injuryAdvantage == null ? "injury_report" : null,
     game.sport === "WNBA" && options.injuryAdvantage == null ? "player_availability" : null,
+    ...(game.sport === "WNBA" ? wnbaMissingSignals(options.wnbaContext) : []),
   ].filter((signal): signal is string => signal !== null);
 
   return {
@@ -221,6 +285,9 @@ async function writePredictionSnapshot(
     vegasAwayOdds: proj.vegasAwayOdds,
     vegasSpread: proj.vegasSpread,
     vegasTotal: proj.vegasTotal,
+    ...(buildWnbaSegmentation(game, proj, decisionContext)
+      ? { wnbaSegmentation: buildWnbaSegmentation(game, proj, decisionContext) }
+      : {}),
     ...(decisionContext ? {
       decision: {
         factorWeights: decisionContext.factorWeights,
@@ -500,6 +567,9 @@ export async function processGameSnapshot(
         vegasAwayOdds: proj.vegasAwayOdds,
         vegasSpread: proj.vegasSpread,
         vegasTotal: proj.vegasTotal,
+        ...(buildWnbaSegmentation(game, proj, decisionContext)
+          ? { wnbaSegmentation: buildWnbaSegmentation(game, proj, decisionContext) }
+          : {}),
         ...(decisionContext ? {
           decision: {
             factorWeights: decisionContext.factorWeights,

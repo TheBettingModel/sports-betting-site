@@ -1,5 +1,6 @@
 import type { ModelWeights, FactorWeights } from "@workspace/db";
 import type { WnbaTeamStats, SoccerTeamStats, DbTeamStats } from "./teamStats";
+import type { WnbaGameContext } from "./wnbaContext";
 
 export interface ProjectionResult {
   homeWinPct: number;
@@ -116,6 +117,18 @@ export const SPORT_DEFAULT_WEIGHTS: Record<string, FactorWeights> = {
     formWeight:       0.14,  // recent form matters more in a compact WNBA schedule
     netRatingWeight:  0.012, // last-10 point diff is a better quality signal than 0.003
     restWeight:       0.022, // rest/B2B is significant on a 40-game schedule
+    trueShootingWeight: 0.12,
+    possessionNetRatingWeight: 0.003,
+    offensiveEfficiencyWeight: 0.0015,
+    defensiveEfficiencyWeight: 0.0015,
+    perimeterWeight: 0.04,
+    contextTurnoverWeight: 0.10,
+    reboundingInteriorWeight: 0.001,
+    freeThrowGenerationWeight: 0.06,
+    paceInteractionWeight: 0.004,
+    scheduleCompressionWeight: 0.006,
+    travelWeight: 0.000006,
+    availabilityWeight: 0.50,
   },
   NBA: {
     recordWeight:     0.30,
@@ -502,6 +515,8 @@ export interface ComputeOptions {
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
+  /** Immutable WNBA-only pregame evidence. It is never used for NBA projections. */
+  wnbaContext?: WnbaGameContext;
   // ── Soccer historical stats (DB) ────────────────────────────────────────
   homeSoccerStats?: SoccerTeamStats;
   awaySoccerStats?: SoccerTeamStats;
@@ -526,6 +541,83 @@ export interface ComputeOptions {
 
 export interface FactorContributions {
   [factor: string]: number; // signed prob contribution; >0 = predicts home win
+}
+
+const boundedContribution = (value: number, limit: number): number =>
+  Number.isFinite(value) ? Math.max(-limit, Math.min(limit, value)) : 0;
+
+/**
+ * WNBA evidence is intentionally isolated from the shared NBA inputs. Every
+ * returned value is bounded and uses zero when its underlying evidence is
+ * absent, so an unavailable feed cannot become an inferred signal.
+ */
+export function computeWnbaContextContributions(
+  context: WnbaGameContext | undefined,
+  fw: FactorWeights,
+): FactorContributions {
+  const zeroes: FactorContributions = {
+    trueShooting: 0, possessionNetRating: 0, offensiveEfficiency: 0,
+    defensiveEfficiency: 0, perimeter: 0, contextTurnover: 0,
+    reboundingInterior: 0, freeThrowGeneration: 0, paceInteraction: 0,
+    scheduleCompression: 0, travel: 0, availability: 0,
+  };
+  if (!context) return zeroes;
+
+  const hs = context.home.stats;
+  const as_ = context.away.stats;
+  const pair = (key: keyof WnbaGameContext["matchup"]) => {
+    const value = context.matchup[key];
+    return value.missing || value.home == null || value.away == null
+      ? null : [value.home, value.away] as const;
+  };
+  const both = <T extends number>(home: T | undefined, away: T | undefined) =>
+    Number.isFinite(home) && Number.isFinite(away) ? [home!, away!] as const : null;
+  const ts = both(hs?.trueShootingPercent, as_?.trueShootingPercent);
+  const net = both(hs?.netRating, as_?.netRating);
+  const offensive = both(hs?.offensiveRating, as_?.offensiveRating);
+  const defensive = both(hs?.defensiveRating, as_?.defensiveRating);
+  const perimeter = pair("perimeter");
+  const perimeterShooting = both(hs?.threePointPct, as_?.threePointPct);
+  const turnover = pair("turnover");
+  const interior = pair("reboundingInteriorProxy");
+  const freeThrow = pair("freeThrow");
+  const pace = pair("pace");
+
+  zeroes.trueShooting = ts ? boundedContribution((ts[0] - ts[1]) * (fw["trueShootingWeight"] ?? 0), .02) : 0;
+  zeroes.possessionNetRating = net ? boundedContribution((net[0] - net[1]) * (fw["possessionNetRatingWeight"] ?? 0), .02) : 0;
+  zeroes.offensiveEfficiency = offensive ? boundedContribution((offensive[0] - offensive[1]) * (fw["offensiveEfficiencyWeight"] ?? 0), .015) : 0;
+  zeroes.defensiveEfficiency = defensive ? boundedContribution((defensive[1] - defensive[0]) * (fw["defensiveEfficiencyWeight"] ?? 0), .015) : 0;
+  zeroes.perimeter = perimeter && perimeterShooting
+    ? boundedContribution((((perimeter[0] - perimeter[1]) + (perimeterShooting[0] - perimeterShooting[1])) / 2) * (fw["perimeterWeight"] ?? 0), .015)
+    : 0;
+  zeroes.contextTurnover = turnover ? boundedContribution((turnover[1] - turnover[0]) * (fw["contextTurnoverWeight"] ?? 0), .015) : 0;
+  zeroes.reboundingInterior = interior ? boundedContribution((interior[0] - interior[1]) * (fw["reboundingInteriorWeight"] ?? 0), .015) : 0;
+  zeroes.freeThrowGeneration = freeThrow ? boundedContribution((freeThrow[0] - freeThrow[1]) * (fw["freeThrowGenerationWeight"] ?? 0), .015) : 0;
+  // Pace only matters when combined with a known possession-quality edge.
+  zeroes.paceInteraction = pace && net
+    ? boundedContribution(((pace[0] - pace[1]) / 10) * ((net[0] - net[1]) / 10) * (fw["paceInteractionWeight"] ?? 0), .01)
+    : 0;
+
+  const compression = (schedule: WnbaGameContext["home"]["schedule"]) => {
+    if (schedule.backToBack == null || schedule.gamesLast3Days == null || schedule.gamesLast5Days == null) return null;
+    return (schedule.backToBack ? 1 : 0) + Math.max(0, schedule.gamesLast3Days - 1) + Math.max(0, schedule.gamesLast5Days - 2) * .5;
+  };
+  const homeCompression = compression(context.home.schedule);
+  const awayCompression = compression(context.away.schedule);
+  zeroes.scheduleCompression = homeCompression != null && awayCompression != null
+    ? boundedContribution((awayCompression - homeCompression) * (fw["scheduleCompressionWeight"] ?? 0), .02) : 0;
+  const travelBurden = (schedule: WnbaGameContext["home"]["schedule"]) =>
+    schedule.travelMiles != null && schedule.timezoneShiftHours != null
+      ? schedule.travelMiles + Math.abs(schedule.timezoneShiftHours) * 250 : null;
+  const homeTravel = travelBurden(context.home.schedule);
+  const awayTravel = travelBurden(context.away.schedule);
+  zeroes.travel = homeTravel != null && awayTravel != null
+    ? boundedContribution((awayTravel - homeTravel) * (fw["travelWeight"] ?? 0), .02) : 0;
+  const homeAvailability = context.home.availability?.impactScore;
+  const awayAvailability = context.away.availability?.impactScore;
+  zeroes.availability = Number.isFinite(homeAvailability) && Number.isFinite(awayAvailability)
+    ? boundedContribution((homeAvailability! - awayAvailability!) * (fw["availabilityWeight"] ?? 0), .035) : 0;
+  return zeroes;
 }
 
 /**
@@ -577,15 +669,27 @@ export function computeFactorContributions(
     const hs = opts.homeTeamStats;
     const as_ = opts.awayTeamStats;
     if (hs && as_) {
-      contributions["efg"]       = (hs.efgPercent - as_.efgPercent) * (fw["efgWeight"] ?? 0.28);
-      contributions["to"]        = (as_.turnoverPercent - hs.turnoverPercent) * (fw["toWeight"] ?? 0.22);
-      contributions["oreb"]      = (hs.orebPg - as_.orebPg) * (fw["orebWeight"] ?? 0.004);
-      contributions["def"]       = ((hs.bpg + hs.spg) - (as_.bpg + as_.spg)) * (fw["defWeight"] ?? 0.003);
-      contributions["form"]      = (hs.last5WinPct - as_.last5WinPct) * (fw["formWeight"] ?? 0.12);
-      contributions["netRating"] = (hs.last10PointDiff - as_.last10PointDiff) * (fw["netRatingWeight"] ?? 0.003);
+      const hasWnbaEvidence = (...signals: string[]) =>
+        sport !== "WNBA" ||
+        ((!hs.evidence || signals.every((signal) => !hs.evidence!.missing.includes(signal))) &&
+         (!as_.evidence || signals.every((signal) => !as_.evidence!.missing.includes(signal))));
+      contributions["efg"] = hasWnbaEvidence("shootingEfficiency")
+        ? (hs.efgPercent - as_.efgPercent) * (fw["efgWeight"] ?? 0.28) : 0;
+      contributions["to"] = hasWnbaEvidence("avgTurnovers", "fieldGoalAttempts")
+        ? (as_.turnoverPercent - hs.turnoverPercent) * (fw["toWeight"] ?? 0.22) : 0;
+      contributions["oreb"] = hasWnbaEvidence("avgOffensiveRebounds")
+        ? (hs.orebPg - as_.orebPg) * (fw["orebWeight"] ?? 0.004) : 0;
+      contributions["def"] = hasWnbaEvidence("avgBlocks", "avgSteals")
+        ? ((hs.bpg + hs.spg) - (as_.bpg + as_.spg)) * (fw["defWeight"] ?? 0.003) : 0;
+      contributions["form"] = hasWnbaEvidence("schedule", "completedGames")
+        ? (hs.last5WinPct - as_.last5WinPct) * (fw["formWeight"] ?? 0.12) : 0;
+      contributions["netRating"] = hasWnbaEvidence("schedule", "completedGames")
+        ? (hs.last10PointDiff - as_.last10PointDiff) * (fw["netRatingWeight"] ?? 0.003) : 0;
       const restDiff = hs.restDays - as_.restDays;
-      contributions["rest"] = Math.max(-0.035, Math.min(0.035, restDiff * (fw["restWeight"] ?? 0.009)));
+      contributions["rest"] = hasWnbaEvidence("schedule", "completedGames")
+        ? Math.max(-0.035, Math.min(0.035, restDiff * (fw["restWeight"] ?? 0.009))) : 0;
     }
+    if (sport === "WNBA") Object.assign(contributions, computeWnbaContextContributions(opts.wnbaContext, fw));
     return contributions;
   }
 
@@ -675,6 +779,17 @@ function computeBasketballProjection(
   const hs = opts.homeTeamStats;
   const as_ = opts.awayTeamStats;
 
+  if (sport === "WNBA") {
+    prob = 0.5 + homeAdv + Object.values(
+      computeFactorContributions(sport, homeRecord, awayRecord, opts, fw),
+    ).reduce((sum, contribution) => sum + contribution, 0);
+    if (!opts.wnbaContext && opts.injuryAdvantage != null) prob += opts.injuryAdvantage;
+    prob = 0.5 + (prob - 0.5) * multiplier;
+    const noiseRange = (hs && as_) ? 6 : 10;
+    prob = Math.max(0.22, Math.min(0.82, prob + hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2))));
+    return finalizeResult(gameId, sport, prob, homeWinRate, accuracyBoost, opts);
+  }
+
   if (hs && as_) {
     // Tier 1: Efficiency
     prob += (hs.efgPercent - as_.efgPercent) * (fw["efgWeight"] ?? 0.28);
@@ -691,16 +806,9 @@ function computeBasketballProjection(
     // Back-to-back penalty: explicit –3 % for teams on zero/one day rest.
     // The weight-based restDiff only captures relative rest; this captures the
     // absolute fatigue hit of playing on consecutive days (material in WNBA/NBA).
-    const b2bPenalty = sport === "WNBA" ? 0.030 : 0.020;
+    const b2bPenalty = 0.020;
     if (hs.restDays <= 1)  prob -= b2bPenalty;  // home team on B2B — hurts home
     if (as_.restDays <= 1) prob += b2bPenalty;  // away team on B2B — hurts away = helps home
-  }
-
-  // WNBA injury/availability adjustment.
-  // Stars in a 12-player roster have outsized per-game impact; this is the
-  // single biggest missing signal for WNBA (bigger than it is for NBA).
-  if (sport === "WNBA" && opts.injuryAdvantage != null) {
-    prob += opts.injuryAdvantage;
   }
 
   prob = 0.5 + (prob - 0.5) * multiplier;

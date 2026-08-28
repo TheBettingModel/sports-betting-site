@@ -16,11 +16,11 @@ import { getParkFactor } from "../services/mlbParkFactors";
 import { getVenueWeather, computeWeatherEffect, getVenueWeatherCacheMeta } from "../services/weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage } from "../services/nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "../services/nflInjuries";
-import { getWnbaTeamInjuryImpact, computeWnbaInjuryAdvantage } from "../services/wnbaInjuries";
+import { computeWnbaInjuryAdvantage } from "../services/wnbaInjuries";
 import type { GoalieMatchup } from "../services/nhlGoalies";
 import type { TeamInjuryImpact } from "../services/nflInjuries";
-import type { WnbaTeamInjuryImpact } from "../services/wnbaInjuries";
-import { getWnbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
+import { getWnbaTeamStats, getNbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
+import { getWnbaGameContext } from "../services/wnbaContext";
 import { runLearning } from "../services/learning";
 import { createPredictionDecisionContext, processGameSnapshot } from "../services/snapshot";
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
@@ -127,7 +127,6 @@ export async function refreshAll(): Promise<{
   const weatherMap    = new Map<string, Awaited<ReturnType<typeof getVenueWeather>>>();
   const goalieMap     = new Map<string, Awaited<ReturnType<typeof getGoalieMatchup>>>();
   const injuryMap     = new Map<string, Awaited<ReturnType<typeof getTeamInjuryImpact>>>();
-  const wnbaInjuryMap = new Map<string, WnbaTeamInjuryImpact>(); // keyed by ESPN team ID
   const bullpenMap    = new Map<string, Awaited<ReturnType<typeof getBullpenMatchup>>>();
   const lineupMap     = new Map<string, Awaited<ReturnType<typeof getLineupMatchup>>>();
 
@@ -157,19 +156,6 @@ export async function refreshAll(): Promise<{
         const impact = await getTeamInjuryImpact(abbr);
         injuryMap.set(abbr, impact);
       }),
-    // WNBA injuries — one ESPN report covers all 12 teams; keyed by ESPN team ID.
-    // Pre-batch so all WNBA games share a single fetch (3-hour TTL in the service).
-    (async () => {
-      const wnbaTeamIds = fetchedGames
-        .filter((g) => g.sport === "WNBA")
-        .flatMap((g) => [g.homeTeamId, g.awayTeamId])
-        .filter((id): id is string => !!id)
-        .filter((id, i, arr) => arr.indexOf(id) === i); // unique
-      for (const teamId of wnbaTeamIds) {
-        const impact = await getWnbaTeamInjuryImpact(teamId);
-        wnbaInjuryMap.set(teamId, impact);
-      }
-    })(),
     // MLB bullpen fatigue — one batch call fetches all teams; single cache per day
     (async () => {
       const mlbGames = fetchedGames.filter((g) => g.sport === "MLB");
@@ -214,6 +200,15 @@ export async function refreshAll(): Promise<{
 
   for (const game of fetchedGames) {
     const w = weightsBySport[game.sport] ?? null;
+    // One immutable context assembly per WNBA game supplies the exact stats,
+    // availability, schedule, travel, and evidence used by this decision.
+    const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
+      ? await getWnbaGameContext({
+          homeTeamId: game.homeTeamId,
+          awayTeamId: game.awayTeamId,
+          gameTime: game.commenceTimeISO,
+        })
+      : undefined;
 
     const DB_SPORTS = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
 
@@ -222,11 +217,15 @@ export async function refreshAll(): Promise<{
     // MLB/NFL/NHL/NCAAF/NCAAB: DB runs/points (1h TTL).
     const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
       await Promise.all([
-        (game.sport === "WNBA" || game.sport === "NBA")
-          ? getWnbaTeamStats(game.homeTeamId ?? "")
+        game.sport === "WNBA"
+          ? Promise.resolve(wnbaContext?.home.stats)
+          : game.sport === "NBA"
+          ? getNbaTeamStats(game.homeTeamId ?? "")
           : Promise.resolve(undefined),
-        (game.sport === "WNBA" || game.sport === "NBA")
-          ? getWnbaTeamStats(game.awayTeamId ?? "")
+        game.sport === "WNBA"
+          ? Promise.resolve(wnbaContext?.away.stats)
+          : game.sport === "NBA"
+          ? getNbaTeamStats(game.awayTeamId ?? "")
           : Promise.resolve(undefined),
         game.sport === "Soccer"
           ? getSoccerTeamStats(game.homeTeamId ?? "")
@@ -296,8 +295,8 @@ export async function refreshAll(): Promise<{
     const goalieMatchup  = goalieMap.get(game.espnId) ?? ({ home: null, away: null } as GoalieMatchup);
     const homeInjury     = injuryMap.get(game.homeTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
     const awayInjury     = injuryMap.get(game.awayTeamAbbr) ?? ({ impactScore: 0, keyInjuries: [] } as TeamInjuryImpact);
-    const homeWnbaInjury = wnbaInjuryMap.get(game.homeTeamId ?? "") ?? ({ impactScore: 0, keyInjuries: [] } as WnbaTeamInjuryImpact);
-    const awayWnbaInjury = wnbaInjuryMap.get(game.awayTeamId ?? "") ?? ({ impactScore: 0, keyInjuries: [] } as WnbaTeamInjuryImpact);
+    const homeWnbaInjury = wnbaContext?.home.availability;
+    const awayWnbaInjury = wnbaContext?.away.availability;
     const bullpenMatchup = bullpenMap.get(game.espnId) ?? { home: null, away: null };
     const lineupMatchup  = lineupMap.get(game.espnId) ?? { home: { confirmed: false, batterCount: 0 }, away: { confirmed: false, batterCount: 0 } };
 
@@ -309,7 +308,7 @@ export async function refreshAll(): Promise<{
       : undefined;
     const injuryAdvantage = game.sport === "NFL"
       ? computeInjuryAdvantage(homeInjury, awayInjury)
-      : game.sport === "WNBA"
+      : game.sport === "WNBA" && homeWnbaInjury && awayWnbaInjury
       ? computeWnbaInjuryAdvantage(homeWnbaInjury, awayWnbaInjury)
       : undefined;
     const bullpenEffect = game.sport === "MLB"
@@ -364,6 +363,7 @@ export async function refreshAll(): Promise<{
       awaySoccerStats,
       homeDbStats,
       awayDbStats,
+      wnbaContext,
     };
     const mlbAvailability = {
       homeStarter: starters.home ?? null,
@@ -410,9 +410,10 @@ export async function refreshAll(): Promise<{
         homeGoalie: goalieMatchup.home ?? null,
         awayGoalie: goalieMatchup.away ?? null,
         homeInjuries: game.sport === "NFL" ? homeInjury.keyInjuries :
-          game.sport === "WNBA" ? homeWnbaInjury.keyInjuries : [],
+          game.sport === "WNBA" ? homeWnbaInjury?.keyInjuries ?? [] : [],
         awayInjuries: game.sport === "NFL" ? awayInjury.keyInjuries :
-          game.sport === "WNBA" ? awayWnbaInjury.keyInjuries : [],
+          game.sport === "WNBA" ? awayWnbaInjury?.keyInjuries ?? [] : [],
+        wnbaContext,
       },
       mlbEvidence,
     );
@@ -481,16 +482,16 @@ export async function refreshAll(): Promise<{
         // Phase 3: NFL / WNBA injuries (shared columns)
         homeInjuryImpact:
           game.sport === "NFL"  ? homeInjury.impactScore :
-          game.sport === "WNBA" ? homeWnbaInjury.impactScore : null,
+          game.sport === "WNBA" ? homeWnbaInjury?.impactScore ?? null : null,
         awayInjuryImpact:
           game.sport === "NFL"  ? awayInjury.impactScore :
-          game.sport === "WNBA" ? awayWnbaInjury.impactScore : null,
+          game.sport === "WNBA" ? awayWnbaInjury?.impactScore ?? null : null,
         homeKeyInjuries:
           game.sport === "NFL"  ? JSON.stringify(homeInjury.keyInjuries) :
-          game.sport === "WNBA" ? JSON.stringify(homeWnbaInjury.keyInjuries) : null,
+          game.sport === "WNBA" ? JSON.stringify(homeWnbaInjury?.keyInjuries ?? []) : null,
         awayKeyInjuries:
           game.sport === "NFL"  ? JSON.stringify(awayInjury.keyInjuries) :
-          game.sport === "WNBA" ? JSON.stringify(awayWnbaInjury.keyInjuries) : null,
+          game.sport === "WNBA" ? JSON.stringify(awayWnbaInjury?.keyInjuries ?? []) : null,
         // Phase 4: MLB bullpen fatigue
         homeBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.home?.weightedPitches ?? null) : null,
         awayBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.away?.weightedPitches ?? null) : null,
@@ -575,16 +576,16 @@ export async function refreshAll(): Promise<{
           // Phase 3: NFL / WNBA injuries (shared columns, refreshed each run)
           homeInjuryImpact:
             game.sport === "NFL"  ? homeInjury.impactScore :
-            game.sport === "WNBA" ? homeWnbaInjury.impactScore : null,
+            game.sport === "WNBA" ? homeWnbaInjury?.impactScore ?? null : null,
           awayInjuryImpact:
             game.sport === "NFL"  ? awayInjury.impactScore :
-            game.sport === "WNBA" ? awayWnbaInjury.impactScore : null,
+            game.sport === "WNBA" ? awayWnbaInjury?.impactScore ?? null : null,
           homeKeyInjuries:
             game.sport === "NFL"  ? JSON.stringify(homeInjury.keyInjuries) :
-            game.sport === "WNBA" ? JSON.stringify(homeWnbaInjury.keyInjuries) : null,
+            game.sport === "WNBA" ? JSON.stringify(homeWnbaInjury?.keyInjuries ?? []) : null,
           awayKeyInjuries:
             game.sport === "NFL"  ? JSON.stringify(awayInjury.keyInjuries) :
-            game.sport === "WNBA" ? JSON.stringify(awayWnbaInjury.keyInjuries) : null,
+            game.sport === "WNBA" ? JSON.stringify(awayWnbaInjury?.keyInjuries ?? []) : null,
           // Phase 4: MLB bullpen fatigue (refreshed each run — fatigue changes daily)
           homeBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.home?.weightedPitches ?? null) : null,
           awayBullpenFatigue: game.sport === "MLB" ? (bullpenMatchup.away?.weightedPitches ?? null) : null,

@@ -31,6 +31,7 @@ export type OutcomeReview = {
       agreedWithOutcome: boolean | null;
     }>;
     availabilityChanged: boolean;
+    wnbaSegmentation?: Record<string, unknown>;
   };
 };
 
@@ -125,7 +126,7 @@ export function isDecisionSnapshot(snapshot: unknown): snapshot is JsonRecord {
   const schemaVersion = record.schemaVersion;
   const decision = record.decision;
   // Version 2 is the original decision-evidence format. Version 3 is the
-  // current full-game snapshot, version 4 adds the first immutable policy
+   // current full-game snapshot, version 4 adds the first immutable policy
   // revision, and version 5 is the material-pregame revision shape. All retain
   // the same complete decision evidence required for safe review and learning.
   return (
@@ -272,6 +273,9 @@ export function buildOutcomeReview(input: {
       clv: input.clv,
       missingSignals,
       availabilityChanged,
+      ...(isRecord(snapshot.wnbaSegmentation)
+        ? { wnbaSegmentation: snapshot.wnbaSegmentation }
+        : {}),
       factorEvidence,
     }),
     evidence: {

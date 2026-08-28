@@ -114,3 +114,36 @@ describe("learning replay eligibility", () => {
     })).toBe(false);
   });
 });
+
+describe("WNBA evidence-weight learning safeguards", () => {
+  it("does not retrain newly introduced WNBA evidence weights before the minimum sample", () => {
+    const current = {
+      trueShootingWeight: 0.12,
+      availabilityWeight: 0.50,
+      travelWeight: 0.000006,
+    };
+    const protectedWeights = nudgeWeights({
+      sport: "WNBA",
+      current,
+      contributions: { trueShooting: .02, availability: .03, travel: .02 },
+      selection: "home",
+      result: "loss",
+      modelProbability: .85,
+      sampleSize: 14,
+    });
+    const learnedWeights = nudgeWeights({
+      sport: "WNBA",
+      current,
+      contributions: { trueShooting: .02, availability: .03, travel: .02 },
+      selection: "home",
+      result: "loss",
+      modelProbability: .85,
+      sampleSize: 15,
+    });
+
+    expect(protectedWeights.trueShootingWeight).toBe(current.trueShootingWeight);
+    expect(protectedWeights.availabilityWeight).toBe(current.availabilityWeight);
+    expect(learnedWeights.trueShootingWeight).toBeLessThan(current.trueShootingWeight);
+    expect(learnedWeights.availabilityWeight).toBeLessThan(current.availabilityWeight);
+  });
+});

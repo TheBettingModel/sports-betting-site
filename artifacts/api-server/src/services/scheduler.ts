@@ -36,7 +36,8 @@ import { getParkFactor } from "./mlbParkFactors";
 import { getVenueWeather, computeWeatherEffect, getVenueWeatherCacheMeta } from "./weatherService";
 import { getGoalieMatchup, computeGoalieAdvantage, getNhlTeamSpecialTeams, computeNhlSpecialTeamsAdvantage } from "./nhlGoalies";
 import { getTeamInjuryImpact, computeInjuryAdvantage } from "./nflInjuries";
-import { getWnbaTeamInjuryImpact, computeWnbaInjuryAdvantage } from "./wnbaInjuries";
+import { computeWnbaInjuryAdvantage } from "./wnbaInjuries";
+import { getWnbaGameContext } from "./wnbaContext";
 import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
@@ -460,18 +461,25 @@ async function runOddsIngestion(): Promise<void> {
 
       for (const game of games) {
         try {
+          const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
+            ? await getWnbaGameContext({
+                homeTeamId: game.homeTeamId,
+                awayTeamId: game.awayTeamId,
+                gameTime: game.commenceTimeISO,
+              })
+            : undefined;
           // Fetch advanced team analytics (all cached after first call per run).
           // WNBA: ESPN WNBA stats (4h TTL). NBA: ESPN NBA stats (4h TTL).
           // Soccer: DB goals (1h TTL). MLB/NFL/NHL/NCAAF/NCAAB: DB runs/points (1h TTL).
           const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
             await Promise.all([
               game.sport === "WNBA"
-                ? getWnbaTeamStats(game.homeTeamId ?? "")
+                ? Promise.resolve(wnbaContext?.home.stats)
                 : game.sport === "NBA"
                 ? getNbaTeamStats(game.homeTeamId ?? "")
                 : Promise.resolve(undefined),
               game.sport === "WNBA"
-                ? getWnbaTeamStats(game.awayTeamId ?? "")
+                ? Promise.resolve(wnbaContext?.away.stats)
                 : game.sport === "NBA"
                 ? getNbaTeamStats(game.awayTeamId ?? "")
                 : Promise.resolve(undefined),
@@ -552,11 +560,8 @@ async function runOddsIngestion(): Promise<void> {
                 getTeamInjuryImpact(game.awayTeamAbbr),
               ])
             : [null, null] as [null, null];
-          const [homeWnbaInj, awayWnbaInj] = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
-            ? await Promise.all([
-                getWnbaTeamInjuryImpact(game.homeTeamId),
-                getWnbaTeamInjuryImpact(game.awayTeamId),
-              ])
+          const [homeWnbaInj, awayWnbaInj] = game.sport === "WNBA"
+            ? [wnbaContext?.home.availability ?? null, wnbaContext?.away.availability ?? null]
             : [null, null] as [null, null];
           const injuryAdvantage =
             game.sport === "NFL"   && homeInjury  && awayInjury
@@ -675,6 +680,7 @@ async function runOddsIngestion(): Promise<void> {
               awaySoccerStats,
               homeDbStats,
               awayDbStats,
+              wnbaContext,
               mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
               mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
             },
@@ -728,6 +734,7 @@ async function runOddsIngestion(): Promise<void> {
                 game.sport === "WNBA" ? homeWnbaInj?.keyInjuries ?? [] : [],
               awayInjuries: game.sport === "NFL" ? awayInjury?.keyInjuries ?? [] :
                 game.sport === "WNBA" ? awayWnbaInj?.keyInjuries ?? [] : [],
+              wnbaContext,
             },
             mlbEvidence ?? undefined,
           );
@@ -797,15 +804,22 @@ async function runResultGrading(): Promise<void> {
     let snapshots = 0;
     for (const game of games) {
       try {
+        const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
+          ? await getWnbaGameContext({
+              homeTeamId: game.homeTeamId,
+              awayTeamId: game.awayTeamId,
+              gameTime: game.commenceTimeISO,
+            })
+          : undefined;
         const [homeTeamStats, awayTeamStats, homeSoccerStats, awaySoccerStats, homeDbStats, awayDbStats] =
           await Promise.all([
             game.sport === "WNBA"
-              ? getWnbaTeamStats(game.homeTeamId ?? "")
+              ? Promise.resolve(wnbaContext?.home.stats)
               : game.sport === "NBA"
               ? getNbaTeamStats(game.homeTeamId ?? "")
               : Promise.resolve(undefined),
             game.sport === "WNBA"
-              ? getWnbaTeamStats(game.awayTeamId ?? "")
+              ? Promise.resolve(wnbaContext?.away.stats)
               : game.sport === "NBA"
               ? getNbaTeamStats(game.awayTeamId ?? "")
               : Promise.resolve(undefined),
@@ -865,11 +879,8 @@ async function runResultGrading(): Promise<void> {
               getTeamInjuryImpact(game.awayTeamAbbr),
             ])
           : [null, null] as [null, null];
-        const [homeWnbaInj, awayWnbaInj] = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
-          ? await Promise.all([
-              getWnbaTeamInjuryImpact(game.homeTeamId),
-              getWnbaTeamInjuryImpact(game.awayTeamId),
-            ])
+        const [homeWnbaInj, awayWnbaInj] = game.sport === "WNBA"
+          ? [wnbaContext?.home.availability ?? null, wnbaContext?.away.availability ?? null]
           : [null, null] as [null, null];
         const injuryAdvantage =
           game.sport === "NFL"  && homeInjury  && awayInjury
@@ -957,6 +968,7 @@ async function runResultGrading(): Promise<void> {
           awaySoccerStats,
           homeDbStats,
           awayDbStats,
+          wnbaContext,
         };
         const mlbAvailability = {
           homeStarter: starters.home ?? null,
@@ -1006,6 +1018,7 @@ async function runResultGrading(): Promise<void> {
               game.sport === "WNBA" ? homeWnbaInj?.keyInjuries ?? [] : [],
             awayInjuries: game.sport === "NFL" ? awayInjury?.keyInjuries ?? [] :
               game.sport === "WNBA" ? awayWnbaInj?.keyInjuries ?? [] : [],
+            wnbaContext,
           },
           mlbEvidence,
         );

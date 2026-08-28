@@ -1,181 +1,171 @@
 /**
- * WNBA Injury / Availability Service — ESPN Injury API (free, no key)
- *
- * The WNBA has small rosters (~12 active players) where a single star accounts
- * for 15–25% of team scoring. A'ja Wilson, Breanna Stewart, Caitlin Clark
- * individually shift expected margin by 4–8 points when they sit.
- *
- * Position weights reflect individual impact in a 40-game WNBA season:
- *   C  (Center / power forward): 10  — interior dominant players (A'ja Wilson)
- *   F  (Forward):                 9  — wing stars (Breanna Stewart, Napheesa Collier)
- *   G  (Guard):                   8  — playmakers / scorers (Caitlin Clark, Sabrina Ionescu)
- *   G-F / F-G hybrid:             8  — versatile wings
- *
- * Status mappings (from ESPN `status` field):
- *   Out            → 1.00 — confirmed missing
- *   Doubtful       → 0.75 — ~75% chance of missing
- *   Questionable   → 0.35 — ~35% chance of missing
- *   Day-To-Day     → 0.20 — likely playing with restriction
- *
- * Returns an impact score in [-0.07, 0] per team.
- * Negative = team weakened by injury/absence.
- * The advantage function computes (awayImpact − homeImpact), clamped to [-0.07, +0.07].
- *
- * Cache TTL: 3 hours (injury reports updated by ESPN throughout the day)
+ * WNBA availability evidence. ESPN is the report-of-record; this module does
+ * not infer starters, lineups, or minute restrictions when ESPN has not said so.
  */
-
 import { logger } from "../lib/logger";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface WnbaTeamInjuryImpact {
-  /** Probability penalty in [-0.07, 0]. 0 = fully healthy. */
-  impactScore: number;
-  /** Human-readable list of key missing players, e.g. ["A'ja Wilson (C, Out)"] */
-  keyInjuries: string[];
+export type InjuryRole = "starter" | "rotation" | "unknown";
+export interface WnbaInjuryPlayer {
+  athleteId?: string;
+  name: string;
+  position: string | null;
+  status: string;
+  comments: string | null;
+  /** Report-status probability only, not a market price. */
+  expectedAvailabilityProbability: number | null;
+  /** Only populated when the provider supplied usable player-stat evidence. */
+  playerQuality: { value: number; metric: string; source: "espn-injury-payload" } | null;
+  /** Null rather than invented when no reliable restriction/minutes feed exists. */
+  expectedMinutesLost: number | null;
+  role: InjuryRole;
+  roleUncertainty: "unknown-lineup";
+  minutesRestriction: "unknown";
 }
 
-// ── Position weights ──────────────────────────────────────────────────────────
-// WNBA positions from ESPN: "C", "F", "G", "G-F", "F-G", "F-C", "C-F"
-
-const POSITION_WEIGHT: Record<string, number> = {
-  C:   10,
-  F:    9,
-  G:    8,
-  "G-F": 8,
-  "F-G": 8,
-  "F-C": 9,
-  "C-F": 9,
-};
-
-const STATUS_MULTIPLIER: Record<string, number> = {
-  "Out":          1.00,
-  "Doubtful":     0.75,
-  "Questionable": 0.35,
-  "Day-To-Day":   0.20,
-};
-
-/** Max raw impact sum before normalization to a probability shift */
-const MAX_RAW_IMPACT = 30;
-
-/** Max probability shift per team — individual stars in WNBA matter more than in NFL */
-const MAX_PROB_SHIFT = 0.07;
-
-// ── Cache ─────────────────────────────────────────────────────────────────────
-
-/** Map from ESPN team ID (numeric string) → impact */
-let reportCache: { data: Map<string, WnbaTeamInjuryImpact>; fetchedAt: number } | null = null;
-const TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
-
-// ── ESPN response interfaces ──────────────────────────────────────────────────
-
-interface EspnWnbaInjury {
-  status?: string;
-  athlete?: {
-    displayName?: string;
-    position?: { abbreviation?: string; displayName?: string };
+export interface WnbaTeamInjuryImpact {
+  /** Bounded model adjustment in [-0.07, 0], deliberately separate from prices. */
+  impactScore: number;
+  keyInjuries: string[];
+  /** Optional for source compatibility with pre-evidence callers; service results always include it. */
+  players?: WnbaInjuryPlayer[];
+  evidence?: {
+    source: "espn";
+    sourceSeason: number;
+    capturedAt: string;
+    stale: boolean;
+    missing: string[];
   };
 }
 
-interface EspnWnbaTeam {
-  id?: string;            // ESPN numeric team ID — matches homeTeamId/awayTeamId in games table
-  displayName?: string;
-  injuries?: EspnWnbaInjury[];
+const POSITION_WEIGHT: Record<string, number> = {
+  C: 10, F: 9, G: 8, "G-F": 8, "F-G": 8, "F-C": 9, "C-F": 9,
+};
+const STATUS_MULTIPLIER: Record<string, number> = {
+  out: 1, doubtful: .75, questionable: .35, "day-to-day": .2,
+};
+const AVAILABILITY: Record<string, number> = {
+  out: 0, doubtful: .25, questionable: .65, "day-to-day": .8,
+};
+const MAX_RAW_IMPACT = 30;
+const MAX_PROB_SHIFT = .07;
+const TTL_MS = 3 * 60 * 60 * 1000;
+let reportCache: { data: Map<string, WnbaTeamInjuryImpact>; fetchedAt: number } | null = null;
+
+interface EspnWnbaInjury {
+  status?: string; comment?: string; details?: string;
+  athlete?: {
+    id?: string; displayName?: string;
+    position?: { abbreviation?: string; displayName?: string };
+    // ESPN payload variants occasionally attach a per-game stat display value.
+    statistics?: Array<{ name?: string; displayValue?: string; value?: number }>;
+  };
+}
+interface EspnWnbaTeam { id?: string; injuries?: EspnWnbaInjury[]; }
+interface EspnWnbaInjuryResponse { injuries?: EspnWnbaTeam[]; }
+
+export function getActiveWnbaInjurySeason(now = new Date()): number {
+  return now.getUTCMonth() < 3 ? now.getUTCFullYear() - 1 : now.getUTCFullYear();
 }
 
-interface EspnWnbaInjuryResponse {
-  injuries?: EspnWnbaTeam[];
+function normalizedStatus(status?: string): string {
+  return (status ?? "unknown").trim().toLowerCase();
+}
+function playerQuality(injury: EspnWnbaInjury): WnbaInjuryPlayer["playerQuality"] {
+  const stat = injury.athlete?.statistics?.find((item) =>
+    /points|minutes|player efficiency/i.test(item.name ?? "") &&
+    Number.isFinite(item.value ?? Number(item.displayValue)),
+  );
+  const value = stat?.value ?? Number(stat?.displayValue);
+  return stat && Number.isFinite(value) && value > 0
+    ? { value, metric: stat.name ?? "provider-player-stat", source: "espn-injury-payload" }
+    : null;
+}
+function emptyImpact(stale = false): WnbaTeamInjuryImpact {
+  return {
+    impactScore: 0, keyInjuries: [], players: [],
+    evidence: {
+      source: "espn", sourceSeason: getActiveWnbaInjurySeason(),
+      capturedAt: new Date().toISOString(), stale,
+      missing: ["injuryReport"],
+    },
+  };
 }
 
-// ── Impact computation ────────────────────────────────────────────────────────
-
-function computeTeamImpact(injuries: EspnWnbaInjury[]): WnbaTeamInjuryImpact {
+export function computeWnbaTeamInjuryImpact(
+  injuries: EspnWnbaInjury[],
+  capturedAt = new Date().toISOString(),
+): WnbaTeamInjuryImpact {
   let rawImpact = 0;
+  const players: WnbaInjuryPlayer[] = [];
   const keyInjuries: string[] = [];
-
-  for (const inj of injuries) {
-    const status = inj.status ?? "";
-    const mult = STATUS_MULTIPLIER[status];
-    if (!mult) continue; // Active / "Active" / unknown — skip
-
-    const posAbbr = inj.athlete?.position?.abbreviation ?? "";
-    const posWeight = POSITION_WEIGHT[posAbbr] ?? 5; // fallback = average contributor
-    const contribution = posWeight * mult;
+  for (const injury of injuries) {
+    const status = normalizedStatus(injury.status);
+    const multiplier = STATUS_MULTIPLIER[status];
+    const position = injury.athlete?.position?.abbreviation ?? null;
+    const quality = playerQuality(injury);
+    const player: WnbaInjuryPlayer = {
+      athleteId: injury.athlete?.id,
+      name: injury.athlete?.displayName ?? "Unknown athlete",
+      position, status: injury.status ?? "Unknown",
+      comments: injury.comment ?? injury.details ?? null,
+      expectedAvailabilityProbability: AVAILABILITY[status] ?? null,
+      playerQuality: quality,
+      expectedMinutesLost: null,
+      role: "unknown", roleUncertainty: "unknown-lineup", minutesRestriction: "unknown",
+    };
+    players.push(player);
+    if (multiplier === undefined) continue;
+    const contribution = (POSITION_WEIGHT[position ?? ""] ?? 5) * multiplier;
     rawImpact += contribution;
-
-    // Track notable absences (weight ≥ 5 × mult ≥ 0.35 = contribution ≥ 1.75)
-    if (contribution >= 1.75 && inj.athlete?.displayName) {
-      keyInjuries.push(
-        `${inj.athlete.displayName} (${posAbbr || "?"}, ${status})`,
-      );
+    if (contribution >= 1.75 && injury.athlete?.displayName) {
+      keyInjuries.push(`${injury.athlete.displayName} (${position ?? "?"}, ${injury.status})`);
     }
   }
-
-  // Normalize: MAX_RAW_IMPACT → MAX_PROB_SHIFT
-  const impactScore = -Math.min(MAX_PROB_SHIFT, (rawImpact / MAX_RAW_IMPACT) * MAX_PROB_SHIFT);
-
-  return { impactScore, keyInjuries: keyInjuries.slice(0, 5) };
+  const missing = players.some((p) => !p.athleteId) ? ["athleteId for one or more reports"] : [];
+  return {
+    impactScore: -Math.min(MAX_PROB_SHIFT, rawImpact / MAX_RAW_IMPACT * MAX_PROB_SHIFT),
+    keyInjuries: keyInjuries.slice(0, 5), players,
+    evidence: { source: "espn", sourceSeason: getActiveWnbaInjurySeason(), capturedAt, stale: false, missing },
+  };
 }
 
-// ── Fetch ─────────────────────────────────────────────────────────────────────
-
 async function fetchAllInjuries(): Promise<Map<string, WnbaTeamInjuryImpact>> {
-  const url = "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/injuries";
-  const resp = await fetch(url, {
-    headers: { "User-Agent": "TheBettingModel/1.0" },
-    signal: AbortSignal.timeout(10_000),
+  const resp = await fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/injuries", {
+    headers: { "User-Agent": "TheBettingModel/1.0" }, signal: AbortSignal.timeout(10_000),
   });
   if (!resp.ok) throw new Error(`WNBA injuries: HTTP ${resp.status}`);
-
-  const data = (await resp.json()) as EspnWnbaInjuryResponse;
+  const data = await resp.json() as EspnWnbaInjuryResponse;
+  const capturedAt = new Date().toISOString();
   const result = new Map<string, WnbaTeamInjuryImpact>();
-
-  for (const team of data.injuries ?? []) {
-    const teamId = team.id;
-    if (!teamId) continue;
-    result.set(teamId, computeTeamImpact(team.injuries ?? []));
+  for (const team of data.injuries ?? []) if (team.id) {
+    result.set(team.id, computeWnbaTeamInjuryImpact(team.injuries ?? [], capturedAt));
   }
-
   logger.info({ teams: result.size }, "WNBA injuries: report loaded");
   return result;
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
-
-/**
- * Get the injury/availability impact for a single WNBA team by its ESPN team ID.
- * Returns { impactScore: 0, keyInjuries: [] } on error (safe default = no adjustment).
- */
-export async function getWnbaTeamInjuryImpact(
-  espnTeamId: string,
-): Promise<WnbaTeamInjuryImpact> {
-  if (!espnTeamId) return { impactScore: 0, keyInjuries: [] };
-
+export async function getWnbaTeamInjuryImpact(espnTeamId: string): Promise<WnbaTeamInjuryImpact> {
+  if (!espnTeamId) return emptyImpact();
   const now = Date.now();
-
   if (!reportCache || now - reportCache.fetchedAt > TTL_MS) {
-    try {
-      const data = await fetchAllInjuries();
-      reportCache = { data, fetchedAt: now };
-    } catch (err) {
+    try { reportCache = { data: await fetchAllInjuries(), fetchedAt: now }; }
+    catch (err) {
       logger.warn({ err }, "WNBA injuries: fetch failed; using stale or empty data");
       if (!reportCache) reportCache = { data: new Map(), fetchedAt: now };
+      else {
+        const stale = new Map<string, WnbaTeamInjuryImpact>();
+        for (const [id, item] of reportCache.data) stale.set(id, {
+          ...item,
+          evidence: item.evidence ? { ...item.evidence, stale: true } : undefined,
+        });
+        reportCache = { data: stale, fetchedAt: now };
+      }
     }
   }
-
-  return reportCache.data.get(espnTeamId) ?? { impactScore: 0, keyInjuries: [] };
+  return reportCache.data.get(espnTeamId) ?? emptyImpact(Boolean(reportCache));
 }
 
-/**
- * Compute the net probability advantage for the home team.
- * Positive = home team is relatively healthier.
- * Clamped to [-0.07, +0.07].
- */
-export function computeWnbaInjuryAdvantage(
-  homeImpact: WnbaTeamInjuryImpact,
-  awayImpact: WnbaTeamInjuryImpact,
-): number {
-  // Both scores are in [-0.07, 0]; their difference = relative advantage
-  const raw = awayImpact.impactScore - homeImpact.impactScore;
-  return Math.max(-MAX_PROB_SHIFT, Math.min(MAX_PROB_SHIFT, raw));
+/** Relative health adjustment only; it is not a betting-market probability. */
+export function computeWnbaInjuryAdvantage(homeImpact: WnbaTeamInjuryImpact, awayImpact: WnbaTeamInjuryImpact): number {
+  return Math.max(-MAX_PROB_SHIFT, Math.min(MAX_PROB_SHIFT, awayImpact.impactScore - homeImpact.impactScore));
 }

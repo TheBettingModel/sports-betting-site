@@ -36,11 +36,23 @@ import { logger } from "../lib/logger";
 
 export interface WnbaTeamStats {
   teamId: string;
+  /** Provenance is optional only so the legacy NBA caller can retain this shared shape. */
+  evidence?: {
+    source: "espn";
+    sourceSeason: number;
+    capturedAt: string;
+    stale: boolean;
+    missing: string[];
+  };
   // ── Offensive efficiency ─────────────────────────────────────────────────
   ppg: number;                  // points per game
   efgPercent: number;           // effective FG%  (ESPN shootingEfficiency, 0–1)
   trueShootingPercent: number;  // TS%  = PPG / (2 × (AFGA + 0.44 × AFTA))
   paceApprox: number;           // estimated possessions/game
+  /** Per-100-possession ratings. Undefined means ESPN did not provide the inputs. */
+  offensiveRating?: number;
+  defensiveRating?: number;
+  netRating?: number;
   turnoverPercent: number;      // turnovers per possession
   assistPercent: number;        // assists per field goal made
   orebPg: number;               // offensive rebounds per game
@@ -162,13 +174,32 @@ const WNBA_TEAM_IDS = [
 
 interface EspnStatCat {
   name: string;
-  stats?: Array<{ name: string; displayValue: string }>;
+  stats?: Array<{ name: string; displayValue?: string; value?: number; perGameValue?: number }>;
 }
 
 function findStat(cats: EspnStatCat[], catName: string, statName: string): number {
   const cat  = cats.find((c) => c.name === catName);
   const stat = cat?.stats?.find((s) => s.name === statName);
-  return parseFloat(stat?.displayValue ?? "0") || 0;
+  const value = stat?.perGameValue ?? stat?.value ?? Number(stat?.displayValue);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function findFirstStat(cats: EspnStatCat[], candidates: Array<[string, string]>): number | undefined {
+  for (const [category, stat] of candidates) {
+    const cat = cats.find((item) => item.name === category);
+    const value = cat?.stats?.find((item) => item.name === stat);
+    if (value) {
+      const parsed = value.perGameValue ?? value.value ?? Number(value.displayValue);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+/** WNBA regular seasons span summer. In Jan–Mar, the most recently completed season is active. */
+export function getActiveWnbaSeason(now = new Date()): number {
+  const year = now.getUTCFullYear();
+  return now.getUTCMonth() < 3 ? year - 1 : year;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,16 +212,18 @@ interface FormResult {
   last5PointDiff: number;
   last10PointDiff: number;
   restDays: number;
+  missing?: string[];
 }
 
-async function fetchWnbaTeamForm(teamId: string): Promise<FormResult> {
+async function fetchWnbaTeamForm(teamId: string, season = getActiveWnbaSeason()): Promise<FormResult> {
   const defaults: FormResult = {
     last5WinPct: 0.5, last10WinPct: 0.5,
     last5PointDiff: 0, last10PointDiff: 0,
     restDays: 2,
+    missing: ["schedule"],
   };
   try {
-    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/schedule?season=2025`;
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/schedule?season=${season}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) return defaults;
 
@@ -228,7 +261,7 @@ async function fetchWnbaTeamForm(teamId: string): Promise<FormResult> {
       })
       .filter((g) => g.myScore > 0 || g.oppScore > 0);
 
-    if (completed.length === 0) return defaults;
+    if (completed.length === 0) return { ...defaults, missing: ["completedGames"] };
 
     const avg = (arr: number[]) =>
       arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
@@ -247,7 +280,7 @@ async function fetchWnbaTeamForm(teamId: string): Promise<FormResult> {
       Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)),
     ));
 
-    return { last5WinPct, last10WinPct, last5PointDiff, last10PointDiff, restDays };
+    return { last5WinPct, last10WinPct, last5PointDiff, last10PointDiff, restDays, missing: [] };
   } catch {
     return defaults;
   }
@@ -255,7 +288,9 @@ async function fetchWnbaTeamForm(teamId: string): Promise<FormResult> {
 
 async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats | null> {
   try {
-    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/statistics`;
+    const sourceSeason = getActiveWnbaSeason();
+    const capturedAt = new Date().toISOString();
+    const url  = `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/statistics?season=${sourceSeason}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) return null;
 
@@ -278,6 +313,12 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
     const spg      = findStat(cats, "defensive", "avgSteals");
     const bpg      = findStat(cats, "defensive", "avgBlocks");
     const drebPg   = findStat(cats, "defensive", "avgDefensiveRebounds");
+    // ESPN does not guarantee these names. Never substitute an invented defensive rating.
+    const opponentPpg = findFirstStat(cats, [
+      ["defensive", "avgPointsAllowed"],
+      ["defensive", "avgOpponentPoints"],
+      ["defensive", "opponentPointsPerGame"],
+    ]);
 
     const possEst    = Math.max(1, afga + 0.44 * afta + topg - orpg);
     const tsPct      = (afga + afta) > 0 ? ppg / (2 * (afga + 0.44 * afta)) : 0.55;
@@ -286,14 +327,37 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
     const threeRate  = afga > 0 ? a3pa / afga : 0.35;
     const ftRate     = afga > 0 ? afta / afga : 0.30;
 
-    const form = await fetchWnbaTeamForm(teamId);
+    const form = await fetchWnbaTeamForm(teamId, sourceSeason);
+    const missing: string[] = [...(form.missing ?? [])];
+    if (ppg <= 0) missing.push("avgPoints");
+    if (efg <= 0) missing.push("shootingEfficiency");
+    if (topg <= 0) missing.push("avgTurnovers");
+    if (orpg <= 0) missing.push("avgOffensiveRebounds");
+    if (spg <= 0) missing.push("avgSteals");
+    if (bpg <= 0) missing.push("avgBlocks");
+    if (drebPg <= 0) missing.push("avgDefensiveRebounds");
+    if (a3pa <= 0) missing.push("avgThreePointFieldGoalsAttempted");
+    if (threePct <= 0) missing.push("threePointPct");
+    if (afta <= 0) missing.push("avgFreeThrowsAttempted");
+    if (opponentPpg === undefined) missing.push("opponentPointsPerGame");
+    if (afga <= 0) missing.push("fieldGoalAttempts");
+    const offensiveRating = possEst > 0 && ppg > 0 ? (ppg / possEst) * 100 : undefined;
+    const defensiveRating = opponentPpg !== undefined && possEst > 0
+      ? (opponentPpg / possEst) * 100
+      : undefined;
 
     return {
       teamId,
+      evidence: { source: "espn", sourceSeason, capturedAt, stale: false, missing },
       ppg,
       efgPercent:           efg,
       trueShootingPercent:  tsPct,
       paceApprox:           possEst,
+      offensiveRating,
+      defensiveRating,
+      netRating: offensiveRating !== undefined && defensiveRating !== undefined
+        ? offensiveRating - defensiveRating
+        : undefined,
       turnoverPercent:      toPct,
       assistPercent:        astPct,
       orebPg:               orpg,
@@ -304,7 +368,11 @@ async function fetchWnbaTeamStatsSingle(teamId: string): Promise<WnbaTeamStats |
       spg,
       bpg,
       drebPg,
-      ...form,
+      last5WinPct: form.last5WinPct,
+      last10WinPct: form.last10WinPct,
+      last5PointDiff: form.last5PointDiff,
+      last10PointDiff: form.last10PointDiff,
+      restDays: form.restDays,
     };
   } catch {
     return null;
@@ -349,7 +417,12 @@ export async function getWnbaTeamStats(teamId: string): Promise<WnbaTeamStats | 
     });
   }
 
-  if (cached) return cached.stats;
+  // Do not mutate the cached snapshot: callers may retain it as evidence.
+  if (cached) {
+    return cached.stats.evidence
+      ? { ...cached.stats, evidence: { ...cached.stats.evidence, stale: true } }
+      : cached.stats;
+  }
 
   await wnbaRefreshPromise;
   return wnbaCache.get(teamId)?.stats;

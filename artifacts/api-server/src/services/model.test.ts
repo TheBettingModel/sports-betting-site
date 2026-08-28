@@ -1,6 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { computeProjection, removeVig2 } from "./model";
+import { computeProjection, computeWnbaContextContributions, SPORT_DEFAULT_WEIGHTS, removeVig2 } from "./model";
 import { selectActionableMoneylineMarket } from "./oddsApi";
+import type { WnbaGameContext } from "./wnbaContext";
+
+const wnbaContext = (overrides: Partial<WnbaGameContext> = {}): WnbaGameContext => ({
+  capturedAt: "2026-06-01T00:00:00.000Z",
+  sourceSeason: 2026,
+  home: {
+    stats: {
+      teamId: "home", ppg: 85, efgPercent: .52, trueShootingPercent: .60, paceApprox: 80,
+      offensiveRating: 112, defensiveRating: 100, netRating: 12, turnoverPercent: .12,
+      assistPercent: .6, orebPg: 9, threePointRate: .4, threePointPct: .36, ftRate: .25,
+      ftPct: .8, spg: 7, bpg: 4, drebPg: 25, last5WinPct: .6, last10WinPct: .6,
+      last5PointDiff: 4, last10PointDiff: 4, restDays: 2,
+    },
+    availability: { impactScore: 0, keyInjuries: [] },
+    schedule: { restDays: 2, backToBack: false, gamesLast3Days: 1, gamesLast5Days: 2, roadTripLength: 0, priorVenue: null, priorOpponent: null, travelMiles: 100, timezoneShiftHours: 0, evidence: { source: "espn-schedule+static-team-location-map", sourceSeason: 2026, capturedAt: "", stale: false, missing: [] } },
+  },
+  away: {
+    stats: {
+      teamId: "away", ppg: 80, efgPercent: .48, trueShootingPercent: .50, paceApprox: 75,
+      offensiveRating: 100, defensiveRating: 112, netRating: -12, turnoverPercent: .18,
+      assistPercent: .5, orebPg: 7, threePointRate: .25, threePointPct: .3, ftRate: .15,
+      ftPct: .75, spg: 5, bpg: 2, drebPg: 20, last5WinPct: .4, last10WinPct: .4,
+      last5PointDiff: -4, last10PointDiff: -4, restDays: 1,
+    },
+    availability: { impactScore: -.07, keyInjuries: [] },
+    schedule: { restDays: 0, backToBack: true, gamesLast3Days: 3, gamesLast5Days: 4, roadTripLength: 3, priorVenue: null, priorOpponent: null, travelMiles: 2000, timezoneShiftHours: 3, evidence: { source: "espn-schedule+static-team-location-map", sourceSeason: 2026, capturedAt: "", stale: false, missing: [] } },
+  },
+  matchup: {
+    pace: { home: 80, away: 75, missing: false }, perimeter: { home: .4, away: .25, missing: false },
+    reboundingInteriorProxy: { home: 38, away: 29, missing: false }, turnover: { home: .12, away: .18, missing: false },
+    freeThrow: { home: .25, away: .15, missing: false },
+  },
+  evidence: { immutable: true, missing: [] },
+  ...overrides,
+});
 
 describe("two-way market edge safeguards", () => {
   it("removes vig before comparing a model to the home or away market", () => {
@@ -136,5 +171,33 @@ describe("three-way market edge safeguards", () => {
     expect(projection.finalModelScore).toBeLessThanOrEqual(59);
     expect(projection.podScore).toBe(0);
     expect(projection.units).toBe(0);
+  });
+});
+
+describe("WNBA immutable evidence contributions", () => {
+  it("moves toward the better evidenced side while keeping each contribution bounded", () => {
+    const contributions = computeWnbaContextContributions(wnbaContext(), SPORT_DEFAULT_WEIGHTS.WNBA!);
+
+    expect(contributions.trueShooting).toBeGreaterThan(0);
+    expect(contributions.possessionNetRating).toBeGreaterThan(0);
+    expect(contributions.availability).toBeGreaterThan(0);
+    expect(contributions.travel).toBeGreaterThan(0);
+    expect(Object.values(contributions).every((value) => Math.abs(value) <= .035)).toBe(true);
+  });
+
+  it("uses missing WNBA evidence as zero and never applies it to NBA", () => {
+    const missing = wnbaContext({
+      matchup: {
+        pace: { home: null, away: null, missing: true }, perimeter: { home: null, away: null, missing: true },
+        reboundingInteriorProxy: { home: null, away: null, missing: true }, turnover: { home: null, away: null, missing: true },
+        freeThrow: { home: null, away: null, missing: true },
+      },
+    });
+    expect(computeWnbaContextContributions(missing, SPORT_DEFAULT_WEIGHTS.WNBA!).perimeter).toBe(0);
+
+    const opts = { realVegasHomeOdds: -110, realVegasAwayOdds: -110, wnbaContext: wnbaContext() };
+    const wnba = computeProjection("context-league-split", "WNBA", "10-10", "10-10", null, opts);
+    const nba = computeProjection("context-league-split", "NBA", "10-10", "10-10", null, opts);
+    expect(wnba.homeWinPct).toBeGreaterThan(nba.homeWinPct);
   });
 });
