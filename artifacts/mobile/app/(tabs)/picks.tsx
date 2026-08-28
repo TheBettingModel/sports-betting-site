@@ -18,6 +18,7 @@ import { GameCard } from '@/components/GameCard';
 import { GameCardSkeleton } from '@/components/GameCardSkeleton';
 import { LockedPickCard } from '@/components/LockedPickCard';
 import { FeaturedPick } from '@/components/FeaturedPick';
+import { TeamLogo } from '@/components/TeamLogo';
 import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import type { Game } from '@/data/mockGames';
@@ -447,15 +448,44 @@ export default function PicksScreen() {
       const rowContent = (
         <>
           <View style={styles.forecastMatchup}>
-            <Text style={[styles.forecastTeams, { color: colors.foreground }]}>
-              {forecast.game.awayTeam.abbr} <Text style={{ color: colors.mutedForeground }}>@</Text> {forecast.game.homeTeam.abbr}
-            </Text>
+            <View style={styles.forecastTeams}>
+              <View style={styles.forecastTeam}>
+                <TeamLogo
+                  sport={forecast.game.sport}
+                  abbr={forecast.game.awayTeam.abbr}
+                  logoUrl={forecast.game.awayTeam.logoUrl}
+                  size={19}
+                />
+                <Text style={[styles.forecastTeamAbbr, { color: colors.foreground }]}>
+                  {forecast.game.awayTeam.abbr}
+                </Text>
+              </View>
+              <Text style={[styles.forecastAt, { color: colors.mutedForeground }]}>@</Text>
+              <View style={styles.forecastTeam}>
+                <Text style={[styles.forecastTeamAbbr, { color: colors.foreground }]}>
+                  {forecast.game.homeTeam.abbr}
+                </Text>
+                <TeamLogo
+                  sport={forecast.game.sport}
+                  abbr={forecast.game.homeTeam.abbr}
+                  logoUrl={forecast.game.homeTeam.logoUrl}
+                  size={19}
+                />
+              </View>
+            </View>
             <Text style={[styles.forecastTime, { color: colors.mutedForeground }]}>
               {forecast.game.gameTime}
             </Text>
           </View>
           <View style={styles.forecastDetails}>
-            <Text style={[styles.forecastStatus, { color: statusColor }]}>
+            <Text style={[
+              styles.forecastStatus,
+              forecast.state === 'model-lean' && [
+                styles.forecastStatusLean,
+                { borderBottomColor: `${statusColor}47` },
+              ],
+              { color: statusColor },
+            ]}>
               {statusLabel}
             </Text>
             {forecast.state === 'awaiting-data' ? (
@@ -471,7 +501,12 @@ export default function PicksScreen() {
                 <Text style={[styles.forecastProjection, { color: colors.foreground }]}>
                   {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'PICK' : 'NO BET'}
                 </Text>
-                <Text style={[styles.forecastMarket, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[styles.forecastMarket, { color: colors.mutedForeground }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.78}
+                >
                   TBM {forecast.modelProbability?.toFixed(1)}% · EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
                 </Text>
               </>
@@ -640,15 +675,19 @@ const styles = StyleSheet.create({
   forecastBadgeText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   forecastRow: {
     marginHorizontal: 16, marginBottom: 8, borderRadius: 10, borderWidth: 1,
-    paddingHorizontal: 12, paddingVertical: 11, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center',
   },
-  forecastMatchup: { flex: 1, marginRight: 12 },
-  forecastTeams: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  forecastMatchup: { flex: 1, minWidth: 0, marginRight: 8, paddingTop: 1 },
+  forecastTeams: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  forecastTeam: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  forecastTeamAbbr: { fontSize: 14, fontFamily: 'Inter_700Bold', lineHeight: 18 },
+  forecastAt: { fontSize: 14, fontFamily: 'Inter_700Bold', lineHeight: 18 },
   forecastTime: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 4 },
-  forecastDetails: { alignItems: 'flex-end', maxWidth: '61%' },
+  forecastDetails: { alignItems: 'flex-end', flexShrink: 1, maxWidth: '61%' },
   forecastStatus: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  forecastStatusLean: { paddingBottom: 3, borderBottomWidth: 1, letterSpacing: 0.85 },
   forecastProjection: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 4 },
-  forecastMarket: { fontSize: 8.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3, marginTop: 2 },
+  forecastMarket: { fontSize: 8.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3, marginTop: 3 },
   forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
   forecastNotice: {
     marginHorizontal: 16, marginTop: 4, borderRadius: 10, borderWidth: 1,
