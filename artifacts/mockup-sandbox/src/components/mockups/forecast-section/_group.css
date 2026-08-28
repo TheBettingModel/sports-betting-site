@@ -102,6 +102,9 @@
 }
 
 .forecast-teams {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: var(--forecast-text);
   font-size: 14px;
   font-weight: 700;
@@ -109,7 +112,34 @@
   white-space: nowrap;
 }
 
+.forecast-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .forecast-at { color: var(--forecast-muted); }
+
+.forecast-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  color: var(--forecast-muted);
+  font-family: var(--forecast-mono);
+  font-size: 6px;
+  font-weight: 700;
+  letter-spacing: -.2px;
+  line-height: 1;
+}
+
+.forecast-logo img {
+  display: block;
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+}
 
 .forecast-time {
   margin-top: 4px;
@@ -189,5 +219,7 @@
   .forecast-section-header, .forecast-row { margin-left: 12px; margin-right: 12px; }
   .forecast-row { gap: 8px; padding-left: 10px; padding-right: 10px; }
   .forecast-details { max-width: 55%; }
-  .forecast-teams { font-size: 13px; }
+  .forecast-teams { gap: 3px; font-size: 13px; }
+  .forecast-team { gap: 2px; }
+  .forecast-logo, .forecast-logo img { width: 17px; height: 17px; }
 }
