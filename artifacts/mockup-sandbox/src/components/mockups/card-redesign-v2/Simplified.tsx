@@ -1,12 +1,12 @@
 import './_group.css';
 import { useState } from 'react';
 
-type Team = { name: string; abbr: string; record: string; logoUrl?: string };
+type Team = { name: string; city: string; abbr: string; record: string; logoUrl?: string };
 type Game = { sport: string; gameTime: string; homeTeam: Team; awayTeam: Team; projection: { homeWinPct: number; valueRating: string; modelScore: number; edge: number; units?: number; confidence: string; sharpSignal?: string }; vegasLine: { homeOdds: number; awayOdds: number; openingHomeOdds?: number; openingAwayOdds?: number } };
 const game: Game = {
   sport: 'WNBA', gameTime: '9:00 PM ET',
-  homeTeam: { name: 'Aces', abbr: 'LVA', record: '24-8', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/lva.png' },
-  awayTeam: { name: 'Liberty', abbr: 'NYL', record: '22-10', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/nyl.png' },
+  homeTeam: { name: 'Aces', city: 'Las Vegas', abbr: 'LVA', record: '24-8', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/lva.png' },
+  awayTeam: { name: 'Liberty', city: 'New York', abbr: 'NYL', record: '22-10', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/nyl.png' },
   projection: { homeWinPct: 64, valueRating: 'Strong Buy', modelScore: 87, edge: 4.4, units: 2.5, confidence: 'High', sharpSignal: 'Sharp Play' },
   vegasLine: { homeOdds: -160, awayOdds: 140, openingHomeOdds: -145, openingAwayOdds: 125 },
 };
@@ -28,6 +28,7 @@ export function Simplified() {
   const model = game.projection.homeWinPct;
   const market = implied(odds);
   const probabilityEdge = model - market;
+  const pickLabel = `${pick.city} to win`;
   return (
     <main className="tbm-preview" style={{ padding: '42px 14px' }}>
       <article className="tbm-card" style={{ borderLeftWidth: 3 }}>
@@ -45,7 +46,7 @@ export function Simplified() {
         <section style={{ padding: '16px' }}>
           <div className="tbm-label" style={{ color: 'var(--tbm-lime)' }}>TBM pick</div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginTop: 5 }}>
-            <h1 style={{ margin: 0, fontSize: 25, letterSpacing: '-.045em', lineHeight: 1.1 }}>{pick.name} ML</h1>
+            <h1 style={{ margin: 0, fontSize: 25, letterSpacing: '-.045em', lineHeight: 1.1 }}>{pickLabel}</h1>
             <strong className="tbm-mono" style={{ color: 'var(--tbm-text)', fontSize: 18 }}>{american(odds)}</strong>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 14, paddingBottom: 15, borderBottom: '1px solid var(--tbm-line-soft)' }}>
@@ -68,7 +69,7 @@ export function Simplified() {
         </section>
         {expanded && <section style={{ padding: '0 16px 15px', animation: 'tbmReveal .24s ease-out' }}>
           <div style={{ paddingTop: 13, borderTop: '1px solid var(--tbm-line)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}><div className="tbm-label" style={{ color: 'var(--tbm-text)' }}>Why TBM likes {game.homeTeam.name}</div><span className="tbm-label" style={{ color: 'var(--tbm-lime)', letterSpacing: '.08em' }}>LIVE SIGNAL</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}><div className="tbm-label" style={{ color: 'var(--tbm-text)' }}>Why TBM likes {pick.city}</div><span className="tbm-label" style={{ color: 'var(--tbm-lime)', letterSpacing: '.08em' }}>LIVE SIGNAL</span></div>
             <div style={{ display: 'grid', gap: 12 }}>
               <div><div className="tbm-label" style={{ color: 'var(--tbm-text)' }}>Model</div><p style={{ margin: '5px 0 0', color: '#c7cec8', fontSize: 11, lineHeight: 1.4 }}>Higher weighted grades across efficiency, shot quality, and home-court inputs.</p><div style={{ marginTop: 5, color: 'var(--tbm-muted)', fontSize: 11 }}>Model score <b style={{ color: 'var(--tbm-text)' }}>{game.projection.modelScore}/100</b> · confidence <b style={{ color: 'var(--tbm-text)' }}>{game.projection.confidence}</b></div></div>
               <div><div className="tbm-label" style={{ color: 'var(--tbm-text)' }}>Matchup</div><div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, color: '#c7cec8', fontSize: 11 }}><span>Offensive efficiency</span><b style={{ color: 'var(--tbm-lime)' }}>positive</b></div><div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, color: '#c7cec8', fontSize: 11 }}><span>Home court</span><b style={{ color: 'var(--tbm-lime)' }}>positive</b></div></div>
