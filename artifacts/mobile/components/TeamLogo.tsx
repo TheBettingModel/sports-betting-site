@@ -41,6 +41,7 @@ const DEFAULT_ACCENT = '#4B5563';
  * override until ESPN adds the numeric assets.
  */
 const WNBA_LOGO_OVERRIDES: Record<string, string> = {
+  LVA: 'https://a.espncdn.com/i/teamlogos/wnba/500/lv.png',
   TOR: 'https://a.espncdn.com/i/teamlogos/wnba/500/tor.png',
   GS: 'https://a.espncdn.com/i/teamlogos/wnba/500/gs.png',
 };

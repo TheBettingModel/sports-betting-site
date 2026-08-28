@@ -5,7 +5,7 @@ type Team = { name: string; abbr: string; record: string; logoUrl?: string };
 type Game = { sport: string; gameTime: string; homeTeam: Team; awayTeam: Team; projection: { homeWinPct: number; valueRating: string; modelScore: number; edge: number; units?: number; confidence: string; sharpSignal?: string }; vegasLine: { homeOdds: number; awayOdds: number; openingHomeOdds?: number; openingAwayOdds?: number } };
 const game: Game = {
   sport: 'WNBA', gameTime: '9:00 PM ET',
-  homeTeam: { name: 'Aces', abbr: 'LVA', record: '24-8', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/lva.png' },
+  homeTeam: { name: 'Aces', abbr: 'LVA', record: '24-8', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/lv.png' },
   awayTeam: { name: 'Liberty', abbr: 'NYL', record: '22-10', logoUrl: 'https://a.espncdn.com/i/teamlogos/wnba/500/nyl.png' },
   projection: { homeWinPct: 64, valueRating: 'Strong Buy', modelScore: 87, edge: 4.4, units: 2.5, confidence: 'High', sharpSignal: 'Sharp Play' },
   vegasLine: { homeOdds: -160, awayOdds: 140, openingHomeOdds: -145, openingAwayOdds: 125 },
