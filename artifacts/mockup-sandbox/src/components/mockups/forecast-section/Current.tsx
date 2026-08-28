@@ -10,6 +10,7 @@ type Forecast = {
   state: ForecastState;
   rank?: number;
   projectedTeam?: string;
+  modelProbability: string;
   edge?: string;
   market?: string;
   note?: string;
@@ -18,13 +19,13 @@ type Forecast = {
 };
 
 const forecasts: Forecast[] = [
-  { away: 'BOS', home: 'NYY', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png', time: '7:15 PM EDT', state: 'model-lean', rank: 1, projectedTeam: 'NYY', edge: '+7.4%', market: '-149' },
-  { away: 'ARI', home: 'SF', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/ari.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/sf.png', time: '10:15 PM EDT', state: 'model-lean', rank: 2, projectedTeam: 'ARI', edge: '+6.1%', market: '-118' },
-  { away: 'SD', home: 'TB', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/sd.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/tb.png', time: '7:10 PM EDT', state: 'model-lean', rank: 3, projectedTeam: 'TB', edge: '+3.3%', market: '-130' },
-  { away: 'MIA', home: 'WSH', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/mia.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/wsh.png', time: '6:45 PM EDT', state: 'model-lean', rank: 4, projectedTeam: 'MIA', edge: '+3.1%', market: '-150' },
-  { away: 'CLE', home: 'DET', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/cle.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/det.png', time: '1:10 PM EDT', state: 'no-bet', projectedTeam: 'DET', edge: '+0.4%', market: '+105' },
-  { away: 'SEA', home: 'LAA', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/sea.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/laa.png', time: '9:38 PM EDT', state: 'awaiting-data', note: 'PROBABLE STARTERS PENDING' },
-  { away: 'ATL', home: 'PHI', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/atl.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/phi.png', time: '7:20 PM EDT', state: 'locked', note: 'UNLOCK TO VIEW' },
+  { away: 'BOS', home: 'NYY', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/bos.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png', time: '7:15 PM EDT', state: 'model-lean', rank: 1, projectedTeam: 'NYY', modelProbability: '63.8%', edge: '+7.4%', market: '-149' },
+  { away: 'ARI', home: 'SF', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/ari.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/sf.png', time: '10:15 PM EDT', state: 'model-lean', rank: 2, projectedTeam: 'ARI', modelProbability: '59.2%', edge: '+6.1%', market: '-118' },
+  { away: 'SD', home: 'TB', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/sd.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/tb.png', time: '7:10 PM EDT', state: 'model-lean', rank: 3, projectedTeam: 'TB', modelProbability: '56.6%', edge: '+3.3%', market: '-130' },
+  { away: 'MIA', home: 'WSH', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/mia.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/wsh.png', time: '6:45 PM EDT', state: 'model-lean', rank: 4, projectedTeam: 'MIA', modelProbability: '55.4%', edge: '+3.1%', market: '-150' },
+  { away: 'CLE', home: 'DET', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/cle.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/det.png', time: '1:10 PM EDT', state: 'no-bet', projectedTeam: 'DET', modelProbability: '51.0%', edge: '+0.4%', market: '+105' },
+  { away: 'SEA', home: 'LAA', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/sea.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/laa.png', time: '9:38 PM EDT', state: 'awaiting-data', modelProbability: '52.3%', note: 'PROBABLE STARTERS PENDING' },
+  { away: 'ATL', home: 'PHI', awayLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/atl.png', homeLogo: 'https://a.espncdn.com/i/teamlogos/mlb/500/phi.png', time: '7:20 PM EDT', state: 'locked', modelProbability: '57.1%', note: 'UNLOCK TO VIEW' },
 ];
 
 function statusFor(forecast: Forecast) {
@@ -58,7 +59,7 @@ function ForecastRow({ forecast }: { forecast: Forecast }) {
         ) : (
           <>
             <div className="forecast-projection">{forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'PICK' : 'NO BET'}</div>
-            <div className="forecast-market">VALUE EDGE {forecast.edge} · MARKET {forecast.market}</div>
+            <div className="forecast-market">TBM {forecast.modelProbability} · EDGE {forecast.edge} · MARKET {forecast.market}</div>
           </>
         )}
       </div>

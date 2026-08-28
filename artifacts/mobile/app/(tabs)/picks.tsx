@@ -55,6 +55,7 @@ type Forecast = {
   game: Game;
   state: ForecastState;
   projectedTeam?: string;
+  modelProbability?: number;
   marketOdds?: number;
   edge?: number;
   leanRank?: number;
@@ -101,6 +102,9 @@ function getForecast(game: Game): Forecast {
     game,
     state: hasModelLean ? 'model-lean' : 'no-bet',
     projectedTeam: projectedHome ? game.homeTeam.abbr : game.awayTeam.abbr,
+    modelProbability: projectedHome
+      ? game.projection.homeWinPct
+      : 100 - game.projection.homeWinPct,
     marketOdds: projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds,
     edge: Math.abs(game.projection.edge),
   };
@@ -468,7 +472,7 @@ export default function PicksScreen() {
                   {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'PICK' : 'NO BET'}
                 </Text>
                 <Text style={[styles.forecastMarket, { color: colors.mutedForeground }]}>
-                  VALUE EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
+                  TBM {forecast.modelProbability?.toFixed(1)}% · EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
                 </Text>
               </>
             )}
@@ -641,10 +645,10 @@ const styles = StyleSheet.create({
   forecastMatchup: { flex: 1, marginRight: 12 },
   forecastTeams: { fontSize: 14, fontFamily: 'Inter_700Bold' },
   forecastTime: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 4 },
-  forecastDetails: { alignItems: 'flex-end', maxWidth: '57%' },
+  forecastDetails: { alignItems: 'flex-end', maxWidth: '61%' },
   forecastStatus: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
   forecastProjection: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 4 },
-  forecastMarket: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 2 },
+  forecastMarket: { fontSize: 8.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3, marginTop: 2 },
   forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
   forecastNotice: {
     marginHorizontal: 16, marginTop: 4, borderRadius: 10, borderWidth: 1,

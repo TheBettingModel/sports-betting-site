@@ -218,8 +218,9 @@
 @media (max-width: 350px) {
   .forecast-section-header, .forecast-row { margin-left: 12px; margin-right: 12px; }
   .forecast-row { gap: 8px; padding-left: 10px; padding-right: 10px; }
-  .forecast-details { max-width: 55%; }
+  .forecast-details { max-width: 61%; }
   .forecast-teams { gap: 3px; font-size: 13px; }
   .forecast-team { gap: 2px; }
   .forecast-logo, .forecast-logo img { width: 17px; height: 17px; }
+  .forecast-market { font-size: 8px; letter-spacing: .15px; }
 }
