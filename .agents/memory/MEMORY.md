@@ -27,3 +27,4 @@
 - [Immutable forecast review evidence](forecast-review-evidence.md) — grade completed forecasts only from snapshot-saved pregame evidence; rebuild derived rows once by ledger version.
 - [Modeled-date season boundaries](modeled-date-season-boundaries.md) — season-scoped inputs follow the game date and league calendar, never the server’s current date or provider defaults.
 - [NCAAF launch evidence gate](ncaaf-launch-evidence-gate.md) — keep recommendations Neutral until independent team evidence exists; never invent an opening-week edge.
+- [NCAAF evidence-time safety](ncaaf-evidence-time-safety.md) — retrospective captures are audit evidence, not pregame evidence; every read requires a strict pre-kickoff cutoff.

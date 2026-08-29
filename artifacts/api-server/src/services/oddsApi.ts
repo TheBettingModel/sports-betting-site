@@ -102,24 +102,24 @@ export interface OddsLookupResult {
   marketBlockedByProviderStart: boolean;
 }
 
-interface OddsApiOutcome {
+export interface OddsApiOutcome {
   name: string;
   price: number;    // American odds
   point?: number;   // spread / total point value
 }
 
-interface OddsApiMarket {
+export interface OddsApiMarket {
   key: string;       // "h2h" | "spreads" | "totals"
   outcomes: OddsApiOutcome[];
 }
 
-interface OddsApiBookmaker {
+export interface OddsApiBookmaker {
   key: string;       // e.g. "pinnacle", "draftkings", "fanduel"
   title: string;
   markets: OddsApiMarket[];
 }
 
-interface OddsApiGame {
+export interface OddsApiGame {
   id: string;
   home_team: string;
   away_team: string;
@@ -541,6 +541,28 @@ export async function fetchOddsForSport(
     );
     return cachedIsActionable ? cached!.games : new Map();
   }
+}
+
+/**
+ * Returns the uncollapsed current NCAAF response for the evidence ledger.
+ * This intentionally does not use the prediction cache/normalisation path:
+ * partial books and events that cannot be matched to a game are evidence too.
+ */
+export async function fetchCurrentNcaafEvidenceOdds(): Promise<OddsApiGame[]> {
+  const apiKey = process.env.ODDS_API_KEY;
+  if (!apiKey) throw new Error("ODDS_API_KEY secret is not set");
+  const url =
+    "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds/" +
+    `?apiKey=${apiKey}&regions=us,eu&markets=h2h,spreads,totals&oddsFormat=american`;
+  const response = await fetch(url, {
+    headers: { "User-Agent": "TheBettingModel/2.0" },
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`The Odds API ${response.status}: ${body.slice(0, 200)}`);
+  }
+  return (await response.json()) as OddsApiGame[];
 }
 
 // ── Best available line ───────────────────────────────────────────────────────

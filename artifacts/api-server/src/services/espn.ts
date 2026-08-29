@@ -96,6 +96,7 @@ interface EspnTeam {
   shortDisplayName?: string;
   logo?: string;
   logos?: Array<{ href: string; rel?: string[] }>;
+  conferenceId?: string;
 }
 
 interface EspnAthlete {
@@ -116,6 +117,7 @@ interface EspnCompetitor {
   athlete?: EspnAthlete;
   records?: EspnRecord[];
   score?: string;
+  linescores?: Array<{ value?: number | string }>;
 }
 
 interface EspnOdds {
@@ -127,7 +129,8 @@ interface EspnOdds {
 }
 
 interface EspnStatus {
-  type: { state: "pre" | "in" | "post"; completed: boolean };
+  type: { state: "pre" | "in" | "post"; completed: boolean; detail?: string };
+  period?: number;
 }
 
 interface EspnEvent {
@@ -141,6 +144,8 @@ interface EspnEvent {
     competitors: EspnCompetitor[];
     odds?: EspnOdds[];
     neutralSite?: boolean;
+    venue?: { id?: string; fullName?: string; address?: { city?: string; state?: string; country?: string }; indoor?: boolean };
+    status?: EspnStatus;
   }>;
 }
 
@@ -151,6 +156,7 @@ interface EspnScoreboard {
     type?: number;
     slug?: string;
   };
+  week?: { number?: number };
 }
 
 // ── FetchedGame ───────────────────────────────────────────────────────────────
@@ -173,6 +179,9 @@ export interface FetchedGame {
   // Records — overall W-L (or W-D-L for soccer)
   homeTeamRecord: string;
   awayTeamRecord: string;
+  /** False when the provider omitted the record and the display fallback is "0-0". */
+  homeTeamRecordAvailable?: boolean;
+  awayTeamRecordAvailable?: boolean;
 
   // Home/road splits (extracted when ESPN provides them — WNBA, NBA, etc.)
   homeHomeRecord?: string;  // home team's record AT HOME  (W-L)
@@ -193,6 +202,12 @@ export interface FetchedGame {
   vegasAwayOdds?: number;   // away moneyline
   vegasDrawOdds?: number;   // draw moneyline (soccer only)
   vegasOverUnder?: number;  // game total
+  week?: number;
+  neutralSite?: boolean;
+  venueId?: string; venueName?: string; venueCity?: string; venueState?: string; venueCountry?: string; venueIndoor?: boolean;
+  homeConferenceId?: string; awayConferenceId?: string;
+  homeHalftimeScore?: number; awayHalftimeScore?: number;
+  isOvertime?: boolean;
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -227,6 +242,21 @@ function getStatus(event: EspnEvent): "upcoming" | "live" | "final" {
   return "upcoming";
 }
 
+function lineScoreThroughHalf(competitor: EspnCompetitor): number | undefined {
+  const periods = competitor.linescores;
+  if (!periods || periods.length < 2) return undefined;
+  const first = Number(periods[0]?.value);
+  const second = Number(periods[1]?.value);
+  return Number.isFinite(first) && Number.isFinite(second) ? first + second : undefined;
+}
+
+function isOvertime(event: EspnEvent, competition: { status?: EspnStatus }): boolean | undefined {
+  const status = competition.status ?? event.status;
+  if (status.period != null) return status.period > 4;
+  const detail = status.type.detail?.toLowerCase();
+  return detail?.includes("ot") || detail?.includes("overtime") || undefined;
+}
+
 function getAbbr(competitor: EspnCompetitor): string {
   const raw =
     competitor.team?.abbreviation ??
@@ -250,6 +280,11 @@ function getOverallRecord(competitor: EspnCompetitor): string {
     competitor.records?.[0]?.summary ??
     "0-0"
   );
+}
+
+function hasOverallRecord(competitor: EspnCompetitor): boolean {
+  return competitor.records?.some((record) => record.type === "total") === true
+    || (competitor.records?.length ?? 0) > 0;
 }
 
 /** Returns the home-venue record if ESPN provides it, otherwise undefined. */
@@ -402,6 +437,8 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 
           homeTeamRecord: getOverallRecord(home),
           awayTeamRecord: getOverallRecord(away),
+          homeTeamRecordAvailable: hasOverallRecord(home),
+          awayTeamRecordAvailable: hasOverallRecord(away),
 
           homeHomeRecord: getHomeRecord(home),
           homeRoadRecord: getRoadRecord(home),
@@ -421,6 +458,19 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
           vegasAwayOdds: awayOdds ?? undefined,
           vegasDrawOdds: drawOdds ?? undefined,
           vegasOverUnder: overUnder ?? undefined,
+          week: data.week?.number,
+          neutralSite: competition.neutralSite,
+          venueId: competition.venue?.id,
+          venueName: competition.venue?.fullName,
+          venueCity: competition.venue?.address?.city,
+          venueState: competition.venue?.address?.state,
+          venueCountry: competition.venue?.address?.country,
+          venueIndoor: competition.venue?.indoor,
+          homeConferenceId: home.team?.conferenceId,
+          awayConferenceId: away.team?.conferenceId,
+          homeHalftimeScore: lineScoreThroughHalf(home),
+          awayHalftimeScore: lineScoreThroughHalf(away),
+          isOvertime: isOvertime(event, competition),
         });
       }
     }
@@ -443,6 +493,7 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 export async function fetchSportGamesByDate(
   sportKey: string,
   yyyymmdd: string,
+  options: { throwOnError?: boolean } = {},
 ): Promise<FetchedGame[]> {
   const path = ESPN_SPORT_PATHS[sportKey];
   if (!path) return [];
@@ -496,6 +547,8 @@ export async function fetchSportGamesByDate(
           awayTeamName:     getDisplayName(away),
           homeTeamRecord:   getOverallRecord(home),
           awayTeamRecord:   getOverallRecord(away),
+          homeTeamRecordAvailable: hasOverallRecord(home),
+          awayTeamRecordAvailable: hasOverallRecord(away),
           homeHomeRecord:   getHomeRecord(home),
           homeRoadRecord:   getRoadRecord(home),
           awayHomeRecord:   getHomeRecord(away),
@@ -510,6 +563,19 @@ export async function fetchSportGamesByDate(
           vegasAwayOdds:    awayOdds ?? undefined,
           vegasDrawOdds:    drawOdds ?? undefined,
           vegasOverUnder:   overUnder ?? undefined,
+          week:             data.week?.number,
+          neutralSite:      competition.neutralSite,
+          venueId:          competition.venue?.id,
+          venueName:        competition.venue?.fullName,
+          venueCity:        competition.venue?.address?.city,
+          venueState:       competition.venue?.address?.state,
+          venueCountry:     competition.venue?.address?.country,
+          venueIndoor:      competition.venue?.indoor,
+          homeConferenceId: home.team?.conferenceId,
+          awayConferenceId: away.team?.conferenceId,
+          homeHalftimeScore: lineScoreThroughHalf(home),
+          awayHalftimeScore: lineScoreThroughHalf(away),
+          isOvertime: isOvertime(event, competition),
         });
       }
     }
@@ -518,6 +584,7 @@ export async function fetchSportGamesByDate(
     return games;
   } catch (err) {
     logger.error({ err, sportKey, yyyymmdd }, "ESPN historical fetch failed");
+    if (options.throwOnError) throw err;
     return [];
   }
 }

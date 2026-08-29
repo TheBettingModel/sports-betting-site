@@ -41,6 +41,7 @@ import { getWnbaGameContext } from "./wnbaContext";
 import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
+import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -424,6 +425,16 @@ async function runOddsIngestion(): Promise<void> {
 
   try {
     const sportResults = await fetchAllSportsDetailed();
+    // Ledger capture is append-only and intentionally independent of the
+    // game/prediction refresh below. It makes one additional Odds API call
+    // because the prediction cache intentionally collapses/drops partial and
+    // unmatched books, while the audit ledger must retain their raw evidence.
+    try {
+      const evidence = await captureCurrentNcaafEvidence();
+      logger.info(evidence, "Scheduler: NCAAF evidence capture completed");
+    } catch (err) {
+      logger.error({ err }, "Scheduler: NCAAF evidence capture failed");
+    }
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
 
