@@ -32,6 +32,7 @@ export * from "./forecast-reviews";
 export * from "./feature-definitions";
 export * from "./feature-snapshots";
 export * from "./ncaaf-evidence-ledger";
+export * from "./ncaaf-feature-snapshots";
 
 // ── Training & evaluation ─────────────────────────────────────────────────────
 export * from "./training-datasets";

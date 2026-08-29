@@ -1,6 +1,7 @@
 import type { ModelWeights, FactorWeights } from "@workspace/db";
 import type { WnbaTeamStats, SoccerTeamStats, DbTeamStats } from "./teamStats";
 import type { WnbaGameContext } from "./wnbaContext";
+import type { NcaafFeatureSnapshotValue } from "./ncaafFeatures";
 
 export interface ProjectionResult {
   homeWinPct: number;
@@ -512,12 +513,20 @@ export interface ComputeOptions {
   mlbEvidenceMultiplier?: number;
   /** MLB only: required pregame evidence is absent, so this must remain a no-bet. */
   mlbRecommendationBlocked?: boolean;
-  /**
-   * NCAAF requires independent current-season team evidence before publishing a
-   * wager. getDbTeamStats only returns after its minimum sample is satisfied,
-   * so missing either side means an early-season/prior model is not yet ready.
-   */
+  /** NCAAF remains subscriber no-bet; this gate also records forecast readiness. */
   ncaafRecommendationBlocked?: boolean;
+  /** Market-free, immutable NCAAF challenger features from the evidence ledger. */
+  ncaafFeatureSnapshot?: NcaafFeatureSnapshotValue;
+  /** Exact durable feature-row identity carried into the prediction decision. */
+  ncaafFeatureMetadata?: {
+    snapshotId: number;
+    schemaVersion: string;
+    modelVersion: string;
+    configHash: string;
+    inputHash: string;
+    dataCutoffAt: string;
+    sufficientIndependentEvidence: boolean;
+  };
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -944,6 +953,13 @@ function computeRunsModel(
   const noise = hashNoise(gameId, noiseRange, Math.floor(noiseRange / 2));
   prob = Math.max(0.20, Math.min(0.82, prob + noise));
 
+  // NCAAF's challenger probability replaces the legacy runs model immediately
+  // before common finalization. No record, DB-stat, market, learned multiplier,
+  // or hash-noise input may alter this market-free feature forecast.
+  if (sport === "NCAAF" && opts.ncaafFeatureSnapshot?.forecast.status === "ready") {
+    prob = opts.ncaafFeatureSnapshot.forecast.homeWinProbability!;
+  }
+
   return finalizeResult(gameId, sport, prob, homeWinRate, accuracyBoost, opts);
 }
 
@@ -1052,7 +1068,10 @@ function finalizeResult(
   if (sport === "MLB" && opts.mlbRecommendationBlocked) {
     valueRating = "Neutral";
   }
-  if (sport === "NCAAF" && opts.ncaafRecommendationBlocked) {
+  // Promotion is intentionally not authorized: all subscriber-facing NCAAF
+  // recommendations and stakes remain Neutral/zero while challenger forecasts
+  // can still be captured and evaluated.
+  if (sport === "NCAAF") {
     valueRating = "Neutral";
   }
 

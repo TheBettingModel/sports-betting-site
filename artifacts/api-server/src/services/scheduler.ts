@@ -42,6 +42,8 @@ import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
+import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
+import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -644,8 +646,21 @@ async function runOddsIngestion(): Promise<void> {
                 awayDbStats,
               }, mlbAvailability)
             : null;
+          const ncaafFeature = game.sport === "NCAAF" && new Date(game.commenceTimeISO) > new Date()
+            ? await createNcaafFeatureSnapshot({
+                provider: "espn",
+                eventId: game.espnId,
+                season: ncaafSeasonForDate(game.gameDate),
+                kickoffAt: new Date(game.commenceTimeISO),
+                homeTeamId: game.homeTeamId ?? null,
+                awayTeamId: game.awayTeamId ?? null,
+                homeTeamName: game.homeTeamName,
+                awayTeamName: game.awayTeamName,
+                neutralSite: game.neutralSite,
+              }, new Date())
+            : null;
           const ncaafRecommendationBlocked =
-            game.sport === "NCAAF" && !(homeDbStats && awayDbStats);
+            game.sport === "NCAAF" && ncaafFeature?.snapshot.forecast.status !== "ready";
 
           const proj = computeProjection(
             game.espnId,
@@ -697,6 +712,16 @@ async function runOddsIngestion(): Promise<void> {
               mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
               mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
               ncaafRecommendationBlocked,
+              ncaafFeatureSnapshot: ncaafFeature?.snapshot,
+              ncaafFeatureMetadata: ncaafFeature ? {
+                snapshotId: ncaafFeature.id,
+                schemaVersion: ncaafFeature.snapshot.schemaVersion,
+                modelVersion: ncaafFeature.snapshot.modelVersion,
+                configHash: ncaafFeature.snapshot.configHash,
+                inputHash: ncaafFeature.inputHash,
+                dataCutoffAt: ncaafFeature.snapshot.cutoff,
+                sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
+              } : undefined,
             },
           );
           const decisionContext = createPredictionDecisionContext(
@@ -740,6 +765,16 @@ async function runOddsIngestion(): Promise<void> {
               mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
               mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
               ncaafRecommendationBlocked,
+              ncaafFeatureSnapshot: ncaafFeature?.snapshot,
+              ncaafFeatureMetadata: ncaafFeature ? {
+                snapshotId: ncaafFeature.id,
+                schemaVersion: ncaafFeature.snapshot.schemaVersion,
+                modelVersion: ncaafFeature.snapshot.modelVersion,
+                configHash: ncaafFeature.snapshot.configHash,
+                inputHash: ncaafFeature.inputHash,
+                dataCutoffAt: ncaafFeature.snapshot.cutoff,
+                sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
+              } : undefined,
             },
             {
               ...mlbAvailability,
@@ -752,6 +787,15 @@ async function runOddsIngestion(): Promise<void> {
               wnbaContext,
             },
             mlbEvidence ?? undefined,
+            ncaafFeature ? {
+              snapshotId: ncaafFeature.id,
+              schemaVersion: ncaafFeature.snapshot.schemaVersion,
+              modelVersion: ncaafFeature.snapshot.modelVersion,
+              configHash: ncaafFeature.snapshot.configHash,
+              inputHash: ncaafFeature.inputHash,
+              dataCutoffAt: ncaafFeature.snapshot.cutoff,
+              sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
+            } : undefined,
           );
           await processGameSnapshot(game, proj, decisionContext);
           processed++;
@@ -813,6 +857,11 @@ async function runResultGrading(): Promise<void> {
   try {
     // First pull fresh game data so finals are up to date
     const games = await fetchAllSports();
+    try {
+      await captureCurrentNcaafEvidence();
+    } catch (err) {
+      logger.error({ err }, "Result grading: NCAAF evidence capture failed");
+    }
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
     const DB_SPORTS_GRADING = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
@@ -985,8 +1034,29 @@ async function runResultGrading(): Promise<void> {
           awayDbStats,
           wnbaContext,
         };
-        if (game.sport === "NCAAF") {
-          projectionOptions.ncaafRecommendationBlocked = !(homeDbStats && awayDbStats);
+        if (game.sport === "NCAAF" && new Date(game.commenceTimeISO) > new Date()) {
+          const ncaafFeature = await createNcaafFeatureSnapshot({
+            provider: "espn",
+            eventId: game.espnId,
+            season: ncaafSeasonForDate(game.gameDate),
+            kickoffAt: new Date(game.commenceTimeISO),
+            homeTeamId: game.homeTeamId ?? null,
+            awayTeamId: game.awayTeamId ?? null,
+            homeTeamName: game.homeTeamName,
+            awayTeamName: game.awayTeamName,
+            neutralSite: game.neutralSite,
+          }, new Date());
+          projectionOptions.ncaafFeatureSnapshot = ncaafFeature.snapshot;
+          projectionOptions.ncaafRecommendationBlocked = ncaafFeature.snapshot.forecast.status !== "ready";
+          projectionOptions.ncaafFeatureMetadata = {
+            snapshotId: ncaafFeature.id,
+            schemaVersion: ncaafFeature.snapshot.schemaVersion,
+            modelVersion: ncaafFeature.snapshot.modelVersion,
+            configHash: ncaafFeature.snapshot.configHash,
+            inputHash: ncaafFeature.inputHash,
+            dataCutoffAt: ncaafFeature.snapshot.cutoff,
+            sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
+          };
         }
         const mlbAvailability = {
           homeStarter: starters.home ?? null,
@@ -1039,6 +1109,7 @@ async function runResultGrading(): Promise<void> {
             wnbaContext,
           },
           mlbEvidence,
+          projectionOptions.ncaafFeatureMetadata,
         );
         await processGameSnapshot(game, proj, decisionContext);
         snapshots++;

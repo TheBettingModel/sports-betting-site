@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { FetchedGame } from "./espn";
 import {
   createPredictionDecisionContext,
+  buildImmutablePredictionFeatureSnapshot,
   isPredictionDecisionEligible,
+  shouldPublishPrediction,
 } from "./snapshot";
+import type { ProjectionResult } from "./model";
 import type { WnbaGameContext } from "./wnbaContext";
 
 function gameWithStart(commenceTimeISO: string): FetchedGame {
@@ -109,7 +112,50 @@ describe("prediction decision context market gates", () => {
 
     expect(context.inputSignals.ncaafRecommendationBlocked).toBe(true);
     expect(context.dataQuality.missingSignals).toContain("independent_team_evidence");
+    expect(isPredictionDecisionEligible(game, context)).toBe(false);
+  });
+
+  it("isolates NCAAF challenger predictions from publication and preserves exact feature identity", () => {
+    const game = {
+      ...gameWithStart(new Date(Date.now() + 60_000).toISOString()),
+      sport: "NCAAF",
+    };
+    const metadata = {
+      snapshotId: 42,
+      schemaVersion: "ncaaf-features-v1",
+      modelVersion: "ncaaf-market-free-v1",
+      configHash: "config-hash",
+      inputHash: "input-hash",
+      dataCutoffAt: "2026-08-21T00:00:00.000Z",
+      sufficientIndependentEvidence: true,
+    };
+    const context = createPredictionDecisionContext(
+      game,
+      null,
+      {
+        ncaafRecommendationBlocked: false,
+        ncaafFeatureMetadata: metadata,
+      },
+      {},
+    );
+    const projection = {
+      vegasHomeOdds: -120,
+      vegasAwayOdds: 100,
+      vegasSpread: -2.5,
+      vegasTotal: 0,
+    } as ProjectionResult;
+    const snapshot = buildImmutablePredictionFeatureSnapshot(game, projection, 7, context);
+
+    expect(shouldPublishPrediction("NCAAF")).toBe(false);
+    expect(shouldPublishPrediction("MLB")).toBe(true);
     expect(isPredictionDecisionEligible(game, context)).toBe(true);
+    expect(snapshot.ncaafFeature).toEqual(metadata);
+    expect(snapshot.modelVersion).toMatchObject({
+      id: 7,
+      ncaafFeatureVersion: "ncaaf-features-v1",
+      ncaafModelVersion: "ncaaf-market-free-v1",
+      ncaafConfigHash: "config-hash",
+    });
   });
 });
 

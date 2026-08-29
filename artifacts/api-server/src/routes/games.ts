@@ -29,6 +29,8 @@ import { runGrading, syncGameResults, recoverStaleGames } from "../services/grad
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
+import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
+import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
 
 type AnyGame = Record<string, unknown>;
 
@@ -365,8 +367,31 @@ export async function refreshAll(): Promise<{
       awayDbStats,
       wnbaContext,
     };
+    const ncaafFeature = game.sport === "NCAAF" && new Date(game.commenceTimeISO) > new Date()
+      ? await createNcaafFeatureSnapshot({
+          provider: "espn",
+          eventId: game.espnId,
+          season: ncaafSeasonForDate(game.gameDate),
+          kickoffAt: new Date(game.commenceTimeISO),
+          homeTeamId: game.homeTeamId ?? null,
+          awayTeamId: game.awayTeamId ?? null,
+          homeTeamName: game.homeTeamName,
+          awayTeamName: game.awayTeamName,
+          neutralSite: game.neutralSite,
+        }, new Date())
+      : null;
     if (game.sport === "NCAAF") {
-      projectionOptions.ncaafRecommendationBlocked = !(homeDbStats && awayDbStats);
+      projectionOptions.ncaafFeatureSnapshot = ncaafFeature?.snapshot;
+      projectionOptions.ncaafRecommendationBlocked = ncaafFeature?.snapshot.forecast.status !== "ready";
+      projectionOptions.ncaafFeatureMetadata = ncaafFeature ? {
+        snapshotId: ncaafFeature.id,
+        schemaVersion: ncaafFeature.snapshot.schemaVersion,
+        modelVersion: ncaafFeature.snapshot.modelVersion,
+        configHash: ncaafFeature.snapshot.configHash,
+        inputHash: ncaafFeature.inputHash,
+        dataCutoffAt: ncaafFeature.snapshot.cutoff,
+        sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
+      } : undefined;
     }
     const mlbAvailability = {
       homeStarter: starters.home ?? null,
@@ -419,6 +444,15 @@ export async function refreshAll(): Promise<{
         wnbaContext,
       },
       mlbEvidence,
+      ncaafFeature ? {
+        snapshotId: ncaafFeature.id,
+        schemaVersion: ncaafFeature.snapshot.schemaVersion,
+        modelVersion: ncaafFeature.snapshot.modelVersion,
+        configHash: ncaafFeature.snapshot.configHash,
+        inputHash: ncaafFeature.inputHash,
+        dataCutoffAt: ncaafFeature.snapshot.cutoff,
+        sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
+      } : undefined,
     );
     const mlbDecisionAudit = game.sport === "MLB"
       ? createMlbQualificationAudit(proj, mlbEvidence)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeProjection, computeWnbaContextContributions, SPORT_DEFAULT_WEIGHTS, removeVig2 } from "./model";
+import { computeProjection, computeWnbaContextContributions, SPORT_DEFAULT_WEIGHTS, removeVig2, type ComputeOptions } from "./model";
 import { selectActionableMoneylineMarket } from "./oddsApi";
 import type { WnbaGameContext } from "./wnbaContext";
 import type { DbTeamStats } from "./teamStats";
@@ -207,7 +207,7 @@ describe("two-way market edge safeguards", () => {
     expect(projection.units).toBe(0);
   });
 
-  it("allows NCAAF recommendations once both teams have sufficient evidence", () => {
+  it("keeps NCAAF unconditionally Neutral after sufficient challenger evidence", () => {
     const projection = computeProjection(
       "NCAAF-qualified",
       "NCAAF",
@@ -232,8 +232,30 @@ describe("two-way market edge safeguards", () => {
       },
     );
 
-    expect(["Buy", "Strong Buy"]).toContain(projection.valueRating);
-    expect(projection.units).toBeGreaterThan(0);
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.units).toBe(0);
+  });
+
+  it("uses a ready NCAAF feature probability in the runs model only", () => {
+    const ncaafFeatureSnapshot = {
+      forecast: { status: "ready", homeWinProbability: 0.73 },
+    } as unknown as NonNullable<ComputeOptions["ncaafFeatureSnapshot"]>;
+    const ncaaf = computeProjection("feature-ready", "NCAAF", "0-4", "4-0", null, {
+      realVegasHomeOdds: 110,
+      realVegasAwayOdds: -130,
+      ncaafFeatureSnapshot,
+    });
+    expect(ncaaf.homeWinPct).toBe(71);
+    expect(ncaaf.valueRating).toBe("Neutral");
+    expect(ncaaf.units).toBe(0);
+
+    const nhlOptions = { realVegasHomeOdds: 110, realVegasAwayOdds: -130 };
+    const baseline = computeProjection("cross-sport-ready", "NHL", "3-1", "1-3", null, nhlOptions);
+    const withNcaafPayload = computeProjection("cross-sport-ready", "NHL", "3-1", "1-3", null, {
+      ...nhlOptions,
+      ncaafFeatureSnapshot,
+    });
+    expect(withNcaafPayload).toEqual(baseline);
   });
 
   it("does not apply the NCAAF evidence gate to other sports", () => {

@@ -44,6 +44,15 @@ export interface PredictionDecisionContext {
     missingSignals: string[];
     source: "refresh";
     evidence?: MlbDecisionEvidence;
+    ncaafFeature?: {
+      snapshotId: number;
+      schemaVersion: string;
+      modelVersion: string;
+      configHash: string;
+      inputHash: string;
+      dataCutoffAt: string;
+      sufficientIndependentEvidence: boolean;
+    };
   };
 }
 
@@ -116,6 +125,12 @@ export function isPredictionDecisionEligible(
 ): boolean {
   if (!decisionContext) return false;
   const missing = new Set(decisionContext.dataQuality.missingSignals);
+  if (game.sport === "NCAAF") {
+    return Boolean(
+      decisionContext.dataQuality.ncaafFeature?.sufficientIndependentEvidence
+      && isPregameCommenceTime(game.commenceTimeISO),
+    );
+  }
   if (missing.has("market_odds") || missing.has("market_started_or_invalid")) return false;
   // MLB starter quality is a full-game input, not a neutral fallback. Retain the
   // game for display, but do not turn an unannounced/scratched starter into a pick.
@@ -134,6 +149,7 @@ export function createPredictionDecisionContext(
   options: ComputeOptions,
   availability: Record<string, unknown>,
   precomputedMlbEvidence?: MlbDecisionEvidence,
+  ncaafFeatureMeta?: PredictionDecisionContext["dataQuality"]["ncaafFeature"],
 ): PredictionDecisionContext {
   const factorWeights = effectiveWeights(game.sport, modelWeights?.factorWeights);
   const factorContributions = computeFactorContributions(
@@ -175,6 +191,7 @@ export function createPredictionDecisionContext(
       missingSignals: [...new Set(missingSignals)],
       source: "refresh",
       evidence: mlbEvidence,
+      ncaafFeature: ncaafFeatureMeta ?? options.ncaafFeatureMetadata,
     },
   };
 }
@@ -246,11 +263,11 @@ async function writePredictionSnapshot(
   decisionContext?: PredictionDecisionContext,
   featureSnapshot?: Record<string, unknown>,
 ): Promise<number | null> {
-  if (!isPredictionDecisionEligible(game, decisionContext) || !hasValidMoneylineMarketForSport(game.sport, {
+  if (!isPredictionDecisionEligible(game, decisionContext) || (game.sport !== "NCAAF" && !hasValidMoneylineMarketForSport(game.sport, {
     homeOdds: proj.vegasHomeOdds,
     awayOdds: proj.vegasAwayOdds,
     drawOdds: game.sport === "Soccer" ? proj.vegasDrawOdds : undefined,
-  })) {
+  }))) {
     return null;
   }
 
@@ -271,10 +288,11 @@ async function writePredictionSnapshot(
 
   // Build the feature snapshot: exact inputs used by computeProjection
   const snapshot = featureSnapshot ?? {
-    schemaVersion: decisionContext ? 3 : 1,
+    schemaVersion: decisionContext?.dataQuality.ncaafFeature ? 4 : decisionContext ? 3 : 1,
     modelVersion: {
       id: modelVersionId,
       decisionEvidenceVersion: decisionContext?.dataQuality.evidence?.schemaVersion ?? null,
+      ncaafFeatureVersion: decisionContext?.dataQuality.ncaafFeature?.schemaVersion ?? null,
     },
     homeRecord: game.homeTeamRecord,
     awayRecord: game.awayTeamRecord,
@@ -303,15 +321,15 @@ async function writePredictionSnapshot(
     } : {}),
   };
 
-  const pickIsHome = proj.edge >= 0;
+  const pickIsHome = game.sport === "NCAAF" ? proj.homeWinPct >= 50 : proj.edge >= 0;
   const pickOdds   = pickIsHome ? proj.vegasHomeOdds : proj.vegasAwayOdds;
   const pickProb   = pickIsHome ? proj.homeWinPct / 100 : 1 - proj.homeWinPct / 100;
-  const impliedPickProb =
+  const impliedPickProb = game.sport === "NCAAF" ? null :
     pickOdds > 0
       ? 100 / (pickOdds + 100)
       : Math.abs(pickOdds) / (Math.abs(pickOdds) + 100);
-  const fairMarket = removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
-  const fairPickProbability = pickIsHome ? fairMarket.home : fairMarket.away;
+  const fairMarket = game.sport === "NCAAF" ? null : removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
+  const fairPickProbability = fairMarket == null ? null : pickIsHome ? fairMarket.home : fairMarket.away;
 
   const [inserted] = await db
     .insert(modelPredictionsTable)
@@ -321,14 +339,14 @@ async function writePredictionSnapshot(
       sport: game.sport,
       market: "moneyline",
       selection: pickIsHome ? "home" : "away",
-      odds: pickOdds,
+      odds: game.sport === "NCAAF" ? null : pickOdds,
       modelProbability: pickProb,
       impliedProbability: impliedPickProb,
       fairProbability: fairPickProbability,
-      edge: proj.edge,
+      edge: game.sport === "NCAAF" ? 0 : proj.edge,
       confidence: proj.confidence,
       recommendation: proj.valueRating,
-      units: proj.units > 0 ? proj.units : 1.0,
+      units: game.sport === "NCAAF" ? 0 : proj.units > 0 ? proj.units : 1.0,
       podScore: proj.podScore,
       finalRating: proj.finalModelScore,
       marketIntelligenceGrade: proj.finalModelTier,
@@ -336,7 +354,7 @@ async function writePredictionSnapshot(
        featureSnapshot: snapshot,
       predictionTimestamp: capturedAt,
       dataCutoffTimestamp: capturedAt,
-      isChallenger: false,
+      isChallenger: game.sport === "NCAAF",
     })
     // The explicit pre-insert lookup above preserves the one-original-decision
     // rule. Do not name a conflict target here: policy revisions extend the
@@ -423,6 +441,11 @@ async function publishPick(
       gradeAudit: [],
     });
   });
+}
+
+/** NCAAF is an isolated challenger and cannot enter publication/grading/learning. */
+export function shouldPublishPrediction(sport: string): boolean {
+  return sport !== "NCAAF";
 }
 
 // ── Game result ───────────────────────────────────────────────────────────────
@@ -520,12 +543,58 @@ async function writeClosingLines(
 
 // ── Master pipeline ───────────────────────────────────────────────────────────
 
+export function buildImmutablePredictionFeatureSnapshot(
+  game: FetchedGame,
+  proj: ProjectionResult,
+  modelVersionId: number,
+  decisionContext?: PredictionDecisionContext,
+): Record<string, unknown> {
+  return {
+    schemaVersion: decisionContext?.dataQuality.ncaafFeature ? 4 : decisionContext ? 3 : 1,
+    modelVersion: {
+      id: modelVersionId,
+      decisionEvidenceVersion: decisionContext?.dataQuality.evidence?.schemaVersion ?? null,
+      ncaafFeatureVersion: decisionContext?.dataQuality.ncaafFeature?.schemaVersion ?? null,
+      ncaafModelVersion: decisionContext?.dataQuality.ncaafFeature?.modelVersion ?? null,
+      ncaafConfigHash: decisionContext?.dataQuality.ncaafFeature?.configHash ?? null,
+    },
+    homeRecord: game.homeTeamRecord,
+    awayRecord: game.awayTeamRecord,
+    homeTeamAbbr: game.homeTeamAbbr,
+    awayTeamAbbr: game.awayTeamAbbr,
+    sport: game.sport,
+    gameDate: game.gameDate,
+    gameId: game.espnId,
+    gameStartsAt: game.commenceTimeISO,
+    vegasHomeOdds: proj.vegasHomeOdds,
+    vegasAwayOdds: proj.vegasAwayOdds,
+    vegasSpread: proj.vegasSpread,
+    vegasTotal: proj.vegasTotal,
+    ...(decisionContext?.dataQuality.ncaafFeature
+      ? { ncaafFeature: decisionContext.dataQuality.ncaafFeature }
+      : {}),
+    ...(buildWnbaSegmentation(game, proj, decisionContext)
+      ? { wnbaSegmentation: buildWnbaSegmentation(game, proj, decisionContext) }
+      : {}),
+    ...(decisionContext ? {
+      decision: {
+        factorWeights: decisionContext.factorWeights,
+        factorContributions: decisionContext.factorContributions,
+        confidenceMultiplier: decisionContext.confidenceMultiplier,
+        inputSignals: decisionContext.inputSignals,
+        availability: decisionContext.availability,
+        dataQuality: decisionContext.dataQuality,
+      },
+    } : {}),
+  };
+}
+
 /**
  * Run the full snapshot pipeline for one game after its projection is computed.
  *
  * Order:
  * 1. Always write an odds snapshot (timestamped market data).
- * 2. If game is not yet final: write immutable prediction + published pick (once).
+ * 2. If game is not yet final: write immutable prediction; publish only promoted sports.
  * 3. If game just became final: write game result + closing lines.
  */
 export async function processGameSnapshot(
@@ -552,38 +621,9 @@ export async function processGameSnapshot(
     // decision or overwrite the market evidence used for later learning.
     if (game.status === "upcoming" && isPregameCommenceTime(game.commenceTimeISO)) {
       await writeOddsSnapshot(game, proj, now, espnSportsbookId, marketIds, decisionContext);
-      const featureSnapshot = {
-        schemaVersion: decisionContext ? 3 : 1,
-        modelVersion: {
-          id: modelVersionId,
-          decisionEvidenceVersion: decisionContext?.dataQuality.evidence?.schemaVersion ?? null,
-        },
-        homeRecord: game.homeTeamRecord,
-        awayRecord: game.awayTeamRecord,
-        homeTeamAbbr: game.homeTeamAbbr,
-        awayTeamAbbr: game.awayTeamAbbr,
-        sport: game.sport,
-        gameDate: game.gameDate,
-        gameId: game.espnId,
-        gameStartsAt: game.commenceTimeISO,
-        vegasHomeOdds: proj.vegasHomeOdds,
-        vegasAwayOdds: proj.vegasAwayOdds,
-        vegasSpread: proj.vegasSpread,
-        vegasTotal: proj.vegasTotal,
-        ...(buildWnbaSegmentation(game, proj, decisionContext)
-          ? { wnbaSegmentation: buildWnbaSegmentation(game, proj, decisionContext) }
-          : {}),
-        ...(decisionContext ? {
-          decision: {
-            factorWeights: decisionContext.factorWeights,
-            factorContributions: decisionContext.factorContributions,
-            confidenceMultiplier: decisionContext.confidenceMultiplier,
-            inputSignals: decisionContext.inputSignals,
-            availability: decisionContext.availability,
-            dataQuality: decisionContext.dataQuality,
-          },
-        } : {}),
-      };
+      const featureSnapshot = buildImmutablePredictionFeatureSnapshot(
+        game, proj, modelVersionId, decisionContext,
+      );
       const predictionId = await writePredictionSnapshot(
         game,
         proj,
@@ -593,8 +633,10 @@ export async function processGameSnapshot(
         featureSnapshot,
       );
       if (predictionId !== null) {
-        await publishPick(predictionId, game, proj, now);
-      } else {
+        if (shouldPublishPrediction(game.sport)) {
+          await publishPick(predictionId, game, proj, now);
+        }
+      } else if (shouldPublishPrediction(game.sport)) {
         await applyMaterialPregameRevision(
           game,
           proj,
