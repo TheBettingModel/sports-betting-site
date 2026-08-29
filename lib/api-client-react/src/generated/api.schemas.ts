@@ -58,6 +58,24 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface MarketProjection {
+  market: string;
+  selection: string;
+  teamAbbr: string;
+  line?: number | null;
+  odds: number;
+  sportsbook?: string | null;
+  modelProbability: number;
+  fairPrice: number;
+  edge: number;
+  expectedValue?: number | null;
+  pushProbability?: number | null;
+  recommendation: string;
+  units: number;
+  eligible: boolean;
+  gateStatus?: string | null;
+}
+
 export interface GameProjection {
   id: string;
   sport: string;
@@ -120,6 +138,10 @@ export interface GameProjection {
   homeKeyInjuries?: string | null;
   awayKeyInjuries?: string | null;
   predictionCorrect?: boolean | null;
+  selectedMarket?: string | null;
+  selectedPick?: MarketProjection | null;
+  moneylineMarket?: MarketProjection | null;
+  spreadMarket?: MarketProjection | null;
 }
 
 export interface GamesTodayResponse {

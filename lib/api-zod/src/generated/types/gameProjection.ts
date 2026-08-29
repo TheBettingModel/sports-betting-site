@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MarketProjection } from './marketProjection';
 
 export interface GameProjection {
   id: string;
@@ -68,4 +69,8 @@ export interface GameProjection {
   homeKeyInjuries?: string | null;
   awayKeyInjuries?: string | null;
   predictionCorrect?: boolean | null;
+  selectedMarket?: string | null;
+  selectedPick?: MarketProjection | null;
+  moneylineMarket?: MarketProjection | null;
+  spreadMarket?: MarketProjection | null;
 }

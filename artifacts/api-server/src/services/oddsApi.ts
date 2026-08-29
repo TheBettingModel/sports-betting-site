@@ -70,6 +70,14 @@ export interface BookmakerLine {
   awayOdds: number;   // American odds for away team
 }
 
+export interface SpreadBookmakerLine {
+  book: string;
+  homeLine: number;
+  homeOdds: number;
+  awayLine: number;
+  awayOdds: number;
+}
+
 export interface GameOdds {
   /** Average moneyline across US public books (consensus market price) */
   consensusHomeOdds: number;
@@ -80,8 +88,10 @@ export interface GameOdds {
   pinnacleHomeOdds?: number;
   pinnacleAwayOdds?: number;
   pinnacleDrawOdds?: number;
-  /** Best available spread (Pinnacle if available, else consensus) */
-  spread?: number;   // positive = home favoured by N points
+  /** First complete user-facing US spread market, retained for legacy display. */
+  spread?: number;
+  /** Complete, exact two-sided spread markets from user-facing US books. */
+  spreadMarkets?: SpreadBookmakerLine[];
   /** Best available total */
   total?: number;
   /** All per-bookmaker H2H lines — used to find the best available price */
@@ -447,21 +457,40 @@ async function fetchAndNormalise(
       continue;
     }
 
-    // ── Spreads — prefer Pinnacle, else first public book ─────────────────
-    let spread: number | undefined;
-    const spreadSource = pinnacleBook ?? publicBooks[0];
-    if (spreadSource) {
-      const spreadsMarket = spreadSource.markets.find((m) => m.key === "spreads");
-      if (spreadsMarket) {
-        const homeSpread = spreadsMarket.outcomes.find((o) =>
-          normalizeName(o.name) === normalizeName(g.home_team),
-        );
-          if (isValidMarketPoint(homeSpread?.point, "spread")) spread = homeSpread.point;
+    // ── Spreads — retain complete two-sided user-facing US markets ─────────
+    // Do not fabricate the opposite side or surface offshore/Pinnacle prices.
+    const spreadMarkets: SpreadBookmakerLine[] = [];
+    for (const book of g.bookmakers) {
+      if (!USER_FACING_BEST_LINE_BOOKS.has(book.key)) continue;
+      const market = book.markets.find((m) => m.key === "spreads");
+      if (!market) continue;
+      const home = market.outcomes.find((o) =>
+        normalizeName(o.name) === normalizeName(g.home_team),
+      );
+      const away = market.outcomes.find((o) =>
+        normalizeName(o.name) === normalizeName(g.away_team),
+      );
+      if (
+        !isValidMarketPoint(home?.point, "spread")
+        || !isValidMarketPoint(away?.point, "spread")
+        || !isValidAmericanOdds(home?.price)
+        || !isValidAmericanOdds(away?.price)
+      ) {
+        continue;
       }
+      spreadMarkets.push({
+        book: book.key,
+        homeLine: home.point,
+        homeOdds: home.price,
+        awayLine: away.point,
+        awayOdds: away.price,
+      });
     }
+    const spread = spreadMarkets[0]?.homeLine;
 
     // ── Totals — prefer Pinnacle, else first public book ──────────────────
     let total: number | undefined;
+    const spreadSource = pinnacleBook ?? publicBooks[0];
     if (spreadSource) {
       const totalsMarket = spreadSource.markets.find((m) => m.key === "totals");
       if (totalsMarket) {
@@ -490,6 +519,7 @@ async function fetchAndNormalise(
       pinnacleAwayOdds,
       pinnacleDrawOdds,
       spread,
+      spreadMarkets,
       total,
       bookmakerOdds,
       commenceTime: g.commence_time,

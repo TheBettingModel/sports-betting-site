@@ -798,7 +798,13 @@ async function runOddsIngestion(): Promise<void> {
               sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
             } : undefined,
           );
-          await processGameSnapshot(game, proj, decisionContext);
+          await processGameSnapshot(game, proj, decisionContext, {
+            odds: gameOdds,
+            homeTeamStats,
+            awayTeamStats,
+            homeDbStats,
+            awayDbStats,
+          });
           processed++;
         } catch (err) {
           logger.warn({ err, gameId: game.espnId }, "Scheduler: odds-ingestion game error");
@@ -1112,7 +1118,13 @@ async function runResultGrading(): Promise<void> {
           mlbEvidence,
           projectionOptions.ncaafFeatureMetadata,
         );
-        await processGameSnapshot(game, proj, decisionContext);
+        await processGameSnapshot(game, proj, decisionContext, {
+          odds: gameOdds,
+          homeTeamStats,
+          awayTeamStats,
+          homeDbStats,
+          awayDbStats,
+        });
         snapshots++;
       } catch (_) { /* continue */ }
     }

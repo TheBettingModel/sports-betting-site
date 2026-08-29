@@ -27,6 +27,7 @@ export * from './lossReviewEntry';
 export * from './lossReviewEntryReview';
 export * from './lossReviewPattern';
 export * from './lossReviewsResponse';
+export * from './marketProjection';
 export * from './mlbMoneylinePolicy';
 export * from './mlbMoneylinePolicyVersion';
 export * from './mlbPolicyRevision';

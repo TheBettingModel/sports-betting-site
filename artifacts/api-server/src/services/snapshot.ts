@@ -32,6 +32,10 @@ import {
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { applyMaterialPregameRevision } from "./materialPregameRevisions";
 import type { WnbaGameContext } from "./wnbaContext";
+import {
+  writeSpreadCandidateSnapshots,
+  type SpreadEvaluationInput,
+} from "./spreadModel";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -601,6 +605,7 @@ export async function processGameSnapshot(
   game: FetchedGame,
   proj: ProjectionResult,
   decisionContext?: PredictionDecisionContext,
+  spreadInput?: Omit<SpreadEvaluationInput, "game">,
 ): Promise<void> {
   const { espnSportsbookId, marketIds, modelVersionIds } =
     await getBootstrapIds();
@@ -644,6 +649,9 @@ export async function processGameSnapshot(
           featureSnapshot,
           isPredictionDecisionEligible(game, decisionContext),
         );
+      }
+      if (spreadInput) {
+        await writeSpreadCandidateSnapshots({ game, ...spreadInput });
       }
     }
 

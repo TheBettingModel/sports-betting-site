@@ -27,6 +27,8 @@ export * from "./model-predictions";
 export * from "./published-picks";
 export * from "./pick-results";
 export * from "./forecast-reviews";
+export * from "./spread-model-configs";
+export * from "./spread-predictions";
 
 // ── Feature store ─────────────────────────────────────────────────────────────
 export * from "./feature-definitions";

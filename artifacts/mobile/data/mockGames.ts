@@ -32,6 +32,10 @@ export interface Game {
    * Computed in the client adapter from projection fields; not stored on the server.
    */
   insights?: string[];
+  selectedMarket?: 'moneyline' | 'spread';
+  selectedPick?: MarketProjection;
+  moneylineMarket?: MarketProjection;
+  spreadMarket?: MarketProjection;
   projection: {
     homeWinPct: number;
     confidence: ConfidenceLevel;
@@ -85,6 +89,24 @@ export interface Game {
     /** Draw moneyline — present for Soccer (0 = N/A) */
     drawOdds?: number;
   };
+}
+
+export interface MarketProjection {
+  market: 'moneyline' | 'spread';
+  selection: 'home' | 'away';
+  teamAbbr: string;
+  line?: number;
+  odds: number;
+  sportsbook?: string;
+  modelProbability: number;
+  fairPrice: number;
+  edge: number;
+  expectedValue?: number;
+  pushProbability?: number;
+  recommendation: ValueRating;
+  units: number;
+  eligible: boolean;
+  gateStatus?: string;
 }
 
 export const MOCK_GAMES: Game[] = [

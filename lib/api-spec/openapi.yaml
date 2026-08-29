@@ -509,6 +509,26 @@ components:
       required:
         - status
 
+    MarketProjection:
+      type: object
+      properties:
+        market: { type: string }
+        selection: { type: string }
+        teamAbbr: { type: string }
+        line: { type: number, nullable: true }
+        odds: { type: integer }
+        sportsbook: { type: string, nullable: true }
+        modelProbability: { type: number }
+        fairPrice: { type: integer }
+        edge: { type: number }
+        expectedValue: { type: number, nullable: true }
+        pushProbability: { type: number, nullable: true }
+        recommendation: { type: string }
+        units: { type: number }
+        eligible: { type: boolean }
+        gateStatus: { type: string, nullable: true }
+      required: [market, selection, teamAbbr, odds, modelProbability, fairPrice, edge, recommendation, units, eligible]
+
     GameProjection:
       type: object
       properties:
@@ -662,6 +682,21 @@ components:
           nullable: true
         predictionCorrect:
           type: boolean
+          nullable: true
+        selectedMarket:
+          type: string
+          nullable: true
+        selectedPick:
+          allOf:
+            - $ref: "#/components/schemas/MarketProjection"
+          nullable: true
+        moneylineMarket:
+          allOf:
+            - $ref: "#/components/schemas/MarketProjection"
+          nullable: true
+        spreadMarket:
+          allOf:
+            - $ref: "#/components/schemas/MarketProjection"
           nullable: true
       required:
         - id

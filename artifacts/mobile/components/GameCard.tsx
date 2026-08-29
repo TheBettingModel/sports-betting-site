@@ -36,22 +36,23 @@ export function GameCard({ game }: GameCardProps) {
   const hasScores = isFinal && game.homeScore != null && game.awayScore != null;
   const isNeutral = projection.valueRating === 'Neutral';
   const isFade = projection.valueRating === 'Fade';
-  const hasEdge = !isNeutral && !isFade;
-  // Selection intentionally remains edge-based, including the existing MLB pricing behavior upstream.
-  const pickIsHome = projection.edge >= 0;
+  const selectedPick = game.selectedPick;
+  const hasEdge = selectedPick != null || (!isNeutral && !isFade);
+  const pickIsHome = selectedPick?.selection ? selectedPick.selection === 'home' : projection.edge >= 0;
   const pickTeam = pickIsHome ? homeTeam : awayTeam;
-  const pickOdds = pickIsHome ? vegasLine.homeOdds : vegasLine.awayOdds;
+  const pickOdds = selectedPick?.odds ?? (pickIsHome ? vegasLine.homeOdds : vegasLine.awayOdds);
   const openingOdds = pickIsHome ? vegasLine.openingHomeOdds : vegasLine.openingAwayOdds;
-  const selectedWinPct = pickIsHome ? projection.homeWinPct : 100 - projection.homeWinPct;
-  const fairOdds = fairAmericanOdds(selectedWinPct);
-  const probabilityEdge = Math.abs(projection.edge);
+  const selectedWinPct = selectedPick?.modelProbability ?? (pickIsHome ? projection.homeWinPct : 100 - projection.homeWinPct);
+  const fairOdds = selectedPick?.fairPrice ?? fairAmericanOdds(selectedWinPct);
+  const probabilityEdge = selectedPick?.edge ?? Math.abs(projection.edge);
   const clv = openingOdds != null && openingOdds !== pickOdds ? clvShift(openingOdds, pickOdds) : null;
   const showStarters = sport === 'MLB' && (projection.homeStarterName || projection.awayStarterName);
   const isUFC = sport === 'UFC';
   const homeDisplay = isUFC ? homeTeam.name : homeTeam.abbr;
   const awayDisplay = isUFC ? awayTeam.name : awayTeam.abbr;
-  const tier = projection.valueRating;
-  const showUnits = hasEdge && projection.units != null && projection.units > 0;
+  const tier = selectedPick?.recommendation ?? projection.valueRating;
+  const selectedUnits = selectedPick?.units ?? projection.units;
+  const showUnits = hasEdge && selectedUnits != null && selectedUnits > 0;
   const insightText = game.insights?.length ? game.insights.join(' · ') : null;
 
   const toggleAnalysis = () => {
@@ -106,30 +107,22 @@ export function GameCard({ game }: GameCardProps) {
           <>
             <Text style={[styles.label, { color: colors.primary }]}>TBM PICK</Text>
             <View style={styles.pickLine}>
-              <Text numberOfLines={1} style={[styles.pickName, { color: colors.foreground }]}>{pickTeam.name} ML</Text>
+              <Text numberOfLines={1} style={[styles.pickName, { color: colors.foreground }]}>
+                {pickTeam.name} {selectedPick?.market === 'spread' && selectedPick.line != null
+                  ? `${selectedPick.line > 0 ? '+' : ''}${selectedPick.line}`
+                  : 'ML'}
+              </Text>
               <Text style={[styles.odds, { color: colors.foreground }]}>{fmtOdds(pickOdds)}</Text>
             </View>
             <View style={[styles.recommendation, { borderBottomColor: colors.border }]}>
               <Text style={[styles.tier, { color: colors.primary }]}>{tier.toUpperCase()}</Text>
-              {showUnits && <Text style={[styles.units, { color: colors.primary }]}>• {projection.units!.toFixed(1)}U</Text>}
+              {showUnits && <Text style={[styles.units, { color: colors.primary }]}>• {selectedUnits!.toFixed(1)}U</Text>}
             </View>
 
             <View style={[styles.outlook, { borderBottomColor: colors.border }]}>
               <Text style={[styles.outlookTitle, { color: colors.foreground }]}>MODEL OUTLOOK</Text>
-              <View style={styles.outlookColumns}>
-                <View style={styles.outlookCell}>
-                  <Text style={[styles.label, { color: colors.mutedForeground }]}>WIN PROB.</Text>
-                  <Text style={[styles.winProbability, { color: colors.foreground }]}>{selectedWinPct.toFixed(1)}%</Text>
-                </View>
-                <View style={[styles.outlookCell, styles.outlookDivider, { borderLeftColor: colors.border }]}>
-                  <Text style={[styles.label, { color: colors.mutedForeground }]}>FAIR PRICE</Text>
-                  <Text style={[styles.outlookValue, { color: colors.mutedForeground }]}>{fmtOdds(fairOdds)}</Text>
-                </View>
-                <View style={[styles.outlookCell, styles.outlookDivider, { borderLeftColor: colors.border }]}>
-                  <Text style={[styles.label, { color: colors.mutedForeground }]}>MARKET</Text>
-                  <Text style={[styles.outlookValue, { color: colors.mutedForeground }]}>{fmtOdds(pickOdds)}</Text>
-                </View>
-              </View>
+              <MarketRow label="Moneyline" market={game.moneylineMarket} colors={colors} />
+              <MarketRow label="Spread" market={game.spreadMarket} colors={colors} />
             </View>
             <View style={styles.edgeRow}>
               <View>
@@ -176,6 +169,16 @@ export function GameCard({ game }: GameCardProps) {
   );
 }
 
+function MarketRow({ label, market, colors }: { label: string; market: Game['moneylineMarket']; colors: ReturnType<typeof useColors> }) {
+  const value = market
+    ? `${market.teamAbbr}${market.line != null ? ` ${market.line > 0 ? '+' : ''}${market.line}` : ''} · ${market.modelProbability.toFixed(1)}% · ${fmtOdds(market.odds)}`
+    : '—';
+  return <View style={styles.marketRow}>
+    <Text style={[styles.marketLabel, { color: colors.mutedForeground }]}>{label}</Text>
+    <Text numberOfLines={1} style={[styles.marketValue, { color: colors.foreground }]}>{value}</Text>
+  </View>;
+}
+
 function AnalysisButton({ open, onPress, color }: { open: boolean; onPress: () => void; color: string }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={open ? 'Hide game analysis' : 'View game analysis'} accessibilityState={{ expanded: open }} testID="game-card-analysis" onPress={onPress} hitSlop={8}><Text style={[styles.analysisButton, { color }]}>{open ? 'HIDE ANALYSIS ↑' : 'VIEW ANALYSIS →'}</Text></Pressable>;
 }
@@ -219,6 +222,9 @@ const styles = StyleSheet.create({
   units: { fontSize: 12, fontFamily: 'Inter_700Bold', letterSpacing: 0.4 },
   outlook: { paddingVertical: 14, borderBottomWidth: 1 },
   outlookTitle: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1, marginBottom: 10 },
+  marketRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, paddingVertical: 5 },
+  marketLabel: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  marketValue: { flex: 1, textAlign: 'right', fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   outlookColumns: { flexDirection: 'row' },
   outlookCell: { flex: 1, minWidth: 0 },
   outlookDivider: { borderLeftWidth: 1, paddingLeft: 8, marginLeft: 7 },

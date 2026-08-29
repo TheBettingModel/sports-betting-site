@@ -31,6 +31,7 @@ import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
 import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
 import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
+import { choosePrimaryMarket, getLatestSpreadCandidates } from "../services/spreadModel";
 
 type AnyGame = Record<string, unknown>;
 
@@ -58,9 +59,73 @@ function lockGame(game: AnyGame): AnyGame {
     vegasTotal: 0,
     vegasHomeOdds: 0,
     vegasAwayOdds: 0,
+    selectedPick: null,
+    moneylineMarket: null,
+    spreadMarket: null,
     // Signal to the client that this game is gated
     isLocked: true,
   };
+}
+
+async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]> {
+  const spreadByGame = await getLatestSpreadCandidates(
+    games.map((game) => game["id"] as string),
+  );
+  return games.map((game) => {
+    const moneylineQualified = game["valueRating"] === "Strong Buy" || game["valueRating"] === "Buy";
+    const pickIsHome = Number(game["edge"]) >= 0;
+    const moneylineProbability = pickIsHome
+      ? Number(game["homeWinPct"])
+      : 100 - Number(game["homeWinPct"]);
+    const moneylineOdds = pickIsHome
+      ? Number(game["vegasHomeOdds"])
+      : Number(game["vegasAwayOdds"]);
+    const moneylineMarket = {
+      market: "moneyline",
+      selection: pickIsHome ? "home" : "away",
+      teamAbbr: pickIsHome ? game["homeTeamAbbr"] : game["awayTeamAbbr"],
+      odds: moneylineOdds,
+      modelProbability: moneylineProbability,
+      fairPrice: moneylineProbability >= 50
+        ? Math.round(-(moneylineProbability / (100 - moneylineProbability)) * 100)
+        : Math.round(((100 - moneylineProbability) / moneylineProbability) * 100),
+      edge: Math.abs(Number(game["edge"])),
+      recommendation: game["valueRating"],
+      units: Number(game["units"] ?? 0),
+      eligible: moneylineQualified,
+    };
+    const spread = spreadByGame.get(game["id"] as string);
+    const spreadMarket = spread ? {
+      market: "spread",
+      selection: spread.selection,
+      teamAbbr: spread.selection === "home" ? game["homeTeamAbbr"] : game["awayTeamAbbr"],
+      line: spread.line,
+      odds: spread.odds,
+      sportsbook: displayBookName(spread.sportsbook),
+      modelProbability: Math.round(spread.modelProbability * 1000) / 10,
+      fairPrice: spread.fairPrice,
+      edge: Math.round(spread.edge * 1000) / 10,
+      expectedValue: Math.round(spread.expectedValue * 1000) / 10,
+      pushProbability: Math.round(spread.pushProbability * 1000) / 10,
+      recommendation: spread.recommendation,
+      units: spread.units,
+      eligible: spread.promotionEligible,
+      gateStatus: spread.gateStatus,
+    } : null;
+    const primaryMarket = choosePrimaryMarket(moneylineQualified, spread ?? null);
+    const selectedPick = primaryMarket === "moneyline"
+      ? moneylineMarket
+      : primaryMarket === "spread"
+        ? spreadMarket
+        : null;
+    return {
+      ...game,
+      selectedMarket: selectedPick?.market ?? null,
+      selectedPick,
+      moneylineMarket,
+      spreadMarket,
+    } as T;
+  });
 }
 
 /**
@@ -635,7 +700,13 @@ export async function refreshAll(): Promise<{
       });
 
     // Snapshot pipeline: odds, predictions, results, closing lines
-    await processGameSnapshot(game, proj, decisionContext);
+    await processGameSnapshot(game, proj, decisionContext, {
+      odds: gameOdds,
+      homeTeamStats,
+      awayTeamStats,
+      homeDbStats,
+      awayDbStats,
+    });
 
     upserted++;
     sports.add(game.sport);
@@ -770,8 +841,9 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       .where(where)
       .orderBy(desc(gamesTable.modelScore));
 
+    const selectedGames = await attachMarketSelection(applyPublishedRatings(games as AnyGame[]));
     res.json({
-      games: applyPublishedRatings(games as AnyGame[]).map(stripInternalDiagnostics),
+      games: selectedGames.map(stripInternalDiagnostics),
       lastUpdated: (lastRefreshedAt ?? new Date()).toISOString(),
       totalGames: games.length,
       liveGamesCount,
@@ -792,7 +864,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
 
   // Apply published rating pins before determining free slots, so the free
   // pick selection operates on the corrected ratings.
-  const ratedGames = applyPublishedRatings(allTodayGames as AnyGame[]);
+  const ratedGames = await attachMarketSelection(applyPublishedRatings(allTodayGames as AnyGame[]));
 
   // Free picks: top FREE_PICKS qualifying games (Strong Buy or Buy) by model
   // score. Skipping Neutral/Fade ensures free slots aren't wasted on games
