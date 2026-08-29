@@ -36,6 +36,7 @@ import {
   getLatestSpreadCandidates,
   type MarketSelectionCandidate,
 } from "../services/spreadModel";
+import { getMoneylinePublicationPermissionsForGames } from "../services/marketApproval";
 
 type AnyGame = Record<string, unknown>;
 
@@ -72,11 +73,18 @@ function lockGame(game: AnyGame): AnyGame {
 }
 
 async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]> {
-  const spreadByGame = await getLatestSpreadCandidates(
-    games.map((game) => game["id"] as string),
-  );
+  const gameIds = games.map((game) => game["id"] as string);
+  const [spreadByGame, moneylinePermissions] = await Promise.all([
+    getLatestSpreadCandidates(gameIds),
+    getMoneylinePublicationPermissionsForGames(gameIds),
+  ]);
   return games.map((game) => {
-    const moneylineQualified = game["valueRating"] === "Strong Buy" || game["valueRating"] === "Buy";
+    const researchRecommendation = String(game["valueRating"]);
+    const researchUnits = Number(game["units"] ?? 0);
+    const moneylinePermission = moneylinePermissions.get(game["id"] as string);
+    const moneylineApproved = moneylinePermission?.approved === true;
+    const moneylineQualified = moneylineApproved
+      && (researchRecommendation === "Strong Buy" || researchRecommendation === "Buy");
     const pickIsHome = Number(game["edge"]) >= 0;
     const moneylineProbability = pickIsHome
       ? Number(game["homeWinPct"])
@@ -112,9 +120,13 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
         : Math.round(((100 - moneylineProbability) / moneylineProbability) * 100),
       edge: Math.abs(Number(game["edge"])),
       expectedValue: Math.round(moneylineExpectedValue * 1000) / 10,
-      recommendation: game["valueRating"],
-      units: Number(game["units"] ?? 0),
+      recommendation: moneylineApproved ? researchRecommendation : "Neutral",
+      units: moneylineApproved ? researchUnits : 0,
       eligible: moneylineQualified,
+      approvalStatus: moneylinePermission?.status ?? "UNVALIDATED",
+      approvalReasons: moneylinePermission?.reasons ?? ["exact_approval_record_missing"],
+      researchRecommendation,
+      researchUnits,
     };
     const spread = spreadByGame.get(game["id"] as string);
     const spreadMarket = spread ? {
@@ -142,6 +154,9 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
         : null;
     return {
       ...game,
+      valueRating: moneylineApproved ? researchRecommendation : "Neutral",
+      units: moneylineApproved ? researchUnits : 0,
+      publicationApprovalStatus: moneylinePermission?.status ?? "UNVALIDATED",
       selectedMarket: selectedPick?.market ?? null,
       selectedPick,
       moneylineMarket,

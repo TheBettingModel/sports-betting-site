@@ -176,6 +176,57 @@ export const GetAdminMarketComparisonsResponse = zod.record(zod.string(), zod.un
 
 
 /**
+ * @summary List latest exact market approval decisions
+ */
+export const GetAdminMarketApprovalsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Append an exact market approval lifecycle decision
+ */
+export const createAdminMarketApprovalBodySampleSizeMin = 0;
+
+
+
+export const CreateAdminMarketApprovalBody = zod.object({
+  "sport": zod.string(),
+  "market": zod.string(),
+  "modelVersion": zod.string(),
+  "evaluationVersion": zod.string(),
+  "datasetVersion": zod.string(),
+  "featureSchemaVersion": zod.string(),
+  "evidenceCutoff": zod.coerce.date(),
+  "sampleSize": zod.number().min(createAdminMarketApprovalBodySampleSizeMin),
+  "dataCoverage": zod.number().optional(),
+  "trainingWindow": zod.record(zod.string(), zod.unknown()).optional(),
+  "validationWindow": zod.record(zod.string(), zod.unknown()).optional(),
+  "outOfSampleWindow": zod.record(zod.string(), zod.unknown()).optional(),
+  "evaluationSeasons": zod.array(zod.string()).optional(),
+  "dataIntegrity": zod.object({
+  "status": zod.enum(['PASSED', 'FAILED', 'INSUFFICIENT']),
+  "reasons": zod.array(zod.string()),
+  "metrics": zod.record(zod.string(), zod.unknown())
+}),
+  "predictiveQuality": zod.object({
+  "status": zod.enum(['PASSED', 'FAILED', 'INSUFFICIENT']),
+  "reasons": zod.array(zod.string()),
+  "metrics": zod.record(zod.string(), zod.unknown())
+}),
+  "bettingQuality": zod.object({
+  "status": zod.enum(['PASSED', 'FAILED', 'INSUFFICIENT']),
+  "reasons": zod.array(zod.string()),
+  "metrics": zod.record(zod.string(), zod.unknown())
+}),
+  "status": zod.enum(['UNVALIDATED', 'SHADOW', 'PROVISIONAL', 'PRODUCTION_APPROVED', 'SUSPENDED']),
+  "reason": zod.string(),
+  "previousStatus": zod.string().nullish(),
+  "evaluationMetadata": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+export const CreateAdminMarketApprovalResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Recompute and persist spread validation metrics
  */
 export const RefreshAdminSpreadValidationParams = zod.object({
@@ -193,6 +244,23 @@ export const PromoteAdminSpreadModelParams = zod.object({
 })
 
 export const PromoteAdminSpreadModelResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Suspend a spread model without deleting prior approval history
+ */
+export const SuspendAdminSpreadModelParams = zod.object({
+  "sport": zod.coerce.string()
+})
+
+
+
+
+export const SuspendAdminSpreadModelBody = zod.object({
+  "reason": zod.string().min(1)
+})
+
+export const SuspendAdminSpreadModelResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

@@ -115,7 +115,7 @@ describe("prediction decision context market gates", () => {
     expect(isPredictionDecisionEligible(game, context)).toBe(false);
   });
 
-  it("isolates NCAAF challenger predictions from publication and preserves exact feature identity", () => {
+  it("preserves NCAAF feature identity while exact market approval controls publication", () => {
     const game = {
       ...gameWithStart(new Date(Date.now() + 60_000).toISOString()),
       sport: "NCAAF",
@@ -146,7 +146,7 @@ describe("prediction decision context market gates", () => {
     } as ProjectionResult;
     const snapshot = buildImmutablePredictionFeatureSnapshot(game, projection, 7, context);
 
-    expect(shouldPublishPrediction("NCAAF")).toBe(false);
+    expect(shouldPublishPrediction("NCAAF")).toBe(true);
     expect(shouldPublishPrediction("MLB")).toBe(true);
     expect(isPredictionDecisionEligible(game, context)).toBe(true);
     expect(snapshot.ncaafFeature).toEqual(metadata);

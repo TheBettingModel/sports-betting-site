@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CreateAdminMarketApproval201,
   DeregisterPushTokenRequest,
   GamesTodayResponse,
   GetAdminForecastMetrics200,
@@ -27,6 +28,7 @@ import type {
   GetAdminForecastReviews200,
   GetAdminForecastReviewsParams,
   GetAdminLossReviewsParams,
+  GetAdminMarketApprovals200,
   GetAdminMarketComparisons200,
   GetAdminMarketComparisonsParams,
   GetAdminOutcomeReviewsParams,
@@ -36,6 +38,7 @@ import type {
   GetResultsSummaryParams,
   HealthStatus,
   LossReviewsResponse,
+  MarketApprovalDecisionInput,
   MlbPolicyRevisionApplyResult,
   MlbPolicyRevisionInput,
   MlbPolicyRevisionList,
@@ -50,9 +53,11 @@ import type {
   RegisterPushTokenRequest,
   ResultsRoiResponse,
   ResultsSummaryResponse,
+  SpreadModelSuspensionInput,
   SubscriptionStatusResponse,
   SubscriptionSyncRequest,
   SubscriptionSyncResponse,
+  SuspendAdminSpreadModel200,
   UpdateNotificationPreferencesRequest,
   UpdateUserPreferencesRequest,
   UserPreferences
@@ -479,6 +484,154 @@ export function useGetAdminMarketComparisons<TData = Awaited<ReturnType<typeof g
 
 
 
+export const getGetAdminMarketApprovalsUrl = () => {
+
+
+
+
+  return `/api/admin/market-approvals`
+}
+
+/**
+ * @summary List latest exact market approval decisions
+ */
+export const getAdminMarketApprovals = async ( options?: RequestInit): Promise<GetAdminMarketApprovals200> => {
+
+  return customFetch<GetAdminMarketApprovals200>(getGetAdminMarketApprovalsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminMarketApprovalsQueryKey = () => {
+    return [
+    `/api/admin/market-approvals`
+    ] as const;
+    }
+
+
+export const getGetAdminMarketApprovalsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminMarketApprovals>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMarketApprovals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminMarketApprovalsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMarketApprovals>>> = ({ signal }) => getAdminMarketApprovals({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminMarketApprovals>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminMarketApprovalsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminMarketApprovals>>>
+export type GetAdminMarketApprovalsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List latest exact market approval decisions
+ */
+
+export function useGetAdminMarketApprovals<TData = Awaited<ReturnType<typeof getAdminMarketApprovals>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMarketApprovals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminMarketApprovalsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminMarketApprovalUrl = () => {
+
+
+
+
+  return `/api/admin/market-approvals`
+}
+
+/**
+ * @summary Append an exact market approval lifecycle decision
+ */
+export const createAdminMarketApproval = async (marketApprovalDecisionInput: MarketApprovalDecisionInput, options?: RequestInit): Promise<CreateAdminMarketApproval201> => {
+
+  return customFetch<CreateAdminMarketApproval201>(getCreateAdminMarketApprovalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(marketApprovalDecisionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminMarketApprovalMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminMarketApproval>>, TError,{data: BodyType<MarketApprovalDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminMarketApproval>>, TError,{data: BodyType<MarketApprovalDecisionInput>}, TContext> => {
+
+const mutationKey = ['createAdminMarketApproval'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminMarketApproval>>, {data: BodyType<MarketApprovalDecisionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminMarketApproval(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminMarketApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminMarketApproval>>>
+    export type CreateAdminMarketApprovalMutationBody = BodyType<MarketApprovalDecisionInput>
+    export type CreateAdminMarketApprovalMutationError = ErrorType<void>
+
+    /**
+ * @summary Append an exact market approval lifecycle decision
+ */
+export const useCreateAdminMarketApproval = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminMarketApproval>>, TError,{data: BodyType<MarketApprovalDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminMarketApproval>>,
+        TError,
+        {data: BodyType<MarketApprovalDecisionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminMarketApprovalMutationOptions(options));
+    }
+
 export const getRefreshAdminSpreadValidationUrl = (sport: string,) => {
 
 
@@ -619,6 +772,78 @@ export const usePromoteAdminSpreadModel = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getPromoteAdminSpreadModelMutationOptions(options));
+    }
+
+export const getSuspendAdminSpreadModelUrl = (sport: string,) => {
+
+
+
+
+  return `/api/admin/spread-models/${sport}/suspend`
+}
+
+/**
+ * @summary Suspend a spread model without deleting prior approval history
+ */
+export const suspendAdminSpreadModel = async (sport: string,
+    spreadModelSuspensionInput: SpreadModelSuspensionInput, options?: RequestInit): Promise<SuspendAdminSpreadModel200> => {
+
+  return customFetch<SuspendAdminSpreadModel200>(getSuspendAdminSpreadModelUrl(sport),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(spreadModelSuspensionInput)
+  }
+);}
+
+
+
+
+
+export const getSuspendAdminSpreadModelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendAdminSpreadModel>>, TError,{sport: string;data: BodyType<SpreadModelSuspensionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suspendAdminSpreadModel>>, TError,{sport: string;data: BodyType<SpreadModelSuspensionInput>}, TContext> => {
+
+const mutationKey = ['suspendAdminSpreadModel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suspendAdminSpreadModel>>, {sport: string;data: BodyType<SpreadModelSuspensionInput>}> = (props) => {
+          const {sport,data} = props ?? {};
+
+          return  suspendAdminSpreadModel(sport,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuspendAdminSpreadModelMutationResult = NonNullable<Awaited<ReturnType<typeof suspendAdminSpreadModel>>>
+    export type SuspendAdminSpreadModelMutationBody = BodyType<SpreadModelSuspensionInput>
+    export type SuspendAdminSpreadModelMutationError = ErrorType<void>
+
+    /**
+ * @summary Suspend a spread model without deleting prior approval history
+ */
+export const useSuspendAdminSpreadModel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendAdminSpreadModel>>, TError,{sport: string;data: BodyType<SpreadModelSuspensionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suspendAdminSpreadModel>>,
+        TError,
+        {sport: string;data: BodyType<SpreadModelSuspensionInput>},
+        TContext
+      > => {
+      return useMutation(getSuspendAdminSpreadModelMutationOptions(options));
     }
 
 export const getGetResultsSummaryUrl = (params?: GetResultsSummaryParams,) => {

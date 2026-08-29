@@ -30,3 +30,4 @@
 - [NCAAF evidence-time safety](ncaaf-evidence-time-safety.md) — retrospective captures are audit evidence, not pregame evidence; every read requires a strict pre-kickoff cutoff.
 - [NCAAF challenger promotion](ncaaf-challenger-promotion.md) — market prices are comparison-only facts; promotion stays fail-closed until every OOS gate passes.
 - [Spread market isolation](spread-market-isolation.md) — model spreads independently by sport; moneyline stays first and shadow spreads cannot enter production records.
+- [Exact market approval ledger](exact-market-approval-ledger.md) — public permission is append-only and version-exact; missing or mismatched approval always fails closed.

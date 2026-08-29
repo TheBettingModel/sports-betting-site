@@ -37,6 +37,7 @@ import {
   settleSpreadPredictions,
   type SpreadEvaluationInput,
 } from "./spreadModel";
+import { getMoneylinePublicationPermission } from "./marketApproval";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -267,6 +268,7 @@ async function writePredictionSnapshot(
   capturedAt: Date,
   decisionContext?: PredictionDecisionContext,
   featureSnapshot?: Record<string, unknown>,
+  publicationApproved = false,
 ): Promise<number | null> {
   if (!isPredictionDecisionEligible(game, decisionContext) || (game.sport !== "NCAAF" && !hasValidMoneylineMarketForSport(game.sport, {
     homeOdds: proj.vegasHomeOdds,
@@ -329,11 +331,10 @@ async function writePredictionSnapshot(
   const pickIsHome = game.sport === "NCAAF" ? proj.homeWinPct >= 50 : proj.edge >= 0;
   const pickOdds   = pickIsHome ? proj.vegasHomeOdds : proj.vegasAwayOdds;
   const pickProb   = pickIsHome ? proj.homeWinPct / 100 : 1 - proj.homeWinPct / 100;
-  const impliedPickProb = game.sport === "NCAAF" ? null :
-    pickOdds > 0
-      ? 100 / (pickOdds + 100)
-      : Math.abs(pickOdds) / (Math.abs(pickOdds) + 100);
-  const fairMarket = game.sport === "NCAAF" ? null : removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
+  const impliedPickProb = pickOdds > 0
+    ? 100 / (pickOdds + 100)
+    : Math.abs(pickOdds) / (Math.abs(pickOdds) + 100);
+  const fairMarket = removeVig2(proj.vegasHomeOdds, proj.vegasAwayOdds);
   const fairPickProbability = fairMarket == null ? null : pickIsHome ? fairMarket.home : fairMarket.away;
 
   const [inserted] = await db
@@ -344,14 +345,14 @@ async function writePredictionSnapshot(
       sport: game.sport,
       market: "moneyline",
       selection: pickIsHome ? "home" : "away",
-      odds: game.sport === "NCAAF" ? null : pickOdds,
+      odds: pickOdds,
       modelProbability: pickProb,
       impliedProbability: impliedPickProb,
       fairProbability: fairPickProbability,
-      edge: game.sport === "NCAAF" ? 0 : proj.edge,
+      edge: proj.edge,
       confidence: proj.confidence,
       recommendation: proj.valueRating,
-      units: game.sport === "NCAAF" ? 0 : proj.units > 0 ? proj.units : 1.0,
+      units: proj.units,
       podScore: proj.podScore,
       finalRating: proj.finalModelScore,
       marketIntelligenceGrade: proj.finalModelTier,
@@ -359,7 +360,7 @@ async function writePredictionSnapshot(
        featureSnapshot: snapshot,
       predictionTimestamp: capturedAt,
       dataCutoffTimestamp: capturedAt,
-      isChallenger: game.sport === "NCAAF",
+      isChallenger: !publicationApproved,
     })
     // The explicit pre-insert lookup above preserves the one-original-decision
     // rule. Do not name a conflict target here: policy revisions extend the
@@ -448,9 +449,9 @@ async function publishPick(
   });
 }
 
-/** NCAAF is an isolated challenger and cannot enter publication/grading/learning. */
-export function shouldPublishPrediction(sport: string): boolean {
-  return sport !== "NCAAF";
+/** Exact market approval, not a broad sport allowlist, controls publication. */
+export function shouldPublishPrediction(_sport: string): boolean {
+  return true;
 }
 
 // ── Game result ───────────────────────────────────────────────────────────────
@@ -630,6 +631,7 @@ export async function processGameSnapshot(
       const featureSnapshot = buildImmutablePredictionFeatureSnapshot(
         game, proj, modelVersionId, decisionContext,
       );
+      const publicationPermission = await getMoneylinePublicationPermission(modelVersionId, now);
       const predictionId = await writePredictionSnapshot(
         game,
         proj,
@@ -637,12 +639,13 @@ export async function processGameSnapshot(
         now,
         decisionContext,
         featureSnapshot,
+        publicationPermission.approved,
       );
       if (predictionId !== null) {
-        if (shouldPublishPrediction(game.sport)) {
+        if (shouldPublishPrediction(game.sport) && publicationPermission.approved) {
           await publishPick(predictionId, game, proj, now);
         }
-      } else if (shouldPublishPrediction(game.sport)) {
+      } else if (shouldPublishPrediction(game.sport) && publicationPermission.approved) {
         await applyMaterialPregameRevision(
           game,
           proj,

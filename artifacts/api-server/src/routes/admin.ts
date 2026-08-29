@@ -69,9 +69,19 @@ import {
   getLatestSpreadCandidates,
   getLatestSpreadCandidatesForAdmin,
   promoteSpreadModel,
+  suspendSpreadModel,
   refreshSpreadValidationMetrics,
   type SpreadSport,
 } from "../services/spreadModel";
+import {
+  appendMarketApprovalDecision,
+  deriveApprovalStatus,
+  listLatestMarketApprovalDecisions,
+  MARKET_APPROVAL_STATUSES,
+  getMoneylinePublicationPermissionsForGames,
+  type ApprovalLayerResult,
+  type MarketApprovalStatus,
+} from "../services/marketApproval";
 
 const router: IRouter = Router();
 
@@ -1032,6 +1042,105 @@ router.get("/admin/spread-models", async (_req, res): Promise<void> => {
   res.json({ models: rows });
 });
 
+router.get("/admin/market-approvals", async (_req, res): Promise<void> => {
+  const approvals = await listLatestMarketApprovalDecisions();
+  res.json({ approvals, dataAsOf: new Date().toISOString() });
+});
+
+function parseApprovalLayer(value: unknown): ApprovalLayerResult | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  if (row.status !== "PASSED" && row.status !== "FAILED" && row.status !== "INSUFFICIENT") return null;
+  if (!Array.isArray(row.reasons) || !row.reasons.every((reason) => typeof reason === "string")) return null;
+  if (!row.metrics || typeof row.metrics !== "object" || Array.isArray(row.metrics)) return null;
+  return {
+    status: row.status,
+    reasons: row.reasons as string[],
+    metrics: row.metrics as ApprovalLayerResult["metrics"],
+  };
+}
+
+router.post("/admin/market-approvals", async (req, res): Promise<void> => {
+  const performedBy = getVerifiedAdminPrincipal(req);
+  if (!performedBy) {
+    res.status(401).json({ error: "Authenticated admin principal required" });
+    return;
+  }
+  const body = req.body as Record<string, unknown>;
+  const dataIntegrity = parseApprovalLayer(body.dataIntegrity);
+  const predictiveQuality = parseApprovalLayer(body.predictiveQuality);
+  const bettingQuality = parseApprovalLayer(body.bettingQuality);
+  const requestedStatus = body.status as MarketApprovalStatus;
+  const requiredStrings = [
+    "sport",
+    "market",
+    "modelVersion",
+    "evaluationVersion",
+    "datasetVersion",
+    "featureSchemaVersion",
+    "reason",
+  ] as const;
+  if (
+    requiredStrings.some((key) => typeof body[key] !== "string" || !(body[key] as string).trim())
+    || !MARKET_APPROVAL_STATUSES.includes(requestedStatus)
+    || !dataIntegrity
+    || !predictiveQuality
+    || !bettingQuality
+  ) {
+    res.status(400).json({ error: "Invalid market approval decision" });
+    return;
+  }
+  const evidenceCutoff = new Date(String(body.evidenceCutoff));
+  if (!Number.isFinite(evidenceCutoff.getTime())) {
+    res.status(400).json({ error: "A valid evidence cutoff is required" });
+    return;
+  }
+  const derivedStatus = deriveApprovalStatus({
+    hasEvaluationEvidence: Number(body.sampleSize ?? 0) > 0,
+    dataIntegrity,
+    predictiveQuality,
+    bettingQuality,
+  });
+  if (
+    requestedStatus === "PRODUCTION_APPROVED"
+    && derivedStatus !== "PRODUCTION_APPROVED"
+  ) {
+    res.status(409).json({
+      error: "Production approval requires all three evidence layers to pass",
+      derivedStatus,
+    });
+    return;
+  }
+  const decision = await appendMarketApprovalDecision({
+    sport: String(body.sport),
+    market: String(body.market),
+    modelVersion: String(body.modelVersion),
+    evaluationVersion: String(body.evaluationVersion),
+    datasetVersion: String(body.datasetVersion),
+    featureSchemaVersion: String(body.featureSchemaVersion),
+    trainingWindow: body.trainingWindow ?? null,
+    validationWindow: body.validationWindow ?? null,
+    outOfSampleWindow: body.outOfSampleWindow ?? null,
+    evidenceCutoff,
+    evaluationSeasons: Array.isArray(body.evaluationSeasons) ? body.evaluationSeasons : [],
+    sampleSize: Number(body.sampleSize ?? 0),
+    dataCoverage: body.dataCoverage == null ? null : Number(body.dataCoverage),
+    dataIntegrity,
+    predictiveQuality,
+    bettingQuality,
+    status: requestedStatus,
+    reason: String(body.reason),
+    previousStatus: typeof body.previousStatus === "string" ? body.previousStatus : null,
+    evaluationMetadata: {
+      ...(body.evaluationMetadata && typeof body.evaluationMetadata === "object"
+        ? body.evaluationMetadata as Record<string, unknown>
+        : {}),
+      performedBy,
+    },
+  });
+  res.status(201).json(decision);
+});
+
 router.get("/admin/market-comparisons", async (req, res): Promise<void> => {
   const sport = parseSpreadSport(typeof req.query.sport === "string" ? req.query.sport : "NCAAF");
   if (!sport) {
@@ -1045,12 +1154,15 @@ router.get("/admin/market-comparisons", async (req, res): Promise<void> => {
     .orderBy(gamesTable.startsAt)
     .limit(100);
   const gameIds = games.map((game) => game.id);
-  const [productionSpreadByGame, auditSpreadByGame] = await Promise.all([
+  const [productionSpreadByGame, auditSpreadByGame, moneylinePermissions] = await Promise.all([
     getLatestSpreadCandidates(gameIds),
     getLatestSpreadCandidatesForAdmin(gameIds),
+    getMoneylinePublicationPermissionsForGames(gameIds),
   ]);
   const comparisons = games.map((game) => {
-    const moneylineQualified = game.valueRating === "Strong Buy" || game.valueRating === "Buy";
+    const moneylinePermission = moneylinePermissions.get(game.id);
+    const moneylineQualified = moneylinePermission?.approved === true
+      && (game.valueRating === "Strong Buy" || game.valueRating === "Buy");
     const moneylineIsHome = game.edge >= 0;
     const moneylineOdds = moneylineIsHome ? game.vegasHomeOdds : game.vegasAwayOdds;
     const moneylineProbability = (moneylineIsHome ? game.homeWinPct : 100 - game.homeWinPct) / 100;
@@ -1097,10 +1209,14 @@ router.get("/admin/market-comparisons", async (req, res): Promise<void> => {
         confidence: game.confidence,
         recommendation: game.valueRating,
         units: moneylineQualified ? game.units : 0,
+        researchRecommendation: game.valueRating,
+        researchUnits: game.units,
+        approvalStatus: moneylinePermission?.status ?? "UNVALIDATED",
         sportsbook: game.bestLineBook,
         capturedAt: game.updatedAt,
-        modelVersion: "production-moneyline",
-        state: moneylineQualified ? "production" : "neutral",
+        modelVersion: moneylinePermission?.modelVersion ?? "unknown-moneyline-version",
+        state: moneylinePermission?.status ?? "UNVALIDATED",
+        gateReasons: moneylinePermission?.reasons ?? ["exact_approval_record_missing"],
       },
       spreadCandidate: spread ? {
         selection: spread.selection,
@@ -1163,6 +1279,30 @@ router.post("/admin/spread-models/:sport/promote", async (req, res): Promise<voi
     res.status(409).json({
       error: error instanceof Error ? error.message : "Spread promotion gate failed",
     });
+  }
+});
+
+router.post("/admin/spread-models/:sport/suspend", async (req, res): Promise<void> => {
+  const sport = parseSpreadSport(req.params.sport);
+  if (!sport) {
+    res.status(400).json({ error: "Unsupported spread sport" });
+    return;
+  }
+  const performedBy = getVerifiedAdminPrincipal(req);
+  const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+  if (!performedBy) {
+    res.status(401).json({ error: "Authenticated admin principal required" });
+    return;
+  }
+  if (!reason) {
+    res.status(400).json({ error: "Suspension reason is required" });
+    return;
+  }
+  try {
+    await suspendSpreadModel(sport, `${reason} (by ${performedBy})`);
+    res.json({ sport, status: "SUSPENDED", reason });
+  } catch (err) {
+    res.status(409).json({ error: err instanceof Error ? err.message : "Spread suspension failed" });
   }
 });
 

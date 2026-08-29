@@ -178,6 +178,8 @@ export const adminApi = {
   },
   marketComparisons: (sport = "NCAAF") =>
     api.get<MarketComparisonsResult>(`/admin/market-comparisons?sport=${encodeURIComponent(sport)}`),
+  marketApprovals: () =>
+    api.get<MarketApprovalsResult>("/admin/market-approvals"),
 };
 
 export const modelApi = {
@@ -302,6 +304,45 @@ export interface MarketComparison {
 export interface MarketComparisonsResult {
   sport: string;
   comparisons: MarketComparison[];
+  dataAsOf: string;
+}
+
+export type MarketApprovalStatus =
+  | "UNVALIDATED"
+  | "SHADOW"
+  | "PROVISIONAL"
+  | "PRODUCTION_APPROVED"
+  | "SUSPENDED";
+
+export interface MarketApprovalLayer {
+  status: "PASSED" | "FAILED" | "INSUFFICIENT";
+  reasons: string[];
+  metrics: Record<string, number | string | boolean | null>;
+}
+
+export interface MarketApprovalDecision {
+  id: number;
+  sport: string;
+  market: string;
+  modelVersion: string;
+  evaluationVersion: string;
+  datasetVersion: string;
+  featureSchemaVersion: string;
+  evidenceCutoff: string;
+  sampleSize: number;
+  dataCoverage: number | null;
+  dataIntegrity: MarketApprovalLayer;
+  predictiveQuality: MarketApprovalLayer;
+  bettingQuality: MarketApprovalLayer;
+  status: MarketApprovalStatus;
+  reason: string;
+  previousStatus: string | null;
+  evaluationMetadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface MarketApprovalsResult {
+  approvals: MarketApprovalDecision[];
   dataAsOf: string;
 }
 

@@ -10,6 +10,7 @@ import {
   type ModelVersion, type SportStat, type WeeklyHistoryEntry,
   type RoiByRatingEntry, type RoiBySportEntry, type LossReviewEntry,
   type MarketCandidate,
+  type MarketApprovalDecision,
 } from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
@@ -84,6 +85,28 @@ function CandidateSummary({ candidate }: { candidate: MarketCandidate | null }) 
         <p className="text-[11px] text-amber-400">{candidate.gateReasons.join(" · ").replaceAll("_", " ")}</p>
       ) : null}
     </div>
+  );
+}
+
+function ApprovalLayerBadge({
+  label,
+  layer,
+}: {
+  label: string;
+  layer: MarketApprovalDecision["dataIntegrity"];
+}) {
+  const color = layer.status === "PASSED"
+    ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+    : layer.status === "FAILED"
+      ? "text-red-400 border-red-500/30 bg-red-500/10"
+      : "text-amber-400 border-amber-500/30 bg-amber-500/10";
+  return (
+    <span
+      title={layer.reasons.join(", ") || `${label} passed`}
+      className={`inline-flex rounded border px-2 py-0.5 text-[11px] font-medium ${color}`}
+    >
+      {label}: {layer.status.toLowerCase()}
+    </span>
   );
 }
 
@@ -712,6 +735,11 @@ export function Models() {
     queryFn: () => adminApi.marketComparisons("NCAAF"),
     refetchInterval: 30_000,
   });
+  const { data: approvalData, isLoading: approvalsLoading } = useQuery({
+    queryKey: ["market-approvals"],
+    queryFn: () => adminApi.marketApprovals(),
+    refetchInterval: 30_000,
+  });
 
   const deployMutation = useMutation({
     mutationFn: (id: number) => adminApi.deployModel(id),
@@ -741,6 +769,65 @@ export function Models() {
 
       {/* Performance charts + stat cards */}
       <PerformancePanel />
+
+      <section className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h2 className="text-sm font-semibold text-foreground">Market Approval Ledger</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Public permission is exact to sport, market, model, evaluation, dataset, feature schema, and evidence cutoff.
+          </p>
+        </div>
+        {approvalsLoading ? (
+          <p className="px-4 py-6 text-sm text-muted-foreground">Loading approval decisions…</p>
+        ) : approvalData?.approvals.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Market</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Lifecycle</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Independent Gates</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Evidence Binding</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {approvalData.approvals.map((approval) => (
+                  <tr key={approval.id}>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-foreground">{approval.sport} · {approval.market}</p>
+                      <p className="text-[11px] text-muted-foreground">{approval.modelVersion}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-xs font-semibold text-foreground">{approval.status.replaceAll("_", " ")}</p>
+                      <p className="max-w-64 text-[11px] text-muted-foreground">{approval.reason}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <ApprovalLayerBadge label="Data" layer={approval.dataIntegrity} />
+                        <ApprovalLayerBadge label="Predictive" layer={approval.predictiveQuality} />
+                        <ApprovalLayerBadge label="Betting" layer={approval.bettingQuality} />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">
+                        n={approval.sampleSize} · coverage {approval.dataCoverage == null ? "—" : `${(approval.dataCoverage * 100).toFixed(1)}%`}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-[11px] text-muted-foreground">
+                      <p>Evaluation: {approval.evaluationVersion}</p>
+                      <p>Dataset: {approval.datasetVersion}</p>
+                      <p>Schema: {approval.featureSchemaVersion.slice(0, 14)}</p>
+                      <p>Cutoff: {new Date(approval.evidenceCutoff).toLocaleString()}</p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-4 py-6 text-sm text-amber-400">
+            No exact approval decisions exist. Publication is fail-closed until independently evaluated records are added.
+          </p>
+        )}
+      </section>
 
       <section className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border">

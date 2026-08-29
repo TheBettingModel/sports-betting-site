@@ -11,6 +11,16 @@ import type { FetchedGame } from "./espn";
 import type { GameOdds, SpreadBookmakerLine } from "./oddsApi";
 import type { DbTeamStats, WnbaTeamStats } from "./teamStats";
 import { calculateClv, calculateUnits, gradeSpread, type GradeResult } from "./grading";
+import {
+  appendMarketApprovalDecision,
+  deriveApprovalStatus,
+  evaluateBettingQuality,
+  getPublicationPermission,
+  marketApprovalDecisionHash,
+  type ApprovalLayerResult,
+  type MarketApprovalIdentity,
+  type MarketApprovalStatus,
+} from "./marketApproval";
 
 export type SpreadSport = "NFL" | "NCAAF" | "NBA" | "NCAAB" | "WNBA";
 
@@ -24,6 +34,10 @@ export interface SpreadValidationMetrics {
   maxDrawdown: number;
   coverage: number;
   dataQualityRate: number;
+  datasetVersion?: string;
+  evaluationVersion?: string;
+  featureSchemaVersion?: string;
+  evidenceCutoff?: string;
 }
 
 export interface NcaafMarketApproval {
@@ -168,8 +182,27 @@ export interface SpreadCandidate {
   promotionEligible: boolean;
   gateStatus: "shadow" | "challenger" | "production";
   gateReasons: string[];
+  approvalStatus?: MarketApprovalStatus;
+  researchRecommendation?: "Strong Buy" | "Buy" | "Neutral";
+  researchUnits?: number;
   featureSnapshot: Record<string, unknown>;
   capturedAt: Date;
+}
+
+function spreadApprovalIdentity(
+  config: SpreadConfig,
+  metrics: SpreadValidationMetrics | null,
+  evidenceCutoff: Date,
+): MarketApprovalIdentity {
+  return {
+    sport: config.sport,
+    market: "spread",
+    modelVersion: config.modelVersion,
+    evaluationVersion: metrics?.evaluationVersion ?? "spread-validation-v2",
+    datasetVersion: metrics?.datasetVersion ?? "spread-dataset:unvalidated",
+    featureSchemaVersion: metrics?.featureSchemaVersion ?? "spread-feature-v1",
+    evidenceCutoff,
+  };
 }
 
 function isSpreadSport(sport: string): sport is SpreadSport {
@@ -512,12 +545,34 @@ export async function buildSpreadCandidates(input: SpreadEvaluationInput): Promi
     persistedConfig.validationMetrics,
     config.gatePolicy,
   );
+  const approval = await getPublicationPermission(
+    spreadApprovalIdentity(config, persistedConfig.validationMetrics, input.capturedAt ?? new Date()),
+  );
+  const permissionGate = {
+    ...gate,
+    eligible: gate.eligible && approval.approved,
+    status: approval.approved
+      ? "production" as const
+      : approval.status === "PROVISIONAL"
+        ? "challenger" as const
+        : "shadow" as const,
+    reasons: [...new Set([...gate.reasons, ...approval.reasons])],
+  };
   return input.odds.spreadMarkets.flatMap((market) =>
-    evaluateMarket(market, distribution.margin, config, gate, input, {
+    evaluateMarket(market, distribution.margin, config, permissionGate, input, {
       ...distribution.snapshot,
       validationMetrics: persistedConfig.validationMetrics,
+      approvalStatus: approval.status,
+      approvalDecisionId: approval.decisionId,
     })
-  );
+  ).map((candidate) => ({
+    ...candidate,
+    approvalStatus: approval.status,
+    researchRecommendation: candidate.recommendation,
+    researchUnits: candidate.priceQualified
+      ? clamp(Math.round((0.5 + candidate.edge * 12) * 2) / 2, 0.5, 2)
+      : 0,
+  }));
 }
 
 export function selectBestSpreadCandidate(candidates: readonly SpreadCandidate[]): SpreadCandidate | null {
@@ -956,6 +1011,10 @@ export interface SpreadValidationSummary extends SpreadValidationMetrics {
   modelKey: string;
   modelVersion: string;
   computedAt: string;
+  datasetVersion: string;
+  evaluationVersion: string;
+  featureSchemaVersion: string;
+  evidenceCutoff: string;
 }
 
 export async function computeSpreadValidationMetrics(
@@ -1018,6 +1077,17 @@ export async function computeSpreadValidationMetrics(
     }
     return drawdown / Math.max(1, settled.length);
   })();
+  const evidenceCutoff = new Date(Math.max(...settled.map(({ result }) => result.settledAt.getTime())));
+  const datasetVersion = marketApprovalDecisionHash(
+    settled
+      .map(({ prediction, result }) => ({
+        predictionId: prediction.id,
+        resultId: result.id,
+        predictedAt: prediction.predictedAt,
+        settledAt: result.settledAt,
+      }))
+      .sort((a, b) => a.predictionId - b.predictionId),
+  );
   return {
     sport,
     modelKey: config.modelKey,
@@ -1032,7 +1102,101 @@ export async function computeSpreadValidationMetrics(
     coverage: settled.length / Math.max(1, validationRows.length),
     dataQualityRate: validationRows.filter(({ prediction }) => prediction.featureSnapshot != null).length / Math.max(1, validationRows.length),
     computedAt: new Date().toISOString(),
+    datasetVersion,
+    evaluationVersion: "spread-validation-v2",
+    featureSchemaVersion: "spread-feature-v1",
+    evidenceCutoff: evidenceCutoff.toISOString(),
   };
+}
+
+function spreadApprovalLayers(
+  metrics: SpreadValidationSummary,
+  config: SpreadConfig,
+): {
+  dataIntegrity: ApprovalLayerResult;
+  predictiveQuality: ApprovalLayerResult;
+  bettingQuality: ApprovalLayerResult;
+} {
+  const dataReasons = [
+    ...(metrics.sampleSize < config.gatePolicy.minSampleSize ? ["sample_support"] : []),
+    ...(metrics.coverage < config.gatePolicy.minCoverage ? ["coverage"] : []),
+    ...(metrics.dataQualityRate < config.gatePolicy.minDataQualityRate ? ["data_quality"] : []),
+  ];
+  const predictiveReasons = [
+    ...(metrics.calibrationError > config.gatePolicy.maxCalibrationError ? ["calibration"] : []),
+    ...(metrics.brierScore > config.gatePolicy.maxBrierScore ? ["brier_score"] : []),
+    ...(metrics.logLoss > config.gatePolicy.maxLogLoss ? ["log_loss"] : []),
+  ];
+  return {
+    dataIntegrity: {
+      status: dataReasons.length ? "FAILED" : "PASSED",
+      reasons: dataReasons,
+      metrics: {
+        sampleSize: metrics.sampleSize,
+        coverage: metrics.coverage,
+        dataQualityRate: metrics.dataQualityRate,
+      },
+    },
+    predictiveQuality: {
+      status: predictiveReasons.length ? "FAILED" : "PASSED",
+      reasons: predictiveReasons,
+      metrics: {
+        calibrationError: metrics.calibrationError,
+        brierScore: metrics.brierScore,
+        logLoss: metrics.logLoss,
+      },
+    },
+    bettingQuality: evaluateBettingQuality({
+      clv: metrics.clv,
+      roi: metrics.roi,
+      maxDrawdown: metrics.maxDrawdown,
+      stability: metrics.coverage,
+      minimumClv: config.gatePolicy.minClv,
+      maximumDrawdown: config.gatePolicy.maxDrawdown,
+      minimumStability: config.gatePolicy.minCoverage,
+    }),
+  };
+}
+
+async function appendSpreadApprovalEvaluation(
+  sport: SpreadSport,
+  metrics: SpreadValidationSummary,
+  requestedStatus?: MarketApprovalStatus,
+) {
+  const config = SPREAD_CONFIGS[sport];
+  const layers = spreadApprovalLayers(metrics, config);
+  const derived = deriveApprovalStatus({
+    hasEvaluationEvidence: metrics.sampleSize > 0,
+    ...layers,
+  });
+  const status = requestedStatus
+    ?? (derived === "PRODUCTION_APPROVED" ? "PROVISIONAL" : derived);
+  const reasons = [
+    ...layers.dataIntegrity.reasons,
+    ...layers.predictiveQuality.reasons,
+    ...layers.bettingQuality.reasons,
+  ];
+  return appendMarketApprovalDecision({
+    ...spreadApprovalIdentity(config, metrics, new Date(metrics.evidenceCutoff)),
+    evaluationSeasons: [],
+    sampleSize: metrics.sampleSize,
+    dataCoverage: metrics.coverage,
+    dataIntegrity: layers.dataIntegrity,
+    predictiveQuality: layers.predictiveQuality,
+    bettingQuality: layers.bettingQuality,
+    status,
+    reason: reasons.length ? reasons.join(", ") : (
+      status === "PRODUCTION_APPROVED"
+        ? "All independent spread approval layers passed"
+        : "Validation passed; awaiting explicit production approval"
+    ),
+    previousStatus: null,
+    evaluationMetadata: {
+      modelKey: config.modelKey,
+      configHash: config.configHash,
+      computedAt: metrics.computedAt,
+    },
+  });
 }
 
 function isSpreadSportName(sport: string): sport is SpreadSport {
@@ -1051,6 +1215,7 @@ export async function refreshSpreadValidationMetrics(
       eq(spreadModelConfigsTable.sport, sport),
       eq(spreadModelConfigsTable.modelKey, config.modelKey),
     ));
+  await appendSpreadApprovalEvaluation(sport, metrics);
   return metrics;
 }
 
@@ -1066,5 +1231,21 @@ export async function promoteSpreadModel(sport: SpreadSport): Promise<SpreadVali
       eq(spreadModelConfigsTable.sport, sport),
       eq(spreadModelConfigsTable.modelKey, config.modelKey),
     ));
+  await appendSpreadApprovalEvaluation(sport, metrics, "PRODUCTION_APPROVED");
   return metrics;
+}
+
+export async function suspendSpreadModel(
+  sport: SpreadSport,
+  reason: string,
+): Promise<void> {
+  const metrics = await computeSpreadValidationMetrics(sport);
+  if (!metrics) throw new Error(`No spread validation context exists for ${sport}`);
+  await appendSpreadApprovalEvaluation(sport, metrics, "SUSPENDED");
+  await db.update(spreadModelConfigsTable)
+    .set({ status: "suspended", updatedAt: new Date() })
+    .where(and(
+      eq(spreadModelConfigsTable.sport, sport),
+      eq(spreadModelConfigsTable.modelKey, SPREAD_CONFIGS[sport].modelKey),
+    ));
 }

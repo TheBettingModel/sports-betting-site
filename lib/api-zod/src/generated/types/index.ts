@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './approvalLayerResultInput';
+export * from './approvalLayerResultInputMetrics';
+export * from './approvalLayerResultInputStatus';
+export * from './createAdminMarketApproval201';
 export * from './deregisterPushTokenRequest';
 export * from './gameProjection';
 export * from './gamesTodayResponse';
@@ -17,6 +21,7 @@ export * from './getAdminForecastReviewsQualification';
 export * from './getAdminForecastReviewsResult';
 export * from './getAdminForecastReviewsSegment';
 export * from './getAdminLossReviewsParams';
+export * from './getAdminMarketApprovals200';
 export * from './getAdminMarketComparisons200';
 export * from './getAdminMarketComparisonsParams';
 export * from './getAdminOutcomeReviewsParams';
@@ -30,6 +35,12 @@ export * from './lossReviewEntry';
 export * from './lossReviewEntryReview';
 export * from './lossReviewPattern';
 export * from './lossReviewsResponse';
+export * from './marketApprovalDecisionInput';
+export * from './marketApprovalDecisionInputEvaluationMetadata';
+export * from './marketApprovalDecisionInputOutOfSampleWindow';
+export * from './marketApprovalDecisionInputStatus';
+export * from './marketApprovalDecisionInputTrainingWindow';
+export * from './marketApprovalDecisionInputValidationWindow';
 export * from './marketProjection';
 export * from './mlbMoneylinePolicy';
 export * from './mlbMoneylinePolicyVersion';
@@ -60,9 +71,11 @@ export * from './roiBySportAndRatingEntry';
 export * from './roiBySportEntry';
 export * from './roiEntry';
 export * from './sportStat';
+export * from './spreadModelSuspensionInput';
 export * from './subscriptionStatusResponse';
 export * from './subscriptionSyncRequest';
 export * from './subscriptionSyncResponse';
+export * from './suspendAdminSpreadModel200';
 export * from './updateNotificationPreferencesRequest';
 export * from './updateUserPreferencesRequest';
 export * from './userPreferences';

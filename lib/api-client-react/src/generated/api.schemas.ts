@@ -5,6 +5,72 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ApprovalLayerResultInputStatus = typeof ApprovalLayerResultInputStatus[keyof typeof ApprovalLayerResultInputStatus];
+
+
+export const ApprovalLayerResultInputStatus = {
+  PASSED: 'PASSED',
+  FAILED: 'FAILED',
+  INSUFFICIENT: 'INSUFFICIENT',
+} as const;
+
+export type ApprovalLayerResultInputMetrics = { [key: string]: unknown };
+
+export interface ApprovalLayerResultInput {
+  status: ApprovalLayerResultInputStatus;
+  reasons: string[];
+  metrics: ApprovalLayerResultInputMetrics;
+}
+
+export type MarketApprovalDecisionInputTrainingWindow = { [key: string]: unknown };
+
+export type MarketApprovalDecisionInputValidationWindow = { [key: string]: unknown };
+
+export type MarketApprovalDecisionInputOutOfSampleWindow = { [key: string]: unknown };
+
+export type MarketApprovalDecisionInputStatus = typeof MarketApprovalDecisionInputStatus[keyof typeof MarketApprovalDecisionInputStatus];
+
+
+export const MarketApprovalDecisionInputStatus = {
+  UNVALIDATED: 'UNVALIDATED',
+  SHADOW: 'SHADOW',
+  PROVISIONAL: 'PROVISIONAL',
+  PRODUCTION_APPROVED: 'PRODUCTION_APPROVED',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export type MarketApprovalDecisionInputEvaluationMetadata = { [key: string]: unknown };
+
+export interface MarketApprovalDecisionInput {
+  sport: string;
+  market: string;
+  modelVersion: string;
+  evaluationVersion: string;
+  datasetVersion: string;
+  featureSchemaVersion: string;
+  evidenceCutoff: string;
+  /** @minimum 0 */
+  sampleSize: number;
+  dataCoverage?: number;
+  trainingWindow?: MarketApprovalDecisionInputTrainingWindow;
+  validationWindow?: MarketApprovalDecisionInputValidationWindow;
+  outOfSampleWindow?: MarketApprovalDecisionInputOutOfSampleWindow;
+  evaluationSeasons?: string[];
+  dataIntegrity: ApprovalLayerResultInput;
+  predictiveQuality: ApprovalLayerResultInput;
+  bettingQuality: ApprovalLayerResultInput;
+  status: MarketApprovalDecisionInputStatus;
+  reason: string;
+  /** @nullable */
+  previousStatus?: string | null;
+  evaluationMetadata?: MarketApprovalDecisionInputEvaluationMetadata;
+}
+
+export interface SpreadModelSuspensionInput {
+  /** @minLength 1 */
+  reason: string;
+}
+
 export type MlbMoneylinePolicyVersion = typeof MlbMoneylinePolicyVersion[keyof typeof MlbMoneylinePolicyVersion];
 
 
@@ -395,9 +461,15 @@ sport?: string;
 
 export type GetAdminMarketComparisons200 = { [key: string]: unknown };
 
+export type GetAdminMarketApprovals200 = { [key: string]: unknown };
+
+export type CreateAdminMarketApproval201 = { [key: string]: unknown };
+
 export type RefreshAdminSpreadValidation200 = { [key: string]: unknown };
 
 export type PromoteAdminSpreadModel200 = { [key: string]: unknown };
+
+export type SuspendAdminSpreadModel200 = { [key: string]: unknown };
 
 export type GetResultsSummaryParams = {
 period?: string;

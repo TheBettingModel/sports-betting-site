@@ -98,6 +98,40 @@ paths:
                 type: object
                 additionalProperties: true
 
+  /admin/market-approvals:
+    get:
+      operationId: getAdminMarketApprovals
+      tags: [admin]
+      summary: List latest exact market approval decisions
+      responses:
+        "200":
+          description: Latest append-only approval decisions by exact evidence identity
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      operationId: createAdminMarketApproval
+      tags: [admin]
+      summary: Append an exact market approval lifecycle decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketApprovalDecisionInput"
+      responses:
+        "201":
+          description: Approval decision appended
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "409":
+          description: Production approval evidence layers did not all pass
+
   /admin/spread-models/{sport}/refresh-validation:
     post:
       operationId: refreshAdminSpreadValidation
@@ -137,6 +171,33 @@ paths:
                 additionalProperties: true
         "409":
           description: Promotion gates did not pass
+
+  /admin/spread-models/{sport}/suspend:
+    post:
+      operationId: suspendAdminSpreadModel
+      tags: [admin]
+      summary: Suspend a spread model without deleting prior approval history
+      parameters:
+        - name: sport
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpreadModelSuspensionInput"
+      responses:
+        "200":
+          description: Spread model suspended
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "409":
+          description: No exact validation context exists to suspend
 
   /results/summary:
     get:
@@ -517,6 +578,65 @@ paths:
 
 components:
   schemas:
+    ApprovalLayerResultInput:
+      type: object
+      required: [status, reasons, metrics]
+      properties:
+        status:
+          type: string
+          enum: [PASSED, FAILED, INSUFFICIENT]
+        reasons:
+          type: array
+          items: { type: string }
+        metrics:
+          type: object
+          additionalProperties: true
+    MarketApprovalDecisionInput:
+      type: object
+      required:
+        - sport
+        - market
+        - modelVersion
+        - evaluationVersion
+        - datasetVersion
+        - featureSchemaVersion
+        - evidenceCutoff
+        - sampleSize
+        - dataIntegrity
+        - predictiveQuality
+        - bettingQuality
+        - status
+        - reason
+      properties:
+        sport: { type: string }
+        market: { type: string }
+        modelVersion: { type: string }
+        evaluationVersion: { type: string }
+        datasetVersion: { type: string }
+        featureSchemaVersion: { type: string }
+        evidenceCutoff: { type: string, format: date-time }
+        sampleSize: { type: integer, minimum: 0 }
+        dataCoverage: { type: number }
+        trainingWindow: { type: object, additionalProperties: true }
+        validationWindow: { type: object, additionalProperties: true }
+        outOfSampleWindow: { type: object, additionalProperties: true }
+        evaluationSeasons:
+          type: array
+          items: { type: string }
+        dataIntegrity: { $ref: "#/components/schemas/ApprovalLayerResultInput" }
+        predictiveQuality: { $ref: "#/components/schemas/ApprovalLayerResultInput" }
+        bettingQuality: { $ref: "#/components/schemas/ApprovalLayerResultInput" }
+        status:
+          type: string
+          enum: [UNVALIDATED, SHADOW, PROVISIONAL, PRODUCTION_APPROVED, SUSPENDED]
+        reason: { type: string }
+        previousStatus: { type: [string, "null"] }
+        evaluationMetadata: { type: object, additionalProperties: true }
+    SpreadModelSuspensionInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
     MlbMoneylinePolicy:
       type: object
       properties:
