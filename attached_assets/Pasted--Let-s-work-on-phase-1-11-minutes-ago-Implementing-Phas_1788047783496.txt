@@ -1,0 +1,173 @@
+
+
+
+
+
+Let's work on phase #1
+
+11 minutes ago
+Implementing Phase 1
+
+Implementing Phase 1
+I’ll scope Phase 1 around independent, versioned approval records for each sport-market pair, then wire the shared gate evaluator and tests before touching the mobile presentation. I’m switching into planning so the data model and promotion rules are aligned before implementation.
+
+
+Entered Plan mode
+Phase 1 is scoped as a schema-and-gating foundation: independent approval records, three-layer evaluation, explicit lifecycle statuses, and route-level safety tests. I’m checking the project’s task conventions and existing validation tables now so the plan fits the current architecture without duplicating work.
+
+
+
+5 actions
+I found the right boundary for Phase 1: it should be a new, separate task focused on market-specific approval records and lifecycle states, building on the already merged market-competition work. I’m drafting that task now; no implementation changes will be made until it is accepted and assigned.
+
+
+
+2 actions
+
+Proposed tasks
+Proposing a task to the user
+
+Proposing a task to the user
+I drafted Task #195 — Give each sport-market pair its own approval gate.
+
+It will add:
+
+Independent approval records for each sport/market/model version
+UNVALIDATED → SHADOW → PROVISIONAL → PRODUCTION APPROVED
+Separate data-integrity, predictive-quality, and betting-quality evaluations
+ROI treated as one signal rather than the only pass/fail condition
+Strict Neutral/0-unit protection until production approval
+Admin visibility into gate status, metrics, evidence cutoffs, and reasons
+Tests proving moneyline and spread approvals cannot affect each other
+It depends on the completed market-competition work in Task #193. Once you accept and assign Task #195 to me, I can implement Phase 1.
+
+
+
+Worked for 27 seconds
+
+Pasted--Required-Adjustments-to-195-Approval-Gate-Architecture_1788047330825.txt
+add:
+
+7 minutes ago
+I’ll read the attached adjustment notes and compare them against the Phase 1 task plan and current approval code, then I’ll implement the requested architecture changes with tests.
+
+
+
+4 actions
+The adjustment notes add three requirements to Phase 1: a SUSPENDED safety state, strict separation between model opinion and publication permission, and exact version/evidence binding with fail-closed defaults. I’m tracing the existing schema, migration, model-registry, and publishing paths so those rules land centrally rather than as route-specific exceptions.
+
+
+
+22 actions
+The central challenge is version identity: today, the public game row does not itself carry the exact model/evaluation/dataset context needed for a fail-closed decision. I’m mapping the immutable prediction and publishing paths now so approval is checked against the same identity that generated the opinion, rather than broad sport-level flags.
+
+
+
+2 actions
+I’ve settled the core design: approvals will be append-only decisions keyed to the exact model, evaluation, dataset, feature schema, and evidence cutoff. Raw predictions remain unchanged; a separate permission result controls public recommendation, units, notifications, and official records. I’m adding that contract and its fail-closed evaluator first.
+
+
+
+21 actions
+The first integration is in place: raw model opinions remain in immutable prediction records, while the subscriber response and official-pick writer now require exact approval. I’m checking types before adding admin approval history and suspension controls.
+
+
+
+3 actions
+The type check exposed only a stale workspace declaration for the newly exported table, not a design problem. I’m continuing with the authenticated approval-history and suspension endpoints, then I’ll rebuild the database package declarations and apply the development schema through the project’s standard Drizzle workflow.
+
+
+
+3 actions
+The declaration rebuild command used an incompatible flag for this composite TypeScript package. I’m rerunning it with the package’s normal compiler settings, then I’ll resolve any real integration errors and apply the schema.
+
+
+
+14 actions
+The authenticated API and admin ledger view are now wired, including exact evidence metadata and all three independent gate layers. I’m applying the new table with the existing Drizzle command, regenerating the API clients, and then running the focused tests and builds.
+
+
+
+8 actions
+The broad NCAAF allowlist test failed because the architecture intentionally replaced that sport-wide block with exact market approval. I’m updating the test to the new rule, then running client generation, contract checks, the full API suite, and workflow verification.
+
+
+
+2 actions
+Client generation succeeded, but the generated Zod package found duplicate names from the two inline request-body schemas. I’m switching those bodies to reusable named contract schemas, which is the project’s generator-safe pattern, then rerunning generation and validation.
+
+
+
+6 actions
+The new API contracts generate cleanly. The coverage checker is blocked by an unrelated pre-existing /support route missing from the spec; I’m leaving that unrelated route untouched and completing the feature’s tests, builds, workflow restart, and visual verification.
+
+
+
+5 actions
+All 223 API tests pass, the API typecheck passes, and the admin production build passes. I’m restarting the two changed services now, checking fresh logs, and taking one admin screenshot to confirm the approval ledger renders without a browser error.
+
+
+
+5 actions
+The changed services are healthy. One stale Expo log was emitted while client generation temporarily cleaned and recreated its output folder; the generated files are present now, so I’m restarting mobile once to clear that transient resolver state, then recording the durable approval rule and doing the final health check.
+
+
+
+6 actions
+Implemented Task #195’s market-specific approval architecture.
+
+Delivered
+Added an append-only approval ledger with:
+UNVALIDATED
+SHADOW
+PROVISIONAL
+PRODUCTION_APPROVED
+SUSPENDED
+Bound approvals to exact:
+sport and market
+model version
+evaluation version
+dataset version
+feature schema version
+evidence cutoff
+Added fail-closed approval resolution:
+missing, stale, mismatched, or failed lookups cannot publish
+moneyline approval cannot authorize spreads or vice versa
+Separated immutable model opinions from:
+public recommendations
+units
+official pick creation
+notifications and official grading downstream
+Preserved research recommendations and units for admin inspection.
+Added independent data-integrity, predictive-quality, and betting-quality layers.
+Removed ROI as a standalone veto while retaining CLV, drawdown, stability, coverage, and data-quality safeguards.
+Spread promotion now appends an exact production approval.
+Spread suspension appends SUSPENDED history rather than deleting prior approval.
+Added authenticated approval history and decision APIs.
+Added an admin Market Approval Ledger displaying lifecycle, gate results, evidence binding, sample size, and coverage.
+Updated OpenAPI and regenerated API clients.
+Applied the new development database schema.
+Verification
+API tests: 223 passed
+API typecheck: passed
+Admin production build: passed
+API health endpoint: {"status":"ok"}
+API, admin, and mobile workflows restarted successfully
+Admin authentication screen renders correctly
+Mobile Metro bundler starts cleanly
+The OpenAPI coverage checker remains blocked only by the unrelated, pre-existing /support route missing from the specification.
+
+Important: because no broad legacy approval is inferred, any context without a new exact PRODUCTION_APPROVED record now correctly remains Neutral with zero official units. Historical moneyline records were not rewritten.
+
+
+
+Worked for 6 minutes
+
+Checkpoint made
+just now
+
+Scroll to latest
+Task plan created
+
+Give each sport-market pair its own approval gate
+Create an independent, versioned approval framework for every sport-market model so NCAAF moneyline, NCAAF spread, NFL moneyline, NFL spread, and future combinations can graduate separately. This separates “a prediction exists” from “this market is trusted enough to publish” and prevents one market’s evidence from approving or blocking another.
