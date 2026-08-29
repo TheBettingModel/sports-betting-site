@@ -9,6 +9,7 @@ import {
   adminApi, modelApi,
   type ModelVersion, type SportStat, type WeeklyHistoryEntry,
   type RoiByRatingEntry, type RoiBySportEntry, type LossReviewEntry,
+  type MarketCandidate,
 } from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
@@ -53,6 +54,56 @@ function StatCard({ label, value, sub, highlight }: StatCardProps) {
       </p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </div>
+  );
+}
+
+function CandidateSummary({ candidate }: { candidate: MarketCandidate | null }) {
+  if (!candidate) return <span className="text-muted-foreground">Awaiting candidate</span>;
+  const line = candidate.line != null ? ` ${candidate.line > 0 ? "+" : ""}${candidate.line}` : "";
+  const odds = candidate.odds > 0 ? `+${candidate.odds}` : String(candidate.odds);
+  return (
+    <div className="space-y-1">
+      <p className="font-medium text-foreground">{candidate.teamAbbr}{line} · {odds}</p>
+      <p className="text-xs text-muted-foreground">
+        {(candidate.modelProbability * 100).toFixed(1)}% · EV {(candidate.expectedValue * 100).toFixed(1)}% · edge {(candidate.edge * 100).toFixed(1)}%
+      </p>
+      <p className="text-[11px] text-muted-foreground">
+        Fair {candidate.fairPrice > 0 ? "+" : ""}{candidate.fairPrice}
+        {candidate.noVigProbability != null ? ` · no-vig ${(candidate.noVigProbability * 100).toFixed(1)}%` : ""}
+        {candidate.pushProbability != null ? ` · push ${(candidate.pushProbability * 100).toFixed(1)}%` : ""}
+      </p>
+      {candidate.opposingLine != null && candidate.opposingPrice != null ? (
+        <p className="text-[11px] text-muted-foreground">
+          Opposing {candidate.opposingLine > 0 ? "+" : ""}{candidate.opposingLine} · {candidate.opposingPrice > 0 ? "+" : ""}{candidate.opposingPrice}
+        </p>
+      ) : null}
+      <p className="text-[11px] text-muted-foreground">
+        {candidate.state} · {candidate.modelVersion} · {candidate.sportsbook ?? "market source unavailable"}
+      </p>
+      {candidate.gateReasons?.length ? (
+        <p className="text-[11px] text-amber-400">{candidate.gateReasons.join(" · ").replaceAll("_", " ")}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function ScoreBreakdown({
+  label,
+  score,
+}: {
+  label: string;
+  score: { score: number; components: Record<string, number> } | null;
+}) {
+  if (!score) return <p className="text-[11px] text-muted-foreground">{label}: unavailable</p>;
+  const strongest = Object.entries(score.components)
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, 3)
+    .map(([name, value]) => `${name.replaceAll(/([A-Z])/g, " $1").toLowerCase()} ${value >= 0 ? "+" : ""}${value.toFixed(3)}`)
+    .join(" · ");
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      {label} {score.score.toFixed(3)} · {strongest}
+    </p>
   );
 }
 
@@ -656,6 +707,11 @@ export function Models() {
     queryFn: () => modelApi.list(filter === "all" ? undefined : filter),
     refetchInterval: 30_000,
   });
+  const { data: comparisonData, isLoading: comparisonsLoading } = useQuery({
+    queryKey: ["market-comparisons", "NCAAF"],
+    queryFn: () => adminApi.marketComparisons("NCAAF"),
+    refetchInterval: 30_000,
+  });
 
   const deployMutation = useMutation({
     mutationFn: (id: number) => adminApi.deployModel(id),
@@ -685,6 +741,51 @@ export function Models() {
 
       {/* Performance charts + stat cards */}
       <PerformancePanel />
+
+      <section className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h2 className="text-sm font-semibold text-foreground">NCAAF Market Competition</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Shadow spreads remain internal. The official market changes only after independent production approval.
+          </p>
+        </div>
+        {comparisonsLoading ? (
+          <p className="px-4 py-6 text-sm text-muted-foreground">Loading market candidates…</p>
+        ) : comparisonData?.comparisons.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Game</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Moneyline Candidate</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Spread Candidate</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">Official Selected Market</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {comparisonData.comparisons.map((comparison) => (
+                  <tr key={comparison.game.id}>
+                    <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">{comparison.game.matchup}</td>
+                    <td className="px-4 py-3 min-w-56"><CandidateSummary candidate={comparison.moneylineCandidate} /></td>
+                    <td className="px-4 py-3 min-w-56"><CandidateSummary candidate={comparison.spreadCandidate} /></td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex rounded bg-primary/10 px-2 py-1 text-xs font-semibold text-primary capitalize">
+                        {comparison.officialSelectedMarket ?? "No official pick"}
+                      </span>
+                      <div className="mt-2 space-y-1 min-w-64">
+                        <ScoreBreakdown label="Moneyline" score={comparison.selectionScores.moneyline} />
+                        <ScoreBreakdown label="Spread" score={comparison.selectionScores.spread} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-4 py-6 text-sm text-muted-foreground">No upcoming NCAAF games are available.</p>
+        )}
+      </section>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5">

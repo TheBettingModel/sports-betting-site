@@ -164,6 +164,18 @@ export const GetAdminSpreadModelsResponse = zod.record(zod.string(), zod.unknown
 
 
 /**
+ * @summary Compare internal moneyline and spread candidates with the official selected market
+ */
+export const getAdminMarketComparisonsQuerySportDefault = `NCAAF`;
+
+export const GetAdminMarketComparisonsQueryParams = zod.object({
+  "sport": zod.coerce.string().default(getAdminMarketComparisonsQuerySportDefault)
+})
+
+export const GetAdminMarketComparisonsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Recompute and persist spread validation metrics
  */
 export const RefreshAdminSpreadValidationParams = zod.object({

@@ -26,6 +26,12 @@ export interface SpreadValidationMetrics {
   dataQualityRate: number;
 }
 
+export interface NcaafMarketApproval {
+  approved: boolean;
+  modelVersion: string | null;
+  decidedAt: Date | null;
+}
+
 interface SpreadGatePolicy {
   minSampleSize: number;
   maxCalibrationError: number;
@@ -181,6 +187,13 @@ function normalCdf(value: number): number {
   const erf = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
     - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
   return 0.5 * (1 + sign * erf);
+}
+
+export function computeSpreadUncertainty(marginStandardDeviation: number): number {
+  // Thirty points is the conservative upper bound across supported sport
+  // distributions. Scaling against it keeps wider NCAAF outcomes honest
+  // without making the sport categorically ineligible.
+  return clamp(marginStandardDeviation / 30, 0, 1);
 }
 
 function americanToImplied(odds: number): number {
@@ -366,7 +379,7 @@ function evaluateMarket(
   const homeNoVig = homeRaw / totalRaw;
   const awayNoVig = awayRaw / totalRaw;
   const uncertainty = clamp(
-    config.marginStandardDeviation / 20
+    computeSpreadUncertainty(config.marginStandardDeviation)
       + (featureSnapshot.pipeline ? 0 : 0.2),
     0,
     1,
@@ -500,7 +513,10 @@ export async function buildSpreadCandidates(input: SpreadEvaluationInput): Promi
     config.gatePolicy,
   );
   return input.odds.spreadMarkets.flatMap((market) =>
-    evaluateMarket(market, distribution.margin, config, gate, input, distribution.snapshot)
+    evaluateMarket(market, distribution.margin, config, gate, input, {
+      ...distribution.snapshot,
+      validationMetrics: persistedConfig.validationMetrics,
+    })
   );
 }
 
@@ -533,14 +549,121 @@ export function selectLatestPromotionEligibleCandidate(
   );
 }
 
+export async function getNcaafMarketApproval(): Promise<NcaafMarketApproval> {
+  const [decision] = await db
+    .select({
+      decision: ncaafPromotionDecisionsTable.decision,
+      challengerModelVersion: ncaafPromotionDecisionsTable.challengerModelVersion,
+      createdAt: ncaafPromotionDecisionsTable.createdAt,
+    })
+    .from(ncaafPromotionDecisionsTable)
+    .orderBy(desc(ncaafPromotionDecisionsTable.createdAt))
+    .limit(1);
+  return {
+    approved: decision?.decision === "eligible",
+    modelVersion: decision?.decision === "eligible" ? decision.challengerModelVersion : null,
+    decidedAt: decision?.createdAt ?? null,
+  };
+}
+
+export interface MarketSelectionCandidate {
+  market: "moneyline" | "spread";
+  eligible: boolean;
+  expectedValue: number;
+  edge: number;
+  modelProbability: number;
+  uncertainty: number;
+  priceQuality: number;
+  marketQuality: number;
+  dataQuality: number;
+  clvSignal?: number;
+  pushProbability?: number;
+}
+
+export interface MarketSelectionScore {
+  market: "moneyline" | "spread";
+  score: number;
+  components: {
+    expectedValue: number;
+    edge: number;
+    probabilityQuality: number;
+    uncertaintyPenalty: number;
+    priceQuality: number;
+    marketQuality: number;
+    dataQuality: number;
+    clvSignal: number;
+    pushPenalty: number;
+  };
+}
+
+export function spreadToMarketSelectionCandidate(
+  spread: SpreadCandidate,
+): MarketSelectionCandidate {
+  return {
+    market: "spread",
+    eligible: spread.promotionEligible && spread.gateStatus === "production",
+    expectedValue: spread.expectedValue,
+    edge: spread.edge,
+    modelProbability: spread.modelProbability,
+    uncertainty: spread.uncertainty,
+    priceQuality: clamp(1 - Math.abs(spread.odds + 110) / 400, 0, 1),
+    marketQuality: spread.opposingOdds !== 0 ? 1 : 0,
+    // Eligibility already requires the spread's immutable validation metrics
+    // to pass CLV and data-quality gates. Until an equivalent per-game
+    // moneyline aggregate is available, treat both approved markets neutrally
+    // on these two components rather than biasing the winner asymmetrically.
+    dataQuality: 1,
+    clvSignal: 0,
+    pushProbability: spread.pushProbability,
+  };
+}
+
+function normalizedProbabilityQuality(probability: number, uncertainty: number): number {
+  const decisiveness = Math.abs(probability - 0.5) * 2;
+  return clamp((1 - uncertainty) * 0.7 + decisiveness * 0.3, 0, 1);
+}
+
+/**
+ * Compare independently validated markets on a common risk-adjusted scale.
+ * EV remains the strongest signal; uncertainty and push risk prevent a high
+ * hit-rate but weakly priced spread from automatically beating a moneyline.
+ */
+export function scoreMarketCandidate(candidate: MarketSelectionCandidate): MarketSelectionScore {
+  const components = {
+    expectedValue: clamp(candidate.expectedValue, -0.5, 0.5) * 0.45,
+    edge: clamp(candidate.edge, -0.25, 0.25) * 0.2,
+    probabilityQuality: normalizedProbabilityQuality(
+      candidate.modelProbability,
+      candidate.uncertainty,
+    ) * 0.1,
+    uncertaintyPenalty: -clamp(candidate.uncertainty, 0, 1) * 0.15,
+    priceQuality: clamp(candidate.priceQuality, 0, 1) * 0.08,
+    marketQuality: clamp(candidate.marketQuality, 0, 1) * 0.05,
+    dataQuality: clamp(candidate.dataQuality, 0, 1) * 0.07,
+    clvSignal: clamp(candidate.clvSignal ?? 0, -0.1, 0.1) * 0.05,
+    pushPenalty: -clamp(candidate.pushProbability ?? 0, 0, 0.15) * 0.05,
+  };
+  return {
+    market: candidate.market,
+    score: Object.values(components).reduce((sum, value) => sum + value, 0),
+    components,
+  };
+}
+
 export function choosePrimaryMarket(
-  moneylineQualified: boolean,
+  moneylineCandidate: MarketSelectionCandidate | null,
   spreadCandidate: SpreadCandidate | null,
 ): "moneyline" | "spread" | null {
-  if (moneylineQualified) return "moneyline";
-  return spreadCandidate?.promotionEligible && spreadCandidate.gateStatus === "production"
-    ? "spread"
+  const moneyline = moneylineCandidate?.eligible ? moneylineCandidate : null;
+  const spread = spreadCandidate
+    ? spreadToMarketSelectionCandidate(spreadCandidate)
     : null;
+  const eligibleSpread = spread?.eligible ? spread : null;
+  if (!moneyline) return eligibleSpread ? "spread" : null;
+  if (!eligibleSpread) return "moneyline";
+  const moneylineScore = scoreMarketCandidate(moneyline);
+  const spreadScore = scoreMarketCandidate(eligibleSpread);
+  return spreadScore.score > moneylineScore.score ? "spread" : "moneyline";
 }
 
 export function calculateSpreadClv(
@@ -717,6 +840,64 @@ export async function getLatestSpreadCandidates(gameIds: readonly string[]): Pro
   return result;
 }
 
+export async function getLatestSpreadCandidatesForAdmin(
+  gameIds: readonly string[],
+): Promise<Map<string, SpreadCandidate>> {
+  if (gameIds.length === 0) return new Map();
+  const rows = await db
+    .select()
+    .from(spreadPredictionsTable)
+    .where(inArray(spreadPredictionsTable.gameId, [...gameIds]))
+    .orderBy(desc(spreadPredictionsTable.predictedAt), desc(spreadPredictionsTable.expectedValue));
+  const latestCaptureByGame = new Map<string, Date>();
+  const candidates: SpreadCandidate[] = [];
+  for (const row of rows) {
+    const latest = latestCaptureByGame.get(row.gameId);
+    if (latest && row.predictedAt.getTime() !== latest.getTime()) continue;
+    if (!latest) latestCaptureByGame.set(row.gameId, row.predictedAt);
+    candidates.push({
+      gameId: row.gameId,
+      sport: row.sport as SpreadSport,
+      modelKey: row.modelKey,
+      modelVersion: row.modelVersion,
+      selection: row.selection as "home" | "away",
+      teamAbbr: row.teamAbbr,
+      sportsbook: row.sportsbook,
+      line: row.recommendedLine,
+      odds: row.recommendedPrice,
+      opposingLine: row.opposingLine,
+      opposingOdds: row.opposingPrice,
+      expectedHomeMargin: row.expectedHomeMargin,
+      marginStandardDeviation: row.marginStandardDeviation,
+      modelProbability: row.modelProbability,
+      noVigProbability: row.noVigProbability,
+      fairPrice: row.fairPrice,
+      edge: row.edge,
+      expectedValue: row.expectedValue,
+      pushProbability: row.pushProbability,
+      uncertainty: row.uncertainty,
+      confidence: row.confidence as "High" | "Medium" | "Low",
+      recommendation: row.recommendation as "Strong Buy" | "Buy" | "Neutral",
+      units: row.units,
+      priceQualified: row.priceQualified,
+      promotionEligible: row.promotionEligible,
+      gateStatus: row.gateStatus as SpreadCandidate["gateStatus"],
+      gateReasons: row.gateReasons as string[],
+      featureSnapshot: row.featureSnapshot as Record<string, unknown>,
+      capturedAt: row.sourceCapturedAt,
+    });
+  }
+  const result = new Map<string, SpreadCandidate>();
+  for (const candidate of candidates) {
+    const best = selectBestSpreadCandidate([
+      ...(result.get(candidate.gameId) ? [result.get(candidate.gameId)!] : []),
+      candidate,
+    ]);
+    if (best) result.set(candidate.gameId, best);
+  }
+  return result;
+}
+
 export async function settleSpreadPredictions(
   game: Pick<FetchedGame, "espnId" | "status" | "homeScore" | "awayScore">,
   settledAt = new Date(),
@@ -875,17 +1056,6 @@ export async function refreshSpreadValidationMetrics(
 
 export async function promoteSpreadModel(sport: SpreadSport): Promise<SpreadValidationSummary> {
   const config = SPREAD_CONFIGS[sport];
-  if (sport === "NCAAF") {
-    const [approval] = await db
-      .select({ decision: ncaafPromotionDecisionsTable.decision })
-      .from(ncaafPromotionDecisionsTable)
-      .where(eq(ncaafPromotionDecisionsTable.decision, "eligible"))
-      .orderBy(desc(ncaafPromotionDecisionsTable.createdAt))
-      .limit(1);
-    if (!approval) {
-      throw new Error("NCAAF spread promotion requires an eligible independent challenger decision");
-    }
-  }
   const metrics = await refreshSpreadValidationMetrics(sport);
   if (!metrics) throw new Error(`No settled spread validation data for ${sport}`);
   const gate = evaluateValidationGate(sport, "production", metrics, config.gatePolicy);

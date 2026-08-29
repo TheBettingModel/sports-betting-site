@@ -389,6 +389,12 @@ sport?: string;
 
 export type GetAdminSpreadModels200 = { [key: string]: unknown };
 
+export type GetAdminMarketComparisonsParams = {
+sport?: string;
+};
+
+export type GetAdminMarketComparisons200 = { [key: string]: unknown };
+
 export type RefreshAdminSpreadValidation200 = { [key: string]: unknown };
 
 export type PromoteAdminSpreadModel200 = { [key: string]: unknown };

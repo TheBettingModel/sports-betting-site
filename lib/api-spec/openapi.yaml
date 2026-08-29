@@ -79,6 +79,25 @@ paths:
                 type: object
                 additionalProperties: true
 
+  /admin/market-comparisons:
+    get:
+      operationId: getAdminMarketComparisons
+      tags: [admin]
+      summary: Compare internal moneyline and spread candidates with the official selected market
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema: { type: string, default: NCAAF }
+      responses:
+        "200":
+          description: Internal market candidate comparisons
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
   /admin/spread-models/{sport}/refresh-validation:
     post:
       operationId: refreshAdminSpreadValidation

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   choosePrimaryMarket,
+  computeSpreadUncertainty,
   calculateSpreadClv,
   buildSpreadSettlement,
   evaluateValidationGate,
+  scoreMarketCandidate,
   SPREAD_CONFIGS,
   selectLatestPromotionEligibleCandidate,
   type SpreadCandidate,
@@ -54,13 +56,77 @@ describe("spread publication isolation", () => {
       units: 0,
     });
     expect(selectLatestPromotionEligibleCandidate([shadow])).toBeNull();
-    expect(choosePrimaryMarket(false, shadow)).toBeNull();
+    expect(choosePrimaryMarket(null, shadow)).toBeNull();
   });
 
-  it("uses a promoted spread only after moneyline fails", () => {
-    const spread = candidate();
-    expect(choosePrimaryMarket(true, spread)).toBe("moneyline");
-    expect(choosePrimaryMarket(false, spread)).toBe("spread");
+  it("keeps moneyline official while spread is shadow-only", () => {
+    const spread = candidate({ promotionEligible: false, gateStatus: "shadow" });
+    const moneyline = {
+      market: "moneyline" as const,
+      eligible: true,
+      expectedValue: 0.06,
+      edge: 0.05,
+      modelProbability: 0.58,
+      uncertainty: 0.3,
+      priceQuality: 1,
+      marketQuality: 1,
+      dataQuality: 1,
+    };
+    expect(choosePrimaryMarket(moneyline, spread)).toBe("moneyline");
+  });
+
+  it("lets the stronger validated spread beat a qualified moneyline", () => {
+    const spread = candidate({
+      sport: "NCAAF",
+      modelKey: "tbm-ncaaf-spread",
+      modelVersion: "ncaaf-spread-v1",
+      expectedValue: 0.15,
+      edge: 0.1,
+      uncertainty: computeSpreadUncertainty(SPREAD_CONFIGS.NCAAF.marginStandardDeviation),
+    });
+    const moneyline = {
+      market: "moneyline" as const,
+      eligible: true,
+      expectedValue: 0.04,
+      edge: 0.035,
+      modelProbability: 0.62,
+      uncertainty: 0.45,
+      priceQuality: 1,
+      marketQuality: 1,
+      dataQuality: 1,
+    };
+    expect(choosePrimaryMarket(moneyline, spread)).toBe("spread");
+  });
+
+  it("keeps NCAAF uncertainty inside the qualification ceiling", () => {
+    expect(computeSpreadUncertainty(SPREAD_CONFIGS.NCAAF.marginStandardDeviation)).toBeLessThanOrEqual(0.8);
+  });
+
+  it("prefers higher risk-adjusted EV over raw hit rate", () => {
+    const favoriteSpread = scoreMarketCandidate({
+      market: "spread",
+      eligible: true,
+      expectedValue: 0.025,
+      edge: 0.03,
+      modelProbability: 0.68,
+      uncertainty: 0.5,
+      priceQuality: 0.9,
+      marketQuality: 1,
+      dataQuality: 1,
+      pushProbability: 0.04,
+    });
+    const underdogMoneyline = scoreMarketCandidate({
+      market: "moneyline",
+      eligible: true,
+      expectedValue: 0.11,
+      edge: 0.07,
+      modelProbability: 0.43,
+      uncertainty: 0.35,
+      priceQuality: 1,
+      marketQuality: 1,
+      dataQuality: 1,
+    });
+    expect(underdogMoneyline.score).toBeGreaterThan(favoriteSpread.score);
   });
 
   it("never falls back to an older promoted price when the latest capture fails", () => {

@@ -318,7 +318,7 @@ describe("NCAAF immutable validation math", () => {
     expect(NCAAF_VALIDATION_ALLOWED_SOURCES.every((source) => typeof source === "string")).toBe(true);
   });
 
-  it("derives deterministic aggregates and rejects unsupported required totals", () => {
+  it("derives deterministic aggregates from supported moneyline and spread markets", () => {
     const rows = [
       { id: 1, provenanceHash: "a", labelAvailableAt: new Date("2024-09-01T23:00:00Z"),
         season: 2024, week: 1, market: "moneyline", price: 120, evidenceTier: "high",
@@ -331,9 +331,9 @@ describe("NCAAF immutable validation math", () => {
     expect(aggregate.evaluationSeasons).toEqual([2024, 2025]);
     expect(aggregate.metrics.roi).toBe(0.1);
     expect(aggregate.metrics.maxDrawdown).toBe(1);
-    expect(aggregate.policyReasons).toContain("required_market_unavailable:total");
-    expect(aggregate.policyReasons).toContain("required_market_unsupported:total_v1");
-    expect(evaluatePromotionGates(aggregate.metrics).decision).toBe("rejected");
+    expect(aggregate.marketsPresent).toEqual(["moneyline", "spread"]);
+    expect(aggregate.policyReasons).not.toContain("required_market_unavailable:total");
+    expect(aggregate.policyReasons).not.toContain("required_market_unsupported:total_v1");
     expect(deriveNcaafPromotionMetrics(rows.slice(0, 1)).policyReasons)
       .toContain("insufficient_evaluation_seasons");
   });

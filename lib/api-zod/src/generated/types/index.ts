@@ -17,6 +17,8 @@ export * from './getAdminForecastReviewsQualification';
 export * from './getAdminForecastReviewsResult';
 export * from './getAdminForecastReviewsSegment';
 export * from './getAdminLossReviewsParams';
+export * from './getAdminMarketComparisons200';
+export * from './getAdminMarketComparisonsParams';
 export * from './getAdminOutcomeReviewsParams';
 export * from './getAdminOutcomeReviewsResult';
 export * from './getAdminSpreadModels200';

@@ -27,6 +27,8 @@ import type {
   GetAdminForecastReviews200,
   GetAdminForecastReviewsParams,
   GetAdminLossReviewsParams,
+  GetAdminMarketComparisons200,
+  GetAdminMarketComparisonsParams,
   GetAdminOutcomeReviewsParams,
   GetAdminSpreadModels200,
   GetGamesTodayParams,
@@ -381,6 +383,90 @@ export function useGetAdminSpreadModels<TData = Awaited<ReturnType<typeof getAdm
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminSpreadModelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminMarketComparisonsUrl = (params?: GetAdminMarketComparisonsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/market-comparisons?${stringifiedParams}` : `/api/admin/market-comparisons`
+}
+
+/**
+ * @summary Compare internal moneyline and spread candidates with the official selected market
+ */
+export const getAdminMarketComparisons = async (params?: GetAdminMarketComparisonsParams, options?: RequestInit): Promise<GetAdminMarketComparisons200> => {
+
+  return customFetch<GetAdminMarketComparisons200>(getGetAdminMarketComparisonsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminMarketComparisonsQueryKey = (params?: GetAdminMarketComparisonsParams,) => {
+    return [
+    `/api/admin/market-comparisons`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminMarketComparisonsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminMarketComparisons>>, TError = ErrorType<unknown>>(params?: GetAdminMarketComparisonsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMarketComparisons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminMarketComparisonsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMarketComparisons>>> = ({ signal }) => getAdminMarketComparisons(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminMarketComparisons>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminMarketComparisonsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminMarketComparisons>>>
+export type GetAdminMarketComparisonsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Compare internal moneyline and spread candidates with the official selected market
+ */
+
+export function useGetAdminMarketComparisons<TData = Awaited<ReturnType<typeof getAdminMarketComparisons>>, TError = ErrorType<unknown>>(
+ params?: GetAdminMarketComparisonsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMarketComparisons>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminMarketComparisonsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

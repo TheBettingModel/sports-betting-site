@@ -31,7 +31,11 @@ import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
 import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
 import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
-import { choosePrimaryMarket, getLatestSpreadCandidates } from "../services/spreadModel";
+import {
+  choosePrimaryMarket,
+  getLatestSpreadCandidates,
+  type MarketSelectionCandidate,
+} from "../services/spreadModel";
 
 type AnyGame = Record<string, unknown>;
 
@@ -80,6 +84,23 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
     const moneylineOdds = pickIsHome
       ? Number(game["vegasHomeOdds"])
       : Number(game["vegasAwayOdds"]);
+    const probabilityDecimal = moneylineProbability / 100;
+    const payout = moneylineOdds > 0 ? moneylineOdds / 100 : 100 / Math.abs(moneylineOdds);
+    const moneylineExpectedValue = probabilityDecimal * payout - (1 - probabilityDecimal);
+    const confidenceNum = Number(game["confidenceNum"] ?? 50);
+    const bestLineOdds = Number(game["bestLineOdds"] ?? moneylineOdds);
+    const moneylineSelectionCandidate: MarketSelectionCandidate = {
+      market: "moneyline",
+      eligible: moneylineQualified,
+      expectedValue: moneylineExpectedValue,
+      edge: Math.abs(Number(game["edge"])) / 100,
+      modelProbability: probabilityDecimal,
+      uncertainty: Math.max(0, Math.min(1, 1 - confidenceNum / 100)),
+      priceQuality: bestLineOdds === moneylineOdds ? 1 : 0.8,
+      marketQuality: Number.isFinite(moneylineOdds) && moneylineOdds !== 0 ? 1 : 0,
+      dataQuality: 1,
+      clvSignal: 0,
+    };
     const moneylineMarket = {
       market: "moneyline",
       selection: pickIsHome ? "home" : "away",
@@ -90,6 +111,7 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
         ? Math.round(-(moneylineProbability / (100 - moneylineProbability)) * 100)
         : Math.round(((100 - moneylineProbability) / moneylineProbability) * 100),
       edge: Math.abs(Number(game["edge"])),
+      expectedValue: Math.round(moneylineExpectedValue * 1000) / 10,
       recommendation: game["valueRating"],
       units: Number(game["units"] ?? 0),
       eligible: moneylineQualified,
@@ -112,7 +134,7 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
       eligible: spread.promotionEligible,
       gateStatus: spread.gateStatus,
     } : null;
-    const primaryMarket = choosePrimaryMarket(moneylineQualified, spread ?? null);
+    const primaryMarket = choosePrimaryMarket(moneylineSelectionCandidate, spread ?? null);
     const selectedPick = primaryMarket === "moneyline"
       ? moneylineMarket
       : primaryMarket === "spread"

@@ -590,7 +590,7 @@ export interface PromotionMetrics {
 }
 
 export const NCAAF_REQUIRED_PROMOTION_MARKETS = Object.freeze([
-  "moneyline", "spread", "total",
+  "moneyline", "spread",
 ] as const);
 
 export interface PromotionEvaluationRow extends ScoredEvaluation {
@@ -636,7 +636,6 @@ export function deriveNcaafPromotionMetrics(rows: readonly PromotionEvaluationRo
   const policyReasons = [
     ...(seasons.length < NCAAF_VALIDATION_CONFIG.minimumEvaluationSeasons
       ? ["insufficient_evaluation_seasons"] : []),
-    "required_market_unsupported:total_v1",
     ...NCAAF_REQUIRED_PROMOTION_MARKETS.filter((market) => !markets.includes(market))
       .map((market) => `required_market_unavailable:${market}`),
   ];

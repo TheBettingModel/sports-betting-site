@@ -31,6 +31,7 @@ import {
   pickResultsTable,
   publishedPicksTable,
   spreadModelConfigsTable,
+  spreadPredictionsTable,
   sportSnoozesTable,
   subscribersTable,
   trainingDatasetsTable,
@@ -62,6 +63,11 @@ import {
 import {
   SPREAD_CONFIGS,
   computeSpreadValidationMetrics,
+  choosePrimaryMarket,
+  scoreMarketCandidate,
+  spreadToMarketSelectionCandidate,
+  getLatestSpreadCandidates,
+  getLatestSpreadCandidatesForAdmin,
   promoteSpreadModel,
   refreshSpreadValidationMetrics,
   type SpreadSport,
@@ -1024,6 +1030,109 @@ router.get("/admin/spread-models", async (_req, res): Promise<void> => {
     })),
   );
   res.json({ models: rows });
+});
+
+router.get("/admin/market-comparisons", async (req, res): Promise<void> => {
+  const sport = parseSpreadSport(typeof req.query.sport === "string" ? req.query.sport : "NCAAF");
+  if (!sport) {
+    res.status(400).json({ error: "Unsupported spread sport" });
+    return;
+  }
+  const games = await db
+    .select()
+    .from(gamesTable)
+    .where(and(eq(gamesTable.sport, sport), eq(gamesTable.status, "upcoming")))
+    .orderBy(gamesTable.startsAt)
+    .limit(100);
+  const gameIds = games.map((game) => game.id);
+  const [productionSpreadByGame, auditSpreadByGame] = await Promise.all([
+    getLatestSpreadCandidates(gameIds),
+    getLatestSpreadCandidatesForAdmin(gameIds),
+  ]);
+  const comparisons = games.map((game) => {
+    const moneylineQualified = game.valueRating === "Strong Buy" || game.valueRating === "Buy";
+    const moneylineIsHome = game.edge >= 0;
+    const moneylineOdds = moneylineIsHome ? game.vegasHomeOdds : game.vegasAwayOdds;
+    const moneylineProbability = (moneylineIsHome ? game.homeWinPct : 100 - game.homeWinPct) / 100;
+    const payout = moneylineOdds > 0 ? moneylineOdds / 100 : 100 / Math.abs(moneylineOdds);
+    const moneylineExpectedValue = moneylineProbability * payout - (1 - moneylineProbability);
+    const spread = auditSpreadByGame.get(game.id) ?? null;
+    const spreadCandidate = productionSpreadByGame.get(game.id) ?? null;
+    const moneylineSelection = {
+      market: "moneyline" as const,
+      eligible: moneylineQualified,
+      expectedValue: moneylineExpectedValue,
+      edge: Math.abs(game.edge) / 100,
+      modelProbability: moneylineProbability,
+      uncertainty: Math.max(0, Math.min(1, 1 - game.confidenceNum / 100)),
+      priceQuality: game.bestLineOdds === moneylineOdds ? 1 : 0.8,
+      marketQuality: 1,
+      dataQuality: 1,
+    };
+    const moneylineScore = scoreMarketCandidate(moneylineSelection);
+    const spreadScore = spreadCandidate
+      ? scoreMarketCandidate(spreadToMarketSelectionCandidate(spreadCandidate))
+      : null;
+    return {
+      game: {
+        id: game.id,
+        matchup: `${game.awayTeamAbbr} @ ${game.homeTeamAbbr}`,
+        startsAt: game.startsAt,
+      },
+      moneylineCandidate: {
+        selection: moneylineIsHome ? "home" : "away",
+        teamAbbr: moneylineIsHome ? game.homeTeamAbbr : game.awayTeamAbbr,
+        odds: moneylineOdds,
+        openingPrice: moneylineIsHome ? game.openingHomeOdds : game.openingAwayOdds,
+        currentPrice: moneylineOdds,
+        closingPrice: null,
+        modelProbability: moneylineProbability,
+        fairPrice: moneylineProbability >= 0.5
+          ? Math.round(-(moneylineProbability / (1 - moneylineProbability)) * 100)
+          : Math.round(((1 - moneylineProbability) / moneylineProbability) * 100),
+        edge: Math.abs(game.edge) / 100,
+        expectedValue: moneylineExpectedValue,
+        noVigProbability: moneylineProbability - Math.abs(game.edge) / 100,
+        uncertainty: moneylineSelection.uncertainty,
+        confidence: game.confidence,
+        recommendation: game.valueRating,
+        units: moneylineQualified ? game.units : 0,
+        sportsbook: game.bestLineBook,
+        capturedAt: game.updatedAt,
+        modelVersion: "production-moneyline",
+        state: moneylineQualified ? "production" : "neutral",
+      },
+      spreadCandidate: spread ? {
+        selection: spread.selection,
+        teamAbbr: spread.teamAbbr,
+        line: spread.line,
+        odds: spread.odds,
+        opposingLine: spread.opposingLine,
+        opposingPrice: spread.opposingOdds,
+        modelProbability: spread.modelProbability,
+        noVigProbability: spread.noVigProbability,
+        fairPrice: spread.fairPrice,
+        edge: spread.edge,
+        expectedValue: spread.expectedValue,
+        pushProbability: spread.pushProbability,
+        uncertainty: spread.uncertainty,
+        confidence: spread.confidence,
+        recommendation: spread.recommendation,
+        units: spread.units,
+        sportsbook: spread.sportsbook,
+        capturedAt: spread.capturedAt,
+        modelVersion: spread.modelVersion,
+        state: spread.gateStatus,
+        gateReasons: spread.gateReasons,
+      } : null,
+      officialSelectedMarket: choosePrimaryMarket(moneylineSelection, spreadCandidate),
+      selectionScores: {
+        moneyline: moneylineScore,
+        spread: spreadScore,
+      },
+    };
+  });
+  res.json({ sport, comparisons, dataAsOf: new Date().toISOString() });
 });
 
 router.post("/admin/spread-models/:sport/refresh-validation", async (req, res): Promise<void> => {

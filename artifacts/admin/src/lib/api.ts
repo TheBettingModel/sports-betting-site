@@ -176,6 +176,8 @@ export const adminApi = {
       `/admin/forecast-reviews?${params.toString()}`,
     );
   },
+  marketComparisons: (sport = "NCAAF") =>
+    api.get<MarketComparisonsResult>(`/admin/market-comparisons?sport=${encodeURIComponent(sport)}`),
 };
 
 export const modelApi = {
@@ -254,6 +256,53 @@ export interface ModelVersion {
   deploymentApprovedBy?: string | null;
   rollbackTargetId?: number | null;
   createdAt: string;
+}
+
+export interface MarketCandidate {
+  selection: string;
+  teamAbbr: string;
+  line?: number | null;
+  odds: number;
+  openingLine?: number | null;
+  openingPrice?: number | null;
+  currentLine?: number | null;
+  currentPrice: number;
+  closingLine?: number | null;
+  closingPrice?: number | null;
+  modelProbability: number;
+  fairPrice: number;
+  edge: number;
+  expectedValue: number;
+  noVigProbability?: number;
+  opposingLine?: number;
+  opposingPrice?: number;
+  pushProbability?: number;
+  uncertainty: number;
+  confidence: string;
+  recommendation: string;
+  units: number;
+  sportsbook?: string | null;
+  capturedAt: string;
+  modelVersion: string;
+  state: string;
+  gateReasons?: string[];
+}
+
+export interface MarketComparison {
+  game: { id: string; matchup: string; startsAt: string | null };
+  moneylineCandidate: MarketCandidate;
+  spreadCandidate: MarketCandidate | null;
+  officialSelectedMarket: "moneyline" | "spread" | null;
+  selectionScores: {
+    moneyline: { score: number; components: Record<string, number> };
+    spread: { score: number; components: Record<string, number> } | null;
+  };
+}
+
+export interface MarketComparisonsResult {
+  sport: string;
+  comparisons: MarketComparison[];
+  dataAsOf: string;
 }
 
 export interface AutomationRun {
