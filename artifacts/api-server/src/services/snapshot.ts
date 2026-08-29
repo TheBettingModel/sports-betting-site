@@ -159,6 +159,9 @@ export function createPredictionDecisionContext(
     game.sport === "NFL" && options.injuryAdvantage == null ? "injury_report" : null,
     game.sport === "WNBA" && options.injuryAdvantage == null ? "player_availability" : null,
     ...(game.sport === "WNBA" ? wnbaMissingSignals(options.wnbaContext) : []),
+    game.sport === "NCAAF" && options.ncaafRecommendationBlocked
+      ? "independent_team_evidence"
+      : null,
   ].filter((signal): signal is string => signal !== null);
 
   return {

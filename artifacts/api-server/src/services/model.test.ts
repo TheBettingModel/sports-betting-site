@@ -2,6 +2,23 @@ import { describe, expect, it } from "vitest";
 import { computeProjection, computeWnbaContextContributions, SPORT_DEFAULT_WEIGHTS, removeVig2 } from "./model";
 import { selectActionableMoneylineMarket } from "./oddsApi";
 import type { WnbaGameContext } from "./wnbaContext";
+import type { DbTeamStats } from "./teamStats";
+
+const ncaafStats = (overrides: Partial<DbTeamStats> = {}): DbTeamStats => ({
+  teamId: "team",
+  sport: "NCAAF",
+  scoredPerGame: 35,
+  allowedPerGame: 17,
+  scoreDifferential: 18,
+  pythagoreanWinPct: 0.8,
+  last5WinPct: 0.8,
+  last10WinPct: 0.8,
+  last5ScoreDiff: 18,
+  last10ScoreDiff: 18,
+  restDays: 7,
+  sampleSize: 4,
+  ...overrides,
+});
 
 const wnbaContext = (overrides: Partial<WnbaGameContext> = {}): WnbaGameContext => ({
   capturedAt: "2026-06-01T00:00:00.000Z",
@@ -153,6 +170,83 @@ describe("two-way market edge safeguards", () => {
     expect(blocked.valueRating).toBe("Neutral");
     expect(blocked.units).toBe(0);
     expect(blocked.podScore).toBe(0);
+  });
+
+  it("keeps opening-week NCAAF games at no bet without independent team evidence", () => {
+    const projection = computeProjection(
+      "NCAAF-opening-week",
+      "NCAAF",
+      "0-0",
+      "0-0",
+      null,
+      { realVegasHomeOdds: -350, realVegasAwayOdds: 280 },
+    );
+
+    expect(Math.abs(projection.edge)).toBeGreaterThan(10);
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.finalModelScore).toBeLessThanOrEqual(59);
+    expect(projection.podScore).toBe(0);
+    expect(projection.units).toBe(0);
+  });
+
+  it("keeps NCAAF at no bet until both teams satisfy the current-season sample", () => {
+    const projection = computeProjection(
+      "NCAAF-one-sided-evidence",
+      "NCAAF",
+      "4-0",
+      "0-4",
+      null,
+      {
+        realVegasHomeOdds: 110,
+        realVegasAwayOdds: -130,
+        homeDbStats: ncaafStats(),
+      },
+    );
+
+    expect(projection.valueRating).toBe("Neutral");
+    expect(projection.units).toBe(0);
+  });
+
+  it("allows NCAAF recommendations once both teams have sufficient evidence", () => {
+    const projection = computeProjection(
+      "NCAAF-qualified",
+      "NCAAF",
+      "4-0",
+      "0-4",
+      null,
+      {
+        realVegasHomeOdds: 110,
+        realVegasAwayOdds: -130,
+        homeDbStats: ncaafStats(),
+        awayDbStats: ncaafStats({
+          teamId: "away",
+          scoredPerGame: 14,
+          allowedPerGame: 35,
+          scoreDifferential: -21,
+          pythagoreanWinPct: 0.15,
+          last5WinPct: 0.2,
+          last10WinPct: 0.2,
+          last5ScoreDiff: -21,
+          last10ScoreDiff: -21,
+        }),
+      },
+    );
+
+    expect(["Buy", "Strong Buy"]).toContain(projection.valueRating);
+    expect(projection.units).toBeGreaterThan(0);
+  });
+
+  it("does not apply the NCAAF evidence gate to other sports", () => {
+    const projection = computeProjection(
+      "NHL-no-db-evidence",
+      "NHL",
+      "10-0",
+      "0-10",
+      null,
+      { realVegasHomeOdds: 110, realVegasAwayOdds: -130 },
+    );
+
+    expect(["Buy", "Strong Buy"]).toContain(projection.valueRating);
   });
 });
 

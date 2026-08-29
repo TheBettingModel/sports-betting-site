@@ -365,6 +365,9 @@ export async function refreshAll(): Promise<{
       awayDbStats,
       wnbaContext,
     };
+    if (game.sport === "NCAAF") {
+      projectionOptions.ncaafRecommendationBlocked = !(homeDbStats && awayDbStats);
+    }
     const mlbAvailability = {
       homeStarter: starters.home ?? null,
       awayStarter: starters.away ?? null,

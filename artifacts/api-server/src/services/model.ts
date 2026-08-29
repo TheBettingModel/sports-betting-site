@@ -512,6 +512,12 @@ export interface ComputeOptions {
   mlbEvidenceMultiplier?: number;
   /** MLB only: required pregame evidence is absent, so this must remain a no-bet. */
   mlbRecommendationBlocked?: boolean;
+  /**
+   * NCAAF requires independent current-season team evidence before publishing a
+   * wager. getDbTeamStats only returns after its minimum sample is satisfied,
+   * so missing either side means an early-season/prior model is not yet ready.
+   */
+  ncaafRecommendationBlocked?: boolean;
   // ── WNBA / NBA advanced analytics (ESPN) ────────────────────────────────
   homeTeamStats?: WnbaTeamStats;
   awayTeamStats?: WnbaTeamStats;
@@ -734,22 +740,31 @@ export function computeProjection(
   const accuracyBoost = ((weights?.accuracyRate ?? 0.5) - 0.5) * 20;
   const homeAdv       = HOME_ADVANTAGE[sport] ?? 0.05;
   const fw            = effectiveWeights(sport, weights?.factorWeights);
+  const projectionOptions =
+    sport === "NCAAF"
+      ? {
+          ...opts,
+          ncaafRecommendationBlocked:
+            opts.ncaafRecommendationBlocked
+            ?? !(opts.homeDbStats && opts.awayDbStats),
+        }
+      : opts;
 
   // ── Soccer: 3-outcome model ────────────────────────────────────────────────
   if (sport === "Soccer") {
-    return computeSoccerProjection(gameId, homeRecord, awayRecord, multiplier, accuracyBoost, opts, fw);
+    return computeSoccerProjection(gameId, homeRecord, awayRecord, multiplier, accuracyBoost, projectionOptions, fw);
   }
 
   // ── WNBA / NBA: advanced efficiency model ─────────────────────────────────
   if (sport === "WNBA" || sport === "NBA") {
     return computeBasketballProjection(
-      gameId, sport, homeRecord, awayRecord, multiplier, accuracyBoost, homeAdv, opts, fw,
+      gameId, sport, homeRecord, awayRecord, multiplier, accuracyBoost, homeAdv, projectionOptions, fw,
     );
   }
 
   // ── MLB / NFL / NHL / NCAAF / NCAAB / UFC: DB-sourced model ─────────────
   return computeRunsModel(
-    gameId, sport, homeRecord, awayRecord, multiplier, accuracyBoost, homeAdv, opts, fw,
+    gameId, sport, homeRecord, awayRecord, multiplier, accuracyBoost, homeAdv, projectionOptions, fw,
   );
 }
 
@@ -1035,6 +1050,9 @@ function finalizeResult(
     valueRating = "Neutral";
   }
   if (sport === "MLB" && opts.mlbRecommendationBlocked) {
+    valueRating = "Neutral";
+  }
+  if (sport === "NCAAF" && opts.ncaafRecommendationBlocked) {
     valueRating = "Neutral";
   }
 

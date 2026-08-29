@@ -88,6 +88,29 @@ describe("prediction decision context market gates", () => {
     expect(context.dataQuality.evidence?.signals.weather.available).toBe(false);
     expect(context.dataQuality.evidence?.confidenceMultiplier).toBeLessThan(1);
   });
+
+  it("records missing independent NCAAF evidence while preserving the Neutral forecast snapshot", () => {
+    const game = {
+      ...gameWithStart(new Date(Date.now() + 60_000).toISOString()),
+      sport: "NCAAF",
+      homeTeamRecord: "0-0",
+      awayTeamRecord: "0-0",
+    };
+    const context = createPredictionDecisionContext(
+      game,
+      null,
+      {
+        realVegasHomeOdds: -337,
+        realVegasAwayOdds: 270,
+        ncaafRecommendationBlocked: true,
+      },
+      {},
+    );
+
+    expect(context.inputSignals.ncaafRecommendationBlocked).toBe(true);
+    expect(context.dataQuality.missingSignals).toContain("independent_team_evidence");
+    expect(isPredictionDecisionEligible(game, context)).toBe(true);
+  });
 });
 
 describe("WNBA immutable decision evidence", () => {

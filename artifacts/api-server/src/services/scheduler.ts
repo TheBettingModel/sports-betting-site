@@ -633,6 +633,8 @@ async function runOddsIngestion(): Promise<void> {
                 awayDbStats,
               }, mlbAvailability)
             : null;
+          const ncaafRecommendationBlocked =
+            game.sport === "NCAAF" && !(homeDbStats && awayDbStats);
 
           const proj = computeProjection(
             game.espnId,
@@ -683,6 +685,7 @@ async function runOddsIngestion(): Promise<void> {
               wnbaContext,
               mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
               mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
+              ncaafRecommendationBlocked,
             },
           );
           const decisionContext = createPredictionDecisionContext(
@@ -725,6 +728,7 @@ async function runOddsIngestion(): Promise<void> {
               awayDbStats,
               mlbEvidenceMultiplier: mlbEvidence?.confidenceMultiplier,
               mlbRecommendationBlocked: mlbEvidence?.recommendationBlocked,
+              ncaafRecommendationBlocked,
             },
             {
               ...mlbAvailability,
@@ -970,6 +974,9 @@ async function runResultGrading(): Promise<void> {
           awayDbStats,
           wnbaContext,
         };
+        if (game.sport === "NCAAF") {
+          projectionOptions.ncaafRecommendationBlocked = !(homeDbStats && awayDbStats);
+        }
         const mlbAvailability = {
           homeStarter: starters.home ?? null,
           awayStarter: starters.away ?? null,
