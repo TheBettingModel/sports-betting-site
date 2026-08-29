@@ -158,6 +158,32 @@ export const RefreshGamesResponse = zod.object({
 
 
 /**
+ * @summary Get isolated spread model configurations and validation metrics
+ */
+export const GetAdminSpreadModelsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Recompute and persist spread validation metrics
+ */
+export const RefreshAdminSpreadValidationParams = zod.object({
+  "sport": zod.coerce.string()
+})
+
+export const RefreshAdminSpreadValidationResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Promote a spread model only when all validation gates pass
+ */
+export const PromoteAdminSpreadModelParams = zod.object({
+  "sport": zod.coerce.string()
+})
+
+export const PromoteAdminSpreadModelResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get overall and per-sport model performance summary
  */
 export const GetResultsSummaryQueryParams = zod.object({

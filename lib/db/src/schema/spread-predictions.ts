@@ -17,6 +17,7 @@ export const spreadPredictionsTable = pgTable(
     modelKey: text("model_key").notNull(),
     modelVersion: text("model_version").notNull(),
     selection: text("selection").notNull(), // home | away
+    teamAbbr: text("team_abbr").notNull().default(""),
 
     // Exact two-sided sportsbook market used for the decision.
     sportsbook: text("sportsbook").notNull(),

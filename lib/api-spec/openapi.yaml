@@ -65,6 +65,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/RefreshResponse"
 
+  /admin/spread-models:
+    get:
+      operationId: getAdminSpreadModels
+      tags: [admin]
+      summary: Get isolated spread model configurations and validation metrics
+      responses:
+        "200":
+          description: Spread model status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/spread-models/{sport}/refresh-validation:
+    post:
+      operationId: refreshAdminSpreadValidation
+      tags: [admin]
+      summary: Recompute and persist spread validation metrics
+      parameters:
+        - name: sport
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Refreshed validation metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/spread-models/{sport}/promote:
+    post:
+      operationId: promoteAdminSpreadModel
+      tags: [admin]
+      summary: Promote a spread model only when all validation gates pass
+      parameters:
+        - name: sport
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Spread model promoted
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "409":
+          description: Promotion gates did not pass
+
   /results/summary:
     get:
       operationId: getResultsSummary

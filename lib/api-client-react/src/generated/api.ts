@@ -28,6 +28,7 @@ import type {
   GetAdminForecastReviewsParams,
   GetAdminLossReviewsParams,
   GetAdminOutcomeReviewsParams,
+  GetAdminSpreadModels200,
   GetGamesTodayParams,
   GetResultsRoiParams,
   GetResultsSummaryParams,
@@ -40,7 +41,9 @@ import type {
   ModelStatsResponse,
   NotificationPreferences,
   OutcomeReviewsResponse,
+  PromoteAdminSpreadModel200,
   RefreshAdminForecastReviews200,
+  RefreshAdminSpreadValidation200,
   RefreshResponse,
   RegisterPushTokenRequest,
   ResultsRoiResponse,
@@ -311,6 +314,225 @@ export const useRefreshGames = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRefreshGamesMutationOptions(options));
+    }
+
+export const getGetAdminSpreadModelsUrl = () => {
+
+
+
+
+  return `/api/admin/spread-models`
+}
+
+/**
+ * @summary Get isolated spread model configurations and validation metrics
+ */
+export const getAdminSpreadModels = async ( options?: RequestInit): Promise<GetAdminSpreadModels200> => {
+
+  return customFetch<GetAdminSpreadModels200>(getGetAdminSpreadModelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSpreadModelsQueryKey = () => {
+    return [
+    `/api/admin/spread-models`
+    ] as const;
+    }
+
+
+export const getGetAdminSpreadModelsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSpreadModels>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSpreadModels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSpreadModelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSpreadModels>>> = ({ signal }) => getAdminSpreadModels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSpreadModels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminSpreadModelsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSpreadModels>>>
+export type GetAdminSpreadModelsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get isolated spread model configurations and validation metrics
+ */
+
+export function useGetAdminSpreadModels<TData = Awaited<ReturnType<typeof getAdminSpreadModels>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSpreadModels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminSpreadModelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRefreshAdminSpreadValidationUrl = (sport: string,) => {
+
+
+
+
+  return `/api/admin/spread-models/${sport}/refresh-validation`
+}
+
+/**
+ * @summary Recompute and persist spread validation metrics
+ */
+export const refreshAdminSpreadValidation = async (sport: string, options?: RequestInit): Promise<RefreshAdminSpreadValidation200> => {
+
+  return customFetch<RefreshAdminSpreadValidation200>(getRefreshAdminSpreadValidationUrl(sport),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshAdminSpreadValidationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshAdminSpreadValidation>>, TError,{sport: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshAdminSpreadValidation>>, TError,{sport: string}, TContext> => {
+
+const mutationKey = ['refreshAdminSpreadValidation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshAdminSpreadValidation>>, {sport: string}> = (props) => {
+          const {sport} = props ?? {};
+
+          return  refreshAdminSpreadValidation(sport,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshAdminSpreadValidationMutationResult = NonNullable<Awaited<ReturnType<typeof refreshAdminSpreadValidation>>>
+
+    export type RefreshAdminSpreadValidationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Recompute and persist spread validation metrics
+ */
+export const useRefreshAdminSpreadValidation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshAdminSpreadValidation>>, TError,{sport: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshAdminSpreadValidation>>,
+        TError,
+        {sport: string},
+        TContext
+      > => {
+      return useMutation(getRefreshAdminSpreadValidationMutationOptions(options));
+    }
+
+export const getPromoteAdminSpreadModelUrl = (sport: string,) => {
+
+
+
+
+  return `/api/admin/spread-models/${sport}/promote`
+}
+
+/**
+ * @summary Promote a spread model only when all validation gates pass
+ */
+export const promoteAdminSpreadModel = async (sport: string, options?: RequestInit): Promise<PromoteAdminSpreadModel200> => {
+
+  return customFetch<PromoteAdminSpreadModel200>(getPromoteAdminSpreadModelUrl(sport),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPromoteAdminSpreadModelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof promoteAdminSpreadModel>>, TError,{sport: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof promoteAdminSpreadModel>>, TError,{sport: string}, TContext> => {
+
+const mutationKey = ['promoteAdminSpreadModel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof promoteAdminSpreadModel>>, {sport: string}> = (props) => {
+          const {sport} = props ?? {};
+
+          return  promoteAdminSpreadModel(sport,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PromoteAdminSpreadModelMutationResult = NonNullable<Awaited<ReturnType<typeof promoteAdminSpreadModel>>>
+
+    export type PromoteAdminSpreadModelMutationError = ErrorType<void>
+
+    /**
+ * @summary Promote a spread model only when all validation gates pass
+ */
+export const usePromoteAdminSpreadModel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof promoteAdminSpreadModel>>, TError,{sport: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof promoteAdminSpreadModel>>,
+        TError,
+        {sport: string},
+        TContext
+      > => {
+      return useMutation(getPromoteAdminSpreadModelMutationOptions(options));
     }
 
 export const getGetResultsSummaryUrl = (params?: GetResultsSummaryParams,) => {

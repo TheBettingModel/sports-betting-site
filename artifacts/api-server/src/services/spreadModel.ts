@@ -3,11 +3,14 @@ import {
   db,
   spreadModelConfigsTable,
   spreadPredictionsTable,
+  spreadPredictionResultsTable,
+  ncaafPromotionDecisionsTable,
   type InsertSpreadPrediction,
 } from "@workspace/db";
 import type { FetchedGame } from "./espn";
 import type { GameOdds, SpreadBookmakerLine } from "./oddsApi";
 import type { DbTeamStats, WnbaTeamStats } from "./teamStats";
+import { calculateClv, calculateUnits, gradeSpread, type GradeResult } from "./grading";
 
 export type SpreadSport = "NFL" | "NCAAF" | "NBA" | "NCAAB" | "WNBA";
 
@@ -307,7 +310,7 @@ function computeExpectedMargin(
   };
 }
 
-function evaluateValidationGate(
+export function evaluateValidationGate(
   sport: SpreadSport,
   status: string,
   metrics: SpreadValidationMetrics | null,
@@ -540,16 +543,97 @@ export function choosePrimaryMarket(
     : null;
 }
 
+export function calculateSpreadClv(
+  prediction: Pick<SpreadCandidate, "selection" | "line" | "odds" | "expectedHomeMargin" | "marginStandardDeviation">,
+  closingLine: number,
+  closingPrice: number,
+): number {
+  const selectedProbability = (line: number): number => {
+    const homeLine = prediction.selection === "home" ? line : -line;
+    const homeCover = 1 - normalCdf(
+      (-homeLine - prediction.expectedHomeMargin) / prediction.marginStandardDeviation,
+    );
+    return prediction.selection === "home" ? homeCover : 1 - homeCover;
+  };
+  const lineValue = (selectedProbability(prediction.line) - selectedProbability(closingLine)) * 100;
+  return Math.round((lineValue + calculateClv(prediction.odds, closingPrice)) * 100) / 100;
+}
+
+export interface SpreadSettlement {
+  result: Exclude<GradeResult, "pending">;
+  finalScore: string;
+  closingLine: number;
+  closingPrice: number;
+  clv: number;
+  unitsWonLost: number;
+}
+
+export function buildSpreadSettlement(input: {
+  selection: "home" | "away";
+  recommendedLine: number;
+  recommendedPrice: number;
+  expectedHomeMargin: number;
+  marginStandardDeviation: number;
+  closingLine: number;
+  closingPrice: number;
+  homeScore: number;
+  awayScore: number;
+}): SpreadSettlement {
+  const grade = gradeSpread(
+    input.selection,
+    input.selection === "home" ? input.recommendedLine : -input.recommendedLine,
+    input.homeScore,
+    input.awayScore,
+  );
+  const result: Exclude<GradeResult, "pending"> = grade === "pending" ? "void" : grade;
+  return {
+    result,
+    finalScore: `${input.awayScore}-${input.homeScore}`,
+    closingLine: input.closingLine,
+    closingPrice: input.closingPrice,
+    clv: calculateSpreadClv({
+      selection: input.selection,
+      line: input.recommendedLine,
+      odds: input.recommendedPrice,
+      expectedHomeMargin: input.expectedHomeMargin,
+      marginStandardDeviation: input.marginStandardDeviation,
+    }, input.closingLine, input.closingPrice),
+    unitsWonLost: calculateUnits(result, 1, input.recommendedPrice),
+  };
+}
+
 export async function writeSpreadCandidateSnapshots(input: SpreadEvaluationInput): Promise<SpreadCandidate[]> {
   const candidates = await buildSpreadCandidates(input);
   if (candidates.length === 0) return [];
+  const existing = await db
+    .select()
+    .from(spreadPredictionsTable)
+    .where(eq(spreadPredictionsTable.gameId, input.game.espnId))
+    .orderBy(spreadPredictionsTable.predictedAt);
+  const openingByMarket = new Map<string, { line: number; price: number }>();
+  for (const row of existing) {
+    const key = `${row.modelKey}|${row.sportsbook}|${row.selection}`;
+    if (!openingByMarket.has(key)) {
+      openingByMarket.set(key, {
+        line: row.openingLine ?? row.currentLine,
+        price: row.openingPrice ?? row.currentPrice,
+      });
+    }
+  }
   const values: InsertSpreadPrediction[] = candidates.map((candidate) => ({
     gameId: candidate.gameId,
     sport: candidate.sport,
     modelKey: candidate.modelKey,
     modelVersion: candidate.modelVersion,
     selection: candidate.selection,
+    teamAbbr: candidate.teamAbbr,
     sportsbook: candidate.sportsbook,
+    openingLine: openingByMarket.get(
+      `${candidate.modelKey}|${candidate.sportsbook}|${candidate.selection}`,
+    )?.line ?? candidate.line,
+    openingPrice: openingByMarket.get(
+      `${candidate.modelKey}|${candidate.sportsbook}|${candidate.selection}`,
+    )?.price ?? candidate.odds,
     currentLine: candidate.line,
     currentPrice: candidate.odds,
     opposingLine: candidate.opposingLine,
@@ -596,7 +680,7 @@ export async function getLatestSpreadCandidates(gameIds: readonly string[]): Pro
       modelKey: row.modelKey,
       modelVersion: row.modelVersion,
       selection: row.selection as "home" | "away",
-      teamAbbr: "",
+      teamAbbr: row.teamAbbr,
       sportsbook: row.sportsbook,
       line: row.recommendedLine,
       odds: row.recommendedPrice,
@@ -631,4 +715,186 @@ export async function getLatestSpreadCandidates(gameIds: readonly string[]): Pro
     if (candidate) result.set(gameId, candidate);
   }
   return result;
+}
+
+export async function settleSpreadPredictions(
+  game: Pick<FetchedGame, "espnId" | "status" | "homeScore" | "awayScore">,
+  settledAt = new Date(),
+): Promise<number> {
+  if (game.status !== "final" || game.homeScore == null || game.awayScore == null) return 0;
+  const predictions = await db
+    .select()
+    .from(spreadPredictionsTable)
+    .where(eq(spreadPredictionsTable.gameId, game.espnId));
+  if (predictions.length === 0) return 0;
+  const latestByMarket = new Map<string, typeof predictions[number]>();
+  for (const prediction of predictions) {
+    const key = `${prediction.modelKey}|${prediction.sportsbook}|${prediction.selection}`;
+    const current = latestByMarket.get(key);
+    if (!current || prediction.predictedAt > current.predictedAt) latestByMarket.set(key, prediction);
+  }
+  let settled = 0;
+  for (const prediction of predictions) {
+    const closing = latestByMarket.get(
+      `${prediction.modelKey}|${prediction.sportsbook}|${prediction.selection}`,
+    ) ?? prediction;
+    const settlement = buildSpreadSettlement({
+      selection: prediction.selection as "home" | "away",
+      recommendedLine: prediction.recommendedLine,
+      recommendedPrice: prediction.recommendedPrice,
+      expectedHomeMargin: prediction.expectedHomeMargin,
+      marginStandardDeviation: prediction.marginStandardDeviation,
+      closingLine: closing.currentLine,
+      closingPrice: closing.currentPrice,
+      homeScore: game.homeScore,
+      awayScore: game.awayScore,
+    });
+    await db.insert(spreadPredictionResultsTable).values({
+      predictionId: prediction.id,
+      gameId: prediction.gameId,
+      result: settlement.result,
+      finalScore: settlement.finalScore,
+      // The last immutable pregame observation is the closing proxy when a
+      // later provider quote is unavailable; it never changes the prediction.
+      closingLine: settlement.closingLine,
+      closingPrice: settlement.closingPrice,
+      clv: settlement.clv,
+      unitsWonLost: settlement.unitsWonLost,
+      settledAt,
+    }).onConflictDoNothing();
+    settled++;
+  }
+  if (isSpreadSportName(predictions[0]!.sport)) {
+    await refreshSpreadValidationMetrics(predictions[0]!.sport);
+  }
+  return settled;
+}
+
+export interface SpreadValidationSummary extends SpreadValidationMetrics {
+  sport: SpreadSport;
+  modelKey: string;
+  modelVersion: string;
+  computedAt: string;
+}
+
+export async function computeSpreadValidationMetrics(
+  sport: SpreadSport,
+): Promise<SpreadValidationSummary | null> {
+  const config = SPREAD_CONFIGS[sport];
+  const predictions = await db
+    .select()
+    .from(spreadPredictionsTable)
+    .where(and(
+      eq(spreadPredictionsTable.sport, sport),
+      eq(spreadPredictionsTable.modelKey, config.modelKey),
+    ));
+  if (predictions.length === 0) return null;
+  const results = await db
+    .select()
+    .from(spreadPredictionResultsTable)
+    .where(inArray(spreadPredictionResultsTable.predictionId, predictions.map(({ id }) => id)));
+  const resultByPrediction = new Map(results.map((result) => [result.predictionId, result]));
+  const rows = predictions.map((prediction) => ({
+    prediction,
+    result: resultByPrediction.get(prediction.id) ?? null,
+  }));
+  const bestByCapture = new Map<string, typeof rows[number]>();
+  for (const row of rows) {
+    if (!row.prediction.priceQualified) continue;
+    const key = `${row.prediction.gameId}|${row.prediction.predictedAt.toISOString()}`;
+    const current = bestByCapture.get(key);
+    if (!current || row.prediction.expectedValue > current.prediction.expectedValue) {
+      bestByCapture.set(key, row);
+    }
+  }
+  const validationRows = [...bestByCapture.values()];
+  const settled = validationRows.filter(
+    (row): row is typeof row & { result: NonNullable<typeof row.result> } =>
+      row.result != null
+      && (row.result.result === "win" || row.result.result === "loss" || row.result.result === "push"),
+  );
+  const scored = settled.filter(({ result }) => result.result !== "push");
+  if (scored.length === 0) return null;
+  const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
+  const outcomes = scored.map(({ result }) => result.result === "win" ? 1 : 0);
+  const probabilities = scored.map(({ prediction }) => prediction.modelProbability);
+  const brierScore = mean(probabilities.map((probability, i) => (probability - outcomes[i]!) ** 2));
+  const logLoss = mean(probabilities.map((probability, i) => {
+    const p = clamp(probability, 0.001, 0.999);
+    return -(outcomes[i]! ? Math.log(p) : Math.log(1 - p));
+  }));
+  const winRate = mean(outcomes);
+  const calibrationError = Math.abs(mean(probabilities) - winRate);
+  const netUnits = settled.reduce((sum, { result }) => sum + result.unitsWonLost, 0);
+  const maxDrawdown = (() => {
+    let peak = 0;
+    let balance = 0;
+    let drawdown = 0;
+    for (const { result } of [...settled].sort((a, b) => a.result.settledAt.getTime() - b.result.settledAt.getTime())) {
+      balance += result.unitsWonLost;
+      peak = Math.max(peak, balance);
+      drawdown = Math.max(drawdown, peak - balance);
+    }
+    return drawdown / Math.max(1, settled.length);
+  })();
+  return {
+    sport,
+    modelKey: config.modelKey,
+    modelVersion: config.modelVersion,
+    sampleSize: settled.length,
+    calibrationError,
+    brierScore,
+    logLoss,
+    roi: netUnits / Math.max(1, settled.length),
+    clv: mean(settled.map(({ result }) => result.clv ?? 0)),
+    maxDrawdown,
+    coverage: settled.length / Math.max(1, validationRows.length),
+    dataQualityRate: validationRows.filter(({ prediction }) => prediction.featureSnapshot != null).length / Math.max(1, validationRows.length),
+    computedAt: new Date().toISOString(),
+  };
+}
+
+function isSpreadSportName(sport: string): sport is SpreadSport {
+  return isSpreadSport(sport);
+}
+
+export async function refreshSpreadValidationMetrics(
+  sport: SpreadSport,
+): Promise<SpreadValidationSummary | null> {
+  const metrics = await computeSpreadValidationMetrics(sport);
+  if (!metrics) return null;
+  const config = SPREAD_CONFIGS[sport];
+  await db.update(spreadModelConfigsTable)
+    .set({ validationMetrics: metrics, updatedAt: new Date() })
+    .where(and(
+      eq(spreadModelConfigsTable.sport, sport),
+      eq(spreadModelConfigsTable.modelKey, config.modelKey),
+    ));
+  return metrics;
+}
+
+export async function promoteSpreadModel(sport: SpreadSport): Promise<SpreadValidationSummary> {
+  const config = SPREAD_CONFIGS[sport];
+  if (sport === "NCAAF") {
+    const [approval] = await db
+      .select({ decision: ncaafPromotionDecisionsTable.decision })
+      .from(ncaafPromotionDecisionsTable)
+      .where(eq(ncaafPromotionDecisionsTable.decision, "eligible"))
+      .orderBy(desc(ncaafPromotionDecisionsTable.createdAt))
+      .limit(1);
+    if (!approval) {
+      throw new Error("NCAAF spread promotion requires an eligible independent challenger decision");
+    }
+  }
+  const metrics = await refreshSpreadValidationMetrics(sport);
+  if (!metrics) throw new Error(`No settled spread validation data for ${sport}`);
+  const gate = evaluateValidationGate(sport, "production", metrics, config.gatePolicy);
+  if (!gate.eligible) throw new Error(`Spread promotion gate failed for ${sport}: ${gate.reasons.join(", ")}`);
+  await db.update(spreadModelConfigsTable)
+    .set({ status: "production", validationMetrics: metrics, updatedAt: new Date() })
+    .where(and(
+      eq(spreadModelConfigsTable.sport, sport),
+      eq(spreadModelConfigsTable.modelKey, config.modelKey),
+    ));
+  return metrics;
 }

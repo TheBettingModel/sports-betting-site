@@ -34,6 +34,7 @@ import { applyMaterialPregameRevision } from "./materialPregameRevisions";
 import type { WnbaGameContext } from "./wnbaContext";
 import {
   writeSpreadCandidateSnapshots,
+  settleSpreadPredictions,
   type SpreadEvaluationInput,
 } from "./spreadModel";
 
@@ -660,6 +661,7 @@ export async function processGameSnapshot(
     if (game.status === "final") {
       await writeGameResult(game);
       await writeClosingLines(game, now, marketIds);
+      await settleSpreadPredictions(game, now);
     }
   } catch (err) {
     logger.error({ err, gameId: game.espnId }, "processGameSnapshot error");

@@ -30,6 +30,7 @@ import {
   performanceMetricsTable,
   pickResultsTable,
   publishedPicksTable,
+  spreadModelConfigsTable,
   sportSnoozesTable,
   subscribersTable,
   trainingDatasetsTable,
@@ -58,6 +59,13 @@ import {
   type GradedMlbDecision,
   type MlbQualificationAudit,
 } from "../services/mlbQualificationAudit";
+import {
+  SPREAD_CONFIGS,
+  computeSpreadValidationMetrics,
+  promoteSpreadModel,
+  refreshSpreadValidationMetrics,
+  type SpreadSport,
+} from "../services/spreadModel";
 
 const router: IRouter = Router();
 
@@ -996,6 +1004,57 @@ router.post("/admin/models/:id/rollback", async (req, res): Promise<void> => {
 
   const result = await rollbackModel(id, performedBy, true, notes);
   res.json(result);
+});
+
+function parseSpreadSport(value: string | undefined): SpreadSport | null {
+  return value && Object.prototype.hasOwnProperty.call(SPREAD_CONFIGS, value)
+    ? value as SpreadSport
+    : null;
+}
+
+router.get("/admin/spread-models", async (_req, res): Promise<void> => {
+  const persisted = await db.select().from(spreadModelConfigsTable);
+  const bySport = new Map(persisted.map((row) => [row.sport, row]));
+  const rows = await Promise.all(
+    (Object.keys(SPREAD_CONFIGS) as SpreadSport[]).map(async (sport) => ({
+      sport,
+      config: SPREAD_CONFIGS[sport],
+      status: bySport.get(sport)?.status ?? "shadow",
+      metrics: await computeSpreadValidationMetrics(sport),
+    })),
+  );
+  res.json({ models: rows });
+});
+
+router.post("/admin/spread-models/:sport/refresh-validation", async (req, res): Promise<void> => {
+  const sport = parseSpreadSport(req.params.sport);
+  if (!sport) {
+    res.status(400).json({ error: "Unsupported spread sport" });
+    return;
+  }
+  const metrics = await refreshSpreadValidationMetrics(sport);
+  res.json({ sport, metrics });
+});
+
+router.post("/admin/spread-models/:sport/promote", async (req, res): Promise<void> => {
+  const sport = parseSpreadSport(req.params.sport);
+  if (!sport) {
+    res.status(400).json({ error: "Unsupported spread sport" });
+    return;
+  }
+  const performedBy = getVerifiedAdminPrincipal(req);
+  if (!performedBy) {
+    res.status(401).json({ error: "Authenticated admin principal required" });
+    return;
+  }
+  try {
+    const metrics = await promoteSpreadModel(sport);
+    res.json({ sport, status: "production", approvedBy: performedBy, metrics });
+  } catch (error) {
+    res.status(409).json({
+      error: error instanceof Error ? error.message : "Spread promotion gate failed",
+    });
+  }
 });
 
 // ── Sport snoozes ─────────────────────────────────────────────────────────────
