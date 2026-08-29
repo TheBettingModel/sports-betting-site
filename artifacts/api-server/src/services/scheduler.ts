@@ -44,6 +44,7 @@ import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
+import { runNcaafValidationCycle } from "./ncaafValidation";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -1128,6 +1129,14 @@ async function runResultGrading(): Promise<void> {
     const graded = await runGrading();
     await runLearning();
     const forecastReviews = await runForecastReviews();
+    // Challenger validation is isolated and non-fatal. It reads immutable NCAAF
+    // ledgers only and never writes publication, grading, or learning records.
+    try {
+      const ncaafValidation = await runNcaafValidationCycle();
+      logger.info(ncaafValidation, "Scheduler: NCAAF validation cycle completed");
+    } catch (err) {
+      logger.error({ err }, "Scheduler: NCAAF validation cycle failed (non-fatal)");
+    }
 
     await finishRun(runId, "completed", graded + forecastReviews.inserted);
     logger.info({ snapshots, recovered, graded, forecastReviews }, "Scheduler: result-grading complete");

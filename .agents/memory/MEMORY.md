@@ -28,3 +28,4 @@
 - [Modeled-date season boundaries](modeled-date-season-boundaries.md) — season-scoped inputs follow the game date and league calendar, never the server’s current date or provider defaults.
 - [NCAAF launch evidence gate](ncaaf-launch-evidence-gate.md) — keep recommendations Neutral until independent team evidence exists; never invent an opening-week edge.
 - [NCAAF evidence-time safety](ncaaf-evidence-time-safety.md) — retrospective captures are audit evidence, not pregame evidence; every read requires a strict pre-kickoff cutoff.
+- [NCAAF challenger promotion](ncaaf-challenger-promotion.md) — market prices are comparison-only facts; promotion stays fail-closed until every OOS gate passes.
