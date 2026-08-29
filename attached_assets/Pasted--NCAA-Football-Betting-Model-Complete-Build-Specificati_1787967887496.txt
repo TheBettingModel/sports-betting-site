@@ -1,0 +1,1137 @@
+# NCAA Football Betting Model — Complete Build Specification
+
+Build the NCAA Football betting model as a production-grade, long-term predictive and betting system. It should not simply predict winners. It must estimate true probabilities, calculate fair prices, compare those prices against sportsbooks, identify legitimate betting value, track every prediction, evaluate performance, and improve only through validated historical evidence.
+
+The model should be built around the following major systems.
+
+## 1. Historical Data and Point-in-Time Database
+
+Create a complete historical NCAA Football database containing game, team, player, roster, market, and contextual information.
+
+For every game store:
+
+* Season
+* Week
+* Date and kickoff time
+* Home team
+* Away team
+* Neutral-site status
+* Conference
+* Venue
+* Final score
+* Halftime score
+* Overtime status
+* Weather
+* Opening spread
+* Opening total
+* Opening moneyline
+* Current sportsbook prices
+* Closing spread
+* Closing total
+* Closing moneyline
+* Individual sportsbook prices
+* ATS result
+* Moneyline result
+* Total result
+
+Historical training data must always be point-in-time accurate. The model cannot use information that became available after the prediction was made.
+
+Never allow future information or end-of-season statistics to leak into earlier historical games.
+
+---
+
+## 2. Opponent-Adjusted Team Strength Engine
+
+Create continuously updated team power ratings.
+
+Every team should have:
+
+* Overall power rating
+* Offensive rating
+* Defensive rating
+* Special teams rating
+* Home rating
+* Road rating
+* Recent-form rating
+
+All team statistics must be adjusted for:
+
+* Strength of opponent
+* Opponent offense
+* Opponent defense
+* Game location
+* Pace
+* Garbage time
+* Game state
+
+Do not rely heavily on win/loss records, points per game, or raw yardage.
+
+The purpose is to determine how strong a team actually is after accounting for the quality of competition.
+
+---
+
+## 3. Offensive and Defensive Efficiency Engine
+
+Build an advanced efficiency model using predictive football metrics.
+
+### Offensive metrics should include:
+
+* EPA per play
+* Passing EPA
+* Rushing EPA
+* Success rate
+* Passing success rate
+* Rushing success rate
+* Explosive play rate
+* Yards per play
+* Sack rate
+* Turnover-worthy behavior
+* Third-down efficiency
+* Red-zone efficiency
+* Points per scoring opportunity
+* Early-down efficiency
+* Pace
+
+### Defensive metrics should include:
+
+* EPA allowed
+* Passing EPA allowed
+* Rushing EPA allowed
+* Success rate allowed
+* Explosive plays allowed
+* Sack rate
+* Pressure rate
+* Havoc rate
+* Tackles for loss
+* Defensive line performance
+* Red-zone defense
+* Third-down defense
+* Points allowed per scoring opportunity
+
+All efficiency numbers should be opponent-adjusted wherever possible.
+
+---
+
+## 4. Quarterback and Player Impact Engine
+
+Quarterback must be one of the strongest individual-player components.
+
+Track:
+
+* Starting quarterback
+* Expected starter probability
+* Backup quarterback
+* Career starts
+* Passing EPA
+* Completion efficiency
+* Yards per attempt
+* TD rate
+* INT rate
+* Sack rate
+* Performance under pressure
+* Deep passing
+* Scrambling
+* Designed rushing
+* Recent performance
+* Injury status
+
+Calculate:
+
+* Starting QB value
+* Backup QB value
+* QB value above replacement
+* Point adjustment if starter is unavailable
+
+Player injuries should be evaluated as:
+
+Starter value minus replacement value.
+
+Do not simply subtract a generic injury adjustment.
+
+Also model important players at:
+
+* Offensive line
+* Wide receiver
+* Running back
+* Tight end
+* Defensive line
+* Linebacker
+* Cornerback
+* Safety
+
+Track expected snaps and playing-time probability.
+
+---
+
+## 5. Roster, Recruiting, Transfer Portal and Returning Production Engine
+
+College football requires a major roster-quality component because team personnel changes significantly every offseason.
+
+Track:
+
+* Recruiting class quality
+* Multi-year recruiting talent
+* 5-star and 4-star players
+* Position-level talent
+* Returning starters
+* Returning offensive production
+* Returning defensive production
+* Returning QB production
+* Returning offensive-line starts
+* Returning snaps
+* Incoming transfers
+* Outgoing transfers
+* Previous transfer production
+* Expected transfer role
+
+Create:
+
+* Talent rating
+* Transfer portal gain/loss rating
+* Returning production rating
+* Roster continuity rating
+
+These features should be especially important during preseason and the first several weeks of the season.
+
+Their weight should gradually decline as current-season evidence becomes stronger.
+
+---
+
+## 6. Early-Season Bayesian Model
+
+The model must not overreact to the first few games of a season.
+
+Create a preseason prior using:
+
+* Previous-season team strength
+* Recruiting
+* Transfers
+* Returning production
+* Coaching
+* QB
+* Position-group strength
+
+Then gradually blend current-season performance into the prior.
+
+Conceptually:
+
+Early season = heavier preseason prior.
+
+Midseason = heavier current-season performance.
+
+Late season = primarily current-season evidence with some long-term stability remaining.
+
+The exact weighting should eventually be determined through historical validation.
+
+---
+
+## 7. Coaching and Scheme Engine
+
+Track:
+
+* Head coach
+* Offensive coordinator
+* Defensive coordinator
+* Coaching changes
+* Years in current system
+* Offensive scheme
+* Defensive scheme
+* Pace
+* Passing tendencies
+* Rushing tendencies
+* Fourth-down aggressiveness
+* Red-zone strategy
+
+New coaches or coordinators should increase uncertainty early in the season.
+
+Do not assign arbitrary large coaching bonuses. Coaching adjustments must be historically validated.
+
+---
+
+## 8. Matchup Engine
+
+Do not evaluate teams only through overall power ratings.
+
+Determine how the two teams specifically match up.
+
+Create individual matchup ratings for:
+
+* Passing offense vs passing defense
+* Rushing offense vs rushing defense
+* Offensive line vs defensive front
+* Pass protection vs pass rush
+* Quarterback under pressure vs opponent pressure rate
+* Explosive offense vs explosive-play prevention
+* Red-zone offense vs red-zone defense
+* Pace interaction
+* Turnover creation vs turnover vulnerability
+
+Use these matchup scores to adjust the base team projection.
+
+---
+
+## 9. Pace, Possession and Game Environment Engine
+
+Estimate:
+
+* Expected possessions
+* Plays per game
+* Neutral pace
+* Seconds per play
+* No-huddle tendencies
+
+Pace should directly influence:
+
+* Expected total
+* Scoring variance
+* Spread distributions
+* Comeback probability
+
+Also account for:
+
+* Home-field advantage
+* Venue-specific home advantage
+* Neutral sites
+* Travel distance
+* Time zones
+* Altitude
+* Rest
+* Bye weeks
+* Consecutive road games
+
+---
+
+## 10. Weather Engine
+
+Use kickoff-location weather whenever possible.
+
+Track:
+
+* Temperature
+* Wind speed
+* Wind direction
+* Rain
+* Snow
+* Humidity
+* Severe weather
+
+Wind should receive particular attention because it affects:
+
+* Passing
+* Kicking
+* Deep throws
+* Totals
+
+Weather adjustments should be historically tested and should never be excessively large without evidence.
+
+---
+
+## 11. Special Teams and Field Position Engine
+
+Create independent ratings for:
+
+* Field-goal kicking
+* Field-goal range
+* Punt efficiency
+* Punt returns
+* Kick returns
+* Kick coverage
+* Blocked kicks
+* Average starting field position
+* Opponent starting field position
+
+Special teams should contribute to the projected point differential instead of being ignored.
+
+---
+
+## 12. Turnover, Red-Zone and Regression Engine
+
+Do not assume recent outcomes automatically represent sustainable skill.
+
+Apply regression to:
+
+* Turnover margin
+* Fumble recoveries
+* Interceptions
+* Red-zone touchdown %
+* Third-down %
+* Explosive touchdown rates
+* Defensive touchdowns
+
+Separate:
+
+Underlying predictive behavior
+
+from
+
+Random outcome variance.
+
+A team with an extreme turnover margin should not automatically be projected to continue at the same rate.
+
+---
+
+## 13. Garbage-Time and Large-Spread Engine
+
+College football regularly produces extreme mismatches that require different treatment from NFL games.
+
+Detect garbage time and separate:
+
+* Competitive snaps
+* Noncompetitive snaps
+
+Do not allow late blowout statistics to distort true team ratings.
+
+For large spreads, incorporate:
+
+* Backup usage
+* Second-half coaching tendencies
+* Talent depth
+* Expected pace reduction
+* Garbage-time defensive risk
+* Backdoor-cover probability
+
+Spreads such as -25, -35, or -45 should receive separate calibration from ordinary spreads.
+
+---
+
+## 14. FBS/FCS and Special Game Modes
+
+Identify:
+
+* FBS vs FBS
+* FBS vs FCS
+* Rivalries
+* Conference championships
+* Bowl games
+* College Football Playoff games
+* Neutral-site games
+
+FBS vs FCS games should either use a reliable FCS rating system or receive reduced model confidence.
+
+Create specific postseason handling for:
+
+* Bowl opt-outs
+* Transfer portal departures
+* Coaching departures
+* NFL Draft opt-outs
+* Unusual roster availability
+
+Do not treat bowl games exactly like regular-season games.
+
+---
+
+## 15. Expected Score and Simulation Engine
+
+After all football inputs and adjustments are calculated, generate:
+
+* Expected home points
+* Expected away points
+* Expected margin
+* Expected game total
+
+Then produce probability distributions using simulation or another statistically valid scoring-distribution model.
+
+Generate probabilities for:
+
+* Home moneyline
+* Away moneyline
+* Home spread
+* Away spread
+* Over
+* Under
+
+If Monte Carlo simulation is used, run a sufficiently large number of simulations per game, such as 20,000 or more.
+
+The model must produce probabilities, not merely a predicted score.
+
+---
+
+## 16. Fair Spread, Fair Total and Fair Moneyline Engine
+
+Create TBM's own independent prices before evaluating sportsbooks.
+
+Calculate:
+
+* Fair spread
+* Fair total
+* Home win probability
+* Away win probability
+* Fair American moneyline
+* Cover probability
+* Over probability
+* Under probability
+
+Example:
+
+TBM fair spread:
+Team A -7.2
+
+Sportsbook:
+Team A -4.5
+
+The model should then determine the actual probability Team A covers -4.5.
+
+Do not simply call the 2.7-point difference an edge.
+
+---
+
+## 17. Sportsbook and Market Intelligence Engine
+
+Pull multiple sportsbooks.
+
+Track:
+
+* Opening line
+* Current line
+* Closing line
+* Opening odds
+* Current odds
+* Closing odds
+* Best sportsbook
+* Worst sportsbook
+* Consensus line
+* Sharp-book price where available
+
+Calculate:
+
+* Sportsbook implied probability
+* No-vig market probability
+* Model probability
+* Expected value
+* Model edge
+* Line-shopping value
+
+Always remove sportsbook vig before comparing TBM probability against the market.
+
+---
+
+## 18. Line Movement, Steam and Market Timing Engine
+
+Store timestamped sportsbook snapshots.
+
+Analyze:
+
+* Opening-to-current movement
+* Current-to-close movement
+* Rapid line movement
+* Cross-book movement
+* Book disagreement
+* Sharp-book leadership
+* Stale prices
+* Steam signals
+* Reverse movement where reliable data exists
+
+Create market timing classifications:
+
+* Bet Now
+* Neutral
+* Wait
+
+Market intelligence should improve the betting decision but should not simply overwrite the independent football prediction.
+
+---
+
+## 19. Key Number Engine
+
+College football spreads require scoring-margin awareness.
+
+The value of:
+
+-2.5 to -3
+
+is different from:
+
+-8 to -8.5.
+
+Create NCAA-specific scoring-margin distributions and determine the probability impact of crossing important football numbers.
+
+Do not blindly use NFL key-number assumptions.
+
+---
+
+## 20. Data Quality and Prediction Uncertainty Engine
+
+Every game should receive a data-quality score.
+
+Include:
+
+* QB certainty
+* Injury certainty
+* Depth-chart reliability
+* Weather availability
+* Roster completeness
+* Odds freshness
+* Market quality
+* Missing data
+
+Also generate prediction uncertainty.
+
+Example:
+
+TBM expected win probability:
+58%
+
+Estimated uncertainty:
+54%–62%
+
+High uncertainty should lower recommendation confidence and wager size.
+
+A large theoretical edge with poor data quality may still be a Pass.
+
+---
+
+## 21. Ensemble Prediction Architecture
+
+Do not rely entirely on one formula.
+
+Build multiple model layers such as:
+
+* Team power rating model
+* Efficiency model
+* Player/talent model
+* Matchup model
+* Statistical/machine-learning model
+* Market intelligence model
+
+Combine them into an ensemble.
+
+Measure disagreement between submodels.
+
+If all major models agree, confidence can increase.
+
+If they strongly disagree, uncertainty should increase.
+
+---
+
+## 22. Probability Calibration Engine
+
+Raw predicted probabilities must be calibrated.
+
+If TBM predicts 60% probabilities hundreds of times, approximately 60% should actually win.
+
+Track calibration buckets such as:
+
+* 50–52%
+* 52–55%
+* 55–58%
+* 58–60%
+* 60–65%
+* 65–70%
+* 70%+
+
+Use historical out-of-sample results to correct overconfidence or underconfidence.
+
+---
+
+## 23. Betting Recommendation Engine
+
+Do not bet every positive edge.
+
+Create recommendation tiers:
+
+### Pass
+
+Insufficient advantage.
+
+### Watch
+
+Potential value, but information or pricing is unresolved.
+
+### Lean
+
+Small validated advantage.
+
+### Play
+
+Meets production betting thresholds.
+
+### Elite Play
+
+Rare combination of strong probability edge, excellent price, strong data quality, favorable historical calibration, and acceptable uncertainty.
+
+Recommendation logic should consider:
+
+* Model edge
+* Expected value
+* Probability calibration
+* Price
+* Data quality
+* Prediction uncertainty
+* Market quality
+* Line movement
+* Model agreement
+* Historical performance of similar plays
+
+---
+
+## 24. Price and Edge Guardrails
+
+Implement minimum requirements for:
+
+* Edge
+* Expected value
+* Confidence
+* Data quality
+* Market quality
+
+Also implement maximum acceptable betting prices.
+
+Every recommendation should have a:
+
+### Bet-At Line / Bet-At Price
+
+If the sportsbook moves beyond that number, the recommendation should automatically downgrade or expire.
+
+Do not allow an old recommendation to remain active after the value disappears.
+
+---
+
+## 25. Bankroll and Risk Management
+
+Implement disciplined position sizing.
+
+Account for:
+
+* Edge
+* Confidence
+* Uncertainty
+* Bankroll
+* Correlation
+* Game-level exposure
+* Daily exposure
+
+Use fractional Kelly or another conservative risk-management framework.
+
+Implement:
+
+* Maximum unit size
+* Maximum game exposure
+* Maximum daily exposure
+* Correlated bet detection
+
+Multiple bets involving the same game or team cannot be treated as independent.
+
+---
+
+## 26. Permanent Prediction Snapshot
+
+Every model prediction must create an immutable record before kickoff.
+
+Store:
+
+* Prediction ID
+* Game ID
+* Date
+* Model version
+* Home team
+* Away team
+* Market
+* Pick
+* Sportsbook
+* Odds
+* Fair spread
+* Fair total
+* Win probability
+* Cover probability
+* Fair price
+* No-vig market probability
+* Edge
+* Expected value
+* Confidence
+* Data quality
+* Recommendation
+* Units
+* Timestamp
+
+Also store the full feature snapshot used to generate the prediction.
+
+Never overwrite historical predictions after the game occurs.
+
+---
+
+## 27. Model Versioning
+
+Every meaningful model change must generate a new version.
+
+Example:
+
+NCAAF_v1.0
+NCAAF_v1.1
+NCAAF_v2.0
+
+Store:
+
+* Deployment date
+* Feature changes
+* Weight changes
+* Calibration changes
+* Training window
+* Validation results
+
+Historical predictions must always remain tied to the model version that actually produced them.
+
+---
+
+## 28. Closing Line Value Engine
+
+At market close, save:
+
+* Closing spread
+* Closing total
+* Closing moneyline
+* Closing sportsbook prices
+* Closing no-vig probabilities
+
+Calculate CLV for:
+
+* Spread
+* Moneyline
+* Total
+
+CLV should be one of the primary indicators of whether TBM is identifying genuine market value.
+
+Winning a bet does not automatically mean the prediction was good.
+
+Losing a bet does not automatically mean the prediction was bad.
+
+---
+
+## 29. Automatic Game Grading
+
+After every game store:
+
+* Final score
+* Win/loss/push
+* ATS result
+* ML result
+* Total result
+* Units won/lost
+* Predicted margin
+* Actual margin
+* Prediction error
+* Predicted total
+* Actual total
+* Total error
+* Closing line
+* CLV
+
+Automatically grade all official plays.
+
+---
+
+## 30. Brier Score, Log Loss and Calibration Evaluation
+
+Evaluate probability quality using:
+
+### Brier Score
+
+Measures probability accuracy.
+
+### Brier Skill Score
+
+Compare TBM probability quality against the sportsbook/no-vig market baseline.
+
+### Log Loss
+
+Punishes highly confident incorrect predictions.
+
+### Calibration
+
+Measures whether forecast probabilities correspond to actual outcome frequencies.
+
+These metrics should be evaluated alongside:
+
+* ROI
+* Units
+* Win rate
+* CLV
+* Drawdown
+
+Do not judge model quality from win rate alone.
+
+---
+
+## 31. Segmented Performance Analytics
+
+Analyze model performance by:
+
+* Market
+* Conference
+* Team
+* Team tier
+* Favorite/underdog
+* Home/road/neutral
+* Spread bucket
+* Odds bucket
+* Edge bucket
+* Confidence bucket
+* Recommendation tier
+* Weather
+* Week
+* Early vs late season
+* QB certainty
+* Injury status
+* Model version
+
+The system must identify where TBM is genuinely strong and where it is weak.
+
+---
+
+## 32. Post-Game Error Analysis
+
+For each prediction, classify the outcome.
+
+Possible categories:
+
+### Good Process / Bad Result
+
+TBM beat the closing market but the bet lost.
+
+### Bad Process / Good Result
+
+The bet won despite poor pricing or poor projection.
+
+### Model Miss
+
+The underlying football projection was wrong.
+
+### Injury / Availability Miss
+
+Important player information was incorrect.
+
+### Data Miss
+
+Input data was missing, stale, or wrong.
+
+### Market Miss
+
+The market moved substantially against TBM.
+
+### Normal Variance
+
+The outcome fell within reasonable probability variance.
+
+This information should feed the research database.
+
+---
+
+## 33. Self-Improvement and Learning System
+
+The model should collect evidence after every game, but it must not automatically change production weights after wins or losses.
+
+The learning process should be:
+
+Game completes
+→ Grade result
+→ Store closing line
+→ Calculate CLV
+→ Calculate Brier score
+→ Calculate log loss
+→ Analyze calibration
+→ Analyze feature performance
+→ Identify possible improvements
+→ Backtest candidate changes
+→ Walk-forward test
+→ Out-of-sample validation
+→ Shadow-test candidate model
+→ Deploy only if improvement is validated
+
+Never allow recent results alone to change production weights.
+
+---
+
+## 34. Walk-Forward and Out-of-Sample Validation
+
+All meaningful model changes must be tested chronologically.
+
+Example:
+
+Train:
+2019–2022
+
+Validate:
+2023
+
+Test:
+2024
+
+Then roll forward.
+
+Never randomly mix future games with past games in a way that allows information leakage.
+
+Maintain a true untouched out-of-sample dataset.
+
+---
+
+## 35. Champion vs Challenger Model System
+
+Keep the active production model as the:
+
+### Champion
+
+Test potential upgrades as:
+
+### Challengers
+
+A challenger should only replace the champion if it improves several important metrics such as:
+
+* Brier score
+* Calibration
+* Log loss
+* CLV
+* ROI
+* Drawdown
+* Stability across seasons
+
+Do not replace production simply because a challenger produced a higher historical ROI.
+
+---
+
+## 36. Overfitting Protection
+
+Require:
+
+* Minimum sample sizes
+* Multiple seasons of validation
+* Feature stability testing
+* Walk-forward testing
+* Confidence intervals
+* Out-of-sample testing
+
+Do not declare a betting angle successful after a small sample.
+
+Do not continuously adjust thresholds until historical bets become profitable.
+
+---
+
+## 37. Model Drift Monitoring
+
+Continuously monitor whether football or betting markets change.
+
+Detect:
+
+* Scoring environment changes
+* Rule changes
+* Transfer-rule changes
+* Conference realignment effects
+* Feature effectiveness changes
+* Calibration drift
+* Market efficiency changes
+
+The model should identify when relationships that worked historically begin weakening.
+
+---
+
+## 38. Data Validation and Fail-Safe System
+
+Before generating recommendations, validate:
+
+* Team IDs
+* Player IDs
+* Game IDs
+* Duplicate games
+* Odds
+* Timestamps
+* Injury data
+* Weather
+* Market freshness
+* Missing values
+
+Never silently convert missing data into zero.
+
+If an important feed fails:
+
+* Lower data-quality score
+* Prevent high-confidence recommendations
+* Halt affected markets when necessary
+
+---
+
+## 39. Automated Refresh and Recalculation
+
+Automatically refresh:
+
+* Schedules
+* Rosters
+* Depth charts
+* Injuries
+* QB status
+* Weather
+* Sportsbook odds
+* Market movement
+* Model projections
+
+Material changes should trigger an immediate recalculation.
+
+Examples:
+
+* Starting QB ruled out
+* Major injury news
+* Significant weather change
+* Major sportsbook line movement
+* Updated depth chart
+
+---
+
+## 40. Final NCAAF Decision Pipeline
+
+The complete production process should be:
+
+Historical Data
+→ Validate Inputs
+→ Team Power Ratings
+→ Opponent Adjustment
+→ Roster / Recruiting / Transfer Analysis
+→ QB / Injury Analysis
+→ Offensive and Defensive Efficiency
+→ Matchup Engine
+→ Pace / Possessions
+→ Special Teams
+→ Weather / Travel / Home Field
+→ Expected Score
+→ Simulation
+→ Fair Spread / Total / Moneyline
+→ Probability Calibration
+→ Sportsbook Prices
+→ Remove Vig
+→ Calculate Edge and Expected Value
+→ Market Intelligence
+→ Line Movement / Key Numbers
+→ Data Quality
+→ Prediction Uncertainty
+→ Ensemble Agreement
+→ Historical Signal Validation
+→ Recommendation
+→ Bet-At Price
+→ Position Size
+→ Freeze Prediction
+→ Track Market to Close
+→ Grade Result
+→ Calculate CLV
+→ Brier Score
+→ Log Loss
+→ Calibration
+→ ROI / Units / Drawdown
+→ Post-Game Error Analysis
+→ Research Possible Improvements
+→ Walk-Forward Validation
+→ Shadow Testing
+→ Controlled Model Upgrade
+
+## Core Rule
+
+The NCAA Football model must optimize for:
+
+**Accurate probability + fair price + positive expected value + disciplined risk management**
+
+—not simply picking winners.
+
+The model should become more intelligent after every game by collecting better evidence, but production logic must only change when improvements have been proven through sufficiently large, out-of-sample historical testing.
+
+The end goal is a model that can determine not only:
+
+“Who is most likely to win?”
+
+but:
+
+“What is the true probability of the outcome, what should the betting line be, how uncertain is that projection, is the sportsbook offering a mispriced number, and has TBM historically demonstrated an advantage in this exact type of situation?”
