@@ -45,6 +45,7 @@ import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
+import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -1173,8 +1174,12 @@ async function runAnalyticsRefresh(): Promise<void> {
 
   try {
     const rowsWritten = await runAnalytics();
-    await finishRun(runId, "completed", rowsWritten);
-    logger.info({ rowsWritten }, "Scheduler: analytics-refresh complete");
+    const spreadLifecycles = await refreshAllSpreadApprovalLifecycles();
+    await finishRun(runId, "completed", rowsWritten + spreadLifecycles);
+    logger.info(
+      { rowsWritten, spreadLifecycles },
+      "Scheduler: analytics and market lifecycle refresh complete",
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await finishRun(runId, "failed", 0, msg);

@@ -12,11 +12,12 @@ import type { GameOdds, SpreadBookmakerLine } from "./oddsApi";
 import type { DbTeamStats, WnbaTeamStats } from "./teamStats";
 import { calculateClv, calculateUnits, gradeSpread, type GradeResult } from "./grading";
 import {
-  appendMarketApprovalDecision,
   deriveApprovalStatus,
+  evaluateAndRecordAutomaticApproval,
   evaluateBettingQuality,
   getPublicationPermission,
   marketApprovalDecisionHash,
+  recordManualMarketApproval,
   type ApprovalLayerResult,
   type MarketApprovalIdentity,
   type MarketApprovalStatus,
@@ -1162,6 +1163,7 @@ async function appendSpreadApprovalEvaluation(
   sport: SpreadSport,
   metrics: SpreadValidationSummary,
   requestedStatus?: MarketApprovalStatus,
+  requestedReason?: string,
 ) {
   const config = SPREAD_CONFIGS[sport];
   const layers = spreadApprovalLayers(metrics, config);
@@ -1169,32 +1171,45 @@ async function appendSpreadApprovalEvaluation(
     hasEvaluationEvidence: metrics.sampleSize > 0,
     ...layers,
   });
+  if (requestedStatus == null) {
+    return evaluateAndRecordAutomaticApproval({
+      identity: spreadApprovalIdentity(config, metrics, new Date(metrics.evidenceCutoff)),
+      hasEvaluationEvidence: metrics.sampleSize > 0,
+      ...layers,
+      sampleSize: metrics.sampleSize,
+      dataCoverage: metrics.coverage,
+      hardSafetyGate: layers.dataIntegrity,
+      maxEvidenceAgeMs: 45 * 24 * 60 * 60 * 1000,
+      evaluationMetadata: {
+        modelKey: config.modelKey,
+        configHash: config.configHash,
+        trigger: "spread_validation_refresh",
+      },
+    });
+  }
   const status = requestedStatus
-    ?? (derived === "PRODUCTION_APPROVED" ? "PROVISIONAL" : derived);
+    ?? derived;
   const reasons = [
     ...layers.dataIntegrity.reasons,
     ...layers.predictiveQuality.reasons,
     ...layers.bettingQuality.reasons,
   ];
-  return appendMarketApprovalDecision({
-    ...spreadApprovalIdentity(config, metrics, new Date(metrics.evidenceCutoff)),
-    evaluationSeasons: [],
+  return recordManualMarketApproval({
+    identity: spreadApprovalIdentity(config, metrics, new Date(metrics.evidenceCutoff)),
     sampleSize: metrics.sampleSize,
     dataCoverage: metrics.coverage,
     dataIntegrity: layers.dataIntegrity,
     predictiveQuality: layers.predictiveQuality,
     bettingQuality: layers.bettingQuality,
     status,
-    reason: reasons.length ? reasons.join(", ") : (
+    reason: requestedReason ?? (reasons.length ? reasons.join(", ") : (
       status === "PRODUCTION_APPROVED"
         ? "All independent spread approval layers passed"
         : "Validation passed; awaiting explicit production approval"
-    ),
-    previousStatus: null,
+    )),
     evaluationMetadata: {
       modelKey: config.modelKey,
       configHash: config.configHash,
-      computedAt: metrics.computedAt,
     },
   });
 }
@@ -1207,16 +1222,68 @@ export async function refreshSpreadValidationMetrics(
   sport: SpreadSport,
 ): Promise<SpreadValidationSummary | null> {
   const metrics = await computeSpreadValidationMetrics(sport);
-  if (!metrics) return null;
   const config = SPREAD_CONFIGS[sport];
+  if (!metrics) {
+    const insufficient: ApprovalLayerResult = {
+      status: "INSUFFICIENT",
+      reasons: ["validation_metrics_missing"],
+      metrics: {},
+    };
+    const lifecycle = await evaluateAndRecordAutomaticApproval({
+      identity: spreadApprovalIdentity(config, null, new Date()),
+      hasEvaluationEvidence: false,
+      dataIntegrity: insufficient,
+      predictiveQuality: insufficient,
+      bettingQuality: insufficient,
+      sampleSize: 0,
+      evidenceValid: false,
+      evidenceStale: false,
+      evaluationMetadata: {
+        modelKey: config.modelKey,
+        configHash: config.configHash,
+        trigger: "spread_validation_refresh",
+      },
+    });
+    await db.update(spreadModelConfigsTable)
+      .set({
+        status: lifecycle.status === "SUSPENDED" ? "suspended" : "shadow",
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(spreadModelConfigsTable.sport, sport),
+        eq(spreadModelConfigsTable.modelKey, config.modelKey),
+      ));
+    return null;
+  }
   await db.update(spreadModelConfigsTable)
     .set({ validationMetrics: metrics, updatedAt: new Date() })
     .where(and(
       eq(spreadModelConfigsTable.sport, sport),
       eq(spreadModelConfigsTable.modelKey, config.modelKey),
     ));
-  await appendSpreadApprovalEvaluation(sport, metrics);
+  const lifecycle = await appendSpreadApprovalEvaluation(sport, metrics);
+  const lifecycleStatus = lifecycle.status as MarketApprovalStatus;
+  const registryStatus = lifecycleStatus === "PRODUCTION_APPROVED"
+    ? "production"
+    : lifecycleStatus === "SUSPENDED"
+      ? "suspended"
+      : lifecycleStatus === "PROVISIONAL"
+        ? "challenger"
+        : "shadow";
+  await db.update(spreadModelConfigsTable)
+    .set({ status: registryStatus, updatedAt: new Date() })
+    .where(and(
+      eq(spreadModelConfigsTable.sport, sport),
+      eq(spreadModelConfigsTable.modelKey, config.modelKey),
+    ));
   return metrics;
+}
+
+export async function refreshAllSpreadApprovalLifecycles(): Promise<number> {
+  for (const sport of Object.keys(SPREAD_CONFIGS) as SpreadSport[]) {
+    await refreshSpreadValidationMetrics(sport);
+  }
+  return Object.keys(SPREAD_CONFIGS).length;
 }
 
 export async function promoteSpreadModel(sport: SpreadSport): Promise<SpreadValidationSummary> {
@@ -1241,7 +1308,7 @@ export async function suspendSpreadModel(
 ): Promise<void> {
   const metrics = await computeSpreadValidationMetrics(sport);
   if (!metrics) throw new Error(`No spread validation context exists for ${sport}`);
-  await appendSpreadApprovalEvaluation(sport, metrics, "SUSPENDED");
+  await appendSpreadApprovalEvaluation(sport, metrics, "SUSPENDED", reason);
   await db.update(spreadModelConfigsTable)
     .set({ status: "suspended", updatedAt: new Date() })
     .where(and(

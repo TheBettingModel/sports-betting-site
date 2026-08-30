@@ -799,6 +799,12 @@ export function Models() {
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-xs font-semibold text-foreground">{approval.status.replaceAll("_", " ")}</p>
+                      {approval.evaluationMetadata.automatic === true && (
+                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-sky-400">
+                          Automatic {String(approval.evaluationMetadata.transition ?? "evaluation")}
+                          {approval.previousStatus ? ` · from ${approval.previousStatus.replaceAll("_", " ")}` : ""}
+                        </p>
+                      )}
                       <p className="max-w-64 text-[11px] text-muted-foreground">{approval.reason}</p>
                     </td>
                     <td className="px-4 py-3">

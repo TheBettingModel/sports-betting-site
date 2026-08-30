@@ -21,6 +21,7 @@ import {
   publishedPicksTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { refreshMoneylineApprovalDecisions } from "./marketApproval";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,20 @@ interface RawPick {
   edge: number;
   // sorted by graded_at for drawdown calculation
   gradedAt: Date | null;
+}
+
+export function gradedEvidencePeriod(
+  picks: readonly { gradedAt: Date | null }[],
+  fallback = new Date(),
+): { periodStart: string; periodEnd: string } {
+  const gradedDates = picks
+    .flatMap((pick) => pick.gradedAt ? [pick.gradedAt.toISOString().split("T")[0]!] : [])
+    .sort();
+  const fallbackDate = fallback.toISOString().split("T")[0]!;
+  return {
+    periodStart: gradedDates[0] ?? fallbackDate,
+    periodEnd: gradedDates.at(-1) ?? fallbackDate,
+  };
 }
 
 interface MetricSlice {
@@ -281,7 +296,14 @@ export async function runAnalytics(): Promise<number> {
       inArray(pickResultsTable.result, ["win", "loss", "push", "void"]),
     );
 
-  if (rows.length === 0) return 0;
+  if (rows.length === 0) {
+    const approvalDecisions = await refreshMoneylineApprovalDecisions();
+    logger.info(
+      { approvalDecisions },
+      "Analytics: lifecycle sweep completed without new graded rows",
+    );
+    return 0;
+  }
 
   // ── 2. Group by model version ─────────────────────────────────────────────
   const byVersion = new Map<number, RawPick[]>();
@@ -292,15 +314,10 @@ export async function runAnalytics(): Promise<number> {
   }
 
   // ── 3. For each version, compute dimension slices ─────────────────────────
-  const allGradedDates = rows
-    .filter((r) => r.gradedAt != null)
-    .map((r) => r.gradedAt!.toISOString().split("T")[0]!);
-  const periodStart = allGradedDates.sort()[0] ?? new Date().toISOString().split("T")[0]!;
-  const periodEnd = new Date().toISOString().split("T")[0]!;
-
   const toInsert: (ReturnType<typeof aggregateMetrics> & object)[] = [];
 
   for (const [modelVersionId, picks] of byVersion) {
+    const { periodStart, periodEnd } = gradedEvidencePeriod(picks);
     const emit = (slice: MetricSlice, subset: RawPick[]) => {
       const row = aggregateMetrics(
         subset,
@@ -391,6 +408,11 @@ export async function runAnalytics(): Promise<number> {
   logger.info(
     { versions: affectedVersionIds.length, rows: toInsert.length },
     "Analytics: metrics computed and stored",
+  );
+  const approvalDecisions = await refreshMoneylineApprovalDecisions();
+  logger.info(
+    { approvalDecisions, modelVersionIds: affectedVersionIds },
+    "Analytics: automatic moneyline approval evaluations recorded",
   );
   return toInsert.length;
 }

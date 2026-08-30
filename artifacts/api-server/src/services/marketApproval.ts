@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
-import { and, desc, eq, inArray, lte } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte } from "drizzle-orm";
 import {
   db,
   marketApprovalDecisionsTable,
   modelPredictionsTable,
   modelVersionsTable,
+  performanceMetricsTable,
   type InsertMarketApprovalDecision,
   type ModelVersion,
 } from "@workspace/db";
+import { logger } from "../lib/logger";
 
 export const MARKET_APPROVAL_STATUSES = [
   "UNVALIDATED",
@@ -54,6 +56,33 @@ export interface ApprovalEvaluationInput {
   bettingQuality: ApprovalLayerResult;
 }
 
+export interface AutomaticApprovalEvaluationInput extends ApprovalEvaluationInput {
+  identity: MarketApprovalIdentity;
+  sampleSize: number;
+  dataCoverage?: number | null;
+  evaluationSeasons?: unknown[];
+  trainingWindow?: unknown;
+  validationWindow?: unknown;
+  outOfSampleWindow?: unknown;
+  evaluationMetadata?: Record<string, unknown>;
+  /**
+   * Hard safety failures are distinct from ordinary quality failures. They
+   * suspend an already trusted market, while an unvalidated market remains
+   * shadow until it has valid evidence.
+   */
+  hardSafetyGate?: ApprovalLayerResult;
+  evidenceValid?: boolean;
+  evidenceStale?: boolean;
+  maxEvidenceAgeMs?: number;
+}
+
+export interface AutomaticApprovalTransition {
+  status: MarketApprovalStatus;
+  recovered: boolean;
+  reasons: string[];
+  transition: "evaluation" | "graduation" | "suspension" | "reinstatement";
+}
+
 function canonical(value: unknown): unknown {
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(canonical);
@@ -77,6 +106,344 @@ export function deriveApprovalStatus(input: ApprovalEvaluationInput): MarketAppr
   if (input.predictiveQuality.status !== "PASSED") return "SHADOW";
   if (input.bettingQuality.status !== "PASSED") return "PROVISIONAL";
   return "PRODUCTION_APPROVED";
+}
+
+export function deriveAutomaticApprovalTransition(input: {
+  evaluation: ApprovalEvaluationInput;
+  previousStatus?: MarketApprovalStatus | null;
+  hardSafetyGate?: ApprovalLayerResult;
+  evidenceValid: boolean;
+  evidenceStale: boolean;
+}): AutomaticApprovalTransition {
+  const derivedStatus = deriveApprovalStatus(input.evaluation);
+  const hardSafetyFailed = input.hardSafetyGate?.status === "FAILED"
+    || input.hardSafetyGate?.status === "INSUFFICIENT";
+  const shouldSuspend = input.evidenceStale || !input.evidenceValid || hardSafetyFailed;
+  const canSuspend = input.previousStatus === "PRODUCTION_APPROVED"
+    || input.previousStatus === "PROVISIONAL"
+    || input.previousStatus === "SUSPENDED";
+  const status: MarketApprovalStatus = shouldSuspend && canSuspend
+    ? "SUSPENDED"
+    : derivedStatus;
+  const recovered = input.previousStatus === "SUSPENDED"
+    && status === "PRODUCTION_APPROVED";
+  return {
+    status,
+    recovered,
+    reasons: [
+      ...input.evaluation.dataIntegrity.reasons,
+      ...input.evaluation.predictiveQuality.reasons,
+      ...input.evaluation.bettingQuality.reasons,
+      ...(input.hardSafetyGate?.reasons ?? []),
+      ...(input.evidenceStale ? ["evidence_stale"] : []),
+      ...(!input.evidenceValid ? ["evidence_invalid"] : []),
+    ],
+    transition: recovered
+      ? "reinstatement"
+      : status === "SUSPENDED"
+        ? "suspension"
+        : status === "PRODUCTION_APPROVED"
+          ? "graduation"
+          : "evaluation",
+  };
+}
+
+async function latestApprovalForModel(identity: MarketApprovalIdentity) {
+  return (await db
+    .select()
+    .from(marketApprovalDecisionsTable)
+    .where(and(
+      eq(marketApprovalDecisionsTable.sport, identity.sport),
+      eq(marketApprovalDecisionsTable.market, identity.market),
+      eq(marketApprovalDecisionsTable.modelVersion, identity.modelVersion),
+      eq(marketApprovalDecisionsTable.evaluationVersion, identity.evaluationVersion),
+      eq(marketApprovalDecisionsTable.datasetVersion, identity.datasetVersion),
+      eq(marketApprovalDecisionsTable.featureSchemaVersion, identity.featureSchemaVersion),
+      lte(marketApprovalDecisionsTable.evidenceCutoff, identity.evidenceCutoff),
+    ))
+    .orderBy(desc(marketApprovalDecisionsTable.evidenceCutoff), desc(marketApprovalDecisionsTable.createdAt))
+    .limit(1))[0] ?? null;
+}
+
+/**
+ * Evaluate and append one exact automatic lifecycle decision.
+ *
+ * The identity is always copied into the ledger unchanged. A repeated refresh
+ * is idempotent through decisionHash, while a new evidence context creates a
+ * new append-only row. No model registry row or prior approval is rewritten.
+ */
+export async function evaluateAndRecordAutomaticApproval(
+  input: AutomaticApprovalEvaluationInput,
+) {
+  const previous = await latestApprovalForModel(input.identity);
+  const evidenceCutoffMs = input.identity.evidenceCutoff.getTime();
+  const evidenceStale = input.evidenceStale ?? (
+    !Number.isFinite(evidenceCutoffMs)
+    || Date.now() - evidenceCutoffMs > (input.maxEvidenceAgeMs ?? 30 * 24 * 60 * 60 * 1000)
+  );
+  const evidenceValid = input.evidenceValid ?? true;
+  const transition = deriveAutomaticApprovalTransition({
+    evaluation: input,
+    previousStatus: previous?.status as MarketApprovalStatus | null | undefined,
+    hardSafetyGate: input.hardSafetyGate,
+    evidenceValid,
+    evidenceStale,
+  });
+  if (
+    previous?.status === "SUSPENDED"
+    && (previous.evaluationMetadata as Record<string, unknown> | null)?.automatic !== true
+  ) {
+    return {
+      decision: previous,
+      status: "SUSPENDED" as const,
+      previousStatus: previous.previousStatus,
+      recovered: false,
+    };
+  }
+  const { status, recovered, reasons } = transition;
+  const transitionReason = recovered
+    ? "Automatic reinstatement: the latest exact evidence passed every configured gate"
+    : status === "SUSPENDED"
+      ? `Automatic suspension: ${reasons.join(", ") || "hard safety gate failed"}`
+      : status === "PRODUCTION_APPROVED"
+        ? "Automatic graduation: data integrity, predictive quality, and betting quality passed"
+        : reasons.length
+          ? `Automatic evaluation: ${reasons.join(", ")}`
+          : `Automatic evaluation produced ${status}`;
+
+  if (
+    previous
+    && previous.status === status
+    && marketApprovalDecisionHash({
+      dataIntegrity: previous.dataIntegrity,
+      predictiveQuality: previous.predictiveQuality,
+      bettingQuality: previous.bettingQuality,
+      sampleSize: previous.sampleSize,
+      dataCoverage: previous.dataCoverage,
+    }) === marketApprovalDecisionHash({
+      dataIntegrity: input.dataIntegrity,
+      predictiveQuality: input.predictiveQuality,
+      bettingQuality: input.bettingQuality,
+      sampleSize: input.sampleSize,
+      dataCoverage: input.dataCoverage ?? null,
+    })
+  ) {
+    return {
+      decision: previous,
+      status,
+      previousStatus: previous.previousStatus,
+      recovered: false,
+    };
+  }
+
+  const decision = await appendMarketApprovalDecision({
+    ...input.identity,
+    trainingWindow: input.trainingWindow ?? null,
+    validationWindow: input.validationWindow ?? null,
+    outOfSampleWindow: input.outOfSampleWindow ?? null,
+    evaluationSeasons: input.evaluationSeasons ?? [],
+    sampleSize: input.sampleSize,
+    dataCoverage: input.dataCoverage ?? null,
+    dataIntegrity: input.dataIntegrity,
+    predictiveQuality: input.predictiveQuality,
+    bettingQuality: input.bettingQuality,
+    status,
+    reason: transitionReason,
+    previousStatus: previous?.status ?? null,
+    evaluationMetadata: {
+      ...(input.evaluationMetadata ?? {}),
+      automatic: true,
+      transition: transition.transition,
+      evidenceValid,
+      evidenceStale,
+      hardSafetyGate: input.hardSafetyGate ?? null,
+    },
+  });
+
+  logger.info({
+    decisionId: decision?.id ?? null,
+    sport: input.identity.sport,
+    market: input.identity.market,
+    modelVersion: input.identity.modelVersion,
+    evaluationVersion: input.identity.evaluationVersion,
+    datasetVersion: input.identity.datasetVersion,
+    featureSchemaVersion: input.identity.featureSchemaVersion,
+    evidenceCutoff: input.identity.evidenceCutoff,
+    previousStatus: previous?.status ?? null,
+    status,
+    transition: transition.transition,
+    reasons,
+  }, "Automatic market approval lifecycle evaluated");
+
+  return { decision, status, previousStatus: previous?.status ?? null, recovered };
+}
+
+export async function recordManualMarketApproval(input: {
+  identity: MarketApprovalIdentity;
+  dataIntegrity: ApprovalLayerResult;
+  predictiveQuality: ApprovalLayerResult;
+  bettingQuality: ApprovalLayerResult;
+  sampleSize: number;
+  dataCoverage?: number | null;
+  status: MarketApprovalStatus;
+  reason: string;
+  evaluationMetadata?: Record<string, unknown>;
+}) {
+  const previous = await latestApprovalForModel(input.identity);
+  return appendMarketApprovalDecision({
+    ...input.identity,
+    trainingWindow: null,
+    validationWindow: null,
+    outOfSampleWindow: null,
+    evaluationSeasons: [],
+    sampleSize: input.sampleSize,
+    dataCoverage: input.dataCoverage ?? null,
+    dataIntegrity: input.dataIntegrity,
+    predictiveQuality: input.predictiveQuality,
+    bettingQuality: input.bettingQuality,
+    status: input.status,
+    reason: input.reason,
+    previousStatus: previous?.status ?? null,
+    evaluationMetadata: {
+      ...(input.evaluationMetadata ?? {}),
+      automatic: false,
+      transition: "manual_override",
+    },
+  });
+}
+
+export const MONEYLINE_APPROVAL_POLICY = Object.freeze({
+  minimumSampleSize: 100,
+  minimumWinRate: 0.5,
+  maximumCalibrationError: 0.05,
+  maximumBrierScore: 0.25,
+  maximumLogLoss: 0.7,
+  minimumClv: 0,
+  maximumDrawdownUnits: 20,
+  minimumPositiveClvRate: 0.5,
+  maximumEvidenceAgeMs: 30 * 24 * 60 * 60 * 1000,
+});
+
+/** Append automatic exact decisions from the latest immutable moneyline metrics. */
+export async function refreshMoneylineApprovalDecisions(
+  modelVersionIds?: readonly number[],
+): Promise<number> {
+  const models = await db
+    .select()
+    .from(modelVersionsTable)
+    .where(and(
+      eq(modelVersionsTable.market, "moneyline"),
+      ...(modelVersionIds?.length
+        ? [inArray(modelVersionsTable.id, [...modelVersionIds])]
+        : []),
+    ));
+  let recorded = 0;
+  for (const model of models) {
+    const [metrics] = await db
+      .select()
+      .from(performanceMetricsTable)
+      .where(and(
+        eq(performanceMetricsTable.modelVersionId, model.id),
+        isNull(performanceMetricsTable.sport),
+        isNull(performanceMetricsTable.market),
+        isNull(performanceMetricsTable.recommendation),
+      ))
+      .orderBy(desc(performanceMetricsTable.computedAt))
+      .limit(1);
+    if (!metrics) {
+      const insufficient: ApprovalLayerResult = {
+        status: "INSUFFICIENT",
+        reasons: ["validation_metrics_missing"],
+        metrics: {},
+      };
+      await evaluateAndRecordAutomaticApproval({
+        identity: moneylineApprovalIdentity(model, new Date()),
+        hasEvaluationEvidence: false,
+        dataIntegrity: insufficient,
+        predictiveQuality: insufficient,
+        bettingQuality: insufficient,
+        sampleSize: 0,
+        evidenceValid: false,
+        evidenceStale: false,
+        evaluationMetadata: {
+          modelVersionId: model.id,
+          trigger: "analytics_refresh",
+          policy: MONEYLINE_APPROVAL_POLICY,
+        },
+      });
+      recorded++;
+      continue;
+    }
+
+    const dataReasons = [
+      ...(metrics.sampleSize < MONEYLINE_APPROVAL_POLICY.minimumSampleSize
+        ? ["sample_support"] : []),
+    ];
+    const predictiveReasons = [
+      ...(metrics.winRate == null ? ["missing_win_rate"]
+        : metrics.winRate < MONEYLINE_APPROVAL_POLICY.minimumWinRate ? ["win_rate"] : []),
+      ...(metrics.calibrationError == null ? ["missing_calibration"]
+        : metrics.calibrationError > MONEYLINE_APPROVAL_POLICY.maximumCalibrationError ? ["calibration"] : []),
+      ...(metrics.brierScore == null ? ["missing_brier_score"]
+        : metrics.brierScore > MONEYLINE_APPROVAL_POLICY.maximumBrierScore ? ["brier_score"] : []),
+      ...(metrics.logLoss == null ? ["missing_log_loss"]
+        : metrics.logLoss > MONEYLINE_APPROVAL_POLICY.maximumLogLoss ? ["log_loss"] : []),
+    ];
+    const dataIntegrity: ApprovalLayerResult = {
+      status: dataReasons.length ? "FAILED" : "PASSED",
+      reasons: dataReasons,
+      metrics: { sampleSize: metrics.sampleSize },
+    };
+    const predictiveQuality: ApprovalLayerResult = {
+      status: predictiveReasons.length ? "FAILED" : "PASSED",
+      reasons: predictiveReasons,
+      metrics: {
+        winRate: metrics.winRate,
+        calibrationError: metrics.calibrationError,
+        brierScore: metrics.brierScore,
+        logLoss: metrics.logLoss,
+      },
+    };
+    const bettingQuality = evaluateBettingQuality({
+      clv: metrics.clvAverage,
+      roi: metrics.roi,
+      maxDrawdown: metrics.maxDrawdown,
+      stability: metrics.posClvRate,
+      minimumClv: MONEYLINE_APPROVAL_POLICY.minimumClv,
+      maximumDrawdown: MONEYLINE_APPROVAL_POLICY.maximumDrawdownUnits,
+      minimumStability: MONEYLINE_APPROVAL_POLICY.minimumPositiveClvRate,
+    });
+    const evidenceCutoff = new Date(`${metrics.periodEnd}T23:59:59.999Z`);
+    await evaluateAndRecordAutomaticApproval({
+      identity: moneylineApprovalIdentity(model, evidenceCutoff),
+      hasEvaluationEvidence: metrics.sampleSize > 0,
+      dataIntegrity,
+      predictiveQuality,
+      bettingQuality,
+      sampleSize: metrics.sampleSize,
+      hardSafetyGate: dataIntegrity,
+      maxEvidenceAgeMs: MONEYLINE_APPROVAL_POLICY.maximumEvidenceAgeMs,
+      trainingWindow: {
+        start: model.trainingPeriodStart,
+        end: model.trainingPeriodEnd,
+      },
+      validationWindow: {
+        start: model.validationPeriodStart,
+        end: model.validationPeriodEnd,
+      },
+      outOfSampleWindow: {
+        start: metrics.periodStart,
+        end: metrics.periodEnd,
+      },
+      evaluationMetadata: {
+        modelVersionId: model.id,
+        trigger: "analytics_refresh",
+        policy: MONEYLINE_APPROVAL_POLICY,
+      },
+    });
+    recorded++;
+  }
+  return recorded;
 }
 
 export function evaluateBettingQuality(input: {

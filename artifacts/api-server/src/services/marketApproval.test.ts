@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveApprovalStatus,
+  deriveAutomaticApprovalTransition,
   evaluateBettingQuality,
   marketApprovalDecisionHash,
 } from "./marketApproval";
@@ -50,5 +51,72 @@ describe("market approval lifecycle", () => {
   it("hashes versioned evidence contexts deterministically", () => {
     expect(marketApprovalDecisionHash({ b: 2, a: 1 }))
       .toBe(marketApprovalDecisionHash({ a: 1, b: 2 }));
+  });
+
+  it("automatically graduates only when every independent layer passes", () => {
+    expect(deriveAutomaticApprovalTransition({
+      evaluation: {
+        hasEvaluationEvidence: true,
+        dataIntegrity: passed,
+        predictiveQuality: passed,
+        bettingQuality: passed,
+      },
+      previousStatus: "PROVISIONAL",
+      evidenceValid: true,
+      evidenceStale: false,
+    })).toMatchObject({
+      status: "PRODUCTION_APPROVED",
+      transition: "graduation",
+    });
+  });
+
+  it("suspends trusted markets on stale or invalid evidence", () => {
+    expect(deriveAutomaticApprovalTransition({
+      evaluation: {
+        hasEvaluationEvidence: true,
+        dataIntegrity: passed,
+        predictiveQuality: passed,
+        bettingQuality: passed,
+      },
+      previousStatus: "PRODUCTION_APPROVED",
+      evidenceValid: true,
+      evidenceStale: true,
+    })).toMatchObject({
+      status: "SUSPENDED",
+      transition: "suspension",
+      reasons: ["evidence_stale"],
+    });
+  });
+
+  it("appends a reinstatement state after suspended evidence recovers", () => {
+    expect(deriveAutomaticApprovalTransition({
+      evaluation: {
+        hasEvaluationEvidence: true,
+        dataIntegrity: passed,
+        predictiveQuality: passed,
+        bettingQuality: passed,
+      },
+      previousStatus: "SUSPENDED",
+      evidenceValid: true,
+      evidenceStale: false,
+    })).toMatchObject({
+      status: "PRODUCTION_APPROVED",
+      transition: "reinstatement",
+      recovered: true,
+    });
+  });
+
+  it("does not let a failed exact identity inherit another identity's approval", () => {
+    const approvedIdentity = {
+      sport: "NFL",
+      market: "spread",
+      modelVersion: "nfl-spread-v1",
+      evaluationVersion: "spread-validation-v2",
+      datasetVersion: "dataset-a",
+      featureSchemaVersion: "features-a",
+    };
+    const mismatchedIdentity = { ...approvedIdentity, datasetVersion: "dataset-b" };
+    expect(marketApprovalDecisionHash(approvedIdentity))
+      .not.toBe(marketApprovalDecisionHash(mismatchedIdentity));
   });
 });

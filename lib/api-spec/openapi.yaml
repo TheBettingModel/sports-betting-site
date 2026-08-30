@@ -102,7 +102,7 @@ paths:
     get:
       operationId: getAdminMarketApprovals
       tags: [admin]
-      summary: List latest exact market approval decisions
+      summary: List latest exact automatic and manual market approval decisions
       responses:
         "200":
           description: Latest append-only approval decisions by exact evidence identity
@@ -114,7 +114,7 @@ paths:
     post:
       operationId: createAdminMarketApproval
       tags: [admin]
-      summary: Append an exact market approval lifecycle decision
+      summary: Append an exceptional manual market approval lifecycle decision
       requestBody:
         required: true
         content:
