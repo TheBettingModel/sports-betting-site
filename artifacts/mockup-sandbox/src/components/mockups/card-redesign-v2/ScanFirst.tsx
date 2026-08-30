@@ -149,7 +149,7 @@ export function ScanFirst() {
 
         <section style={{ padding: '17px 16px 12px' }}>
           <div className="tbm-label" style={{ color: 'var(--tbm-lime)' }}>
-            TBM recommendation
+            TBM pick
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 5 }}>
             <h1 style={{ margin: 0, color: 'var(--tbm-text)', fontSize: 28, letterSpacing: '-.055em', lineHeight: 1.05 }}>
