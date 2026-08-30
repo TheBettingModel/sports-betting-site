@@ -34,3 +34,4 @@
 - [Production model registry safety](production-model-registry-safety.md) — canonical IDs, one production row per market, shared slot locks, and proven rollback provenance are mandatory.
 - [Production startup DDL](production-startup-ddl.md) — never run schema DDL before opening the production port; managed publishing owns production schema changes.
 - [Feed refresh resilience](feed-refresh-resilience.md) — mobile refreshes only refetch; heavy server refreshes are single-flight, and transport failures must never look like empty slates.
+- [Collapsed Model Board hierarchy](collapsed-model-board-hierarchy.md) — cards answer what TBM likes; all reasons and analytics stay behind View Analysis.

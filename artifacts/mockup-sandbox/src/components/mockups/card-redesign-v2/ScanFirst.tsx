@@ -100,6 +100,18 @@ export function ScanFirst() {
 
   return (
     <main className="tbm-preview" style={{ padding: '32px 14px' }}>
+      <style>{`
+        .scan-first-analysis {
+          transition: color .18s ease, opacity .18s ease;
+        }
+        .scan-first-analysis:hover,
+        .scan-first-analysis:focus-visible {
+          color: var(--tbm-lime) !important;
+        }
+        .scan-first-analysis:active {
+          opacity: .72;
+        }
+      `}</style>
       <article
         className="tbm-card"
         style={{ borderLeftWidth: 3, maxWidth: 390 }}
@@ -107,9 +119,8 @@ export function ScanFirst() {
       >
         <header
           style={{
-            padding: '15px 16px 14px',
+            padding: '14px 16px 12px',
             borderBottom: '1px solid var(--tbm-line-soft)',
-            boxShadow: 'inset 3px 0 0 rgba(183,243,74,.28)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -122,12 +133,12 @@ export function ScanFirst() {
               {game.gameTime}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 15 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <Logo team={game.awayTeam} />
               <div>
-                <b style={{ display: 'block', fontSize: 14 }}>{game.awayTeam.abbr}</b>
-                <span className="tbm-label" style={{ display: 'block', marginTop: 3, color: 'var(--tbm-dim)', letterSpacing: '.08em' }}>
+                <b style={{ display: 'block', color: 'var(--tbm-text)', fontSize: 14, fontWeight: 700, letterSpacing: '.03em' }}>{game.awayTeam.abbr}</b>
+                <span className="tbm-label" style={{ display: 'block', marginTop: 3, color: 'var(--tbm-muted)', letterSpacing: '.08em' }}>
                   {game.awayTeam.record} · AWAY
                 </span>
               </div>
@@ -137,8 +148,8 @@ export function ScanFirst() {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, textAlign: 'right' }}>
               <div>
-                <b style={{ display: 'block', fontSize: 14 }}>{game.homeTeam.abbr}</b>
-                <span className="tbm-label" style={{ display: 'block', marginTop: 3, color: 'var(--tbm-dim)', letterSpacing: '.08em' }}>
+                <b style={{ display: 'block', color: 'var(--tbm-text)', fontSize: 14, fontWeight: 700, letterSpacing: '.03em' }}>{game.homeTeam.abbr}</b>
+                <span className="tbm-label" style={{ display: 'block', marginTop: 3, color: 'var(--tbm-muted)', letterSpacing: '.08em' }}>
                   {game.homeTeam.record} · HOME
                 </span>
               </div>
@@ -147,7 +158,7 @@ export function ScanFirst() {
           </div>
         </header>
 
-        <section style={{ padding: '17px 16px 12px' }}>
+        <section style={{ padding: '15px 16px 9px' }}>
           <div className="tbm-label" style={{ color: 'var(--tbm-lime)' }}>
             TBM pick
           </div>
@@ -160,20 +171,20 @@ export function ScanFirst() {
             </strong>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 11 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tbm-lime)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <span style={{ color: 'var(--tbm-lime)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em' }}>
               {game.projection.valueRating.toUpperCase()}
             </span>
             <span style={{ color: 'var(--tbm-dim)' }}>·</span>
-            <span className="tbm-mono" style={{ color: 'var(--tbm-muted)', fontSize: 11 }}>
+            <span className="tbm-mono" style={{ color: 'var(--tbm-text)', fontSize: 11, fontWeight: 700 }}>
               {game.projection.units?.toFixed(1)}U
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 3 }}>
             <button
               type="button"
+              className="scan-first-analysis"
               onClick={() => setExpanded(!expanded)}
               aria-expanded={expanded}
               style={{
