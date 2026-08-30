@@ -24,6 +24,46 @@ function clvShift(opening: number, current: number): number {
   return -(impliedProbability(current) - impliedProbability(opening));
 }
 
+function marketName(market: 'moneyline' | 'spread'): string {
+  return market === 'spread' ? 'SPREAD' : 'MONEYLINE';
+}
+
+function signedLine(line: number): string {
+  return line > 0 ? `+${line}` : `${line}`;
+}
+
+function ProbabilityPanel({
+  label,
+  probability,
+  colors,
+  detail,
+}: {
+  label: string;
+  probability: number | null;
+  colors: ReturnType<typeof useColors>;
+  detail?: string;
+}) {
+  return (
+    <View style={styles.probabilityPanel}>
+      <Text style={[styles.probabilityLabel, { color: colors.mutedForeground }]}>{label}</Text>
+      <View style={styles.probabilityValueRow}>
+        <Text style={[styles.probabilityValue, { color: colors.primary }]}>
+          {probability == null ? '—' : `${probability.toFixed(1)}%`}
+        </Text>
+        {probability != null && (
+          <View style={styles.signalBars} accessibilityLabel={`${probability.toFixed(1)} percent model probability`}>
+            <View style={[styles.signalBar, styles.signalBarShort, { backgroundColor: colors.primary }]} />
+            <View style={[styles.signalBar, styles.signalBarMedium, { backgroundColor: colors.primary }]} />
+            <View style={[styles.signalBar, styles.signalBarTall, { backgroundColor: colors.primary }]} />
+            <View style={[styles.signalBar, styles.signalBarFull, { backgroundColor: colors.primary }]} />
+          </View>
+        )}
+      </View>
+      {detail && <Text style={[styles.probabilityDetail, { color: colors.mutedForeground }]}>{detail}</Text>}
+    </View>
+  );
+}
+
 interface GameCardProps {
   game: Game;
 }
@@ -40,12 +80,18 @@ export function GameCard({ game }: GameCardProps) {
   const hasEdge = selectedPick != null || (!isNeutral && !isFade);
   const pickIsHome = selectedPick?.selection ? selectedPick.selection === 'home' : projection.edge >= 0;
   const pickTeam = pickIsHome ? homeTeam : awayTeam;
+  const selectedMarket = selectedPick?.market ?? game.selectedMarket ?? 'moneyline';
   const pickOdds = selectedPick?.odds ?? (pickIsHome ? vegasLine.homeOdds : vegasLine.awayOdds);
   const openingOdds = pickIsHome ? vegasLine.openingHomeOdds : vegasLine.openingAwayOdds;
   const selectedWinPct = selectedPick?.modelProbability ?? (pickIsHome ? projection.homeWinPct : 100 - projection.homeWinPct);
   const fairOdds = selectedPick?.fairPrice ?? fairAmericanOdds(selectedWinPct);
   const probabilityEdge = selectedPick?.edge ?? Math.abs(projection.edge);
   const clv = openingOdds != null && openingOdds !== pickOdds ? clvShift(openingOdds, pickOdds) : null;
+  const pickLine = selectedPick?.line
+    ?? (selectedMarket === 'spread' ? (pickIsHome ? vegasLine.spread : -vegasLine.spread) : null);
+  const moneylineProbability = game.moneylineMarket?.modelProbability
+    ?? (pickIsHome ? projection.homeWinPct : 100 - projection.homeWinPct);
+  const spreadProbability = game.spreadMarket?.modelProbability ?? null;
   const showStarters = sport === 'MLB' && (projection.homeStarterName || projection.awayStarterName);
   const isUFC = sport === 'UFC';
   const homeDisplay = isUFC ? homeTeam.name : homeTeam.abbr;
@@ -72,27 +118,45 @@ export function GameCard({ game }: GameCardProps) {
       ]}
     >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={styles.headerMeta}>
-          <Text style={[styles.label, { color: colors.primary }]}>MODEL BOARD <Text style={{ color: colors.mutedForeground }}>/ {sport}</Text></Text>
-          <Text style={[styles.label, { color: colors.mutedForeground }]}>{isFinal ? 'FINAL' : gameTime}</Text>
-        </View>
-        <View style={styles.matchupRow}>
-          <View style={styles.team}>
-            <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={36} />
-            <View style={styles.teamCopy}>
-              <Text numberOfLines={1} style={[styles.teamName, { color: colors.foreground }]}>{awayDisplay}</Text>
-              <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
-            </View>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerMeta}>
+            <Text style={[styles.label, { color: colors.primary }]}>THE PICK</Text>
+            <Text style={[styles.sportMeta, { color: colors.mutedForeground }]}>{sport} · {isFinal ? 'FINAL' : gameTime}</Text>
           </View>
-          <Text style={[styles.at, { color: colors.mutedForeground }]}>AT</Text>
-          <View style={[styles.team, styles.homeTeam]}>
-            <View style={[styles.teamCopy, styles.homeCopy]}>
-              <Text numberOfLines={1} style={[styles.teamName, { color: colors.foreground }]}>{homeDisplay}</Text>
-              <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+          <View style={styles.statusStack}>
+            <View style={[styles.statusPill, { borderColor: isNeutral ? colors.border : colors.mutedForeground }]}>
+              <Text style={[styles.statusText, { color: isNeutral ? colors.mutedForeground : colors.foreground }]}>
+                {tier.toUpperCase()}
+              </Text>
             </View>
-            <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={36} />
+            {showUnits && (
+              <View style={[styles.unitsPill, { backgroundColor: colors.winBg, borderColor: colors.primary + '66' }]}>
+                <Text style={[styles.unitsText, { color: colors.primary }]}>{selectedUnits!.toFixed(1)}u</Text>
+              </View>
+            )}
           </View>
         </View>
+
+        <View style={[styles.pickSummary, { borderColor: colors.border }]}>
+          <Text style={[styles.pickSummaryLabel, { color: colors.mutedForeground }]}>PICK</Text>
+          <Text numberOfLines={1} style={[styles.pickSummaryTeam, { color: colors.foreground }]}>
+            {pickTeam.abbr}
+          </Text>
+          <Text style={[styles.pickSummaryMarket, { color: colors.foreground }]}>{marketName(selectedMarket)}</Text>
+          <Text style={[styles.pickSummaryOdds, { color: colors.foreground }]}>{fmtOdds(pickOdds)}</Text>
+        </View>
+
+        {clv != null && (
+          <View style={[styles.clvRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.clvLabel, { color: colors.mutedForeground }]}>CLV</Text>
+            <Text style={[styles.clvOpen, { color: colors.mutedForeground }]}>Open <Text style={{ color: colors.foreground }}>{fmtOdds(openingOdds!)}</Text></Text>
+            <Text style={[styles.clvArrow, { color: colors.mutedForeground }]}>→</Text>
+            <Text style={[styles.clvCurrent, { color: colors.foreground }]}>{fmtOdds(pickOdds)}</Text>
+            <Text style={[styles.clvDelta, { color: clv >= 0 ? colors.primary : colors.loss }]}>
+              {clv >= 0 ? '▲' : '▼'} {Math.abs(clv).toFixed(1)}%
+            </Text>
+          </View>
+        )}
       </View>
 
       {hasScores && (
@@ -103,32 +167,83 @@ export function GameCard({ game }: GameCardProps) {
       )}
 
       <View style={styles.content}>
+        <View style={[styles.matchupBlock, { borderBottomColor: colors.border }]}>
+          <View style={styles.matchupMeta}>
+            <Text style={[styles.matchupSport, { color: colors.mutedForeground }]}>{sport}{game.league ? ` · ${game.league}` : ''}</Text>
+            <Text style={[styles.matchupTime, { color: colors.mutedForeground }]}>{isFinal ? 'FINAL' : gameTime}</Text>
+          </View>
+          <View style={styles.matchupRow}>
+            <View style={styles.team}>
+              <TeamLogo sport={sport} logoUrl={awayTeam.logoUrl} abbr={awayTeam.abbr} size={54} />
+              <View style={styles.teamCopy}>
+                <Text numberOfLines={1} style={[styles.teamName, { color: colors.foreground }]}>{awayDisplay}</Text>
+                <Text style={[styles.record, { color: colors.mutedForeground }]}>{awayTeam.record}</Text>
+                <Text style={[styles.sideLabel, { color: colors.mutedForeground }]}>AWAY</Text>
+              </View>
+            </View>
+            <Text style={[styles.at, { color: colors.mutedForeground }]}>VS</Text>
+            <View style={[styles.team, styles.homeTeam]}>
+              <View style={[styles.teamCopy, styles.homeCopy]}>
+                <Text numberOfLines={1} style={[styles.teamName, { color: colors.foreground }]}>{homeDisplay}</Text>
+                <Text style={[styles.record, { color: colors.mutedForeground }]}>{homeTeam.record}</Text>
+                <Text style={[styles.sideLabel, { color: colors.primary }]}>HOME</Text>
+              </View>
+              <TeamLogo sport={sport} logoUrl={homeTeam.logoUrl} abbr={homeTeam.abbr} size={54} />
+            </View>
+          </View>
+        </View>
+
         {hasEdge ? (
           <>
-            <Text style={[styles.label, { color: colors.primary }]}>TBM PICK</Text>
-            <View style={styles.pickLine}>
-              <Text numberOfLines={1} style={[styles.pickName, { color: colors.foreground }]}>
-                {pickTeam.name} {selectedPick?.market === 'spread' && selectedPick.line != null
-                  ? `${selectedPick.line > 0 ? '+' : ''}${selectedPick.line}`
-                  : 'ML'}
-              </Text>
-              <Text style={[styles.odds, { color: colors.foreground }]}>{fmtOdds(pickOdds)}</Text>
-            </View>
-            <View style={[styles.recommendation, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.tier, { color: colors.primary }]}>{tier.toUpperCase()}</Text>
-              {showUnits && <Text style={[styles.units, { color: colors.primary }]}>• {selectedUnits!.toFixed(1)}U</Text>}
+            <View style={styles.centerPick}>
+              <Text style={[styles.centerPickLabel, { color: colors.mutedForeground }]}>PICK:</Text>
+              <View style={styles.centerPickRow}>
+                <Text numberOfLines={1} style={[styles.centerPickTeam, { color: colors.primary }]}>{pickTeam.abbr}</Text>
+                <Text style={[styles.centerPickMarket, { color: colors.foreground }]}>
+                  {pickLine != null ? ` ${signedLine(pickLine)}` : ''} {marketName(selectedMarket)}
+                </Text>
+              </View>
+              <View style={[styles.pickUnderline, { backgroundColor: colors.primary }]} />
             </View>
 
-            <View style={[styles.outlook, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.outlookTitle, { color: colors.foreground }]}>MODEL OUTLOOK</Text>
-              <MarketRow label="Moneyline" market={game.moneylineMarket} colors={colors} />
-              <MarketRow label="Spread" market={game.spreadMarket} colors={colors} />
+            <View style={[styles.probabilityGrid, { borderColor: colors.border }]}>
+              <ProbabilityPanel
+                label="% TO WIN (ML)"
+                probability={moneylineProbability}
+                colors={colors}
+              />
+              <View style={[styles.probabilityDivider, { backgroundColor: colors.border }]} />
+              <ProbabilityPanel
+                label="% TO WIN (SPREAD)"
+                probability={spreadProbability}
+                colors={colors}
+                detail={game.spreadMarket?.line != null
+                  ? `SPREAD: ${game.spreadMarket.teamAbbr} ${signedLine(game.spreadMarket.line)} (${fmtOdds(game.spreadMarket.odds)})`
+                  : undefined}
+              />
             </View>
-            <View style={styles.edgeRow}>
-              <View>
-                <Text style={[styles.label, { color: colors.mutedForeground }]}>PROBABILITY EDGE</Text>
-                <Text style={[styles.edge, { color: colors.primary }]}>+{probabilityEdge.toFixed(1)}%</Text>
+
+            <View style={[styles.metricsRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.metricCell}>
+                <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>EDGE</Text>
+                <Text style={[styles.metricValue, { color: colors.primary }]}>+{probabilityEdge.toFixed(1)}%</Text>
               </View>
+              <View style={[styles.metricDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.metricCell}>
+                <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>CONFIDENCE</Text>
+                <Text style={[styles.metricValueSmall, { color: colors.primary }]}>{projection.confidence.toUpperCase()}</Text>
+              </View>
+              <View style={[styles.metricDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.metricCell}>
+                <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>MODEL SCORE</Text>
+                <Text style={[styles.metricValueSmall, { color: colors.primary }]}>{projection.finalModelScore ?? projection.modelScore}/100</Text>
+              </View>
+            </View>
+
+            <View style={styles.analysisActionRow}>
+              <Text style={[styles.pickOddsCaption, { color: colors.mutedForeground }]}>
+                {fmtOdds(pickOdds)}{pickLine != null ? ` · ${signedLine(pickLine)}` : ''}{selectedPick?.sportsbook ? ` · ${selectedPick.sportsbook}` : ''}
+              </Text>
               <AnalysisButton open={analysisOpen} onPress={toggleAnalysis} color={colors.foreground} />
             </View>
           </>
@@ -199,21 +314,71 @@ function StarterRow({ game, pickIsHome, colors }: { game: Game; pickIsHome: bool
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 16, marginBottom: 10, borderWidth: 1, borderLeftWidth: 3, borderTopRightRadius: 13, borderBottomRightRadius: 13, overflow: 'hidden', ...(Platform.OS === 'ios' ? { shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } } : { elevation: 5 }) },
-  header: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, borderBottomWidth: 1 },
-  headerMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderLeftWidth: 3, borderRadius: 18, overflow: 'hidden', ...(Platform.OS === 'ios' ? { shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } } : { elevation: 5 }) },
+  header: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 13, borderBottomWidth: 1 },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerMeta: { gap: 6 },
+  sportMeta: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5 },
+  statusStack: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statusPill: { minHeight: 34, paddingHorizontal: 14, borderWidth: 1.5, borderRadius: 10, justifyContent: 'center' },
+  statusText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.4 },
+  unitsPill: { minHeight: 34, paddingHorizontal: 12, borderWidth: 1, borderRadius: 9, justifyContent: 'center' },
+  unitsText: { fontSize: 17, fontFamily: 'Inter_700Bold', letterSpacing: 0.2 },
+  pickSummary: { flexDirection: 'row', alignItems: 'baseline', gap: 9, marginTop: 15, paddingTop: 10, borderTopWidth: 1 },
+  pickSummaryLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+  pickSummaryTeam: { fontSize: 25, lineHeight: 29, fontFamily: 'Inter_700Bold', letterSpacing: -0.8 },
+  pickSummaryMarket: { flex: 1, fontSize: 18, fontFamily: 'Inter_600SemiBold' },
+  pickSummaryOdds: { fontSize: 18, fontFamily: 'Inter_700Bold', letterSpacing: -0.4 },
+  clvRow: { flexDirection: 'row', alignItems: 'center', minHeight: 42, marginTop: 11, paddingHorizontal: 12, borderWidth: 1, borderRadius: 9, gap: 9 },
+  clvLabel: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  clvOpen: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  clvArrow: { fontSize: 16, marginTop: -1 },
+  clvCurrent: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  clvDelta: { marginLeft: 'auto', fontSize: 13, fontFamily: 'Inter_700Bold' },
   label: { fontSize: 9, lineHeight: 12, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
   matchupRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
   team: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
   homeTeam: { justifyContent: 'flex-end' },
   teamCopy: { flexShrink: 1, minWidth: 0 },
   homeCopy: { alignItems: 'flex-end' },
-  teamName: { fontSize: 14, fontFamily: 'Inter_700Bold', letterSpacing: 0.2 },
+  teamName: { fontSize: 15, fontFamily: 'Inter_700Bold', letterSpacing: 0.2 },
   record: { fontSize: 9, fontFamily: 'Inter_500Medium', letterSpacing: 0.6, marginTop: 3 },
-  at: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1, marginHorizontal: 8, paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: '#374151' },
+  sideLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1, marginTop: 4 },
+  at: { fontSize: 15, fontFamily: 'Inter_700Bold', letterSpacing: 1.8, marginHorizontal: 8 },
   finalRow: { paddingVertical: 7, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, borderBottomWidth: 1 },
   finalScore: { fontSize: 13, fontFamily: 'Inter_700Bold' },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14 },
+  matchupBlock: { paddingBottom: 14, borderBottomWidth: 1 },
+  matchupMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  matchupSport: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
+  matchupTime: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5 },
+  centerPick: { alignItems: 'center', paddingVertical: 13 },
+  centerPickLabel: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+  centerPickRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7, marginTop: 2 },
+  centerPickTeam: { fontSize: 33, lineHeight: 37, fontFamily: 'Inter_700Bold', letterSpacing: -1.6 },
+  centerPickMarket: { fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: 0.2 },
+  pickUnderline: { width: 148, height: 2, marginTop: 4, borderRadius: 1 },
+  probabilityGrid: { flexDirection: 'row', minHeight: 101, borderWidth: 1, borderRadius: 11, overflow: 'hidden' },
+  probabilityPanel: { flex: 1, minWidth: 0, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 10 },
+  probabilityDivider: { width: 1, marginVertical: 12 },
+  probabilityLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  probabilityValueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5, marginTop: 4 },
+  probabilityValue: { fontSize: 27, lineHeight: 31, fontFamily: 'Inter_700Bold', letterSpacing: -1.3 },
+  probabilityDetail: { marginTop: 5, fontSize: 9, lineHeight: 12, fontFamily: 'Inter_600SemiBold' },
+  signalBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 27 },
+  signalBar: { width: 5, borderRadius: 1 },
+  signalBarShort: { height: 8 },
+  signalBarMedium: { height: 14 },
+  signalBarTall: { height: 21 },
+  signalBarFull: { height: 27 },
+  metricsRow: { flexDirection: 'row', alignItems: 'center', minHeight: 53, marginTop: 12, borderWidth: 1, borderRadius: 8 },
+  metricCell: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  metricDivider: { width: 1, height: 27 },
+  metricLabel: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
+  metricValue: { marginTop: 3, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  metricValueSmall: { marginTop: 3, fontSize: 12, fontFamily: 'Inter_700Bold' },
+  analysisActionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 4 },
+  pickOddsCaption: { flex: 1, fontSize: 10, fontFamily: 'Inter_600SemiBold' },
   pickLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginTop: 5 },
   pickName: { flex: 1, fontSize: 25, lineHeight: 29, fontFamily: 'Inter_700Bold', letterSpacing: -1 },
   odds: { fontSize: 18, fontFamily: 'Inter_700Bold', letterSpacing: -0.4 },
