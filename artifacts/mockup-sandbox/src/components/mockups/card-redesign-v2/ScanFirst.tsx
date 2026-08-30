@@ -147,7 +147,7 @@ export function ScanFirst() {
           </div>
         </header>
 
-        <section style={{ padding: '18px 16px 15px' }}>
+        <section style={{ padding: '17px 16px 12px' }}>
           <div className="tbm-label" style={{ color: 'var(--tbm-lime)' }}>
             TBM recommendation
           </div>
@@ -160,7 +160,7 @@ export function ScanFirst() {
             </strong>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 11 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tbm-lime)' }} />
             <span style={{ color: 'var(--tbm-lime)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em' }}>
               {game.projection.valueRating.toUpperCase()}
@@ -171,31 +171,7 @@ export function ScanFirst() {
             </span>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              marginTop: 17,
-              padding: '11px 12px',
-              border: '1px solid var(--tbm-line-soft)',
-              borderRadius: 8,
-              background: 'var(--tbm-surface-2)',
-            }}
-          >
-            <div>
-              <div className="tbm-label">Model signal</div>
-              <div style={{ marginTop: 4, color: 'var(--tbm-muted)', fontSize: 11 }}>
-                {model.toFixed(0)}% to win · +{game.projection.edge.toFixed(1)} pts edge
-              </div>
-            </div>
-            <span className="tbm-mono" style={{ color: 'var(--tbm-lime)', fontSize: 13, fontWeight: 700 }}>
-              {game.projection.confidence.toUpperCase()}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 9 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6 }}>
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
@@ -212,7 +188,7 @@ export function ScanFirst() {
                 letterSpacing: '.11em',
               }}
             >
-              {expanded ? 'CLOSE ANALYSIS' : 'OPEN ANALYSIS'}
+              {expanded ? 'HIDE ANALYSIS' : 'VIEW ANALYSIS'}
               <span style={{ color: 'var(--tbm-lime)', marginLeft: 7 }}>{expanded ? '−' : '+'}</span>
             </button>
           </div>
@@ -231,6 +207,7 @@ export function ScanFirst() {
               </div>
               <div style={{ display: 'grid', gap: 10 }}>
                 <DetailRow label="Win probability" value={`${model.toFixed(1)}%`} />
+                <DetailRow label="Confidence" value={game.projection.confidence} />
                 <DetailRow label="Fair price" value={american(fairOdds(model))} />
                 <DetailRow label="Market price" value={american(odds)} />
                 <DetailRow label="Model score" value={`${game.projection.modelScore}/100`} />
