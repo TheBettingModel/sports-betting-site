@@ -1,0 +1,1429 @@
+# Build Shadow Spread Projection Engine v0
+
+## Objective
+
+Implement an initial spread/run-line projection engine so TBM can begin producing, displaying, storing, and grading spread predictions immediately while the full sport-specific spread models continue to develop.
+
+This is a **SHADOW prediction system**.
+
+It must:
+
+* Pull real sportsbook spread lines and prices.
+* Generate an independent TBM expected game margin.
+* Estimate the probability of covering the exact sportsbook spread.
+* Calculate fair spread information, no-vig market probability, edge, and expected value.
+* Produce a provisional spread confidence score.
+* Store every prediction before the game.
+* Track the closing line and final result.
+* Grade every shadow spread.
+* Build the historical dataset needed to improve and calibrate the spread model.
+* Never publish an unapproved spread as an official bet.
+* Never give an unapproved spread official units.
+* Never allow spread development to change the existing production moneyline model.
+
+The core rule is:
+
+**Start predicting spreads now. Start publishing/betting them only after validation and production approval.**
+
+---
+
+# 1. Do Not Convert Moneyline Probability Into Spread Probability
+
+This is mandatory.
+
+Do NOT calculate spread probability from:
+
+```text
+moneyline_probability
+```
+
+or use a simple arbitrary transformation such as:
+
+```text
+spread_probability = moneyline_probability - adjustment
+```
+
+Moneyline and spread are different prediction problems.
+
+Moneyline asks:
+
+**What is the probability the team wins?**
+
+Spread asks:
+
+**What is the probability the team's final scoring margin clears this exact sportsbook line?**
+
+Spread probability must come from an expected-margin distribution.
+
+---
+
+# 2. Generate Independent Expected Scores
+
+Use the existing sport model's predictive inputs to generate:
+
+```text
+projected_home_score
+projected_away_score
+```
+
+Then calculate:
+
+```text
+projected_home_margin =
+projected_home_score - projected_away_score
+```
+
+Example:
+
+```text
+Projected Home Score = 31.4
+Projected Away Score = 26.1
+
+Projected Home Margin = +5.3
+```
+
+This means TBM expects the home team to win by approximately 5.3 points.
+
+The sportsbook spread must NOT be used to create this initial projected margin.
+
+The football/baseball/basketball/soccer model should create its independent game expectation first.
+
+---
+
+# 3. Convert Expected Margin Into a TBM Fair Spread
+
+If:
+
+```text
+projected_home_margin = +5.3
+```
+
+then:
+
+```text
+TBM fair home spread = -5.3
+TBM fair away spread = +5.3
+```
+
+Store:
+
+```text
+projected_margin
+fair_home_spread
+fair_away_spread
+```
+
+Do not use the difference between fair spread and sportsbook spread as the final betting edge.
+
+It is an analytical input.
+
+The actual edge must be based on cover probability.
+
+---
+
+# 4. Initial Margin Distribution
+
+For Spread Engine v0, use a sport-specific margin-error distribution.
+
+The initial bootstrap implementation may use a Normal distribution:
+
+```text
+Actual Margin ~ Normal(mu, sigma)
+```
+
+Where:
+
+```text
+mu = TBM projected margin
+```
+
+and:
+
+```text
+sigma = historical standard deviation of TBM margin prediction errors for that sport
+```
+
+Margin prediction error is:
+
+```text
+margin_error =
+actual_margin - projected_margin
+```
+
+Therefore:
+
+```text
+sigma_sport =
+standard_deviation(historical_margin_errors_for_sport)
+```
+
+Do NOT invent an arbitrary permanent sigma.
+
+If sufficient TBM historical margin predictions already exist, calculate sigma from those historical out-of-sample prediction errors.
+
+If sufficient historical residual data does not yet exist, the system may use an explicitly configured and versioned bootstrap variance estimate for that sport.
+
+Any bootstrap sigma must be labeled:
+
+```text
+variance_source = "BOOTSTRAP"
+```
+
+rather than:
+
+```text
+variance_source = "HISTORICAL_TBM"
+```
+
+and the spread model must remain SHADOW.
+
+---
+
+# 5. Calculate Cover Probability at the Exact Sportsbook Line
+
+For the home team, define:
+
+```text
+M = actual home scoring margin
+```
+
+If the sportsbook home spread is:
+
+```text
+home_spread
+```
+
+then the home team covers when:
+
+```text
+M + home_spread > 0
+```
+
+Equivalently:
+
+```text
+M > -home_spread
+```
+
+Example:
+
+TBM:
+
+```text
+projected_home_margin = +5.3
+```
+
+Sportsbook:
+
+```text
+FSU -2.5
+```
+
+FSU covers when:
+
+```text
+actual_margin > +2.5
+```
+
+Using the initial Normal model:
+
+```text
+z =
+((-home_spread) - projected_home_margin)
+/
+sigma
+```
+
+Then:
+
+```text
+home_cover_probability =
+1 - NormalCDF(z)
+```
+
+For FSU -2.5:
+
+```text
+z =
+(2.5 - 5.3)
+/
+sigma
+```
+
+Then:
+
+```text
+P(FSU covers -2.5) =
+1 - NormalCDF(z)
+```
+
+Return the probability as a decimal internally:
+
+```text
+0.568
+```
+
+and percentage for presentation:
+
+```text
+56.8%
+```
+
+---
+
+# 6. Away-Team Cover Probability
+
+For the away team:
+
+```text
+away_spread = -home_spread
+```
+
+The away team covers when:
+
+```text
+M + home_spread < 0
+```
+
+For half-point spreads where a push cannot occur:
+
+```text
+away_cover_probability =
+1 - home_cover_probability
+```
+
+However, do NOT blindly use this shortcut for whole-number spreads because pushes are possible.
+
+---
+
+# 7. Whole-Number Spread and Push Probability
+
+For spreads such as:
+
+```text
+-3
+-7
++3
++7
+```
+
+calculate three probabilities:
+
+```text
+P(Cover)
+P(Push)
+P(Loss)
+```
+
+such that:
+
+```text
+P(Cover) + P(Push) + P(Loss) = 1
+```
+
+A continuous Normal approximation assigns essentially zero probability to an exact integer margin, which is inadequate for football because exact scoring margins occur frequently.
+
+Therefore:
+
+For NFL and NCAAF whole-number spreads, use an empirical/discrete push probability when sufficient historical scoring-margin data exists.
+
+This is especially important around football key numbers such as:
+
+```text
+3
+7
+10
+14
+```
+
+Until the discrete margin model is mature, clearly identify whole-number spread projections as lower maturity/greater uncertainty.
+
+Never silently treat pushes as losses.
+
+---
+
+# 8. Sport-Specific Variance
+
+Never use one universal sigma across all sports.
+
+Maintain separate variance parameters/models for:
+
+```text
+NCAAF
+NFL
+NBA
+WNBA
+MLB
+Soccer
+```
+
+Eventually maintain separate residual distributions rather than a single standard deviation.
+
+For example:
+
+```text
+NCAAF_MARGIN_V0
+NFL_MARGIN_V0
+NBA_MARGIN_V0
+WNBA_MARGIN_V0
+MLB_RUN_MARGIN_V0
+SOCCER_GOAL_MARGIN_V0
+```
+
+Each must be independently versioned and validated.
+
+---
+
+# 9. MLB Run-Line Handling
+
+Do not permanently use a Normal margin approximation for MLB.
+
+For MLB, the long-term architecture should model:
+
+```text
+Home Runs Scored Distribution
+Away Runs Scored Distribution
+```
+
+using an appropriate count/scoring model or simulation.
+
+Then calculate:
+
+```text
+P(team wins by >= 2)
+```
+
+for:
+
+```text
+team -1.5
+```
+
+and:
+
+```text
+P(team loses by <= 1 or wins)
+```
+
+for:
+
+```text
+team +1.5
+```
+
+The initial system may remain unavailable for MLB spreads until a valid run-margin distribution exists rather than manufacturing a spread probability from moneyline probability.
+
+---
+
+# 10. Pull the Exact Sportsbook Spread Market
+
+For every eligible game pull:
+
+```text
+sportsbook
+home_spread
+home_spread_price
+away_spread
+away_spread_price
+timestamp
+```
+
+Example:
+
+```text
+FSU -2.5 -110
+Opponent +2.5 -110
+```
+
+Require real market provenance.
+
+Do not generate synthetic sportsbook spreads.
+
+---
+
+# 11. Validate the Two-Sided Market
+
+Before calculating market edge, verify:
+
+```text
+home_spread == -away_spread
+```
+
+where appropriate and confirm both prices belong to the same valid market snapshot.
+
+Store:
+
+```text
+market_complete = true/false
+```
+
+If a valid two-sided market does not exist:
+
+* The model may still store its independent fair spread.
+* Do not manufacture an opposing sportsbook price.
+* Lower market/data quality.
+* Do not produce a production-eligible betting recommendation.
+
+---
+
+# 12. Convert American Spread Odds Into Implied Probability
+
+For positive American odds:
+
+```text
+implied_probability =
+100 / (odds + 100)
+```
+
+For negative American odds:
+
+```text
+implied_probability =
+abs(odds) / (abs(odds) + 100)
+```
+
+Example:
+
+```text
+-110
+```
+
+produces approximately:
+
+```text
+52.38%
+```
+
+raw implied probability.
+
+---
+
+# 13. Remove Vig
+
+For a two-sided spread market:
+
+```text
+raw_home_probability =
+american_to_implied_probability(home_price)
+
+raw_away_probability =
+american_to_implied_probability(away_price)
+```
+
+Then:
+
+```text
+market_probability_sum =
+raw_home_probability + raw_away_probability
+```
+
+Calculate:
+
+```text
+no_vig_home_probability =
+raw_home_probability / market_probability_sum
+```
+
+and:
+
+```text
+no_vig_away_probability =
+raw_away_probability / market_probability_sum
+```
+
+Store both the raw and no-vig probabilities.
+
+---
+
+# 14. Calculate Spread Probability Edge
+
+Calculate:
+
+```text
+spread_probability_edge =
+model_cover_probability
+-
+no_vig_market_probability
+```
+
+Example:
+
+```text
+TBM Cover Probability = 56.8%
+No-Vig Market Probability = 50.0%
+
+Spread Edge = +6.8 percentage points
+```
+
+Do not confuse probability edge with expected value.
+
+Store them separately.
+
+---
+
+# 15. Calculate Expected Value
+
+For a spread without push probability:
+
+Convert American odds to profit on one unit.
+
+For negative odds:
+
+```text
+profit_per_unit =
+100 / abs(odds)
+```
+
+For positive odds:
+
+```text
+profit_per_unit =
+odds / 100
+```
+
+Then:
+
+```text
+EV =
+(P_cover × profit_per_unit)
+-
+(P_loss × 1)
+```
+
+where:
+
+```text
+P_loss = 1 - P_cover
+```
+
+Example:
+
+```text
+Spread = -110
+P_cover = 0.568
+
+profit_per_unit = 100 / 110
+                = 0.9091
+
+EV =
+(0.568 × 0.9091)
+-
+(0.432 × 1)
+
+EV ≈ +0.084
+```
+
+or approximately:
+
+```text
++8.4% expected return per unit risked
+```
+
+For a spread with push probability:
+
+```text
+EV =
+(P_cover × profit_per_unit)
++
+(P_push × 0)
+-
+(P_loss × 1)
+```
+
+Never treat push probability as a loss.
+
+---
+
+# 16. Initial Prediction Uncertainty
+
+Store the margin uncertainty used by the spread model:
+
+```text
+margin_sigma
+```
+
+and its source:
+
+```text
+variance_source
+```
+
+Examples:
+
+```text
+margin_sigma = 13.8
+variance_source = "HISTORICAL_TBM"
+```
+
+or:
+
+```text
+margin_sigma = configured_bootstrap_value
+variance_source = "BOOTSTRAP"
+```
+
+Do not hide whether uncertainty is historically estimated or provisional.
+
+---
+
+# 17. Provisional Spread Confidence
+
+Do NOT define:
+
+```text
+spread_confidence = cover_probability
+```
+
+Cover probability and model confidence are different.
+
+Cover probability means:
+
+**How likely is the team to cover this exact line?**
+
+Confidence means:
+
+**How trustworthy is TBM's estimate?**
+
+Create a provisional confidence system using factors such as:
+
+```text
+probability_strength
+data_quality
+model_maturity
+prediction_uncertainty
+market_quality
+```
+
+Conceptually:
+
+```text
+raw_confidence =
+weighted_function(
+    probability_strength,
+    data_quality,
+    prediction_uncertainty,
+    market_quality
+)
+```
+
+Then apply:
+
+```text
+model_maturity_cap
+```
+
+because Spread Engine v0 has not yet earned full historical trust.
+
+A SHADOW model must not display artificially extreme confidence simply because its initial formula generated a large edge.
+
+Store:
+
+```text
+cover_probability
+```
+
+and:
+
+```text
+spread_confidence
+```
+
+as completely separate fields.
+
+---
+
+# 18. Approval Gate
+
+Every spread prediction must query the existing sport-market-model approval framework.
+
+Example identity:
+
+```text
+sport = NCAAF
+market = spread
+model_version = NCAAF_SPREAD_V0
+```
+
+If the exact model version is not:
+
+```text
+PRODUCTION_APPROVED
+```
+
+then:
+
+```text
+official_pick = false
+publication_units = 0
+subscriber_eligible = false
+notification_eligible = false
+official_record_eligible = false
+```
+
+However, preserve the original research output:
+
+```text
+research_recommendation
+research_units
+model_cover_probability
+spread_edge
+expected_value
+spread_confidence
+```
+
+Do not erase the model's actual prediction.
+
+---
+
+# 19. Store Every Pregame Shadow Prediction
+
+Create an immutable prediction record before kickoff containing at minimum:
+
+```text
+prediction_id
+game_id
+sport
+market
+model_version
+
+home_team
+away_team
+
+projected_home_score
+projected_away_score
+projected_home_margin
+
+fair_home_spread
+fair_away_spread
+
+selected_team
+sportsbook
+sportsbook_spread
+sportsbook_price
+
+opposing_spread
+opposing_price
+
+model_cover_probability
+raw_market_probability
+no_vig_market_probability
+
+probability_edge
+expected_value
+
+margin_sigma
+variance_source
+
+data_quality
+spread_confidence
+
+research_recommendation
+research_units
+
+approval_status
+official_pick
+publication_units
+
+opening_spread
+current_spread
+
+prediction_timestamp
+```
+
+Never overwrite this record after the game.
+
+---
+
+# 20. Capture the Closing Market
+
+Before kickoff, capture:
+
+```text
+closing_spread
+closing_price
+closing_opposing_spread
+closing_opposing_price
+closing_timestamp
+```
+
+Calculate spread CLV relative to the exact prediction line and price.
+
+Store both:
+
+```text
+point_clv
+```
+
+and where possible:
+
+```text
+price/probability_clv
+```
+
+Do not evaluate CLV solely by whether the bet won.
+
+---
+
+# 21. Grade Every Spread Prediction
+
+After the game calculate:
+
+```text
+actual_home_margin =
+final_home_score - final_away_score
+```
+
+Then grade the exact stored spread.
+
+For the selected home team:
+
+```text
+adjusted_margin =
+actual_home_margin + stored_home_spread
+```
+
+If:
+
+```text
+adjusted_margin > 0
+```
+
+result:
+
+```text
+WIN
+```
+
+If:
+
+```text
+adjusted_margin == 0
+```
+
+result:
+
+```text
+PUSH
+```
+
+If:
+
+```text
+adjusted_margin < 0
+```
+
+result:
+
+```text
+LOSS
+```
+
+Reverse appropriately for an away-team selection.
+
+Always grade against the spread stored at prediction time.
+
+Never grade against the closing spread or a newly fetched spread.
+
+---
+
+# 22. Calculate Margin Prediction Error
+
+After the game:
+
+```text
+margin_prediction_error =
+actual_margin - projected_margin
+```
+
+Store:
+
+```text
+absolute_margin_error =
+abs(margin_prediction_error)
+```
+
+These residuals become the foundation for improving Spread Engine v1.
+
+---
+
+# 23. Calculate Brier Score
+
+For non-push binary ATS outcomes:
+
+```text
+y = 1 if cover
+y = 0 if loss
+```
+
+Then:
+
+```text
+Brier Score =
+(model_cover_probability - y)^2
+```
+
+Lower is better.
+
+Do not silently classify pushes as losses.
+
+Maintain an explicit push-handling policy for evaluation.
+
+---
+
+# 24. Calculate Brier Skill Score
+
+Compare TBM's Brier performance against the no-vig sportsbook market baseline.
+
+Conceptually:
+
+```text
+Brier Skill Score =
+1 -
+(TBM Brier Score / Market Brier Score)
+```
+
+Positive skill indicates TBM probability forecasts outperform the selected market baseline on this metric.
+
+Evaluate over meaningful samples rather than individual games.
+
+---
+
+# 25. Calculate Log Loss
+
+For non-push outcomes:
+
+```text
+LogLoss =
+-[y × ln(p) + (1-y) × ln(1-p)]
+```
+
+where:
+
+```text
+p = model_cover_probability
+```
+
+Use probability clipping near 0 and 1 for numerical stability.
+
+This metric should help identify excessive model confidence.
+
+---
+
+# 26. Build the Historical Residual Distribution
+
+As shadow predictions accumulate, build:
+
+```text
+margin_prediction_error =
+actual_margin - projected_margin
+```
+
+distributions by sport.
+
+Eventually replace:
+
+```text
+Normal(0, sigma)
+```
+
+with:
+
+```text
+Empirical TBM Margin Residual Distribution
+```
+
+derived from genuine out-of-sample TBM predictions.
+
+The model should then estimate:
+
+```text
+P(actual margin clears sportsbook spread)
+```
+
+using the empirical residual distribution.
+
+---
+
+# 27. Segment the Residual Model Over Time
+
+Once sufficient samples exist, investigate separate residual distributions by:
+
+```text
+sport
+season
+spread range
+favorite / underdog
+home / away / neutral
+expected total
+expected scoring environment
+team-strength difference
+data-quality level
+model version
+```
+
+For football also investigate:
+
+```text
+key-number proximity
+large spreads
+garbage-time risk
+```
+
+Do not create small-sample segments prematurely.
+
+Require sufficient evidence before replacing broader distributions with narrower ones.
+
+---
+
+# 28. Spread Calibration
+
+Track whether TBM spread probabilities are calibrated.
+
+Example:
+
+Across a sufficiently large sample of predictions where TBM estimated:
+
+```text
+55% cover probability
+```
+
+approximately 55% should cover.
+
+Create calibration buckets such as:
+
+```text
+50-52%
+52-54%
+54-56%
+56-58%
+58-60%
+60%+
+```
+
+Calibration must eventually be sport-specific and market-specific.
+
+---
+
+# 29. Shadow Analytics
+
+Track Spread Engine v0 independently using:
+
+```text
+prediction_count
+graded_count
+wins
+losses
+pushes
+
+ATS win rate
+ROI
+units
+
+average CLV
+median CLV
+percent beating close
+
+Brier Score
+Brier Skill Score
+Log Loss
+Calibration Error
+
+average margin error
+median margin error
+RMSE margin error
+
+maximum drawdown
+```
+
+Segment results by:
+
+```text
+sport
+model_version
+spread bucket
+price bucket
+edge bucket
+confidence bucket
+favorite / underdog
+home / road / neutral
+season
+```
+
+---
+
+# 30. Do Not Self-Modify After Individual Games
+
+The model should learn by collecting evidence after every game.
+
+It must NOT automatically change:
+
+```text
+weights
+sigma
+thresholds
+confidence rules
+recommendation rules
+```
+
+because an individual prediction won or lost.
+
+Candidate improvements must go through:
+
+```text
+Historical Analysis
+→ Walk-Forward Testing
+→ Out-of-Sample Validation
+→ Shadow Testing
+→ Approval Gate
+→ Production
+```
+
+---
+
+# 31. Spread Engine Version Progression
+
+Use explicit versions.
+
+Example:
+
+```text
+SPREAD_V0
+```
+
+Bootstrap expected-margin distribution.
+
+Then:
+
+```text
+SPREAD_V1
+```
+
+Historical TBM residual distribution.
+
+Then potentially:
+
+```text
+SPREAD_V2
+```
+
+Sport-specific segmented residual/distribution model.
+
+Then:
+
+```text
+SPREAD_V3
+```
+
+Advanced sport-specific scoring/simulation model where validated.
+
+Never rewrite historical V0 predictions after V1 is created.
+
+---
+
+# 32. App Presentation
+
+Replace:
+
+```text
+SPREAD WIN
+—
+NO SPREAD PROJECTION
+```
+
+when a valid shadow prediction exists.
+
+Display:
+
+```text
+SPREAD COVER
+
+54.8%
+
+TEAM +1.5 · -110
+
+SHADOW
+```
+
+or equivalent language consistent with the existing TBM design.
+
+Clearly distinguish:
+
+```text
+MODEL PROJECTION
+```
+
+from:
+
+```text
+OFFICIAL BET
+```
+
+A shadow spread can be displayed as analytical information while still showing:
+
+```text
+NO OFFICIAL BET
+```
+
+Do not present an unapproved spread as a subscriber betting recommendation.
+
+---
+
+# 33. Critical Safety Rules
+
+The implementation must obey all of the following:
+
+1. Never derive spread probability directly from moneyline probability.
+2. Never manufacture sportsbook spreads.
+3. Never manufacture missing opposing sportsbook prices.
+4. Never treat a push as a loss.
+5. Never use one universal margin variance for every sport.
+6. Never overwrite historical predictions.
+7. Never use closing information in the pregame prediction.
+8. Never allow shadow predictions into official betting records.
+9. Never allow an unapproved spread model to publish units or notifications.
+10. Never modify the existing production moneyline model merely to make spread predictions work.
+11. Always store the exact line and price used to calculate the prediction.
+12. Always store the model version.
+13. Always track the closing market afterward.
+14. Always calculate prediction error and probability-quality metrics.
+15. Always preserve the difference between model opinion and publication permission.
+
+---
+
+# Final Spread v0 Formula
+
+For an eligible team's spread:
+
+```text
+Projected Margin =
+Projected Team Score
+-
+Projected Opponent Score
+```
+
+Model the margin as:
+
+```text
+Margin ~ Sport-Specific Distribution(
+    Projected Margin,
+    Historical Prediction Error
+)
+```
+
+For the initial Normal bootstrap:
+
+```text
+Margin ~ Normal(
+    projected_margin,
+    sigma_sport
+)
+```
+
+For a team laying `S` points:
+
+```text
+Cover Probability =
+P(Margin > S)
+```
+
+For a home spread represented conventionally as a negative favorite number:
+
+```text
+Cover Probability =
+1 - NormalCDF(
+    ((-sportsbook_home_spread) - projected_home_margin)
+    /
+    sigma_sport
+)
+```
+
+Then:
+
+```text
+Probability Edge =
+Model Cover Probability
+-
+No-Vig Sportsbook Probability
+```
+
+and:
+
+```text
+Expected Value =
+(P_cover × Profit Per Unit)
++
+(P_push × 0)
+-
+(P_loss × 1)
+```
+
+The system should output:
+
+```text
+Fair Spread
+Exact Sportsbook Spread
+Exact Sportsbook Price
+Model Cover Probability
+Push Probability
+No-Vig Market Probability
+Probability Edge
+Expected Value
+Margin Uncertainty
+Spread Confidence
+Data Quality
+Model Version
+Approval Status
+Shadow/Production Status
+```
+
+## Final Architecture
+
+```text
+SPORT MODEL DATA
+        ↓
+PROJECTED TEAM SCORES
+        ↓
+PROJECTED MARGIN
+        ↓
+SPORT-SPECIFIC MARGIN DISTRIBUTION
+        ↓
+EXACT SPORTSBOOK SPREAD
+        ↓
+COVER / PUSH / LOSS PROBABILITIES
+        ↓
+SPORTSBOOK PRICE
+        ↓
+NO-VIG MARKET PROBABILITY
+        ↓
+PROBABILITY EDGE
+        ↓
+EXPECTED VALUE
+        ↓
+DATA QUALITY + UNCERTAINTY
+        ↓
+PROVISIONAL CONFIDENCE
+        ↓
+SHADOW PREDICTION
+        ↓
+IMMUTABLE DATABASE RECORD
+        ↓
+CLOSING LINE
+        ↓
+FINAL RESULT
+        ↓
+MARGIN ERROR
+        ↓
+CLV
+        ↓
+BRIER / BRIER SKILL / LOG LOSS
+        ↓
+CALIBRATION
+        ↓
+HISTORICAL RESIDUAL DISTRIBUTION
+        ↓
+VALIDATED FUTURE SPREAD MODEL
+```
+
+The objective of Spread Engine v0 is **not to prove immediately that TBM can profitably bet spreads**.
+
+Its purpose is to begin producing mathematically defensible spread probabilities now, expose those projections in the app as SHADOW analytics, and collect the point-in-time prediction history required to build, calibrate, validate, and eventually production-approve a stronger sport-specific spread model.
