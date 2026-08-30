@@ -33,3 +33,4 @@
 - [Exact market approval ledger](exact-market-approval-ledger.md) — public permission is append-only and version-exact; missing or mismatched approval always fails closed.
 - [Production model registry safety](production-model-registry-safety.md) — canonical IDs, one production row per market, shared slot locks, and proven rollback provenance are mandatory.
 - [Production startup DDL](production-startup-ddl.md) — never run schema DDL before opening the production port; managed publishing owns production schema changes.
+- [Feed refresh resilience](feed-refresh-resilience.md) — mobile refreshes only refetch; heavy server refreshes are single-flight, and transport failures must never look like empty slates.

@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSports } from '@/context/SportsContext';
-import { useGetGamesToday, useRefreshGames } from '@workspace/api-client-react';
+import { useGetGamesToday } from '@workspace/api-client-react';
 import { mapApiGame } from '@/utils/gameAdapter';
 import { GameCard } from '@/components/GameCard';
 import { GameCardSkeleton } from '@/components/GameCardSkeleton';
@@ -195,7 +195,7 @@ export default function PicksScreen() {
   const { selectedSport } = useSports();
   const [expandedForecastId, setExpandedForecastId] = React.useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useGetGamesToday(undefined, {
+  const { data, isLoading, isError, isRefetching, refetch } = useGetGamesToday(undefined, {
     query: {
       queryKey: gamesTodayQueryKey(userId),
       enabled: Boolean(userId),
@@ -210,10 +210,6 @@ export default function PicksScreen() {
     }, 5 * 60 * 1000);
     return () => clearInterval(refreshId);
   }, [refetch]);
-  const { mutate: triggerRefresh, isPending: isRefreshing } = useRefreshGames({
-    mutation: { onSuccess: () => refetch() },
-  });
-
   const allGames: Game[] = useMemo(() => {
     if (data?.games && data.games.length > 0) return data.games.map(mapApiGame);
     return [];
@@ -299,6 +295,7 @@ export default function PicksScreen() {
     return c;
   }, [allGames]);
   const liveGamesCount = data?.liveGamesCount ?? 0;
+  const hasFeedError = isError && !data;
   const allTabHasNoQualifiedPlays =
     selectedSport === 'All' && allGames.length > 0 && displayedGames.length === 0;
 
@@ -420,7 +417,9 @@ export default function PicksScreen() {
       {!isLoading && (
         <View style={[styles.sectionLabelRow, { marginHorizontal: 16, marginTop: 20, marginBottom: 4 }]}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            {selectedSport === 'All'
+            {hasFeedError
+              ? 'PICKS UNAVAILABLE'
+              : selectedSport === 'All'
               ? `TOP PLAYS${displayedGames.length > 0 ? ` · ${displayedGames.length}` : ''}`
               : displayedGames.length > 0
                 ? `RECOMMENDED PLAYS · ${displayedGames.length}`
@@ -640,12 +639,16 @@ export default function PicksScreen() {
         ListEmptyComponent={
           <EmptyState
             sport={selectedSport !== 'All' ? selectedSport : undefined}
-            title={selectedSport !== 'All' && sortedGames.length > 0
+            title={hasFeedError
+              ? 'Unable to load picks'
+              : selectedSport !== 'All' && sortedGames.length > 0
               ? `No ${selectedSport} bets today`
               : allTabHasNoQualifiedPlays
                 ? 'No Qualified Plays Today'
                 : undefined}
-            message={selectedSport === 'All'
+            message={hasFeedError
+              ? 'The picks service is temporarily unavailable. Pull down to try again.'
+              : selectedSport === 'All'
               ? allTabHasNoQualifiedPlays
                 ? `${allGames.length} games analyzed. No Strong Buy or Buy plays met the model threshold. Tap a sport above to explore additional picks.`
                 : 'No qualified plays available today. Pull down to refresh.'
@@ -675,8 +678,8 @@ export default function PicksScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => triggerRefresh()}
+            refreshing={isRefetching}
+            onRefresh={() => { void refetch(); }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />

@@ -792,6 +792,20 @@ export async function refreshAll(): Promise<{
   return { gamesUpdated: upserted, sportsRefreshed: [...sports], picksGraded };
 }
 
+let refreshInFlight: ReturnType<typeof refreshAll> | null = null;
+
+async function refreshStaleGamesOnce(): Promise<void> {
+  if (!isStale()) return;
+
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAll().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+
+  await refreshInFlight;
+}
+
 /**
  * GET /api/games/today
  * Auto-refreshes from ESPN when data is stale (>30 minutes old).
@@ -812,7 +826,7 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
 
   if (isStale()) {
     try {
-      await refreshAll();
+      await refreshStaleGamesOnce();
     } catch (err) {
       req.log.warn({ err }, "Auto-refresh failed; serving cached data");
     }
