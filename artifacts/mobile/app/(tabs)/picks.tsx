@@ -116,6 +116,7 @@ function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: Ret
   const { game } = forecast;
   const moneyline = getForecastMoneylineIdentity(game);
   const spreadProbability = game.spreadMarket?.modelProbability;
+  const modelScore = game.projection.finalModelScore ?? game.projection.modelScore;
   const spreadDetail = game.spreadMarket
     ? `${game.spreadMarket.teamAbbr} ${game.spreadMarket.line != null ? `${game.spreadMarket.line > 0 ? '+' : ''}${game.spreadMarket.line}` : ''} · ${formatOdds(game.spreadMarket.odds)}`
     : 'NO SPREAD PROJECTION';
@@ -124,12 +125,23 @@ function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: Ret
   return (
     <View style={[styles.forecastDetailsPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.forecastDetailsHeading}>
-        <Text style={[styles.forecastDetailsTitle, { color: colors.foreground }]}>MODEL PROJECTION</Text>
+        <Text style={[styles.forecastDetailsTitle, { color: colors.foreground }]}>TBM ANALYSIS</Text>
         <Text style={[styles.forecastDetailsHint, { color: colors.mutedForeground }]}>NO OFFICIAL BET</Text>
       </View>
+      <View style={[styles.forecastScorePanel, { borderColor: colors.border }]}>
+        <Text style={[styles.forecastScoreLabel, { color: colors.primary }]}>TBM SCORE</Text>
+        <Text style={[styles.forecastScoreValue, { color: colors.foreground }]}>{modelScore}/100</Text>
+        <Text style={[styles.forecastScoreMeaning, { color: colors.mutedForeground }]}>
+          Higher = stronger model conviction
+        </Text>
+      </View>
+      <Text style={[styles.forecastLeanExplanation, { color: colors.mutedForeground }]}>
+        The model sees a lean, but this game did not clear the threshold for an official play.
+      </Text>
+      <Text style={[styles.forecastPricingTitle, { color: colors.mutedForeground }]}>DETAILED PRICING</Text>
       <View style={[styles.forecastProbabilityGrid, { borderColor: colors.border }]}>
         <View style={styles.forecastProbabilityCell}>
-          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>ML WIN</Text>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>ML WIN PROBABILITY</Text>
           <Text style={[styles.forecastProbability, { color: colors.primary }]}>{moneyline.probability.toFixed(1)}%</Text>
           <Text style={[styles.forecastMetricDetail, { color: colors.foreground }]}>
             {moneyline.teamAbbr} · {formatOdds(moneyline.marketOdds)}
@@ -137,7 +149,7 @@ function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: Ret
         </View>
         <View style={[styles.forecastProbabilityDivider, { backgroundColor: colors.border }]} />
         <View style={styles.forecastProbabilityCell}>
-          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>SPREAD WIN</Text>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>SPREAD COVER PROBABILITY</Text>
           <Text style={[styles.forecastProbability, { color: spreadProbability == null ? colors.mutedForeground : colors.primary }]}>
             {spreadProbability == null ? '—' : `${spreadProbability.toFixed(1)}%`}
           </Text>
@@ -146,8 +158,8 @@ function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: Ret
       </View>
       <View style={styles.forecastAnalysisRows}>
         <View style={styles.forecastAnalysisRow}>
-          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>MODEL SCORE</Text>
-          <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{game.projection.finalModelScore ?? game.projection.modelScore}/100</Text>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>VALUE EDGE</Text>
+          <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>+{forecast.edge?.toFixed(1)}%</Text>
         </View>
         <View style={styles.forecastAnalysisRow}>
           <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>CONFIDENCE</Text>
@@ -566,7 +578,13 @@ export default function PicksScreen() {
                   adjustsFontSizeToFit
                   minimumFontScale={0.78}
                 >
-                  MODEL WIN {forecast.modelProbability?.toFixed(1)}% · EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
+                  TBM SCORE {forecast.game.projection.finalModelScore ?? forecast.game.projection.modelScore}/100
+                </Text>
+                <Text style={[styles.forecastScoreHelp, { color: colors.mutedForeground }]}>
+                  Higher = stronger model conviction
+                </Text>
+                <Text style={[styles.forecastBetStatus, { color: colors.mutedForeground }]}>
+                  NO OFFICIAL BET
                 </Text>
               </>
             )}
@@ -761,12 +779,20 @@ const styles = StyleSheet.create({
   forecastStatus: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
   forecastStatusLean: { paddingBottom: 3, borderBottomWidth: 1, letterSpacing: 0.85 },
   forecastProjection: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 4 },
-  forecastMarket: { fontSize: 8.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3, marginTop: 3 },
+  forecastMarket: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.45, marginTop: 4 },
+  forecastScoreHelp: { fontSize: 7.5, fontFamily: 'Inter_500Medium', letterSpacing: 0.15, marginTop: 2 },
+  forecastBetStatus: { fontSize: 7.5, fontFamily: 'Inter_700Bold', letterSpacing: 0.65, marginTop: 3 },
   forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
   forecastDetailsPanel: { marginTop: 11, padding: 11, borderRadius: 8, borderWidth: 1 },
   forecastDetailsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 9 },
   forecastDetailsTitle: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
   forecastDetailsHint: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.6 },
+  forecastScorePanel: { alignItems: 'center', paddingVertical: 10, borderWidth: 1, borderRadius: 7 },
+  forecastScoreLabel: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  forecastScoreValue: { fontSize: 24, lineHeight: 28, fontFamily: 'Inter_700Bold', letterSpacing: -0.8, marginTop: 2 },
+  forecastScoreMeaning: { fontSize: 8, fontFamily: 'Inter_500Medium', marginTop: 2 },
+  forecastLeanExplanation: { fontSize: 10, lineHeight: 14, fontFamily: 'Inter_500Medium', marginTop: 9 },
+  forecastPricingTitle: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, marginTop: 12, marginBottom: 6 },
   forecastProbabilityGrid: { flexDirection: 'row', minHeight: 77, borderRadius: 7, borderWidth: 1, overflow: 'hidden' },
   forecastProbabilityCell: { flex: 1, minWidth: 0, justifyContent: 'center', paddingHorizontal: 9, paddingVertical: 8 },
   forecastProbabilityDivider: { width: 1, marginVertical: 10 },

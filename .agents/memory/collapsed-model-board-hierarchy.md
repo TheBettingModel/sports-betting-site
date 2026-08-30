@@ -12,3 +12,5 @@ Do not add probability, edge, fair price, confidence, model score, stars, CLV, s
 **How to apply:** Preserve this hierarchy for future Model Board card work. Use disciplined white/lime/gray contrast, equal logo treatment, restrained lime accents, and compact-but-not-crowded spacing across 320–430px mobile widths.
 
 The Today’s Top Pick card follows the same rule as a slightly elevated featured variant. Its collapsed state keeps matchup, pick, current odds, recommendation, units, and View Analysis; pitchers, score, stars, edge, market context, best line, and insights remain behind analysis.
+
+Neutral forecast rows use one primary numeric signal in the collapsed state: TBM Score with “Higher = stronger model conviction.” Win/cover probabilities and pricing remain unchanged but appear only in expanded analysis.
