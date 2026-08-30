@@ -111,6 +111,63 @@ function getForecast(game: Game): Forecast {
   };
 }
 
+function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: ReturnType<typeof useColors> }) {
+  const { game } = forecast;
+  const projectedHome = game.projection.homeWinPct >= 50;
+  const projectedTeam = projectedHome ? game.homeTeam.abbr : game.awayTeam.abbr;
+  const mlProbability = game.moneylineMarket?.modelProbability
+    ?? (projectedHome ? game.projection.homeWinPct : 100 - game.projection.homeWinPct);
+  const spreadProbability = game.spreadMarket?.modelProbability;
+  const spreadDetail = game.spreadMarket
+    ? `${game.spreadMarket.teamAbbr} ${game.spreadMarket.line != null ? `${game.spreadMarket.line > 0 ? '+' : ''}${game.spreadMarket.line}` : ''} · ${formatOdds(game.spreadMarket.odds)}`
+    : 'NO SPREAD PROJECTION';
+  const fairPrice = game.moneylineMarket?.fairPrice;
+  const insightText = game.insights?.length ? game.insights.join(' · ') : null;
+
+  return (
+    <View style={[styles.forecastDetailsPanel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={styles.forecastDetailsHeading}>
+        <Text style={[styles.forecastDetailsTitle, { color: colors.foreground }]}>MODEL PROJECTION</Text>
+        <Text style={[styles.forecastDetailsHint, { color: colors.mutedForeground }]}>NO OFFICIAL BET</Text>
+      </View>
+      <View style={[styles.forecastProbabilityGrid, { borderColor: colors.border }]}>
+        <View style={styles.forecastProbabilityCell}>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>ML WIN</Text>
+          <Text style={[styles.forecastProbability, { color: colors.primary }]}>{mlProbability.toFixed(1)}%</Text>
+          <Text style={[styles.forecastMetricDetail, { color: colors.foreground }]}>
+            {projectedTeam} · {formatOdds(game.moneylineMarket?.odds ?? (projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds))}
+          </Text>
+        </View>
+        <View style={[styles.forecastProbabilityDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.forecastProbabilityCell}>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>SPREAD WIN</Text>
+          <Text style={[styles.forecastProbability, { color: spreadProbability == null ? colors.mutedForeground : colors.primary }]}>
+            {spreadProbability == null ? '—' : `${spreadProbability.toFixed(1)}%`}
+          </Text>
+          <Text style={[styles.forecastMetricDetail, { color: colors.foreground }]}>{spreadDetail}</Text>
+        </View>
+      </View>
+      <View style={styles.forecastAnalysisRows}>
+        <View style={styles.forecastAnalysisRow}>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>MODEL SCORE</Text>
+          <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{game.projection.finalModelScore ?? game.projection.modelScore}/100</Text>
+        </View>
+        <View style={styles.forecastAnalysisRow}>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>CONFIDENCE</Text>
+          <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{game.projection.confidence}</Text>
+        </View>
+        {fairPrice != null && (
+          <View style={styles.forecastAnalysisRow}>
+            <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>FAIR ML PRICE</Text>
+            <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{formatOdds(fairPrice)}</Text>
+          </View>
+        )}
+        {insightText && <Text style={[styles.forecastInsight, { color: colors.mutedForeground }]}>{insightText}</Text>}
+      </View>
+    </View>
+  );
+}
+
 const FORECAST_STATE_ORDER: Record<ForecastState, number> = {
   'model-lean': 0,
   'no-bet': 1,
@@ -140,6 +197,7 @@ export default function PicksScreen() {
   const router = useRouter();
   const { isSubscribed } = useSubscription();
   const { selectedSport } = useSports();
+  const [expandedForecastId, setExpandedForecastId] = React.useState<string | null>(null);
 
   const { data, isLoading, refetch } = useGetGamesToday();
   useEffect(() => {
@@ -433,6 +491,7 @@ export default function PicksScreen() {
     if (item.type === 'projection') {
       const { forecast } = item;
       const isLockedForecast = forecast.state === 'locked';
+      const isExpanded = expandedForecastId === forecast.game.id;
       const statusLabel = forecast.state === 'model-lean'
         ? `PICK · #${forecast.leanRank}`
         : forecast.state === 'no-bet'
@@ -525,12 +584,22 @@ export default function PicksScreen() {
             { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.78 : 1 },
           ]}
         >
-          {rowContent}
+          <View style={styles.forecastTopRow}>{rowContent}</View>
         </Pressable>
       ) : (
-        <View style={[styles.forecastRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {rowContent}
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${forecast.game.awayTeam.abbr} at ${forecast.game.homeTeam.abbr} ${statusLabel}. ${isExpanded ? 'Hide' : 'Show'} model analysis`}
+          accessibilityState={{ expanded: isExpanded }}
+          onPress={() => setExpandedForecastId(current => current === forecast.game.id ? null : forecast.game.id)}
+          style={({ pressed }) => [
+            styles.forecastRow,
+            { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.78 : 1 },
+          ]}
+        >
+          <View style={styles.forecastTopRow}>{rowContent}</View>
+          {isExpanded && <ForecastDetails forecast={forecast} colors={colors} />}
+        </Pressable>
       );
     }
     if (item.locked) {
@@ -675,8 +744,9 @@ const styles = StyleSheet.create({
   forecastBadgeText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
   forecastRow: {
     marginHorizontal: 16, marginBottom: 8, borderRadius: 10, borderWidth: 1,
-    paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'column', alignItems: 'stretch',
   },
+  forecastTopRow: { flexDirection: 'row', alignItems: 'center' },
   forecastMatchup: { flex: 1, minWidth: 0, marginRight: 8, paddingTop: 1 },
   forecastTeams: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   forecastTeam: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
@@ -689,6 +759,20 @@ const styles = StyleSheet.create({
   forecastProjection: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 4 },
   forecastMarket: { fontSize: 8.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3, marginTop: 3 },
   forecastDataNote: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5, marginTop: 4 },
+  forecastDetailsPanel: { marginTop: 11, padding: 11, borderRadius: 8, borderWidth: 1 },
+  forecastDetailsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 9 },
+  forecastDetailsTitle: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  forecastDetailsHint: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.6 },
+  forecastProbabilityGrid: { flexDirection: 'row', minHeight: 77, borderRadius: 7, borderWidth: 1, overflow: 'hidden' },
+  forecastProbabilityCell: { flex: 1, minWidth: 0, justifyContent: 'center', paddingHorizontal: 9, paddingVertical: 8 },
+  forecastProbabilityDivider: { width: 1, marginVertical: 10 },
+  forecastMetricLabel: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
+  forecastProbability: { fontSize: 22, lineHeight: 26, fontFamily: 'Inter_700Bold', letterSpacing: -0.8, marginTop: 2 },
+  forecastMetricDetail: { fontSize: 9, fontFamily: 'Inter_600SemiBold', marginTop: 3 },
+  forecastAnalysisRows: { marginTop: 8 },
+  forecastAnalysisRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 },
+  forecastMetricValue: { fontSize: 10, fontFamily: 'Inter_700Bold' },
+  forecastInsight: { fontSize: 10, lineHeight: 14, fontFamily: 'Inter_500Medium', marginTop: 6 },
   forecastNotice: {
     marginHorizontal: 16, marginTop: 4, borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 11,
