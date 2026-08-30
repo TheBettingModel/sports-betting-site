@@ -144,7 +144,14 @@ async function applyStartupMigrations(): Promise<void> {
 }
 
 async function startServer(): Promise<void> {
-  await applyStartupMigrations();
+  // Production schema changes are applied by Replit's managed publish step.
+  // Running DDL here can wait indefinitely on a table lock during a rolling
+  // deployment, preventing the server from opening its port before the
+  // platform's startup deadline. Keep the idempotent fallback for local
+  // development only.
+  if (process.env["NODE_ENV"] !== "production") {
+    await applyStartupMigrations();
+  }
   try {
     await reconcileMlbProductionRegistry();
   } catch (err) {
