@@ -9,6 +9,7 @@ export const modules: ModuleMap = {
   "./components/mockups/card-redesign-v2/Simplified.tsx": () => import("../components/mockups/card-redesign-v2/Simplified.tsx"),
   "./components/mockups/featured-pick-redesign/Current.tsx": () => import("../components/mockups/featured-pick-redesign/Current.tsx"),
   "./components/mockups/featured-pick-redesign/Simplified.tsx": () => import("../components/mockups/featured-pick-redesign/Simplified.tsx"),
+  "./components/mockups/forecast-section/Clear.tsx": () => import("../components/mockups/forecast-section/Clear.tsx"),
   "./components/mockups/forecast-section/Current.tsx": () => import("../components/mockups/forecast-section/Current.tsx"),
   "./components/mockups/forecast-section/Refined.tsx": () => import("../components/mockups/forecast-section/Refined.tsx"),
   "./components/mockups/results-stats/ResultsStats.tsx": () => import("../components/mockups/results-stats/ResultsStats.tsx"),
