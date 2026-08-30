@@ -8,6 +8,7 @@ import { normalizeMlbConfidenceRecovery, runLearning } from "./services/learning
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
 import { reconcileMlbProductionRegistry } from "./services/modelRegistryReconciliation";
+import { ensureEstablishedMoneylineApprovals } from "./services/marketApproval";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -170,6 +171,13 @@ async function startServer(): Promise<void> {
     await reconcileMlbProductionRegistry();
   } catch (err) {
     logger.error({ err }, "MLB production model registry reconciliation failed");
+    process.exit(1);
+  }
+  try {
+    const approvals = await ensureEstablishedMoneylineApprovals();
+    logger.info({ approvals }, "Established moneyline publication approvals reconciled");
+  } catch (err) {
+    logger.error({ err }, "Established moneyline approval reconciliation failed");
     process.exit(1);
   }
   try {

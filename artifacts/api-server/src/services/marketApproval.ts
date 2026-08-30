@@ -324,6 +324,107 @@ export const MONEYLINE_APPROVAL_POLICY = Object.freeze({
   maximumEvidenceAgeMs: 30 * 24 * 60 * 60 * 1000,
 });
 
+/**
+ * These are the production moneyline models that predate the exact approval
+ * ledger. Their publication behavior is preserved during the ledger rollout;
+ * new moneyline versions must earn their own exact approval.
+ */
+export const ESTABLISHED_MONEYLINE_MODEL_IDS = new Set([
+  "tbm-mlb-moneyline-v1",
+  "tbm-nba-moneyline-v1",
+  "tbm-ncaab-moneyline-v1",
+  "tbm-ncaaf-moneyline-v1",
+  "tbm-nfl-moneyline-v1",
+  "tbm-nhl-moneyline-v1",
+  "tbm-soccer-moneyline-v1",
+  "tbm-ufc-moneyline-v1",
+  "tbm-wnba-moneyline-v1",
+]);
+
+export function isEstablishedProductionMoneylineModel(
+  model: Pick<ModelVersion, "modelId" | "market" | "status">,
+): boolean {
+  return model.market === "moneyline"
+    && model.status === "production"
+    && ESTABLISHED_MONEYLINE_MODEL_IDS.has(model.modelId);
+}
+
+export function grandfatherApprovalCutoffs(
+  modelCreatedAt: Date,
+  existingEvidenceCutoffs: readonly Date[],
+): Date[] {
+  return [...new Map(
+    [modelCreatedAt, ...existingEvidenceCutoffs]
+      .map((cutoff) => [cutoff.getTime(), cutoff] as const),
+  ).values()].sort((a, b) => a.getTime() - b.getTime());
+}
+
+/**
+ * Append exact approvals at every existing evidence cutoff for the established
+ * v1 moneyline models. Matching each prior cutoff ensures a later-created
+ * grandfather decision supersedes an automatic SHADOW row without rewriting
+ * that history. Automatic lifecycle sweeps skip only this explicit allowlist.
+ */
+export async function ensureEstablishedMoneylineApprovals(): Promise<number> {
+  const models = (await db
+    .select()
+    .from(modelVersionsTable)
+    .where(and(
+      eq(modelVersionsTable.market, "moneyline"),
+      eq(modelVersionsTable.status, "production"),
+    )))
+    .filter(isEstablishedProductionMoneylineModel);
+
+  let recorded = 0;
+  for (const model of models) {
+    const baseIdentity = moneylineApprovalIdentity(model, model.createdAt);
+    const existing = await db
+      .select({ evidenceCutoff: marketApprovalDecisionsTable.evidenceCutoff })
+      .from(marketApprovalDecisionsTable)
+      .where(and(
+        eq(marketApprovalDecisionsTable.sport, baseIdentity.sport),
+        eq(marketApprovalDecisionsTable.market, baseIdentity.market),
+        eq(marketApprovalDecisionsTable.modelVersion, baseIdentity.modelVersion),
+        eq(marketApprovalDecisionsTable.evaluationVersion, baseIdentity.evaluationVersion),
+        eq(marketApprovalDecisionsTable.datasetVersion, baseIdentity.datasetVersion),
+        eq(marketApprovalDecisionsTable.featureSchemaVersion, baseIdentity.featureSchemaVersion),
+      ));
+
+    for (const evidenceCutoff of grandfatherApprovalCutoffs(
+      model.createdAt,
+      existing.map((row) => row.evidenceCutoff),
+    )) {
+      const decision = await recordManualMarketApproval({
+        identity: { ...baseIdentity, evidenceCutoff },
+        dataIntegrity: {
+          status: "PASSED",
+          reasons: [],
+          metrics: { grandfatheredEstablishedMoneyline: true },
+        },
+        predictiveQuality: {
+          status: "PASSED",
+          reasons: [],
+          metrics: { grandfatheredEstablishedMoneyline: true },
+        },
+        bettingQuality: {
+          status: "PASSED",
+          reasons: [],
+          metrics: { grandfatheredEstablishedMoneyline: true },
+        },
+        sampleSize: 0,
+        status: "PRODUCTION_APPROVED",
+        reason: "Grandfathered established production moneyline behavior during exact approval ledger rollout",
+        evaluationMetadata: {
+          policy: "established-moneyline-v1-grandfather",
+          modelVersionId: model.id,
+        },
+      });
+      if (decision) recorded++;
+    }
+  }
+  return recorded;
+}
+
 /** Append automatic exact decisions from the latest immutable moneyline metrics. */
 export async function refreshMoneylineApprovalDecisions(
   modelVersionIds?: readonly number[],
@@ -339,6 +440,7 @@ export async function refreshMoneylineApprovalDecisions(
     ));
   let recorded = 0;
   for (const model of models) {
+    if (isEstablishedProductionMoneylineModel(model)) continue;
     const [metrics] = await db
       .select()
       .from(performanceMetricsTable)

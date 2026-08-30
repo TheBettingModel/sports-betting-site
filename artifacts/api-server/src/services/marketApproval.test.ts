@@ -3,12 +3,44 @@ import {
   deriveApprovalStatus,
   deriveAutomaticApprovalTransition,
   evaluateBettingQuality,
+  grandfatherApprovalCutoffs,
+  isEstablishedProductionMoneylineModel,
   marketApprovalDecisionHash,
 } from "./marketApproval";
 
 const passed = { status: "PASSED" as const, reasons: [], metrics: {} };
 
 describe("market approval lifecycle", () => {
+  it("grandfathers only the named production moneyline v1 models", () => {
+    expect(isEstablishedProductionMoneylineModel({
+      modelId: "tbm-mlb-moneyline-v1",
+      market: "moneyline",
+      status: "production",
+    })).toBe(true);
+    expect(isEstablishedProductionMoneylineModel({
+      modelId: "tbm-mlb-moneyline-v2",
+      market: "moneyline",
+      status: "production",
+    })).toBe(false);
+    expect(isEstablishedProductionMoneylineModel({
+      modelId: "tbm-mlb-moneyline-v1",
+      market: "spread",
+      status: "production",
+    })).toBe(false);
+    expect(isEstablishedProductionMoneylineModel({
+      modelId: "tbm-mlb-moneyline-v1",
+      market: "moneyline",
+      status: "retired",
+    })).toBe(false);
+  });
+
+  it("overrides every distinct historical approval cutoff deterministically", () => {
+    const createdAt = new Date("2026-07-20T00:00:00Z");
+    const later = new Date("2026-08-29T23:59:59.999Z");
+    expect(grandfatherApprovalCutoffs(createdAt, [later, createdAt, later]))
+      .toEqual([createdAt, later]);
+  });
+
   it("graduates each evidence layer in order", () => {
     expect(deriveApprovalStatus({
       hasEvaluationEvidence: false,
