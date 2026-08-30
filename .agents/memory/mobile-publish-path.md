@@ -32,3 +32,9 @@ Expo’s initial workflow-start response can display a stale commit even when an
 **Why:** The start response may reflect the last resolved branch snapshot, while `workflow_info` and the publish output identify the commit that was actually checked out and uploaded.
 
 **How to apply:** When publishing an OTA from a newly updated ref, verify the workflow’s `gitCommitHash` and the final `Commit` line in the publish log before deciding whether the release contains the intended UI change.
+
+If the release branch is stale, first sync the intended mobile source and its required workspace lock/API inputs into that branch, then publish from the resulting exact commit. A successful workflow from the old branch can otherwise leave the installed app unchanged.
+
+**Why:** Expo can successfully publish a valid update while the app still appears unchanged when the workflow checked out an older release-branch snapshot.
+
+**How to apply:** Treat a matching source commit as part of OTA validation, not just workflow success; after publication, force-close and relaunch the app twice so the downloaded bundle is applied.
