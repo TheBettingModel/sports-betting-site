@@ -3,8 +3,8 @@ name: Production startup DDL
 description: Why production schema changes must stay out of the API's pre-listen startup path.
 ---
 
-Production API startup must not execute schema DDL before opening its configured port. Replit's managed publish step owns production schema changes; idempotent startup migration fallbacks are development-only.
+Production API startup must open its configured port before any database reconciliation, and must not execute schema DDL in production startup. Replit's managed publish step owns production schema changes; idempotent startup migration fallbacks are development-only.
 
-**Why:** Even `ALTER TABLE ... IF NOT EXISTS` can wait on production table locks. When it runs before `listen()`, the API misses the platform's startup deadline despite healthy code and a successful build.
+**Why:** DDL and data reconciliation can wait on production locks. When either runs before `listen()`, the API misses the artifact supervisor's port deadline despite healthy code and a successful build.
 
-**How to apply:** Put production schema changes in the managed schema publish flow. Keep any local-development compatibility migration explicitly gated out of production, and preserve fail-closed data/registry reconciliation before traffic when it does not perform DDL.
+**How to apply:** Bind the port first and keep the health endpoint available, but gate every user-facing API route with `503` until reconciliation succeeds. Start schedulers only after readiness. Put production schema changes in the managed publish flow.

@@ -1,4 +1,4 @@
-import app from "./app";
+import app, { markStartupReady } from "./app";
 import { logger } from "./lib/logger";
 import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
@@ -144,6 +144,20 @@ async function applyStartupMigrations(): Promise<void> {
 }
 
 async function startServer(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    app.listen(port, (err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      logger.info({ port }, "Server listening; startup reconciliation pending");
+      resolve();
+    });
+  }).catch((err) => {
+    logger.error({ err }, "Error listening on port");
+    process.exit(1);
+  });
+
   // Production schema changes are applied by Replit's managed publish step.
   // Running DDL here can wait indefinitely on a table lock during a rolling
   // deployment, preventing the server from opening its port before the
@@ -190,44 +204,38 @@ async function startServer(): Promise<void> {
     process.exit(1);
   }
 
-  app.listen(port, (err) => {
-    if (err) {
-      logger.error({ err }, "Error listening on port");
-      process.exit(1);
-    }
+  markStartupReady();
+  logger.info({ port }, "Startup reconciliation complete; API ready");
 
-    logger.info({ port }, "Server listening");
+  // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
+  // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)
+  initJwks().catch((err) => logger.warn({ err }, "JWKS init failed"));
 
-    // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
-    // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)
-    initJwks().catch((err) => logger.warn({ err }, "JWKS init failed"));
+  // Start automation scheduler only after startup reconciliation succeeds.
+  if (process.env["NODE_ENV"] !== "test") {
+    startScheduler();
 
-    // Start automation scheduler after server is up
-    if (process.env["NODE_ENV"] !== "test") {
-      startScheduler();
-
-      // On startup, immediately recover any games that finished while the server
-      // was down (stale = non-final status from a past date), then grade pending
-      // picks. This ensures restarts after overnight downtime don't leave the
-      // Record tab empty until the hourly scheduler fires.
-      void (async () => {
-        try {
-          await recoverStaleGames();
-          await syncGameResults();
-          const graded = await runGrading();
-          // Grading establishes the immutable result. Learning only consumes
-          // those already-graded rows and is idempotent per pick result.
-          await runLearning();
-           await runForecastReviews();
-          if (graded > 0) {
-            logger.info({ graded }, "Startup: graded picks from stale games");
-          }
-        } catch (err) {
-          logger.warn({ err }, "Startup: catch-up grading failed — non-fatal");
+    // On startup, immediately recover any games that finished while the server
+    // was down (stale = non-final status from a past date), then grade pending
+    // picks. This ensures restarts after overnight downtime don't leave the
+    // Record tab empty until the hourly scheduler fires.
+    void (async () => {
+      try {
+        await recoverStaleGames();
+        await syncGameResults();
+        const graded = await runGrading();
+        // Grading establishes the immutable result. Learning only consumes
+        // those already-graded rows and is idempotent per pick result.
+        await runLearning();
+        await runForecastReviews();
+        if (graded > 0) {
+          logger.info({ graded }, "Startup: graded picks from stale games");
         }
-      })();
-    }
-  });
+      } catch (err) {
+        logger.warn({ err }, "Startup: catch-up grading failed — non-fatal");
+      }
+    })();
+  }
 }
 
 void startServer();
