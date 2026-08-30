@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { pgTable, serial, text, integer, date, timestamp, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 /**
@@ -48,6 +49,9 @@ export const modelVersionsTable = pgTable(
     uniqueIndex("model_versions_model_id_idx").on(t.modelId),
     index("model_versions_sport_market_idx").on(t.sport, t.market),
     index("model_versions_status_idx").on(t.status),
+    uniqueIndex("model_versions_one_production_per_market_unique")
+      .on(t.sport, t.market)
+      .where(sql`${t.status} = 'production'`),
   ],
 );
 

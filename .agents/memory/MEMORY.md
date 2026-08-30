@@ -31,3 +31,4 @@
 - [NCAAF challenger promotion](ncaaf-challenger-promotion.md) — market prices are comparison-only facts; promotion stays fail-closed until every OOS gate passes.
 - [Spread market isolation](spread-market-isolation.md) — model spreads independently by sport; moneyline stays first and shadow spreads cannot enter production records.
 - [Exact market approval ledger](exact-market-approval-ledger.md) — public permission is append-only and version-exact; missing or mismatched approval always fails closed.
+- [Production model registry safety](production-model-registry-safety.md) — canonical IDs, one production row per market, shared slot locks, and proven rollback provenance are mandatory.

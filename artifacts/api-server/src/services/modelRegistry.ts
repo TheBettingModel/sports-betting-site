@@ -14,7 +14,7 @@
  *   wrapped in a database transaction to guarantee atomicity.
  */
 
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   db,
   deploymentHistoryTable,
@@ -81,6 +81,26 @@ export interface TransitionStatusInput {
   masterApproved?: boolean;
   notes?: string;
   approvedBy?: string;
+}
+
+/**
+ * Live registry identities are deliberately stricter than development model
+ * names. Fixture/test records may exist for audit, but can never drive a
+ * production snapshot.
+ */
+export function isDeployableModelIdentity(
+  model: Pick<typeof modelVersionsTable.$inferSelect, "modelId" | "sport" | "market">,
+): boolean {
+  const sport = model.sport.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const market = model.market.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  return new RegExp(`^tbm-${sport}-${market}-v[1-9][0-9]*$`, "i").test(model.modelId);
+}
+
+/** Shared transaction lock for every writer of a production registry slot. */
+export function modelRegistryProductionLock(sport: string, market: string) {
+  return sql`SELECT pg_advisory_xact_lock(hashtext(${
+    `model-registry:${sport.toLowerCase()}:${market.toLowerCase()}`
+  }))`;
 }
 
 // ── Internal helper ───────────────────────────────────────────────────────────
@@ -272,6 +292,13 @@ export async function transitionModelStatus(
   const { newStatus, performedBy, masterApproved, notes, approvedBy } = input;
   const allowed = VALID_TRANSITIONS[current.status] ?? [];
 
+  if (newStatus === "production" && !isDeployableModelIdentity(current)) {
+    throw new Error(
+      `Model identity "${current.modelId}" is not eligible for production. ` +
+        `Production IDs must use the canonical tbm-${current.sport.toLowerCase()}-${current.market}-vN format.`,
+    );
+  }
+
   if (!allowed.includes(newStatus)) {
     throw new Error(
       `Invalid transition: ${current.status} → ${newStatus}. ` +
@@ -383,6 +410,20 @@ export async function transitionModelStatus(
 
   // ── All writes are atomic ─────────────────────────────────────────────────
   await db.transaction(async (tx) => {
+    let lockedCurrent = current;
+    if (current.status === "production" || newStatus === "production") {
+      await tx.execute(modelRegistryProductionLock(current.sport, current.market));
+      const [freshCurrent] = await tx
+        .select()
+        .from(modelVersionsTable)
+        .where(eq(modelVersionsTable.id, modelVersionId))
+        .limit(1);
+      if (!freshCurrent || freshCurrent.status !== current.status) {
+        throw new Error("Model status changed while awaiting the production registry lock");
+      }
+      lockedCurrent = freshCurrent;
+    }
+
     // Retire the incumbent production model if we are promoting a new one
     if (newStatus === "production") {
       const [incumbent] = await tx
@@ -396,6 +437,40 @@ export async function transitionModelStatus(
           ),
         )
         .limit(1);
+      if (requiresMlbGate) {
+        const [lockedComparison] = await tx
+          .select({
+            championVersionId: modelComparisonsTable.championVersionId,
+            challengerMetrics: modelComparisonsTable.challengerMetrics,
+          })
+          .from(modelComparisonsTable)
+          .where(
+            and(
+              eq(modelComparisonsTable.challengerVersionId, modelVersionId),
+              eq(modelComparisonsTable.sport, "MLB"),
+              eq(modelComparisonsTable.market, "moneyline"),
+              eq(modelComparisonsTable.verdict, "challenger_better"),
+            ),
+          )
+          .orderBy(desc(modelComparisonsTable.updatedAt))
+          .limit(1);
+        const lockedMetrics = lockedComparison?.challengerMetrics as {
+          mlbPromotionGate?: unknown;
+        } | null | undefined;
+        if (
+          !incumbent
+          || !lockedComparison
+          || lockedComparison.championVersionId !== incumbent.id
+          || !isPassingMlbPromotionGate(lockedMetrics?.mlbPromotionGate)
+          || !lockedCurrent.approvedBy
+          || !approvedBy
+          || approvedBy === lockedCurrent.approvedBy
+        ) {
+          throw new Error(
+            "MLB moneyline production eligibility changed while awaiting the registry lock",
+          );
+        }
+      }
 
       if (incumbent && incumbent.id !== modelVersionId) {
         await tx
@@ -439,10 +514,17 @@ export async function transitionModelStatus(
       updates.deploymentApprovedBy = approvedBy ?? performedBy;
     }
 
-    await tx
+    const [statusUpdated] = await tx
       .update(modelVersionsTable)
       .set(updates)
-      .where(eq(modelVersionsTable.id, modelVersionId));
+      .where(and(
+        eq(modelVersionsTable.id, modelVersionId),
+        eq(modelVersionsTable.status, lockedCurrent.status),
+      ))
+      .returning({ id: modelVersionsTable.id });
+    if (!statusUpdated) {
+      throw new Error("Model status changed before the lifecycle update could be applied");
+    }
 
     const actionMap: Record<string, string> = {
       production: "deploy",
@@ -517,6 +599,32 @@ export async function rollbackModel(
   const previousTargetStatus = target.status;
 
   await db.transaction(async (tx) => {
+    await tx.execute(modelRegistryProductionLock(current.sport, current.market));
+    const [lockedCurrent] = await tx
+      .select()
+      .from(modelVersionsTable)
+      .where(eq(modelVersionsTable.id, modelVersionId))
+      .limit(1);
+    if (
+      !lockedCurrent
+      || lockedCurrent.status !== "production"
+      || lockedCurrent.rollbackTargetId !== current.rollbackTargetId
+    ) {
+      throw new Error("Rollback source changed while awaiting the production registry lock");
+    }
+    const [lockedTarget] = await tx
+      .select()
+      .from(modelVersionsTable)
+      .where(eq(modelVersionsTable.id, lockedCurrent.rollbackTargetId!))
+      .limit(1);
+    if (!lockedTarget || lockedTarget.status !== previousTargetStatus) {
+      throw new Error("Rollback target changed while awaiting the production registry lock");
+    }
+    if (!isDeployableModelIdentity(lockedTarget)) {
+      throw new Error(
+        `Rollback target "${lockedTarget.modelId}" is not eligible for production`,
+      );
+    }
     // Retire current production
     await tx
       .update(modelVersionsTable)

@@ -6,6 +6,7 @@ import {
   sportsbooksTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { isDeployableModelIdentity } from "./modelRegistry";
 
 const SPORTS = ["NFL", "NCAAF", "NBA", "NCAAB", "MLB", "NHL", "WNBA", "Soccer", "UFC"] as const;
 
@@ -89,12 +90,42 @@ async function runBootstrap(): Promise<BootstrapIds> {
     .select()
     .from(modelVersionsTable)
     .where(eq(modelVersionsTable.status, "production"));
-  const modelVersionIds: Record<string, number> = Object.fromEntries(
-    versions.map((v) => [v.sport, v.id]),
+  const deployableVersions = versions.filter((version) =>
+    isDeployableModelIdentity(version)
   );
+  const rejectedVersions = versions.filter((version) =>
+    !isDeployableModelIdentity(version)
+  );
+  if (rejectedVersions.length > 0) {
+    logger.error(
+      {
+        rejectedProductionModels: rejectedVersions.map((version) => ({
+          id: version.id,
+          modelId: version.modelId,
+          sport: version.sport,
+          market: version.market,
+        })),
+      },
+      "Bootstrap rejected invalid production model identities",
+    );
+  }
+  const modelVersionIds: Record<string, number> = {};
+  for (const version of deployableVersions) {
+    if (version.market !== "moneyline") continue;
+    if (modelVersionIds[version.sport] !== undefined) {
+      throw new Error(
+        `Bootstrap: multiple deployable production moneyline models found for ${version.sport}`,
+      );
+    }
+    modelVersionIds[version.sport] = version.id;
+  }
 
   logger.info(
-    { markets: markets.length, modelVersions: versions.length },
+    {
+      markets: markets.length,
+      modelVersions: deployableVersions.length,
+      rejectedModelVersions: rejectedVersions.length,
+    },
     "Bootstrap complete",
   );
 

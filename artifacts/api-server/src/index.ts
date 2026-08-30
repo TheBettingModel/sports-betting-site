@@ -7,6 +7,7 @@ import { runForecastReviews } from "./services/forecastReviews";
 import { normalizeMlbConfidenceRecovery, runLearning } from "./services/learning";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
+import { reconcileMlbProductionRegistry } from "./services/modelRegistryReconciliation";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -144,6 +145,12 @@ async function applyStartupMigrations(): Promise<void> {
 
 async function startServer(): Promise<void> {
   await applyStartupMigrations();
+  try {
+    await reconcileMlbProductionRegistry();
+  } catch (err) {
+    logger.error({ err }, "MLB production model registry reconciliation failed");
+    process.exit(1);
+  }
   try {
     const normalized = await normalizeMlbConfidenceRecovery();
     logger.info({ normalized }, "MLB confidence recovery baseline checked");
