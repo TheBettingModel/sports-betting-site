@@ -23,4 +23,8 @@ Existing App Store binaries that were built with the dev domain cannot receive a
 
 **How to apply:** Before release, query `/api/results/summary` on both domains and verify the production bundle uses `thebettingmodel.replit.app`; after release, verify the installed build’s reported figures match the production endpoint. If an older build is still in the wild, temporarily set the app version to that build's runtime only while publishing its compatible OTA, then restore the declared next-release version.
 
-Metro port was also changed from 8081 → 8083 in `build.js` to avoid collision with the mockup-sandbox workflow that occupies 8081.
+Authenticated test setup must target the exact API domain used by the mobile bundle; preview and production domains are isolated even when both accept the same identity token.
+
+**Why:** Cross-domain setup can produce valid authentication against the wrong database and yield misleading access results.
+
+**How to apply:** Capture the app's request hostname first, then use that hostname consistently for setup, verification, and cleanup.

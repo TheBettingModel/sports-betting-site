@@ -91,6 +91,33 @@ async function hasActiveProEntitlement(
   }
 }
 
+export async function getVerifiedProEntitlement(
+  customerId: string,
+): Promise<{ isActive: boolean; expiresAt: Date | null }> {
+  if (!PROJECT_ID) {
+    throw new Error("REVENUECAT_PROJECT_ID is not configured");
+  }
+
+  const client = await getRevenueCatClient();
+  const { data, error } = await listCustomerActiveEntitlements({
+    client,
+    path: { project_id: PROJECT_ID, customer_id: customerId },
+  });
+  if (error) {
+    throw new Error("RevenueCat entitlement verification failed");
+  }
+
+  const entitlement = data?.items?.find(
+    (item) => item.entitlement_id === PRO_ENTITLEMENT,
+  );
+  return {
+    isActive: Boolean(entitlement),
+    expiresAt: entitlement?.expires_at
+      ? new Date(entitlement.expires_at)
+      : null,
+  };
+}
+
 export interface ReconcileResult {
   checked: number;
   revoked: number;

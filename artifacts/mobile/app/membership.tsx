@@ -141,8 +141,8 @@ export default function MembershipScreen() {
         setRestoreMsg('');
         router.back();
       }, 1500);
-    } catch {
-      setErrorMsg('No purchases found to restore.');
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? 'Unable to restore purchases. Please check your connection and try again.');
     }
   };
 

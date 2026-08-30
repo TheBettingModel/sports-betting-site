@@ -24,17 +24,20 @@ import {
   resolveSubscriberStatus,
   rejectInvalidToken,
 } from "../middleware/requireSubscriber";
+import { getVerifiedProEntitlement } from "../services/subscriberReconciliation";
 
 const router: IRouter = Router();
 
 const PRO_ENTITLEMENT = "pro";
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 router.post(
   "/subscriptions/sync",
   resolveSubscriberStatus,
   rejectInvalidToken,
   async (req: Request, res: Response): Promise<void> => {
+    res.set("Cache-Control", "private, no-store");
+    res.set("Vary", "Authorization");
+
     const { userId } = req.subscriberStatus!;
 
     if (!userId) {
@@ -42,59 +45,41 @@ router.post(
       return;
     }
 
-    const body = req.body as {
-      entitlementId?: string;
-      expiresAt?: string | null;
-      isActive?: boolean;
-    };
-
-    const entitlementId = body.entitlementId ?? PRO_ENTITLEMENT;
-
-    // Only handle the pro entitlement through this route
-    if (entitlementId !== PRO_ENTITLEMENT) {
-      res.status(400).json({ error: `Unknown entitlement: ${entitlementId}` });
-      return;
-    }
-
-    const isActive = body.isActive !== false; // defaults to true unless explicitly false
-
-    // Parse expiresAt from the client, fall back to +1 year
-    let expiresAt: Date | undefined;
-    if (body.expiresAt) {
-      const parsed = new Date(body.expiresAt);
-      if (!isNaN(parsed.getTime())) {
-        expiresAt = parsed;
-      }
-    }
-    if (!expiresAt && isActive) {
-      expiresAt = new Date(Date.now() + ONE_YEAR_MS);
-    }
-
     try {
+      // Never trust entitlement claims from the request body. The Clerk subject
+      // is the RevenueCat app-user ID, and RevenueCat is the authority on access.
+      const verified = await getVerifiedProEntitlement(userId);
+      if (!verified.isActive) {
+        res.status(403).json({
+          error: "RevenueCat does not show an active Pro entitlement for this account",
+        });
+        return;
+      }
+
       await db
         .insert(subscribersTable)
         .values({
           userId,
           entitlement: PRO_ENTITLEMENT,
-          isActive,
-          expiresAt,
+          isActive: true,
+          expiresAt: verified.expiresAt ?? undefined,
         })
         .onConflictDoUpdate({
           target: subscribersTable.userId,
           set: {
             entitlement: PRO_ENTITLEMENT,
-            isActive,
-            expiresAt,
+            isActive: true,
+            expiresAt: verified.expiresAt ?? undefined,
             updatedAt: new Date(),
           },
         });
 
       logger.info(
-        { userId, isActive, expiresAt },
+        { userId, expiresAt: verified.expiresAt },
         "Subscription sync: subscriber record upserted",
       );
 
-      res.status(200).json({ synced: true, isSubscribed: isActive });
+      res.status(200).json({ synced: true, isSubscribed: true });
     } catch (err) {
       logger.error({ err, userId }, "Subscription sync: DB upsert failed");
       res.status(500).json({ error: "Failed to sync subscription" });
@@ -113,6 +98,9 @@ router.get(
   resolveSubscriberStatus,
   rejectInvalidToken,
   async (req: Request, res: Response): Promise<void> => {
+    res.set("Cache-Control", "private, no-store");
+    res.set("Vary", "Authorization");
+
     const { userId, isSubscribed } = req.subscriberStatus!;
 
     if (!userId) {

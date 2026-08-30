@@ -23,6 +23,9 @@ import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import type { Game } from '@/data/mockGames';
 import { useSubscription } from '@/lib/revenuecat';
+import { getForecastMoneylineIdentity } from '@/utils/forecastProjection';
+import { gamesTodayQueryKey } from '@/utils/viewerQueryKeys';
+import { useAuth } from '@clerk/expo';
 
 const FREE_PICKS = 2;
 const SKELETON_COUNT = 6;
@@ -87,7 +90,7 @@ function getForecast(game: Game): Forecast {
     };
   }
 
-  const projectedHome = game.projection.homeWinPct >= 50;
+  const moneyline = getForecastMoneylineIdentity(game);
   const edgeSideIsHome = game.projection.edge >= 0;
   const edgeSideOdds = edgeSideIsHome
     ? game.vegasLine.homeOdds
@@ -102,26 +105,20 @@ function getForecast(game: Game): Forecast {
   return {
     game,
     state: hasModelLean ? 'model-lean' : 'no-bet',
-    projectedTeam: projectedHome ? game.homeTeam.abbr : game.awayTeam.abbr,
-    modelProbability: projectedHome
-      ? game.projection.homeWinPct
-      : 100 - game.projection.homeWinPct,
-    marketOdds: projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds,
+    projectedTeam: moneyline.teamAbbr,
+    modelProbability: moneyline.probability,
+    marketOdds: moneyline.marketOdds,
     edge: Math.abs(game.projection.edge),
   };
 }
 
 function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: ReturnType<typeof useColors> }) {
   const { game } = forecast;
-  const projectedHome = game.projection.homeWinPct >= 50;
-  const projectedTeam = projectedHome ? game.homeTeam.abbr : game.awayTeam.abbr;
-  const mlProbability = game.moneylineMarket?.modelProbability
-    ?? (projectedHome ? game.projection.homeWinPct : 100 - game.projection.homeWinPct);
+  const moneyline = getForecastMoneylineIdentity(game);
   const spreadProbability = game.spreadMarket?.modelProbability;
   const spreadDetail = game.spreadMarket
     ? `${game.spreadMarket.teamAbbr} ${game.spreadMarket.line != null ? `${game.spreadMarket.line > 0 ? '+' : ''}${game.spreadMarket.line}` : ''} · ${formatOdds(game.spreadMarket.odds)}`
     : 'NO SPREAD PROJECTION';
-  const fairPrice = game.moneylineMarket?.fairPrice;
   const insightText = game.insights?.length ? game.insights.join(' · ') : null;
 
   return (
@@ -133,9 +130,9 @@ function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: Ret
       <View style={[styles.forecastProbabilityGrid, { borderColor: colors.border }]}>
         <View style={styles.forecastProbabilityCell}>
           <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>ML WIN</Text>
-          <Text style={[styles.forecastProbability, { color: colors.primary }]}>{mlProbability.toFixed(1)}%</Text>
+          <Text style={[styles.forecastProbability, { color: colors.primary }]}>{moneyline.probability.toFixed(1)}%</Text>
           <Text style={[styles.forecastMetricDetail, { color: colors.foreground }]}>
-            {projectedTeam} · {formatOdds(game.moneylineMarket?.odds ?? (projectedHome ? game.vegasLine.homeOdds : game.vegasLine.awayOdds))}
+            {moneyline.teamAbbr} · {formatOdds(moneyline.marketOdds)}
           </Text>
         </View>
         <View style={[styles.forecastProbabilityDivider, { backgroundColor: colors.border }]} />
@@ -156,12 +153,10 @@ function ForecastDetails({ forecast, colors }: { forecast: Forecast; colors: Ret
           <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>CONFIDENCE</Text>
           <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{game.projection.confidence}</Text>
         </View>
-        {fairPrice != null && (
-          <View style={styles.forecastAnalysisRow}>
-            <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>FAIR ML PRICE</Text>
-            <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{formatOdds(fairPrice)}</Text>
-          </View>
-        )}
+        <View style={styles.forecastAnalysisRow}>
+          <Text style={[styles.forecastMetricLabel, { color: colors.mutedForeground }]}>FAIR ML PRICE</Text>
+          <Text style={[styles.forecastMetricValue, { color: colors.foreground }]}>{formatOdds(moneyline.fairPrice)}</Text>
+        </View>
         {insightText && <Text style={[styles.forecastInsight, { color: colors.mutedForeground }]}>{insightText}</Text>}
       </View>
     </View>
@@ -195,11 +190,17 @@ export default function PicksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { userId } = useAuth();
   const { isSubscribed } = useSubscription();
   const { selectedSport } = useSports();
   const [expandedForecastId, setExpandedForecastId] = React.useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useGetGamesToday();
+  const { data, isLoading, refetch } = useGetGamesToday(undefined, {
+    query: {
+      queryKey: gamesTodayQueryKey(userId),
+      enabled: Boolean(userId),
+    },
+  });
   useEffect(() => {
     // Keep an open Picks screen current without relying on a manual
     // pull-to-refresh. The API performs the heavier model refresh at most
@@ -493,7 +494,7 @@ export default function PicksScreen() {
       const isLockedForecast = forecast.state === 'locked';
       const isExpanded = expandedForecastId === forecast.game.id;
       const statusLabel = forecast.state === 'model-lean'
-        ? `PICK · #${forecast.leanRank}`
+        ? `MODEL LEAN · #${forecast.leanRank}`
         : forecast.state === 'no-bet'
           ? 'NO BET'
           : forecast.state === 'awaiting-data'
@@ -558,7 +559,7 @@ export default function PicksScreen() {
             ) : (
               <>
                 <Text style={[styles.forecastProjection, { color: colors.foreground }]}>
-                  {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'PICK' : 'NO BET'}
+                  {forecast.projectedTeam} · {forecast.state === 'model-lean' ? 'MODEL LEAN' : 'NO BET'}
                 </Text>
                 <Text
                   style={[styles.forecastMarket, { color: colors.mutedForeground }]}
@@ -566,7 +567,7 @@ export default function PicksScreen() {
                   adjustsFontSizeToFit
                   minimumFontScale={0.78}
                 >
-                  TBM {forecast.modelProbability?.toFixed(1)}% · EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
+                  MODEL WIN {forecast.modelProbability?.toFixed(1)}% · EDGE +{forecast.edge!.toFixed(1)}% · MARKET {formatOdds(forecast.marketOdds!)}
                 </Text>
               </>
             )}

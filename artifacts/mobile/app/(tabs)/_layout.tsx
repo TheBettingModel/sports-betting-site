@@ -5,9 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Redirect, Tabs } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useAuth, useUser } from '@clerk/expo';
-import { setAuthTokenGetter } from '@workspace/api-client-react';
-import Purchases from 'react-native-purchases';
+import { useAuth } from '@clerk/expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
@@ -92,14 +90,8 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  const { isSignedIn, getToken, userId } = useAuth();
+  const { isSignedIn } = useAuth();
   const { enableNotifications } = usePushNotifications();
-
-  // Wire Clerk bearer token into all API client requests (mobile has no cookie jar)
-  useEffect(() => {
-    setAuthTokenGetter(() => getToken());
-    return () => { setAuthTokenGetter(null); };
-  }, [getToken]);
 
   // Ask for push notification permission once, shortly after first sign-in.
   // Runs the full enableNotifications flow: OS prompt + Expo token + server registration.
@@ -118,15 +110,6 @@ export default function TabLayout() {
     }, 3000);
     return () => clearTimeout(timer);
   }, [isSignedIn, enableNotifications]);
-
-  // Identify signed-in user with RevenueCat so purchases are linked to their account
-  useEffect(() => {
-    if (userId) {
-      Purchases.logIn(userId).catch((err) =>
-        console.warn('[RevenueCat] logIn failed:', err?.message),
-      );
-    }
-  }, [userId]);
 
   // Not signed in — redirect to auth
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;

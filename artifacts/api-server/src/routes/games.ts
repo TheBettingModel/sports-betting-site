@@ -805,6 +805,11 @@ export async function refreshAll(): Promise<{
  *     with ?sport= cannot be used to extract additional premium picks.
  */
 router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
+  // This response differs by bearer token and subscription status. Never let a
+  // browser/CDN reuse a pre-purchase locked response after entitlement changes.
+  res.set("Cache-Control", "private, no-store");
+  res.set("Vary", "Authorization");
+
   if (isStale()) {
     try {
       await refreshAll();

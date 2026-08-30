@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ClerkProvider, ClerkLoaded, ClerkLoading } from '@clerk/expo';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { ClerkProvider, ClerkLoaded, ClerkLoading, useAuth } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -38,6 +39,19 @@ try {
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+function ApiAuthBridge({ children }: { children: React.ReactNode }) {
+  const { getToken } = useAuth();
+
+  // Install the token getter before descendant query effects can issue their
+  // first request. A passive effect here lets Picks race ahead unauthenticated.
+  useLayoutEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => setAuthTokenGetter(null);
+  }, [getToken]);
+
+  return children;
+}
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
@@ -177,15 +191,17 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <ErrorBoundary>
               <QueryClientProvider client={queryClient}>
-                <SubscriptionProvider>
-                  <SportsProvider>
-                    <GestureHandlerRootView>
-                      <KeyboardProvider>
-                        <RootLayoutNav showDisclaimer={showDisclaimer} />
-                      </KeyboardProvider>
-                    </GestureHandlerRootView>
-                  </SportsProvider>
-                </SubscriptionProvider>
+                <ApiAuthBridge>
+                  <SubscriptionProvider>
+                    <SportsProvider>
+                      <GestureHandlerRootView>
+                        <KeyboardProvider>
+                          <RootLayoutNav showDisclaimer={showDisclaimer} />
+                        </KeyboardProvider>
+                      </GestureHandlerRootView>
+                    </SportsProvider>
+                  </SubscriptionProvider>
+                </ApiAuthBridge>
               </QueryClientProvider>
             </ErrorBoundary>
           </SafeAreaProvider>
