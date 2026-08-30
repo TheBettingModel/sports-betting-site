@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import {
   db,
   deploymentHistoryTable,
@@ -24,6 +24,8 @@ export interface MlbRegistryRepairPlan {
 export interface PriorDeploymentEvidence {
   modelVersionId: number | null;
   action: string;
+  previousStatus: string | null;
+  newStatus: string | null;
   approvedBy: string | null;
   performedAt: Date;
 }
@@ -40,8 +42,14 @@ export function isQualifiedPriorDeployment(
   evidence: PriorDeploymentEvidence,
 ): boolean {
   const approver = evidence.approvedBy?.trim() ?? "";
+  const provesProduction = evidence.newStatus === "production"
+    || (
+      evidence.action === "auto_retire"
+      && evidence.previousStatus === "production"
+    );
   return evidence.modelVersionId !== null
     && QUALIFYING_PRIOR_DEPLOYMENT_ACTIONS.has(evidence.action)
+    && provesProduction
     && approver.length > 0
     && !approver.toLowerCase().startsWith("system");
 }
@@ -117,13 +125,21 @@ export async function reconcileMlbProductionRegistry(): Promise<MlbRegistryRepai
       .select({
         modelVersionId: deploymentHistoryTable.modelVersionId,
         action: deploymentHistoryTable.action,
+        previousStatus: deploymentHistoryTable.previousStatus,
+        newStatus: deploymentHistoryTable.newStatus,
         approvedBy: deploymentHistoryTable.approvedBy,
         performedAt: deploymentHistoryTable.performedAt,
       })
       .from(deploymentHistoryTable)
       .where(and(
-        eq(deploymentHistoryTable.newStatus, "production"),
         inArray(deploymentHistoryTable.modelVersionId, models.map((model) => model.id)),
+        or(
+          eq(deploymentHistoryTable.newStatus, "production"),
+          and(
+            eq(deploymentHistoryTable.action, "auto_retire"),
+            eq(deploymentHistoryTable.previousStatus, "production"),
+          ),
+        ),
       ));
     const derived = deriveMlbRegistryRepairPlan(models, priorDeployments);
     if (derived.contaminatedProductionIds.length === 0) return derived;

@@ -24,6 +24,8 @@ function priorDeployment(
   return {
     modelVersionId,
     action,
+    previousStatus: action === "auto_retire" ? "production" : "approved",
+    newStatus: action === "auto_retire" ? "retired" : "production",
     approvedBy,
     performedAt: new Date("2026-07-20T18:47:50.540Z"),
   };
@@ -58,6 +60,15 @@ describe("MLB registry contamination repair", () => {
       model(4, "tbm-mlb-moneyline-v2", "challenger"),
       model(9, "test-mlb-moneyline-v99-1784573270185", "production"),
     ]);
+  });
+
+  it("accepts an auto-retire row as proof the canonical model was production", () => {
+    const evidence = priorDeployment(3, "admin", "auto_retire");
+    expect(evidence).toMatchObject({
+      previousStatus: "production",
+      newStatus: "retired",
+    });
+    expect(isQualifiedPriorDeployment(evidence)).toBe(true);
   });
 
   it("fails closed when valid and contaminated production models coexist", () => {
@@ -106,6 +117,10 @@ describe("MLB registry contamination repair", () => {
     priorDeployment(3, "system"),
     priorDeployment(3, "system:model-registry-reconciliation"),
     priorDeployment(3, "admin", "registry_contamination_restore"),
+    {
+      ...priorDeployment(3, "admin", "auto_retire"),
+      previousStatus: "retired",
+    },
   ])("rejects synthetic or unnamed prior deployment provenance", (evidence) => {
     expect(isQualifiedPriorDeployment(evidence)).toBe(false);
     expect(() => deriveMlbRegistryRepairPlan([

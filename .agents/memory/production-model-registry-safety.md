@@ -7,4 +7,4 @@ Only canonical TBM model identities may occupy a production registry slot. Enfor
 
 **Why:** A fixture-like MLB model was able to become the active production registry row. Repairing only the selector would not prevent stale concurrent promotions, misleading audit history, or a rollback from restoring another fixture.
 
-**How to apply:** Revalidate status, incumbent comparisons, approvals, and rollback targets after acquiring the slot lock. Emergency restoration must require immutable evidence of a prior named, non-system-approved deployment. Never rewrite historical predictions, and never treat registry restoration as exact market publication approval.
+**How to apply:** Revalidate status, incumbent comparisons, approvals, and rollback targets after acquiring the slot lock. Emergency restoration must require immutable evidence of a prior named, non-system-approved deployment. A named `auto_retire` row with `previous_status=production` is valid proof even though its `new_status` is `retired`. Never rewrite historical predictions, and never treat registry restoration as exact market publication approval.
