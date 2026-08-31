@@ -514,9 +514,13 @@ export async function fetchSportGamesByDate(
     const games: FetchedGame[] = [];
 
     for (const event of events) {
+      // ESPN occasionally returns placeholder schedule events without a
+      // competitions array. Treat those records as unavailable provider data
+      // rather than dereferencing an assumed payload shape.
+      const competitions = Array.isArray(event.competitions) ? event.competitions : [];
       const competitionsToProcess = sport === "UFC"
-        ? event.competitions
-        : (event.competitions[0] ? [event.competitions[0]] : []);
+        ? competitions
+        : (competitions[0] ? [competitions[0]] : []);
 
       for (const competition of competitionsToProcess) {
         const home = competition.competitors.find((c) => c.homeAway === "home")

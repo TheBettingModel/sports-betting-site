@@ -5,7 +5,7 @@
  * pick_results, model_predictions, or model_weights.
  */
 
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import {
   db,
   forecastReviewsTable,
@@ -23,6 +23,7 @@ import {
 } from "./grading";
 import { isDecisionSnapshot } from "./lossReview";
 import { logger } from "../lib/logger";
+import { logSchedulerMemory } from "./schedulerRuntime";
 
 export type ForecastReviewOutcome = Exclude<GradeResult, "pending">;
 export type ForecastReviewStatus = "graded" | "excluded";
@@ -302,7 +303,16 @@ export async function runForecastReviews(): Promise<{
   graded: number;
   excluded: number;
 }> {
-  const candidates = await db
+  const batchSize = 100;
+  const startedAt = performance.now();
+  let afterPredictionId = 0;
+  let inserted = 0;
+  let graded = 0;
+  let excluded = 0;
+  let batchNumber = 0;
+
+  while (true) {
+    const candidates = await db
     .select({
       predictionId: modelPredictionsTable.id,
       gameId: modelPredictionsTable.gameId,
@@ -327,13 +337,26 @@ export async function runForecastReviews(): Promise<{
     .from(modelPredictionsTable)
     .innerJoin(gameResultsTable, eq(gameResultsTable.gameId, modelPredictionsTable.gameId))
     .leftJoin(forecastReviewsTable, eq(forecastReviewsTable.predictionId, modelPredictionsTable.id))
-    .where(isNull(forecastReviewsTable.id))
-    .orderBy(asc(modelPredictionsTable.id));
+    .where(and(
+      isNull(forecastReviewsTable.id),
+      gt(modelPredictionsTable.id, afterPredictionId),
+    ))
+    .orderBy(asc(modelPredictionsTable.id))
+    .limit(batchSize);
 
-  if (candidates.length === 0) return { inserted: 0, graded: 0, excluded: 0 };
+    if (candidates.length === 0) break;
+    batchNumber++;
+    afterPredictionId = candidates[candidates.length - 1]!.predictionId;
+    logSchedulerMemory(logger, {
+      jobName: "forecast-reviews",
+      phase: "batch",
+      startedAt,
+      batchSize: candidates.length,
+      batchNumber,
+    });
 
-  const predictionIds = candidates.map((row) => row.predictionId);
-  const publishedRows = await db
+    const predictionIds = candidates.map((row) => row.predictionId);
+    const publishedRows = await db
     .select({
       predictionId: publishedPicksTable.predictionId,
       id: publishedPicksTable.id,
@@ -343,15 +366,15 @@ export async function runForecastReviews(): Promise<{
     .where(inArray(publishedPicksTable.predictionId, predictionIds))
     .orderBy(desc(publishedPicksTable.isPublic), desc(publishedPicksTable.publishedAt));
 
-  const publishedByPrediction = new Map<number, { id: number; isPublic: boolean }>();
-  for (const row of publishedRows) {
-    if (!publishedByPrediction.has(row.predictionId)) {
-      publishedByPrediction.set(row.predictionId, { id: row.id, isPublic: row.isPublic });
+    const publishedByPrediction = new Map<number, { id: number; isPublic: boolean }>();
+    for (const row of publishedRows) {
+      if (!publishedByPrediction.has(row.predictionId)) {
+        publishedByPrediction.set(row.predictionId, { id: row.id, isPublic: row.isPublic });
+      }
     }
-  }
 
-  const now = new Date();
-  const values = candidates.map((candidate: PredictionCandidate) => {
+    const now = new Date();
+    const values = candidates.map((candidate: PredictionCandidate) => {
     const published = publishedByPrediction.get(candidate.predictionId);
     const eligibility = classifyForecastEligibility({
       snapshot: candidate.featureSnapshot,
@@ -418,17 +441,12 @@ export async function runForecastReviews(): Promise<{
       reviewedAt: now,
       createdAt: now,
     };
-  });
+    });
 
-  let inserted = 0;
-  let graded = 0;
-  let excluded = 0;
-  for (let i = 0; i < values.length; i += 100) {
-    const batch = values.slice(i, i + 100);
     const claimed = await db.transaction(async (tx) =>
       tx
         .insert(forecastReviewsTable)
-        .values(batch)
+        .values(values)
         .onConflictDoNothing({ target: forecastReviewsTable.predictionId })
         .returning({
           id: forecastReviewsTable.id,

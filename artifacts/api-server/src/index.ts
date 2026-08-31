@@ -1,10 +1,7 @@
 import app, { markStartupReady } from "./app";
 import { logger } from "./lib/logger";
-import { startScheduler } from "./services/scheduler";
+import { runStartupCatchUp, startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
-import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
-import { runForecastReviews } from "./services/forecastReviews";
-import { runLearning } from "./services/learning";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
 import { reconcileMlbProductionRegistry } from "./services/modelRegistryReconciliation";
@@ -231,22 +228,9 @@ async function startServer(): Promise<void> {
     // was down (stale = non-final status from a past date), then grade pending
     // picks. This ensures restarts after overnight downtime don't leave the
     // Record tab empty until the hourly scheduler fires.
-    void (async () => {
-      try {
-        await recoverStaleGames();
-        await syncGameResults();
-        const graded = await runGrading();
-        // Grading establishes the immutable result. Learning only consumes
-        // those already-graded rows and is idempotent per pick result.
-        await runLearning();
-        await runForecastReviews();
-        if (graded > 0) {
-          logger.info({ graded }, "Startup: graded picks from stale games");
-        }
-      } catch (err) {
-        logger.warn({ err }, "Startup: catch-up grading failed — non-fatal");
-      }
-    })();
+    // Use the scheduler's heavy-job group so startup recovery cannot overlap
+    // odds ingestion, hourly grading, or analytics refresh.
+    void runStartupCatchUp();
   }
 }
 

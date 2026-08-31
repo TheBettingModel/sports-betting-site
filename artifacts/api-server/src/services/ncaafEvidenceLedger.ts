@@ -9,6 +9,7 @@ import {
   ncaafMarketObservationsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { processInBatches } from "./schedulerRuntime";
 import { fetchSportGamesByDate, type FetchedGame } from "./espn";
 import { fetchCurrentNcaafEvidenceOdds, type OddsApiGame } from "./oddsApi";
 
@@ -251,21 +252,26 @@ export async function captureNcaafEvidenceDate(
       const providerDate = safeProviderDate(game.commence_time)!;
       return easternDateString(providerDate);
     }))].filter((dateKey) => dateKey !== yyyymmdd);
-    const additionalResults = await Promise.allSettled(
-      additionalDates.map(async (dateKey) => ({
-        dateKey,
-        games: await fetchEspn(dateKey),
-      })),
-    );
-    for (let index = 0; index < additionalResults.length; index++) {
-      const result = additionalResults[index];
-      const dateKey = additionalDates[index];
-      if (result.status === "fulfilled") {
-        for (const game of result.value.games) espnGamesById.set(game.espnId, game);
-      } else {
-        providerErrors[`espn:${dateKey}`] = String(result.reason);
+    // Provider schedules can span many future dates. Keep only a small number
+    // of response payloads live at once instead of retaining the entire season
+    // fan-out until Promise.allSettled completes.
+    await processInBatches(additionalDates, 4, async (dateBatch) => {
+      const additionalResults = await Promise.allSettled(
+        dateBatch.map(async (dateKey) => ({
+          dateKey,
+          games: await fetchEspn(dateKey),
+        })),
+      );
+      for (let index = 0; index < additionalResults.length; index++) {
+        const result = additionalResults[index]!;
+        const dateKey = dateBatch[index]!;
+        if (result.status === "fulfilled") {
+          for (const game of result.value.games) espnGamesById.set(game.espnId, game);
+        } else {
+          providerErrors[`espn:${dateKey}`] = String(result.reason);
+        }
       }
-    }
+    });
   }
   const espnGames = [...espnGamesById.values()];
   const byTeams = new Map(espnGames.map((game) => [`${game.homeTeamName}|${game.awayTeamName}`, game]));

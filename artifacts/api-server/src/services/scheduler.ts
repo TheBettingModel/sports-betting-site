@@ -46,6 +46,10 @@ import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
+import {
+  logSchedulerMemory,
+  SingleFlightGroup,
+} from "./schedulerRuntime";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -54,6 +58,29 @@ let lastStrongBuyNotificationSignature: string | null = null;
 // ── Active-job guard ──────────────────────────────────────────────────────────
 
 const runningJobs = new Set<string>();
+const heavyJobs = new SingleFlightGroup();
+
+function claimHeavyJob(jobName: string): number | null {
+  const claim = heavyJobs.acquire(jobName);
+  if (!claim.acquired) {
+    logSchedulerMemory(logger, {
+      jobName,
+      phase: "skipped",
+      blockedBy: claim.blockedBy,
+    });
+    return null;
+  }
+  runningJobs.add(jobName);
+  const startedAt = performance.now();
+  logSchedulerMemory(logger, { jobName, phase: "start", startedAt });
+  return startedAt;
+}
+
+function releaseHeavyJob(jobName: string, startedAt: number): void {
+  runningJobs.delete(jobName);
+  heavyJobs.release(jobName);
+  logSchedulerMemory(logger, { jobName, phase: "end", startedAt });
+}
 
 // ── Automation run logging ────────────────────────────────────────────────────
 
@@ -419,15 +446,12 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
 
 async function runOddsIngestion(): Promise<void> {
   const jobName = "odds-ingestion";
-  if (runningJobs.has(jobName)) {
-    logger.debug("Scheduler: odds-ingestion already running, skipping");
-    return;
-  }
-
-  runningJobs.add(jobName);
-  const runId = await startRun(jobName);
+  const startedAt = claimHeavyJob(jobName);
+  if (startedAt === null) return;
+  let runId: number | null = null;
 
   try {
+    runId = await startRun(jobName);
     const sportResults = await fetchAllSportsDetailed();
     // Ledger capture is append-only and intentionally independent of the
     // game/prediction refresh below. It makes one additional Odds API call
@@ -845,24 +869,21 @@ async function runOddsIngestion(): Promise<void> {
     logger.info({ processed, sportCounts }, "Scheduler: odds-ingestion complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await finishRun(runId, "failed", 0, msg);
+    if (runId !== null) await finishRun(runId, "failed", 0, msg);
     logger.error({ err }, "Scheduler: odds-ingestion failed");
   } finally {
-    runningJobs.delete(jobName);
+    releaseHeavyJob(jobName, startedAt);
   }
 }
 
 async function runResultGrading(): Promise<void> {
   const jobName = "result-grading";
-  if (runningJobs.has(jobName)) {
-    logger.debug("Scheduler: result-grading already running, skipping");
-    return;
-  }
-
-  runningJobs.add(jobName);
-  const runId = await startRun(jobName);
+  const startedAt = claimHeavyJob(jobName);
+  if (startedAt === null) return;
+  let runId: number | null = null;
 
   try {
+    runId = await startRun(jobName);
     // First pull fresh game data so finals are up to date
     const games = await fetchAllSports();
     try {
@@ -1155,24 +1176,21 @@ async function runResultGrading(): Promise<void> {
     logger.info({ snapshots, recovered, graded, forecastReviews }, "Scheduler: result-grading complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await finishRun(runId, "failed", 0, msg);
+    if (runId !== null) await finishRun(runId, "failed", 0, msg);
     logger.error({ err }, "Scheduler: result-grading failed");
   } finally {
-    runningJobs.delete(jobName);
+    releaseHeavyJob(jobName, startedAt);
   }
 }
 
 async function runAnalyticsRefresh(): Promise<void> {
   const jobName = "analytics-refresh";
-  if (runningJobs.has(jobName)) {
-    logger.debug("Scheduler: analytics-refresh already running, skipping");
-    return;
-  }
-
-  runningJobs.add(jobName);
-  const runId = await startRun(jobName);
+  const startedAt = claimHeavyJob(jobName);
+  if (startedAt === null) return;
+  let runId: number | null = null;
 
   try {
+    runId = await startRun(jobName);
     const rowsWritten = await runAnalytics();
     const spreadLifecycles = await refreshAllSpreadApprovalLifecycles();
     await finishRun(runId, "completed", rowsWritten + spreadLifecycles);
@@ -1182,10 +1200,40 @@ async function runAnalyticsRefresh(): Promise<void> {
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await finishRun(runId, "failed", 0, msg);
+    if (runId !== null) await finishRun(runId, "failed", 0, msg);
     logger.error({ err }, "Scheduler: analytics-refresh failed");
   } finally {
-    runningJobs.delete(jobName);
+    releaseHeavyJob(jobName, startedAt);
+  }
+}
+
+export async function runStartupCatchUp(): Promise<void> {
+  const jobName = "startup-catch-up";
+  const startedAt = claimHeavyJob(jobName);
+  if (startedAt === null) return;
+  let runId: number | null = null;
+  try {
+    runId = await startRun(jobName);
+    const recovered = await recoverStaleGames();
+    const synced = await syncGameResults();
+    const graded = await runGrading();
+    await runLearning();
+    const forecastReviews = await runForecastReviews();
+    await finishRun(
+      runId,
+      "completed",
+      recovered + synced + graded + forecastReviews.inserted,
+    );
+    logger.info(
+      { recovered, synced, graded, forecastReviews },
+      "Startup catch-up completed",
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (runId !== null) await finishRun(runId, "failed", 0, msg);
+    logger.warn({ err }, "Startup catch-up failed — non-fatal");
+  } finally {
+    releaseHeavyJob(jobName, startedAt);
   }
 }
 

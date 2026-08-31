@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, lte } from "drizzle-orm";
+import { and, asc, eq, exists, gt, inArray, isNotNull, lte, notExists, sql } from "drizzle-orm";
 import {
   dataQualityAlertsTable,
   db,
@@ -61,6 +61,12 @@ export const ncaafWalkForwardRunKey = (datasetHash: string, modelVersion = "ncaa
     datasetHash, modelVersion, configHash: NCAAF_VALIDATION_CONFIG_HASH,
     evaluation: NCAAF_EVALUATION_VERSION,
   });
+
+// A validation invocation must never materialize an unbounded historical
+// ledger. If history exceeds this fixed ceiling, metrics remain auditable but
+// promotion fails closed until an aggregate implementation can evaluate the
+// full corpus without loading it into process memory.
+export const NCAAF_VALIDATION_HISTORY_LIMIT = 5_000;
 export const ncaafPromotionDecisionKey = (input: {
   championModelVersion: string; challengerModelVersion: string; datasetVersion: string;
   metrics: PromotionMetrics; policyReasons: readonly string[]; thresholdHash: string; provenanceHash: string;
@@ -793,35 +799,52 @@ export async function reconcileNcaafValidationAlerts(signals: readonly Validatio
  * idempotent. This writes no picks, grades, learning rows, or model activation.
  */
 export async function persistNcaafFairPrices(cutoff = new Date()): Promise<number> {
-  const snapshots = await db.select().from(ncaafFeatureSnapshotsTable)
-    .where(lte(ncaafFeatureSnapshotsTable.dataCutoffAt, cutoff));
+  const batchSize = 100;
   let inserted = 0;
+  const snapshots = await db.select().from(ncaafFeatureSnapshotsTable)
+    .where(and(
+      lte(ncaafFeatureSnapshotsTable.dataCutoffAt, cutoff),
+      notExists(
+        db.select({ id: ncaafMarketPricesTable.id })
+          .from(ncaafMarketPricesTable)
+          .where(and(
+            eq(ncaafMarketPricesTable.featureSnapshotId, ncaafFeatureSnapshotsTable.id),
+            eq(ncaafMarketPricesTable.evaluationVersion, NCAAF_EVALUATION_VERSION),
+          )),
+      ),
+    ))
+    .orderBy(asc(ncaafFeatureSnapshotsTable.id))
+    .limit(batchSize);
   for (const snapshot of snapshots) {
     const prices = priceNcaafSnapshot(snapshot);
-    for (const price of prices) {
-      const provenanceHash = ncaafValidationHash({
-        featureSnapshotId: snapshot.id, inputHash: snapshot.inputHash,
-        featureConfigHash: snapshot.configHash, validationConfigHash: NCAAF_VALIDATION_CONFIG_HASH,
-      });
-      const idempotencyHash = ncaafValidationHash({
-        schema: NCAAF_VALIDATION_SCHEMA_VERSION, evaluation: NCAAF_EVALUATION_VERSION,
-        featureSnapshotId: snapshot.id, market: price.market, selection: price.selection, line: price.line,
-      });
-      const result = await db.insert(ncaafMarketPricesTable).values({
-        datasetVersion: snapshot.schemaVersion, modelVersion: snapshot.modelVersion,
-        configVersion: NCAAF_VALIDATION_CONFIG.version, configHash: NCAAF_VALIDATION_CONFIG_HASH,
-        featureSnapshotId: snapshot.id, provider: snapshot.targetProvider,
-        providerEventId: snapshot.targetEventId, market: price.market, selection: price.selection,
-        line: price.line, probabilityLower: price.probability?.lower,
-        probabilityPoint: price.probability?.point, probabilityUpper: price.probability?.upper,
-        fairAmericanPrice: price.fairAmerican, status: price.status, evidenceTier: price.evidenceTier,
-        uncertainty: price.uncertainty,
-        coverage: { evidenceCount: (snapshot.quality as { evidenceCount?: number }).evidenceCount ?? 0 },
-        missingReasons: price.missingReasons, pointInTimeCutoff: snapshot.dataCutoffAt,
-        provenanceHash, idempotencyHash,
-      }).onConflictDoNothing().returning({ id: ncaafMarketPricesTable.id });
-      inserted += result.length;
-    }
+    inserted += await db.transaction(async (tx) => {
+      let snapshotInserted = 0;
+      for (const price of prices) {
+        const provenanceHash = ncaafValidationHash({
+          featureSnapshotId: snapshot.id, inputHash: snapshot.inputHash,
+          featureConfigHash: snapshot.configHash, validationConfigHash: NCAAF_VALIDATION_CONFIG_HASH,
+        });
+        const idempotencyHash = ncaafValidationHash({
+          schema: NCAAF_VALIDATION_SCHEMA_VERSION, evaluation: NCAAF_EVALUATION_VERSION,
+          featureSnapshotId: snapshot.id, market: price.market, selection: price.selection, line: price.line,
+        });
+        const result = await tx.insert(ncaafMarketPricesTable).values({
+          datasetVersion: snapshot.schemaVersion, modelVersion: snapshot.modelVersion,
+          configVersion: NCAAF_VALIDATION_CONFIG.version, configHash: NCAAF_VALIDATION_CONFIG_HASH,
+          featureSnapshotId: snapshot.id, provider: snapshot.targetProvider,
+          providerEventId: snapshot.targetEventId, market: price.market, selection: price.selection,
+          line: price.line, probabilityLower: price.probability?.lower,
+          probabilityPoint: price.probability?.point, probabilityUpper: price.probability?.upper,
+          fairAmericanPrice: price.fairAmerican, status: price.status, evidenceTier: price.evidenceTier,
+          uncertainty: price.uncertainty,
+          coverage: { evidenceCount: (snapshot.quality as { evidenceCount?: number }).evidenceCount ?? 0 },
+          missingReasons: price.missingReasons, pointInTimeCutoff: snapshot.dataCutoffAt,
+          provenanceHash, idempotencyHash,
+        }).onConflictDoNothing().returning({ id: ncaafMarketPricesTable.id });
+        snapshotInserted += result.length;
+      }
+      return snapshotInserted;
+    });
   }
   return inserted;
 }
@@ -902,19 +925,39 @@ export function buildImmutableEvaluationScore(input: {
   };
 }
 
-export async function persistNcaafDecisionMarkets(cutoff = new Date()): Promise<{
+async function persistNcaafDecisionMarketBatch(
+  predictions: readonly (typeof modelPredictionsTable.$inferSelect)[],
+  cutoff: Date,
+): Promise<{
   inserted: number; candidates: number; exclusions: number;
 }> {
-  const [predictions, snapshots, games, markets] = await Promise.all([
-    db.select().from(modelPredictionsTable).where(and(
-      eq(modelPredictionsTable.sport, "NCAAF"),
-      eq(modelPredictionsTable.isChallenger, true),
-      lte(modelPredictionsTable.predictionTimestamp, cutoff),
-    )),
-    db.select().from(ncaafFeatureSnapshotsTable).where(lte(ncaafFeatureSnapshotsTable.dataCutoffAt, cutoff)),
-    db.select().from(ncaafGameEvidenceTable).where(lte(ncaafGameEvidenceTable.capturedAt, cutoff)),
-    db.select().from(ncaafMarketObservationsTable).where(lte(ncaafMarketObservationsTable.capturedAt, cutoff)),
-  ]);
+  const featureIds = [...new Set(predictions.flatMap((prediction) => {
+    const id = predictionFeatureId(prediction.featureSnapshot);
+    return id == null ? [] : [id];
+  }))];
+  const snapshots = featureIds.length === 0 ? [] : await db
+    .select()
+    .from(ncaafFeatureSnapshotsTable)
+    .where(and(
+      lte(ncaafFeatureSnapshotsTable.dataCutoffAt, cutoff),
+      inArray(ncaafFeatureSnapshotsTable.id, featureIds),
+    ));
+  const eventIds = [...new Set(snapshots.map((snapshot) => snapshot.targetEventId))];
+  const games = eventIds.length === 0 ? [] : await db
+    .select()
+    .from(ncaafGameEvidenceTable)
+    .where(and(
+      lte(ncaafGameEvidenceTable.capturedAt, cutoff),
+      inArray(ncaafGameEvidenceTable.providerEventId, eventIds),
+    ));
+  const evidenceIds = games.map((game) => game.id);
+  const markets = evidenceIds.length === 0 ? [] : await db
+    .select()
+    .from(ncaafMarketObservationsTable)
+    .where(and(
+      lte(ncaafMarketObservationsTable.capturedAt, cutoff),
+      inArray(ncaafMarketObservationsTable.gameEvidenceId, evidenceIds),
+    ));
   const snapshotById = new Map(snapshots.map((row) => [row.id, row]));
   let inserted = 0;
   let exclusions = 0;
@@ -1002,35 +1045,68 @@ export async function persistNcaafDecisionMarkets(cutoff = new Date()): Promise<
   return { inserted, candidates: predictions.length, exclusions };
 }
 
+export async function persistNcaafDecisionMarkets(cutoff = new Date()): Promise<{
+  inserted: number; candidates: number; exclusions: number;
+}> {
+  const predictions = await db.select().from(modelPredictionsTable).where(and(
+      eq(modelPredictionsTable.sport, "NCAAF"),
+      eq(modelPredictionsTable.isChallenger, true),
+      lte(modelPredictionsTable.predictionTimestamp, cutoff),
+      notExists(
+        db.select({ id: ncaafDecisionMarketsTable.id })
+          .from(ncaafDecisionMarketsTable)
+          .where(and(
+            eq(ncaafDecisionMarketsTable.predictionId, modelPredictionsTable.id),
+            eq(ncaafDecisionMarketsTable.evaluationVersion, NCAAF_EVALUATION_VERSION),
+          )),
+      ),
+    ))
+    .orderBy(asc(modelPredictionsTable.id))
+    .limit(100);
+  if (predictions.length === 0) return { inserted: 0, candidates: 0, exclusions: 0 };
+  return persistNcaafDecisionMarketBatch(predictions, cutoff);
+}
+
 /**
  * Grades challenger predictions strictly from append-only ledgers. An excluded
  * evaluation is still persisted so missing coverage cannot disappear.
  */
-export async function persistCompletedNcaafEvaluations(cutoff = new Date()): Promise<{
+async function persistCompletedNcaafEvaluationBatch(
+  decisions: readonly (typeof ncaafDecisionMarketsTable.$inferSelect)[],
+  cutoff: Date,
+): Promise<{
   inserted: number; candidates: number; exclusions: number;
 }> {
-  const [predictions, snapshots, games, markets, prices, decisions, existingEvaluations] = await Promise.all([
-    db.select().from(modelPredictionsTable).where(and(
+  const predictionIds = [...new Set(decisions.map((decision) => decision.predictionId))];
+  const featureSnapshotIds = [...new Set(decisions.map((decision) => decision.featureSnapshotId))];
+  const predictions = await db.select().from(modelPredictionsTable).where(and(
       eq(modelPredictionsTable.sport, "NCAAF"),
       eq(modelPredictionsTable.isChallenger, true),
       lte(modelPredictionsTable.predictionTimestamp, cutoff),
-    )),
-    db.select().from(ncaafFeatureSnapshotsTable).where(lte(ncaafFeatureSnapshotsTable.dataCutoffAt, cutoff)),
-    db.select().from(ncaafGameEvidenceTable).where(lte(ncaafGameEvidenceTable.capturedAt, cutoff)),
-    db.select().from(ncaafMarketObservationsTable).where(lte(ncaafMarketObservationsTable.capturedAt, cutoff)),
-    db.select().from(ncaafMarketPricesTable).where(lte(ncaafMarketPricesTable.pointInTimeCutoff, cutoff)),
-    db.select().from(ncaafDecisionMarketsTable).where(lte(ncaafDecisionMarketsTable.pointInTimeCutoff, cutoff)),
-    db.select({
-      predictionId: ncaafEvaluationsTable.predictionId,
-      decisionMarketId: ncaafEvaluationsTable.decisionMarketId,
-      evaluationVersion: ncaafEvaluationsTable.evaluationVersion,
-    }).from(ncaafEvaluationsTable),
-  ]);
+      inArray(modelPredictionsTable.id, predictionIds),
+    ));
+  const snapshots = await db.select().from(ncaafFeatureSnapshotsTable).where(and(
+    lte(ncaafFeatureSnapshotsTable.dataCutoffAt, cutoff),
+    inArray(ncaafFeatureSnapshotsTable.id, featureSnapshotIds),
+  ));
+  const eventIds = [...new Set(snapshots.map((snapshot) => snapshot.targetEventId))];
+  const games = eventIds.length === 0 ? [] : await db.select().from(ncaafGameEvidenceTable).where(and(
+    lte(ncaafGameEvidenceTable.capturedAt, cutoff),
+    inArray(ncaafGameEvidenceTable.providerEventId, eventIds),
+  ));
+  const oddsEventIds = [...new Set(decisions.flatMap((decision) =>
+    decision.oddsEventId == null ? [] : [decision.oddsEventId]))];
+  const markets = oddsEventIds.length === 0 ? [] : await db.select().from(ncaafMarketObservationsTable).where(and(
+    lte(ncaafMarketObservationsTable.capturedAt, cutoff),
+    inArray(ncaafMarketObservationsTable.providerEventId, oddsEventIds),
+  ));
+  const prices = await db.select().from(ncaafMarketPricesTable).where(and(
+    lte(ncaafMarketPricesTable.pointInTimeCutoff, cutoff),
+    inArray(ncaafMarketPricesTable.featureSnapshotId, featureSnapshotIds),
+  ));
   const snapshotById = new Map(snapshots.map((s) => [s.id, s]));
   const predictionById = new Map(predictions.map((p) => [p.id, p]));
-  const existingIdentities = new Set(existingEvaluations.flatMap((row) =>
-    row.decisionMarketId == null ? []
-      : [`${row.evaluationVersion}:${row.predictionId}:${row.decisionMarketId}`]));
+  const existingIdentities = new Set<string>();
   let inserted = 0;
   let exclusions = 0;
   for (const decision of decisions) {
@@ -1159,15 +1235,61 @@ export async function persistCompletedNcaafEvaluations(cutoff = new Date()): Pro
   return { inserted, candidates: decisions.length, exclusions };
 }
 
+export async function persistCompletedNcaafEvaluations(cutoff = new Date()): Promise<{
+  inserted: number; candidates: number; exclusions: number;
+}> {
+  const decisions = await db
+    .select()
+    .from(ncaafDecisionMarketsTable)
+    .where(and(
+      lte(ncaafDecisionMarketsTable.pointInTimeCutoff, cutoff),
+      notExists(
+        db.select({ id: ncaafEvaluationsTable.id })
+          .from(ncaafEvaluationsTable)
+          .where(and(
+            eq(ncaafEvaluationsTable.decisionMarketId, ncaafDecisionMarketsTable.id),
+            eq(ncaafEvaluationsTable.evaluationVersion, NCAAF_EVALUATION_VERSION),
+            eq(ncaafEvaluationsTable.predictionId, ncaafDecisionMarketsTable.predictionId),
+          )),
+      ),
+      exists(
+        db.select({ id: ncaafGameEvidenceTable.id })
+          .from(ncaafGameEvidenceTable)
+          .where(and(
+            eq(ncaafGameEvidenceTable.providerEventId, ncaafDecisionMarketsTable.espnEventId),
+            lte(ncaafGameEvidenceTable.capturedAt, cutoff),
+            isNotNull(ncaafGameEvidenceTable.kickoffAt),
+            isNotNull(ncaafGameEvidenceTable.homeScore),
+            isNotNull(ncaafGameEvidenceTable.awayScore),
+            sql`lower(coalesce(${ncaafGameEvidenceTable.gameStatus}, '')) in ('final', 'post', 'completed')`,
+            sql`${ncaafGameEvidenceTable.capturedAt} > ${ncaafGameEvidenceTable.kickoffAt}`,
+          )),
+      ),
+    ))
+    .orderBy(asc(ncaafDecisionMarketsTable.id))
+    .limit(100);
+  if (decisions.length === 0) return { inserted: 0, candidates: 0, exclusions: 0 };
+  return persistCompletedNcaafEvaluationBatch(decisions, cutoff);
+}
+
 /**
  * Conservative walk-forward accounting. A segment is conclusive only when an
  * earlier season exists and the persisted evaluation history is adequate.
  */
 export async function runNcaafWalkForwardValidation(cutoff = new Date()) {
   const evaluationRows = await db.select().from(ncaafEvaluationsTable)
-    .where(lte(ncaafEvaluationsTable.pointInTimeCutoff, cutoff));
+    .where(and(
+      lte(ncaafEvaluationsTable.pointInTimeCutoff, cutoff),
+      eq(ncaafEvaluationsTable.evaluationVersion, NCAAF_EVALUATION_VERSION),
+    ))
+    .orderBy(asc(ncaafEvaluationsTable.id))
+    .limit(NCAAF_VALIDATION_HISTORY_LIMIT + 1);
+  const historyTruncated = evaluationRows.length > NCAAF_VALIDATION_HISTORY_LIMIT;
+  const boundedEvaluationRows = historyTruncated
+    ? evaluationRows.slice(0, NCAAF_VALIDATION_HISTORY_LIMIT)
+    : evaluationRows;
   const canonical = new Map<string, (typeof evaluationRows)[number]>();
-  for (const row of [...evaluationRows].sort((a, b) => a.id - b.id)) {
+  for (const row of boundedEvaluationRows) {
     const identity = `${row.predictionId}:${row.market}`;
     if (!canonical.has(identity)) canonical.set(identity, row);
   }
@@ -1181,7 +1303,8 @@ export async function runNcaafWalkForwardValidation(cutoff = new Date()) {
   const existing = await db.select().from(ncaafWalkForwardRunsTable)
     .where(eq(ncaafWalkForwardRunsTable.runKey, runKey)).limit(1);
   if (existing[0]) return existing[0];
-  const conclusive = seasons.length >= NCAAF_VALIDATION_CONFIG.minimumEvaluationSeasons;
+  const conclusive = !historyTruncated
+    && seasons.length >= NCAAF_VALIDATION_CONFIG.minimumEvaluationSeasons;
   const [run] = await db.insert(ncaafWalkForwardRunsTable).values({
     datasetVersion: NCAAF_VALIDATION_SCHEMA_VERSION, datasetHash,
     modelVersion: "ncaaf-market-free-v1", modelHash: ncaafValidationHash("ncaaf-market-free-v1"),
@@ -1190,8 +1313,10 @@ export async function runNcaafWalkForwardValidation(cutoff = new Date()) {
     provenanceHash: ncaafValidationHash({ datasetHash, seasons }), evidenceTier: conclusive ? "observed" : "insufficient",
     uncertainty: conclusive ? 0 : 1,
     coverage: { evaluations: evaluations.length, seasons: seasons.length },
-    missingReasons: conclusive ? [] : ["insufficient_historical_seasons"],
-    summary: { noPromotionAuthorized: true },
+    missingReasons: conclusive ? [] : [
+      historyTruncated ? "validation_history_exceeds_memory_budget" : "insufficient_historical_seasons",
+    ],
+    summary: { noPromotionAuthorized: true, historyTruncated, historyLimit: NCAAF_VALIDATION_HISTORY_LIMIT },
   }).returning();
   for (const season of seasons) {
     const trainingSeasons = seasons.filter((s) => s < season);
@@ -1268,15 +1393,24 @@ export async function runNcaafValidationCycle(cutoff = new Date()) {
   const pricesInserted = await persistNcaafFairPrices(cutoff);
   const evaluations = await persistCompletedNcaafEvaluations(cutoff);
   const walkForward = await runNcaafWalkForwardValidation(cutoff);
-  const [evaluationRows, snapshotRows, priceRows, evidenceRows] = await Promise.all([
-    db.select().from(ncaafEvaluationsTable).where(lte(ncaafEvaluationsTable.createdAt, cutoff)),
+  const [loadedEvaluationRows, snapshotRows, priceRows, evidenceRows] = await Promise.all([
+    db.select().from(ncaafEvaluationsTable).where(and(
+      lte(ncaafEvaluationsTable.createdAt, cutoff),
+      eq(ncaafEvaluationsTable.evaluationVersion, NCAAF_EVALUATION_VERSION),
+    )).orderBy(asc(ncaafEvaluationsTable.id)).limit(NCAAF_VALIDATION_HISTORY_LIMIT + 1),
     db.select({ configHash: ncaafFeatureSnapshotsTable.configHash })
-      .from(ncaafFeatureSnapshotsTable).where(lte(ncaafFeatureSnapshotsTable.createdAt, cutoff)),
+      .from(ncaafFeatureSnapshotsTable).where(lte(ncaafFeatureSnapshotsTable.createdAt, cutoff))
+      .groupBy(ncaafFeatureSnapshotsTable.configHash),
     db.select({ configHash: ncaafMarketPricesTable.configHash })
-      .from(ncaafMarketPricesTable).where(lte(ncaafMarketPricesTable.createdAt, cutoff)),
-    db.select({ capturedAt: ncaafGameEvidenceTable.capturedAt })
+      .from(ncaafMarketPricesTable).where(lte(ncaafMarketPricesTable.createdAt, cutoff))
+      .groupBy(ncaafMarketPricesTable.configHash),
+    db.select({ capturedAt: sql<Date | null>`max(${ncaafGameEvidenceTable.capturedAt})` })
       .from(ncaafGameEvidenceTable).where(lte(ncaafGameEvidenceTable.capturedAt, cutoff)),
   ]);
+  const historyTruncated = loadedEvaluationRows.length > NCAAF_VALIDATION_HISTORY_LIMIT;
+  const evaluationRows = historyTruncated
+    ? loadedEvaluationRows.slice(0, NCAAF_VALIDATION_HISTORY_LIMIT)
+    : loadedEvaluationRows;
   const eligible = evaluationRows.filter((e) => !e.exclusionReason && e.outcome);
   const calibration = calibrationBuckets(evaluationRows.map((e) => ({
     season: e.season, week: e.week, market: e.market, price: e.offeredPrice,
@@ -1303,12 +1437,15 @@ export async function runNcaafValidationCycle(cutoff = new Date()) {
     outcome: e.outcome as BetOutcome | null, profit: e.profitUnits, clv: e.clv,
     excluded: Boolean(e.exclusionReason),
   })));
+  const boundedHistoryPolicyReasons = historyTruncated
+    ? ["validation_history_exceeds_memory_budget"]
+    : [];
   const promotion = await persistNcaafPromotionDecision({
     championModelVersion: "none:ncaaf-publication-disabled",
     challengerModelVersion: "ncaaf-market-free-v1",
     datasetVersion: aggregate.datasetHash,
     metrics: aggregate.metrics,
-    policyReasons: aggregate.policyReasons,
+    policyReasons: [...aggregate.policyReasons, ...boundedHistoryPolicyReasons],
     cutoff,
     provenance: {
       datasetHash: aggregate.datasetHash,
@@ -1321,7 +1458,7 @@ export async function runNcaafValidationCycle(cutoff = new Date()) {
   await reconcileNcaafValidationAlerts(ncaafValidationHealthSignals({
     now: cutoff,
     candidateCount: evaluationRows.length,
-    latestEvidenceAt: evidenceRows.map((e) => e.capturedAt).sort((a, b) => b.getTime() - a.getTime())[0] ?? null,
+    latestEvidenceAt: evidenceRows[0]?.capturedAt ?? null,
     exclusions: evaluationRows.flatMap((e) => e.exclusionReason ? [e.exclusionReason] : []),
     observedFeatureConfigHashes: snapshotRows.map((s) => s.configHash),
     observedValidationConfigHashes: priceRows.map((p) => p.configHash),
