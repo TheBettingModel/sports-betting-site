@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { ClerkProvider, ClerkLoaded, ClerkLoading, useAuth } from '@clerk/expo';
@@ -92,12 +92,19 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
-  const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+  // Expo web waits on FontFaceObserver and throws after six seconds when a
+  // preview connection is slow. Native builds load these bundled assets
+  // directly, while web safely falls back to the system sans-serif font.
+  const [fontsLoaded, fontError] = useFonts(
+    Platform.OS === 'web'
+      ? {}
+      : {
+          Inter_400Regular,
+          Inter_500Medium,
+          Inter_600SemiBold,
+          Inter_700Bold,
+        },
+  );
 
   // Check whether the user has previously accepted the disclaimer.
   // We hold the splash screen until both fonts AND this check complete so
