@@ -1,3 +1,9 @@
 uploads = []
 generated = []
-outputs = []
+
+[[outputs]]
+id = "0NAta2Z4Pft_jZ6h6mSCn"
+uri = "file://TBM_Betting_Model_Full_Infrastructure_Build.md"
+type = "text"
+title = "TBM Betting Model — Full Infrastructure Build"
+description = "Copy-ready architecture specification covering the current model, target upgrade, moneyline and spread systems, learning, risk, evaluation, data contracts, rollout, testing, and operating rules."
