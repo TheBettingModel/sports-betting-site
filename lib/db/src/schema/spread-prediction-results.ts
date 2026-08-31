@@ -11,6 +11,10 @@ export const spreadPredictionResultsTable = pgTable(
     gameId: text("game_id").notNull().references(() => gamesTable.id),
     result: text("result").notNull(), // win | loss | push | void | postponed
     finalScore: text("final_score").notNull(),
+    predictedHomeMargin: real("predicted_home_margin"),
+    actualHomeMargin: real("actual_home_margin"),
+    residual: real("residual"),
+    residualConvention: text("residual_convention"),
     closingLine: real("closing_line"),
     closingPrice: integer("closing_price"),
     clv: real("clv"),

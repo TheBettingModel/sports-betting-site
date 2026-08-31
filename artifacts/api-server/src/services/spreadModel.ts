@@ -25,6 +25,21 @@ import {
 
 export type SpreadSport = "NFL" | "NCAAF" | "NBA" | "NCAAB" | "WNBA";
 
+export const SPREAD_MARGIN_CONVENTION = Object.freeze({
+  version: "home-perspective-v1",
+  predictedMargin: "projected_home_score_minus_projected_away_score",
+  actualMargin: "final_home_score_minus_final_away_score",
+  residual: "actual_margin_minus_predicted_margin",
+});
+
+export function spreadResidual(input: {
+  expectedHomeMargin: number;
+  homeScore: number;
+  awayScore: number;
+}): number {
+  return (input.homeScore - input.awayScore) - input.expectedHomeMargin;
+}
+
 export interface SpreadValidationMetrics {
   sampleSize: number;
   calibrationError: number;
@@ -573,6 +588,10 @@ export async function buildSpreadCandidates(input: SpreadEvaluationInput): Promi
     researchUnits: candidate.priceQualified
       ? clamp(Math.round((0.5 + candidate.edge * 12) * 2) / 2, 0.5, 2)
       : 0,
+    featureSnapshot: {
+      ...candidate.featureSnapshot,
+      spreadMarginConvention: SPREAD_MARGIN_CONVENTION,
+    },
   }));
 }
 
@@ -745,6 +764,10 @@ export interface SpreadSettlement {
   closingPrice: number;
   clv: number;
   unitsWonLost: number;
+  predictedHomeMargin: number;
+  actualHomeMargin: number;
+  residual: number;
+  residualConvention: typeof SPREAD_MARGIN_CONVENTION.version;
 }
 
 export function buildSpreadSettlement(input: {
@@ -778,6 +801,10 @@ export function buildSpreadSettlement(input: {
       marginStandardDeviation: input.marginStandardDeviation,
     }, input.closingLine, input.closingPrice),
     unitsWonLost: calculateUnits(result, 1, input.recommendedPrice),
+    predictedHomeMargin: input.expectedHomeMargin,
+    actualHomeMargin: input.homeScore - input.awayScore,
+    residual: spreadResidual(input),
+    residualConvention: SPREAD_MARGIN_CONVENTION.version,
   };
 }
 
@@ -991,6 +1018,10 @@ export async function settleSpreadPredictions(
       gameId: prediction.gameId,
       result: settlement.result,
       finalScore: settlement.finalScore,
+      predictedHomeMargin: settlement.predictedHomeMargin,
+      actualHomeMargin: settlement.actualHomeMargin,
+      residual: settlement.residual,
+      residualConvention: settlement.residualConvention,
       // The last immutable pregame observation is the closing proxy when a
       // later provider quote is unavailable; it never changes the prediction.
       closingLine: settlement.closingLine,

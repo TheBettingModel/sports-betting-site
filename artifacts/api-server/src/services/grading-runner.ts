@@ -205,12 +205,8 @@ export async function runGrading(): Promise<number> {
           eq(pickResultsTable.result, "pending"),
         ));
 
-      // Allows ROI tracking by sport/tier directly from the immutable
-      // prediction linked to the still-effective pick.
-      await tx
-        .update(modelPredictionsTable)
-        .set({ grade })
-        .where(eq(modelPredictionsTable.id, pick.predictionId));
+      // The grade lives only on pick_results. The linked prediction remains
+      // immutable after its pregame insert.
       return true;
     });
     if (applied) graded++;

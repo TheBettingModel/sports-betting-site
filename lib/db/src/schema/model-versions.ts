@@ -30,6 +30,14 @@ export const modelVersionsTable = pgTable(
     evaluationMetrics: jsonb("evaluation_metrics"),
     artifactLocation: text("artifact_location"), // path or URL to serialized model
 
+    // Immutable capture of the exact runtime configuration that occupied this
+    // production slot when Phase 1 froze outcome-driven production learning.
+    // Existing production rows are extended in place; no parallel registry is
+    // created.
+    championSnapshot: jsonb("champion_snapshot").$type<Record<string, unknown>>(),
+    championSnapshotHash: text("champion_snapshot_hash"),
+    championFrozenAt: timestamp("champion_frozen_at", { withTimezone: true }),
+
     // Approval & deployment lifecycle
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedBy: text("approved_by"),
@@ -49,6 +57,7 @@ export const modelVersionsTable = pgTable(
     uniqueIndex("model_versions_model_id_idx").on(t.modelId),
     index("model_versions_sport_market_idx").on(t.sport, t.market),
     index("model_versions_status_idx").on(t.status),
+    index("model_versions_champion_snapshot_hash_idx").on(t.championSnapshotHash),
     uniqueIndex("model_versions_one_production_per_market_unique")
       .on(t.sport, t.market)
       .where(sql`${t.status} = 'production'`),

@@ -62,6 +62,12 @@ export const modelPredictionsTable = pgTable(
     // Challenger flag — true = not shown publicly
     isChallenger: boolean("is_challenger").notNull().default(false),
 
+    // Immutable research/publication cohort for new predictions. Null is
+    // reserved for legacy rows so historical records are not reclassified.
+    // official = exact publication approval existed at prediction time
+    // shadow = stored for research without publication permission
+    cohort: text("cohort"),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // No updatedAt — this record is immutable
   },
@@ -72,6 +78,7 @@ export const modelPredictionsTable = pgTable(
     index("model_predictions_sport_idx").on(t.sport),
     index("model_predictions_prediction_ts_idx").on(t.predictionTimestamp),
     index("model_predictions_challenger_idx").on(t.isChallenger),
+    index("model_predictions_cohort_idx").on(t.cohort),
     // Original snapshots retain the historic three-part identity. PostgreSQL
     // treats NULL as distinct in a regular unique index, so use partial
     // indexes to preserve that invariant while allowing versioned revisions.

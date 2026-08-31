@@ -6,7 +6,26 @@ import {
   needsLearningProcessing,
   nextConfidenceMultiplier,
   nudgeWeights,
+  PRODUCTION_LEARNING_MODE,
+  productionLearningEvidence,
 } from "./learningEngine";
+
+describe("production learning freeze", () => {
+  it("classifies graded evidence as research-only with no production mutation", () => {
+    expect(PRODUCTION_LEARNING_MODE).toBe("frozen_research_only");
+    expect(productionLearningEvidence({
+      modelVersionId: 12,
+      cohort: "official",
+    })).toEqual({
+      mode: "frozen_research_only",
+      modelVersionId: 12,
+      cohort: "official",
+      researchOnly: true,
+      productionWeightsUpdated: false,
+      productionConfidenceMultiplierUpdated: false,
+    });
+  });
+});
 
 describe("MLB legacy calibration profile", () => {
   it("restores MLB's faster Brier/accuracy EMA without changing other sports", () => {

@@ -23,6 +23,23 @@ import { logger } from "../lib/logger";
 const MIN_FACTOR_SAMPLE = 15;
 const BRIER_RANDOM_BASELINE = 0.25;
 
+/** Phase 1 safety contract: graded outcomes create evidence, never live edits. */
+export const PRODUCTION_LEARNING_MODE = "frozen_research_only" as const;
+
+export function productionLearningEvidence(input: {
+  modelVersionId: number;
+  cohort: string | null;
+}) {
+  return {
+    mode: PRODUCTION_LEARNING_MODE,
+    modelVersionId: input.modelVersionId,
+    cohort: input.cohort ?? "legacy_unclassified",
+    researchOnly: true,
+    productionWeightsUpdated: false,
+    productionConfidenceMultiplierUpdated: false,
+  } as const;
+}
+
 interface LearningProfile {
   emaAlpha: number;
   minimumWeight: number;
@@ -248,6 +265,8 @@ export async function runLearning(): Promise<void> {
       selection: publishedPicksTable.selection,
       recommendation: publishedPicksTable.recommendation,
       predictionId: modelPredictionsTable.id,
+      modelVersionId: modelPredictionsTable.modelVersionId,
+      cohort: modelPredictionsTable.cohort,
       modelProbability: modelPredictionsTable.modelProbability,
       impliedProbability: modelPredictionsTable.impliedProbability,
       marketIntelligenceGrade: modelPredictionsTable.marketIntelligenceGrade,
@@ -290,11 +309,11 @@ export async function runLearning(): Promise<void> {
 
   if (rows.length === 0) return;
 
-  let learned = 0;
+  let reviewed = 0;
   for (const row of rows) {
     const processed = await db.transaction(async (tx) => {
-      // Serialize metric changes by sport and claim the result before changing
-      // weights. A rollback removes both the claim and all metric updates.
+      // Serialize claims by sport. Phase 1 intentionally performs no writes to
+      // model_weights; the transaction persists research evidence only.
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${row.sport}))`);
       const [claim] = await tx
         .update(pickResultsTable)
@@ -311,7 +330,8 @@ export async function runLearning(): Promise<void> {
       if (!claim) return false;
 
       const result = row.result as "win" | "loss";
-      const review = buildOutcomeReview({
+      const review = {
+        ...buildOutcomeReview({
         snapshot: row.featureSnapshot,
         selection: row.selection,
         result,
@@ -324,7 +344,12 @@ export async function runLearning(): Promise<void> {
           homeKeyInjuries: row.homeKeyInjuries, awayKeyInjuries: row.awayKeyInjuries,
           homeGoalieName: row.homeGoalieName, awayGoalieName: row.awayGoalieName,
         },
-      });
+        }),
+        productionLearning: productionLearningEvidence({
+          modelVersionId: row.modelVersionId,
+          cohort: row.cohort,
+        }),
+      };
 
       if (!isDecisionSnapshot(row.featureSnapshot)) {
         await tx.update(pickResultsTable)
@@ -333,53 +358,19 @@ export async function runLearning(): Promise<void> {
         return false;
       }
 
-      const decision = (row.featureSnapshot as Record<string, unknown>).decision as Record<string, unknown>;
-      const contributions = (decision?.factorContributions ?? {}) as Record<string, unknown>;
-      const [existing] = await tx.select().from(modelWeightsTable)
-        .where(eq(modelWeightsTable.sport, row.sport)).limit(1);
-      const correct = result === "win";
-      const nextAccuracy = emaForSport(row.sport, existing?.accuracyRate ?? 0.5, correct ? 1 : 0);
-      const nextBrier = emaForSport(
-        row.sport,
-        existing?.brierScore ?? BRIER_RANDOM_BASELINE,
-        (row.modelProbability - (correct ? 1 : 0)) ** 2,
-      );
-      const nextTotal = (existing?.totalPredictions ?? 0) + 1;
-      const tier = row.marketIntelligenceGrade ?? "Watchlist";
-      const nextWeights = nudgeWeights({
-        sport: row.sport, current: existing?.factorWeights, contributions, selection: row.selection,
-        result, modelProbability: row.modelProbability, sampleSize: existing?.totalPredictions ?? 0,
-      });
-      const nextMultiplier = nextConfidenceMultiplier({
-        sport: row.sport,
-        current: existing?.confidenceMultiplier ?? 1,
-        accuracy: nextAccuracy,
-        brier: nextBrier,
-        totalPredictions: nextTotal,
-      });
-      const values = {
-        accuracyRate: nextAccuracy, brierScore: nextBrier, totalPredictions: nextTotal,
-        correctPredictions: (existing?.correctPredictions ?? 0) + (correct ? 1 : 0),
-        strongBuyAccuracy: row.recommendation === "Strong Buy" ? emaForSport(row.sport, existing?.strongBuyAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.strongBuyAccuracy ?? 0.5),
-        buyAccuracy: row.recommendation === "Buy" ? emaForSport(row.sport, existing?.buyAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.buyAccuracy ?? 0.5),
-        eliteAccuracy: tier === "Elite" ? emaForSport(row.sport, existing?.eliteAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.eliteAccuracy ?? 0.5),
-        strongAccuracy: tier === "Strong" ? emaForSport(row.sport, existing?.strongAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.strongAccuracy ?? 0.5),
-        playableAccuracy: tier === "Playable" ? emaForSport(row.sport, existing?.playableAccuracy ?? 0.5, correct ? 1 : 0) : (existing?.playableAccuracy ?? 0.5),
-        confidenceMultiplier: nextMultiplier, factorWeights: nextWeights, lastLearnedAt: new Date(),
-      };
-      if (existing) await tx.update(modelWeightsTable).set(values).where(eq(modelWeightsTable.id, existing.id));
-      else await tx.insert(modelWeightsTable).values({
-        sport: row.sport,
-        ...values,
-        ...(row.sport === "MLB"
-          ? { mlbConfidenceRecoveryNormalizedAt: new Date() }
-          : {}),
-      });
       await tx.update(pickResultsTable).set({ learningReview: review }).where(eq(pickResultsTable.id, row.pickResultId));
       return true;
     });
-    if (processed) learned++;
+    if (processed) reviewed++;
   }
 
-  logger.info({ reviewed: rows.length, learned }, "Learning: pick reviews completed");
+  logger.info(
+    {
+      candidates: rows.length,
+      reviewed,
+      mode: PRODUCTION_LEARNING_MODE,
+      productionMutations: 0,
+    },
+    "Learning freeze: research-only pick reviews completed",
+  );
 }

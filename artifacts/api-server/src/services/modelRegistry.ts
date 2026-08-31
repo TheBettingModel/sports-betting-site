@@ -20,10 +20,22 @@ import {
   deploymentHistoryTable,
   modelComparisonsTable,
   modelVersionsTable,
+  modelWeightsTable,
   performanceMetricsTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { isPassingMlbPromotionGate, type MlbPromotionGate } from "./mlbPromotionGate";
+import {
+  buildProductionChampionSnapshot,
+  normalizeWeightsForChampionCapture,
+  productionChampionSnapshotHash,
+  shouldCaptureProductionChampionSnapshot,
+} from "./productionChampion";
+import {
+  isDeployableModelIdentity,
+  modelRegistryProductionLock,
+} from "./modelRegistryShared";
+export { isDeployableModelIdentity, modelRegistryProductionLock } from "./modelRegistryShared";
 
 // ── Promotion thresholds ──────────────────────────────────────────────────────
 
@@ -88,21 +100,6 @@ export interface TransitionStatusInput {
  * names. Fixture/test records may exist for audit, but can never drive a
  * production snapshot.
  */
-export function isDeployableModelIdentity(
-  model: Pick<typeof modelVersionsTable.$inferSelect, "modelId" | "sport" | "market">,
-): boolean {
-  const sport = model.sport.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const market = model.market.toLowerCase().replace(/[^a-z0-9-]/g, "");
-  return new RegExp(`^tbm-${sport}-${market}-v[1-9][0-9]*$`, "i").test(model.modelId);
-}
-
-/** Shared transaction lock for every writer of a production registry slot. */
-export function modelRegistryProductionLock(sport: string, market: string) {
-  return sql`SELECT pg_advisory_xact_lock(hashtext(${
-    `model-registry:${sport.toLowerCase()}:${market.toLowerCase()}`
-  }))`;
-}
-
 // ── Internal helper ───────────────────────────────────────────────────────────
 
 /** Write a deployment_history row. Accepts `db` or a Drizzle transaction. */
@@ -411,6 +408,7 @@ export async function transitionModelStatus(
   // ── All writes are atomic ─────────────────────────────────────────────────
   await db.transaction(async (tx) => {
     let lockedCurrent = current;
+    let rollbackTargetModelVersionId = current.rollbackTargetId;
     if (current.status === "production" || newStatus === "production") {
       await tx.execute(modelRegistryProductionLock(current.sport, current.market));
       const [freshCurrent] = await tx
@@ -495,6 +493,7 @@ export async function transitionModelStatus(
           .update(modelVersionsTable)
           .set({ rollbackTargetId: incumbent.id })
           .where(eq(modelVersionsTable.id, modelVersionId));
+        rollbackTargetModelVersionId = incumbent.id;
 
         logger.info(
           { retiredId: incumbent.id, promotedId: modelVersionId },
@@ -510,6 +509,28 @@ export async function transitionModelStatus(
       updates.approvedBy = approvedBy ?? performedBy;
     }
     if (newStatus === "production") {
+      if (shouldCaptureProductionChampionSnapshot(lockedCurrent.market)) {
+        let [weights] = await tx
+          .select()
+          .from(modelWeightsTable)
+          .where(eq(modelWeightsTable.sport, lockedCurrent.sport))
+          .limit(1);
+        const normalizedWeights = await normalizeWeightsForChampionCapture(
+          tx,
+          lockedCurrent.sport,
+          weights ?? null,
+        );
+        const championSnapshot = buildProductionChampionSnapshot(
+          {
+            ...lockedCurrent,
+            rollbackTargetId: rollbackTargetModelVersionId,
+          },
+          normalizedWeights,
+        );
+        updates.championSnapshot = championSnapshot;
+        updates.championSnapshotHash = productionChampionSnapshotHash(championSnapshot);
+        updates.championFrozenAt = new Date();
+      }
       updates.deployedAt = new Date();
       updates.deploymentApprovedBy = approvedBy ?? performedBy;
     }
@@ -544,6 +565,13 @@ export async function transitionModelStatus(
       performedBy,
       approvedBy ?? null,
       notes ?? null,
+      newStatus === "production" && updates.championSnapshotHash
+        ? {
+            championSnapshotHash: updates.championSnapshotHash,
+            rollbackTargetModelVersionId,
+            learningMode: "frozen_research_only",
+          }
+        : undefined,
     );
   });
 

@@ -6,10 +6,28 @@ import {
   buildSpreadSettlement,
   evaluateValidationGate,
   scoreMarketCandidate,
+  SPREAD_MARGIN_CONVENTION,
   SPREAD_CONFIGS,
+  spreadResidual,
   selectLatestPromotionEligibleCandidate,
   type SpreadCandidate,
 } from "./spreadModel";
+
+describe("spread margin sign convention", () => {
+  it("permanently uses home-perspective residuals", () => {
+    expect(SPREAD_MARGIN_CONVENTION.version).toBe("home-perspective-v1");
+    expect(spreadResidual({
+      expectedHomeMargin: 4.5,
+      homeScore: 27,
+      awayScore: 20,
+    })).toBe(2.5);
+    expect(spreadResidual({
+      expectedHomeMargin: -2,
+      homeScore: 20,
+      awayScore: 24,
+    })).toBe(-2);
+  });
+});
 
 function candidate(
   overrides: Partial<SpreadCandidate> = {},
@@ -176,6 +194,10 @@ describe("spread publication isolation", () => {
     expect(win.result).toBe("win");
     expect(win.closingLine).toBe(-4.5);
     expect(win.unitsWonLost).toBeGreaterThan(0);
+    expect(win.actualHomeMargin).toBe(4);
+    expect(win.predictedHomeMargin).toBe(6);
+    expect(win.residual).toBe(-2);
+    expect(win.residualConvention).toBe("home-perspective-v1");
 
     const push = buildSpreadSettlement({
       selection: "away",

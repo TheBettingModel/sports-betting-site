@@ -361,6 +361,7 @@ async function writePredictionSnapshot(
       predictionTimestamp: capturedAt,
       dataCutoffTimestamp: capturedAt,
       isChallenger: !publicationApproved,
+      cohort: publicationApproved ? "official" : "shadow",
     })
     // The explicit pre-insert lookup above preserves the one-original-decision
     // rule. Do not name a conflict target here: policy revisions extend the

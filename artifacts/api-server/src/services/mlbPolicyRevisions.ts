@@ -364,6 +364,7 @@ export async function applyMlbPolicyRevision(
           predictionTimestamp: now,
           dataCutoffTimestamp: now,
           isChallenger: false,
+          cohort: "official",
         })
         .returning({ id: modelPredictionsTable.id });
       if (!insertedPrediction) return { created: false, effective: false };

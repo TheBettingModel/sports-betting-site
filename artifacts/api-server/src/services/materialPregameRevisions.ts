@@ -521,6 +521,7 @@ export async function applyMaterialPregameRevision(
         predictionTimestamp: now,
         dataCutoffTimestamp: now,
         isChallenger: false,
+        cohort: "official",
       })
       .returning({ id: modelPredictionsTable.id });
     if (!insertedPrediction) return false;

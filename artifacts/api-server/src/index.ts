@@ -4,11 +4,12 @@ import { startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
 import { recoverStaleGames, syncGameResults, runGrading } from "./services/grading-runner";
 import { runForecastReviews } from "./services/forecastReviews";
-import { normalizeMlbConfidenceRecovery, runLearning } from "./services/learning";
+import { runLearning } from "./services/learning";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
 import { reconcileMlbProductionRegistry } from "./services/modelRegistryReconciliation";
 import { ensureEstablishedMoneylineApprovals } from "./services/marketApproval";
+import { ensureProductionChampionSnapshots } from "./services/productionChampion";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -181,10 +182,13 @@ async function startServer(): Promise<void> {
     process.exit(1);
   }
   try {
-    const normalized = await normalizeMlbConfidenceRecovery();
-    logger.info({ normalized }, "MLB confidence recovery baseline checked");
+    const championSnapshots = await ensureProductionChampionSnapshots();
+    logger.info(
+      { championSnapshots },
+      "Production champion configuration snapshots checked",
+    );
   } catch (err) {
-    logger.error({ err }, "MLB confidence recovery baseline failed");
+    logger.error({ err }, "Production champion snapshot reconciliation failed");
     process.exit(1);
   }
   // This data-only reconciliation runs after the managed schema publish and
