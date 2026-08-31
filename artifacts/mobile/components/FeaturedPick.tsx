@@ -117,7 +117,7 @@ export function FeaturedPick({ game }: FeaturedPickProps) {
           <Text style={[styles.pickLabel, { color: colors.primary }]}>TBM PICK</Text>
           <View style={styles.pickRow}>
             <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.pickName, { color: colors.foreground }]}>
-              {pickTeam.abbr} {pickMarketLabel}
+              {pickTeam.name} {pickMarketLabel}
             </Text>
             <Text style={[styles.pickOdds, { color: colors.primary }]}>{fmtOdds(pickOdds)}</Text>
           </View>
