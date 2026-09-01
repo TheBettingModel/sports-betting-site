@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { asc, eq } from "drizzle-orm";
 import { CHAT_MESSAGE_MAX_LENGTH, chatMessagesTable, db, notificationPreferencesTable } from "@workspace/db";
-import { ownerDisplayName, rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
+import { isOwnerAccount, ownerDisplayName, rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 import { sendChatMessageNotification } from "../services/pushNotifications";
 
 const router: IRouter = Router();
@@ -53,7 +53,14 @@ router.get("/chat/messages", async (req: Request, res: Response): Promise<void> 
     })
     .from(chatMessagesTable)
     .orderBy(asc(chatMessagesTable.createdAt), asc(chatMessagesTable.id));
-  res.json({ messages });
+  res.json({
+    messages: messages.map((message) => ({
+      ...message,
+      // Normalize historical owner-authored messages to the current brand name
+      // without rewriting the immutable message record.
+      authorDisplayName: isOwnerAccount(message.authorId) ? "TBM" : message.authorDisplayName,
+    })),
+  });
 });
 
 router.post("/chat/messages", async (req: Request, res: Response): Promise<void> => {

@@ -11,8 +11,9 @@ const { resolve, sendChatMessageNotification, select, insert } = vi.hoisted(() =
 
 vi.mock("../middleware/requireSubscriber", () => ({
   resolveSubscriberStatus: resolve,
+  isOwnerAccount: (id: string) => id === "owner-one" || id === "owner-two",
   rejectInvalidToken: (req: any, res: any, next: any) => req.subscriberStatus?.tokenRejected ? res.status(401).json({ error: "Invalid or expired token" }) : next(),
-  ownerDisplayName: (id: string) => id === "owner-one" ? "Jacques" : id === "owner-two" ? "Partner" : "Owner",
+  ownerDisplayName: (id: string) => id === "owner-one" || id === "owner-two" ? "TBM" : "Owner",
 }));
 vi.mock("../services/pushNotifications", () => ({ sendChatMessageNotification }));
 vi.mock("@workspace/db", () => ({
@@ -68,6 +69,15 @@ describe("chat authorization and content boundaries", () => {
     select.mockReturnValueOnce(dbQuery([{ id: 4, body: "server text" }]));
     expect((await request(app()).get("/api/chat/messages")).status).toBe(200);
     expect((await request(app()).post("/api/chat/messages").send({ body: "nope" })).status).toBe(403);
+  });
+  it("normalizes historical owner messages to TBM", async () => {
+    status("pro", true);
+    select.mockReturnValueOnce(dbQuery([
+      { id: 4, authorId: "owner-one", authorDisplayName: "Jacques", body: "old message", createdAt: "2026-09-01T00:00:00.000Z" },
+      { id: 5, authorId: "subscriber", authorDisplayName: "Subscriber", body: "reply", createdAt: "2026-09-01T00:01:00.000Z" },
+    ]));
+    const response = await request(app()).get("/api/chat/messages");
+    expect(response.body.messages.map((message: any) => message.authorDisplayName)).toEqual(["TBM", "Subscriber"]);
   });
   it.each(["owner-one", "owner-two"])("allows approved owner %s to post and triggers body-free notification", async (owner) => {
     status(owner, true, true);

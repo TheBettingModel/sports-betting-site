@@ -73,7 +73,9 @@ describe("owner identity", () => {
     expect(isOwnerAccount("ordinary-user")).toBe(false);
   });
 
-  it("does not assign an arbitrary account the Partner display name", () => {
+  it("uses the TBM display name for both approved owners", () => {
+    expect(ownerDisplayName("user_3GmXMcCGzqs1c5aD1snP08e7Frx")).toBe("TBM");
+    expect(ownerDisplayName("user_3GyCCHwnYB9sIByophLiunxGtMf")).toBe("TBM");
     expect(ownerDisplayName("ordinary-user")).toBe("Owner");
   });
 });

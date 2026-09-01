@@ -57,8 +57,7 @@ export function isOwnerAccount(userId: string | null | undefined): boolean {
 }
 
 export function ownerDisplayName(userId: string): string {
-  if (userId === "user_3GmXMcCGzqs1c5aD1snP08e7Frx") return "Jacques";
-  if (userId === "user_3GyCCHwnYB9sIByophLiunxGtMf") return "Partner";
+  if (isOwnerAccount(userId)) return "TBM";
   return "Owner";
 }
 
