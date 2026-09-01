@@ -35,3 +35,5 @@
 - [Production startup DDL](production-startup-ddl.md) — never run schema DDL before opening the production port; managed publishing owns production schema changes.
 - [Feed refresh resilience](feed-refresh-resilience.md) — mobile refreshes only refetch; heavy server refreshes are single-flight, and transport failures must never look like empty slates.
 - [Collapsed Model Board hierarchy](collapsed-model-board-hierarchy.md) — cards answer what TBM likes; all reasons and analytics stay behind View Analysis.
+- [Sensitive entitlement caching](sensitive-entitlement-caching.md) — Picks and Chat require a fresh server grant; fetching/error states fail closed and evict premium caches.
+- [Safe free-pick contract](safe-free-pick-contract.md) — persist one exact published market; free clients receive a dedicated allowlisted DTO, never a full game projection.

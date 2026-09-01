@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FreePick } from './freePick';
 import type { GameProjection } from './gameProjection';
 
 export interface GamesTodayResponse {
@@ -13,4 +14,7 @@ export interface GamesTodayResponse {
   totalGames: number;
   liveGamesCount: number;
   isSubscribed: boolean;
+  /** @nullable */
+  freePickPublishedPickId?: number | null;
+  freePick?: FreePick | null;
 }

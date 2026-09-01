@@ -22,6 +22,7 @@ import { logger } from "../lib/logger";
 export interface SubscriberStatus {
   userId: string | null;
   isSubscribed: boolean;
+  isOwner: boolean;
   /**
    * True when a Bearer token was present in the request but failed
    * signature verification (expired, tampered, wrong issuer, etc.).
@@ -44,10 +45,22 @@ declare global {
 // Admin user IDs — always treated as Pro subscribers, bypassing the DB check.
 // These are the app owner / partner accounts; add new IDs here as needed.
 // ---------------------------------------------------------------------------
-const ADMIN_USER_IDS = new Set([
+const OWNER_USER_IDS = new Set([
   "user_3GmXMcCGzqs1c5aD1snP08e7Frx", // Jacques (owner)
   "user_3GyCCHwnYB9sIByophLiunxGtMf", // Partner (jjmaclellan24@gmail.com)
 ]);
+export const OWNER_ACCOUNT_IDS = [...OWNER_USER_IDS];
+
+/** The only server-side owner authorization check. */
+export function isOwnerAccount(userId: string | null | undefined): boolean {
+  return !!userId && OWNER_USER_IDS.has(userId);
+}
+
+export function ownerDisplayName(userId: string): string {
+  if (userId === "user_3GmXMcCGzqs1c5aD1snP08e7Frx") return "Jacques";
+  if (userId === "user_3GyCCHwnYB9sIByophLiunxGtMf") return "Partner";
+  return "Owner";
+}
 
 // ---------------------------------------------------------------------------
 // Clerk JWKS setup — fetched ONCE at startup, cached locally.
@@ -204,6 +217,7 @@ export async function resolveSubscriberStatus(
 
   let userId: string | null = null;
   let isSubscribed = false;
+  let isOwner = false;
   let tokenRejected = false;
 
   if (authHeader.startsWith("Bearer ")) {
@@ -213,40 +227,41 @@ export async function resolveSubscriberStatus(
     tokenRejected = result.rejected;
 
     if (userId) {
-      // Admin users always have Pro access — no DB lookup needed.
-      if (ADMIN_USER_IDS.has(userId)) {
+      // Owner accounts always have Pro access — no DB lookup needed.
+      if (isOwnerAccount(userId)) {
         isSubscribed = true;
+        isOwner = true;
       } else {
-      try {
-        const [row] = await db
-          .select({ isActive: subscribersTable.isActive, expiresAt: subscribersTable.expiresAt })
-          .from(subscribersTable)
-          .where(eq(subscribersTable.userId, userId))
-          .limit(1);
+        try {
+          const [row] = await db
+            .select({ isActive: subscribersTable.isActive, expiresAt: subscribersTable.expiresAt })
+            .from(subscribersTable)
+            .where(eq(subscribersTable.userId, userId))
+            .limit(1);
 
-        // Primary check: isActive flag (kept current by RevenueCat webhooks).
-        // Secondary check: expiresAt acts as a safety net — if the webhook
-        // hasn't fired yet but the subscription window has passed, lock it out.
-        const webhookSaysActive = row?.isActive === true;
-        const notYetExpired =
-          !row?.expiresAt || row.expiresAt.getTime() > Date.now();
-        isSubscribed = webhookSaysActive && notYetExpired;
+          // Primary check: isActive flag (kept current by RevenueCat webhooks).
+          // Secondary check: expiresAt acts as a safety net — if the webhook
+          // hasn't fired yet but the subscription window has passed, lock it out.
+          const webhookSaysActive = row?.isActive === true;
+          const notYetExpired =
+            !row?.expiresAt || row.expiresAt.getTime() > Date.now();
+          isSubscribed = webhookSaysActive && notYetExpired;
 
-        if (webhookSaysActive && !notYetExpired) {
-          logger.info(
-            { userId, expiresAt: row?.expiresAt },
-            "Subscriber marked active but expiresAt is in the past — treating as lapsed",
-          );
+          if (webhookSaysActive && !notYetExpired) {
+            logger.info(
+              { userId, expiresAt: row?.expiresAt },
+              "Subscriber marked active but expiresAt is in the past — treating as lapsed",
+            );
+          }
+        } catch (err) {
+          // DB error → treat as non-subscriber; don't block the request
+          logger.warn({ err }, "Subscriber lookup failed; treating as non-subscriber");
         }
-      } catch (err) {
-        // DB error → treat as non-subscriber; don't block the request
-        logger.warn({ err }, "Subscriber lookup failed; treating as non-subscriber");
-      }
       } // end else (non-admin)
     }
   }
 
-  req.subscriberStatus = { userId, isSubscribed, tokenRejected };
+  req.subscriberStatus = { userId, isSubscribed, isOwner, tokenRejected };
   next();
 }
 

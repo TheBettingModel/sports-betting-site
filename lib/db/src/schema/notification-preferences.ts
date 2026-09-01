@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, jsonb, timestamp, index, boolean } from "drizzle-orm/pg-core";
 
 /**
  * Per-user push notification sport preferences.
@@ -15,6 +15,8 @@ export const notificationPreferencesTable = pgTable(
   {
     userId: text("user_id").primaryKey(),
     enabledSports: jsonb("enabled_sports").$type<string[] | null>().default(null),
+    // Kept separate from pick/sport alert choices.
+    chatNotificationsEnabled: boolean("chat_notifications_enabled").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

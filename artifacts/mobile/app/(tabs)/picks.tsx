@@ -19,6 +19,8 @@ import { GameCardSkeleton } from '@/components/GameCardSkeleton';
 import { LockedPickCard } from '@/components/LockedPickCard';
 import { FeaturedPick } from '@/components/FeaturedPick';
 import { TeamLogo } from '@/components/TeamLogo';
+import { FreePickCard } from '@/components/FreePickCard';
+import type { FreePick } from '@workspace/api-client-react';
 import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import type { Game } from '@/data/mockGames';
@@ -27,7 +29,6 @@ import { getForecastMoneylineIdentity } from '@/utils/forecastProjection';
 import { gamesTodayQueryKey } from '@/utils/viewerQueryKeys';
 import { useAuth } from '@clerk/expo';
 
-const FREE_PICKS = 2;
 const SKELETON_COUNT = 6;
 
 const RATING_ORDER = ['Strong Buy', 'Buy', 'Neutral', 'Fade'] as const;
@@ -193,6 +194,7 @@ function compareForecasts(a: Forecast, b: Forecast): number {
 }
 
 type ListItem =
+  | { type: 'free-pick'; freePick: FreePick }
   | { type: 'header'; rating: Rating; count: number }
   | { type: 'game'; game: Game; locked: boolean }
   | { type: 'projection-header'; count: number }
@@ -203,13 +205,13 @@ export default function PicksScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useAuth();
-  const { isSubscribed } = useSubscription();
+  const { isSubscribed, hasServerEntitlement } = useSubscription();
   const { selectedSport } = useSports();
   const [expandedForecastId, setExpandedForecastId] = React.useState<string | null>(null);
 
   const { data, isLoading, isError, isRefetching, refetch } = useGetGamesToday(undefined, {
     query: {
-      queryKey: gamesTodayQueryKey(userId),
+      queryKey: gamesTodayQueryKey(userId, hasServerEntitlement),
       enabled: Boolean(userId),
     },
   });
@@ -259,9 +261,7 @@ export default function PicksScreen() {
       ACTIONABLE_RATINGS.includes(g.projection.valueRating as Rating),
     );
     if (actionable.length === 0) return null;
-    const unlocked = actionable.filter(g => !g.isLocked);
-    const pool = unlocked.length > 0 ? unlocked : actionable;
-    return [...pool].sort((a, b) => {
+    return [...actionable].sort((a, b) => {
       const ra = RATING_ORDER.indexOf(a.projection.valueRating as Rating);
       const rb = RATING_ORDER.indexOf(b.projection.valueRating as Rating);
       if (ra !== rb) return ra - rb;
@@ -298,7 +298,10 @@ export default function PicksScreen() {
     () => selectedSport === 'All' ? actionableGames.slice(0, ALL_PLAYS_LIMIT) : actionableGames,
     [actionableGames, selectedSport],
   );
-  const lockedCount = displayedGames.filter(g => g.isLocked === true).length;
+  const lockedCount = displayedGames.filter(g => {
+    const isComputedTopPick = topPick && g.id === topPick.id;
+    return !hasServerEntitlement ? (isComputedTopPick || g.isLocked === true) : false;
+  }).length;
 
   // Per-sport game counts — drives the count badge on each sport pill
   const sportGameCounts = useMemo(() => {
@@ -333,15 +336,21 @@ export default function PicksScreen() {
   // game receives a compact forecast row after the actual wagers.
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
-    let pickIndex = 0;
+    
+    if (!hasServerEntitlement && data?.freePick) {
+      if (selectedSport === 'All' || data.freePick.sport === selectedSport) {
+        items.push({ type: 'free-pick', freePick: data.freePick });
+      }
+    }
+
     for (const rating of ACTIONABLE_RATINGS) {
       const group = displayedGames.filter(g => g.projection.valueRating === rating);
       if (group.length === 0) continue;
       items.push({ type: 'header', rating, count: group.length });
       for (const game of group) {
-        const locked = game.isLocked ?? (!isSubscribed && pickIndex >= FREE_PICKS);
+        const isComputedTopPick = topPick && game.id === topPick.id;
+        const locked = !hasServerEntitlement ? (isComputedTopPick || game.isLocked === true) : false;
         items.push({ type: 'game', game, locked });
-        pickIndex++;
       }
     }
     if (selectedSport !== 'All' && forecasts.length > 0) {
@@ -351,7 +360,7 @@ export default function PicksScreen() {
       }
     }
     return items;
-  }, [displayedGames, forecasts, isSubscribed, selectedSport]);
+  }, [displayedGames, forecasts, hasServerEntitlement, selectedSport, data?.freePick]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -421,7 +430,11 @@ export default function PicksScreen() {
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TODAY'S TOP PICK</Text>
             <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
           </View>
-          <FeaturedPick game={topPick} />
+          {!hasServerEntitlement ? (
+            <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
+          ) : (
+            <FeaturedPick game={topPick} />
+          )}
         </View>
       )}
 
@@ -456,7 +469,7 @@ export default function PicksScreen() {
       {!isLoading && lockedCount > 0 && (
         <View style={[styles.lockedBanner, { backgroundColor: colors.goldBg, borderColor: colors.gold + '44' }]}>
           <Text style={[styles.lockedBannerText, { color: colors.gold }]}>
-            🔒 Showing {displayedGames.filter(g => !g.isLocked).length} of {displayedGames.length} plays — unlock all with Pro
+            Showing {displayedGames.length - lockedCount} of {displayedGames.length} plays — unlock all with Pro
           </Text>
         </View>
       )}
@@ -464,6 +477,9 @@ export default function PicksScreen() {
   );
 
   const renderItem = ({ item }: { item: ListItem }) => {
+    if (item.type === 'free-pick') {
+      return <FreePickCard freePick={item.freePick} />;
+    }
     if (item.type === 'header') {
       const c = RATING_COLORS[item.rating];
       return (
@@ -647,6 +663,7 @@ export default function PicksScreen() {
       <FlatList
         data={listItems}
         keyExtractor={(item) => {
+          if (item.type === 'free-pick') return `free-pick-${item.freePick.gameId}`;
           if (item.type === 'header') return `hdr-${item.rating}`;
           if (item.type === 'projection-header') return `hdr-${selectedSport}-projections`;
           if (item.type === 'projection') return `forecast-${item.forecast.game.id}`;

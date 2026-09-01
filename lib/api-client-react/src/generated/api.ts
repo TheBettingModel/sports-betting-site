@@ -20,7 +20,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ChatAccess,
+  ChatMessageResponse,
+  ChatMessagesResponse,
+  ChatPreferences,
   CreateAdminMarketApproval201,
+  CreateChatMessageRequest,
   DeregisterPushTokenRequest,
   GamesTodayResponse,
   GetAdminForecastMetrics200,
@@ -58,6 +63,7 @@ import type {
   SubscriptionSyncRequest,
   SubscriptionSyncResponse,
   SuspendAdminSpreadModel200,
+  UpdateChatPreferencesRequest,
   UpdateNotificationPreferencesRequest,
   UpdateUserPreferencesRequest,
   UserPreferences
@@ -323,6 +329,302 @@ export const useRefreshGames = <TError = ErrorType<unknown>,
       return useMutation(getRefreshGamesMutationOptions(options));
     }
 
+export const getGetChatAccessUrl = () => {
+
+
+
+
+  return `/api/chat/access`
+}
+
+/**
+ * @summary Get authenticated chat access metadata
+ */
+export const getChatAccess = async ( options?: RequestInit): Promise<ChatAccess> => {
+
+  return customFetch<ChatAccess>(getGetChatAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChatAccessQueryKey = () => {
+    return [
+    `/api/chat/access`
+    ] as const;
+    }
+
+
+export const getGetChatAccessQueryOptions = <TData = Awaited<ReturnType<typeof getChatAccess>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChatAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChatAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatAccess>>> = ({ signal }) => getChatAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChatAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChatAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getChatAccess>>>
+export type GetChatAccessQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get authenticated chat access metadata
+ */
+
+export function useGetChatAccess<TData = Awaited<ReturnType<typeof getChatAccess>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChatAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChatAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetChatMessagesUrl = () => {
+
+
+
+
+  return `/api/chat/messages`
+}
+
+/**
+ * @summary List chronological chat messages for Pro members
+ */
+export const getChatMessages = async ( options?: RequestInit): Promise<ChatMessagesResponse> => {
+
+  return customFetch<ChatMessagesResponse>(getGetChatMessagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChatMessagesQueryKey = () => {
+    return [
+    `/api/chat/messages`
+    ] as const;
+    }
+
+
+export const getGetChatMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getChatMessages>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChatMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChatMessagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatMessages>>> = ({ signal }) => getChatMessages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChatMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChatMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getChatMessages>>>
+export type GetChatMessagesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List chronological chat messages for Pro members
+ */
+
+export function useGetChatMessages<TData = Awaited<ReturnType<typeof getChatMessages>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChatMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChatMessagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateChatMessageUrl = () => {
+
+
+
+
+  return `/api/chat/messages`
+}
+
+/**
+ * @summary Post an owner chat message
+ */
+export const createChatMessage = async (createChatMessageRequest: CreateChatMessageRequest, options?: RequestInit): Promise<ChatMessageResponse> => {
+
+  return customFetch<ChatMessageResponse>(getCreateChatMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createChatMessageRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateChatMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChatMessage>>, TError,{data: BodyType<CreateChatMessageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChatMessage>>, TError,{data: BodyType<CreateChatMessageRequest>}, TContext> => {
+
+const mutationKey = ['createChatMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChatMessage>>, {data: BodyType<CreateChatMessageRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createChatMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChatMessageMutationResult = NonNullable<Awaited<ReturnType<typeof createChatMessage>>>
+    export type CreateChatMessageMutationBody = BodyType<CreateChatMessageRequest>
+    export type CreateChatMessageMutationError = ErrorType<void>
+
+    /**
+ * @summary Post an owner chat message
+ */
+export const useCreateChatMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChatMessage>>, TError,{data: BodyType<CreateChatMessageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChatMessage>>,
+        TError,
+        {data: BodyType<CreateChatMessageRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateChatMessageMutationOptions(options));
+    }
+
+export const getUpdateChatPreferencesUrl = () => {
+
+
+
+
+  return `/api/chat/preferences`
+}
+
+/**
+ * @summary Update chat notification preference
+ */
+export const updateChatPreferences = async (updateChatPreferencesRequest: UpdateChatPreferencesRequest, options?: RequestInit): Promise<ChatPreferences> => {
+
+  return customFetch<ChatPreferences>(getUpdateChatPreferencesUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateChatPreferencesRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateChatPreferencesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateChatPreferences>>, TError,{data: BodyType<UpdateChatPreferencesRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateChatPreferences>>, TError,{data: BodyType<UpdateChatPreferencesRequest>}, TContext> => {
+
+const mutationKey = ['updateChatPreferences'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateChatPreferences>>, {data: BodyType<UpdateChatPreferencesRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateChatPreferences(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateChatPreferencesMutationResult = NonNullable<Awaited<ReturnType<typeof updateChatPreferences>>>
+    export type UpdateChatPreferencesMutationBody = BodyType<UpdateChatPreferencesRequest>
+    export type UpdateChatPreferencesMutationError = ErrorType<void>
+
+    /**
+ * @summary Update chat notification preference
+ */
+export const useUpdateChatPreferences = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateChatPreferences>>, TError,{data: BodyType<UpdateChatPreferencesRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateChatPreferences>>,
+        TError,
+        {data: BodyType<UpdateChatPreferencesRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateChatPreferencesMutationOptions(options));
+    }
+
 export const getGetAdminSpreadModelsUrl = () => {
 
 
@@ -493,7 +795,7 @@ export const getGetAdminMarketApprovalsUrl = () => {
 }
 
 /**
- * @summary List latest exact market approval decisions
+ * @summary List latest exact automatic and manual market approval decisions
  */
 export const getAdminMarketApprovals = async ( options?: RequestInit): Promise<GetAdminMarketApprovals200> => {
 
@@ -540,7 +842,7 @@ export type GetAdminMarketApprovalsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List latest exact market approval decisions
+ * @summary List latest exact automatic and manual market approval decisions
  */
 
 export function useGetAdminMarketApprovals<TData = Awaited<ReturnType<typeof getAdminMarketApprovals>>, TError = ErrorType<unknown>>(
@@ -570,7 +872,7 @@ export const getCreateAdminMarketApprovalUrl = () => {
 }
 
 /**
- * @summary Append an exact market approval lifecycle decision
+ * @summary Append an exceptional manual market approval lifecycle decision
  */
 export const createAdminMarketApproval = async (marketApprovalDecisionInput: MarketApprovalDecisionInput, options?: RequestInit): Promise<CreateAdminMarketApproval201> => {
 
@@ -619,7 +921,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateAdminMarketApprovalMutationError = ErrorType<void>
 
     /**
- * @summary Append an exact market approval lifecycle decision
+ * @summary Append an exceptional manual market approval lifecycle decision
  */
 export const useCreateAdminMarketApproval = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminMarketApproval>>, TError,{data: BodyType<MarketApprovalDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}

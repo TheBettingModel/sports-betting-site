@@ -210,12 +210,81 @@ export interface GameProjection {
   spreadMarket?: MarketProjection | null;
 }
 
+export type FreePickRecommendation = typeof FreePickRecommendation[keyof typeof FreePickRecommendation];
+
+
+export const FreePickRecommendation = {
+  Strong_Buy: 'Strong Buy',
+  Buy: 'Buy',
+} as const;
+
+export interface FreePick {
+  publishedPickId: number;
+  gameId: string;
+  sport: string;
+  awayTeamName: string;
+  awayTeamAbbr: string;
+  awayTeamLogo?: string | null;
+  homeTeamName: string;
+  homeTeamAbbr: string;
+  homeTeamLogo?: string | null;
+  gameDate: string;
+  startTime: string;
+  status: string;
+  market: string;
+  selection: string;
+  recommendation: FreePickRecommendation;
+}
+
 export interface GamesTodayResponse {
   games: GameProjection[];
   lastUpdated: string;
   totalGames: number;
   liveGamesCount: number;
   isSubscribed: boolean;
+  /** @nullable */
+  freePickPublishedPickId?: number | null;
+  freePick?: FreePick | null;
+}
+
+export interface ChatAccess {
+  canRead: boolean;
+  canPost: boolean;
+  isLocked: boolean;
+  chatNotificationsEnabled: boolean;
+}
+
+export interface ChatMessage {
+  id: number;
+  authorId: string;
+  authorDisplayName: string;
+  /** @maxLength 1000 */
+  body: string;
+  createdAt: string;
+}
+
+export interface ChatMessagesResponse {
+  messages: ChatMessage[];
+}
+
+export interface ChatMessageResponse {
+  message: ChatMessage;
+}
+
+export interface CreateChatMessageRequest {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  body: string;
+}
+
+export interface UpdateChatPreferencesRequest {
+  chatNotificationsEnabled: boolean;
+}
+
+export interface ChatPreferences {
+  chatNotificationsEnabled: boolean;
 }
 
 export interface RefreshResponse {

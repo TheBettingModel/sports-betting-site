@@ -62,6 +62,18 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="message.fill" tintColor={color} size={22} />
+            ) : (
+              <Feather name="message-circle" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
         name="results"
         options={{
           title: 'Record',

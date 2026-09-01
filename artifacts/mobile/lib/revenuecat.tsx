@@ -78,7 +78,6 @@ function useSubscriptionContext() {
   const identityCoordinator = identityCoordinatorRef.current;
   const primaryEmail = (user?.primaryEmailAddress?.emailAddress ?? "").toLowerCase();
   const statusQueryKey = useMemo(() => subscriptionStatusQueryKey(userId), [userId]);
-  const gamesQueryKey = useMemo(() => gamesTodayQueryKey(userId), [userId]);
 
   const isAdmin =
     (!!userId && ADMIN_USER_IDS.has(userId)) ||
@@ -140,6 +139,19 @@ function useSubscriptionContext() {
     enabled: Boolean(userId),
     staleTime: 0,
   });
+
+  const rcSubscribed =
+    customerInfoQuery.data?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
+
+  const hasServerEntitlement =
+    !serverStatusQuery.isFetching &&
+    !serverStatusQuery.isError &&
+    serverStatusQuery.isSuccess &&
+    serverStatusQuery.data?.isSubscribed === true;
+
+  const isSubscribed = rcSubscribed || hasServerEntitlement;
+
+  const gamesQueryKey = useMemo(() => gamesTodayQueryKey(userId, hasServerEntitlement), [userId, hasServerEntitlement]);
 
   const reconcileEntitlement = useCallback(async (
     customerInfo: Awaited<ReturnType<typeof Purchases.getCustomerInfo>>,
@@ -248,6 +260,13 @@ function useSubscriptionContext() {
   }, [reconcileCurrentEntitlement, userId]);
 
   useEffect(() => {
+    if (!hasServerEntitlement) {
+      // Immediately evict stale premium payloads when server entitlement drops
+      queryClient.removeQueries({ queryKey: ["/api/games/today"] });
+    }
+  }, [hasServerEntitlement, queryClient]);
+
+  useEffect(() => {
     if (serverStatusQuery.data?.isSubscribed === true) {
       void queryClient.invalidateQueries({
         queryKey: gamesQueryKey,
@@ -257,18 +276,11 @@ function useSubscriptionContext() {
     }
   }, [gamesQueryKey, queryClient, serverStatusQuery.data?.isSubscribed]);
 
-  const rcSubscribed =
-    customerInfoQuery.data?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
-
-  // Admins always have Pro access regardless of RevenueCat status
-  const isSubscribed =
-    isAdmin || rcSubscribed || serverStatusQuery.data?.isSubscribed === true;
-
   return {
     customerInfo: customerInfoQuery.data,
     offerings: offeringsQuery.data,
     isSubscribed,
-    isAdmin,
+    hasServerEntitlement,
     isLoading:
       customerInfoQuery.isLoading ||
       offeringsQuery.isLoading ||

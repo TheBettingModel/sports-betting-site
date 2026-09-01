@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
 import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
+import { getDailyFreePick } from "../services/freePick";
+import { lockGame } from "../services/gameAccess";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection, type ComputeOptions } from "../services/model";
 import {
@@ -41,37 +43,12 @@ import { getMoneylinePublicationPermissionsForGames } from "../services/marketAp
 type AnyGame = Record<string, unknown>;
 
 /** Number of full picks shown to non-subscribers */
-const FREE_PICKS = 2;
 
 /**
  * Returns the game with premium model fields zeroed out and `isLocked: true`.
  * Fields are kept as valid numbers (not null) so clients don't crash on
  * numeric rendering — they should hide/replace locked rows using `isLocked`.
  */
-function lockGame(game: AnyGame): AnyGame {
-  const { mlbDecisionAudit: _internalAudit, ...publicGame } = game;
-  return {
-    ...publicGame,
-    // Zero out model projection fields
-    homeWinPct: 50,
-    confidence: "Low",
-    projectedSpread: 0,
-    projectedTotal: 0,
-    valueRating: "Neutral",
-    modelScore: 0,
-    edge: 0,
-    vegasSpread: 0,
-    vegasTotal: 0,
-    vegasHomeOdds: 0,
-    vegasAwayOdds: 0,
-    selectedPick: null,
-    moneylineMarket: null,
-    spreadMarket: null,
-    // Signal to the client that this game is gated
-    isLocked: true,
-  };
-}
-
 async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]> {
   const gameIds = games.map((game) => game["id"] as string);
   const [spreadByGame, moneylinePermissions] = await Promise.all([
@@ -813,10 +790,7 @@ async function refreshStaleGamesOnce(): Promise<void> {
  *
  * Subscriber gating:
  *   - Pro subscribers receive full model projections for all games.
- *   - Non-subscribers receive full data for only the top FREE_PICKS games
- *     across today's ENTIRE slate (sorted by modelScore descending).
- *     The free quota is global — not per-sport — so repeatedly querying
- *     with ?sport= cannot be used to extract additional premium picks.
+   *   - Non-subscribers receive the one server-selected, persisted free pick.
  */
 router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
   // This response differs by bearer token and subscription status. Never let a
@@ -908,34 +882,20 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     return;
   }
 
-  // Non-subscribers: always fetch the FULL day's slate first to establish
-  // global lock positions, then filter by sport for the final response.
-  // This prevents the ?sport= bypass: the free quota is consumed from the
-  // global ranked list regardless of the sport filter in the request.
+  // Non-subscribers: resolve the slate-level persisted selection before a
+  // sport filter is applied. A filter can never mint an additional free pick.
   const allTodayGames = await db
     .select()
     .from(gamesTable)
     .where(and(eq(gamesTable.gameDate, today), eq(gamesTable.status, "upcoming")))
     .orderBy(desc(gamesTable.modelScore));
 
-  // Apply published rating pins before determining free slots, so the free
-  // pick selection operates on the corrected ratings.
   const ratedGames = await attachMarketSelection(applyPublishedRatings(allTodayGames as AnyGame[]));
-
-  // Free picks: top FREE_PICKS qualifying games (Strong Buy or Buy) by model
-  // score. Skipping Neutral/Fade ensures free slots aren't wasted on games
-  // that don't appear on the All tab, which only shows actionable picks.
-  const qualifyingGames = ratedGames.filter(
-    (g) => g["valueRating"] === "Strong Buy" || g["valueRating"] === "Buy",
-  );
-  const freeGameIds = new Set(
-    qualifyingGames.slice(0, FREE_PICKS).map((g) => g["id"] as string),
-  );
+  const freePick = await getDailyFreePick(today);
 
   // Apply lock state across the full slate, then sport-filter for the response
   const gatedAll = ratedGames.map((game) => {
-    const isFree = freeGameIds.has(game["id"] as string);
-    return isFree ? { ...game, isLocked: false } : lockGame(game);
+    return lockGame(game);
   });
 
   const filtered =
@@ -949,6 +909,10 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     totalGames: filtered.length,
     liveGamesCount,
     isSubscribed: false,
+    // This separately allowlisted DTO is the only non-Pro pick disclosure.
+    // All game rows remain schedule-only locked cards.
+    freePick: freePick ?? null,
+    freePickPublishedPickId: freePick?.publishedPickId ?? null,
   });
 });
 

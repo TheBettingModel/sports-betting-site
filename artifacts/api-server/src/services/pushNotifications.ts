@@ -6,10 +6,11 @@
  */
 
 import { Expo, type ExpoPushMessage } from "expo-server-sdk";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gt, or, sql } from "drizzle-orm";
 import { db, pushTokensTable, subscribersTable, notificationPreferencesTable, userPreferencesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { storePushReceipts } from "./pushReceipts";
+import { OWNER_ACCOUNT_IDS } from "../middleware/requireSubscriber";
 
 const expo = new Expo();
 
@@ -238,6 +239,43 @@ export async function sendStrongBuyNotification(
     { sent, failed, skippedByPreference, strongBuyCount, sport },
     "Push: Strong Buy notification batch complete",
   );
+}
+
+/**
+ * Announces chat activity without leaking chat contents into a system
+ * notification. Chat opt-in is intentionally independent of pick alerts.
+ */
+export async function sendChatMessageNotification(): Promise<void> {
+  const now = new Date();
+  const rows = await db
+    .select({ userId: pushTokensTable.userId, token: pushTokensTable.token, chatNotificationsEnabled: notificationPreferencesTable.chatNotificationsEnabled })
+    .from(pushTokensTable)
+    .leftJoin(subscribersTable, eq(pushTokensTable.userId, subscribersTable.userId))
+    .leftJoin(notificationPreferencesTable, eq(pushTokensTable.userId, notificationPreferencesTable.userId))
+    .where(and(
+      eq(pushTokensTable.isActive, true),
+      or(
+        inArray(pushTokensTable.userId, OWNER_ACCOUNT_IDS),
+        and(eq(subscribersTable.isActive, true), or(sql`${subscribersTable.expiresAt} IS NULL`, gt(subscribersTable.expiresAt, now))),
+      ),
+    ));
+
+  const messages: ExpoPushMessage[] = rows
+    .filter((row) => row.chatNotificationsEnabled !== false && Expo.isExpoPushToken(row.token))
+    .map((row) => ({
+      to: row.token,
+      sound: "default",
+      title: "New chat message",
+      body: "Open the app to view the community chat.",
+      data: { screen: "chat" },
+      channelId: "chat",
+    }));
+  if (!messages.length) return;
+  try {
+    for (const chunk of expo.chunkPushNotifications(messages)) await expo.sendPushNotificationsAsync(chunk);
+  } catch (err) {
+    logger.warn({ err }, "Push: chat notification delivery failed");
+  }
 }
 
 /**

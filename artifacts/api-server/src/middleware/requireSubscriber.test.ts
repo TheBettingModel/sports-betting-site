@@ -58,7 +58,25 @@ vi.mock("../lib/logger", () => ({
 
 // ── Import under test (after mocks) ──────────────────────────────────────────
 
-import { resolveSubscriberStatus, rejectInvalidToken, _setLocalJwksForTest } from "./requireSubscriber";
+import {
+  resolveSubscriberStatus,
+  rejectInvalidToken,
+  _setLocalJwksForTest,
+  isOwnerAccount,
+  ownerDisplayName,
+} from "./requireSubscriber";
+
+describe("owner identity", () => {
+  it("recognizes only the two approved account IDs", () => {
+    expect(isOwnerAccount("user_3GmXMcCGzqs1c5aD1snP08e7Frx")).toBe(true);
+    expect(isOwnerAccount("user_3GyCCHwnYB9sIByophLiunxGtMf")).toBe(true);
+    expect(isOwnerAccount("ordinary-user")).toBe(false);
+  });
+
+  it("does not assign an arbitrary account the Partner display name", () => {
+    expect(ownerDisplayName("ordinary-user")).toBe("Owner");
+  });
+});
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 

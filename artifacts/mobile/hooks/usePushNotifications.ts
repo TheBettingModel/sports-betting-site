@@ -86,6 +86,8 @@ export function usePushNotifications() {
         const data = response.notification.request.content.data as Record<string, unknown>;
         if (data?.screen === 'picks') {
           router.push('/(tabs)/picks');
+        } else if (data?.screen === 'chat') {
+          router.push('/(tabs)/chat');
         }
       },
     );
@@ -110,6 +112,12 @@ export function usePushNotifications() {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#84CC16',
         description: 'Notifies you when new Strong Buy picks are available',
+      });
+      await Notifications.setNotificationChannelAsync('chat', {
+        name: 'Chat Updates',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        lightColor: '#84CC16',
+        description: 'Updates from the model owner',
       });
     }
 

@@ -18,6 +18,8 @@ tags:
     description: Model performance results and ROI
   - name: device
     description: Device push token and preference management
+  - name: chat
+    description: Subscriber community chat
 paths:
   /healthz:
     get:
@@ -64,6 +66,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RefreshResponse"
+
+  /chat/access:
+    get:
+      operationId: getChatAccess
+      tags: [chat]
+      summary: Get authenticated chat access metadata
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Chat access metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatAccess" }
+        "401": { description: Unauthorized }
+  /chat/messages:
+    get:
+      operationId: getChatMessages
+      tags: [chat]
+      summary: List chronological chat messages for Pro members
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessagesResponse" }
+        "401": { description: Unauthorized }
+        "403": { description: Pro subscription required }
+    post:
+      operationId: createChatMessage
+      tags: [chat]
+      summary: Post an owner chat message
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateChatMessageRequest" }
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessageResponse" }
+        "401": { description: Unauthorized }
+        "403": { description: Owner required }
+        "400": { description: Invalid body }
+  /chat/preferences:
+    put:
+      operationId: updateChatPreferences
+      tags: [chat]
+      summary: Update chat notification preference
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateChatPreferencesRequest" }
+      responses:
+        "200":
+          description: Updated preference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatPreferences" }
+        "401": { description: Unauthorized }
+        "403": { description: Pro subscription required }
 
   /admin/spread-models:
     get:
@@ -930,12 +998,83 @@ components:
           type: integer
         isSubscribed:
           type: boolean
+        freePickPublishedPickId:
+          type: [integer, "null"]
+        freePick:
+          allOf:
+            - $ref: "#/components/schemas/FreePick"
+          nullable: true
       required:
         - games
         - lastUpdated
         - totalGames
         - liveGamesCount
         - isSubscribed
+
+    FreePick:
+      type: object
+      required: [publishedPickId, gameId, sport, awayTeamName, awayTeamAbbr, homeTeamName, homeTeamAbbr, gameDate, startTime, status, market, selection, recommendation]
+      properties:
+        publishedPickId: { type: integer }
+        gameId: { type: string }
+        sport: { type: string }
+        awayTeamName: { type: string }
+        awayTeamAbbr: { type: string }
+        awayTeamLogo: { type: string, nullable: true }
+        homeTeamName: { type: string }
+        homeTeamAbbr: { type: string }
+        homeTeamLogo: { type: string, nullable: true }
+        gameDate: { type: string }
+        startTime: { type: string }
+        status: { type: string }
+        market: { type: string }
+        selection: { type: string }
+        recommendation: { type: string, enum: [Strong Buy, Buy] }
+
+    ChatAccess:
+      type: object
+      required: [canRead, canPost, isLocked, chatNotificationsEnabled]
+      properties:
+        canRead: { type: boolean }
+        canPost: { type: boolean }
+        isLocked: { type: boolean }
+        chatNotificationsEnabled: { type: boolean }
+    ChatMessage:
+      type: object
+      required: [id, authorId, authorDisplayName, body, createdAt]
+      properties:
+        id: { type: integer }
+        authorId: { type: string }
+        authorDisplayName: { type: string }
+        body: { type: string, maxLength: 1000 }
+        createdAt: { type: string, format: date-time }
+    ChatMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/ChatMessage" }
+    ChatMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { $ref: "#/components/schemas/ChatMessage" }
+    CreateChatMessageRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 1000 }
+    UpdateChatPreferencesRequest:
+      type: object
+      required: [chatNotificationsEnabled]
+      properties:
+        chatNotificationsEnabled: { type: boolean }
+    ChatPreferences:
+      type: object
+      required: [chatNotificationsEnabled]
+      properties:
+        chatNotificationsEnabled: { type: boolean }
 
     RefreshResponse:
       type: object

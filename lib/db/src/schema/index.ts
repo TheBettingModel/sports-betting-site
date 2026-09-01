@@ -25,6 +25,7 @@ export * from "./mlb-policy-revisions";
 export * from "./model-prediction-duplicate-archive";
 export * from "./model-predictions";
 export * from "./published-picks";
+export * from "./daily-free-picks";
 export * from "./pick-results";
 export * from "./forecast-reviews";
 export * from "./spread-model-configs";
@@ -63,6 +64,7 @@ export * from "./sport-snoozes";
 
 // ── User notification preferences ─────────────────────────────────────────────
 export * from "./notification-preferences";
+export * from "./chat-messages";
 
 // ── Push receipts (Expo delivery confirmation) ────────────────────────────────
 export * from "./push-receipts";

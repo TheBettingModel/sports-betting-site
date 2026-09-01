@@ -143,7 +143,25 @@ export const GetGamesTodayResponse = zod.object({
   "lastUpdated": zod.string(),
   "totalGames": zod.number(),
   "liveGamesCount": zod.number(),
-  "isSubscribed": zod.boolean()
+  "isSubscribed": zod.boolean(),
+  "freePickPublishedPickId": zod.number().nullish(),
+  "freePick": zod.object({
+  "publishedPickId": zod.number(),
+  "gameId": zod.string(),
+  "sport": zod.string(),
+  "awayTeamName": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "awayTeamLogo": zod.string().nullish(),
+  "homeTeamName": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "homeTeamLogo": zod.string().nullish(),
+  "gameDate": zod.string(),
+  "startTime": zod.string(),
+  "status": zod.string(),
+  "market": zod.string(),
+  "selection": zod.string(),
+  "recommendation": zod.enum(['Strong Buy', 'Buy'])
+}).nullish()
 })
 
 
@@ -154,6 +172,73 @@ export const RefreshGamesResponse = zod.object({
   "message": zod.string(),
   "gamesUpdated": zod.number(),
   "sportsRefreshed": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get authenticated chat access metadata
+ */
+export const GetChatAccessResponse = zod.object({
+  "canRead": zod.boolean(),
+  "canPost": zod.boolean(),
+  "isLocked": zod.boolean(),
+  "chatNotificationsEnabled": zod.boolean()
+})
+
+
+/**
+ * @summary List chronological chat messages for Pro members
+ */
+export const getChatMessagesResponseMessagesItemBodyMax = 1000;
+
+
+
+export const GetChatMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "authorId": zod.string(),
+  "authorDisplayName": zod.string(),
+  "body": zod.string().max(getChatMessagesResponseMessagesItemBodyMax),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Post an owner chat message
+ */
+export const createChatMessageBodyBodyMax = 1000;
+
+
+
+export const CreateChatMessageBody = zod.object({
+  "body": zod.string().min(1).max(createChatMessageBodyBodyMax)
+})
+
+export const createChatMessageResponseMessageBodyMax = 1000;
+
+
+
+export const CreateChatMessageResponse = zod.object({
+  "message": zod.object({
+  "id": zod.number(),
+  "authorId": zod.string(),
+  "authorDisplayName": zod.string(),
+  "body": zod.string().max(createChatMessageResponseMessageBodyMax),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Update chat notification preference
+ */
+export const UpdateChatPreferencesBody = zod.object({
+  "chatNotificationsEnabled": zod.boolean()
+})
+
+export const UpdateChatPreferencesResponse = zod.object({
+  "chatNotificationsEnabled": zod.boolean()
 })
 
 
@@ -176,13 +261,13 @@ export const GetAdminMarketComparisonsResponse = zod.record(zod.string(), zod.un
 
 
 /**
- * @summary List latest exact market approval decisions
+ * @summary List latest exact automatic and manual market approval decisions
  */
 export const GetAdminMarketApprovalsResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**
- * @summary Append an exact market approval lifecycle decision
+ * @summary Append an exceptional manual market approval lifecycle decision
  */
 export const createAdminMarketApprovalBodySampleSizeMin = 0;
 
