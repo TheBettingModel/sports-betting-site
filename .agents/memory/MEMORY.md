@@ -37,3 +37,4 @@
 - [Collapsed Model Board hierarchy](collapsed-model-board-hierarchy.md) — cards answer what TBM likes; all reasons and analytics stay behind View Analysis.
 - [Sensitive entitlement caching](sensitive-entitlement-caching.md) — Picks and Chat require a fresh server grant; fetching/error states fail closed and evict premium caches.
 - [Safe free-pick contract](safe-free-pick-contract.md) — persist one exact published market; free clients receive a dedicated allowlisted DTO, never a full game projection.
+- [Managed database publish binding](managed-database-publish-binding.md) — a manually stored DATABASE_URL can make Replit reject publishing as an external database.
