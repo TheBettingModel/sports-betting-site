@@ -1,0 +1,97 @@
+2026-09-01T20:35:02.143Z     at Client2.idleListener (file:///home/runner/workspace/artifacts/api-server/dist/index.mjs:33102:15)
+2026-09-01T20:35:02.143Z Emitted 'error' event on BoundPool instance at:
+2026-09-01T20:35:02.143Z     at Connection2.emit (node:events:508:28)
+2026-09-01T20:35:02.143Z       idle_in_transaction_session_timeout: false,
+2026-09-01T20:35:02.143Z           Symbol(kSetNoDelay): true,
+2026-09-01T20:35:02.143Z     },
+2026-09-01T20:35:02.143Z     host: 'ep-sweet-term-aulrtw81.c-10.us-east-1.aws.neon.tech',
+2026-09-01T20:35:02.143Z       ^
+2026-09-01T20:35:02.143Z error: terminating connection due to administrator command
+2026-09-01T20:35:02.143Z       query_timeout: false,
+2026-09-01T20:35:02.143Z           Symbol(kCapture): false,
+2026-09-01T20:35:02.143Z     at Client2.emit (node:events:508:28)
+2026-09-01T20:35:02.143Z     at file:///home/runner/workspace/artifacts/api-server/dist/index.mjs:32028:16
+2026-09-01T20:35:02.143Z     at Readable.push (node:internal/streams/readable:390:5)
+2026-09-01T20:35:02.143Z     port: 5432,
+2026-09-01T20:35:02.143Z     at Parser.handlePacket (file:///home/runner/workspace/artifacts/api-server/dist/index.mjs:31639:24)
+2026-09-01T20:35:02.143Z     user: 'neondb_owner',
+2026-09-01T20:35:02.143Z     at TLSSocket.emit (node:events:508:28)
+2026-09-01T20:35:02.143Z     at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-09-01T20:35:02.143Z     at Parser.parse (file:///home/runner/workspace/artifacts/api-server/dist/index.mjs:31545:35)
+2026-09-01T20:35:02.143Z node:events:486
+2026-09-01T20:35:02.143Z       throw er; // Unhandled 'error' event
+2026-09-01T20:35:02.143Z     at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+2026-09-01T20:35:02.143Z       connect_timeout: 0
+2026-09-01T20:35:02.143Z           Symbol(kSetKeepAliveInitialDelay): 0,
+2026-09-01T20:35:02.143Z           Symbol(kBufferGen): null,
+2026-09-01T20:35:02.143Z     at Client2._handleErrorEvent (file:///home/runner/workspace/artifacts/api-server/dist/index.mjs:32759:14)
+2026-09-01T20:35:34.241Z crash loop detected
+2026-09-01T20:35:34.241Z timeout waiting for artifact processes, sending SIGKILL
+2026-09-01T20:35:40.180Z healthcheck failed error=healthcheck /: Get "http://127.0.0.1:1104/": dial tcp 127.0.0.1:1104: connect: connection refused
+2026-09-01T20:35:40.194Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:35:40.384Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:35:40.495Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:35:40.727Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:35:41.266Z (node:21) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-09-01T20:35:41.266Z In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-09-01T20:43:12.181Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:43:12.186Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:43:12.207Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:43:12.226Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-01T20:43:12.244Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T20:43:12.588Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-01T21:04:26.517Z artifact process exited with error error=signal: terminated artifact=artifacts/api-server
+2026-09-01T22:02:56.943Z artifact process exited with error error=signal: terminated artifact=artifacts/api-server
+2026-09-01T22:07:39.689Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T22:07:39.698Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-01T22:07:39.704Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-01T22:07:39.732Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T22:07:39.876Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-01T22:07:39.910Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-01T22:07:40.353Z healthcheck failed error=healthcheck / returned status 500
+2026-09-01T22:07:40.372Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T01:35:07.307Z [2026-09-02T01:35:07.208Z] [PID: 20] [NODE-CRON] [WARN] missed execution at Wed Sep 02 2026 01:35:00 GMT+0000 (Coordinated Universal Time)! Possible blocking IO or high CPU user at the same process used by node-cron.
+2026-09-02T07:22:37.098Z artifact process exited with error artifact=artifacts/api-server error=signal: terminated
+2026-09-02T07:27:29.855Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:29.865Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:29.873Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:29.877Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:29.897Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:30.006Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T07:27:30.016Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:30.344Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:27:30.538Z (node:21) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-09-02T07:42:37.099Z artifact process exited with error error=signal: terminated artifact=artifacts/api-server
+2026-09-02T07:43:14.794Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:43:14.799Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:43:14.829Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T07:43:14.848Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:43:14.913Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:43:15.012Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T07:43:15.327Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T07:43:15.709Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T10:02:57.155Z artifact process exited with error error=signal: terminated artifact=artifacts/api-server
+2026-09-02T11:54:52.551Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T11:54:52.560Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:52.570Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:52.601Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T11:54:52.621Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:52.695Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T11:54:52.833Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:53.178Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:53.402Z - If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-09-02T11:54:53.402Z - If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-09-02T11:54:53.402Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-09-02T11:54:53.402Z (node:18) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-09-02T11:54:53.402Z To prepare for this change:
+2026-09-02T11:54:53.402Z See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-09-02T11:54:53.402Z In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-09-02T11:54:54.148Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T11:54:54.149Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:54.157Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:54.173Z healthcheck failed error=healthcheck /api returned status 500
+2026-09-02T11:54:54.249Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:54.266Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:54.340Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T11:54:54.614Z healthcheck failed error=healthcheck / returned status 500
+2026-09-02T12:06:59.363Z artifact process exited with error error=signal: terminated artifact=artifacts/api-server
