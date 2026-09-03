@@ -19,6 +19,7 @@ import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
 import { assessMlbDecisionEvidence } from "./mlbDecisionEvidence";
+import { writeMlbV4ShadowPrediction } from "./mlbV4Challenger";
 import { runGrading, recoverStaleGames, syncGameResults } from "./grading-runner";
 import { runForecastReviews } from "./forecastReviews";
 import { runAnalytics } from "./analytics";
@@ -830,6 +831,34 @@ async function runOddsIngestion(): Promise<void> {
             homeDbStats,
             awayDbStats,
           });
+          if (game.sport === "MLB" && mlbEvidence) {
+            try {
+              await writeMlbV4ShadowPrediction(game, {
+                homeDbStats,
+                awayDbStats,
+                starters,
+                lineups: enrichedLineup,
+                bullpen: bullpenMatchup,
+                parkFactor,
+                weather: venueWeather,
+                weatherTotalAdjustment: weatherEffect?.totalAdjustment ?? 0,
+                evidence: mlbEvidence,
+                market: {
+                  homeOdds: currentMarket?.homeOdds,
+                  awayOdds: currentMarket?.awayOdds,
+                  pinnacleHomeOdds: gameOdds?.pinnacleHomeOdds,
+                  pinnacleAwayOdds: gameOdds?.pinnacleAwayOdds,
+                  consensusHomeOdds: gameOdds?.consensusHomeOdds,
+                  consensusAwayOdds: gameOdds?.consensusAwayOdds,
+                },
+              });
+            } catch (err) {
+              logger.error(
+                { err, gameId: game.espnId },
+                "Scheduler: MLB V4 shadow write failed (non-fatal)",
+              );
+            }
+          }
           processed++;
         } catch (err) {
           logger.warn({ err, gameId: game.espnId }, "Scheduler: odds-ingestion game error");
@@ -1147,6 +1176,34 @@ async function runResultGrading(): Promise<void> {
           homeDbStats,
           awayDbStats,
         });
+        if (game.sport === "MLB" && mlbEvidence) {
+          try {
+            await writeMlbV4ShadowPrediction(game, {
+              homeDbStats,
+              awayDbStats,
+              starters,
+              lineups: enrichedLineup,
+              bullpen: bullpenMatchup,
+              parkFactor,
+              weather: venueWeather,
+              weatherTotalAdjustment: weatherEffect?.totalAdjustment ?? 0,
+              evidence: mlbEvidence,
+              market: {
+                homeOdds: currentMarket?.homeOdds,
+                awayOdds: currentMarket?.awayOdds,
+                pinnacleHomeOdds: gameOdds?.pinnacleHomeOdds,
+                pinnacleAwayOdds: gameOdds?.pinnacleAwayOdds,
+                consensusHomeOdds: gameOdds?.consensusHomeOdds,
+                consensusAwayOdds: gameOdds?.consensusAwayOdds,
+              },
+            });
+          } catch (err) {
+            logger.error(
+              { err, gameId: game.espnId },
+              "Scheduler: MLB V4 shadow write failed (non-fatal)",
+            );
+          }
+        }
         snapshots++;
       } catch (_) { /* continue */ }
     }

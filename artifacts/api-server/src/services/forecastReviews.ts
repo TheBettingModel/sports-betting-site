@@ -86,7 +86,13 @@ export function classifyForecastEligibility(input: {
     return typeof value === "number" ? value : null;
   })();
 
-  if (input.isChallenger) {
+  const snapshot = asRecord(input.snapshot);
+  const isMlbV4Shadow =
+    input.isChallenger
+    && snapshot.modelId === "tbm-mlb-moneyline-v4"
+    && snapshot.cohort === "shadow"
+    && snapshot.shadowOnly === true;
+  if (input.isChallenger && !isMlbV4Shadow) {
     return {
       status: "excluded",
       exclusionReason: "challenger_snapshot",

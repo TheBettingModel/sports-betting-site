@@ -83,8 +83,8 @@ export function buildProductionChampionSnapshot(
 }
 
 /**
- * Normalize the established one-time MLB baseline inside the caller's
- * production-slot transaction and return the exact row projections will read.
+ * Return the exact live row without mutation. Champion capture is evidence,
+ * never an opportunity to "normalize" production values.
  */
 export async function normalizeWeightsForChampionCapture(
   // Drizzle's transaction type is intentionally generic across node-postgres
@@ -94,32 +94,9 @@ export async function normalizeWeightsForChampionCapture(
   sport: string,
   weights: ModelWeights | null,
 ): Promise<ModelWeights | null> {
-  if (
-    sport !== "MLB"
-    || !weights
-    || weights.mlbConfidenceRecoveryNormalizedAt != null
-  ) {
-    return weights;
-  }
-  const [normalized] = await tx
-    .update(modelWeightsTable)
-    .set({
-      confidenceMultiplier: 1,
-      mlbConfidenceRecoveryNormalizedAt: new Date(),
-    })
-    .where(and(
-      eq(modelWeightsTable.id, weights.id),
-      isNull(modelWeightsTable.mlbConfidenceRecoveryNormalizedAt),
-    ))
-    .returning();
-  if (normalized) return normalized;
-
-  const [concurrent] = await tx
-    .select()
-    .from(modelWeightsTable)
-    .where(eq(modelWeightsTable.id, weights.id))
-    .limit(1);
-  return concurrent ?? weights;
+  void tx;
+  void sport;
+  return weights;
 }
 
 /**

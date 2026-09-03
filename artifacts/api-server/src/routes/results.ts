@@ -112,6 +112,9 @@ router.get(
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
           ne(pickResultsTable.result, "pending"),
+          // Revision history is retained for audit, but only the current
+          // effective pick belongs in the public performance ledger.
+          eq(publishedPicksTable.isEffective, true),
           inArray(publishedPicksTable.recommendation, OFFICIAL_RECORD_RECOMMENDATIONS),
           // Exclude NFL preseason — regular season always starts Sep 11 or later
           or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
@@ -266,6 +269,8 @@ router.get(
           and(
             gte(gamesTable.gameDate, cutoffDate),
             ne(pickResultsTable.result, "pending"),
+            // Superseded revisions remain stored, but are not official ROI.
+            eq(publishedPicksTable.isEffective, true),
             inArray(publishedPicksTable.recommendation, OFFICIAL_RECORD_RECOMMENDATIONS),
             // Exclude NFL preseason — regular season always starts Sep 11 or later
             or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),

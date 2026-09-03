@@ -33,6 +33,7 @@ import {
 } from "./productionChampion";
 import {
   isDeployableModelIdentity,
+  isPermanentShadowModelId,
   modelRegistryProductionLock,
 } from "./modelRegistryShared";
 export { isDeployableModelIdentity, modelRegistryProductionLock } from "./modelRegistryShared";
@@ -288,6 +289,12 @@ export async function transitionModelStatus(
 
   const { newStatus, performedBy, masterApproved, notes, approvedBy } = input;
   const allowed = VALID_TRANSITIONS[current.status] ?? [];
+
+  if (isPermanentShadowModelId(current.modelId) && newStatus !== "challenger") {
+    throw new Error(
+      `Model identity "${current.modelId}" is permanently shadow-only and cannot transition to "${newStatus}".`,
+    );
+  }
 
   if (newStatus === "production" && !isDeployableModelIdentity(current)) {
     throw new Error(

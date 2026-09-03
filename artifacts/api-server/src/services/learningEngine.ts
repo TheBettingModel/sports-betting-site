@@ -229,26 +229,6 @@ export function needsLearningProcessing(input: {
 }
 
 /**
- * Set the existing MLB aggregate confidence to its neutral baseline once.
- * Immutable prediction snapshots retain the multiplier they were created with;
- * only future projections use this corrected current setting.
- */
-export async function normalizeMlbConfidenceRecovery(): Promise<boolean> {
-  const [normalized] = await db
-    .update(modelWeightsTable)
-    .set({
-      confidenceMultiplier: 1,
-      mlbConfidenceRecoveryNormalizedAt: new Date(),
-    })
-    .where(and(
-      eq(modelWeightsTable.sport, "MLB"),
-      isNull(modelWeightsTable.mlbConfidenceRecoveryNormalizedAt),
-    ))
-    .returning({ id: modelWeightsTable.id });
-  return normalized != null;
-}
-
-/**
  * Review and learn from each newly graded decisive pick exactly once.
  */
 export async function runLearning(): Promise<void> {

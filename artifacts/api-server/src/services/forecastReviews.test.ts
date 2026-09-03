@@ -122,6 +122,36 @@ describe("forecast eligibility", () => {
     }).exclusionReason).toBe("missing_market_line");
   });
 
+  it("grades only the permanently shadow-only MLB V4 challenger", () => {
+    const before = new Date("2026-08-25T17:00:00.000Z");
+    expect(classifyForecastEligibility({
+      snapshot: {
+        ...validSnapshot,
+        modelId: "tbm-mlb-moneyline-v4",
+        cohort: "shadow",
+        shadowOnly: true,
+      },
+      isChallenger: true,
+      predictionTimestamp: before,
+      sport: "MLB",
+      market: "moneyline",
+      selection: "home",
+    }).status).toBe("graded");
+    expect(classifyForecastEligibility({
+      snapshot: {
+        ...validSnapshot,
+        modelId: "other-challenger",
+        cohort: "shadow",
+        shadowOnly: true,
+      },
+      isChallenger: true,
+      predictionTimestamp: before,
+      sport: "MLB",
+      market: "moneyline",
+      selection: "home",
+    }).exclusionReason).toBe("challenger_snapshot");
+  });
+
   it("accepts a complete schema-v5 material revision", () => {
     expect(classifyForecastEligibility({
       snapshot: { ...validSnapshot, schemaVersion: 5 },

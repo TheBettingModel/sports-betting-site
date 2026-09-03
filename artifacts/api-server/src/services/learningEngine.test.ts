@@ -9,8 +9,17 @@ import {
   PRODUCTION_LEARNING_MODE,
   productionLearningEvidence,
 } from "./learningEngine";
+import * as productionLearning from "./learning";
 
 describe("production learning freeze", () => {
+  it("exposes only the frozen production learner", () => {
+    expect(Object.keys(productionLearning).sort()).toEqual([
+      "runLearning",
+    ]);
+    expect(productionLearning.runLearning).toBeDefined();
+    expect("runLegacyGameLearning" in productionLearning).toBe(false);
+  });
+
   it("classifies graded evidence as research-only with no production mutation", () => {
     expect(PRODUCTION_LEARNING_MODE).toBe("frozen_research_only");
     expect(productionLearningEvidence({

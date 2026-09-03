@@ -39,3 +39,4 @@
 - [Safe free-pick contract](safe-free-pick-contract.md) — persist one exact published market; free clients receive a dedicated allowlisted DTO, never a full game projection.
 - [Managed database publish binding](managed-database-publish-binding.md) — a manually stored DATABASE_URL can make Replit reject publishing as an external database.
 - [MLB audit-first sequence](mlb-audit-first.md) — freeze production weights until auditability/publication safety passes, then run challenger replay before any promotion decision.
+- [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 is permanently non-deployable; append immutable PIT revisions and grade only in the research ledger.

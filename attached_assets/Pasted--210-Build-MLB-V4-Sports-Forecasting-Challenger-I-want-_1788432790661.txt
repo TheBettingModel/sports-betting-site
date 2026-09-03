@@ -1,0 +1,1135 @@
+#210 — Build MLB V4 Sports Forecasting Challenger
+
+I want to begin a controlled overhaul of TheBettingModel MLB Moneyline prediction engine.
+
+IMPORTANT:
+
+DO NOT modify the current MLB production champion.
+
+DO NOT change the current production weights.
+
+DO NOT change current grading.
+
+DO NOT rewrite historical predictions.
+
+DO NOT change current published-pick history.
+
+DO NOT replace the existing model in production.
+
+DO NOT change current subscriber picks yet.
+
+DO NOT allow MLB V4 to publish official picks yet.
+
+The existing production model:
+
+tbm-mlb-moneyline-v1
+production version 3
+
+must remain frozen and continue operating exactly as it does today.
+
+Build the new MLB system as an independent challenger:
+
+tbm-mlb-moneyline-v4
+
+or the next registry-safe MLB challenger identity consistent with the existing model registry.
+
+The purpose of this project is to begin transforming MLB from a team-strength adjustment model into a genuine baseball forecasting engine built primarily from game-specific team, player, pitcher, lineup, bullpen, matchup, and run-production evidence.
+
+==================================================
+PRIMARY DESIGN PRINCIPLE
+==================================================
+
+TBM MLB should answer this question FIRST:
+
+"Given today's exact starting pitchers, expected/confirmed hitters, bullpen availability, offensive quality, defensive quality, park, weather, rest, and matchup, how many runs should each team score and what is the probability each team wins?"
+
+ONLY AFTER producing that independent sports forecast should sportsbook information enter.
+
+The target architecture is:
+
+MLB SPORTS DATA
+      ↓
+POINT-IN-TIME FEATURE VALIDATION
+      ↓
+STARTING PITCHER MODEL
+      +
+LINEUP / HITTER MODEL
+      +
+PITCHER-HITTER MATCHUP MODEL
+      +
+TEAM OFFENSE MODEL
+      +
+BULLPEN QUALITY + AVAILABILITY MODEL
+      +
+DEFENSE / BASERUNNING MODEL
+      +
+PARK / WEATHER
+      +
+REST / TRAVEL / CONTEXT
+      ↓
+EXPECTED AWAY RUNS
+EXPECTED HOME RUNS
+      ↓
+RUN DISTRIBUTION / GAME SIMULATION
+      ↓
+P(HOME WIN)
+P(AWAY WIN)
+      ↓
+MLB-SPECIFIC EMPIRICAL CALIBRATION
+      ↓
+FINAL SPORTS PROBABILITY
+
+----------------------------
+SPORTSBOOK BEGINS HERE
+----------------------------
+
+CURRENT ODDS
+      ↓
+NO-VIG MARKET PROBABILITY
+      ↓
+EDGE
+      ↓
+EV
+      ↓
+MARKET INTELLIGENCE
+      ↓
+PUBLICATION POLICY
+      ↓
+RISK / UNITS
+
+Sportsbook odds must NOT generate the underlying MLB sports probability.
+
+==================================================
+PROBLEM WITH CURRENT MLB MODEL
+==================================================
+
+The forensic audit found the production MLB model currently relies heavily on:
+
+- Record
+- Pythagorean strength
+- Last-five form
+- Run differential
+- 1.3 confidence multiplier
+
+Current production weights are approximately:
+
+record:              0.396624
+Pythagorean:         0.579707
+form:                0.235502
+score differential: 0.083171
+rest:                0.002
+confidence:          1.30
+
+These materially exceed the original priors.
+
+At the same time:
+
+starting pitcher is capped at ±8 percentage points
+bullpen workload is capped at ±4
+lineup is capped at ±6
+
+and lineup contributes zero when unconfirmed.
+
+There is also no aggregate cap on the team-level factors.
+
+The result is that historical/team-level strength can overwhelm today's individual matchup.
+
+The current model also adds deterministic game-ID hash noise of approximately:
+
+-3 pp to +4 pp
+
+even though this is not sports evidence.
+
+The global calibration rule is also a fixed piecewise adjustment rather than empirical MLB calibration.
+
+MLB V4 should be designed specifically to correct these structural weaknesses.
+
+==================================================
+PHASE 1 — CREATE MLB V4 CHALLENGER FOUNDATION
+==================================================
+
+Create MLB V4 alongside the existing MLB champion.
+
+Register it as:
+
+CHALLENGER / SHADOW / UNVALIDATED
+
+according to the current registry and approval framework.
+
+It must:
+
+- never publish official picks
+- never send notifications
+- never affect official units
+- never affect official ROI
+- never affect production weights
+- never supersede production MLB predictions
+- never affect the free pick
+- never affect Top Pick
+- never affect Play of the Day
+- never affect model learning for the champion
+
+Every V4 prediction must be clearly identifiable by:
+
+sport
+market
+model_id
+model_version
+feature_schema_version
+dataset/input version
+cohort
+created_at
+point_in_time_cutoff
+
+==================================================
+PHASE 2 — REMOVE NON-SPORTS RANDOMNESS FROM V4
+==================================================
+
+MLB V4 must NOT use deterministic game-ID noise.
+
+Remove hash/random/deterministic pseudo-random probability adjustments from the V4 challenger.
+
+Do NOT remove them from the existing production champion in this task.
+
+For V4:
+
+If evidence is uncertain, uncertainty must be represented explicitly.
+
+Do not randomly alter the probability.
+
+Add fields such as:
+
+prediction_uncertainty
+data_quality_score
+starter_quality_state
+lineup_quality_state
+bullpen_quality_state
+feature_completeness
+
+A low-quality prediction should become less certain.
+
+It should not randomly move toward one team.
+
+==================================================
+PHASE 3 — COMPLETE MLB FACTOR ATTRIBUTION
+==================================================
+
+Every V4 prediction must be fully decomposable.
+
+Store explicit probability/run contributions for:
+
+BASE TEAM STRENGTH
+
+TEAM OFFENSE
+
+STARTING PITCHER
+
+LINEUP
+
+PLATOON MATCHUP
+
+PITCH-TYPE MATCHUP when available
+
+BULLPEN QUALITY
+
+BULLPEN AVAILABILITY/FATIGUE
+
+DEFENSE
+
+BASERUNNING
+
+PARK
+
+WEATHER
+
+HOME FIELD
+
+REST
+
+TRAVEL if available
+
+INJURY / PLAYER AVAILABILITY when available
+
+CALIBRATION
+
+DATA-QUALITY / UNCERTAINTY ADJUSTMENT
+
+No important contribution should exist only inside an opaque inputSignals object.
+
+The immutable prediction should allow us to reconstruct:
+
+raw run projection
+→ adjusted run projection
+→ raw win probability
+→ calibrated win probability
+
+with every major contribution visible.
+
+==================================================
+PHASE 4 — STARTING PITCHER MODEL V4
+==================================================
+
+Build a modular starting-pitcher model.
+
+The current FIP/recent ERA/K-BB framework can remain available as a baseline feature set, but V4 should support a richer pitcher representation.
+
+Use available production-safe data first.
+
+Support the schema for future enrichment.
+
+Target pitcher features include:
+
+FIP
+xFIP
+ERA
+xERA
+SIERA when available
+WHIP
+K%
+BB%
+K-BB%
+GB%
+FB%
+HR/FB
+BABIP
+LOB%
+HardHit%
+Barrel%
+Average Exit Velocity
+Whiff%
+CSW%
+velocity
+pitch repertoire
+pitch usage
+movement
+handedness
+recent velocity change
+recent workload
+days rest
+average innings/start
+pitch count
+times-through-order profile
+
+IMPORTANT:
+
+Do not fabricate missing metrics.
+
+Each feature must explicitly report:
+
+AVAILABLE
+STALE
+MISSING
+NOT_SUPPORTED
+
+The pitcher model should ultimately estimate:
+
+expected starter runs allowed
+expected innings pitched
+uncertainty
+
+rather than merely add an arbitrary probability adjustment.
+
+==================================================
+PHASE 5 — LINEUP / HITTER MODEL V4
+==================================================
+
+Move away from one aggregate lineup OPS number.
+
+Build the architecture to evaluate hitters individually.
+
+For each expected/confirmed batter support:
+
+batting order position
+handedness
+wOBA
+xwOBA
+wRC+
+OPS+
+OBP
+SLG
+ISO
+K%
+BB%
+HardHit%
+Barrel%
+Exit Velocity
+platoon performance vs LHP
+platoon performance vs RHP
+pitch-type performance when available
+recent performance with regression
+BvP only when meaningful sample exists
+
+Do not overweight BvP.
+
+BvP should remain a low-confidence supplementary feature unless supported by meaningful sample.
+
+Weight hitters partly by expected plate appearances / lineup position.
+
+The absence of a high-impact hitter should matter more than the absence of a low-impact hitter.
+
+Produce:
+
+expected lineup runs
+lineup uncertainty
+lineup confirmation state
+
+Supported states should include:
+
+PROJECTED
+PARTIAL
+CONFIRMED
+STALE
+UNAVAILABLE
+
+==================================================
+PHASE 6 — PITCHER × LINEUP MATCHUP ENGINE
+==================================================
+
+Create a dedicated matchup layer.
+
+The model should eventually answer:
+
+How well does THIS pitcher project against THIS lineup?
+
+Not merely:
+
+How good is the pitcher?
+
+Support interactions such as:
+
+pitcher handedness
+× hitter platoon performance
+
+pitch usage
+× hitter pitch-type performance
+
+pitcher K ability
+× lineup K tendency
+
+pitcher BB tendency
+× lineup BB tendency
+
+ground-ball pitcher
+× hitter launch profile
+
+power suppression
+× hitter power profile
+
+starter workload
+× lineup times-through-order strength
+
+Do not add fake interaction data if the provider does not currently support it.
+
+Create the architecture and record missing feature states.
+
+==================================================
+PHASE 7 — TEAM OFFENSE MODEL
+==================================================
+
+Build an offense true-talent layer.
+
+The model should distinguish:
+
+TEAM TRUE TALENT
+
+from
+
+TODAY'S LINEUP QUALITY
+
+Avoid double-counting the same information through:
+
+record
+run differential
+Pythagorean
+team offense
+individual lineup quality
+
+The new architecture should support metrics such as:
+
+wRC+
+wOBA
+xwOBA
+OPS+
+ISO
+BB%
+K%
+HardHit%
+Barrel%
+Runs per plate appearance
+platoon splits
+recent offense with regression
+
+Recent form must NOT dominate long-run true talent.
+
+Use Bayesian/regression principles where appropriate so small recent samples do not produce extreme shifts.
+
+==================================================
+PHASE 8 — REDUCE DEPENDENCE ON RECORD / PYTHAGOREAN / FORM
+==================================================
+
+Do NOT simply delete these factors.
+
+For V4, redesign their role.
+
+Record
+Pythagorean
+run differential
+recent form
+
+should primarily function as:
+
+prior information
+team-level context
+model validation signals
+
+rather than four large independent probability adjustments.
+
+Investigate and document double counting.
+
+For example:
+
+Pythagorean strength already contains runs scored and runs allowed.
+
+Run differential contains similar information.
+
+Record is partly generated by the same underlying team quality.
+
+Team offense/pitching components also explain those outcomes.
+
+V4 should avoid counting the same underlying information multiple times.
+
+Do not assign new production weights arbitrarily.
+
+Any new weighting must belong only to the challenger and must eventually be trained/validated out of sample.
+
+==================================================
+PHASE 9 — BULLPEN MODEL V4
+==================================================
+
+Split bullpen into TWO concepts:
+
+1. BULLPEN QUALITY
+2. BULLPEN AVAILABILITY / FATIGUE
+
+The current model primarily measures workload.
+
+V4 should support individual reliever quality.
+
+For each relevant reliever support:
+
+availability
+days used
+consecutive days
+recent pitch count
+role
+expected availability
+FIP
+xFIP
+SIERA
+xERA
+K-BB%
+platoon splits
+recent velocity if available
+
+Estimate:
+
+expected bullpen innings
+expected bullpen runs allowed
+bullpen uncertainty
+
+The model should understand that:
+
+a tired elite bullpen
+
+is not equivalent to
+
+a tired poor bullpen.
+
+==================================================
+PHASE 10 — DEFENSE AND BASERUNNING
+==================================================
+
+Create independent modules for:
+
+TEAM DEFENSE
+
+BASERUNNING
+
+Support future metrics such as:
+
+OAA
+DRS
+fielding runs
+catcher framing if available
+stolen-base value
+baserunning runs
+
+Do not fabricate unavailable data.
+
+For the initial challenger, unavailable components may be neutral with explicit missing-data status.
+
+==================================================
+PHASE 11 — PARK AND WEATHER
+==================================================
+
+Redesign park/weather around RUN EXPECTANCY rather than arbitrary win-probability compression.
+
+Park should affect:
+
+expected run scoring
+home run environment
+extra-base environment where available
+
+Weather should support:
+
+temperature
+wind speed
+wind direction
+precipitation
+humidity if available
+roof/dome status
+
+Weather should primarily change expected scoring.
+
+Its influence on moneyline should emerge through the resulting run distribution rather than direct arbitrary probability points.
+
+==================================================
+PHASE 12 — EXPECTED RUN ENGINE
+==================================================
+
+This is the major architectural change.
+
+Instead of beginning with:
+
+50%
++ adjustments
+
+build V4 toward:
+
+HOME EXPECTED RUNS
+AWAY EXPECTED RUNS
+
+Example:
+
+TBM MLB V4
+
+Away expected runs: 3.82
+Home expected runs: 4.56
+
+Those expected runs should be generated from:
+
+offense
+starter
+lineup
+matchup
+bullpen
+defense
+park
+weather
+context
+
+Store both:
+
+home_expected_runs
+away_expected_runs
+
+and the complete contribution tree used to create them.
+
+==================================================
+PHASE 13 — RUN DISTRIBUTION / SIMULATION
+==================================================
+
+Use the expected runs to construct an outcome distribution.
+
+Do not assume a generic normal distribution without validating it for MLB runs.
+
+Evaluate appropriate baseball scoring methods such as:
+
+Poisson
+negative binomial
+Skellam-derived differences
+empirical run distributions
+Monte Carlo simulation
+
+Do not blindly choose one.
+
+Implement the initial challenger with the most defensible method supported by current data, but structure it so distributions can be compared offline.
+
+The run engine should eventually produce:
+
+P(Home win)
+P(Away win)
+
+and support future derivation of:
+
+P(Home -1.5)
+P(Away +1.5)
+game total distributions
+F5
+NRFI/YRFI
+
+Moneyline is the immediate priority.
+
+==================================================
+PHASE 14 — EMPIRICAL MLB CALIBRATION FRAMEWORK
+==================================================
+
+Do NOT use the current fixed generic calibration curve as the long-term V4 calibration model.
+
+Keep the champion unchanged.
+
+For V4 create an empirical MLB calibration framework.
+
+Support:
+
+raw_probability
+calibrated_probability
+calibration_model_version
+training_window
+validation_window
+sample_size
+
+Potential calibration methods may include:
+
+isotonic regression
+Platt/logistic scaling
+beta calibration
+
+Do not automatically choose whichever produces the best in-sample score.
+
+Calibration must be fitted chronologically and evaluated out of sample.
+
+Track:
+
+Brier Score
+Brier Skill Score
+Log Loss
+Calibration Error
+Reliability curve
+
+IMPORTANT:
+
+Brier Skill must compare TBM with the POINT-IN-TIME NO-VIG MARKET probability available when the forecast was generated.
+
+Do NOT use closing probability as the Brier Skill baseline.
+
+Closing line remains CLV evidence.
+
+==================================================
+PHASE 15 — MODEL UNCERTAINTY
+==================================================
+
+MLB V4 must distinguish:
+
+win probability
+
+from
+
+confidence / uncertainty.
+
+Example:
+
+Home win probability: 58.2%
+Prediction uncertainty: ±3.8 pp
+Data quality: 94/100
+
+Do not equate:
+
+58% probability
+
+with
+
+58 confidence.
+
+Sources of uncertainty should include:
+
+missing lineup
+projected lineup
+starter uncertainty
+limited pitcher sample
+bullpen availability uncertainty
+missing player metrics
+model disagreement
+early-season sample
+provider freshness
+
+High uncertainty should reduce publication eligibility later.
+
+It should not arbitrarily change the sports winner.
+
+==================================================
+PHASE 16 — DATA QUALITY
+==================================================
+
+Create an MLB V4 data-quality score.
+
+Evaluate at minimum:
+
+starter confirmation
+starter feature completeness
+lineup confirmation
+lineup completeness
+bullpen completeness
+market freshness
+team-stat sample
+provider freshness
+park availability
+weather availability
+
+Each component must be explicit.
+
+Do not silently replace missing evidence with zero and treat zero as real evidence.
+
+States:
+
+VALID
+PARTIAL
+STALE
+MISSING
+NOT_APPLICABLE
+INVALID
+
+==================================================
+PHASE 17 — PUBLICATION SAFETY
+==================================================
+
+V4 remains SHADOW ONLY for this project.
+
+However, build research publication flags so we can evaluate future policy.
+
+Future Strong Buy eligibility should be capable of requiring:
+
+both starters confirmed
+both lineups confirmed
+high data quality
+acceptable uncertainty
+credible market
+no severe unexplained pitcher conflict
+
+Do NOT make V4 public yet.
+
+Do NOT hardcode an arbitrary number of Strong Buys per day.
+
+Selectivity should come from evidence thresholds, not a daily Strong Buy quota.
+
+==================================================
+PHASE 18 — REMOVE TBM SCORE FROM SPORTS FORECAST
+==================================================
+
+Keep the concepts completely separate:
+
+SPORTS PROBABILITY
+MODEL UNCERTAINTY
+DATA QUALITY
+MARKET EDGE
+EV
+BET QUALITY SCORE
+UNITS
+
+TBM Score can continue to exist as a betting-quality concept.
+
+It must never be interpreted internally as win probability.
+
+V4 should expose these separately.
+
+Example:
+
+TBM Sports Probability: 59.4%
+No-vig market: 54.0%
+Edge: +5.4 pp
+EV: +X%
+Prediction uncertainty: ±3.2
+Data quality: 96
+Bet-quality score: 78
+
+==================================================
+PHASE 19 — CHALLENGER EVALUATION
+==================================================
+
+Do NOT promote V4 based on:
+
+win rate alone
+one profitable week
+recent MLB losses
+one backtest
+ROI alone
+
+Create the evaluation framework for:
+
+CHAMPION:
+current MLB V3
+
+vs
+
+CHALLENGER:
+MLB V4
+
+Compare chronologically.
+
+Primary prediction metrics:
+
+Brier Score
+Brier Skill vs PIT no-vig market
+Log Loss
+Calibration
+Expected Calibration Error
+run prediction error where applicable
+
+Market metrics:
+
+CLV
+percent beating closing price
+closing-price delta
+
+Betting metrics:
+
+ROI
+units
+max drawdown
+risk-adjusted return
+
+Coverage metrics:
+
+total forecasts
+actionable candidates
+favorites
+underdogs
+home
+away
+odds buckets
+probability buckets
+lineup-confirmed buckets
+pitcher-quality buckets
+
+==================================================
+PHASE 20 — WALK-FORWARD VALIDATION
+==================================================
+
+Use chronological validation only.
+
+Do NOT randomly shuffle games.
+
+Required structure:
+
+TRAIN
+→ CALIBRATE
+→ VALIDATE
+→ WALK FORWARD
+→ UNTOUCHED OOS
+→ LIVE SHADOW
+
+Prevent leakage from:
+
+future games
+future team stats
+future lineup data
+closing odds
+postgame statistics
+season-end aggregates
+future pitcher performance
+
+Every feature must respect:
+
+point_in_time_cutoff
+
+==================================================
+PHASE 21 — CURRENT MLB PRODUCTION MUST REMAIN UNCHANGED
+==================================================
+
+Regression tests must prove this task does NOT change:
+
+production model ID
+production model version
+production champion snapshot
+production weights
+production confidence multiplier
+production recommendation thresholds
+-160 price guardrail
+production units
+production grading
+production publication
+production learning
+historical predictions
+historical picks
+historical results
+free pick
+Top Pick
+Play of the Day
+
+V4 must exist completely alongside production.
+
+==================================================
+PHASE 22 — RESULTS LEDGER FIX
+==================================================
+
+Fix the separate Results reporting defect discovered during the forensic audit.
+
+Subscriber/public Results must count only:
+
+published_picks.is_effective = true
+
+Superseded predictions/picks must remain available in audit history.
+
+Do NOT delete superseded rows.
+
+Do NOT rewrite results.
+
+Do NOT rewrite grading.
+
+This fix is reporting only.
+
+Add regression tests showing:
+
+effective official wager = counted
+
+superseded void audit row = preserved but not counted
+
+multiple pregame revisions = only final effective wager counted publicly
+
+==================================================
+PHASE 23 — LEGACY LEARNING SAFETY
+==================================================
+
+The audit found old mutating learning code remains in:
+
+services/learning.ts
+
+even though current production callers use the frozen research-only learning path.
+
+Do not rewrite Task #201.
+
+But audit references to the legacy mutating function.
+
+Ensure there is no reachable production path that can mutate MLB champion weights after grading.
+
+If safe to do without breaking compatibility:
+
+mark legacy mutation functionality explicitly deprecated/research-only
+
+or guard it against production execution.
+
+Do not alter the frozen champion values.
+
+==================================================
+PHASE 24 — DELIVERABLE
+==================================================
+
+At completion, provide a detailed report containing:
+
+1. Files changed
+2. Database/schema changes
+3. New V4 model identity/version
+4. Champion model identity/version proving unchanged
+5. New feature schema
+6. New pitcher architecture
+7. New lineup architecture
+8. New matchup architecture
+9. New bullpen architecture
+10. Run-expectancy architecture
+11. Distribution/simulation method
+12. Calibration framework
+13. Uncertainty framework
+14. Data-quality framework
+15. Complete factor attribution format
+16. Shadow prediction storage
+17. Results ledger fix
+18. Legacy-learning safety review
+19. Tests added
+20. Build/typecheck/test output
+21. Database migration/deployment requirements
+22. Exact confirmation that production MLB behavior is unchanged
+
+Also provide one real current or historical MLB game reconstructed through V4 in this format:
+
+GAME
+
+Away Team @ Home Team
+
+SPORTS DATA
+
+Away offense
+Home offense
+
+Away starter
+Home starter
+
+Away lineup
+Home lineup
+
+Away bullpen
+Home bullpen
+
+Defense
+Park
+Weather
+Rest/context
+
+RUN MODEL
+
+Away expected runs: X.XX
+Home expected runs: X.XX
+
+OUTCOME DISTRIBUTION
+
+Away win: XX.X%
+Home win: XX.X%
+
+UNCERTAINTY
+
+±X.X percentage points
+
+DATA QUALITY
+
+XX/100
+
+CALIBRATION
+
+Raw probability: XX.X%
+Calibrated probability: XX.X%
+
+MARKET
+
+Away odds:
+Home odds:
+
+No-vig away:
+No-vig home:
+
+TBM edge:
+
+V4 research recommendation:
+
+V4 publication status:
+SHADOW / NOT OFFICIAL
+
+Then show:
+
+CURRENT V3:
+probability
+recommendation
+
+V4 CHALLENGER:
+probability
+research recommendation
+
+Do not interpret one game's result as evidence that V4 is better.
+
+==================================================
+STOP CONDITION
+==================================================
+
+This is a foundation/challenger implementation.
+
+DO NOT promote V4.
+
+DO NOT change MLB production weights.
+
+DO NOT begin automatic model optimization.
+
+DO NOT approve V4 for publication.
+
+DO NOT change official unit sizing.
+
+DO NOT replace the champion.
+
+Stop after completing the V4 challenger foundation, shadow prediction pipeline, reporting fix, tests, and implementation report.
