@@ -42,15 +42,11 @@ import { getWnbaGameContext } from "./wnbaContext";
 import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
-import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
-import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
-import { createNcaafFootballIntelligenceSnapshot } from "./ncaafFootballIntelligenceSnapshots";
 import {
-  assignNcaafFinalPregameCohort,
-  assignNcaafLiveShadowCohort,
-  dbNcaafPregameCohortStore,
-  NCAAF_CURRENT_COLLECTION_VERSION,
-} from "./ncaafPregameCohorts";
+  bootstrapMissingNcaafPerformanceEvidence,
+  runNcaafProductionEvidenceCycle,
+} from "./ncaafProductionEvidenceCycle";
+import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
@@ -463,16 +459,6 @@ async function runOddsIngestion(): Promise<void> {
   try {
     runId = await startRun(jobName);
     const sportResults = await fetchAllSportsDetailed();
-    // Ledger capture is append-only and intentionally independent of the
-    // game/prediction refresh below. It makes one additional Odds API call
-    // because the prediction cache intentionally collapses/drops partial and
-    // unmatched books, while the audit ledger must retain their raw evidence.
-    try {
-      const evidence = await captureCurrentNcaafEvidence();
-      logger.info(evidence, "Scheduler: NCAAF evidence capture completed");
-    } catch (err) {
-      logger.error({ err }, "Scheduler: NCAAF evidence capture failed");
-    }
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
 
@@ -682,71 +668,19 @@ async function runOddsIngestion(): Promise<void> {
                 awayDbStats,
               }, mlbAvailability)
             : null;
+          // Forecast consumption remains on its existing ingestion path. Cohort
+          // and football-intelligence production work is owned by the dedicated
+          // NCAAF cycle, which is not subject to this job's heavy lock.
           const ncaafSnapshotAt = new Date();
           const ncaafKickoffAt = new Date(game.commenceTimeISO);
           const ncaafFeature = game.sport === "NCAAF" && ncaafKickoffAt > ncaafSnapshotAt
             ? await createNcaafFeatureSnapshot({
-                provider: "espn",
-                eventId: game.espnId,
-                season: ncaafSeasonForDate(game.gameDate),
-                kickoffAt: ncaafKickoffAt,
-                homeTeamId: game.homeTeamId ?? null,
-                awayTeamId: game.awayTeamId ?? null,
-                homeTeamName: game.homeTeamName,
-                awayTeamName: game.awayTeamName,
-                neutralSite: game.neutralSite,
+                provider: "espn", eventId: game.espnId, season: ncaafSeasonForDate(game.gameDate),
+                kickoffAt: ncaafKickoffAt, homeTeamId: game.homeTeamId ?? null,
+                awayTeamId: game.awayTeamId ?? null, homeTeamName: game.homeTeamName,
+                awayTeamName: game.awayTeamName, neutralSite: game.neutralSite,
               }, ncaafSnapshotAt)
             : null;
-          if (ncaafFeature) {
-            const footballIntelligence = await createNcaafFootballIntelligenceSnapshot({
-              provider: "espn",
-              eventId: game.espnId,
-              season: ncaafSeasonForDate(game.gameDate),
-              week: game.week ?? null,
-              kickoffAt: ncaafKickoffAt,
-              homeTeamId: game.homeTeamId ?? null,
-              awayTeamId: game.awayTeamId ?? null,
-              venue: {
-                id: game.venueId ?? null,
-                name: game.venueName ?? null,
-                city: game.venueCity ?? null,
-                state: game.venueState ?? null,
-                country: game.venueCountry ?? null,
-                indoor: game.venueIndoor ?? null,
-                neutralSite: game.neutralSite ?? null,
-              },
-            }, ncaafSnapshotAt);
-            const cohortInput = {
-              featureSnapshotId: ncaafFeature.id,
-              footballIntelligenceSnapshotId: footballIntelligence.id,
-              provider: "espn",
-              eventId: game.espnId,
-              season: ncaafSeasonForDate(game.gameDate),
-              week: game.week ?? null,
-              kickoffAt: ncaafKickoffAt,
-              cutoffAt: ncaafSnapshotAt,
-              assignmentAt: ncaafSnapshotAt,
-              collectionVersion: NCAAF_CURRENT_COLLECTION_VERSION,
-              provenance: {
-                source: "odds-ingestion",
-                schedulerCadence: "30 minutes",
-                sportsEvidenceOnly: true,
-              },
-            };
-            const existingLive = await dbNcaafPregameCohortStore.getAssignment(
-              "LIVE_SHADOW", "espn", game.espnId,
-            );
-            if (!existingLive) {
-              await assignNcaafLiveShadowCohort(dbNcaafPregameCohortStore, cohortInput);
-            }
-            const minutesToKickoff = (ncaafKickoffAt.getTime() - ncaafSnapshotAt.getTime()) / 60_000;
-            const existingFinal = await dbNcaafPregameCohortStore.getAssignment(
-              "FINAL_PREGAME", "espn", game.espnId,
-            );
-            if (!existingFinal && minutesToKickoff <= 30) {
-              await assignNcaafFinalPregameCohort(dbNcaafPregameCohortStore, cohortInput);
-            }
-          }
           const ncaafRecommendationBlocked =
             game.sport === "NCAAF" && ncaafFeature?.snapshot.forecast.status !== "ready";
 
@@ -976,11 +910,6 @@ async function runResultGrading(): Promise<void> {
     runId = await startRun(jobName);
     // First pull fresh game data so finals are up to date
     const games = await fetchAllSports();
-    try {
-      await captureCurrentNcaafEvidence();
-    } catch (err) {
-      logger.error({ err }, "Result grading: NCAAF evidence capture failed");
-    }
     const weights = await db.select().from(modelWeightsTable);
     const weightsBySport = Object.fromEntries(weights.map((w) => [w.sport, w]));
     const DB_SPORTS_GRADING = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
@@ -1504,6 +1433,11 @@ export function startScheduler(): void {
   cron.schedule("*/30 * * * *", () => {
     void runOddsIngestion();
   });
+  // Independent from the all-sport heavy-job lock; NCAAF must not miss its
+  // pregame evidence window when MLB research is running.
+  cron.schedule("2,17,32,47 * * * *", () => {
+    void runNcaafProductionEvidenceCycle();
+  });
   // No provider fan-out: consumes only newly persisted #213 FINAL_PREGAME rows.
   cron.schedule("*/5 * * * *", () => {
     void runMlbAdvancedResearchCapture();
@@ -1542,6 +1476,14 @@ export function startScheduler(): void {
   // Warm up team stats cache in the background so the first game refresh
   // has advanced analytics immediately available.
   warmUpTeamStatsCache();
+  // One bounded, non-blocking catch-up after registration repairs missing
+  // completed-game performance evidence before the prospective cycle.
+  void bootstrapMissingNcaafPerformanceEvidence()
+    .then((bootstrap) => {
+      logger.info(bootstrap, "Scheduler: NCAAF completed-game bootstrap finished");
+      return runNcaafProductionEvidenceCycle();
+    })
+    .catch((err) => logger.error({ err }, "Scheduler: NCAAF startup evidence catch-up failed"));
 
   logger.info("Scheduler: all cron jobs registered");
 }
@@ -1556,6 +1498,8 @@ export const schedulerJobs = {
   driftCheck: runDriftCheck,
   subscriberReconciliation: runSubscriberReconciliation,
   mlbAdvancedResearchCapture: runMlbAdvancedResearchCapture,
+  ncaafProductionEvidenceCycle: runNcaafProductionEvidenceCycle,
+  ncaafPerformanceBootstrap: bootstrapMissingNcaafPerformanceEvidence,
 };
 
 /**

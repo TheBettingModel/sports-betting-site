@@ -566,29 +566,107 @@ function NcaafReadinessPanel({ readiness, isLoading }: {
 }) {
   if (isLoading) return <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">Loading NCAAF readiness…</div>;
   if (!readiness) return <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">NCAAF readiness is unavailable.</div>;
+
   const reasons = (items: Array<{ reason: string; count: number }>) =>
-    items.slice(0, 3).map((item) => `${item.reason.replaceAll("_", " ")} (${item.count})`).join(" · ") || "none";
+    items.slice(0, 2).map((item) => `${item.reason.replaceAll("_", " ")} (${item.count})`).join(" · ") || "none";
+
+  const getCap = (name: string) => readiness.providerCapabilities.inventory.find(c => c.capability === name);
+  const renderCap = (name: string, label: string) => {
+    const cap = getCap(name);
+    const isReady = cap?.state === "AVAILABLE_NOW" && cap?.pointInTimeState === "AVAILABLE_NOW";
+    const statusText = cap ? (cap.state === "NOT_SUPPORTED" ? "UNSUPPORTED" : cap.state === "REQUIRES_PROVIDER" ? "BLOCKED" : cap.state) : "UNSUPPORTED";
+    const color = isReady ? "text-emerald-400" : statusText === "UNSUPPORTED" ? "text-muted-foreground" : "text-amber-400";
+    return (
+      <div className="rounded border border-border bg-background/50 p-2">
+        <b className="text-foreground">{label}</b>
+        <p className={`mt-1 font-medium ${color}`}>{statusText.replaceAll("_", " ")}</p>
+      </div>
+    );
+  };
+
   return (
-    <section className="bg-card border border-amber-500/30 rounded-lg p-4 space-y-3">
+    <section className="bg-card border border-amber-500/30 rounded-lg p-4 space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-foreground">NCAAF Readiness — Admin Evidence Surface</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Read-only challenger evidence and validation observability.</p>
         </div>
-        <span className={`rounded border px-2 py-1 text-xs font-semibold ${readiness.readyForV4 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-amber-500/30 bg-amber-500/10 text-amber-400"}`}>READY FOR V4: {readiness.readyForV4 ? "YES" : "NO"}</span>
+        <span className={`rounded border px-2 py-1 text-xs font-semibold ${readiness.readyForV4 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-amber-500/30 bg-amber-500/10 text-amber-400"}`}>
+          READY FOR V4: {readiness.readyForV4 ? "YES" : "NO"}
+        </span>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-        <div className="rounded bg-background/50 p-2"><b>Legacy</b><br />{readiness.legacyCohort.graded}/{readiness.legacyCohort.total} graded · {readiness.legacyCohort.officialExcluded} excluded</div>
-        <div className="rounded bg-background/50 p-2"><b>Legacy features</b><br />{readiness.featureSnapshots.ready} ready · {readiness.featureSnapshots.blocked} blocked · {readiness.featureSnapshots.unknown} unknown</div>
-        <div className="rounded bg-background/50 p-2"><b>Runs</b><br />{readiness.evidenceRuns.active} active · {readiness.evidenceRuns.stale} stale</div>
-        <div className="rounded bg-background/50 p-2"><b>Market coverage</b><br />{readiness.marketEvidenceCoverage.matched}/{readiness.marketEvidenceCoverage.total} matched</div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
+        {/* Production Collection Health */}
+        <div className="rounded border border-border bg-background/50 p-2">
+          <b className="text-foreground">Collection Health</b>
+          <p className="mt-1 text-muted-foreground">Runs: {readiness.evidenceRuns.active} active · {readiness.evidenceRuns.finalized} final</p>
+          <p className="mt-1 text-muted-foreground">Partial: {reasons(readiness.evidenceRuns.topPartialCauses)}</p>
+          <p className="mt-1 text-muted-foreground">Failed: {reasons(readiness.evidenceRuns.topFailedCauses)}</p>
+        </div>
+
+        {/* Stale RUNNING runs */}
+        <div className="rounded border border-border bg-background/50 p-2">
+          <b className="text-foreground">Stale Runs</b>
+          <p className={`mt-1 font-medium ${readiness.evidenceRuns.stale > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+            {readiness.evidenceRuns.stale} STALE
+          </p>
+          <p className="mt-1 text-muted-foreground">Runs marked running before 30m cutoff</p>
+        </div>
+
+        {/* Football Performance Rows */}
+        <div className="rounded border border-border bg-background/50 p-2">
+          <b className="text-foreground">Football Performance</b>
+          <p className="mt-1 font-medium text-foreground">{readiness.teamGamePerformance.rows} ROWS</p>
+          <p className="mt-1 text-muted-foreground">Quality: {readiness.teamGamePerformance.quality.average?.toFixed(2) ?? "—"}</p>
+          <p className="mt-1 text-muted-foreground">Reliability: {readiness.teamGamePerformance.reliability.average?.toFixed(2) ?? "—"}</p>
+        </div>
+
+        {/* Intelligence Snapshots */}
+        <div className="rounded border border-border bg-background/50 p-2">
+          <b className="text-foreground">Intelligence Snapshots</b>
+          <p className="mt-1 font-medium text-foreground">{readiness.footballIntelligenceSnapshots.total} TOTAL</p>
+          <p className="mt-1 text-emerald-400">{readiness.footballIntelligenceSnapshots.ready} Ready</p>
+          <p className="mt-1 text-amber-400">{readiness.footballIntelligenceSnapshots.partial} Partial · {readiness.footballIntelligenceSnapshots.blocked} Blocked</p>
+        </div>
+
+        {/* Provider Health */}
+        <div className="rounded border border-border bg-background/50 p-2">
+          <b className="text-foreground">Provider Health</b>
+          <p className={`mt-1 font-medium ${readiness.providerCapabilities.blockers.length === 0 ? "text-emerald-400" : "text-amber-400"}`}>
+            {readiness.providerCapabilities.blockers.length === 0 ? "HEALTHY" : `${readiness.providerCapabilities.blockers.length} BLOCKERS`}
+          </p>
+          <p className="mt-1 text-muted-foreground">Engineering Gate</p>
+        </div>
+
+        {/* Capabilities mapped to Domains */}
+        {renderCap("qb_performance", "QB Performance")}
+        {renderCap("roster", "Roster / Depth")}
+        {renderCap("injury", "Injury")}
+        {renderCap("historical_point_in_time", "Historical Prior")}
+        {renderCap("play_by_play", "Advanced / Play Evidence")}
+        {renderCap("current_weather", "Weather")}
+
+        {/* Cohorts */}
+        <div className="rounded border border-border bg-background/50 p-2">
+          <b className="text-foreground">FINAL_PREGAME</b>
+          <p className="mt-1 font-medium text-emerald-400">{readiness.cohorts.finalPregame} PREGAME</p>
+          <p className="mt-1 text-muted-foreground">Assigned final cohort</p>
+        </div>
+
+        <div className="rounded border border-sky-500/30 bg-sky-500/10 p-2">
+          <b className="text-foreground">LIVE_SHADOW</b>
+          <p className="mt-1 font-medium text-sky-400">{readiness.cohorts.liveShadow} SHADOW</p>
+          <p className="mt-1 text-[10px] uppercase font-bold text-sky-400">Internal / Not Public</p>
+        </div>
       </div>
-      <div className="grid md:grid-cols-2 gap-3 text-xs">
-        <div className="rounded border border-border p-2"><b className="text-foreground">Blockers</b><p className="mt-1 text-amber-400">{readiness.blockers.join(" · ")}</p></div>
-        <div className="rounded border border-border p-2"><b className="text-foreground">PIT / cohorts / validation</b><p className="mt-1 text-muted-foreground">PIT violations: {readiness.pointInTime.violations} · FINAL_PREGAME: {readiness.cohorts.finalPregame} · LIVE_SHADOW: {readiness.cohorts.liveShadow} · evaluations: {readiness.validation.evaluations.total} · walk-forward: {readiness.validation.walkForward.total} · promotions: {readiness.validation.promotions.total}</p></div>
-        <div className="rounded border border-border p-2"><b className="text-foreground">Sports evidence</b><p className="mt-1 text-muted-foreground">{readiness.sportsEvidenceCoverage.gameEvidenceRows} game rows · {readiness.sportsEvidenceCoverage.entityObservationRows} entity rows</p><p className="mt-1 text-muted-foreground">{reasons(readiness.sportsEvidenceCoverage.topMissingReasons)}</p></div>
-        <div className="rounded border border-border p-2"><b className="text-foreground">Performance / provider gates</b><p className="mt-1 text-muted-foreground">{readiness.teamGamePerformance.rows} performance rows · quality {readiness.teamGamePerformance.quality.average?.toFixed(2) ?? "—"} · reliability {readiness.teamGamePerformance.reliability.average?.toFixed(2) ?? "—"}</p><p className="mt-1 text-muted-foreground">Football intelligence: {readiness.footballIntelligenceSnapshots.ready} ready · {readiness.footballIntelligenceSnapshots.partial} partial · {readiness.footballIntelligenceSnapshots.blocked} blocked · PIT violations {readiness.footballIntelligenceSnapshots.pointInTimeViolations}</p><p className="mt-1 text-muted-foreground">Engineering: {readiness.engineeringReadyForV4 ? "ready" : "blocked"} · Evidence: {readiness.evidenceReadyForV4 ? "ready" : "blocked"} · provider blockers: {readiness.providerCapabilities.blockers.length}</p></div>
-      </div>
+
+      {readiness.blockers.length > 0 && (
+        <div className="rounded border border-amber-500/30 bg-amber-500/10 p-2 text-xs">
+          <b className="text-amber-400">Blockers</b>
+          <p className="mt-1 text-amber-400/90">{readiness.blockers.join(" · ")}</p>
+        </div>
+      )}
     </section>
   );
 }

@@ -319,7 +319,7 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       capturedAt: ncaafEvidenceRunsTable.capturedAt, completedAt: ncaafEvidenceRunsTable.completedAt,
       status: ncaafEvidenceRunsTable.status, providers: ncaafEvidenceRunsTable.providers,
       coverage: ncaafEvidenceRunsTable.coverage, errorDetails: ncaafEvidenceRunsTable.errorDetails,
-    }).from(ncaafEvidenceRunsTable).orderBy(desc(ncaafEvidenceRunsTable.capturedAt)).limit(12),
+    }).from(ncaafEvidenceRunsTable).orderBy(desc(ncaafEvidenceRunsTable.capturedAt)).limit(100),
     db.select({
       evidenceStatus: ncaafGameEvidenceTable.evidenceStatus,
       missingReasons: ncaafGameEvidenceTable.missingReasons,
@@ -378,6 +378,30 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   const activeRuns = runRows.filter((row) => row.status === "running" && row.capturedAt >= staleBefore).length;
   const staleRuns = runRows.filter((row) => row.status === "running" && row.capturedAt < staleBefore).length;
   const finalizedRuns = runRows.length - activeRuns - staleRuns;
+  const partialCauses = new Map<string, number>();
+  const failedCauses = new Map<string, number>();
+  for (const row of runRows) {
+    if (typeof row.errorDetails === "string" && row.errorDetails) {
+      const err = row.errorDetails.substring(0, 100);
+      failedCauses.set(err, (failedCauses.get(err) ?? 0) + 1);
+    }
+    const coverage = row.coverage as { partialReasons?: string[], statusHistory?: Array<{ status: string; reason?: string }> } | null;
+    if (coverage?.partialReasons) {
+      for (const reason of coverage.partialReasons) {
+        partialCauses.set(reason, (partialCauses.get(reason) ?? 0) + 1);
+      }
+    }
+    if (coverage?.statusHistory) {
+      for (const history of coverage.statusHistory) {
+        if (history.status === "PARTIAL" && history.reason) {
+          partialCauses.set(history.reason, (partialCauses.get(history.reason) ?? 0) + 1);
+        } else if (history.status === "FAILED" && history.reason) {
+          failedCauses.set(history.reason, (failedCauses.get(history.reason) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
   const marketBreakdown = new Map<string, number>();
   for (const row of marketRows) {
     const key = `${row.marketIdentityStatus}:${row.marketIdentityReason}`;
@@ -446,7 +470,9 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
     },
     evidenceRuns: {
       active: activeRuns, stale: staleRuns, finalized: finalizedRuns,
-      recent: runRows.map((row) => {
+      topPartialCauses: [...partialCauses.entries()].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count).slice(0, 10),
+      topFailedCauses: [...failedCauses.entries()].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count).slice(0, 10),
+      recent: runRows.slice(0, 12).map((row) => {
         const coverage = row.coverage as Record<string, unknown> | null;
         return { ...row, partialReasons: coverage?.partialReasons ?? [], errorDetails: row.errorDetails ?? null };
       }),

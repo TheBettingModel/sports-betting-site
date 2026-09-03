@@ -46,3 +46,4 @@
 - [NCAAF invalid-wager quarantine](ncaaf-invalid-wager-quarantine.md) — preserve bad historical rows, but exclude them through an append-only eligibility ledger and enforce actionable positive-unit publication.
 - [NCAAF intelligence provider boundary](ncaaf-intelligence-provider-boundary.md) — scoreboard-only evidence cannot support V4; shadow evidence is prospective from a fixed versioned boundary.
 - [NCAAF ESPN summary boundary](ncaaf-espn-summary-boundary.md) — completed-game boxscores/drives/player stats are usable; pregame QB/roster/injury and complete play-level history still require a provider.
+- [NCAAF scheduler independence](ncaaf-scheduler-independence.md) — production evidence capture must not share the all-sport heavy-job lock or aligned cron jobs can starve it.

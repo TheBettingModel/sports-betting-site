@@ -254,6 +254,8 @@ export interface NcaafReadiness {
     active: number;
     stale: number;
     finalized: number;
+    topPartialCauses: NcaafReasonCount[];
+    topFailedCauses: NcaafReasonCount[];
     recent: Array<{
       id: number; runKey: string; requestedFrom: string; requestedTo: string;
       capturedAt: string; completedAt: string | null; status: string;

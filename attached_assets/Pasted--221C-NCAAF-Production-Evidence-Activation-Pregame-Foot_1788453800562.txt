@@ -1,0 +1,1391 @@
+#221C — NCAAF Production Evidence Activation, Pregame Football Intelligence & Live-Engine Data Completion
+
+We have completed:
+
+#219 — Recommendation / Publication Status Audit & Separation
+#220 — NCAAF Production Integrity & Evidence Foundation
+#221 — NCAAF Advanced Football Intelligence Foundation
+#221B — NCAAF Provider Activation & Production Deployment Foundation
+
+============================================================
+AUTHORITATIVE CURRENT STATUS
+============================================================
+
+Use this status as authoritative:
+
+#221:
+PUBLISHED AND SUBSTANTIALLY PRESENT.
+
+#221B:
+PUBLISHED AT THE SCHEMA / DEPLOYMENT LEVEL,
+BUT NOT COMPLETE IN PRODUCTION.
+
+The remaining #221B production problems are:
+
+1. Prospective NCAAF football-performance collection has not yet produced the required production rows.
+
+2. Canonical NCAAF football-intelligence snapshot collection has not yet produced the required production rows.
+
+3. Stale RUNNING evidence runs remain in production and need safe reconciliation.
+
+4. Critical pregame football-intelligence domains remain unavailable from the currently verified provider path.
+
+5. ESPN Summary has been verified for completed-game evidence, but does NOT solve the critical pregame evidence requirements.
+
+============================================================
+IMPORTANT PRODUCT DECISION
+============================================================
+
+The owner has made the following decision:
+
+THE NEW NCAA FOOTBALL ENGINE IS NOT INTENDED TO REMAIN A SHADOW MODEL.
+
+The ultimate goal is:
+
+BUILD NCAAF V4
+→ perform initial engineering/validation/approval
+→ make NCAAF V4 the LIVE authoritative NCAA Football engine
+→ publish qualified actionable NCAAF picks to subscribers
+→ collect results and closing-market evidence continuously
+→ learn from every completed game
+→ validate candidate improvements
+→ deploy improved NCAAF versions through controlled versioning.
+
+LIVE_SHADOW may remain as INTERNAL infrastructure for:
+
+- prospective evidence
+- future challengers
+- comparison models
+- rollback testing
+- untouched OOS evaluation
+
+But LIVE_SHADOW must NOT become a permanent requirement that prevents the approved NCAAF champion from publishing live picks.
+
+Once NCAAF V4 earns initial production approval, it is intended to become the LIVE CHAMPION.
+
+============================================================
+CRITICAL LEARNING RULE
+============================================================
+
+"Learn as we go" DOES NOT mean:
+
+GAME RESULT
+→ immediately mutate production weights.
+
+Production weights/configuration must NOT automatically change after every game.
+
+Instead:
+
+GAME
+→ immutable prediction
+→ closing market
+→ final result
+→ forecast error
+→ Brier/log loss
+→ expected-score residual
+→ CLV
+→ feature performance
+→ betting-policy performance
+→ learning evidence
+→ candidate improvement
+→ validation
+→ approved new model version
+→ production update.
+
+Every game adds evidence.
+
+Production changes require validation/versioning.
+
+============================================================
+PRIMARY OBJECTIVE OF #221C
+============================================================
+
+Finish the production NCAAF DATA AND EVIDENCE FOUNDATION required to build the future LIVE NCAAF V4 engine.
+
+This task must:
+
+1. Diagnose why prospective football-performance production rows are not appearing.
+
+2. Diagnose why canonical football-intelligence production snapshots are not appearing.
+
+3. Fix those production runtime/capture problems.
+
+4. Safely reconcile stale RUNNING evidence runs.
+
+5. Activate legitimate prospective NCAAF evidence collection.
+
+6. Obtain/activate the strongest legitimate pregame NCAAF football intelligence available with currently configured access.
+
+7. Identify exactly which remaining critical domains require external provider access.
+
+8. Establish production-grade FINAL_PREGAME intelligence.
+
+9. Preserve LIVE_SHADOW as an internal evidence/challenger mechanism, NOT as the final public operating mode.
+
+10. Leave the system ready to build #222 — the NCAAF V4 production-candidate engine.
+
+============================================================
+DO NOT REDO COMPLETED DEPLOYMENT WORK
+============================================================
+
+#221 and the schema/deployment portion of #221B are already published.
+
+DO NOT blindly recreate migrations.
+
+DO NOT create duplicate tables.
+
+DO NOT redeploy old schema as though it does not exist.
+
+Start by inspecting ACTUAL production state.
+
+Determine what is already deployed and what is failing operationally.
+
+============================================================
+PERMANENT ARCHITECTURAL RULE
+============================================================
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+NCAAF remains its own engine.
+
+Do NOT create a generic football forecasting engine shared with NFL.
+
+NCAAF must own its own:
+
+data
+features
+QB intelligence
+team intelligence
+prior system
+roster intelligence
+forecast model
+calibration
+learning evidence
+champion
+challengers
+promotion state.
+
+Changes in #221C must have ZERO forecasting impact on NFL or any other sport.
+
+============================================================
+PHASE 1 — PRODUCTION STATE AUDIT
+============================================================
+
+Read actual production state first.
+
+Report:
+
+NCAAF evidence runs:
+- COMPLETED
+- PARTIAL
+- FAILED
+- RUNNING
+- stale RUNNING
+
+Football-performance rows:
+- total
+- current season
+- prospective
+- latest capture timestamp
+
+Football-intelligence snapshots:
+- total
+- current season
+- prospective
+- readiness states
+
+FINAL_PREGAME:
+- total
+- legitimate prospective
+- latest
+
+LIVE_SHADOW:
+- total
+- legitimate prospective
+- latest
+
+Feature snapshots:
+- READY
+- PARTIAL
+- BLOCKED
+- UNKNOWN
+
+Do not rely on old completion reports if production says otherwise.
+
+============================================================
+PHASE 2 — TRACE THE PRODUCTION SCHEDULER
+============================================================
+
+Trace the NCAAF scheduler from entrypoint through completion.
+
+Identify:
+
+scheduler registration
+production enablement
+cadence
+job invocation
+single-flight
+game discovery
+evidence capture
+ESPN scoreboard call
+ESPN Summary call
+performance normalization
+performance persistence
+intelligence construction
+snapshot persistence
+FINAL_PREGAME selection
+LIVE_SHADOW assignment
+run finalization
+
+Prove each stage is actually reachable in production.
+
+============================================================
+PHASE 3 — DIAGNOSE ZERO PRODUCTION PERFORMANCE ROWS
+============================================================
+
+Determine exactly why the published #221B path has not created the expected production football-performance rows.
+
+Possible causes must be verified, not assumed.
+
+Inspect:
+
+scheduler not executing
+environment gate
+incorrect season/date
+completed-game filter
+event identity mismatch
+provider timeout
+summary endpoint failure
+persistence failure
+migration/schema mismatch
+transaction rollback
+single-flight lock
+stale job
+runtime exception
+incorrect production DB connection
+capture window
+deployment version mismatch
+
+Return the actual root cause.
+
+============================================================
+PHASE 4 — FIX PERFORMANCE CAPTURE
+============================================================
+
+Fix the verified root cause.
+
+Completed games should append legitimate immutable NCAAF performance evidence.
+
+Where ESPN Summary legitimately supports it, preserve:
+
+team statistics
+drive summaries
+player IDs
+QB completed-game performance
+provider identity
+captured timestamp
+payload hash
+quality
+missing reasons.
+
+Do not interpret postgame evidence as pregame evidence.
+
+============================================================
+PHASE 5 — DIAGNOSE ZERO INTELLIGENCE SNAPSHOTS
+============================================================
+
+Trace:
+
+raw evidence
+→ canonical evidence
+→ intelligence builder
+→ ncaaf-football-intelligence-v1
+→ persistence.
+
+Determine why production snapshots are absent.
+
+Fix actual runtime/integration defects.
+
+Do NOT loosen evidence gates simply to manufacture snapshots.
+
+A BLOCKED snapshot is acceptable.
+
+No snapshot due to broken plumbing is not.
+
+============================================================
+PHASE 6 — ACTIVATE CANONICAL INTELLIGENCE SNAPSHOTS
+============================================================
+
+Production should create canonical:
+
+ncaaf-football-intelligence-v1
+
+snapshots for eligible upcoming games.
+
+A snapshot may be:
+
+READY
+PARTIAL
+BLOCKED
+
+depending on real evidence.
+
+It must still preserve the truth.
+
+Never convert missing evidence to zero.
+
+============================================================
+PHASE 7 — STALE RUN RECONCILIATION
+============================================================
+
+Production still contains stale RUNNING evidence runs.
+
+Execute the safe reconciliation architecture created previously.
+
+Before reconciliation report:
+
+RUNNING
+stale RUNNING
+PARTIAL
+FAILED
+COMPLETED.
+
+Reconcile only deterministically stale runs.
+
+Do NOT modify genuinely active jobs.
+
+Afterward report the same counts.
+
+============================================================
+PHASE 8 — PARTIAL / FAILURE ROOT CAUSES
+============================================================
+
+Aggregate actual structured causes.
+
+Report counts by reason.
+
+Examples only if observed:
+
+provider timeout
+summary unavailable
+identity failure
+schedule failure
+market failure
+database failure
+missing football provider
+partial evidence.
+
+Do not guess.
+
+============================================================
+PHASE 9 — PROSPECTIVE 2026 COLLECTION
+============================================================
+
+Ensure production is actively collecting evidence for upcoming 2026 NCAAF games.
+
+This is critical.
+
+The season is underway.
+
+Every future game we fail to capture prospectively is lost untouched evidence.
+
+============================================================
+PHASE 10 — PREGAME CAPTURE
+============================================================
+
+For upcoming games, capture all legitimate sports information available before kickoff.
+
+Preserve revisions.
+
+Examples:
+
+schedule
+kickoff
+venue
+home/away/neutral
+team identity
+team history
+available pregame context
+provider state
+weather if available
+QB evidence if available
+roster/injury if available.
+
+============================================================
+PHASE 11 — ESPN SCOREBOARD
+============================================================
+
+Continue using ESPN scoreboard only for domains it legitimately supports.
+
+Expected supported areas may include:
+
+schedule
+event identity
+team identity
+conference/context
+venue
+neutral site
+status
+score
+limited record information.
+
+Do not expand its authority beyond verified data.
+
+============================================================
+PHASE 12 — ESPN SUMMARY
+============================================================
+
+Use ESPN Summary for legitimate completed-game evidence where verified.
+
+Current verified capabilities include:
+
+team boxscore
+drives
+provider player IDs
+passing rows
+QB completed-game performance.
+
+Do NOT claim ESPN Summary provides reliable:
+
+pregame QB starter
+pregame roster
+pregame injury
+recruiting
+transfers
+coaching
+complete historical PIT state
+
+unless newly verified.
+
+============================================================
+PHASE 13 — PREGAME QB PROVIDER SEARCH
+============================================================
+
+Now inspect every CURRENTLY CONFIGURED provider/integration/API path for legitimate NCAAF QB information.
+
+We need:
+
+canonical QB identity
+team
+starter state
+expected/confirmed state
+availability
+timestamp
+source.
+
+Do not use search-engine text or manual guesses as production evidence.
+
+============================================================
+PHASE 14 — QB CRITICAL DOMAIN
+============================================================
+
+Treat QB as a CRITICAL future V4 domain.
+
+If no legitimate pregame QB provider is available:
+
+mark:
+
+PROVIDER_ACCESS_REQUIRED.
+
+Do not silently substitute prior team scoring.
+
+============================================================
+PHASE 15 — ROSTER / DEPTH
+============================================================
+
+Inspect current provider access for:
+
+roster
+depth chart
+starter state
+position
+player/team identity.
+
+If unavailable:
+
+report exact gap.
+
+============================================================
+PHASE 16 — INJURY / AVAILABILITY
+============================================================
+
+Inspect for timestamped pregame:
+
+injuries
+out
+doubtful
+questionable
+probable/available
+suspensions where supported.
+
+Missing injury feed != healthy.
+
+============================================================
+PHASE 17 — HISTORICAL TEAM INTELLIGENCE
+============================================================
+
+Determine what legitimate historical team evidence can be obtained.
+
+At minimum we eventually need enough information to estimate team strength independently of sportsbook odds.
+
+Potential:
+
+points
+plays
+yards
+yards/play
+passing
+rushing
+turnovers
+sacks
+third down
+red zone
+drives.
+
+============================================================
+PHASE 18 — PLAY / DRIVE DATA
+============================================================
+
+Determine whether current provider access supports sufficient structured data for:
+
+pace
+drive efficiency
+success rate
+explosiveness
+havoc
+EPA/play.
+
+Do not calculate metrics whose inputs do not exist.
+
+============================================================
+PHASE 19 — EARLY-SEASON PRIOR
+============================================================
+
+This remains a critical NCAAF issue.
+
+September NCAAF cannot depend solely on current-season sample.
+
+Audit available legitimate evidence for:
+
+prior-season team strength
+QB continuity
+returning production
+returning starters
+roster continuity
+recruiting/talent
+transfers
+coaching continuity.
+
+============================================================
+PHASE 20 — PROVIDER ACCESS DECISION
+============================================================
+
+If current configured providers cannot supply the critical pregame evidence:
+
+STOP provider integration at the correct boundary and report:
+
+PROVIDER ACCESS REQUIRED.
+
+Specify:
+
+which provider(s) should be considered
+which exact domains are missing
+what access/API is required
+which V4 features it unlocks.
+
+Do not fabricate an integration.
+
+============================================================
+PHASE 21 — PROVIDER SELECTION PRIORITIES
+============================================================
+
+Evaluate potential providers based on:
+
+1. NCAAF-specific coverage
+2. pregame QB
+3. player identity
+4. roster/depth
+5. injuries
+6. historical team data
+7. play/drive data
+8. PIT/timestamp quality
+9. returning production
+10. recruiting/talent
+11. transfers
+12. coaching
+13. API stability
+14. rate limits
+15. production suitability.
+
+A combination of providers is acceptable.
+
+============================================================
+PHASE 22 — WEATHER ACTIVATION
+============================================================
+
+If existing Open-Meteo infrastructure can be safely wired to canonical NCAAF venues:
+
+implement pregame weather collection.
+
+Need:
+
+venue coordinates
+forecast timestamp
+temperature
+wind
+precipitation
+conditions.
+
+No postgame weather leakage.
+
+============================================================
+PHASE 23 — FBS / FCS
+============================================================
+
+Improve subdivision identity if legitimate data supports it.
+
+States:
+
+FBS
+FCS
+OTHER
+UNKNOWN.
+
+Do not invent classification.
+
+============================================================
+PHASE 24 — FEATURE SCHEMA
+============================================================
+
+Preserve:
+
+ncaaf-football-intelligence-v1
+
+unless an actual incompatible schema change requires a new version.
+
+Never silently redefine an existing immutable schema.
+
+============================================================
+PHASE 25 — FINAL_PREGAME
+============================================================
+
+FINAL_PREGAME remains mandatory.
+
+This is NOT shadow mode.
+
+FINAL_PREGAME means:
+
+the immutable sports-intelligence state the production NCAAF engine legitimately knew before kickoff.
+
+Future LIVE V4 will consume FINAL_PREGAME.
+
+============================================================
+PHASE 26 — FINAL_PREGAME ACTIVATION
+============================================================
+
+Get legitimate production FINAL_PREGAME creation operating for upcoming games.
+
+Requirements:
+
+strictly pre-kickoff
+immutable
+sports-only
+exact feature schema
+canonical identity
+quality
+reliability
+missing ledger
+provider provenance.
+
+============================================================
+PHASE 27 — FINALIZATION RESILIENCE
+============================================================
+
+Review the final-30-minute scheduling logic.
+
+Ensure FINAL_PREGAME is not lost because of:
+
+scheduler jitter
+one provider timeout
+deployment restart
+kickoff movement.
+
+It must still remain strictly pre-kickoff.
+
+============================================================
+PHASE 28 — LIVE_SHADOW ROLE CHANGE
+============================================================
+
+IMPORTANT:
+
+DO NOT remove LIVE_SHADOW infrastructure.
+
+But redefine its strategic role.
+
+LIVE_SHADOW is INTERNAL research/cohort infrastructure.
+
+It may support:
+
+untouched prospective evaluation
+future challengers
+model comparison
+rollback analysis.
+
+It is NOT the intended final operating state for the approved NCAAF champion.
+
+============================================================
+PHASE 29 — FUTURE LIVE CHAMPION
+============================================================
+
+Prepare architecture for:
+
+NCAAF V4 = LIVE CHAMPION
+
+after initial validation and explicit approval.
+
+The live champion will:
+
+forecast upcoming games
+produce qualified recommendations
+publish approved actionable picks
+grade results
+collect CLV
+collect learning evidence.
+
+============================================================
+PHASE 30 — NOT EVERY GAME IS A PICK
+============================================================
+
+Going live does NOT mean forcing a wager on every game.
+
+The future model may forecast every eligible game.
+
+Publication should only occur when the future betting-policy layer determines the wager qualifies.
+
+Possible model output:
+
+Strong Buy
+Buy
+Lean
+Neutral
+
+Do not modify current thresholds in #221C.
+
+Actual V4 thresholds come later.
+
+============================================================
+PHASE 31 — LEARNING ARCHITECTURE
+============================================================
+
+Prepare NCAAF learning evidence for the future live champion.
+
+For every future forecast, preserve:
+
+model version
+feature schema
+calibration version
+FINAL_PREGAME snapshot
+predicted home points
+predicted away points
+win probabilities
+market probabilities
+decision price
+closing price
+final score
+result.
+
+The actual V4 fields may be added in #222.
+
+#221C should ensure evidence contracts can support them.
+
+============================================================
+PHASE 32 — FORECAST LEARNING
+============================================================
+
+Future evaluation must support:
+
+expected-home-score residual
+expected-away-score residual
+margin residual
+total residual
+Brier Score
+Log Loss
+calibration
+probability bucket accuracy.
+
+============================================================
+PHASE 33 — MARKET LEARNING
+============================================================
+
+Future evaluation must support:
+
+market probability at prediction time
+no-vig probability
+closing market
+CLV
+beat-close rate
+Brier Skill versus point-in-time market.
+
+Closing odds are NEVER sports-model inputs.
+
+============================================================
+PHASE 34 — BETTING POLICY LEARNING
+============================================================
+
+Future live evaluation must support:
+
+recommendation
+odds
+units
+result
+ROI
+drawdown
+performance by edge
+performance by confidence
+performance by market
+performance by odds range.
+
+============================================================
+PHASE 35 — NO ONLINE PRODUCTION MUTATION
+============================================================
+
+Build/verify the rule:
+
+ONE GAME MAY ADD EVIDENCE.
+
+ONE GAME MAY NOT MUTATE PRODUCTION WEIGHTS.
+
+Do not create an automatic online learner that modifies the live champion after each result.
+
+============================================================
+PHASE 36 — CANDIDATE LEARNING
+============================================================
+
+Future improvements should work as:
+
+LIVE CHAMPION
+↓
+NEW EVIDENCE
+↓
+CANDIDATE CONFIG
+↓
+CHRONOLOGICAL REPLAY
+↓
+WALK-FORWARD
+↓
+COMPARE
+↓
+APPROVAL
+↓
+NEW VERSION.
+
+Preserve this architecture.
+
+============================================================
+PHASE 37 — MODEL VERSION IMMUTABILITY
+============================================================
+
+Future production NCAAF model versions must be immutable.
+
+Every prediction must bind to exact:
+
+model identity
+model version
+feature schema
+calibration version
+publication-policy version.
+
+============================================================
+PHASE 38 — PRODUCTION CHAMPION
+============================================================
+
+Prepare the model registry so eventually exactly ONE approved NCAAF champion per market can be active.
+
+Markets may include:
+
+Moneyline
+Spread
+Total.
+
+Market-specific approval is acceptable.
+
+============================================================
+PHASE 39 — FUTURE CHALLENGERS
+============================================================
+
+Once V4 is live:
+
+V4.1/V5/etc may operate internally as challengers.
+
+Those challengers may use LIVE_SHADOW-style comparison.
+
+They must not alter live picks until approved.
+
+============================================================
+PHASE 40 — PUBLICATION PATH
+============================================================
+
+Audit the future NCAAF publication path to ensure a newly approved champion can eventually feed:
+
+API
+subscriber app
+Play of the Day eligibility where appropriate
+results/grading
+analytics.
+
+Do NOT activate V4 publication in #221C because V4 does not exist yet.
+
+============================================================
+PHASE 41 — PUBLICATION INVARIANT
+============================================================
+
+Preserve #220:
+
+Neutral / zero-unit / invalid recommendations cannot become wagered published picks.
+
+Do not recreate the legacy Neutral→1U bug.
+
+============================================================
+PHASE 42 — MARKET FIREWALL
+============================================================
+
+Sports forecast inputs must reject:
+
+moneyline
+spread
+total
+odds
+sportsbook
+bookmaker
+implied probability
+market probability
+sharp signal
+CLV
+line movement.
+
+Market enters only after sports forecast.
+
+============================================================
+PHASE 43 — PRODUCTION OBSERVABILITY
+============================================================
+
+Admin NCAAF Readiness must now clearly show:
+
+Production Evidence Collection
+Football Performance Rows
+Football Intelligence Snapshots
+FINAL_PREGAME
+Internal LIVE_SHADOW Cohorts
+Provider Health
+QB Coverage
+Roster Coverage
+Injury Coverage
+Prior Coverage
+Advanced Team Coverage
+Weather Coverage
+Evidence Runs
+Stale Runs
+Feature Readiness.
+
+============================================================
+PHASE 44 — TERMINOLOGY
+============================================================
+
+Avoid displaying:
+
+"NCAAF is a shadow model"
+
+if that creates the wrong product implication.
+
+Use distinctions such as:
+
+CURRENT ENGINE
+PRODUCTION CANDIDATE
+LIVE CHAMPION
+INTERNAL CHALLENGER
+PROSPECTIVE EVIDENCE COHORT.
+
+LIVE_SHADOW may remain an internal database/cohort term.
+
+============================================================
+PHASE 45 — READINESS STATES
+============================================================
+
+Separate:
+
+DATA_PIPELINE_READY
+
+V4_BUILD_READY
+
+INITIAL_PRODUCTION_VALIDATION_READY
+
+LIVE_CHAMPION_APPROVED.
+
+#221C is concerned primarily with the first two.
+
+============================================================
+PHASE 46 — V4 BUILD READINESS
+============================================================
+
+Do not require months of shadow results before #222 can even be coded.
+
+V4_BUILD_READY should mean:
+
+the engine has enough legitimate independent football evidence to build the intended model without fabricating critical inputs.
+
+This is different from:
+
+LIVE_CHAMPION_APPROVED.
+
+============================================================
+PHASE 47 — CRITICAL VS OPTIONAL DATA
+============================================================
+
+Explicitly classify NCAAF data domains:
+
+CRITICAL
+IMPORTANT
+OPTIONAL.
+
+Do not require every possible feature.
+
+But do not declare V4_BUILD_READY if critical football intelligence is missing.
+
+============================================================
+PHASE 48 — PRODUCTION GO-LIVE PHILOSOPHY
+============================================================
+
+Document the intended go-live policy:
+
+Once V4 is:
+
+engineering complete
+PIT-safe
+calibrated sufficiently for initial use
+validated against available chronological evidence
+approved explicitly
+
+it may become the live NCAAF champion.
+
+We are NOT requiring it to spend the entire season hidden in shadow.
+
+============================================================
+PHASE 49 — CONTINUOUS LIVE LEARNING
+============================================================
+
+Once live:
+
+every game should add evidence.
+
+Track performance continuously.
+
+Do NOT wait until season end.
+
+But production changes remain version-controlled.
+
+============================================================
+PHASE 50 — SAFETY / ROLLBACK
+============================================================
+
+Future live NCAAF champion must support:
+
+suspension
+rollback to prior champion
+publication disable
+market-specific disable.
+
+If evidence quality fails:
+
+fail closed.
+
+============================================================
+PHASE 51 — TESTS
+============================================================
+
+Add/run tests covering at minimum:
+
+production scheduler execution
+performance row creation
+intelligence snapshot creation
+provider errors
+single-flight
+stale reconciliation
+PIT cutoff
+postgame/pre-game separation
+FINAL_PREGAME
+FINAL_PREGAME immutability
+internal LIVE_SHADOW anti-backfill
+sports/market firewall
+QB missingness
+injury missingness
+prior missingness
+feature readiness
+Neutral publication invariant
+legacy quarantine
+learning cannot mutate production directly
+NCAAF/NFL isolation
+other-sport regression.
+
+============================================================
+PHASE 52 — VERIFICATION
+============================================================
+
+Run:
+
+full relevant API tests
+API typecheck
+API production build
+Admin typecheck
+Admin production build
+git diff --check.
+
+Verify actual production runtime after changes.
+
+Do not report local success as production success.
+
+============================================================
+PHASE 53 — REQUIRED REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-production-evidence-activation-2026-09-03.md
+
+The report must contain:
+
+1. Executive summary
+2. Starting production state
+3. Scheduler diagnosis
+4. Zero-performance-row root cause
+5. Performance capture fix
+6. Performance rows after fix
+7. Intelligence-snapshot root cause
+8. Intelligence snapshot fix
+9. Intelligence snapshots after fix
+10. Evidence runs before reconciliation
+11. Stale-run reconciliation
+12. Evidence runs after reconciliation
+13. PARTIAL reasons
+14. FAILED reasons
+15. ESPN scoreboard production state
+16. ESPN Summary production state
+17. QB provider audit
+18. QB evidence coverage
+19. Roster/depth provider audit
+20. Roster coverage
+21. Injury provider audit
+22. Injury coverage
+23. Historical team evidence
+24. Play/drive evidence
+25. EPA availability
+26. Success-rate availability
+27. Explosiveness availability
+28. Havoc availability
+29. Early-season prior evidence
+30. Returning production
+31. Recruiting/talent
+32. Transfers
+33. Coaching
+34. Weather
+35. FBS/FCS
+36. Provider access gaps
+37. Recommended provider/access
+38. ncaaf-football-intelligence-v1 status
+39. Feature readiness
+40. FINAL_PREGAME count
+41. Internal LIVE_SHADOW count
+42. Prospective 2026 capture
+43. PIT violations
+44. Sports/market firewall
+45. Learning architecture
+46. Production mutation safeguards
+47. Future live-champion architecture
+48. NCAAF/NFL isolation
+49. Other-sport regression
+50. Tests/build/typecheck
+51. DATA_PIPELINE_READY
+52. V4_BUILD_READY
+53. Remaining blockers
+54. Recommendation for #222.
+
+============================================================
+COMPLETION QUESTIONS
+============================================================
+
+Answer explicitly:
+
+1. Why were production football-performance rows not being created?
+
+2. Is that fixed?
+
+3. How many production football-performance rows exist now?
+
+4. Why were intelligence snapshots not being created?
+
+5. Is that fixed?
+
+6. How many production intelligence snapshots exist now?
+
+7. How many evidence runs were RUNNING before reconciliation?
+
+8. How many were stale?
+
+9. How many were reconciled?
+
+10. How many remain RUNNING?
+
+11. How many remain PARTIAL?
+
+12. What are the top PARTIAL causes?
+
+13. Is prospective 2026 NCAAF collection now running correctly?
+
+14. Is ESPN Summary producing legitimate completed-game evidence in production?
+
+15. Do we have reliable pregame QB identity?
+
+16. Do we have reliable expected/confirmed starting QB?
+
+17. Do we have reliable roster/depth data?
+
+18. Do we have timestamped injury data?
+
+19. Do we have sufficient historical team evidence?
+
+20. Do we have play-by-play?
+
+21. Do we have drive data?
+
+22. Can we calculate EPA legitimately?
+
+23. Can we calculate success rate legitimately?
+
+24. Can we calculate explosiveness legitimately?
+
+25. Can we calculate havoc legitimately?
+
+26. What early-season prior evidence exists?
+
+27. Do we have returning production?
+
+28. Do we have recruiting/talent?
+
+29. Do we have transfer data?
+
+30. Do we have coaching continuity?
+
+31. Is NCAAF weather active?
+
+32. Which domains are CRITICAL?
+
+33. Which critical domains are still missing?
+
+34. Is another provider required?
+
+35. If yes, exactly what provider/access should we obtain?
+
+36. How many legitimate FINAL_PREGAME snapshots exist?
+
+37. How many internal LIVE_SHADOW cohort assignments exist?
+
+38. Can historical games be backfilled into the prospective cohort?
+
+39. Can sportsbook odds enter sports intelligence?
+
+40. Can closing odds enter sports intelligence?
+
+41. Can one completed game automatically alter production weights?
+
+42. Will every completed game add learning evidence once V4 is live?
+
+43. Can future candidate models be tested without changing the live champion?
+
+44. Is the architecture prepared for V4 to become the LIVE champion?
+
+45. Did this task change any current NCAAF forecast?
+
+46. Did this task change any other sport?
+
+47. Is DATA_PIPELINE_READY true or false?
+
+48. Is V4_BUILD_READY true or false?
+
+49. If false, what exact blockers remain?
+
+50. Should we begin #222 next?
+
+============================================================
+SUCCESS CRITERIA
+============================================================
+
+#221C succeeds when:
+
+- the already-published #221/#221B infrastructure is operating correctly in production
+- prospective football-performance capture works
+- intelligence snapshots are actually created
+- stale RUNNING jobs are safely reconciled
+- FINAL_PREGAME operates prospectively
+- provider gaps are explicitly measured
+- critical pregame football evidence is activated where available
+- missing critical provider access is explicitly identified
+- no data is fabricated
+- no V4 model is built yet
+- no current NCAAF forecast changes
+- no other sport changes
+- the architecture is prepared for V4 to become the LIVE NCAAF champion
+- continuous learning evidence is supported
+- production weights cannot mutate automatically after individual games.
+
+============================================================
+STOP CONDITION
+============================================================
+
+If the remaining blocker is external provider access:
+
+STOP and return:
+
+PROVIDER ACCESS REQUIRED
+
+with the exact provider/access recommendation.
+
+Do not compensate by weakening V4 requirements.
+
+============================================================
+DO NOT BUILD #222 IN THIS TASK
+============================================================
+
+When #221C is complete:
+
+STOP.
+
+Return the full report.
+
+If V4_BUILD_READY is TRUE:
+
+our next task will be #222.
+
+If V4_BUILD_READY is FALSE because provider access is missing:
+
+we will solve that provider requirement first.
+
+============================================================
+FINAL TARGET
+============================================================
+
+The target is NOT:
+
+NCAAF V4 permanently hidden in shadow.
+
+The target is:
+
+NCAAF V4
+→ INITIAL VALIDATION
+→ EXPLICIT APPROVAL
+→ LIVE NCAAF CHAMPION
+→ QUALIFIED PICKS PUBLISHED
+→ EVERY GAME ADDS LEARNING EVIDENCE
+→ VALIDATED MODEL IMPROVEMENTS
+→ NEW APPROVED VERSIONS.
+
+Build #221C specifically to get us to that point.
