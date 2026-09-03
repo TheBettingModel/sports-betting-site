@@ -15,7 +15,10 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    entryPoints: {
+      index: path.resolve(artifactDir, "src/index.ts"),
+      "mlb-v4-replay": path.resolve(artifactDir, "src/mlb-v4-replay.ts"),
+    },
     platform: "node",
     bundle: true,
     format: "esm",

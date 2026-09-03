@@ -1,0 +1,1554 @@
+#211 — MLB V4 Historical Replay & Challenger Validation
+
+We have completed #210 — MLB V4 Sports Forecasting Challenger.
+
+Current state:
+
+- MLB V3 remains the official production champion.
+- MLB V4 is implemented in the API.
+- MLB V4 is running as a shadow challenger.
+- MLB V4 does NOT publish official picks.
+- MLB V4 does NOT affect units, ROI, notifications, Free Pick, Top Pick, Play of the Day, or champion learning.
+- MLB V4 uses a run-first forecasting architecture.
+- MLB V4 projects expected away/home runs before sportsbook evaluation.
+- MLB V4 currently uses a normalized independent-Poisson outcome distribution.
+- MLB V4 does NOT use deterministic game-ID probability noise.
+- MLB V4 records uncertainty, data quality, feature completeness, unsupported features, run attribution, and probability attribution.
+- MLB V4 currently uses calibration state UNFITTED_IDENTITY.
+- Unsupported Statcast, defense, baserunning, pitch-type, reliever-quality, injury, and umpire inputs are explicitly recorded rather than fabricated.
+- V4 shadow predictions and research outcome reviews are isolated from official production.
+- Results/ROI were corrected to count only effective published picks.
+- The legacy mutable learning path was removed/secured.
+- V3 production behavior was preserved.
+
+The purpose of #211 is NOT to improve V4 yet.
+
+The purpose is to determine, using the largest clean point-in-time historical sample available, whether the V4 architecture is actually producing sensible, accurate, calibrated MLB forecasts.
+
+==================================================
+NON-NEGOTIABLE SAFETY RULES
+==================================================
+
+DO NOT change MLB V3.
+
+DO NOT change the production champion.
+
+DO NOT change V3 production weights.
+
+DO NOT change V3 recommendation thresholds.
+
+DO NOT change the -160 production guardrail.
+
+DO NOT change production units.
+
+DO NOT change production publication.
+
+DO NOT change production grading.
+
+DO NOT change champion learning.
+
+DO NOT rewrite historical predictions.
+
+DO NOT rewrite historical picks.
+
+DO NOT rewrite historical results.
+
+DO NOT promote V4.
+
+DO NOT approve V4.
+
+DO NOT make V4 public.
+
+DO NOT allow V4 into Free Pick.
+
+DO NOT allow V4 into Top Pick.
+
+DO NOT allow V4 into Play of the Day.
+
+DO NOT send V4 notifications.
+
+DO NOT allow V4 research results into official ROI.
+
+DO NOT tune V4 weights in this task.
+
+DO NOT modify the live V4 forecasting formula based on the results of this task.
+
+This is a DIAGNOSTIC AND VALIDATION task.
+
+==================================================
+PRIMARY QUESTION
+==================================================
+
+We need to answer:
+
+"Does MLB V4's new baseball-specific run forecasting architecture produce more accurate, better-calibrated, and more trustworthy forecasts than MLB V3, and does it demonstrate independent predictive value relative to the sportsbook market?"
+
+We are NOT asking:
+
+"Did V4 make money over a short sample?"
+
+We need to evaluate the FORECASTING ENGINE first.
+
+==================================================
+PHASE 1 — DETERMINE HISTORICAL REPLAY CAPABILITY
+==================================================
+
+Determine the largest historical MLB period that can be replayed through V4 while maintaining strict point-in-time integrity.
+
+Use the largest CLEAN sample available.
+
+100 games is a minimum diagnostic sample, not the target.
+
+If hundreds or thousands of games can be safely reconstructed, use them.
+
+However:
+
+DO NOT manufacture historical features.
+
+DO NOT use current values as historical values.
+
+DO NOT use season-end values when they were not available at prediction time.
+
+DO NOT use final results as features.
+
+DO NOT use closing lines as prediction inputs.
+
+DO NOT use future pitcher performance.
+
+DO NOT use future hitter performance.
+
+DO NOT use future bullpen information.
+
+DO NOT use future lineup information.
+
+DO NOT use postgame statistics.
+
+Every replayed prediction must have a valid:
+
+point_in_time_cutoff
+
+and all inputs must represent information that would actually have been available before that game's prediction.
+
+==================================================
+PHASE 2 — REPLAY COVERAGE REPORT
+==================================================
+
+Report:
+
+available MLB games
+games considered
+games successfully replayed
+games excluded
+percentage successfully replayed
+
+Break exclusions into:
+
+missing starter
+invalid starter
+missing lineup
+missing bullpen
+missing team data
+missing market
+stale market
+missing park
+missing weather
+provider limitation
+point-in-time integrity failure
+insufficient historical feature snapshot
+other
+
+IMPORTANT:
+
+Missing lineups do not necessarily have to exclude a game if V4 supports projected/unconfirmed lineup uncertainty.
+
+Follow the actual V4 feature-state architecture.
+
+Do not fabricate missing evidence merely to increase replay coverage.
+
+==================================================
+PHASE 3 — IMMUTABLE REPLAY RECORD
+==================================================
+
+Every historical V4 replay must record at minimum:
+
+game_id
+game_date
+game_start
+home_team
+away_team
+
+model_id
+model_version
+feature_schema_version
+dataset/input version
+replay_version
+
+point_in_time_cutoff
+prediction_created_at
+
+starter states
+lineup states
+bullpen states
+weather state
+park state
+team-data state
+
+feature completeness
+data_quality_score
+prediction_uncertainty
+
+away_expected_runs
+home_expected_runs
+projected_total
+projected_home_margin
+
+raw_home_probability
+raw_away_probability
+
+calibrated_home_probability
+calibrated_away_probability
+
+calibration_model_version
+
+market_home_odds
+market_away_odds
+
+point_in_time_no_vig_home_probability
+point_in_time_no_vig_away_probability
+
+selected research side
+research edge
+research EV
+research recommendation
+
+official_pick = false
+official_units = 0
+
+final_home_score
+final_away_score
+result
+
+closing_home_odds if historically available
+closing_away_odds if historically available
+CLV if historically available
+
+Never overwrite existing production prediction records.
+
+==================================================
+PHASE 4 — RUN MODEL SANITY CHECK
+==================================================
+
+Before evaluating wagers, evaluate whether V4 predicts baseball scoring reasonably.
+
+For every replayed game compare:
+
+projected away runs
+actual away runs
+
+projected home runs
+actual home runs
+
+projected total runs
+actual total runs
+
+projected run margin
+actual run margin
+
+Calculate:
+
+Home Run MAE
+Away Run MAE
+Combined Run MAE
+Total Run MAE
+Run Margin MAE
+
+Also calculate RMSE where appropriate.
+
+Report bias:
+
+average projected home runs
+average actual home runs
+
+average projected away runs
+average actual away runs
+
+average projected total
+average actual total
+
+We need to detect systematic:
+
+overprojection
+underprojection
+home bias
+away bias
+high-total bias
+low-total bias
+
+==================================================
+PHASE 5 — RUN MODEL SEGMENTATION
+==================================================
+
+Evaluate run prediction error by:
+
+month
+
+home/away
+
+park/run environment
+
+projected total bucket
+
+starter-quality tier
+
+starter mismatch tier
+
+both lineups confirmed
+
+one lineup confirmed
+
+both lineups projected/unconfirmed
+
+bullpen-data quality
+
+data-quality bucket
+
+uncertainty bucket
+
+favorite/underdog market status
+
+Do not optimize anything yet.
+
+Only identify where the run model succeeds or fails.
+
+==================================================
+PHASE 6 — WIN PROBABILITY QUALITY
+==================================================
+
+Evaluate the V4 sports probability independently from betting performance.
+
+Calculate:
+
+Brier Score
+
+Log Loss
+
+Expected Calibration Error
+
+Calibration slope/intercept if supported
+
+Reliability / calibration table
+
+Use probability buckets:
+
+50–52%
+
+52–54%
+
+54–56%
+
+56–58%
+
+58–60%
+
+60–65%
+
+65–70%
+
+70–75%
+
+75–80%
+
+80%+
+
+For each bucket report:
+
+number of forecasts
+average predicted probability
+actual win percentage
+difference between prediction and actual frequency
+Brier Score
+Log Loss if appropriate
+
+Mark small samples explicitly.
+
+Do NOT combine poor-performing buckets merely to make the calibration table appear better.
+
+==================================================
+PHASE 7 — BRIER SKILL VS SPORTSBOOK MARKET
+==================================================
+
+This is one of the most important parts of #211.
+
+For games with a valid point-in-time market:
+
+Calculate:
+
+V4 Brier Score
+
+POINT-IN-TIME NO-VIG MARKET Brier Score
+
+Brier Skill Score
+
+Formula:
+
+Brier Skill Score =
+1 - (V4 Brier Score / Market Brier Score)
+
+IMPORTANT:
+
+The baseline must be the POINT-IN-TIME no-vig market available when V4 generated the prediction.
+
+DO NOT use closing odds as the Brier baseline.
+
+Closing odds are CLV evidence only.
+
+Interpret:
+
+positive Brier Skill = V4 forecasts outperform market baseline
+
+zero = approximately market-level
+
+negative = market forecasts outperform V4
+
+Report overall and by meaningful segment.
+
+==================================================
+PHASE 8 — MODEL VS MARKET DISAGREEMENT
+==================================================
+
+Calculate:
+
+absolute difference between V4 sports probability and point-in-time no-vig market probability.
+
+Create disagreement buckets:
+
+0–2 pp
+
+2–4 pp
+
+4–6 pp
+
+6–8 pp
+
+8–10 pp
+
+10–15 pp
+
+15–20 pp
+
+20+ pp
+
+For each bucket report:
+
+number of games
+
+average V4 probability
+
+average market probability
+
+average disagreement
+
+actual win percentage of V4-selected side
+
+V4 Brier
+
+market Brier
+
+Brier Skill
+
+hypothetical ROI
+
+average CLV
+
+percentage beating close
+
+This is extremely important.
+
+We need to determine:
+
+Does V4 become MORE valuable when it disagrees with the market?
+
+Or:
+
+Does V4 become LESS accurate as disagreement increases?
+
+Large edge is only useful if larger disagreements contain actual predictive information.
+
+==================================================
+PHASE 9 — EXTREME EDGE AUDIT
+==================================================
+
+Identify every V4 forecast with model-vs-market disagreement of:
+
+10+ pp
+
+15+ pp
+
+20+ pp
+
+For each include:
+
+game
+date
+teams
+V4 probability
+market probability
+edge
+expected runs
+starter state
+starter contribution
+lineup state
+lineup contribution
+bullpen contribution
+park/weather
+data quality
+uncertainty
+result
+closing price
+CLV
+
+Determine whether extreme V4 edges appear:
+
+credible
+
+systematically overconfident
+
+data-quality related
+
+starter related
+
+lineup related
+
+market related
+
+or caused by a specific run-model component.
+
+Do NOT change the model yet.
+
+==================================================
+PHASE 10 — FAVORITE / UNDERDOG ANALYSIS
+==================================================
+
+Segment V4 research opportunities by selected-side sportsbook price:
+
++200 or longer
+
++150 to +199
+
++120 to +149
+
++100 to +119
+
+-101 to -119
+
+-120 to -139
+
+-140 to -159
+
+-160 to -199
+
+-200 or shorter
+
+For each report:
+
+count
+average model probability
+average market probability
+actual win rate
+Brier
+Brier Skill
+Log Loss
+hypothetical ROI
+CLV
+percentage beating close
+
+Also separately report:
+
+home favorites
+
+away favorites
+
+home underdogs
+
+away underdogs
+
+The goal is to determine whether V4 has problematic price regions.
+
+==================================================
+PHASE 11 — HOME / AWAY ANALYSIS
+==================================================
+
+Evaluate:
+
+V4 home selections
+
+V4 away selections
+
+Report:
+
+count
+probability
+actual win rate
+Brier
+Brier Skill
+Log Loss
+ROI
+CLV
+average edge
+average uncertainty
+
+Determine whether V4 has structural home or away bias.
+
+==================================================
+PHASE 12 — DATA QUALITY VALIDATION
+==================================================
+
+V4 introduced explicit data-quality scoring.
+
+We now need to prove whether that score is meaningful.
+
+Bucket forecasts by:
+
+90–100
+
+80–89
+
+70–79
+
+60–69
+
+below 60
+
+For each bucket report:
+
+count
+
+run MAE
+
+Brier
+
+Brier Skill
+
+Log Loss
+
+calibration error
+
+hypothetical ROI
+
+CLV
+
+average uncertainty
+
+We would expect higher-quality forecasts to generally have:
+
+better calibration
+
+lower forecast error
+
+more stable performance
+
+If this does NOT occur, explicitly flag that the data-quality scoring system may not be correctly weighted.
+
+==================================================
+PHASE 13 — UNCERTAINTY VALIDATION
+==================================================
+
+V4 also introduced prediction uncertainty.
+
+Test whether uncertainty actually predicts forecast error.
+
+Create sensible uncertainty buckets based on the observed V4 distribution.
+
+For each bucket report:
+
+count
+
+average uncertainty
+
+absolute probability error
+
+Brier
+
+Log Loss
+
+run MAE
+
+calibration error
+
+ROI
+
+CLV
+
+Test correlation between:
+
+predicted uncertainty
+
+and
+
+actual forecast error.
+
+Higher uncertainty should generally correspond with less reliable predictions.
+
+If not, explicitly state that the uncertainty framework requires revision.
+
+==================================================
+PHASE 14 — LINEUP CONFIRMATION ANALYSIS
+==================================================
+
+Compare:
+
+BOTH LINEUPS CONFIRMED
+
+ONE LINEUP CONFIRMED / PARTIAL
+
+BOTH PROJECTED OR UNCONFIRMED
+
+UNAVAILABLE
+
+For each report:
+
+count
+
+expected-run error
+
+Brier
+
+Brier Skill
+
+Log Loss
+
+calibration
+
+average uncertainty
+
+data quality
+
+hypothetical ROI
+
+CLV
+
+We need evidence to determine whether future public MLB recommendations should require confirmed lineups.
+
+Do NOT make that publication change in #211.
+
+==================================================
+PHASE 15 — STARTING PITCHER ANALYSIS
+==================================================
+
+Use the actual V4 pitcher model outputs.
+
+Do NOT use ERA alone.
+
+Create starter matchup categories such as:
+
+MAJOR SELECTED-SIDE STARTER ADVANTAGE
+
+MODERATE ADVANTAGE
+
+ROUGHLY NEUTRAL
+
+MODERATE DISADVANTAGE
+
+MAJOR DISADVANTAGE
+
+For each report:
+
+count
+
+V4 probability
+
+actual win rate
+
+Brier
+
+Brier Skill
+
+run MAE
+
+ROI
+
+CLV
+
+Also list games where V4 favored or selected a team despite a major starting-pitcher disadvantage.
+
+For those games show which components overcame the starter disadvantage:
+
+offense
+lineup
+bullpen
+park
+other context
+
+This will help determine whether V4 is appropriately balancing team offense and today's pitcher matchup.
+
+==================================================
+PHASE 16 — BULLPEN ANALYSIS
+==================================================
+
+Evaluate the existing V4 bullpen information separately.
+
+Segment by:
+
+high bullpen data quality
+
+medium
+
+low/missing
+
+and where supported:
+
+fresh
+
+moderate workload
+
+tired
+
+very tired
+
+Report:
+
+count
+
+run MAE
+
+Brier
+
+Brier Skill
+
+ROI
+
+CLV
+
+Determine whether current workload-only bullpen information is providing predictive value.
+
+Remember:
+
+V4 does not yet have the desired full reliever-quality model.
+
+Do not pretend it does.
+
+==================================================
+PHASE 17 — TEAM-STRENGTH DOUBLE-COUNTING AUDIT
+==================================================
+
+This is critical.
+
+Inspect V4's expected-run attribution across the historical replay.
+
+Quantify the distribution of contributions from:
+
+team baseline / true talent
+
+starting pitcher
+
+lineup
+
+platoon
+
+bullpen
+
+park
+
+weather
+
+home field
+
+rest/context
+
+unsupported components
+
+Determine whether legacy concepts such as:
+
+record
+
+Pythagorean record
+
+run differential
+
+recent form
+
+are being counted multiple times through different V4 features.
+
+Specifically investigate whether V4 still contains hidden versions of the V3 problem where historical team performance overwhelms today's baseball matchup.
+
+Report:
+
+average absolute contribution
+
+median contribution
+
+95th percentile contribution
+
+maximum contribution
+
+for each major component.
+
+Flag components that routinely dominate expected runs.
+
+DO NOT adjust weights in this task.
+
+==================================================
+PHASE 18 — EXTREME PROBABILITY AUDIT
+==================================================
+
+Identify all V4 forecasts with selected-side probability:
+
+65%+
+
+70%+
+
+75%+
+
+80%+
+
+For every 70%+ forecast provide:
+
+game
+
+date
+
+teams
+
+V4 probability
+
+expected runs
+
+market probability
+
+starter contribution
+
+lineup contribution
+
+bullpen contribution
+
+park/weather
+
+data quality
+
+uncertainty
+
+result
+
+closing price if available
+
+Then summarize by probability bucket:
+
+count
+
+average forecast probability
+
+actual win percentage
+
+Brier
+
+market Brier
+
+Brier Skill
+
+We need to determine whether V4 produces extreme probabilities too frequently.
+
+==================================================
+PHASE 19 — V3 VS V4 HEAD-TO-HEAD
+==================================================
+
+For every historical game where valid point-in-time forecasts exist for BOTH models compare:
+
+MLB V3
+
+MLB V4
+
+POINT-IN-TIME NO-VIG MARKET
+
+ACTUAL RESULT
+
+Calculate:
+
+V3 Brier
+
+V4 Brier
+
+market Brier
+
+V3 Brier Skill
+
+V4 Brier Skill
+
+V3 Log Loss
+
+V4 Log Loss
+
+V3 calibration
+
+V4 calibration
+
+V3 hypothetical ROI
+
+V4 hypothetical ROI
+
+V3 CLV
+
+V4 CLV
+
+V3 average model-market disagreement
+
+V4 average model-market disagreement
+
+V3 extreme-probability frequency
+
+V4 extreme-probability frequency
+
+Do not assume V4 wins.
+
+==================================================
+PHASE 20 — V3 VS V4 DISAGREEMENT
+==================================================
+
+Segment games where:
+
+V3 and V4 choose same higher-probability side
+
+V3 and V4 disagree on predicted winner
+
+probabilities differ by:
+
+0–5 pp
+
+5–10 pp
+
+10–15 pp
+
+15–20 pp
+
+20+ pp
+
+For each report:
+
+count
+
+V3 Brier
+
+V4 Brier
+
+market Brier
+
+actual result accuracy for descriptive purposes
+
+V3 calibration
+
+V4 calibration
+
+Determine WHY the models disagree.
+
+For the largest disagreements, show attribution.
+
+We need to identify whether V4's new architecture corrects V3's team-strength bias or merely introduces a different source of error.
+
+==================================================
+PHASE 21 — RAW V4 CALIBRATION BASELINE
+==================================================
+
+V4 currently uses:
+
+UNFITTED_IDENTITY
+
+Keep that as the live V4 calibration during this task.
+
+First evaluate the raw V4 probabilities exactly as generated.
+
+Do not silently fit a calibrator before evaluating the baseline.
+
+The baseline report must show exactly how UNFITTED_IDENTITY performs.
+
+==================================================
+PHASE 22 — OFFLINE CALIBRATION CANDIDATES
+==================================================
+
+After establishing the raw V4 baseline, evaluate calibration candidates OFFLINE ONLY.
+
+Candidates:
+
+Platt / logistic scaling
+
+isotonic regression
+
+beta calibration
+
+Use chronological data separation.
+
+Example:
+
+TRAIN
+
+→ CALIBRATION
+
+→ VALIDATION
+
+→ UNTOUCHED OUT-OF-SAMPLE
+
+Do NOT randomly shuffle games.
+
+Do NOT fit and score a calibrator on the same games.
+
+For each candidate report:
+
+sample size
+
+training period
+
+calibration period
+
+validation period
+
+OOS period
+
+Brier
+
+Brier Skill
+
+Log Loss
+
+ECE
+
+calibration stability
+
+Do NOT install or activate a calibrator.
+
+Recommend a candidate only if it demonstrates stable OOS improvement.
+
+==================================================
+PHASE 23 — RUN DISTRIBUTION VALIDATION
+==================================================
+
+V4 currently uses normalized independent Poisson.
+
+Evaluate whether that assumption is sufficient.
+
+Do not change live V4.
+
+Offline only, compare where historical data permits:
+
+CURRENT:
+Normalized Independent Poisson
+
+CHALLENGER A:
+Negative Binomial / overdispersed scoring model
+
+CHALLENGER B:
+Empirical residual/distribution adjustment
+
+CHALLENGER C:
+another defensible baseball run-distribution approach only if supported by evidence
+
+Do NOT add complexity just for complexity.
+
+Compare:
+
+home run MAE
+
+away run MAE
+
+total MAE
+
+margin MAE
+
+Brier
+
+Brier Skill
+
+Log Loss
+
+calibration
+
+Pay particular attention to:
+
+high-scoring environments
+
+low-scoring environments
+
+large expected-run gaps
+
+close games
+
+extreme favorites
+
+extreme underdogs
+
+Determine whether independent Poisson systematically understates or overstates MLB run variance.
+
+Do NOT replace it in #211.
+
+==================================================
+PHASE 24 — RESEARCH BETTING POLICY
+==================================================
+
+After evaluating forecast quality, perform an OFFLINE research-only betting-policy analysis.
+
+Do NOT publish these bets.
+
+Test combinations of:
+
+minimum probability edge
+
+minimum EV
+
+maximum uncertainty
+
+minimum data quality
+
+lineup confirmation requirements
+
+starter mismatch restrictions
+
+price buckets
+
+market disagreement
+
+Do NOT optimize solely for maximum ROI.
+
+Every policy must report:
+
+number of wagers
+
+percentage of games wagered
+
+average odds
+
+favorites/underdogs
+
+home/away
+
+average probability
+
+average edge
+
+Brier
+
+Brier Skill
+
+ROI
+
+units
+
+maximum drawdown
+
+CLV
+
+percentage beating closing price
+
+Reject policies that appear strong only because of tiny samples.
+
+==================================================
+PHASE 25 — DO NOT TUNE V4 YET
+==================================================
+
+This task must NOT:
+
+change offense weights
+
+change pitcher weights
+
+change lineup weights
+
+change bullpen weights
+
+change home-field values
+
+change park values
+
+change uncertainty weights
+
+change data-quality weights
+
+change probability thresholds
+
+change recommendation thresholds
+
+change unit sizing
+
+change run distribution
+
+change calibration
+
+change publication
+
+The purpose of #211 is to find out WHAT actually needs improvement.
+
+We do not want to fit V4 to the recent MLB losing streak.
+
+We do not want to overfit V4 to the historical replay.
+
+==================================================
+PHASE 26 — IDENTIFY V4 FAILURE MODES
+==================================================
+
+At the end of the replay, rank the major V4 weaknesses.
+
+Classify each as:
+
+DATA
+
+FEATURE ENGINEERING
+
+RUN MODEL
+
+STARTER MODEL
+
+LINEUP MODEL
+
+BULLPEN MODEL
+
+PARK/WEATHER
+
+UNCERTAINTY
+
+DATA QUALITY
+
+RUN DISTRIBUTION
+
+CALIBRATION
+
+MARKET EVALUATION
+
+BET-SELECTION POLICY
+
+For each weakness report:
+
+evidence
+
+sample size
+
+affected segments
+
+severity
+
+whether it affects sports prediction or betting policy
+
+recommended research experiment
+
+Do NOT implement the experiment.
+
+==================================================
+PHASE 27 — IDENTIFY V4 STRENGTHS
+==================================================
+
+Also identify where V4 performs well.
+
+Examples:
+
+starter-heavy games
+
+confirmed-lineup games
+
+high-data-quality games
+
+certain price ranges
+
+certain probability ranges
+
+home games
+
+away games
+
+close games
+
+specific run environments
+
+Do not cherry-pick.
+
+Require adequate sample size.
+
+==================================================
+PHASE 28 — FINAL CHALLENGER DECISION
+==================================================
+
+At the end of the report give ONE of these recommendations:
+
+A)
+
+KEEP MLB V4 AS-IS FOR MORE SHADOW DATA
+
+Use this if architecture appears sound but sample size is insufficient.
+
+B)
+
+BUILD MLB V4.1 CHALLENGER
+
+Use this if V4 architecture is fundamentally sound but specific evidence-supported improvements are needed.
+
+C)
+
+MLB V4 ARCHITECTURE REQUIRES REVISION
+
+Use this if the run-first architecture or current implementation has fundamental predictive problems.
+
+D)
+
+MLB V4 SHOWS PROMOTION POTENTIAL BUT NEEDS LIVE SHADOW VALIDATION
+
+Use this only if historical OOS evidence is genuinely strong.
+
+DO NOT promote V4 regardless of recommendation.
+
+==================================================
+REQUIRED REPORT
+==================================================
+
+Create:
+
+reports/mlb-v4-historical-replay-validation-2026-09-03.md
+
+The report must contain:
+
+1. Executive summary
+
+2. Historical replay date range
+
+3. Total sample size
+
+4. Replay coverage
+
+5. Exclusion reasons
+
+6. Point-in-time integrity assessment
+
+7. Run prediction metrics
+
+8. Run-model segmentation
+
+9. V4 Brier Score
+
+10. V4 Log Loss
+
+11. V4 calibration
+
+12. Market Brier Score
+
+13. V4 Brier Skill Score
+
+14. Model-vs-market disagreement analysis
+
+15. Extreme-edge analysis
+
+16. Favorite/underdog analysis
+
+17. Home/away analysis
+
+18. Data-quality validation
+
+19. Uncertainty validation
+
+20. Lineup-confirmation analysis
+
+21. Starting-pitcher analysis
+
+22. Bullpen analysis
+
+23. Team-strength/double-counting audit
+
+24. Extreme-probability audit
+
+25. V3 vs V4 head-to-head
+
+26. V3 vs V4 disagreement analysis
+
+27. Raw UNFITTED_IDENTITY calibration performance
+
+28. Offline calibration candidate results
+
+29. Run-distribution comparison
+
+30. Research betting-policy analysis
+
+31. Ranked V4 failure modes
+
+32. Ranked V4 strengths
+
+33. Recommended V4.1 experiments if applicable
+
+34. Final challenger recommendation
+
+==================================================
+FINAL VERIFICATION
+==================================================
+
+Before completion verify:
+
+MLB V3 champion unchanged.
+
+MLB V3 weights unchanged.
+
+MLB V3 thresholds unchanged.
+
+MLB V3 units unchanged.
+
+MLB V3 publication unchanged.
+
+MLB V3 grading unchanged.
+
+MLB V3 learning unchanged.
+
+MLB V4 remains shadow only.
+
+MLB V4 formula unchanged.
+
+MLB V4 calibration remains UNFITTED_IDENTITY.
+
+No V4 official picks created.
+
+No V4 official units created.
+
+No V4 notifications sent.
+
+No V4 Results contamination.
+
+No V4 ROI contamination.
+
+No Free Pick contamination.
+
+No Top Pick contamination.
+
+No Play of the Day contamination.
+
+No historical records rewritten.
+
+Run:
+
+TypeScript typecheck
+
+API build
+
+full relevant test suite
+
+database integrity checks
+
+Then provide the exact outputs/results in the completion report.
+
+==================================================
+STOP CONDITION
+==================================================
+
+STOP after:
+
+historical replay
+
+diagnostic analysis
+
+offline calibration research
+
+offline run-distribution research
+
+offline betting-policy research
+
+V3 vs V4 comparison
+
+final report
+
+Do NOT implement #212.
+
+Do NOT tune V4.
+
+Do NOT promote V4.
+
+Do NOT change production.
+
+We will review the #211 evidence before deciding the next MLB task.
