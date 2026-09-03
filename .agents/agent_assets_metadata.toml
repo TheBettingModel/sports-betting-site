@@ -78,3 +78,17 @@ mtime_ms = 1788450431701
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7bd1f4ef-eaa3-47cd-9035-fe5cc8669164/1eb9185e-2a99-439a-abc4-b8d9d180a6a1"
 storage_version_token = "1788450521142749"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "HevAH2iNwQ9V7SEBsElAH"
+uri = "file://reports/ncaaf-provider-activation-production-deployment-2026-09-03.md"
+type = "text"
+title = "Complete #221B NCAAF Provider Activation Report"
+description = "Full 77-section report with all 60 completion answers."
+logical_id = "ebef07db-8a1c-4096-bb92-6a052b09111b"
+content_hash = "sha256:895086eeabf1db58ee7f91bdb1518053b42af22cbb40a07c608b3e8220f5aa55"
+size = 8229
+mtime_ms = 1788452111501
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ebef07db-8a1c-4096-bb92-6a052b09111b/6c9e48c8-1acb-4722-9296-d3a81231d299"
+storage_version_token = "1788452219365873"
+content_type = "text/markdown"
