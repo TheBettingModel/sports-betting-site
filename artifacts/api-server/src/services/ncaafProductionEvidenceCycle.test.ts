@@ -26,13 +26,21 @@ function store(): NcaafPregameCohortStore {
   };
 }
 
+const captureTransport = {
+  status: 200, contentType: "json" as const, byteLength: 1,
+  requestStartedAt: now, requestFinishedAt: now, durationMs: 1,
+  retryCount: 0, failureCategory: null,
+};
+const globalLock = async () => async () => {};
+
 describe("NCAAF production evidence cycle", () => {
   it("single-flights duplicate invocations", async () => {
     let release!: () => void;
     const wait = new Promise<void>((resolve) => { release = resolve; });
     const run = createNcaafProductionEvidenceCycle({
       now: () => now, reconcile: async () => 0,
-      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0 }),
+      acquireGlobalLock: globalLock,
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
       captureCurrent: async () => { await wait; return { games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }; },
       listUpcomingGames: async () => [],
     });
@@ -42,10 +50,21 @@ describe("NCAAF production evidence cycle", () => {
     expect((await first).skipped).toBe(false);
   });
 
+  it("skips when another production instance owns the global lock", async () => {
+    const run = createNcaafProductionEvidenceCycle({
+      now: () => now,
+      acquireGlobalLock: async () => null,
+    });
+    const result = await run();
+    expect(result.skipped).toBe(true);
+    expect(result.captureCause).toBe("global_duplicate_invocation");
+  });
+
   it("continues existing evidence after capture failure and isolates game failures", async () => {
     let featureCalls = 0;
     const run = createNcaafProductionEvidenceCycle({
-      now: () => now, reconcile: async () => 2, captureCurrent: async () => { throw new Error("provider down"); },
+      now: () => now, reconcile: async () => 2, acquireGlobalLock: globalLock,
+      captureCurrent: async () => { throw new Error("provider down"); },
       captureCfbd: async () => { throw new Error("cfbd unavailable"); },
       listUpcomingGames: async () => [game, { ...game, eventId: "bad" }],
       createFeatureSnapshot: (async () => {
@@ -70,8 +89,9 @@ describe("NCAAF production evidence cycle", () => {
   it("creates both snapshots and assigns final only in its pre-kickoff window", async () => {
     let final = 0;
     const run = createNcaafProductionEvidenceCycle({
-      now: () => now, reconcile: async () => 0, captureCurrent: async () => ({ games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }),
-      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0 }),
+      now: () => now, reconcile: async () => 0, acquireGlobalLock: globalLock,
+      captureCurrent: async () => ({ games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }),
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
       listUpcomingGames: async () => [game], cohortStore: store(),
       createFeatureSnapshot: (async () => ({ id: 1, snapshot: {}, inputHash: "x" })) as never,
       createIntelligenceSnapshot: (async () => ({ id: 2, snapshot: {}, inputHash: "x" })) as never,

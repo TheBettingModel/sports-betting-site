@@ -102,7 +102,14 @@ export const dbNcaafPregameCohortStore: NcaafPregameCohortStore = {
   },
   async insertAssignment(assignment) {
     const [row] = await db.insert(ncaafPregameCohortAssignmentsTable)
-      .values(assignment).returning();
+      .values(assignment).onConflictDoNothing().returning();
+    if (!row) {
+      const existing = await this.getAssignment(
+        assignment.cohortType, assignment.targetProvider, assignment.targetEventId,
+      );
+      if (!existing) throw new Error("NCAAF cohort insert conflicted without an existing assignment");
+      return existing;
+    }
     return {
       ...row,
       cohortType: row.cohortType as NcaafCohortType,

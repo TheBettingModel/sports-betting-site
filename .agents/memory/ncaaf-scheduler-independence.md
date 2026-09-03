@@ -7,4 +7,4 @@ Production NCAAF evidence capture, snapshot creation, and pregame cohort assignm
 
 **Why:** Aligned cron schedules let an unrelated five-minute research job claim the shared lock at the same minute as 30-minute odds ingestion. The odds job then skipped, which also silently starved NCAAF capture and stale-run reconciliation.
 
-**How to apply:** Keep NCAAF collection on an offset cadence with its own overlap guard and a bounded startup catch-up. Do not make prospective pregame evidence availability depend on another sport's scheduler lock.
+**How to apply:** Keep NCAAF collection on an offset cadence with its own database-backed global overlap guard and a bounded startup catch-up. Limit overdue provider families per cycle and batch bulk normalization so one Autoscale instance or oversized response cannot monopolize collection.

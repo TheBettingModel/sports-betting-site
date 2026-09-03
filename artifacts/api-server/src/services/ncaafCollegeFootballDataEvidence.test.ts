@@ -42,7 +42,17 @@ describe("CFBD bounded evidence capture", () => {
     const requestedWeeks: Array<number | undefined> = [];
     const result = await captureCollegeFootballDataEvidence({}, {
       now: () => now, database: fakeDatabase(writes) as never,
-      requestGames: async (_season, week) => { requestedWeeks.push(week); return response; },
+      requestGames: async (_season, week) => {
+        requestedWeeks.push(week);
+        return {
+          ...response,
+          transport: {
+            status: 200, contentType: "json" as const, byteLength: 1,
+            requestStartedAt: now, requestFinishedAt: now, durationMs: 1,
+            retryCount: 0, failureCategory: null,
+          },
+        };
+      },
     });
     expect(requestedWeeks).toEqual([undefined]);
     expect(result).toMatchObject({ rawRows: 1, games: 2, entities: 4, performances: 2 });

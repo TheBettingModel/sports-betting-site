@@ -4,7 +4,7 @@
  * another sport owns the scheduler's shared heavy-job lock.
  */
 import { and, eq, gt } from "drizzle-orm";
-import { db, ncaafCfbdProviderHealthTable, ncaafGameEvidenceTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
+import { db, pool, ncaafCfbdProviderHealthTable, ncaafGameEvidenceTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import {
   captureCurrentNcaafEvidence,
@@ -24,8 +24,9 @@ import {
   type NcaafPregameCohortStore,
 } from "./ncaafPregameCohorts";
 import { captureCollegeFootballDataEvidence, type CfbdCaptureResult } from "./ncaafCollegeFootballDataEvidence";
-import { captureScheduledCfbdAdvancedEvidence } from "./ncaafCfbdAdvancedEvidence";
+import { captureScheduledCfbdAdvancedEvidence, type AdvancedCaptureResult } from "./ncaafCfbdAdvancedEvidence";
 import { materializeCurrentCfbdMappings } from "./ncaafCfbdMappingMaterializer";
+import { CollegeFootballDataError } from "./collegeFootballData";
 
 export const NCAAF_FINAL_PREGAME_WINDOW_MINUTES = 45;
 export const MAX_NCAAF_BOOTSTRAP_DAYS = 14;
@@ -69,6 +70,9 @@ export interface NcaafProductionEvidenceCycleDependencies {
   captureCurrent?: () => Promise<EvidenceCaptureResult>;
   /** Optional server-side CFBD evidence hook. Its failure is intentionally isolated. */
   captureCfbd?: () => Promise<CfbdCaptureResult>;
+  captureAdvancedCfbd?: (season: number, now: Date) => Promise<AdvancedCaptureResult>;
+  materializeCfbdMappings?: (season: number, now: Date) => Promise<{ teams: number; games: number }>;
+  acquireGlobalLock?: () => Promise<(() => Promise<void>) | null>;
   listUpcomingGames?: (now: Date) => Promise<NcaafProductionEvidenceGame[]>;
   createFeatureSnapshot?: typeof createNcaafFeatureSnapshot;
   createIntelligenceSnapshot?: typeof createNcaafFootballIntelligenceSnapshot;
@@ -77,6 +81,27 @@ export interface NcaafProductionEvidenceCycleDependencies {
   assignFinalPregame?: typeof assignNcaafFinalPregameCohort;
   finalPregameWindowMinutes?: number;
   log?: CycleLogger;
+}
+
+const NCAAF_GLOBAL_LOCK_KEY = 2_210_006;
+async function acquireNcaafGlobalLock(): Promise<(() => Promise<void>) | null> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query<{ acquired: boolean }>(
+      "SELECT pg_try_advisory_lock($1) AS acquired", [NCAAF_GLOBAL_LOCK_KEY],
+    );
+    if (!result.rows[0]?.acquired) {
+      client.release();
+      return null;
+    }
+    return async () => {
+      try { await client.query("SELECT pg_advisory_unlock($1)", [NCAAF_GLOBAL_LOCK_KEY]); }
+      finally { client.release(); }
+    };
+  } catch (error) {
+    client.release();
+    throw error;
+  }
 }
 
 async function listCanonicalUpcomingGames(now: Date): Promise<NcaafProductionEvidenceGame[]> {
@@ -135,34 +160,59 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
     const result = empty();
     const cycleStartedAt = dependencies.now?.() ?? new Date();
     const log = dependencies.log ?? logger;
+    let releaseGlobalLock: (() => Promise<void>) | null = null;
     try {
+      releaseGlobalLock = await (dependencies.acquireGlobalLock ?? acquireNcaafGlobalLock)();
+      if (!releaseGlobalLock) {
+        result.skipped = true;
+        result.captureCause = "global_duplicate_invocation";
+        log.info(result, "NCAAF production evidence cycle skipped globally active invocation");
+        return result;
+      }
       result.staleRunsReconciled = await (dependencies.reconcile ?? ((at) => reconcileStaleNcaafEvidenceRuns(db, at)))(cycleStartedAt);
       try {
         // Exactly one bounded current-season/week CFBD capture per dedicated cycle.
         result.cfbdCapture = await (dependencies.captureCfbd ?? captureCollegeFootballDataEvidence)();
         if (!dependencies.captureCfbd) await db.insert(ncaafCfbdProviderHealthTable).values({
-          endpoint: "games", attemptedAt: cycleStartedAt, succeeded: true, httpStatus: 200,
-          latencyMs: 0, rowsMaterialized: result.cfbdCapture.rawRows + result.cfbdCapture.games,
+          endpoint: "games", attemptedAt: result.cfbdCapture.transport.requestStartedAt,
+          finishedAt: result.cfbdCapture.transport.requestFinishedAt, succeeded: true, outcome: "success",
+          httpStatus: result.cfbdCapture.transport.status, contentType: result.cfbdCapture.transport.contentType,
+          latencyMs: result.cfbdCapture.transport.durationMs, retryCount: result.cfbdCapture.transport.retryCount,
+          payloadBytes: result.cfbdCapture.transport.byteLength,
+          rowsMaterialized: result.cfbdCapture.rawRows + result.cfbdCapture.games,
         });
-        if (!dependencies.captureCfbd) await materializeCurrentCfbdMappings(ncaafSeasonForDate(cycleStartedAt), cycleStartedAt);
         // Non-game CFBD families have independent, rate-aware cadences and
         // failures never prevent ESPN evidence or a pregame snapshot.
-        if (!dependencies.captureCfbd) try {
-          const advanced = await captureScheduledCfbdAdvancedEvidence({
-            season: ncaafSeasonForDate(cycleStartedAt), now: cycleStartedAt,
-          });
+        if (!dependencies.captureCfbd || dependencies.captureAdvancedCfbd) try {
+          const season = ncaafSeasonForDate(cycleStartedAt);
+          const advanced = dependencies.captureAdvancedCfbd
+            ? await dependencies.captureAdvancedCfbd(season, cycleStartedAt)
+            : await captureScheduledCfbdAdvancedEvidence({ season, now: cycleStartedAt });
           if (advanced.failed.length) log.warn({ failedEndpoints: advanced.failed.map((item) => item.endpoint) },
             "NCAAF CFBD advanced evidence partially unavailable");
         } catch (error) {
           log.warn({ error }, "NCAAF CFBD advanced evidence scheduling failed");
         }
+        if (!dependencies.captureCfbd || dependencies.materializeCfbdMappings) {
+          const materialize = dependencies.materializeCfbdMappings ?? materializeCurrentCfbdMappings;
+          await materialize(ncaafSeasonForDate(cycleStartedAt), cycleStartedAt);
+        }
       } catch (error) {
         result.cfbdCaptureCause = error instanceof Error ? error.message : String(error);
-        if (!dependencies.captureCfbd) await db.insert(ncaafCfbdProviderHealthTable).values({
-          endpoint: "games", attemptedAt: cycleStartedAt, succeeded: false, httpStatus: null, latencyMs: 0,
-          timeout: /timed out/i.test(result.cfbdCaptureCause), rateLimited: /\b429\b/.test(result.cfbdCaptureCause),
-          authError: /\b401\b|\b403\b/.test(result.cfbdCaptureCause), validationError: /invalid/i.test(result.cfbdCaptureCause), rowsMaterialized: 0,
-        });
+        if (!dependencies.captureCfbd) {
+          const known = error instanceof CollegeFootballDataError ? error : null;
+          await db.insert(ncaafCfbdProviderHealthTable).values({
+            endpoint: "games", attemptedAt: known?.metadata?.requestStartedAt ?? cycleStartedAt,
+            finishedAt: known?.metadata?.requestFinishedAt ?? new Date(), succeeded: false, outcome: "failure",
+            httpStatus: known?.httpStatus ?? null, failureCategory: known?.metadata?.failureCategory ?? "unknown",
+            contentType: known?.metadata?.contentType ?? null,
+            latencyMs: known?.metadata?.durationMs ?? 0, retryCount: known?.metadata?.retryCount ?? 0,
+            payloadBytes: known?.metadata?.byteLength ?? null,
+            timeout: known?.code === "TIMEOUT", rateLimited: known?.httpStatus === 429,
+            authError: known?.httpStatus === 401 || known?.httpStatus === 403,
+            validationError: known?.code === "INVALID_RESPONSE", rowsMaterialized: 0,
+          });
+        }
         log.warn({ cause: result.cfbdCaptureCause }, "NCAAF CFBD evidence capture failed; continuing with ESPN evidence");
       }
       try {
@@ -223,6 +273,7 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
       log.info(result, "NCAAF production evidence cycle completed");
       return result;
     } finally {
+      if (releaseGlobalLock) await releaseGlobalLock();
       running = false;
     }
   };

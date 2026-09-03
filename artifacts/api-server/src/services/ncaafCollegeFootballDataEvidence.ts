@@ -5,7 +5,7 @@ import {
   ncaafGameEvidenceTable,
   ncaafTeamGamePerformanceTable,
 } from "@workspace/db";
-import { cfbdPayloadHash, CFBD_PROVIDER, collegeFootballData, type CollegeFootballDataResponse } from "./collegeFootballData";
+import { cfbdPayloadHash, CFBD_PROVIDER, collegeFootballData, type CfbdTransportMetadata, type CollegeFootballDataResponse } from "./collegeFootballData";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import type { NcaafCompetitionClassification } from "./ncaafFootballIntelligence";
 
@@ -34,6 +34,7 @@ export interface CfbdCaptureResult {
   games: number;
   entities: number;
   performances: number;
+  transport: CfbdTransportMetadata;
 }
 
 function integer(value: unknown): number | null {
@@ -141,5 +142,5 @@ export async function captureCollegeFootballDataEvidence(
       if (insertedPerformance.length) performances++;
     }
   }
-  return { season, week: week ?? null, rawRows: rawInserted.length, games, entities, performances };
+  return { season, week: week ?? null, rawRows: rawInserted.length, games, entities, performances, transport: response.transport };
 }
