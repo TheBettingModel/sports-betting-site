@@ -106,3 +106,17 @@ mtime_ms = 1788455257011
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/c379aa41-4cb0-4852-ad98-27dc5655fe58/f2d19cfd-3200-4843-9f0f-bc443ff36cd5"
 storage_version_token = "1788455279482872"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "iovjdmHmHzx-WZk6aZSms"
+uri = "file://reports/ncaaf-cfbd-provider-integration-2026-09-03.md"
+type = "text"
+title = "#221D CFBD NCAAF Intelligence Integration Report"
+description = "Full 58-section completion report with all 60 explicit answers, verification results, production status, blockers, and #222 recommendation."
+logical_id = "3d78e591-5b1f-45a0-a278-e20d9c0ce8a0"
+content_hash = "sha256:4eeae95acc9f77fad4611685096b043de7bf179aaeb23884a76623012c3104d6"
+size = 39251
+mtime_ms = 1788460049571
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/3d78e591-5b1f-45a0-a278-e20d9c0ce8a0/bfac4ce7-53d6-4524-935e-35bcf6cdc9aa"
+storage_version_token = "1788460055434524"
+content_type = "text/markdown"
