@@ -1,0 +1,176 @@
+#221D-PROD — CFBD Production Verification
+
+#221D has already been published to production.
+
+Do NOT modify model logic.
+Do NOT build #222.
+Do NOT change NCAAF probabilities, recommendations, units, publication rules, or any other sport.
+
+The only objective is to verify that the newly published CollegeFootballData integration is actually running successfully in PRODUCTION.
+
+============================================================
+AUTHORITATIVE CONTEXT
+============================================================
+
+Before publication, #221D reported:
+
+- CFBD authentication successful in development
+- Production CFBD evidence rows: 0
+- Production CFBD entity rows: 0
+- Production CFBD performance rows: 0
+- Production intelligence snapshots: 789
+- READY: 0
+- BLOCKED: 789
+- FINAL_PREGAME: 0
+- prospective cohort assignments: 0
+- DATA_PIPELINE_READY = false
+- V4_BUILD_READY = false
+
+#221D has now been published.
+
+We now need actual production verification.
+
+============================================================
+TASK
+============================================================
+
+Inspect the LIVE production environment and answer whether CFBD capture is operating.
+
+Verify:
+
+1. CFBD_API_KEY is configured in production.
+   - Never print or expose the secret.
+
+2. Production server is running the published #221D code.
+
+3. CFBD authentication succeeds from the production backend.
+
+4. The dedicated NCAAF scheduler/capture cycle is active.
+
+5. At least one production CFBD capture has executed.
+
+6. Report production counts for:
+
+- raw CFBD evidence
+- CFBD game evidence
+- CFBD team/entity observations
+- CFBD completed-game performance rows
+- CFBD roster evidence if present
+- CFBD play evidence if present
+- CFBD ratings evidence if present
+- CFBD recruiting evidence if present
+- CFBD returning-production evidence if present
+- CFBD weather evidence if present
+
+7. Report:
+
+- last successful CFBD capture
+- last CFBD failure
+- scheduler last run
+- scheduler next expected run if determinable
+- HTTP/auth failures
+- rate-limit failures
+- timeouts
+- validation failures
+
+8. Confirm whether CFBD data is beginning to enrich:
+
+ncaaf-football-intelligence-v1
+
+9. Report current production intelligence counts:
+
+- total
+- READY
+- PARTIAL
+- BLOCKED
+
+10. Report:
+
+- FINAL_PREGAME count
+- prospective internal cohort count
+- PIT violations
+- stale RUNNING evidence runs
+
+============================================================
+IF CFBD ROWS ARE STILL ZERO
+============================================================
+
+If production CFBD rows are still zero:
+
+DO NOT simply report failure.
+
+Trace the runtime path and identify the exact cause.
+
+Inspect:
+
+- published version actually running
+- environment variable availability
+- scheduler registration
+- scheduler enablement
+- process lifecycle
+- deployment restart
+- job cadence
+- single-flight lock
+- database connection
+- production schema availability
+- insert failure
+- transaction rollback
+- auth failure
+- provider timeout
+- provider request construction
+- date/season filters
+- capture window
+- hidden runtime exception
+
+Fix ONLY the verified production runtime defect necessary to make the already-built #221D integration operate.
+
+Do not expand the feature/model scope.
+
+============================================================
+SUCCESS CONDITION
+============================================================
+
+Successful production verification means:
+
+- CFBD auth works in production
+- CFBD capture is actually executing
+- production CFBD rows are greater than zero
+- scheduler health is proven
+- provider errors are observable
+- no model behavior changed
+- no other sport changed.
+
+============================================================
+RETURN THIS REPORT
+============================================================
+
+Return:
+
+CFBD PRODUCTION STATUS: PASS / FAIL
+
+Then answer:
+
+1. Is CFBD authentication working in production?
+2. Are raw CFBD rows > 0?
+3. Exact raw CFBD row count?
+4. Exact CFBD game-evidence count?
+5. Exact CFBD entity count?
+6. Exact CFBD performance-row count?
+7. Last successful capture timestamp?
+8. Is the scheduler active?
+9. Were any runtime defects found?
+10. If yes, what was fixed?
+11. Current intelligence snapshot count?
+12. READY count?
+13. PARTIAL count?
+14. BLOCKED count?
+15. FINAL_PREGAME count?
+16. Prospective cohort count?
+17. PIT violation count?
+18. Is production CFBD capture now proven?
+19. Is DATA_PIPELINE_READY now true or false?
+20. Is V4_BUILD_READY now true or false?
+
+Do NOT begin #221E or #222.
+
+Stop after production verification.

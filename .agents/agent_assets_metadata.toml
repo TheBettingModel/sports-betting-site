@@ -120,3 +120,17 @@ mtime_ms = 1788460049571
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/3d78e591-5b1f-45a0-a278-e20d9c0ce8a0/bfac4ce7-53d6-4524-935e-35bcf6cdc9aa"
 storage_version_token = "1788460055434524"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "_bU9dAHAd_wyk5nf95Um2"
+uri = "file://reports/ncaaf-cfbd-production-verification-2026-09-03.md"
+type = "text"
+title = "#221D-PROD CFBD Production Verification"
+description = "Production PASS report with exact CFBD evidence counts, scheduler and provider health, intelligence readiness, PIT status, and all 20 required answers."
+logical_id = "c8b3b1ea-a94d-4d9d-b55a-2eea1c50d216"
+content_hash = "sha256:3ee6ffcf474dba18d3e17c679c526a2bc8e5b0c64f3ea3632c60dcbfdbde641d"
+size = 5973
+mtime_ms = 1788460551346
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/c8b3b1ea-a94d-4d9d-b55a-2eea1c50d216/d5314c62-f4d6-43c3-8843-dc0d05d48ea8"
+storage_version_token = "1788460557749501"
+content_type = "text/markdown"
