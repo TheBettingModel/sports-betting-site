@@ -16,7 +16,7 @@ export const NCAAF_CAPABILITY_STATES = [
 
 export type NcaafCapabilityState = typeof NCAAF_CAPABILITY_STATES[number];
 
-export type NcaafProvider = "espn_scoreboard" | "odds_api" | "open_meteo";
+export type NcaafProvider = "espn_scoreboard" | "espn_summary" | "odds_api" | "open_meteo";
 
 export type NcaafCapability =
   | "schedule"
@@ -27,6 +27,10 @@ export type NcaafCapability =
   | "neutral_site"
   | "status"
   | "scores"
+  | "team_boxscore"
+  | "player_stats"
+  | "qb_performance"
+  | "play_by_play"
   | "current_market_evidence"
   | "opening_market_evidence"
   | "closing_market_evidence"
@@ -92,6 +96,42 @@ export const NCAAF_PROVIDER_CAPABILITIES = freezeInventory([
     requiredProvider: "A NCAAF football-data provider with this entity or play-level feed",
     evidence: "The configured ESPN scoreboard endpoint does not supply reliable NCAAF football-intelligence evidence for this capability.",
   } satisfies NcaafProviderCapability)),
+  {
+    provider: "espn_summary",
+    capability: "team_boxscore",
+    state: "AVAILABLE_NOW",
+    pointInTimeState: "AVAILABLE_NOW",
+    evidence: "Completed-game ESPN summaries are captured prospectively with team yards, pass/rush splits, turnovers, third downs, penalties, possession, drives, and immutable provider provenance.",
+  },
+  {
+    provider: "espn_summary",
+    capability: "drive",
+    state: "AVAILABLE_NOW",
+    pointInTimeState: "AVAILABLE_NOW",
+    evidence: "Completed-game ESPN summaries expose drive identity, possession team, start/end context, elapsed time, plays, yards, result, and scoring state.",
+  },
+  {
+    provider: "espn_summary",
+    capability: "player_stats",
+    state: "AVAILABLE_NOW",
+    pointInTimeState: "AVAILABLE_NOW",
+    evidence: "Completed-game ESPN boxscores expose provider player IDs and structured category statistics.",
+  },
+  {
+    provider: "espn_summary",
+    capability: "qb_performance",
+    state: "AVAILABLE_NOW",
+    pointInTimeState: "AVAILABLE_NOW",
+    evidence: "Completed-game ESPN passing rows provide provider player/team IDs, completions, attempts, yards, touchdowns, and interceptions; this is performance history, not pregame starter state.",
+  },
+  {
+    provider: "espn_summary",
+    capability: "play_by_play",
+    state: "PARTIAL",
+    pointInTimeState: "AVAILABLE_BUT_NOT_CAPTURED",
+    requiredProvider: "A stable play-level feed with documented historical/PIT semantics",
+    evidence: "The observed summary endpoint reliably exposes drives but did not expose a complete play list for every tested event, so play-level metrics remain blocked.",
+  },
   {
     provider: "espn_scoreboard",
     capability: "historical_point_in_time",

@@ -245,7 +245,11 @@ export interface NcaafReadiness {
   gates: { engineering: Record<string, boolean>; evidence: Record<string, boolean> };
   blockers: string[];
   legacyCohort: { total: number; classified: number; graded: number; pending: number; officialExcluded: number };
-  featureSnapshots: { total: number; ready: number; blocked: number; topBlockedReasons: NcaafReasonCount[] };
+  featureSnapshots: { total: number; ready: number; blocked: number; unknown: number; topBlockedReasons: NcaafReasonCount[] };
+  footballIntelligenceSnapshots: {
+    schemaVersion: string; total: number; ready: number; partial: number; blocked: number;
+    topBlockedReasons: NcaafReasonCount[]; pointInTimeViolations: number;
+  };
   evidenceRuns: {
     active: number;
     stale: number;

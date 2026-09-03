@@ -1,0 +1,316 @@
+import { createHash } from "node:crypto";
+import { and, eq, lt, ne, sql } from "drizzle-orm";
+import { db, ncaafTeamGamePerformanceTable } from "@workspace/db";
+
+export const NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION = "ncaaf-football-intelligence-v1";
+
+export type IntelligenceState = "VALID" | "PARTIAL" | "MISSING" | "UNSUPPORTED" | "INVALID";
+export type IntelligenceReadiness = "READY" | "PARTIAL" | "BLOCKED";
+
+export interface NcaafIntelligenceTarget {
+  provider: string;
+  eventId: string;
+  season: number;
+  week?: number | null;
+  kickoffAt: Date;
+  homeTeamId: string | null;
+  awayTeamId: string | null;
+  venue?: Record<string, unknown> | null;
+  /** Independently captured, sports-only evidence already normalized to the domain contract. */
+  suppliedDomains?: Partial<Record<"home" | "away", Partial<Record<string, IntelligenceDomain>>>>;
+}
+
+/** The fields consumed from immutable ncaaf_team_game_performance evidence. */
+export interface NcaafPerformanceEvidenceRow {
+  id?: number;
+  provider: string;
+  providerEventId: string;
+  providerTeamId: string;
+  providerOpponentTeamId: string;
+  season: number;
+  week?: number | null;
+  kickoffAt: Date | null;
+  pointsFor: number | null;
+  pointsAgainst: number | null;
+  derivedMetrics?: unknown;
+  quality?: number | null;
+  reliability?: number | null;
+  providerObservedAt?: Date | null;
+  capturedAt: Date;
+  payloadHash: string;
+  provenance: unknown;
+}
+
+export interface IntelligenceDomain {
+  state: IntelligenceState;
+  evidence: Array<{ id: number | null; providerEventId: string; payloadHash: string; capturedAt: string }>;
+  provider: string | null;
+  provenance: unknown[];
+  quality: number | null;
+  reliability: number | null;
+  sample: Record<string, number>;
+  missingReason: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface NcaafFootballIntelligenceSnapshotValue {
+  schemaVersion: typeof NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION;
+  target: { provider: string; eventId: string; season: number; week: number | null; kickoffAt: string };
+  teams: Record<string, Record<string, IntelligenceDomain>>;
+  readiness: {
+    state: IntelligenceReadiness;
+    criticalDomains: string[];
+    importantDomains: string[];
+    blockedReasons: string[];
+    partialReasons: string[];
+  };
+}
+
+const CRITICAL = ["teamPerformance", "quarterback", "earlySeasonPrior"] as const;
+const IMPORTANT = ["venue", "roster", "injury", "advanced"] as const;
+const OPTIONAL = ["offensiveLine", "skill", "defensePersonnel", "talent", "transfers", "coaching", "specialTeams", "weather", "restTravel"] as const;
+const ALL_DOMAINS = [...CRITICAL, ...IMPORTANT, ...OPTIONAL] as const;
+
+const MARKET_SHAPED_KEY = /(?:market|odds|sportsbook|bookmaker|moneyline|spread|price|wager|bet(?:ting)?|stake|unit|probabilit|forecast|project(?:ed|ion)?|recommendation|expected[_-]?score)/i;
+
+function canonical(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)]));
+  return value;
+}
+
+function hash(value: unknown): string {
+  return createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
+}
+
+/** Rejects market inputs at every nesting level, including opaque provider payloads. */
+export function assertNoNcaafMarketShapedKeys(value: unknown, path = "payload"): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertNoNcaafMarketShapedKeys(item, `${path}[${index}]`));
+  } else if (value && typeof value === "object") {
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      if (MARKET_SHAPED_KEY.test(key)) throw new Error(`NCAAF intelligence rejects market-shaped key: ${path}.${key}`);
+      assertNoNcaafMarketShapedKeys(item, `${path}.${key}`);
+    }
+  }
+}
+
+function validDate(value: Date, label: string): void {
+  if (!Number.isFinite(value.getTime())) throw new Error(`NCAAF intelligence ${label} must be a valid timestamp`);
+}
+
+function average(values: Array<number | null | undefined>): number | null {
+  const usable = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return usable.length ? Math.round((usable.reduce((sum, value) => sum + value, 0) / usable.length) * 1000) / 1000 : null;
+}
+
+function unavailable(reason: string, state: IntelligenceState = "UNSUPPORTED"): IntelligenceDomain {
+  return {
+    state, evidence: [], provider: null, provenance: [], quality: null, reliability: null,
+    sample: { observations: 0 }, missingReason: reason, payload: {},
+  };
+}
+
+function references(rows: NcaafPerformanceEvidenceRow[]): IntelligenceDomain["evidence"] {
+  return rows.map((row) => ({
+    id: row.id ?? null, providerEventId: row.providerEventId, payloadHash: row.payloadHash,
+    capturedAt: row.capturedAt.toISOString(),
+  }));
+}
+
+function sportsProvenance(rows: NcaafPerformanceEvidenceRow[]): unknown[] {
+  return rows.map((row) => {
+    const value = row.provenance && typeof row.provenance === "object"
+      ? row.provenance as Record<string, unknown>
+      : {};
+    return {
+      provider: row.provider,
+      providerEventId: row.providerEventId,
+      payloadHash: row.payloadHash,
+      source: value.source ?? null,
+      summaryEndpoint: value.summaryEndpoint ?? null,
+    };
+  });
+}
+
+function performanceDomain(rows: NcaafPerformanceEvidenceRow[], prior = false): IntelligenceDomain {
+  const scored = rows.filter((row) => row.pointsFor != null && row.pointsAgainst != null);
+  if (!scored.length) return unavailable(
+    prior ? "No completed prior-season scored team performance exists before the strict cutoff"
+      : "No completed scored team performance exists before the strict cutoff",
+    "MISSING",
+  );
+  const complete = scored.length === rows.length;
+  return {
+    state: complete ? "VALID" : "PARTIAL",
+    evidence: references(scored),
+    provider: scored[0]!.provider,
+    provenance: sportsProvenance(scored),
+    quality: average(scored.map((row) => row.quality)),
+    reliability: average(scored.map((row) => row.reliability)),
+    sample: { games: rows.length, scoredGames: scored.length },
+    missingReason: complete ? null : "Some pre-cutoff team-game rows lack final scoring",
+    payload: {
+      observedPointsFor: average(scored.map((row) => row.pointsFor)),
+      observedPointsAgainst: average(scored.map((row) => row.pointsAgainst)),
+    },
+  };
+}
+
+function advancedDomain(rows: NcaafPerformanceEvidenceRow[]): IntelligenceDomain {
+  const supported = rows.filter((row) => row.derivedMetrics != null);
+  if (!supported.length) return unavailable("No advanced team evidence is present in the selected performance rows");
+  return {
+    state: supported.length === rows.length ? "VALID" : "PARTIAL",
+    evidence: references(supported), provider: supported[0]!.provider,
+    provenance: sportsProvenance(supported),
+    quality: average(supported.map((row) => row.quality)),
+    reliability: average(supported.map((row) => row.reliability)),
+    sample: { games: rows.length, advancedGames: supported.length },
+    missingReason: supported.length === rows.length ? null : "Advanced evidence is absent for some selected games",
+    payload: { observedMetrics: supported.map((row) => row.derivedMetrics) },
+  };
+}
+
+function venueDomain(target: NcaafIntelligenceTarget): IntelligenceDomain {
+  if (!target.venue || !Object.keys(target.venue).length) return unavailable("No verified pre-cutoff venue/context evidence was supplied", "MISSING");
+  return {
+    state: "VALID", evidence: [], provider: target.provider, provenance: [{ source: "supplied_target_context" }],
+    quality: 1, reliability: 1, sample: { observations: 1 }, missingReason: null, payload: canonical(target.venue) as Record<string, unknown>,
+  };
+}
+
+function domainsForTeam(
+  target: NcaafIntelligenceTarget, side: "home" | "away", teamId: string | null, rows: NcaafPerformanceEvidenceRow[],
+) {
+  const selected = teamId ? rows.filter((row) => row.providerTeamId === teamId) : [];
+  const current = selected.filter((row) => row.season === target.season);
+  const previous = selected.filter((row) => row.season === target.season - 1);
+  const noIdentity = !teamId ? "Missing verified provider team identity" : "";
+  const common = noIdentity ? unavailable(noIdentity, "INVALID") : undefined;
+  const domains: Record<string, IntelligenceDomain> = {
+    teamPerformance: common ?? performanceDomain(current),
+    advanced: common ?? advancedDomain(current),
+    quarterback: common ?? unavailable("No verified pre-cutoff quarterback identity or availability evidence was supplied"),
+    roster: common ?? unavailable("No pre-cutoff roster evidence was supplied"),
+    injury: common ?? unavailable("No pre-cutoff injury evidence was supplied"),
+    offensiveLine: common ?? unavailable("No pre-cutoff offensive-line evidence was supplied"),
+    skill: common ?? unavailable("No pre-cutoff skill-position evidence was supplied"),
+    defensePersonnel: common ?? unavailable("No pre-cutoff defensive personnel evidence was supplied"),
+    earlySeasonPrior: common ?? performanceDomain(previous, true),
+    talent: common ?? unavailable("No pre-cutoff talent evidence was supplied"),
+    transfers: common ?? unavailable("No pre-cutoff transfer evidence was supplied"),
+    coaching: common ?? unavailable("No pre-cutoff coaching evidence was supplied"),
+    specialTeams: common ?? unavailable("No pre-cutoff special-teams evidence was supplied"),
+    venue: venueDomain(target),
+    weather: unavailable("No pre-cutoff weather evidence was supplied"),
+    restTravel: common ?? unavailable("No pre-cutoff rest/travel evidence was supplied"),
+  };
+  for (const [domain, supplied] of Object.entries(target.suppliedDomains?.[side] ?? {})) {
+    if (!ALL_DOMAINS.includes(domain as typeof ALL_DOMAINS[number])) {
+      throw new Error(`Unknown NCAAF intelligence domain: ${domain}`);
+    }
+    if (!supplied) continue;
+    assertNoNcaafMarketShapedKeys(supplied, `suppliedDomains.${side}.${domain}`);
+    domains[domain] = supplied;
+  }
+  return domains;
+}
+
+export function buildNcaafFootballIntelligenceSnapshot(
+  target: NcaafIntelligenceTarget,
+  evidenceRows: readonly NcaafPerformanceEvidenceRow[],
+  dataCutoffAt: Date,
+): NcaafFootballIntelligenceSnapshotValue {
+  validDate(target.kickoffAt, "kickoff");
+  validDate(dataCutoffAt, "data cutoff");
+  if (dataCutoffAt >= target.kickoffAt) throw new Error("NCAAF intelligence data cutoff must be strictly before kickoff");
+  assertNoNcaafMarketShapedKeys({
+    target: { ...target, venue: target.venue ?? null, suppliedDomains: undefined },
+    evidenceRows: evidenceRows.map((row) => ({
+      provider: row.provider, providerEventId: row.providerEventId,
+      providerTeamId: row.providerTeamId, providerOpponentTeamId: row.providerOpponentTeamId,
+      pointsFor: row.pointsFor, pointsAgainst: row.pointsAgainst,
+      derivedMetrics: row.derivedMetrics ?? null,
+    })),
+  });
+  const rows = evidenceRows.filter((row) => row.provider === target.provider
+    && row.providerEventId !== target.eventId && row.kickoffAt != null && row.kickoffAt < dataCutoffAt
+    && row.capturedAt < dataCutoffAt && (!row.providerObservedAt || row.providerObservedAt < dataCutoffAt))
+    .sort((a, b) => a.kickoffAt!.getTime() - b.kickoffAt!.getTime() || a.providerEventId.localeCompare(b.providerEventId));
+  const teams: Record<string, Record<string, IntelligenceDomain>> = {
+    home: domainsForTeam(target, "home", target.homeTeamId, rows),
+    away: domainsForTeam(target, "away", target.awayTeamId, rows),
+  };
+  const blockedReasons: string[] = [];
+  const partialReasons: string[] = [];
+  for (const [side, domains] of Object.entries(teams)) {
+    for (const domain of CRITICAL) if (domains[domain]!.state !== "VALID") blockedReasons.push(`${side}.${domain}:${domains[domain]!.state}`);
+    for (const domain of IMPORTANT) if (domains[domain]!.state !== "VALID") partialReasons.push(`${side}.${domain}:${domains[domain]!.state}`);
+  }
+  return {
+    schemaVersion: NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION,
+    target: { provider: target.provider, eventId: target.eventId, season: target.season, week: target.week ?? null, kickoffAt: target.kickoffAt.toISOString() },
+    teams,
+    readiness: {
+      state: blockedReasons.length ? "BLOCKED" : partialReasons.length ? "PARTIAL" : "READY",
+      criticalDomains: [...CRITICAL], importantDomains: [...IMPORTANT], blockedReasons, partialReasons,
+    },
+  };
+}
+
+export function ncaafFootballIntelligenceInputHash(
+  target: NcaafIntelligenceTarget, rows: readonly NcaafPerformanceEvidenceRow[], dataCutoffAt: Date,
+): string {
+  return hash({ schemaVersion: NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION, target, dataCutoffAt,
+    rows: rows.map((row) => ({ id: row.id ?? null, payloadHash: row.payloadHash, capturedAt: row.capturedAt, providerObservedAt: row.providerObservedAt ?? null })) });
+}
+
+/** Loads only immutable performance evidence that was available before cutoff and kickoff. */
+export async function loadPriorNcaafTeamPerformance(
+  target: NcaafIntelligenceTarget, dataCutoffAt: Date,
+): Promise<NcaafPerformanceEvidenceRow[]> {
+  return db.select().from(ncaafTeamGamePerformanceTable).where(and(
+    eq(ncaafTeamGamePerformanceTable.provider, target.provider),
+    ne(ncaafTeamGamePerformanceTable.providerEventId, target.eventId),
+    lt(ncaafTeamGamePerformanceTable.kickoffAt, dataCutoffAt),
+    lt(ncaafTeamGamePerformanceTable.capturedAt, dataCutoffAt),
+  )) as Promise<NcaafPerformanceEvidenceRow[]>;
+}
+
+/**
+ * Persists the canonical snapshot with the table's unique identity. This is an
+ * insert-only operation; conflict resolution merely returns the already-created row.
+ */
+export async function createNcaafFootballIntelligenceSnapshot(
+  target: NcaafIntelligenceTarget, dataCutoffAt: Date,
+): Promise<{ id: number; snapshot: NcaafFootballIntelligenceSnapshotValue; inputHash: string }> {
+  const rows = await loadPriorNcaafTeamPerformance(target, dataCutoffAt);
+  const snapshot = buildNcaafFootballIntelligenceSnapshot(target, rows, dataCutoffAt);
+  const inputHash = ncaafFootballIntelligenceInputHash(target, rows, dataCutoffAt);
+  const latestCaptured = rows.reduce<Date | null>((latest, row) => !latest || row.capturedAt > latest ? row.capturedAt : latest, null);
+  const result = await db.execute(sql`
+    INSERT INTO ncaaf_football_intelligence_snapshots
+      (schema_version, target_provider, target_event_id, season, week, kickoff_at,
+       home_provider_team_id, away_provider_team_id, data_cutoff_at, evidence_max_captured_at,
+       evidence_max_modeled_at, input_hash, domain_payload, quality_readiness)
+    VALUES
+      (${NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION}, ${target.provider}, ${target.eventId},
+       ${target.season}, ${target.week ?? null}, ${target.kickoffAt}, ${target.homeTeamId}, ${target.awayTeamId},
+       ${dataCutoffAt}, ${latestCaptured}, ${null}, ${inputHash},
+       ${JSON.stringify(snapshot.teams)}::jsonb, ${JSON.stringify(snapshot.readiness)}::jsonb)
+    ON CONFLICT (schema_version, target_provider, target_event_id, data_cutoff_at, input_hash) DO NOTHING
+    RETURNING id`);
+  const inserted = (result as unknown as { rows: Array<{ id: number }> }).rows[0];
+  if (inserted) return { id: inserted.id, snapshot, inputHash };
+  const existing = await db.execute(sql`
+    SELECT id FROM ncaaf_football_intelligence_snapshots
+    WHERE schema_version = ${NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION}
+      AND target_provider = ${target.provider} AND target_event_id = ${target.eventId}
+      AND data_cutoff_at = ${dataCutoffAt} AND input_hash = ${inputHash} LIMIT 1`);
+  const id = (existing as unknown as { rows: Array<{ id: number }> }).rows[0]?.id;
+  if (id == null) throw new Error("Unable to idempotently persist NCAAF intelligence snapshot");
+  return { id, snapshot, inputHash };
+}

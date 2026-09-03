@@ -43,6 +43,7 @@ export interface NcaafPregameCohortAssignment {
   targetProvider: string;
   targetEventId: string;
   featureSnapshotId: number;
+  footballIntelligenceSnapshotId: number | null;
   season: number;
   week: number | null;
   kickoffAt: Date;
@@ -68,6 +69,7 @@ export interface NcaafPregameCohortStore {
 
 export interface AssignNcaafPregameCohortInput {
   featureSnapshotId: number;
+  footballIntelligenceSnapshotId?: number | null;
   provider: string;
   eventId: string;
   season: number;
@@ -196,6 +198,7 @@ async function assign(
     targetProvider: input.provider,
     targetEventId: input.eventId,
     featureSnapshotId: snapshot.id,
+    footballIntelligenceSnapshotId: input.footballIntelligenceSnapshotId ?? null,
     season: input.season,
     week: input.week ?? null,
     kickoffAt: input.kickoffAt,

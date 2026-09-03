@@ -2,6 +2,7 @@ import { index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { ncaafFeatureSnapshotsTable } from "./ncaaf-feature-snapshots";
+import { ncaafFootballIntelligenceSnapshotsTable } from "./ncaaf-football-intelligence-snapshots";
 
 export const NCAAF_PREGAME_COHORT_SCHEMA_VERSION = "ncaaf-pregame-cohort-v1";
 
@@ -20,6 +21,8 @@ export const ncaafPregameCohortAssignmentsTable = pgTable(
     targetEventId: text("target_event_id").notNull(),
     featureSnapshotId: integer("feature_snapshot_id").notNull()
       .references(() => ncaafFeatureSnapshotsTable.id),
+    footballIntelligenceSnapshotId: integer("football_intelligence_snapshot_id")
+      .references(() => ncaafFootballIntelligenceSnapshotsTable.id),
     season: integer("season").notNull(),
     week: integer("week"),
     kickoffAt: timestamp("kickoff_at", { withTimezone: true }).notNull(),

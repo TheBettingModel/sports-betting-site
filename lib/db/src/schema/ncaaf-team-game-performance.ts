@@ -52,6 +52,14 @@ export const ncaafTeamGamePerformanceTable = pgTable(
     fieldGoalAttempts: integer("field_goal_attempts"),
     fieldGoalsMade: integer("field_goals_made"),
 
+    // Sanitized, market-free completed-game summary evidence. These retain the
+    // provider's observed boxscore/drive/player fields without overwriting the
+    // typed performance columns above.
+    rawSummaryEvidence: jsonb("raw_summary_evidence"),
+    rawTeamStatisticsEvidence: jsonb("raw_team_statistics_evidence"),
+    rawDriveEvidence: jsonb("raw_drive_evidence"),
+    rawPlayerEvidence: jsonb("raw_player_evidence"),
+
     // Metrics may be populated only by a supporting provider and retain their
     // method/unit/source in JSON; absent provider support remains SQL NULL.
     derivedMetrics: jsonb("derived_metrics"),

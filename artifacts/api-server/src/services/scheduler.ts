@@ -44,6 +44,7 @@ import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
+import { createNcaafFootballIntelligenceSnapshot } from "./ncaafFootballIntelligenceSnapshots";
 import {
   assignNcaafFinalPregameCohort,
   assignNcaafLiveShadowCohort,
@@ -697,8 +698,27 @@ async function runOddsIngestion(): Promise<void> {
               }, ncaafSnapshotAt)
             : null;
           if (ncaafFeature) {
+            const footballIntelligence = await createNcaafFootballIntelligenceSnapshot({
+              provider: "espn",
+              eventId: game.espnId,
+              season: ncaafSeasonForDate(game.gameDate),
+              week: game.week ?? null,
+              kickoffAt: ncaafKickoffAt,
+              homeTeamId: game.homeTeamId ?? null,
+              awayTeamId: game.awayTeamId ?? null,
+              venue: {
+                id: game.venueId ?? null,
+                name: game.venueName ?? null,
+                city: game.venueCity ?? null,
+                state: game.venueState ?? null,
+                country: game.venueCountry ?? null,
+                indoor: game.venueIndoor ?? null,
+                neutralSite: game.neutralSite ?? null,
+              },
+            }, ncaafSnapshotAt);
             const cohortInput = {
               featureSnapshotId: ncaafFeature.id,
+              footballIntelligenceSnapshotId: footballIntelligence.id,
               provider: "espn",
               eventId: game.espnId,
               season: ncaafSeasonForDate(game.gameDate),

@@ -45,6 +45,7 @@ import {
   ncaafEntityObservationsTable,
   ncaafMarketObservationsTable,
   ncaafFeatureSnapshotsTable,
+  ncaafFootballIntelligenceSnapshotsTable,
   ncaafEvaluationsTable,
   ncaafWalkForwardRunsTable,
   ncaafPromotionDecisionsTable,
@@ -296,7 +297,7 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   };
   const [
     legacyRows, featureRows, runRows, gameEvidence, entityEvidence, marketRows,
-    evaluations, walkForward, promotions, cohorts, teamPerformance,
+    evaluations, walkForward, promotions, cohorts, teamPerformance, intelligenceSnapshots,
   ] = await Promise.all([
     db.select({
       pickId: publishedPicksTable.id,
@@ -345,6 +346,12 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       reliability: ncaafTeamGamePerformanceTable.reliability,
       missingReasons: ncaafTeamGamePerformanceTable.missingReasons,
     }).from(ncaafTeamGamePerformanceTable),
+    db.select({
+      schemaVersion: ncaafFootballIntelligenceSnapshotsTable.schemaVersion,
+      qualityReadiness: ncaafFootballIntelligenceSnapshotsTable.qualityReadiness,
+      dataCutoffAt: ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt,
+      evidenceMaxCapturedAt: ncaafFootballIntelligenceSnapshotsTable.evidenceMaxCapturedAt,
+    }).from(ncaafFootballIntelligenceSnapshotsTable),
   ]);
 
   const legacyByPick = new Map<number, { classified: boolean; eligible: boolean; graded: boolean }>();
@@ -357,8 +364,15 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   }
   const featureQuality = featureRows.map((row) => row.quality as Record<string, unknown>);
   const readyFeatures = featureQuality.filter((quality) => quality.status === "ready").length;
-  const blockedFeatures = featureRows.length - readyFeatures;
+  const blockedFeatures = featureQuality.filter((quality) =>
+    quality.status === "blocked" || quality.sufficientIndependentEvidence === false).length;
+  const unknownFeatures = featureRows.length - readyFeatures - blockedFeatures;
   const featureReasons = reasonCounts(featureQuality.map((quality) => quality.blockedReasons));
+  const intelligenceReadiness = intelligenceSnapshots.map((row) =>
+    row.qualityReadiness as { state?: string; blockedReasons?: string[] });
+  const intelligenceReady = intelligenceReadiness.filter((quality) => quality.state === "READY").length;
+  const intelligencePartial = intelligenceReadiness.filter((quality) => quality.state === "PARTIAL").length;
+  const intelligenceBlocked = intelligenceReadiness.filter((quality) => quality.state === "BLOCKED").length;
   const pitViolations = featureRows.filter((row) =>
     row.evidenceMaxModeledAsOf != null && row.evidenceMaxModeledAsOf > row.dataCutoffAt).length;
   const activeRuns = runRows.filter((row) => row.status === "running" && row.capturedAt >= staleBefore).length;
@@ -384,7 +398,8 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
     providerCapabilitiesComplete: capabilityBlockers.length === 0,
   };
   const evidenceGates = {
-    readyFeatureSnapshots: readyFeatures > 0 && blockedFeatures === 0,
+    readyFeatureSnapshots: readyFeatures > 0 && blockedFeatures === 0 && unknownFeatures === 0,
+    footballIntelligenceSnapshots: intelligenceSnapshots.length > 0 && intelligenceBlocked === 0,
     teamGamePerformance: teamPerformance.length > 0,
     marketIdentityMatched: marketRows.length > 0 && marketRows.every((row) => row.isMatchedToGame),
     noStaleRuns: staleRuns === 0,
@@ -394,6 +409,8 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   const evidenceReadyForV4 = Object.values(evidenceGates).every(Boolean);
   const blockers = [
     ...(blockedFeatures > 0 ? [`${blockedFeatures} feature snapshot(s) are blocked`] : []),
+    ...(unknownFeatures > 0 ? [`${unknownFeatures} legacy feature snapshot(s) have unknown readiness and are not counted as blocked or ready`] : []),
+    ...(intelligenceBlocked > 0 ? [`${intelligenceBlocked} football-intelligence snapshot(s) are blocked`] : []),
     ...(staleRuns > 0 ? [`${staleRuns} evidence run(s) are stale and still marked running`] : []),
     ...(marketRows.some((row) => !row.isMatchedToGame) ? ["unmatched market evidence remains"] : []),
     ...(pitViolations > 0 ? [`${pitViolations} feature snapshot(s) violate the point-in-time cutoff`] : []),
@@ -413,7 +430,20 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       pending: [...legacyByPick.values()].filter((row) => !row.graded).length,
       officialExcluded: [...legacyByPick.values()].filter((row) => row.classified && !row.eligible).length,
     },
-    featureSnapshots: { total: featureRows.length, ready: readyFeatures, blocked: blockedFeatures, topBlockedReasons: featureReasons },
+    featureSnapshots: {
+      total: featureRows.length, ready: readyFeatures, blocked: blockedFeatures,
+      unknown: unknownFeatures, topBlockedReasons: featureReasons,
+    },
+    footballIntelligenceSnapshots: {
+      schemaVersion: "ncaaf-football-intelligence-v1",
+      total: intelligenceSnapshots.length,
+      ready: intelligenceReady,
+      partial: intelligencePartial,
+      blocked: intelligenceBlocked,
+      topBlockedReasons: reasonCounts(intelligenceReadiness.map((quality) => quality.blockedReasons)),
+      pointInTimeViolations: intelligenceSnapshots.filter((row) =>
+        row.evidenceMaxCapturedAt != null && row.evidenceMaxCapturedAt >= row.dataCutoffAt).length,
+    },
     evidenceRuns: {
       active: activeRuns, stale: staleRuns, finalized: finalizedRuns,
       recent: runRows.map((row) => {

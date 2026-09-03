@@ -14,6 +14,10 @@ import { processInBatches } from "./schedulerRuntime";
 import { fetchSportGamesByDate, type FetchedGame } from "./espn";
 import { fetchCurrentNcaafEvidenceOdds, type OddsApiGame } from "./oddsApi";
 import { normalizeEspnScoreboardPerformance } from "./ncaafFootballIntelligence";
+import {
+  fetchEspnNcaafSummary,
+  type NcaafEspnSummaryPayload,
+} from "./espnNcaafSummary";
 
 export const MAX_NCAAF_BACKFILL_DAYS = 31;
 const UNAVAILABLE_BOOKMAKER_ID = "__unavailable__";
@@ -154,6 +158,7 @@ export interface EvidenceCaptureDependencies {
   database?: typeof db;
   fetchEspnByDate?: (yyyymmdd: string) => Promise<FetchedGame[]>;
   fetchOdds?: () => Promise<OddsApiGame[]>;
+  fetchEspnSummary?: (eventId: string) => Promise<NcaafEspnSummaryPayload>;
   now?: () => Date;
 }
 
@@ -364,6 +369,16 @@ async function captureNcaafEvidenceDateUnsafe(
     });
   }
   const espnGames = [...espnGamesById.values()];
+  const completedSummaries = new Map<string, NcaafEspnSummaryPayload>();
+  await processInBatches(espnGames.filter((game) => game.status === "final"), 4, async (batch) => {
+    const results = await Promise.allSettled(batch.map((game) =>
+      (dependencies.fetchEspnSummary ?? fetchEspnNcaafSummary)(game.espnId)));
+    results.forEach((result, index) => {
+      const game = batch[index]!;
+      if (result.status === "fulfilled") completedSummaries.set(game.espnId, result.value);
+      else providerErrors[`espn_summary:${game.espnId}`] = String(result.reason);
+    });
+  });
   const gameEvidenceIds = new Map<string, number>();
   let markets = 0; let matchedMarkets = 0; let missingEntityObservations = 0;
   let teamPerformanceRows = 0; let skippedTeamPerformanceRows = 0;
@@ -389,11 +404,18 @@ async function captureNcaafEvidenceDateUnsafe(
         eq(ncaafGameEvidenceTable.payloadHash, stablePayloadHash(evidence.payload)),
       )).limit(1))[0]?.id;
     if (gameEvidenceId != null) gameEvidenceIds.set(game.espnId, gameEvidenceId);
+    const summary = completedSummaries.get(game.espnId);
     for (const performance of normalizeEspnScoreboardPerformance(game, now)) {
       if (!performance.providerTeamId || !performance.providerOpponentTeamId) {
         skippedTeamPerformanceRows++;
         continue;
       }
+      const summaryTeam = summary?.teams.find((team) => team.providerTeamId === performance.providerTeamId);
+      const teamDrives = summary?.drives.filter((drive) => drive.providerTeamId === performance.providerTeamId) ?? [];
+      const teamPlayers = summary?.players.filter((player) => player.providerTeamId === performance.providerTeamId) ?? [];
+      const summaryMissing = summaryTeam
+        ? summaryTeam.missingReasons
+        : summary ? { teamSummary: "ESPN summary did not contain the matched provider team" } : {};
       const insertedPerformance = await database.insert(ncaafTeamGamePerformanceTable).values({
         schemaVersion: "ncaaf-team-game-performance-v1",
         provider: performance.provider,
@@ -410,26 +432,36 @@ async function captureNcaafEvidenceDateUnsafe(
         halftimePointsFor: performance.halftimePointsFor,
         halftimePointsAgainst: performance.halftimePointsAgainst,
         overtimePeriods: performance.overtimePeriods,
-        possessions: performance.possessions,
-        offensivePlays: performance.offensivePlays,
-        yardsFor: performance.yardsFor,
+        possessions: summary ? teamDrives.length || null : performance.possessions,
+        offensivePlays: summaryTeam?.totalPlays ?? performance.offensivePlays,
+        yardsFor: summaryTeam?.totalYards ?? performance.yardsFor,
         yardsAgainst: performance.yardsAgainst,
-        turnoversCommitted: performance.turnoversCommitted,
+        turnoversCommitted: summaryTeam?.turnovers ?? performance.turnoversCommitted,
         turnoversForced: performance.turnoversForced,
-        penalties: performance.penalties,
-        penaltyYards: performance.penaltyYards,
-        timeOfPossessionSeconds: performance.timeOfPossessionSeconds,
+        penalties: summaryTeam?.penalties.made ?? performance.penalties,
+        penaltyYards: summaryTeam?.penalties.attempted ?? performance.penaltyYards,
+        timeOfPossessionSeconds: summaryTeam?.possessionSeconds ?? performance.timeOfPossessionSeconds,
         fieldGoalAttempts: performance.fieldGoalAttempts,
         fieldGoalsMade: performance.fieldGoalsMade,
+        rawSummaryEvidence: summary ?? null,
+        rawTeamStatisticsEvidence: summaryTeam ?? null,
+        rawDriveEvidence: teamDrives,
+        rawPlayerEvidence: teamPlayers,
         derivedMetrics: performance.derivedMetrics,
-        quality: performance.quality,
-        reliability: performance.reliability,
-        missingFields: performance.missingFields,
-        missingReasons: performance.missingReasons,
+        quality: summaryTeam ? 1 : performance.quality,
+        reliability: summaryTeam ? 0.9 : performance.reliability,
+        missingFields: [...performance.missingFields, ...Object.keys(summaryMissing)],
+        missingReasons: { ...performance.missingReasons, ...summaryMissing },
         providerObservedAt: now,
         capturedAt: now,
-        payloadHash: performance.payloadHash,
-        provenance: performance.provenance,
+        payloadHash: summary?.payloadHash ?? performance.payloadHash,
+        provenance: {
+          ...performance.provenance,
+          summaryEndpoint: summary?.sourceEndpoint ?? null,
+          summaryProviderEventId: summary?.providerEventId ?? null,
+          summaryCaptured: Boolean(summary),
+          summaryMarketFieldsExcluded: true,
+        },
       }).onConflictDoNothing().returning({ id: ncaafTeamGamePerformanceTable.id });
       if (insertedPerformance.length > 0) teamPerformanceRows++;
     }
