@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { gamesTable } from "./games";
 import { modelPredictionsTable } from "./model-predictions";
+import { playersTable } from "./players";
 
 /**
  * MLB point-in-time intelligence dataset. These tables are append-only evidence:
@@ -266,6 +267,62 @@ export const mlbFeatureStatusRegistryTable = pgTable("mlb_feature_status_registr
   schemaVersion: text("schema_version").notNull().default(MLB_PIT_SCHEMA_VERSION),
   notes: text("notes").notNull(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("mlb_feature_status_registry_name_idx").on(t.featureName, t.schemaVersion)]);
+
+/**
+ * #214 provider-neutral, append-only research evidence.  This is deliberately
+ * separate from the canonical #213 feature snapshot and from every production
+ * model input.  `values` contains only adapter-validated provider fields; a
+ * missing provider field is absent/null, never represented as zero.
+ */
+export const mlbAdvancedResearchEvidenceTable = pgTable("mlb_advanced_research_evidence", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull(),
+  domain: text("domain").notNull(),
+  provider: text("provider").notNull(),
+  providerRecordId: text("provider_record_id"),
+  providerEventId: text("provider_event_id"),
+  gameId: text("game_id").references(() => gamesTable.id),
+  canonicalPlayerId: integer("canonical_player_id").references(() => playersTable.id),
+  providerPlayerId: text("provider_player_id"),
+  retrievedAt: timestamp("retrieved_at", { withTimezone: true }).notNull(),
+  effectiveAt: timestamp("effective_at", { withTimezone: true }),
+  statThroughAt: timestamp("stat_through_at", { withTimezone: true }),
+  pointInTimeCutoff: timestamp("point_in_time_cutoff", { withTimezone: true }).notNull(),
+  payloadHash: text("payload_hash").notNull(),
+  qualityState: text("quality_state").notNull(),
+  sampleReliability: text("sample_reliability").notNull(),
+  historicalAvailability: text("historical_availability").notNull(),
+  modelUsageStatus: text("model_usage_status").notNull().default("CAPTURED_RESEARCH_ONLY"),
+  values: jsonb("values").notNull(),
+  leakageMetadata: jsonb("leakage_metadata").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_advanced_research_evidence_identity_idx").on(t.schemaVersion, t.provider, t.domain, t.payloadHash),
+  index("mlb_advanced_research_evidence_game_cutoff_idx").on(t.gameId, t.pointInTimeCutoff),
+  index("mlb_advanced_research_evidence_player_idx").on(t.canonicalPlayerId, t.domain),
+]);
+
+/** Immutable advanced snapshot linked to a #213 canonical revision, if any. */
+export const mlbAdvancedFeatureSnapshotsTable = pgTable("mlb_advanced_feature_snapshots", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull(),
+  gameId: text("game_id").notNull().references(() => gamesTable.id),
+  canonicalFeatureSnapshotId: integer("canonical_feature_snapshot_id").references(() => mlbFeatureSnapshotsTable.id),
+  revisionState: text("revision_state").notNull(), // EARLY | UPDATED | FINAL_PREGAME
+  pointInTimeCutoff: timestamp("point_in_time_cutoff", { withTimezone: true }).notNull(),
+  gameStartTime: timestamp("game_start_time", { withTimezone: true }).notNull(),
+  evidenceHashes: jsonb("evidence_hashes").notNull(),
+  features: jsonb("features").notNull(),
+  quality: jsonb("quality").notNull(),
+  sampleReliability: jsonb("sample_reliability").notNull(),
+  leakageMetadata: jsonb("leakage_metadata").notNull(),
+  modelUsageStatus: text("model_usage_status").notNull().default("CAPTURED_RESEARCH_ONLY"),
+  inputHash: text("input_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_advanced_feature_snapshot_identity_idx").on(t.schemaVersion, t.gameId, t.revisionState, t.inputHash),
+  index("mlb_advanced_feature_snapshot_game_cutoff_idx").on(t.gameId, t.pointInTimeCutoff),
+]);
 
 export const mlbOosCohortsTable = pgTable("mlb_oos_cohorts", {
   id: serial("id").primaryKey(), gameId: text("game_id").notNull().references(() => gamesTable.id),

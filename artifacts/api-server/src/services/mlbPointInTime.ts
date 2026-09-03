@@ -187,6 +187,26 @@ export async function captureMlbDecisionMarket(input: { gameId: string; cutoff: 
   }).onConflictDoNothing();
 }
 
+/** #214 research-only late market observation. Market evidence stays isolated
+ * from sports features and is accepted only before the independently supplied
+ * first-pitch time. Scheduler callers may use a bounded cadence, never a loop. */
+export async function captureMlbResearchMarketObservation(input: {
+  gameId: string; gameStart: Date; capturedAt: Date; state:
+    | "EARLY_MARKET" | "MODEL_PREDICTION_MARKET" | "T_MINUS_120" | "T_MINUS_60"
+    | "T_MINUS_30" | "T_MINUS_15" | "LATEST_PRE_FIRST_PITCH" | "CLOSING";
+  sportsbook: string; homeOdds?: number; awayOdds?: number; source: string; qualityState?: MlbPitQualityState;
+}): Promise<void> {
+  if (!(input.capturedAt < input.gameStart)) throw new Error("market observation must precede first pitch");
+  if (input.homeOdds == null || input.awayOdds == null) return;
+  const fair = noVig(input.homeOdds, input.awayOdds);
+  await db.insert(mlbMarketSnapshotsTable).values({
+    gameId: input.gameId, sportsbook: input.sportsbook, state: input.state,
+    homeOdds: input.homeOdds, awayOdds: input.awayOdds, noVigHomeProbability: fair.home, noVigAwayProbability: fair.away,
+    capturedAt: input.capturedAt, pointInTimeCutoff: input.capturedAt, source: input.source,
+    qualityState: input.qualityState ?? "VALID", rawPayloadHash: evidenceHash(input),
+  }).onConflictDoNothing();
+}
+
 /** Links only a stored V4 shadow forecast to its exact canonical evidence. */
 export async function linkMlbV4Forecast(input: {
   predictionId: number; gameId: string; featureSnapshotId: number; cutoff: Date; modelVersion: string;
@@ -330,4 +350,15 @@ export const MLB_FEATURE_STATUS = [
   ["league_pit_run_environment", "CAPTURED_RESEARCH_ONLY", "Captured separately; not fed to V4."],
   ["travel", "AVAILABLE_NOT_USED", "Context only."], ["xera", "NOT_SUPPORTED", "No advanced provider integration."],
   ["statcast_barrel_pct", "NOT_SUPPORTED", "No Statcast integration."], ["oaa", "NOT_SUPPORTED", "No defensive feed."],
+  ["advanced_pitcher_conventional", "CAPTURED_RESEARCH_ONLY", "Provider-neutral #214 evidence; no current model usage."],
+  ["advanced_hitter_conventional", "CAPTURED_RESEARCH_ONLY", "Requires mapped MLB player ID and PIT timestamps."],
+  ["advanced_hitter_platoon", "CAPTURED_RESEARCH_ONLY", "Provider-supported splits only; sample size retained."],
+  ["advanced_lineup_aggregate", "CAPTURED_RESEARCH_ONLY", "Mapped player/order weighted research aggregate only."],
+  ["advanced_bullpen_availability", "CAPTURED_RESEARCH_ONLY", "Objective pre-cutoff appearance usage; quality remains separate."],
+  ["advanced_park_weather_context", "CAPTURED_RESEARCH_ONLY", "Captured context only; no new run adjustment."],
+  ["advanced_pitch_repertoire", "PLANNED", "Requires an approved PIT-auditable provider adapter."],
+  ["advanced_pitch_type_matchup", "NOT_SUPPORTED", "No approved provider-supported pitch-type hitter feed."],
+  ["advanced_defense_drs_oaa", "NOT_SUPPORTED", "No approved defensive advanced metric provider."],
+  ["advanced_baserunning_runs", "NOT_SUPPORTED", "No approved baserunning-runs provider."],
+  ["advanced_umpire_effects", "NOT_SUPPORTED", "No reliable pregame PIT assignment/metric provider."],
 ] as const;

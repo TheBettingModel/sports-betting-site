@@ -41,3 +41,4 @@
 - [MLB audit-first sequence](mlb-audit-first.md) — freeze production weights until auditability/publication safety passes, then run challenger replay before any promotion decision.
 - [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 is permanently non-deployable; append immutable PIT revisions and grade only in the research ledger.
 - [MLB PIT intelligence contract](mlb-pit-intelligence-contract.md) — live-only append-only evidence links forecasts, pregame freezes, outcomes, cohorts, and research evaluation without tuning.
+- [MLB advanced feature eligibility](mlb-advanced-feature-eligibility.md) — #215 may use only consistently available, identity-safe, immutable PIT features with honest historical validation.

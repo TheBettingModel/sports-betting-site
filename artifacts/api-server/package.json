@@ -12,7 +12,8 @@
     "audit:mlb-pitchers": "node ./scripts/audit-mlb-pitchers.mjs",
     "replay:mlb-v4": "tsx ./scripts/mlb-v4-historical-replay.mjs",
     "replay:mlb-v4-1-diagnosis": "node ./scripts/mlb-v4-1-run-model-diagnosis.mjs",
-    "report:mlb-pit": "tsx ./scripts/mlb-pit-research-report.ts"
+    "report:mlb-pit": "tsx ./scripts/mlb-pit-research-report.ts",
+    "report:mlb-advanced-data": "tsx ./scripts/mlb-advanced-data-report.ts"
   },
   "dependencies": {
     "@replit/connectors-sdk": "*",

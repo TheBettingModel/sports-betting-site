@@ -38,6 +38,8 @@ import {
   mlbFeatureSnapshotsTable,
   mlbForecastEvidenceTable,
   mlbOosCohortsTable,
+  mlbAdvancedResearchEvidenceTable,
+  mlbAdvancedFeatureSnapshotsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
 import { transitionModelStatus, rollbackModel } from "../services/modelRegistry";
@@ -85,6 +87,7 @@ import {
   type ApprovalLayerResult,
   type MarketApprovalStatus,
 } from "../services/marketApproval";
+import { LIVE_FORWARD_CANDIDATE_NEEDS_OOS, MLB_215_READY_FEATURES, MLB_215_UNAVAILABLE_FEATURES, NOT_SUPPORTED, PARTIAL_OR_INCONSISTENT } from "../services/mlbAdvancedFeatureRegistry";
 
 const router: IRouter = Router();
 
@@ -255,7 +258,7 @@ router.get("/admin/mlb-policy-revisions", async (_req, res): Promise<void> => {
  */
 router.get("/admin/mlb-pit-completeness", async (_req, res): Promise<void> => {
   const date = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  const [games, features, forecasts, untouched] = await Promise.all([
+  const [games, features, forecasts, untouched, advancedEvidence, advancedSnapshots] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(gamesTable)
       .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
     db.select({
@@ -270,6 +273,16 @@ router.get("/admin/mlb-pit-completeness", async (_req, res): Promise<void> => {
       .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
     db.select({ count: sql<number>`count(*)::int` }).from(mlbOosCohortsTable)
       .where(eq(mlbOosCohortsTable.cohort, "UNTOUCHED_OOS")),
+    db.select({
+      domain: mlbAdvancedResearchEvidenceTable.domain, provider: mlbAdvancedResearchEvidenceTable.provider,
+      qualityState: mlbAdvancedResearchEvidenceTable.qualityState, sampleReliability: mlbAdvancedResearchEvidenceTable.sampleReliability,
+      historicalAvailability: mlbAdvancedResearchEvidenceTable.historicalAvailability, retrievedAt: mlbAdvancedResearchEvidenceTable.retrievedAt,
+      pointInTimeCutoff: mlbAdvancedResearchEvidenceTable.pointInTimeCutoff,
+    }).from(mlbAdvancedResearchEvidenceTable).innerJoin(gamesTable, eq(gamesTable.id, mlbAdvancedResearchEvidenceTable.gameId))
+      .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
+    db.select({ revisionState: mlbAdvancedFeatureSnapshotsTable.revisionState, pointInTimeCutoff: mlbAdvancedFeatureSnapshotsTable.pointInTimeCutoff, gameStartTime: mlbAdvancedFeatureSnapshotsTable.gameStartTime })
+      .from(mlbAdvancedFeatureSnapshotsTable).innerJoin(gamesTable, eq(gamesTable.id, mlbAdvancedFeatureSnapshotsTable.gameId))
+      .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
   ]);
   const average = (values: Array<number | null>) => {
     const valid = values.filter((value): value is number => value != null && Number.isFinite(value));
@@ -279,6 +292,19 @@ router.get("/admin/mlb-pit-completeness", async (_req, res): Promise<void> => {
     const quality = row.quality as Record<string, unknown>;
     return quality?.[name] != null;
   }).length;
+  const byDomain = Object.fromEntries([...new Set(advancedEvidence.map((row) => row.domain))].map((domain) => {
+    const rows = advancedEvidence.filter((row) => row.domain === domain);
+    return [domain, { records: rows.length, validPct: rows.length ? rows.filter((r) => r.qualityState === "VALID" || r.qualityState === "CONFIRMED").length / rows.length * 100 : null,
+      missingPct: rows.length ? rows.filter((r) => r.qualityState === "MISSING" || r.qualityState === "UNAVAILABLE").length / rows.length * 100 : null }];
+  }));
+  const providerHealth = Object.fromEntries([...new Set(advancedEvidence.map((row) => row.provider))].map((provider) => {
+    const rows = advancedEvidence.filter((row) => row.provider === provider);
+    const latest = rows.reduce<Date | null>((current, row) => !current || row.retrievedAt > current ? row.retrievedAt : current, null);
+    return [provider, { records: rows.length, lastSuccessAt: latest?.toISOString() ?? null,
+      validRecords: rows.filter((r) => r.qualityState === "VALID" || r.qualityState === "CONFIRMED").length,
+      failureRecords: rows.filter((r) => r.qualityState === "MISSING" || r.qualityState === "UNAVAILABLE" || r.qualityState === "INVALID").length }];
+  }));
+  const pitViolations = advancedSnapshots.filter((row) => row.pointInTimeCutoff >= row.gameStartTime).length;
   res.json({
     date, gamesToday: games[0]?.count ?? 0, v4ForecastsGenerated: forecasts.length,
     finalPregameForecastsFrozen: features.filter((row) => row.revisionState === "FINAL_PREGAME").length,
@@ -294,6 +320,20 @@ router.get("/admin/mlb-pit-completeness", async (_req, res): Promise<void> => {
     averageDataQuality: average(forecasts.map((row) => row.dataQuality)),
     averageUncertainty: average(forecasts.map((row) => row.uncertainty)),
     untouchedOosCount: untouched[0]?.count ?? 0,
+    advanced: {
+      researchOnly: true, evidenceRecords: advancedEvidence.length, snapshots: advancedSnapshots.length,
+      finalPregameSnapshots: advancedSnapshots.filter((row) => row.revisionState === "FINAL_PREGAME").length,
+      domainCoverage: byDomain, providerHealth, pitViolations,
+      sampleReliability: Object.fromEntries(["HIGH", "MEDIUM", "LOW", "VERY_LOW", "UNKNOWN"].map((state) => [state, advancedEvidence.filter((row) => row.sampleReliability === state).length])),
+      availableFor215: MLB_215_READY_FEATURES.map((feature) => feature.feature),
+      unavailableFor215: MLB_215_UNAVAILABLE_FEATURES.map((feature) => feature.feature),
+      strictEligibility: {
+        readyFor215: MLB_215_READY_FEATURES.map((feature) => ({ feature: feature.feature, reasons: feature.eligibilityReasons })),
+        liveForwardCandidateNeedsOos: LIVE_FORWARD_CANDIDATE_NEEDS_OOS.map((feature) => ({ feature: feature.feature, reasons: feature.eligibilityReasons })),
+        partialOrInconsistent: PARTIAL_OR_INCONSISTENT.map((feature) => ({ feature: feature.feature, reasons: feature.eligibilityReasons })),
+        notSupported: NOT_SUPPORTED.map((feature) => ({ feature: feature.feature, reasons: feature.eligibilityReasons })),
+      },
+    },
     limitations: ["No historical backfill is inferred.", "Final freeze and provider outcome ingestion await dedicated provider capture."],
     dataAsOf: new Date().toISOString(),
   });
