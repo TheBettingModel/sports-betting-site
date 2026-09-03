@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertPregameEvidence, calculateResidual, evaluateProbability, evidenceHash, noVig,
   buildLeagueRunEnvironment,
+  classifyMlbResearchMarketQuality,
   selectLatestEligibleMlbClosing,
 } from "./mlbPointInTime";
 
@@ -39,5 +40,10 @@ describe("MLB PIT pure contract", () => {
       { capturedAt: new Date("2026-09-03T19:01:00Z"), price: -150, isAvailable: true, isStale: false, marketStatus: "open" },
     ], cutoff, start);
     expect(choice?.price).toBe(-130);
+  });
+  it("classifies late-market capture without feeding any sports feature", () => {
+    expect(classifyMlbResearchMarketQuality({ capturedAt: new Date("2026-09-03T18:45:00Z"), gameStart: start, homeOdds: -110, awayOdds: -110 })).toBe("VALID");
+    expect(classifyMlbResearchMarketQuality({ capturedAt: new Date("2026-09-03T16:00:00Z"), gameStart: start, homeOdds: -110, awayOdds: -110 })).toBe("STALE");
+    expect(classifyMlbResearchMarketQuality({ capturedAt: start, gameStart: start, homeOdds: -110, awayOdds: -110 })).toBe("UNAVAILABLE");
   });
 });

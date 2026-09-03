@@ -339,6 +339,31 @@ router.get("/admin/mlb-pit-completeness", async (_req, res): Promise<void> => {
   });
 });
 
+/** Per-game, metadata-only observability for live-forward research collection. */
+router.get("/admin/mlb-advanced-research/:gameId", async (req, res): Promise<void> => {
+  const gameId = String(req.params.gameId);
+  const [game, evidence, snapshots] = await Promise.all([
+    db.select({ id: gamesTable.id, sport: gamesTable.sport, startsAt: gamesTable.startsAt, status: gamesTable.status })
+      .from(gamesTable).where(eq(gamesTable.id, gameId)).limit(1),
+    db.select({ domain: mlbAdvancedResearchEvidenceTable.domain, provider: mlbAdvancedResearchEvidenceTable.provider,
+      qualityState: mlbAdvancedResearchEvidenceTable.qualityState, retrievedAt: mlbAdvancedResearchEvidenceTable.retrievedAt,
+      pointInTimeCutoff: mlbAdvancedResearchEvidenceTable.pointInTimeCutoff })
+      .from(mlbAdvancedResearchEvidenceTable).where(eq(mlbAdvancedResearchEvidenceTable.gameId, gameId)),
+    db.select({ id: mlbAdvancedFeatureSnapshotsTable.id, revisionState: mlbAdvancedFeatureSnapshotsTable.revisionState,
+      canonicalFeatureSnapshotId: mlbAdvancedFeatureSnapshotsTable.canonicalFeatureSnapshotId,
+      pointInTimeCutoff: mlbAdvancedFeatureSnapshotsTable.pointInTimeCutoff, gameStartTime: mlbAdvancedFeatureSnapshotsTable.gameStartTime,
+      createdAt: mlbAdvancedFeatureSnapshotsTable.createdAt })
+      .from(mlbAdvancedFeatureSnapshotsTable).where(eq(mlbAdvancedFeatureSnapshotsTable.gameId, gameId)),
+  ]);
+  if (!game[0] || game[0].sport !== "MLB") { res.status(404).json({ error: "MLB game not found" }); return; }
+  res.json({
+    researchOnly: true, game: game[0], evidence,
+    snapshots: snapshots.map((snapshot) => ({ ...snapshot, pitSafe: snapshot.pointInTimeCutoff < snapshot.gameStartTime })),
+    coverage: Object.fromEntries(["pitcher_conventional", "starter_availability", "lineup", "bullpen_availability", "park", "weather"]
+      .map((domain) => [domain, evidence.filter((row) => row.domain === domain).length])),
+  });
+});
+
 function parseIsoDate(value: unknown, name: string): string | undefined {
   if (value == null || value === "") return undefined;
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {

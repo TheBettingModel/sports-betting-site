@@ -47,6 +47,8 @@ import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
+import { collectLiveForwardAdvancedResearch } from "./mlbAdvancedResearchCollector";
+import { captureMlbResearchMarketObservation } from "./mlbPointInTime";
 import {
   logSchedulerMemory,
   SingleFlightGroup,
@@ -1176,6 +1178,22 @@ async function runResultGrading(): Promise<void> {
           homeDbStats,
           awayDbStats,
         });
+        // Separate, append-only market research capture.  Reuses the odds
+        // observation already fetched above; it has no sports-feature or model
+        // consumer and makes no additional provider request.
+        if (game.sport === "MLB" && currentMarket?.homeOdds != null && currentMarket?.awayOdds != null) {
+          const capturedAt = new Date();
+          const gameStart = new Date(game.commenceTimeISO);
+          if (Number.isFinite(gameStart.getTime()) && capturedAt < gameStart) {
+            const minutes = (gameStart.getTime() - capturedAt.getTime()) / 60_000;
+            const state = minutes <= 15 ? "T_MINUS_15" : minutes <= 30 ? "T_MINUS_30"
+              : minutes <= 60 ? "T_MINUS_60" : minutes <= 120 ? "T_MINUS_120" : "EARLY_MARKET";
+            await captureMlbResearchMarketObservation({
+              gameId: game.espnId, gameStart, capturedAt, state, sportsbook: "existing_odds_lookup",
+              homeOdds: currentMarket.homeOdds, awayOdds: currentMarket.awayOdds, source: "existing_scheduler_odds_observation",
+            });
+          }
+        }
         if (game.sport === "MLB" && mlbEvidence) {
           try {
             await writeMlbV4ShadowPrediction(game, {
@@ -1393,6 +1411,30 @@ async function runPushTokenCleanup(): Promise<void> {
   }
 }
 
+/** Research-only #214B capture; bounded to new, still-pregame #213 FINAL rows. */
+async function runMlbAdvancedResearchCapture(): Promise<void> {
+  const jobName = "mlb-advanced-research-capture";
+  const startedAt = claimHeavyJob(jobName);
+  if (startedAt === null) return;
+  let runId: number | null = null;
+  try {
+    runId = await startRun(jobName);
+    const results = await collectLiveForwardAdvancedResearch();
+    await finishRun(runId, "completed", results.length, undefined, {
+      mode: "LIVE_FORWARD_ONLY", providerCalls: 0,
+      snapshotsCreated: results.filter((r) => r.snapshotId != null).length,
+      candidateEvidenceCaptured: results.reduce((n, r) => n + r.captured.length, 0),
+      skipped: results.flatMap((r) => r.skipped).length,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (runId !== null) await finishRun(runId, "failed", 0, message);
+    logger.warn({ err }, "Scheduler: MLB advanced research capture failed — non-fatal");
+  } finally {
+    releaseHeavyJob(jobName, startedAt);
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -1402,6 +1444,10 @@ export function startScheduler(): void {
   // Odds ingestion — every 30 minutes
   cron.schedule("*/30 * * * *", () => {
     void runOddsIngestion();
+  });
+  // No provider fan-out: consumes only newly persisted #213 FINAL_PREGAME rows.
+  cron.schedule("*/5 * * * *", () => {
+    void runMlbAdvancedResearchCapture();
   });
 
   // Result grading — every hour at :05
@@ -1450,6 +1496,7 @@ export const schedulerJobs = {
   analyticsRefresh: runAnalyticsRefresh,
   driftCheck: runDriftCheck,
   subscriberReconciliation: runSubscriberReconciliation,
+  mlbAdvancedResearchCapture: runMlbAdvancedResearchCapture,
 };
 
 /**

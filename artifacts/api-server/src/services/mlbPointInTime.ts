@@ -64,6 +64,16 @@ export function noVig(homeOdds: number, awayOdds: number): { home: number; away:
   if (!Number.isFinite(total) || total <= 0) throw new Error("Invalid market odds");
   return { home: home / total, away: away / total };
 }
+/** Research-market quality only; deliberately has no sports-feature consumer. */
+export function classifyMlbResearchMarketQuality(input: {
+  capturedAt: Date; gameStart: Date; homeOdds?: number; awayOdds?: number; sourceStale?: boolean;
+}): MlbPitQualityState {
+  if (!(input.capturedAt < input.gameStart) || input.homeOdds == null || input.awayOdds == null) return "UNAVAILABLE";
+  if (!Number.isFinite(input.homeOdds) || !Number.isFinite(input.awayOdds) || input.homeOdds === 0 || input.awayOdds === 0) return "INVALID";
+  if (input.sourceStale) return "STALE";
+  const minutes = (input.gameStart.getTime() - input.capturedAt.getTime()) / 60_000;
+  return minutes <= 30 ? "VALID" : minutes <= 120 ? "PARTIAL" : "STALE";
+}
 export function calculateClv(predictionOdds: number, closingOdds: number, selectionProbabilityAtClose: number): {
   priceClv: number; probabilityClv: number;
 } {
@@ -203,7 +213,7 @@ export async function captureMlbResearchMarketObservation(input: {
     gameId: input.gameId, sportsbook: input.sportsbook, state: input.state,
     homeOdds: input.homeOdds, awayOdds: input.awayOdds, noVigHomeProbability: fair.home, noVigAwayProbability: fair.away,
     capturedAt: input.capturedAt, pointInTimeCutoff: input.capturedAt, source: input.source,
-    qualityState: input.qualityState ?? "VALID", rawPayloadHash: evidenceHash(input),
+    qualityState: input.qualityState ?? classifyMlbResearchMarketQuality(input), rawPayloadHash: evidenceHash(input),
   }).onConflictDoNothing();
 }
 
