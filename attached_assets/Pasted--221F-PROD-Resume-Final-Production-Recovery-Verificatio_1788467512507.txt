@@ -1,0 +1,278 @@
+#221F-PROD — Resume Final Production Recovery Verification
+
+The narrow #221F recovery fix has now been published.
+
+Continue the production verification exactly where you stopped.
+
+Do NOT make additional code changes unless a new production-only defect is directly proven.
+Do NOT start #222.
+Do NOT change model logic, forecasts, probabilities, recommendations, units, wagers, publication rules, NFL, or any other sport.
+
+The repaired production behavior that must now be proven is:
+
+- advanced CFBD capture continues even if the bulk games request fails or times out
+- the DB-backed global NCAAF scheduler lock works across Autoscale instances
+- advanced endpoint calls occur in production
+- advanced raw evidence persists
+- normalized domain evidence persists
+- team mappings succeed
+- game mappings succeed
+- player identities persist
+- CFBD-enriched ncaaf-football-intelligence-v2 snapshots persist
+- FINAL_PREGAME operates prospectively where legitimate
+- PIT protections remain intact
+
+Complete the existing #221F production verification.
+
+============================================================
+LIVE PRODUCTION COUNTS REQUIRED
+============================================================
+
+Report exact production counts for raw CFBD endpoint responses:
+
+- games
+- teams
+- conferences
+- venues
+- team stats
+- advanced team stats
+- plays
+- rosters
+- player stats
+- SP+
+- SRS
+- Elo
+- FPI
+- recruiting
+- talent
+- returning production
+- transfers / player portal
+- coaches
+- weather
+
+Then report normalized production counts for:
+
+- domain evidence
+- game evidence
+- team/entity evidence
+- player identities
+- completed-game performance
+- team stats
+- advanced stats
+- plays
+- rosters
+- player stats
+- ratings
+- recruiting
+- talent
+- returning production
+- transfers
+- coaches
+- weather
+
+============================================================
+MAPPING
+============================================================
+
+Report team mapping:
+
+- encountered
+- mapped
+- unmapped
+- ambiguous
+- invalid
+- mapping percentage
+
+Report game mapping:
+
+- considered
+- mapped
+- unmatched
+- ambiguous
+- invalid
+- mapping percentage
+
+Report player identities:
+
+- total
+- PROVIDER_ONLY
+- MAPPED
+- AMBIGUOUS
+- INVALID
+
+============================================================
+CANONICAL INTELLIGENCE
+============================================================
+
+Report:
+
+- total ncaaf football intelligence snapshots
+- ncaaf-football-intelligence-v2 snapshots
+- CFBD-enriched snapshots
+- latest v2 snapshot timestamp
+
+Then:
+
+- READY
+- PARTIAL
+- BLOCKED
+
+Report which CFBD domains are now contributing to canonical snapshots.
+
+============================================================
+FINAL_PREGAME
+============================================================
+
+Report:
+
+- FINAL_PREGAME total
+- new FINAL_PREGAME since publish
+- CFBD-enriched FINAL_PREGAME
+- games represented
+
+If FINAL_PREGAME is zero only because no upcoming game is currently within the legitimate final-pregame window, state that explicitly.
+
+Do not fabricate one.
+
+============================================================
+PROSPECTIVE COHORT
+============================================================
+
+Report:
+
+- total prospective assignments
+- new assignments since publish
+- CFBD-backed assignments
+- anti-backfill status
+
+============================================================
+PIT
+============================================================
+
+Report:
+
+- post-kickoff violations
+- future-week rating violations
+- retrospective-data violations
+- total PIT violations
+
+============================================================
+PROVIDER HEALTH
+============================================================
+
+Report:
+
+- latest successful CFBD call
+- latest failed CFBD call
+- auth failures
+- 429/rate-limit failures
+- timeouts
+- malformed JSON failures
+- retries
+- credible duration/latency telemetry
+- response byte telemetry
+
+Specifically prove whether an individual games timeout now allows the advanced capture phase to continue.
+
+============================================================
+SCHEDULER HEALTH
+============================================================
+
+Report:
+
+- latest scheduler cycle
+- completed
+- partial
+- failed
+- fresh running
+- stale running
+- cycle duration
+- distributed/global lock state
+- whether multiple Autoscale instances are safe
+- whether duplicate NCAAF capture was prevented
+
+============================================================
+CALL USAGE
+============================================================
+
+Report:
+
+- calls today
+- calls this month
+- calls by endpoint
+- retries
+- projected monthly usage if now estimable
+
+Do not assume an undocumented provider quota.
+
+============================================================
+FOOTBALL DATA READINESS
+============================================================
+
+Report whether production now supports:
+
+- historical team strength
+- team offense evidence
+- team defense evidence
+- advanced football evidence
+- ratings
+- recruiting
+- talent
+- returning production
+- roster/player evidence
+- historical QB intelligence
+- coaching
+- weather
+- early-season prior evidence
+
+Keep the following supplemental gaps explicit:
+
+- timestamped pregame starting QB
+- timestamped injury/availability
+- legitimate depth/starter state
+
+Then answer whether those remaining gaps block:
+
+A. constructing V4 itself
+or
+B. only certain individual-game forecasts / full live publication
+
+============================================================
+READINESS
+============================================================
+
+Return:
+
+DATA_PIPELINE_READY = TRUE / FALSE
+
+V4_BUILD_READY = TRUE / FALSE
+
+Use actual production evidence.
+
+Do not keep V4_BUILD_READY false merely because injury/starter/depth data remains missing if the core independent NCAAF foundation is otherwise now sufficient.
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly one:
+
+A. READY TO BEGIN #222
+
+B. NOT READY FOR #222 — CFBD PIPELINE STILL BROKEN
+
+C. CORE DATA FOUNDATION READY FOR #222 — SUPPLEMENTAL AVAILABILITY DATA STILL REQUIRED BEFORE FULL LIVE PUBLICATION
+
+============================================================
+REPORT
+============================================================
+
+Finish:
+
+reports/ncaaf-cfbd-production-recovery-2026-09-03.md
+
+Include the exact production counts and root-cause/fix verification.
+
+Do NOT begin #222.
+
+Stop after returning the report and A/B/C decision.
