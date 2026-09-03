@@ -92,3 +92,17 @@ mtime_ms = 1788452111501
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ebef07db-8a1c-4096-bb92-6a052b09111b/6c9e48c8-1acb-4722-9296-d3a81231d299"
 storage_version_token = "1788452219365873"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "XReTpVgtYyyzR1zwnxxbZ"
+uri = "file://reports/ncaaf-production-evidence-activation-2026-09-03.md"
+type = "text"
+title = "#221C NCAAF Production Evidence Activation Report"
+description = "Full authoritative 54-section report with all 50 completion questions answered, including post-publish production counts and remaining provider blockers."
+logical_id = "c379aa41-4cb0-4852-ad98-27dc5655fe58"
+content_hash = "sha256:2d75f70e18d9c84058631a29a5c45eb0805601cda530852add093a09b757ffa3"
+size = 21003
+mtime_ms = 1788455257011
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/c379aa41-4cb0-4852-ad98-27dc5655fe58/f2d19cfd-3200-4843-9f0f-bc443ff36cd5"
+storage_version_token = "1788455279482872"
+content_type = "text/markdown"
