@@ -162,3 +162,17 @@ mtime_ms = 1788462693288
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/5992a265-d5ff-47eb-861b-aa8b671a468d/a99288ab-010a-42b1-89f5-928808e22e11"
 storage_version_token = "1788462706966778"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "gun41v-_LR_kI6mSCf4U-"
+uri = "file://reports/ncaaf-cfbd-production-recovery-2026-09-03.md"
+type = "text"
+title = "NCAAF CFBD Production Recovery Report"
+description = "Final #221F production audit with exact endpoint, domain, mapping, snapshot, cohort, PIT, provider-health, scheduler, and readiness counts as of 2026-09-03 20:25:06 UTC."
+logical_id = "1c38c5e2-535b-42b0-9f96-a03909d6f49c"
+content_hash = "sha256:d2620562059fc4cceda065b61f14d18c9eeb666a4d2c1a5961085ad06ed7629f"
+size = 12639
+mtime_ms = 1788467183584
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1c38c5e2-535b-42b0-9f96-a03909d6f49c/cdccc4b5-a617-4c89-8864-5342c630a7a3"
+storage_version_token = "1788467193983548"
+content_type = "text/markdown"
