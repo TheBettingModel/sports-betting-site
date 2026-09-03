@@ -9,11 +9,9 @@
 - [MLB Bullpen + Lineup signals](mlb-bullpen-lineup-signals.md) — Phase 4 model signals; boxscore hydrate on schedule endpoint doesn't work — fetch /game/{gamePk}/boxscore separately; lineup cache needs seeding before parallel lookups.
 - [EAS provisioning profile regeneration](eas-provisioning-profile-fix.md) — force EAS to create a fresh profile via GraphQL delete; also how to fix missing Apple Team on stored ASC API key.
 - [OpenAPI spec sync requirement](openapi-spec-sync.md) — every new API route must be in lib/api-spec/openapi.yaml or mobile hooks won't exist; run codegen after edits; bump iOS buildNumber before each TestFlight submit.
-- [EAS Update env vars](eas-update-env-vars.md) — eas update ignores eas.json env block; must pass all EXPO_PUBLIC_* vars explicitly on CLI or production bundle breaks auth/API.
-- [OTA release branch sync](ota-release-branch-sync.md) — mobile OTA publishing runs from a separate GitHub release branch; sync workspace UI changes there before starting the update workflow.
 - [Production build env detection](production-build-env.md) — use NODE_ENV==="production" not CI==="true" to gate source maps; Clerk npm CDN proxy needed for /npm/* path.
 - [Apple Review IAP Submission Flow](apple-review-iap-submission.md) — exact 4-item sequence; EULA requirement; first-time group rule; RevenueCat Missing Metadata cause.
-- [OTA Update fix for RN 0.81](ota-update-rn081-fix.md) — eas update needs babel-preset-expo@54.0.12 pinned + unstable_transformProfile:'default' in metro.config.js; Linux hermesc can't handle private class fields.
+- [iOS App Store code-delivery boundary](ios-app-store-code-delivery-boundary.md) — expo-updates/OTA executable bundles are prohibited after Apple 2.5.2 rejection; ship code changes through reviewed builds.
 - [Model Upgrade Phase 4](model-upgrade-phase4.md) — scheduler signal wiring (Tasks 103-105); NBA stats endpoint; NHL PP%/PK%; NFL divisional/dome/turnover signals; what was skipped and why.
 - [Mobile build domain priority](mobile-build-domain-priority.md) — build.js must check EXPO_PUBLIC_DOMAIN before REPLIT_DEV_DOMAIN; also EXPO_PUBLIC_DOMAIN must be set as a Replit env var; Metro port changed to 8083.
 - [Clerk JWKS tenant mismatch](clerk-jwks-tenant-mismatch.md) — JWKS must always use dev Clerk instance (renewing-filly-49); pk_live_* decodes to an unreachable Replit proxy, never use api.clerk.com/v1/jwks.
