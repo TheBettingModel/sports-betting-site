@@ -7,3 +7,18 @@ uri = "file://TBM_Betting_Model_Full_Infrastructure_Build.md"
 type = "text"
 title = "TBM Betting Model — Full Infrastructure Build"
 description = "Copy-ready architecture specification covering the current model, target upgrade, moneyline and spread systems, learning, risk, evaluation, data contracts, rollout, testing, and operating rules."
+logical_id = "29e43f47-2b55-40c5-90d0-e913085856b1"
+
+[[outputs]]
+id = "ks8to2342LIcX6Ugy1Kmg"
+uri = "file://reports/thebettingmodel-forensic-audit-2026-09-03.md"
+type = "text"
+title = "TheBettingModel Production Forensic Audit"
+description = "Read-only audit of the live prediction formulas, sports data, market influence, recommendation rules, publication gates, unit sizing, frozen learning, and one numerical MLB decision reconstruction."
+logical_id = "653bef1c-c9bc-4cda-92ca-c51dbb35912b"
+content_hash = "sha256:61ae39c1d65fe3295842abedeed8b9e2988e32130b13a12d61a9483fee6abb36"
+size = 43885
+mtime_ms = 1788432295144
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/653bef1c-c9bc-4cda-92ca-c51dbb35912b/7884580e-0b87-4783-98da-ddbfb5efe363"
+storage_version_token = "1788432313677758"
+content_type = "text/markdown"
