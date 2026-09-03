@@ -23,6 +23,7 @@ import {
   NCAAF_LIVE_SHADOW_ACTIVATION,
   type NcaafPregameCohortStore,
 } from "./ncaafPregameCohorts";
+import { captureCollegeFootballDataEvidence, type CfbdCaptureResult } from "./ncaafCollegeFootballDataEvidence";
 
 export const NCAAF_FINAL_PREGAME_WINDOW_MINUTES = 45;
 export const MAX_NCAAF_BOOTSTRAP_DAYS = 14;
@@ -49,6 +50,8 @@ export interface NcaafProductionEvidenceCycleResult {
   staleRunsReconciled: number;
   capture: EvidenceCaptureResult | null;
   captureCause: string | null;
+  cfbdCapture: CfbdCaptureResult | null;
+  cfbdCaptureCause: string | null;
   gamesFound: number;
   featureSnapshots: number;
   intelligenceSnapshots: number;
@@ -62,6 +65,8 @@ export interface NcaafProductionEvidenceCycleDependencies {
   now?: () => Date;
   reconcile?: (now: Date) => Promise<number>;
   captureCurrent?: () => Promise<EvidenceCaptureResult>;
+  /** Optional server-side CFBD evidence hook. Its failure is intentionally isolated. */
+  captureCfbd?: () => Promise<CfbdCaptureResult>;
   listUpcomingGames?: (now: Date) => Promise<NcaafProductionEvidenceGame[]>;
   createFeatureSnapshot?: typeof createNcaafFeatureSnapshot;
   createIntelligenceSnapshot?: typeof createNcaafFootballIntelligenceSnapshot;
@@ -112,7 +117,8 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
   let running = false;
   return async function run(): Promise<NcaafProductionEvidenceCycleResult> {
     const empty = (): NcaafProductionEvidenceCycleResult => ({
-      skipped: false, staleRunsReconciled: 0, capture: null, captureCause: null, gamesFound: 0,
+      skipped: false, staleRunsReconciled: 0, capture: null, captureCause: null,
+      cfbdCapture: null, cfbdCaptureCause: null, gamesFound: 0,
       featureSnapshots: 0, intelligenceSnapshots: 0, liveShadowAssignments: 0,
       finalPregameAssignments: 0, gameFailures: [],
     });
@@ -129,6 +135,13 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
     const log = dependencies.log ?? logger;
     try {
       result.staleRunsReconciled = await (dependencies.reconcile ?? ((at) => reconcileStaleNcaafEvidenceRuns(db, at)))(cycleStartedAt);
+      try {
+        // Exactly one bounded current-season/week CFBD capture per dedicated cycle.
+        result.cfbdCapture = await (dependencies.captureCfbd ?? captureCollegeFootballDataEvidence)();
+      } catch (error) {
+        result.cfbdCaptureCause = error instanceof Error ? error.message : String(error);
+        log.warn({ cause: result.cfbdCaptureCause }, "NCAAF CFBD evidence capture failed; continuing with ESPN evidence");
+      }
       try {
         result.capture = await (dependencies.captureCurrent ?? captureCurrentNcaafEvidence)();
         if (Object.keys(result.capture.providerErrors).length) result.captureCause = "provider_partial_failure";

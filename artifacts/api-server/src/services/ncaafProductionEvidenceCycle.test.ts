@@ -32,6 +32,7 @@ describe("NCAAF production evidence cycle", () => {
     const wait = new Promise<void>((resolve) => { release = resolve; });
     const run = createNcaafProductionEvidenceCycle({
       now: () => now, reconcile: async () => 0,
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0 }),
       captureCurrent: async () => { await wait; return { games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }; },
       listUpcomingGames: async () => [],
     });
@@ -45,6 +46,7 @@ describe("NCAAF production evidence cycle", () => {
     let featureCalls = 0;
     const run = createNcaafProductionEvidenceCycle({
       now: () => now, reconcile: async () => 2, captureCurrent: async () => { throw new Error("provider down"); },
+      captureCfbd: async () => { throw new Error("cfbd unavailable"); },
       listUpcomingGames: async () => [game, { ...game, eventId: "bad" }],
       createFeatureSnapshot: (async () => {
         featureCalls++;
@@ -61,6 +63,7 @@ describe("NCAAF production evidence cycle", () => {
     const result = await run();
     expect(result.staleRunsReconciled).toBe(2);
     expect(result.captureCause).toContain("provider down");
+    expect(result.cfbdCaptureCause).toContain("cfbd unavailable");
     expect(result.gameFailures).toHaveLength(1);
   });
 
@@ -68,6 +71,7 @@ describe("NCAAF production evidence cycle", () => {
     let final = 0;
     const run = createNcaafProductionEvidenceCycle({
       now: () => now, reconcile: async () => 0, captureCurrent: async () => ({ games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }),
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0 }),
       listUpcomingGames: async () => [game], cohortStore: store(),
       createFeatureSnapshot: (async () => ({ id: 1, snapshot: {}, inputHash: "x" })) as never,
       createIntelligenceSnapshot: (async () => ({ id: 2, snapshot: {}, inputHash: "x" })) as never,

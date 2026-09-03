@@ -16,7 +16,7 @@ export const NCAAF_CAPABILITY_STATES = [
 
 export type NcaafCapabilityState = typeof NCAAF_CAPABILITY_STATES[number];
 
-export type NcaafProvider = "espn_scoreboard" | "espn_summary" | "odds_api" | "open_meteo";
+export type NcaafProvider = "espn_scoreboard" | "espn_summary" | "odds_api" | "open_meteo" | "college_football_data";
 
 export type NcaafCapability =
   | "schedule"
@@ -74,6 +74,28 @@ function freezeInventory(
  * intelligence.
  */
 export const NCAAF_PROVIDER_CAPABILITIES = freezeInventory([
+  ...([
+    "schedule", "game_identity", "team_ids", "conferences", "venue", "status", "scores",
+  ] as const).map((capability) => ({
+    provider: "college_football_data" as const, capability, state: "AVAILABLE_NOW" as const,
+    pointInTimeState: "PARTIAL" as const,
+    evidence: "The server-only CFBD client and bounded current-season/week capture persist raw games and explicit CFBD team/game identities. It does not match CFBD IDs to ESPN IDs.",
+  } satisfies NcaafProviderCapability)),
+  ...([
+    "team_boxscore", "player_stats", "play_by_play", "player", "roster", "recruiting",
+    "transfer", "coaching", "special_teams", "play_level_epa", "play_level_success",
+    "play_level_explosiveness", "play_level_havoc", "drive", "current_weather",
+  ] as const).map((capability) => ({
+    provider: "college_football_data" as const, capability, state: "AVAILABLE_BUT_NOT_CAPTURED" as const,
+    pointInTimeState: "PARTIAL" as const,
+    evidence: "The server-only CFBD transport supports this endpoint family, but the bounded evidence cycle currently captures games only; no historical pre-kickoff reconstruction is claimed.",
+  } satisfies NcaafProviderCapability)),
+  {
+    provider: "college_football_data", capability: "historical_point_in_time", state: "PARTIAL",
+    pointInTimeState: "NOT_SUPPORTED",
+    requiredProvider: "Timestamped CFBD captures retained before each target kickoff",
+    evidence: "CFBD responses are timestamped at capture; current bounded capture does not reconstruct values that were unavailable before historical kickoffs.",
+  },
   ...([
     "schedule", "game_identity", "team_ids", "conferences", "venue",
     "neutral_site", "status", "scores",

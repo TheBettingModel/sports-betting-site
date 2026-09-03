@@ -51,6 +51,7 @@ import {
   ncaafPromotionDecisionsTable,
   ncaafTeamGamePerformanceTable,
   ncaafPregameCohortAssignmentsTable,
+  ncaafCollegeFootballDataEvidenceTable,
   publishedPickPerformanceClassificationsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
@@ -297,7 +298,7 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   };
   const [
     legacyRows, featureRows, runRows, gameEvidence, entityEvidence, marketRows,
-    evaluations, walkForward, promotions, cohorts, teamPerformance, intelligenceSnapshots,
+    evaluations, walkForward, promotions, cohorts, teamPerformance, intelligenceSnapshots, cfbdEvidence,
   ] = await Promise.all([
     db.select({
       pickId: publishedPicksTable.id,
@@ -352,6 +353,12 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       dataCutoffAt: ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt,
       evidenceMaxCapturedAt: ncaafFootballIntelligenceSnapshotsTable.evidenceMaxCapturedAt,
     }).from(ncaafFootballIntelligenceSnapshotsTable),
+    db.select({
+      endpoint: ncaafCollegeFootballDataEvidenceTable.endpoint,
+      rows: sql<number>`count(*)`,
+      lastSuccessfulCapture: sql<Date | null>`max(case when ${ncaafCollegeFootballDataEvidenceTable.evidenceState} = 'observed' then ${ncaafCollegeFootballDataEvidenceTable.capturedAt} end)`,
+    }).from(ncaafCollegeFootballDataEvidenceTable)
+      .groupBy(ncaafCollegeFootballDataEvidenceTable.endpoint),
   ]);
 
   const legacyByPick = new Map<number, { classified: boolean; eligible: boolean; graded: boolean }>();
@@ -411,6 +418,12 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   const finalPregame = cohorts.filter((row) => row.cohortType === "FINAL_PREGAME").length;
   const liveShadow = cohorts.filter((row) => row.cohortType === "LIVE_SHADOW").length;
   const capabilityBlockers = getNcaafReadinessBlockers();
+  const cfbdEndpointCounts = cfbdEvidence.reduce((counts, row) => {
+    counts[row.endpoint] = Number(row.rows);
+    return counts;
+  }, {} as Record<string, number>);
+  const cfbdLastSuccessfulCapture = cfbdEvidence.reduce<Date | null>((latest, row) =>
+    !row.lastSuccessfulCapture || latest && latest >= row.lastSuccessfulCapture ? latest : row.lastSuccessfulCapture, null);
   const performanceQuality = teamPerformance.filter((row) => row.quality != null);
   const performanceReliability = teamPerformance.filter((row) => row.reliability != null);
   const average = (values: Array<number | null>) => {
@@ -499,7 +512,17 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       topMissingReasons: reasonCounts(marketRows.map((row) => row.missingReasons)),
     },
     cohorts: { finalPregame, liveShadow, supported: true },
-    providerCapabilities: { inventory: NCAAF_PROVIDER_CAPABILITIES, blockers: capabilityBlockers },
+    providerCapabilities: {
+      inventory: NCAAF_PROVIDER_CAPABILITIES, blockers: capabilityBlockers,
+      health: {
+        college_football_data: {
+          credentialConfigured: Boolean(process.env["CFBD_API_KEY"]),
+          rawRows: cfbdEvidence.reduce((sum, row) => sum + Number(row.rows), 0),
+          lastSuccessfulCapture: cfbdLastSuccessfulCapture?.toISOString() ?? null,
+          endpointCounts: cfbdEndpointCounts,
+        },
+      },
+    },
     pointInTime: { violations: pitViolations },
     validation: {
       evaluations: { total: evaluations.length, excluded: evaluationExcluded, graded: evaluations.length - evaluationExcluded },
