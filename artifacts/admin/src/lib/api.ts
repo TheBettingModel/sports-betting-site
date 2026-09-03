@@ -180,6 +180,8 @@ export const adminApi = {
     api.get<MarketComparisonsResult>(`/admin/market-comparisons?sport=${encodeURIComponent(sport)}`),
   marketApprovals: () =>
     api.get<MarketApprovalsResult>("/admin/market-approvals"),
+  recommendationPublicationAudit: () =>
+    api.get<RecommendationPublicationAudit>("/admin/recommendation-publication-audit"),
 };
 
 export const modelApi = {
@@ -212,9 +214,9 @@ export interface FeedHealthEntry {
   alertSeverity: string | null;
   /** Number of active unresolved DQ alerts for this sport. */
   alertCount: number;
-  /** Games analyzed today that landed below the publication threshold (Neutral/Fade). */
+  /** Raw actionable recommendations blocked by publication safety. */
   suppressedCount: number | null;
-  /** Games today with qualifying picks (Strong Buy/Buy). */
+  /** Picks published or currently publishable after safety evaluation. */
   publishedCount: number | null;
 }
 
@@ -226,6 +228,37 @@ export interface AdminOverview {
   performance: { totalGradedPicks: number; avgROI: number | null; avgWinRate: number | null };
   automation: { health: string; lastRun: AutoRunSummary | null };
   feedHealth: FeedHealthEntry[];
+}
+
+export interface RecommendationPublicationAuditRow {
+  gameId: string;
+  sport: string;
+  matchup: string;
+  startsAt: string | null;
+  market: string;
+  modelVersion: string | null;
+  modelProbability: number;
+  marketProbability: number;
+  edge: number;
+  confidence: string;
+  approvalStatus: string;
+  rawModelRecommendation: string;
+  publicationStatus: "PUBLISHED" | "PUBLISHABLE" | "BLOCKED" | "NOT_APPLICABLE_NO_PLAY";
+  publicationBlockReason: string | null;
+  publicationBlockDetails: string[];
+  displayRecommendation: string;
+}
+
+export interface RecommendationPublicationAudit {
+  date: string;
+  summary: {
+    totalGames: number;
+    rawDistribution: Record<string, number>;
+    publication: Record<string, number>;
+    blockedReasons: Record<string, number>;
+  };
+  rows: RecommendationPublicationAuditRow[];
+  dataAsOf: string;
 }
 
 export interface ModelSummary {

@@ -5,7 +5,7 @@ import {
   BrainCircuit, AlertTriangle, Clock, TrendingUp,
   Activity, Rss,
 } from "lucide-react";
-import { adminApi, type AdminOverview, type FeedHealthEntry } from "@/lib/api";
+import { adminApi, type AdminOverview, type FeedHealthEntry, type RecommendationPublicationAudit } from "@/lib/api";
 import { pct, units, timeAgo, statusColor, statusDot } from "@/lib/utils";
 
 function KPI({
@@ -140,6 +140,11 @@ export function Overview() {
     queryFn: () => adminApi.overview(),
     refetchInterval: 30_000,
   });
+  const { data: recommendationAudit } = useQuery<RecommendationPublicationAudit>({
+    queryKey: ["recommendation-publication-audit"],
+    queryFn: () => adminApi.recommendationPublicationAudit(),
+    refetchInterval: 30_000,
+  });
 
   if (isLoading) return <div className="text-muted-foreground text-sm">Loading overview…</div>;
   if (error) return <div className="text-red-400 text-sm">Error: {(error as Error).message}</div>;
@@ -174,6 +179,45 @@ export function Overview() {
       {/* Feed health */}
       {feedHealth && feedHealth.length > 0 && (
         <FeedHealthGrid entries={feedHealth} />
+      )}
+
+      {recommendationAudit && (
+        <section className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">Recommendation & Publication Audit</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Raw model opinion is shown separately from publication safety and the subscriber display.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border-b border-border">
+            <div className="bg-card p-3"><p className="text-[10px] uppercase text-muted-foreground">Games</p><p className="text-xl font-bold">{recommendationAudit.summary.totalGames}</p></div>
+            <div className="bg-card p-3"><p className="text-[10px] uppercase text-muted-foreground">True Raw Neutral</p><p className="text-xl font-bold">{recommendationAudit.summary.rawDistribution.Neutral ?? 0}</p></div>
+            <div className="bg-card p-3"><p className="text-[10px] uppercase text-muted-foreground">Publication Blocked</p><p className="text-xl font-bold text-amber-400">{recommendationAudit.summary.publication.BLOCKED ?? 0}</p></div>
+            <div className="bg-card p-3"><p className="text-[10px] uppercase text-muted-foreground">Published / Publishable</p><p className="text-xl font-bold text-green-400">{(recommendationAudit.summary.publication.PUBLISHED ?? 0) + (recommendationAudit.summary.publication.PUBLISHABLE ?? 0)}</p></div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border">
+                <th className="text-left px-4 py-2 text-xs text-muted-foreground">GAME</th>
+                <th className="text-left px-4 py-2 text-xs text-muted-foreground">RAW MODEL</th>
+                <th className="text-left px-4 py-2 text-xs text-muted-foreground">PUBLICATION</th>
+                <th className="text-left px-4 py-2 text-xs text-muted-foreground">BLOCK REASON</th>
+                <th className="text-left px-4 py-2 text-xs text-muted-foreground">PUBLIC DISPLAY</th>
+              </tr></thead>
+              <tbody className="divide-y divide-border">
+                {recommendationAudit.rows.map((row) => (
+                  <tr key={row.gameId}>
+                    <td className="px-4 py-2"><p className="font-medium">{row.matchup}</p><p className="text-[10px] text-muted-foreground">{row.sport} · {row.modelVersion ?? "model unknown"}</p></td>
+                    <td className="px-4 py-2 font-semibold">{row.rawModelRecommendation}<p className="text-[10px] font-normal text-muted-foreground">{row.modelProbability.toFixed(1)}% · edge {row.edge > 0 ? "+" : ""}{row.edge.toFixed(1)}%</p></td>
+                    <td className="px-4 py-2"><span className={row.publicationStatus === "BLOCKED" ? "text-amber-400" : row.publicationStatus === "NOT_APPLICABLE_NO_PLAY" ? "text-muted-foreground" : "text-green-400"}>{row.publicationStatus.replaceAll("_", " ")}</span><p className="text-[10px] text-muted-foreground">{row.approvalStatus.replaceAll("_", " ")}</p></td>
+                    <td className="px-4 py-2 text-xs text-muted-foreground">{row.publicationBlockReason?.replaceAll("_", " ") ?? "—"}</td>
+                    <td className="px-4 py-2 font-semibold">{row.displayRecommendation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

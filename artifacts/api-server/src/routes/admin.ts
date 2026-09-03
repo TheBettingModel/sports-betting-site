@@ -88,6 +88,10 @@ import {
   type MarketApprovalStatus,
 } from "../services/marketApproval";
 import { LIVE_FORWARD_CANDIDATE_NEEDS_OOS, MLB_215_READY_FEATURES, MLB_215_UNAVAILABLE_FEATURES, NOT_SUPPORTED, PARTIAL_OR_INCONSISTENT } from "../services/mlbAdvancedFeatureRegistry";
+import {
+  classifyRecommendationPublication,
+  summarizeRecommendationPublication,
+} from "../services/recommendationPublicationAudit";
 
 const router: IRouter = Router();
 
@@ -767,32 +771,53 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
     });
   }
 
-  // ── Today's pick quality distribution by sport ────────────────────────────────
-  // Counts how many of today's games landed in qualifying tiers (Strong Buy / Buy)
-  // vs suppressed tiers (Neutral / Fade) so the admin can see when the threshold
-  // is filtering out many picks for a sport.
+  // ── Today's publication distribution by sport ─────────────────────────────────
+  // Admin counts must use publication state rather than treating every raw
+  // Strong Buy/Buy as published.
   const todayStr = new Date().toISOString().split("T")[0];
-  const todayPickDist = await db
+  const todayGames = await db
     .select({
+      id: gamesTable.id,
       sport: gamesTable.sport,
       valueRating: gamesTable.valueRating,
-      count: sql<number>`count(*)::int`,
     })
     .from(gamesTable)
-    .where(eq(gamesTable.gameDate, todayStr))
-    .groupBy(gamesTable.sport, gamesTable.valueRating);
+    .where(eq(gamesTable.gameDate, todayStr));
+  const todayGameIds = todayGames.map((game) => game.id);
+  const [todayPermissions, todayEffectivePicks] = await Promise.all([
+    getMoneylinePublicationPermissionsForGames(todayGameIds),
+    todayGameIds.length === 0
+      ? Promise.resolve([])
+      : db.select({
+        gameId: publishedPicksTable.gameId,
+        recommendation: publishedPicksTable.recommendation,
+      }).from(publishedPicksTable).where(and(
+        inArray(publishedPicksTable.gameId, todayGameIds),
+        eq(publishedPicksTable.isEffective, true),
+      )),
+  ]);
+  const todayEffectiveByGame = new Map(
+    todayEffectivePicks.map((pick) => [pick.gameId, pick.recommendation]),
+  );
 
   type PickDistEntry = { suppressedCount: number; publishedCount: number };
   const pickDistMap = new Map<string, PickDistEntry>();
-  for (const row of todayPickDist) {
-    if (!pickDistMap.has(row.sport)) {
-      pickDistMap.set(row.sport, { suppressedCount: 0, publishedCount: 0 });
+  for (const game of todayGames) {
+    if (!pickDistMap.has(game.sport)) {
+      pickDistMap.set(game.sport, { suppressedCount: 0, publishedCount: 0 });
     }
-    const entry = pickDistMap.get(row.sport)!;
-    if (row.valueRating === "Strong Buy" || row.valueRating === "Buy") {
-      entry.publishedCount += row.count;
-    } else {
-      entry.suppressedCount += row.count;
+    const permission = todayPermissions.get(game.id);
+    const state = classifyRecommendationPublication({
+      rawRecommendation: game.valueRating,
+      approvalStatus: permission?.status ?? "UNVALIDATED",
+      approvalReasons: permission?.reasons ?? ["exact_approval_record_missing"],
+      effectivePublishedRecommendation: todayEffectiveByGame.get(game.id),
+    });
+    const entry = pickDistMap.get(game.sport)!;
+    if (state.publicationStatus === "PUBLISHED" || state.publicationStatus === "PUBLISHABLE") {
+      entry.publishedCount++;
+    } else if (state.publicationStatus === "BLOCKED") {
+      entry.suppressedCount++;
     }
   }
 
@@ -887,6 +912,62 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
         : null,
     },
     feedHealth,
+  });
+});
+
+router.get("/admin/recommendation-publication-audit", async (req, res): Promise<void> => {
+  const nyToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const date = parseIsoDate(req.query.date, "date") ?? nyToday;
+  const games = await db
+    .select()
+    .from(gamesTable)
+    .where(and(eq(gamesTable.gameDate, date), eq(gamesTable.status, "upcoming")))
+    .orderBy(gamesTable.startsAt);
+  const gameIds = games.map((game) => game.id);
+  const [permissions, effectivePicks] = await Promise.all([
+    getMoneylinePublicationPermissionsForGames(gameIds),
+    gameIds.length === 0
+      ? Promise.resolve([])
+      : db.select({
+        gameId: publishedPicksTable.gameId,
+        recommendation: publishedPicksTable.recommendation,
+      }).from(publishedPicksTable).where(and(
+        inArray(publishedPicksTable.gameId, gameIds),
+        eq(publishedPicksTable.isEffective, true),
+      )),
+  ]);
+  const effectiveByGame = new Map(effectivePicks.map((pick) => [pick.gameId, pick.recommendation]));
+  const rows = games.map((game) => {
+    const permission = permissions.get(game.id);
+    const state = classifyRecommendationPublication({
+      rawRecommendation: game.valueRating,
+      approvalStatus: permission?.status ?? "UNVALIDATED",
+      approvalReasons: permission?.reasons ?? ["exact_approval_record_missing"],
+      effectivePublishedRecommendation: effectiveByGame.get(game.id),
+    });
+    const selectedHome = game.edge >= 0;
+    const modelProbability = selectedHome ? game.homeWinPct : 100 - game.homeWinPct;
+    const marketProbability = modelProbability - Math.abs(game.edge);
+    return {
+      gameId: game.id,
+      sport: game.sport,
+      matchup: `${game.awayTeamAbbr} @ ${game.homeTeamAbbr}`,
+      startsAt: game.startsAt,
+      market: "moneyline",
+      modelVersion: permission?.modelVersion ?? null,
+      modelProbability,
+      marketProbability,
+      edge: game.edge,
+      confidence: game.confidence,
+      approvalStatus: permission?.status ?? "UNVALIDATED",
+      ...state,
+    };
+  });
+  res.json({
+    date,
+    summary: summarizeRecommendationPublication(rows),
+    rows,
+    dataAsOf: new Date().toISOString(),
   });
 });
 
