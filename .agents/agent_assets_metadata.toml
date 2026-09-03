@@ -36,3 +36,17 @@ mtime_ms = 1788432581927
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/0fd3a881-aaf6-4d77-9f3f-23c54ee6415e/ba31b15a-d6d3-4751-9130-6a1ff118f74b"
 storage_version_token = "1788432586443347"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "oFSTSorX0KQnx1kcFe75N"
+uri = "file://reports/ncaaf-read-only-forensic-audit-2026-09-03.md"
+type = "text"
+title = "NCAA Football Read-Only Forensic Audit"
+description = "Production forensic audit of NCAA Football evidence, predictions, publication, grading, and promotion safety as of September 3, 2026."
+logical_id = "cb79b857-9810-4a32-9517-b357b73bde18"
+content_hash = "sha256:ca72ad5d4ee199dbdcd949bdc3ed1517e122d5c2e20ed2e66bb9315779a3c2a8"
+size = 12251
+mtime_ms = 1788446998293
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/cb79b857-9810-4a32-9517-b357b73bde18/8d72a996-06d3-4702-8ffb-a271ca8054f1"
+storage_version_token = "1788447019739681"
+content_type = "text/markdown"
