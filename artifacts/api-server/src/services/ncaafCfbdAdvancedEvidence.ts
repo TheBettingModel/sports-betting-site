@@ -19,6 +19,22 @@ export const CFBD_DOMAIN_SCHEDULE: Readonly<Record<CfbdEndpoint, { domain: strin
   weather: { domain: "weather", cadence: "game", pit: "B" },
 };
 const endpoints = Object.keys(CFBD_DOMAIN_SCHEDULE) as CfbdEndpoint[];
+/**
+ * Pregame capture priority is intentionally independent of object declaration
+ * order. Team identity and model priors are small, critical inputs and must be
+ * activated before high-volume historical families can consume the cycle.
+ * Successful endpoints fall out through the cadence check; failed endpoints
+ * remain in their priority position until a success is recorded.
+ */
+export const CFBD_ADVANCED_ENDPOINT_PRIORITY = [
+  "teams",
+  "sp", "elo", "srs", "fpi", "talent", "returning_production", "coaches",
+  "conferences", "venues", "season_team_stats", "advanced_stats",
+  "plays", "roster", "player_stats", "recruiting", "transfers",
+] as const satisfies readonly CfbdEndpoint[];
+const advancedEndpointPriority = new Map<CfbdEndpoint, number>(
+  CFBD_ADVANCED_ENDPOINT_PRIORITY.map((endpoint, index) => [endpoint, index]),
+);
 function utcDayStart(at: Date) {
   return new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
 }
@@ -37,7 +53,21 @@ export function cfbdEndpointDue(endpoint: CfbdEndpoint, at: Date, lastSuccessful
 }
 export function scheduledCfbdEndpoints(at: Date, lastSuccessfulByEndpoint: ReadonlyMap<CfbdEndpoint, Date> = new Map()): CfbdEndpoint[] {
   // A missed window (or a newly enabled endpoint) remains due until it succeeds.
-  return endpoints.filter((endpoint) => cfbdEndpointDue(endpoint, at, lastSuccessfulByEndpoint.get(endpoint)));
+  return endpoints.filter((endpoint) => cfbdEndpointDue(endpoint, at, lastSuccessfulByEndpoint.get(endpoint)))
+    .sort((left, right) => {
+      const priority = (advancedEndpointPriority.get(left) ?? Number.MAX_SAFE_INTEGER)
+        - (advancedEndpointPriority.get(right) ?? Number.MAX_SAFE_INTEGER);
+      return priority || left.localeCompare(right);
+    });
+}
+export function prioritizedCfbdEndpoints(
+  at: Date,
+  lastSuccessfulByEndpoint: ReadonlyMap<CfbdEndpoint, Date> = new Map(),
+  limit = 5,
+): CfbdEndpoint[] {
+  return scheduledCfbdEndpoints(at, lastSuccessfulByEndpoint)
+    .filter((endpoint) => endpoint !== "games")
+    .slice(0, Math.max(0, Math.min(5, limit)));
 }
 export function cfbdQueryForEndpoint(endpoint: CfbdEndpoint, season: number, week?: number, gameId?: string): Record<string, number | string | undefined> {
   if (endpoint === "plays") return { year: season, week };
@@ -94,10 +124,10 @@ export async function captureScheduledCfbdAdvancedEvidence(
     const previous = lastSuccessfulByEndpoint.get(endpoint);
     if (!previous || success.attemptedAt > previous) lastSuccessfulByEndpoint.set(endpoint, success.attemptedAt);
   }
-  const due = scheduledCfbdEndpoints(now, lastSuccessfulByEndpoint).filter((endpoint) => endpoint !== "games");
+  const due = prioritizedCfbdEndpoints(now, lastSuccessfulByEndpoint);
   // Keep the pregame cycle bounded. Successful families fall out of `due`, so
   // later cycles resume with the next endpoint group instead of repeating work.
-  const scheduled = forced.length ? [...new Set(forced)] : due.slice(0, 5);
+  const scheduled = forced.length ? [...new Set(forced)] : due;
   const cfbdGames = await db.select({
     providerEventId: ncaafGameEvidenceTable.providerEventId,
     week: ncaafGameEvidenceTable.week,

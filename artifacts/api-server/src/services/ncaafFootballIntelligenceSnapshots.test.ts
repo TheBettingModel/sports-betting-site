@@ -1,7 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const dbMocks = vi.hoisted(() => ({
+  execute: vi.fn(),
+  select: vi.fn(),
+}));
+
+vi.mock("@workspace/db", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@workspace/db")>(),
+  db: {
+    execute: dbMocks.execute,
+    select: dbMocks.select,
+  },
+}));
+
 import {
   assertNoNcaafMarketShapedKeys,
   buildNcaafFootballIntelligenceSnapshot,
+  createNcaafFootballIntelligenceSnapshot,
+  NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION,
   ncaafFootballIntelligenceInputHash,
   type NcaafIntelligenceTarget,
   type NcaafPerformanceEvidenceRow,
@@ -25,6 +41,14 @@ function row(team: string, opponent: string, season: number, event: string): Nca
 }
 
 describe("NCAAF football intelligence snapshots", () => {
+  beforeEach(() => {
+    dbMocks.execute.mockReset();
+    dbMocks.select.mockReset();
+    dbMocks.select.mockImplementation(() => ({
+      from: () => ({ where: async () => [] }),
+    }));
+  });
+
   it("makes a canonical sports-only domain snapshot and blocks missing critical QB evidence", () => {
     const rows = [
       row("home", "x", 2025, "home-current"), row("home", "x", 2024, "home-prior"),
@@ -54,5 +78,24 @@ describe("NCAAF football intelligence snapshots", () => {
   it("rejects market-shaped keys recursively and requires a strict cutoff", () => {
     expect(() => assertNoNcaafMarketShapedKeys({ nested: { moneyline: 3 } })).toThrow(/market-shaped/);
     expect(() => buildNcaafFootballIntelligenceSnapshot(target, [], kickoff)).toThrow(/strictly before kickoff/);
+  });
+
+  it("executes the v2 insert and reports newly persisted snapshots", async () => {
+    dbMocks.execute.mockResolvedValueOnce({ rows: [{ id: 221 }] });
+    const result = await createNcaafFootballIntelligenceSnapshot(target, cutoff);
+    expect(result).toMatchObject({ id: 221, persistence: "inserted" });
+    expect(dbMocks.execute).toHaveBeenCalledTimes(1);
+    const statement = JSON.stringify(dbMocks.execute.mock.calls[0]![0]);
+    expect(statement).toContain("INSERT INTO ncaaf_football_intelligence_snapshots");
+    expect(statement).toContain(NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION);
+  });
+
+  it("reports conflict-resolved snapshots as deduped", async () => {
+    dbMocks.execute
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 221 }] });
+    const result = await createNcaafFootballIntelligenceSnapshot(target, cutoff);
+    expect(result).toMatchObject({ id: 221, persistence: "deduped" });
+    expect(dbMocks.execute).toHaveBeenCalledTimes(2);
   });
 });

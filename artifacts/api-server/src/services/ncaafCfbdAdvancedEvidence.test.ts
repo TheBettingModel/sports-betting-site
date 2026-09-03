@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { cfbdEndpointDue, cfbdItemIdentity, cfbdQueryForEndpoint, scheduledCfbdEndpoints } from "./ncaafCfbdAdvancedEvidence";
+import {
+  CFBD_ADVANCED_ENDPOINT_PRIORITY, cfbdEndpointDue, cfbdItemIdentity, cfbdQueryForEndpoint,
+  prioritizedCfbdEndpoints, scheduledCfbdEndpoints,
+} from "./ncaafCfbdAdvancedEvidence";
 import { decideCfbdGameMapping, decideCfbdTeamMapping, normalizeNcaafSchoolIdentity, providerOnlyPlayerMapping } from "./ncaafCfbdIdentity";
 import { assertNoNcaafMarketShapedKeys, buildNcaafFootballIntelligenceSnapshot, ncaafFootballIntelligenceInputHash } from "./ncaafFootballIntelligenceSnapshots";
 
@@ -14,6 +17,41 @@ describe("NCAAF CFBD advanced contracts", () => {
     expect(cfbdEndpointDue("advanced_stats", new Date("2026-09-13T23:00:00Z"), new Date("2026-09-07T23:00:00Z"))).toBe(false);
     expect(cfbdEndpointDue("advanced_stats", new Date("2026-09-14T00:00:00Z"), new Date("2026-09-13T23:00:00Z"))).toBe(true);
     expect(scheduledCfbdEndpoints(new Date("2026-09-07T17:00:00Z"), new Map([["teams", new Date("2026-09-07T01:00:00Z")]]))).not.toContain("teams");
+  });
+  it("activates identity and prior domains first on a fresh installation", () => {
+    const at = new Date("2026-09-07T17:00:00Z");
+    expect(prioritizedCfbdEndpoints(at)).toEqual(["teams", "sp", "elo", "srs", "fpi"]);
+    expect(CFBD_ADVANCED_ENDPOINT_PRIORITY).toEqual([
+      "teams",
+      "sp", "elo", "srs", "fpi", "talent", "returning_production", "coaches",
+      "conferences", "venues", "season_team_stats", "advanced_stats",
+      "plays", "roster", "player_stats", "recruiting", "transfers",
+    ]);
+  });
+  it("keeps a failed prior ahead of due large backfills until it succeeds", () => {
+    const at = new Date("2026-09-07T17:00:00Z");
+    const thisPeriod = new Date("2026-09-07T01:00:00Z");
+    const successful = new Map([
+      ["teams", thisPeriod], ["elo", thisPeriod], ["srs", thisPeriod], ["fpi", thisPeriod],
+      ["talent", thisPeriod], ["returning_production", thisPeriod], ["coaches", thisPeriod],
+      ["conferences", thisPeriod], ["venues", thisPeriod],
+      ["season_team_stats", thisPeriod], ["advanced_stats", thisPeriod],
+    ] as const);
+    // sp has only failed (and therefore has no last-success entry), while all
+    // high-volume families need their initial backfill.
+    expect(prioritizedCfbdEndpoints(at, successful)).toEqual([
+      "sp", "plays", "roster", "player_stats", "recruiting",
+    ]);
+  });
+  it("does not let large backfills starve remaining critical priors", () => {
+    const at = new Date("2026-09-07T17:00:00Z");
+    const thisPeriod = new Date("2026-09-07T01:00:00Z");
+    const successful = new Map([
+      ["teams", thisPeriod], ["sp", thisPeriod], ["elo", thisPeriod], ["srs", thisPeriod], ["fpi", thisPeriod],
+    ] as const);
+    expect(prioritizedCfbdEndpoints(at, successful)).toEqual([
+      "talent", "returning_production", "coaches", "conferences", "venues",
+    ]);
   });
   it("extracts identities by endpoint rather than treating every id as a team", () => {
     expect(cfbdItemIdentity("recruiting", { id: 7 }).team).toBeNull();

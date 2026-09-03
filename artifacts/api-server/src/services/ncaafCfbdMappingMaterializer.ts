@@ -3,7 +3,7 @@ import { db, ncaafCfbdDomainEvidenceTable, ncaafCfbdGameMappingsTable, ncaafCfbd
 import { cfbdPayloadHash } from "./collegeFootballData";
 import { decideCfbdGameMapping, decideCfbdTeamMapping } from "./ncaafCfbdIdentity";
 
-/** Reconciles only explicit provider IDs and exact supplied school names. */
+/** Reconciles only mechanically-normalized exact identities; never fuzzy names. */
 export async function materializeCurrentCfbdMappings(season: number, capturedAt = new Date()): Promise<{ teams: number; games: number }> {
   const [rows, teamLedger] = await Promise.all([
     db.select().from(ncaafGameEvidenceTable).where(eq(ncaafGameEvidenceTable.season, season)),
@@ -34,21 +34,25 @@ export async function materializeCurrentCfbdMappings(season: number, capturedAt 
   const ledgerTeams = [...currentLedgerTeams.values()].map((row) => {
     const payload = row.payload as Record<string, unknown>;
     return { id: row.cfbdTeamId!, school: typeof payload.school === "string" ? payload.school : undefined,
+      mascot: typeof payload.mascot === "string" ? payload.mascot : undefined,
       conference: typeof payload.conference === "string" ? payload.conference : undefined,
       classification: typeof payload.classification === "string" ? payload.classification : undefined };
   });
   // The teams endpoint is the authoritative CFBD team ledger. Only use game
   // display names when that ledger has not been captured for this season.
   const cfbdTeams = ledgerTeams.length ? ledgerTeams : [...new Map(cfbd.flatMap((game) => [
-    game.homeProviderTeamId ? { id: game.homeProviderTeamId, school: game.homeTeamName ?? undefined } : null,
-    game.awayProviderTeamId ? { id: game.awayProviderTeamId, school: game.awayTeamName ?? undefined } : null,
-  ]).filter((team): team is { id: string; school: string | undefined } => team != null)
+    game.homeProviderTeamId ? { id: game.homeProviderTeamId, school: game.homeTeamName ?? undefined, mascot: undefined } : null,
+    game.awayProviderTeamId ? { id: game.awayProviderTeamId, school: game.awayTeamName ?? undefined, mascot: undefined } : null,
+  ]).filter((team): team is { id: string; school: string | undefined; mascot: undefined } => team != null)
     .map((team) => [team.id, team])).values()];
   const mappedTeams = new Map<string, string | null>();
   for (const team of cfbdTeams) {
       const decision = decideCfbdTeamMapping(team, candidates);
       mappedTeams.set(team.id, decision.state === "MAPPED" ? decision.canonicalTeamId : null);
-      const evidence = { cfbdTeamId: team.id, school: team.school ?? null, decision };
+       const evidence = {
+         cfbdTeamId: team.id, school: team.school ?? null, mascot: team.mascot ?? null,
+         mappingMethod: decision.mappingMethod, confidence: decision.confidence, reviewStatus: decision.reviewStatus, decision,
+       };
       const inserted = await db.insert(ncaafCfbdTeamMappingsTable).values({
         cfbdTeamId: team.id, season, canonicalProvider: decision.canonicalProvider, canonicalTeamId: decision.canonicalTeamId,
         state: decision.state, reason: decision.reason, evidence, payloadHash: cfbdPayloadHash(evidence), capturedAt,
@@ -62,7 +66,10 @@ export async function materializeCurrentCfbdMappings(season: number, capturedAt 
     const away = game.awayProviderTeamId ? mappedTeams.get(game.awayProviderTeamId) ?? null : null;
     const decision = decideCfbdGameMapping({ id: game.providerEventId, homeCanonicalTeamId: home, awayCanonicalTeamId: away, kickoffAt: game.kickoffAt, neutralSite: game.neutralSite },
       espn.map((candidate) => ({ provider: "espn", eventId: candidate.providerEventId, homeTeamId: candidate.homeProviderTeamId!, awayTeamId: candidate.awayProviderTeamId!, kickoffAt: candidate.kickoffAt!, neutralSite: candidate.neutralSite })));
-    const evidence = { cfbdGameId: game.providerEventId, homeCfbdTeamId: game.homeProviderTeamId, awayCfbdTeamId: game.awayProviderTeamId, decision };
+    const evidence = {
+      cfbdGameId: game.providerEventId, homeCfbdTeamId: game.homeProviderTeamId, awayCfbdTeamId: game.awayProviderTeamId,
+      mappingMethod: decision.mappingMethod, confidence: decision.confidence, reviewStatus: decision.reviewStatus, decision,
+    };
     const inserted = await db.insert(ncaafCfbdGameMappingsTable).values({
       cfbdGameId: game.providerEventId, season, canonicalProvider: decision.canonicalProvider, canonicalEventId: decision.canonicalEventId,
       state: decision.state, reason: decision.reason, evidence, payloadHash: cfbdPayloadHash(evidence), capturedAt,

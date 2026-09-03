@@ -299,6 +299,27 @@ export async function reconcileStaleNcaafEvidenceRuns(
   return staleRuns.length;
 }
 
+/**
+ * Finalization is the lifecycle boundary for a durable evidence run. Retry a
+ * transient database failure before allowing the caller to surface it; stale
+ * reconciliation remains the last-resort recovery for process termination.
+ */
+export async function finalizeNcaafEvidenceRun(
+  finalize: () => Promise<unknown>,
+  attempts = 3,
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= Math.max(1, attempts); attempt++) {
+    try {
+      await finalize();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 /** Captures a single date without changing canonical games, predictions, picks,
  * grading, or ROI. Providers can fail independently and that failure is recorded
  * in the durable run coverage. */
@@ -604,14 +625,15 @@ async function captureNcaafEvidenceDateUnsafe(
     requestedDate,
     ...oddsGames.map((game) => requestedCalendarDate(safeProviderDate(game.commence_time)!)),
   ].sort();
-  await database.update(ncaafEvidenceRunsTable).set({
+   const finishedAt = dependencies.now?.() ?? new Date();
+   await finalizeNcaafEvidenceRun(() => database.update(ncaafEvidenceRunsTable).set({
     requestedTo: capturedCalendarDates.at(-1) ?? requestedDate,
-    status, coverage, errorDetails: partialReasons.length ? { providerErrors, partialReasons } : null, completedAt: now,
+     status, coverage, errorDetails: partialReasons.length ? { providerErrors, partialReasons } : null, completedAt: finishedAt,
     statusHistory: [{ status: "running", reason: "capture_started", at: now.toISOString() }, {
       status, reason: status === "completed" ? "capture_completed" : "capture_finalized_with_partial_evidence",
-      at: now.toISOString(), partialReasons,
+       at: finishedAt.toISOString(), partialReasons,
     }],
-  }).where(eq(ncaafEvidenceRunsTable.id, run.id));
+   }).where(eq(ncaafEvidenceRunsTable.id, run.id)));
   return {
     runId: run?.id, games: espnGames.length, markets, matchedMarkets,
     missingEntityObservations, teamPerformanceRows, skippedTeamPerformanceRows, providerErrors,
@@ -621,14 +643,15 @@ async function captureNcaafEvidenceDateUnsafe(
       code: "capture_exception",
       message: error instanceof Error ? error.message : String(error),
     };
-    await database.update(ncaafEvidenceRunsTable).set({
-      status: "failed", completedAt: now,
+     const failedAt = dependencies.now?.() ?? new Date();
+     await finalizeNcaafEvidenceRun(() => database.update(ncaafEvidenceRunsTable).set({
+       status: "failed", completedAt: failedAt,
       coverage: { games: 0, markets: 0, matchedMarkets: 0, unmatchedMarkets: 0, partialReasons: [reason] },
       errorDetails: { partialReasons: [reason] },
       statusHistory: [{ status: "running", reason: "capture_started", at: now.toISOString() }, {
-        status: "failed", reason: "capture_exception", at: now.toISOString(), partialReasons: [reason],
+         status: "failed", reason: "capture_exception", at: failedAt.toISOString(), partialReasons: [reason],
       }],
-    }).where(eq(ncaafEvidenceRunsTable.id, run.id));
+     }).where(eq(ncaafEvidenceRunsTable.id, run.id)));
     throw error;
   }
 }

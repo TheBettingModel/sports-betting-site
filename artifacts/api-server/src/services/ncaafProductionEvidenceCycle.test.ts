@@ -85,7 +85,7 @@ describe("NCAAF production evidence cycle", () => {
         if (featureCalls === 1) throw new Error("bad event evidence");
         return { id: 2, snapshot: {}, inputHash: "x" };
       }) as never,
-      createIntelligenceSnapshot: (async () => ({ id: 3, snapshot: {}, inputHash: "x" })) as never,
+      createIntelligenceSnapshot: (async () => ({ id: 3, snapshot: {}, inputHash: "x", persistence: "inserted" })) as never,
       cohortStore: {
         getFeatureSnapshot: async () => undefined,
         getAssignment: async () => ({}) as any,
@@ -102,7 +102,7 @@ describe("NCAAF production evidence cycle", () => {
     expect(result.gameFailures).toHaveLength(1);
   });
 
-  it("creates both snapshots and assigns final only in its pre-kickoff window", async () => {
+  it("reports processed versus persisted snapshots and assigns blocked intelligence in the strict pre-kickoff window", async () => {
     let final = 0;
     const run = createNcaafProductionEvidenceCycle({
       now: () => now, reconcile: async () => 0, acquireGlobalLock: globalLock,
@@ -110,15 +110,59 @@ describe("NCAAF production evidence cycle", () => {
       captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
       listUpcomingGames: async () => [game], cohortStore: store(),
       createFeatureSnapshot: (async () => ({ id: 1, snapshot: {}, inputHash: "x" })) as never,
-      createIntelligenceSnapshot: (async () => ({ id: 2, snapshot: {}, inputHash: "x" })) as never,
+      createIntelligenceSnapshot: (async () => ({
+        id: 2, snapshot: { readiness: { state: "BLOCKED" } }, inputHash: "x", persistence: "deduped",
+      })) as never,
       assignLiveShadow: (async () => ({})) as never,
       assignFinalPregame: (async () => { final++; return {}; }) as never,
     });
     const result = await run();
     expect(result.featureSnapshots).toBe(1);
     expect(result.intelligenceSnapshots).toBe(1);
+    expect(result.intelligenceSnapshotsInserted).toBe(0);
+    expect(result.intelligenceSnapshotsDeduped).toBe(1);
     expect(result.finalPregameAssignments).toBe(1);
     expect(final).toBe(1);
+  });
+
+  it("counts inserted intelligence separately while preserving the processed total", async () => {
+    const run = createNcaafProductionEvidenceCycle({
+      now: () => now, reconcile: async () => 0, acquireGlobalLock: globalLock,
+      captureCurrent: async () => ({ games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }),
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
+      listUpcomingGames: async () => [game],
+      createFeatureSnapshot: (async () => ({ id: 1, snapshot: {}, inputHash: "x" })) as never,
+      createIntelligenceSnapshot: (async () => ({ id: 2, snapshot: {}, inputHash: "x", persistence: "inserted" })) as never,
+      cohortStore: {
+        getFeatureSnapshot: async () => undefined,
+        getAssignment: async () => ({}) as any,
+        insertAssignment: async () => ({}) as any,
+      },
+    });
+    const result = await run();
+    expect(result.intelligenceSnapshots).toBe(1);
+    expect(result.intelligenceSnapshotsInserted).toBe(1);
+    expect(result.intelligenceSnapshotsDeduped).toBe(0);
+  });
+
+  it("logs lock release failures without masking the result or leaving local single-flight stuck", async () => {
+    let acquisitions = 0;
+    const errors: unknown[] = [];
+    const run = createNcaafProductionEvidenceCycle({
+      now: () => now, reconcile: async () => 0,
+      acquireGlobalLock: async () => {
+        acquisitions++;
+        return async () => { throw new Error("unlock failed"); };
+      },
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
+      captureCurrent: async () => ({ games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }),
+      listUpcomingGames: async () => [],
+      log: { info: () => {}, warn: () => {}, error: (value: unknown) => { errors.push(value); } },
+    });
+    expect((await run()).skipped).toBe(false);
+    expect((await run()).skipped).toBe(false);
+    expect(acquisitions).toBe(2);
+    expect(errors).toHaveLength(2);
   });
 
   it("bootstrap captures bounded completed performance dates without cohorts", async () => {

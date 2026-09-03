@@ -14,6 +14,7 @@ import {
   summarizeNcaafRunStates,
   matchNcaafMarketIdentity,
   runNcaafEvidenceSingleFlight,
+  finalizeNcaafEvidenceRun,
 } from "./ncaafEvidenceLedger";
 import type { FetchedGame } from "./espn";
 
@@ -161,6 +162,15 @@ describe("NCAAF evidence ledger helpers", () => {
     expect(calls).toBe(1);
     release?.();
     await expect(Promise.all([first, second])).resolves.toEqual([{ runId: 7 }, { runId: 7 }]);
+  });
+
+  it("retries durable evidence-run finalization after transient failures", async () => {
+    let attempts = 0;
+    await finalizeNcaafEvidenceRun(async () => {
+      attempts++;
+      if (attempts < 3) throw new Error("temporary finalization failure");
+    });
+    expect(attempts).toBe(3);
   });
 
   it("only links exact or known unambiguous market identities", () => {

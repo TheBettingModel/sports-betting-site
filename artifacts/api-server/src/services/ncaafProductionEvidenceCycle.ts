@@ -58,6 +58,8 @@ export interface NcaafProductionEvidenceCycleResult {
   gamesFound: number;
   featureSnapshots: number;
   intelligenceSnapshots: number;
+  intelligenceSnapshotsInserted: number;
+  intelligenceSnapshotsDeduped: number;
   liveShadowAssignments: number;
   finalPregameAssignments: number;
   gameFailures: Array<{ provider: string; eventId: string; cause: string }>;
@@ -146,7 +148,8 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
     const empty = (): NcaafProductionEvidenceCycleResult => ({
       skipped: false, staleRunsReconciled: 0, capture: null, captureCause: null,
       cfbdCapture: null, cfbdCaptureCause: null, gamesFound: 0,
-      featureSnapshots: 0, intelligenceSnapshots: 0, liveShadowAssignments: 0,
+      featureSnapshots: 0, intelligenceSnapshots: 0,
+      intelligenceSnapshotsInserted: 0, intelligenceSnapshotsDeduped: 0, liveShadowAssignments: 0,
       finalPregameAssignments: 0, gameFailures: [],
     });
     if (running) {
@@ -259,6 +262,8 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
             kickoffAt: game.kickoffAt, homeTeamId: game.homeTeamId, awayTeamId: game.awayTeamId, venue: game.venue,
           }, snapshotAt);
           result.intelligenceSnapshots++;
+          if (intelligence.persistence === "inserted") result.intelligenceSnapshotsInserted++;
+          else result.intelligenceSnapshotsDeduped++;
           const input = {
             featureSnapshotId: feature.id, footballIntelligenceSnapshotId: intelligence.id,
             provider: game.provider, eventId: game.eventId, season: game.season, week: game.week,
@@ -286,8 +291,13 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
       log.info(result, "NCAAF production evidence cycle completed");
       return result;
     } finally {
-      if (releaseGlobalLock) await releaseGlobalLock();
-      running = false;
+      try {
+        if (releaseGlobalLock) await releaseGlobalLock();
+      } catch (error) {
+        log.error({ error }, "NCAAF production evidence cycle global lock release failed");
+      } finally {
+        running = false;
+      }
     }
   };
 }

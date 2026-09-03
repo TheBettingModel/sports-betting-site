@@ -286,7 +286,12 @@ export async function loadPriorNcaafTeamPerformance(
  */
 export async function createNcaafFootballIntelligenceSnapshot(
   target: NcaafIntelligenceTarget, dataCutoffAt: Date,
-): Promise<{ id: number; snapshot: NcaafFootballIntelligenceSnapshotValue; inputHash: string }> {
+): Promise<{
+  id: number;
+  snapshot: NcaafFootballIntelligenceSnapshotValue;
+  inputHash: string;
+  persistence: "inserted" | "deduped";
+}> {
   const rows = await loadPriorNcaafTeamPerformance(target, dataCutoffAt);
   const suppliedDomains = await loadSafeCfbdDomains(target, dataCutoffAt);
   const enrichedTarget = { ...target, suppliedDomains: {
@@ -312,7 +317,7 @@ export async function createNcaafFootballIntelligenceSnapshot(
     ON CONFLICT (schema_version, target_provider, target_event_id, data_cutoff_at, input_hash) DO NOTHING
     RETURNING id`);
   const inserted = (result as unknown as { rows: Array<{ id: number }> }).rows[0];
-  if (inserted) return { id: inserted.id, snapshot, inputHash };
+  if (inserted) return { id: inserted.id, snapshot, inputHash, persistence: "inserted" };
   const existing = await db.execute(sql`
     SELECT id FROM ncaaf_football_intelligence_snapshots
     WHERE schema_version = ${NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION}
@@ -320,7 +325,7 @@ export async function createNcaafFootballIntelligenceSnapshot(
       AND data_cutoff_at = ${dataCutoffAt} AND input_hash = ${inputHash} LIMIT 1`);
   const id = (existing as unknown as { rows: Array<{ id: number }> }).rows[0]?.id;
   if (id == null) throw new Error("Unable to idempotently persist NCAAF intelligence snapshot");
-  return { id, snapshot, inputHash };
+  return { id, snapshot, inputHash, persistence: "deduped" };
 }
 
 /**
