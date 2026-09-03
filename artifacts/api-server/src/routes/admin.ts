@@ -48,6 +48,8 @@ import {
   ncaafEvaluationsTable,
   ncaafWalkForwardRunsTable,
   ncaafPromotionDecisionsTable,
+  ncaafTeamGamePerformanceTable,
+  ncaafPregameCohortAssignmentsTable,
   publishedPickPerformanceClassificationsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
@@ -101,6 +103,10 @@ import {
   classifyRecommendationPublication,
   summarizeRecommendationPublication,
 } from "../services/recommendationPublicationAudit";
+import {
+  NCAAF_PROVIDER_CAPABILITIES,
+  getNcaafReadinessBlockers,
+} from "../services/ncaafProviderCapabilities";
 
 const router: IRouter = Router();
 
@@ -277,9 +283,20 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason))
       .slice(0, 10);
   };
+  const missingDomainCounts = (values: unknown[]) => {
+    const counts = new Map<string, number>();
+    for (const value of values) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      for (const domain of Object.keys(value as Record<string, unknown>)) {
+        counts.set(domain, (counts.get(domain) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()].map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count || a.domain.localeCompare(b.domain));
+  };
   const [
     legacyRows, featureRows, runRows, gameEvidence, entityEvidence, marketRows,
-    evaluations, walkForward, promotions,
+    evaluations, walkForward, promotions, cohorts, teamPerformance,
   ] = await Promise.all([
     db.select({
       pickId: publishedPicksTable.id,
@@ -319,6 +336,15 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
     db.select({ status: ncaafWalkForwardRunsTable.status }).from(ncaafWalkForwardRunsTable),
     db.select({ decision: ncaafPromotionDecisionsTable.decision, reasons: ncaafPromotionDecisionsTable.reasons })
       .from(ncaafPromotionDecisionsTable),
+    db.select({
+      cohortType: ncaafPregameCohortAssignmentsTable.cohortType,
+      targetEventId: ncaafPregameCohortAssignmentsTable.targetEventId,
+    }).from(ncaafPregameCohortAssignmentsTable),
+    db.select({
+      quality: ncaafTeamGamePerformanceTable.quality,
+      reliability: ncaafTeamGamePerformanceTable.reliability,
+      missingReasons: ncaafTeamGamePerformanceTable.missingReasons,
+    }).from(ncaafTeamGamePerformanceTable),
   ]);
 
   const legacyByPick = new Map<number, { classified: boolean; eligible: boolean; graded: boolean }>();
@@ -344,16 +370,41 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
     marketBreakdown.set(key, (marketBreakdown.get(key) ?? 0) + 1);
   }
   const evaluationExcluded = evaluations.filter((row) => row.exclusionReason != null).length;
+  const finalPregame = cohorts.filter((row) => row.cohortType === "FINAL_PREGAME").length;
+  const liveShadow = cohorts.filter((row) => row.cohortType === "LIVE_SHADOW").length;
+  const capabilityBlockers = getNcaafReadinessBlockers();
+  const performanceQuality = teamPerformance.filter((row) => row.quality != null);
+  const performanceReliability = teamPerformance.filter((row) => row.reliability != null);
+  const average = (values: Array<number | null>) => {
+    const present = values.filter((value): value is number => value != null && Number.isFinite(value));
+    return present.length ? present.reduce((sum, value) => sum + value, 0) / present.length : null;
+  };
+  const engineeringGates = {
+    cohortAssignmentsPersisted: finalPregame > 0 && liveShadow > 0,
+    providerCapabilitiesComplete: capabilityBlockers.length === 0,
+  };
+  const evidenceGates = {
+    readyFeatureSnapshots: readyFeatures > 0 && blockedFeatures === 0,
+    teamGamePerformance: teamPerformance.length > 0,
+    marketIdentityMatched: marketRows.length > 0 && marketRows.every((row) => row.isMatchedToGame),
+    noStaleRuns: staleRuns === 0,
+    noPointInTimeViolations: pitViolations === 0,
+  };
+  const engineeringReadyForV4 = Object.values(engineeringGates).every(Boolean);
+  const evidenceReadyForV4 = Object.values(evidenceGates).every(Boolean);
   const blockers = [
     ...(blockedFeatures > 0 ? [`${blockedFeatures} feature snapshot(s) are blocked`] : []),
     ...(staleRuns > 0 ? [`${staleRuns} evidence run(s) are stale and still marked running`] : []),
     ...(marketRows.some((row) => !row.isMatchedToGame) ? ["unmatched market evidence remains"] : []),
     ...(pitViolations > 0 ? [`${pitViolations} feature snapshot(s) violate the point-in-time cutoff`] : []),
-    "NCAAF does not yet persist FINAL_PREGAME or LIVE_SHADOW cohort membership.",
+    ...capabilityBlockers.map((blocker) => `${blocker.provider}:${blocker.capability} is ${blocker.state}/${blocker.pointInTimeState}`),
   ];
 
   res.json({
-    readyForV4: false,
+    engineeringReadyForV4,
+    evidenceReadyForV4,
+    readyForV4: engineeringReadyForV4 && evidenceReadyForV4,
+    gates: { engineering: engineeringGates, evidence: evidenceGates },
     blockers,
     legacyCohort: {
       total: legacyByPick.size,
@@ -375,6 +426,13 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       observedGames: gameEvidence.filter((row) => row.evidenceStatus === "observed").length,
       topMissingReasons: reasonCounts([...gameEvidence, ...entityEvidence].map((row) => row.missingReasons)),
     },
+    teamGamePerformance: {
+      rows: teamPerformance.length,
+      quality: { populated: performanceQuality.length, average: average(teamPerformance.map((row) => row.quality)) },
+      reliability: { populated: performanceReliability.length, average: average(teamPerformance.map((row) => row.reliability)) },
+      missingDomainCoverage: missingDomainCounts(teamPerformance.map((row) => row.missingReasons)),
+      topMissingReasons: reasonCounts(teamPerformance.map((row) => row.missingReasons)),
+    },
     marketEvidenceCoverage: {
       total: marketRows.length, matched: marketRows.filter((row) => row.isMatchedToGame).length,
       unmatched: marketRows.filter((row) => !row.isMatchedToGame).length,
@@ -384,7 +442,8 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       }).sort((a, b) => b.count - a.count),
       topMissingReasons: reasonCounts(marketRows.map((row) => row.missingReasons)),
     },
-    cohorts: { finalPregame: 0, liveShadow: 0, supported: false },
+    cohorts: { finalPregame, liveShadow, supported: true },
+    providerCapabilities: { inventory: NCAAF_PROVIDER_CAPABILITIES, blockers: capabilityBlockers },
     pointInTime: { violations: pitViolations },
     validation: {
       evaluations: { total: evaluations.length, excluded: evaluationExcluded, graded: evaluations.length - evaluationExcluded },
@@ -392,6 +451,100 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       promotions: { total: promotions.length, byDecision: Object.fromEntries(promotions.map((row) => [row.decision, promotions.filter((item) => item.decision === row.decision).length])), topReasons: reasonCounts(promotions.map((row) => row.reasons)) },
     },
     dataAsOf: now.toISOString(),
+  });
+});
+
+/** Per-event read-only evidence audit for the isolated NCAAF challenger. */
+router.get("/admin/ncaaf-readiness/:eventId", async (req, res): Promise<void> => {
+  const eventId = String(req.params.eventId ?? "").trim();
+  if (!eventId) { res.status(400).json({ error: "eventId is required" }); return; }
+  const games = await db.select({
+    id: ncaafGameEvidenceTable.id, provider: ncaafGameEvidenceTable.provider,
+    providerEventId: ncaafGameEvidenceTable.providerEventId, season: ncaafGameEvidenceTable.season,
+    week: ncaafGameEvidenceTable.week, kickoffAt: ncaafGameEvidenceTable.kickoffAt,
+    homeProviderTeamId: ncaafGameEvidenceTable.homeProviderTeamId,
+    awayProviderTeamId: ncaafGameEvidenceTable.awayProviderTeamId,
+    homeTeamName: ncaafGameEvidenceTable.homeTeamName, awayTeamName: ncaafGameEvidenceTable.awayTeamName,
+    evidenceStatus: ncaafGameEvidenceTable.evidenceStatus,
+    missingReasons: ncaafGameEvidenceTable.missingReasons,
+    modeledAsOf: ncaafGameEvidenceTable.modeledAsOf, capturedAt: ncaafGameEvidenceTable.capturedAt,
+  }).from(ncaafGameEvidenceTable)
+    .where(eq(ncaafGameEvidenceTable.providerEventId, eventId))
+    .orderBy(desc(ncaafGameEvidenceTable.capturedAt));
+  if (!games.length) { res.status(404).json({ error: "NCAAF evidence event not found" }); return; }
+
+  const gameIds = games.map((game) => game.id);
+  const [features, cohorts, performance, markets] = await Promise.all([
+    db.select({
+      id: ncaafFeatureSnapshotsTable.id, schemaVersion: ncaafFeatureSnapshotsTable.schemaVersion,
+      modelVersion: ncaafFeatureSnapshotsTable.modelVersion, targetProvider: ncaafFeatureSnapshotsTable.targetProvider,
+      targetEventId: ncaafFeatureSnapshotsTable.targetEventId, dataCutoffAt: ncaafFeatureSnapshotsTable.dataCutoffAt,
+      evidenceMaxModeledAsOf: ncaafFeatureSnapshotsTable.evidenceMaxModeledAsOf,
+      quality: ncaafFeatureSnapshotsTable.quality, createdAt: ncaafFeatureSnapshotsTable.createdAt,
+    }).from(ncaafFeatureSnapshotsTable).where(eq(ncaafFeatureSnapshotsTable.targetEventId, eventId))
+      .orderBy(desc(ncaafFeatureSnapshotsTable.createdAt)),
+    db.select({
+      cohortType: ncaafPregameCohortAssignmentsTable.cohortType,
+      featureSnapshotId: ncaafPregameCohortAssignmentsTable.featureSnapshotId,
+      featureSchemaVersion: ncaafPregameCohortAssignmentsTable.featureSchemaVersion,
+      cutoffAt: ncaafPregameCohortAssignmentsTable.cutoffAt,
+      assignmentAt: ncaafPregameCohortAssignmentsTable.assignmentAt,
+      quality: ncaafPregameCohortAssignmentsTable.quality,
+      missingReasons: ncaafPregameCohortAssignmentsTable.missingReasons,
+    }).from(ncaafPregameCohortAssignmentsTable)
+      .where(eq(ncaafPregameCohortAssignmentsTable.targetEventId, eventId)),
+    db.select({
+      provider: ncaafTeamGamePerformanceTable.provider,
+      providerTeamId: ncaafTeamGamePerformanceTable.providerTeamId,
+      quality: ncaafTeamGamePerformanceTable.quality, reliability: ncaafTeamGamePerformanceTable.reliability,
+      missingReasons: ncaafTeamGamePerformanceTable.missingReasons,
+      capturedAt: ncaafTeamGamePerformanceTable.capturedAt,
+    }).from(ncaafTeamGamePerformanceTable)
+      .where(eq(ncaafTeamGamePerformanceTable.providerEventId, eventId)),
+    db.select({
+      provider: ncaafMarketObservationsTable.provider, marketKey: ncaafMarketObservationsTable.marketKey,
+      isMatchedToGame: ncaafMarketObservationsTable.isMatchedToGame,
+      marketIdentityStatus: ncaafMarketObservationsTable.marketIdentityStatus,
+      marketIdentityReason: ncaafMarketObservationsTable.marketIdentityReason,
+      missingReasons: ncaafMarketObservationsTable.missingReasons,
+      capturedAt: ncaafMarketObservationsTable.capturedAt,
+    }).from(ncaafMarketObservationsTable)
+      .where(inArray(ncaafMarketObservationsTable.gameEvidenceId, gameIds)),
+  ]);
+  const featureReady = features.some((feature) => (feature.quality as Record<string, unknown>).status === "ready");
+  const pitViolations = features.filter((feature) =>
+    feature.evidenceMaxModeledAsOf != null && feature.evidenceMaxModeledAsOf > feature.dataCutoffAt).length;
+  const cohortTypes = new Set(cohorts.map((cohort) => cohort.cohortType));
+  const marketMatched = markets.length > 0 && markets.every((market) => market.isMatchedToGame);
+  const capabilityBlockers = getNcaafReadinessBlockers();
+  const evidenceReadyForV4 = featureReady && cohortTypes.has("FINAL_PREGAME")
+    && cohortTypes.has("LIVE_SHADOW") && performance.length > 0 && marketMatched && pitViolations === 0;
+  const engineeringReadyForV4 = capabilityBlockers.length === 0;
+  res.json({
+    eventId,
+    canonicalIdentity: games[0],
+    sportsEvidence: games,
+    featureSnapshots: features,
+    cohorts,
+    teamGamePerformance: {
+      rows: performance.length, rowsByQuality: performance,
+    },
+    marketMatch: {
+      total: markets.length, matched: markets.filter((market) => market.isMatchedToGame).length,
+      unmatched: markets.filter((market) => !market.isMatchedToGame).length, observations: markets,
+    },
+    missingReasons: {
+      sportsEvidence: games.map((game) => game.missingReasons),
+      cohorts: cohorts.map((cohort) => cohort.missingReasons),
+      teamGamePerformance: performance.map((row) => row.missingReasons),
+      marketEvidence: markets.map((market) => market.missingReasons),
+    },
+    quality: { featureReady, pointInTimeViolations: pitViolations },
+    engineeringReadyForV4,
+    evidenceReadyForV4,
+    readyForV4: engineeringReadyForV4 && evidenceReadyForV4,
+    blockers: capabilityBlockers,
+    dataAsOf: new Date().toISOString(),
   });
 });
 

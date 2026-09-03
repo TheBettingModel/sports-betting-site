@@ -183,6 +183,8 @@ export const adminApi = {
   recommendationPublicationAudit: () =>
     api.get<RecommendationPublicationAudit>("/admin/recommendation-publication-audit"),
   ncaafReadiness: () => api.get<NcaafReadiness>("/admin/ncaaf-readiness"),
+  ncaafReadinessEvent: (eventId: string) =>
+    api.get<NcaafEventReadiness>(`/admin/ncaaf-readiness/${encodeURIComponent(eventId)}`),
 };
 
 export const modelApi = {
@@ -237,7 +239,10 @@ export interface NcaafReasonCount {
 }
 
 export interface NcaafReadiness {
-  readyForV4: false;
+  engineeringReadyForV4: boolean;
+  evidenceReadyForV4: boolean;
+  readyForV4: boolean;
+  gates: { engineering: Record<string, boolean>; evidence: Record<string, boolean> };
   blockers: string[];
   legacyCohort: { total: number; classified: number; graded: number; pending: number; officialExcluded: number };
   featureSnapshots: { total: number; ready: number; blocked: number; topBlockedReasons: NcaafReasonCount[] };
@@ -255,18 +260,46 @@ export interface NcaafReadiness {
     gameEvidenceRows: number; entityObservationRows: number; observedGames: number;
     topMissingReasons: NcaafReasonCount[];
   };
+  teamGamePerformance: {
+    rows: number;
+    quality: { populated: number; average: number | null };
+    reliability: { populated: number; average: number | null };
+    missingDomainCoverage: Array<{ domain: string; count: number }>;
+    topMissingReasons: NcaafReasonCount[];
+  };
   marketEvidenceCoverage: {
     total: number; matched: number; unmatched: number;
     byIdentity: Array<{ marketIdentityStatus: string; marketIdentityReason: string; count: number }>;
     topMissingReasons: NcaafReasonCount[];
   };
   cohorts: { finalPregame: number; liveShadow: number; supported: boolean };
+  providerCapabilities: {
+    inventory: Array<{ provider: string; capability: string; state: string; pointInTimeState: string; evidence: string; requiredProvider?: string }>;
+    blockers: Array<{ provider: string; capability: string; state: string; pointInTimeState: string; reason: string; requiredProvider?: string }>;
+  };
   pointInTime: { violations: number };
   validation: {
     evaluations: { total: number; excluded: number; graded: number };
     walkForward: { total: number; byStatus: Record<string, number> };
     promotions: { total: number; byDecision: Record<string, number>; topReasons: NcaafReasonCount[] };
   };
+  dataAsOf: string;
+}
+
+export interface NcaafEventReadiness {
+  eventId: string;
+  canonicalIdentity: Record<string, unknown>;
+  sportsEvidence: Array<Record<string, unknown>>;
+  featureSnapshots: Array<Record<string, unknown>>;
+  cohorts: Array<Record<string, unknown>>;
+  teamGamePerformance: { rows: number; rowsByQuality: Array<Record<string, unknown>> };
+  marketMatch: { total: number; matched: number; unmatched: number; observations: Array<Record<string, unknown>> };
+  missingReasons: Record<string, unknown[]>;
+  quality: { featureReady: boolean; pointInTimeViolations: number };
+  engineeringReadyForV4: boolean;
+  evidenceReadyForV4: boolean;
+  readyForV4: boolean;
+  blockers: Array<Record<string, unknown>>;
   dataAsOf: string;
 }
 

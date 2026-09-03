@@ -573,9 +573,9 @@ function NcaafReadinessPanel({ readiness, isLoading }: {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-foreground">NCAAF Readiness — Admin Evidence Surface</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Read-only challenger evidence and validation observability. V4 is not ready.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Read-only challenger evidence and validation observability.</p>
         </div>
-        <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-400">READY FOR V4: NO</span>
+        <span className={`rounded border px-2 py-1 text-xs font-semibold ${readiness.readyForV4 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-amber-500/30 bg-amber-500/10 text-amber-400"}`}>READY FOR V4: {readiness.readyForV4 ? "YES" : "NO"}</span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <div className="rounded bg-background/50 p-2"><b>Legacy</b><br />{readiness.legacyCohort.graded}/{readiness.legacyCohort.total} graded · {readiness.legacyCohort.officialExcluded} excluded</div>
@@ -587,7 +587,7 @@ function NcaafReadinessPanel({ readiness, isLoading }: {
         <div className="rounded border border-border p-2"><b className="text-foreground">Blockers</b><p className="mt-1 text-amber-400">{readiness.blockers.join(" · ")}</p></div>
         <div className="rounded border border-border p-2"><b className="text-foreground">PIT / cohorts / validation</b><p className="mt-1 text-muted-foreground">PIT violations: {readiness.pointInTime.violations} · FINAL_PREGAME: {readiness.cohorts.finalPregame} · LIVE_SHADOW: {readiness.cohorts.liveShadow} · evaluations: {readiness.validation.evaluations.total} · walk-forward: {readiness.validation.walkForward.total} · promotions: {readiness.validation.promotions.total}</p></div>
         <div className="rounded border border-border p-2"><b className="text-foreground">Sports evidence</b><p className="mt-1 text-muted-foreground">{readiness.sportsEvidenceCoverage.gameEvidenceRows} game rows · {readiness.sportsEvidenceCoverage.entityObservationRows} entity rows</p><p className="mt-1 text-muted-foreground">{reasons(readiness.sportsEvidenceCoverage.topMissingReasons)}</p></div>
-        <div className="rounded border border-border p-2"><b className="text-foreground">Top feature blockers</b><p className="mt-1 text-muted-foreground">{reasons(readiness.featureSnapshots.topBlockedReasons)}</p><p className="mt-1 text-muted-foreground">Market unmatched: {readiness.marketEvidenceCoverage.unmatched}</p></div>
+        <div className="rounded border border-border p-2"><b className="text-foreground">Performance / provider gates</b><p className="mt-1 text-muted-foreground">{readiness.teamGamePerformance.rows} performance rows · quality {readiness.teamGamePerformance.quality.average?.toFixed(2) ?? "—"} · reliability {readiness.teamGamePerformance.reliability.average?.toFixed(2) ?? "—"}</p><p className="mt-1 text-muted-foreground">Engineering: {readiness.engineeringReadyForV4 ? "ready" : "blocked"} · Evidence: {readiness.evidenceReadyForV4 ? "ready" : "blocked"} · provider blockers: {readiness.providerCapabilities.blockers.length}</p></div>
       </div>
     </section>
   );

@@ -162,6 +162,25 @@ paths:
                 $ref: "#/components/schemas/NcaafReadiness"
         "401": { description: Administrator credentials required }
 
+  /admin/ncaaf-readiness/{eventId}:
+    get:
+      operationId: getAdminNcaafEventReadiness
+      tags: [admin]
+      summary: Get read-only NCAAF evidence readiness for one canonical provider event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Per-event NCAAF evidence, cohort, feature, performance, and market-match audit
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NcaafEventReadiness" }
+        "401": { description: Administrator credentials required }
+        "404": { description: NCAAF evidence event not found }
+
   /admin/market-comparisons:
     get:
       operationId: getAdminMarketComparisons
@@ -682,9 +701,12 @@ components:
         count: { type: integer, minimum: 0 }
     NcaafReadiness:
       type: object
-      required: [readyForV4, blockers, legacyCohort, featureSnapshots, evidenceRuns, sportsEvidenceCoverage, marketEvidenceCoverage, cohorts, pointInTime, validation, dataAsOf]
+      required: [engineeringReadyForV4, evidenceReadyForV4, readyForV4, gates, blockers, legacyCohort, featureSnapshots, evidenceRuns, sportsEvidenceCoverage, teamGamePerformance, marketEvidenceCoverage, cohorts, providerCapabilities, pointInTime, validation, dataAsOf]
       properties:
-        readyForV4: { type: boolean, enum: [false] }
+        engineeringReadyForV4: { type: boolean }
+        evidenceReadyForV4: { type: boolean }
+        readyForV4: { type: boolean }
+        gates: { type: object, additionalProperties: true }
         blockers:
           type: array
           items: { type: string }
@@ -718,6 +740,7 @@ components:
               type: array
               items: { type: object, additionalProperties: true }
         sportsEvidenceCoverage: { type: object, additionalProperties: true }
+        teamGamePerformance: { type: object, additionalProperties: true }
         marketEvidenceCoverage: { type: object, additionalProperties: true }
         cohorts:
           type: object
@@ -726,12 +749,31 @@ components:
             finalPregame: { type: integer }
             liveShadow: { type: integer }
             supported: { type: boolean }
+        providerCapabilities: { type: object, additionalProperties: true }
         pointInTime:
           type: object
           required: [violations]
           properties:
             violations: { type: integer }
         validation: { type: object, additionalProperties: true }
+        dataAsOf: { type: string, format: date-time }
+    NcaafEventReadiness:
+      type: object
+      required: [eventId, canonicalIdentity, sportsEvidence, featureSnapshots, cohorts, teamGamePerformance, marketMatch, missingReasons, quality, engineeringReadyForV4, evidenceReadyForV4, readyForV4, blockers, dataAsOf]
+      properties:
+        eventId: { type: string }
+        canonicalIdentity: { type: object, additionalProperties: true }
+        sportsEvidence: { type: array, items: { type: object, additionalProperties: true } }
+        featureSnapshots: { type: array, items: { type: object, additionalProperties: true } }
+        cohorts: { type: array, items: { type: object, additionalProperties: true } }
+        teamGamePerformance: { type: object, additionalProperties: true }
+        marketMatch: { type: object, additionalProperties: true }
+        missingReasons: { type: object, additionalProperties: true }
+        quality: { type: object, additionalProperties: true }
+        engineeringReadyForV4: { type: boolean }
+        evidenceReadyForV4: { type: boolean }
+        readyForV4: { type: boolean }
+        blockers: { type: array, items: { type: object, additionalProperties: true } }
         dataAsOf: { type: string, format: date-time }
     MarketApprovalDecisionInput:
       type: object

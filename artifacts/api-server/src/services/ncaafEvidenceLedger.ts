@@ -7,11 +7,13 @@ import {
   ncaafEvidenceRunsTable,
   ncaafGameEvidenceTable,
   ncaafMarketObservationsTable,
+  ncaafTeamGamePerformanceTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { processInBatches } from "./schedulerRuntime";
 import { fetchSportGamesByDate, type FetchedGame } from "./espn";
 import { fetchCurrentNcaafEvidenceOdds, type OddsApiGame } from "./oddsApi";
+import { normalizeEspnScoreboardPerformance } from "./ncaafFootballIntelligence";
 
 export const MAX_NCAAF_BACKFILL_DAYS = 31;
 const UNAVAILABLE_BOOKMAKER_ID = "__unavailable__";
@@ -254,6 +256,8 @@ export interface EvidenceCaptureResult {
   markets: number;
   matchedMarkets: number;
   missingEntityObservations: number;
+  teamPerformanceRows: number;
+  skippedTeamPerformanceRows: number;
   providerErrors: Record<string, string>;
 }
 
@@ -362,6 +366,7 @@ async function captureNcaafEvidenceDateUnsafe(
   const espnGames = [...espnGamesById.values()];
   const gameEvidenceIds = new Map<string, number>();
   let markets = 0; let matchedMarkets = 0; let missingEntityObservations = 0;
+  let teamPerformanceRows = 0; let skippedTeamPerformanceRows = 0;
 
   for (const game of espnGames) {
     const evidence = normalizeEspnGameEvidence(game, now, now);
@@ -384,6 +389,50 @@ async function captureNcaafEvidenceDateUnsafe(
         eq(ncaafGameEvidenceTable.payloadHash, stablePayloadHash(evidence.payload)),
       )).limit(1))[0]?.id;
     if (gameEvidenceId != null) gameEvidenceIds.set(game.espnId, gameEvidenceId);
+    for (const performance of normalizeEspnScoreboardPerformance(game, now)) {
+      if (!performance.providerTeamId || !performance.providerOpponentTeamId) {
+        skippedTeamPerformanceRows++;
+        continue;
+      }
+      const insertedPerformance = await database.insert(ncaafTeamGamePerformanceTable).values({
+        schemaVersion: "ncaaf-team-game-performance-v1",
+        provider: performance.provider,
+        providerEventId: performance.providerEventId,
+        providerTeamId: performance.providerTeamId,
+        providerOpponentTeamId: performance.providerOpponentTeamId,
+        season: performance.season,
+        week: performance.week,
+        kickoffAt: performance.kickoffAt,
+        teamLocation: performance.teamLocation,
+        competitionClassification: performance.competitionClassification,
+        pointsFor: performance.pointsFor,
+        pointsAgainst: performance.pointsAgainst,
+        halftimePointsFor: performance.halftimePointsFor,
+        halftimePointsAgainst: performance.halftimePointsAgainst,
+        overtimePeriods: performance.overtimePeriods,
+        possessions: performance.possessions,
+        offensivePlays: performance.offensivePlays,
+        yardsFor: performance.yardsFor,
+        yardsAgainst: performance.yardsAgainst,
+        turnoversCommitted: performance.turnoversCommitted,
+        turnoversForced: performance.turnoversForced,
+        penalties: performance.penalties,
+        penaltyYards: performance.penaltyYards,
+        timeOfPossessionSeconds: performance.timeOfPossessionSeconds,
+        fieldGoalAttempts: performance.fieldGoalAttempts,
+        fieldGoalsMade: performance.fieldGoalsMade,
+        derivedMetrics: performance.derivedMetrics,
+        quality: performance.quality,
+        reliability: performance.reliability,
+        missingFields: performance.missingFields,
+        missingReasons: performance.missingReasons,
+        providerObservedAt: now,
+        capturedAt: now,
+        payloadHash: performance.payloadHash,
+        provenance: performance.provenance,
+      }).onConflictDoNothing().returning({ id: ncaafTeamGamePerformanceTable.id });
+      if (insertedPerformance.length > 0) teamPerformanceRows++;
+    }
     const teams = [
       {
         id: game.homeTeamId ?? `unmapped:home:${game.espnId}`,
@@ -511,7 +560,8 @@ async function captureNcaafEvidenceDateUnsafe(
     (espnGames.length || oddsGames.length) ? "partial" : "failed";
   const coverage = {
     games: espnGames.length, markets, matchedMarkets, unmatchedMarkets: markets - matchedMarkets,
-    missingEntityObservations, providerErrors, partialReasons,
+    missingEntityObservations, teamPerformanceRows, skippedTeamPerformanceRows,
+    providerErrors, partialReasons,
     providerLimitations: isHistoricalRequest ? {
       markets: "current Odds API endpoint is not historical",
       players: "no historical player provider is configured",
@@ -530,7 +580,10 @@ async function captureNcaafEvidenceDateUnsafe(
       at: now.toISOString(), partialReasons,
     }],
   }).where(eq(ncaafEvidenceRunsTable.id, run.id));
-  return { runId: run?.id, games: espnGames.length, markets, matchedMarkets, missingEntityObservations, providerErrors };
+  return {
+    runId: run?.id, games: espnGames.length, markets, matchedMarkets,
+    missingEntityObservations, teamPerformanceRows, skippedTeamPerformanceRows, providerErrors,
+  };
   } catch (error) {
     const reason = {
       code: "capture_exception",

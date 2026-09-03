@@ -44,6 +44,12 @@ import { sendStrongBuyNotification } from "./pushNotifications";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 import { captureCurrentNcaafEvidence } from "./ncaafEvidenceLedger";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
+import {
+  assignNcaafFinalPregameCohort,
+  assignNcaafLiveShadowCohort,
+  dbNcaafPregameCohortStore,
+  NCAAF_CURRENT_COLLECTION_VERSION,
+} from "./ncaafPregameCohorts";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
@@ -675,19 +681,52 @@ async function runOddsIngestion(): Promise<void> {
                 awayDbStats,
               }, mlbAvailability)
             : null;
-          const ncaafFeature = game.sport === "NCAAF" && new Date(game.commenceTimeISO) > new Date()
+          const ncaafSnapshotAt = new Date();
+          const ncaafKickoffAt = new Date(game.commenceTimeISO);
+          const ncaafFeature = game.sport === "NCAAF" && ncaafKickoffAt > ncaafSnapshotAt
             ? await createNcaafFeatureSnapshot({
                 provider: "espn",
                 eventId: game.espnId,
                 season: ncaafSeasonForDate(game.gameDate),
-                kickoffAt: new Date(game.commenceTimeISO),
+                kickoffAt: ncaafKickoffAt,
                 homeTeamId: game.homeTeamId ?? null,
                 awayTeamId: game.awayTeamId ?? null,
                 homeTeamName: game.homeTeamName,
                 awayTeamName: game.awayTeamName,
                 neutralSite: game.neutralSite,
-              }, new Date())
+              }, ncaafSnapshotAt)
             : null;
+          if (ncaafFeature) {
+            const cohortInput = {
+              featureSnapshotId: ncaafFeature.id,
+              provider: "espn",
+              eventId: game.espnId,
+              season: ncaafSeasonForDate(game.gameDate),
+              week: game.week ?? null,
+              kickoffAt: ncaafKickoffAt,
+              cutoffAt: ncaafSnapshotAt,
+              assignmentAt: ncaafSnapshotAt,
+              collectionVersion: NCAAF_CURRENT_COLLECTION_VERSION,
+              provenance: {
+                source: "odds-ingestion",
+                schedulerCadence: "30 minutes",
+                sportsEvidenceOnly: true,
+              },
+            };
+            const existingLive = await dbNcaafPregameCohortStore.getAssignment(
+              "LIVE_SHADOW", "espn", game.espnId,
+            );
+            if (!existingLive) {
+              await assignNcaafLiveShadowCohort(dbNcaafPregameCohortStore, cohortInput);
+            }
+            const minutesToKickoff = (ncaafKickoffAt.getTime() - ncaafSnapshotAt.getTime()) / 60_000;
+            const existingFinal = await dbNcaafPregameCohortStore.getAssignment(
+              "FINAL_PREGAME", "espn", game.espnId,
+            );
+            if (!existingFinal && minutesToKickoff <= 30) {
+              await assignNcaafFinalPregameCohort(dbNcaafPregameCohortStore, cohortInput);
+            }
+          }
           const ncaafRecommendationBlocked =
             game.sport === "NCAAF" && ncaafFeature?.snapshot.forecast.status !== "ready";
 

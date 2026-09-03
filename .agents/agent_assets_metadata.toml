@@ -64,3 +64,17 @@ mtime_ms = 1788448288909
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/506dd599-b376-48bb-93e4-53f0414473d9/f50c1566-c454-48ba-a36b-d39a8aca5bc4"
 storage_version_token = "1788448359011639"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "bUQEVXOtJxCjprfIgxq_u"
+uri = "file://reports/ncaaf-advanced-football-intelligence-2026-09-03.md"
+type = "text"
+title = "NCAAF Advanced Football Intelligence Report"
+description = "Full #221 audit with all 81 required sections and 48 completion answers."
+logical_id = "7bd1f4ef-eaa3-47cd-9035-fe5cc8669164"
+content_hash = "sha256:7f4325937c57aed0d1fbbe5a3df7a1b35757d3166dd28925a59dfb9cee653b42"
+size = 24350
+mtime_ms = 1788450431701
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7bd1f4ef-eaa3-47cd-9035-fe5cc8669164/1eb9185e-2a99-439a-abc4-b8d9d180a6a1"
+storage_version_token = "1788450521142749"
+content_type = "text/markdown"
