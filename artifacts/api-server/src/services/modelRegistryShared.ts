@@ -3,6 +3,7 @@ import type { modelVersionsTable } from "@workspace/db";
 
 export const PERMANENT_SHADOW_MODEL_IDS = new Set([
   "tbm-mlb-moneyline-v4",
+  "tbm-mlb-moneyline-v4-1",
 ]);
 
 export function isPermanentShadowModelId(modelId: string): boolean {

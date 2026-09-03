@@ -1,0 +1,1053 @@
+#212 — MLB V4.1 Run Model Diagnosis & Challenger Build
+
+#210 created MLB V4 as a permanently isolated shadow challenger.
+
+#211 performed the first historical point-in-time replay.
+
+#211 RESULTS:
+
+Clean PIT games: 79
+Snapshot revisions examined: 200
+Replay period: August 23–31, 2026
+
+V3 Brier: 0.2449
+V4 Brier: 0.2379
+
+V3 Log Loss: 0.6822
+V4 Log Loss: 0.6689
+
+Point-in-time no-vig market Brier: 0.2331
+
+V4 Brier Skill vs market: -0.0206
+
+V4 total-run bias:
+-2.327 runs/game
+
+V4 total-run RMSE:
+5.349
+
+Away/underdog selections:
+43.5% win rate
+
+All replayed games lacked confirmed lineup evidence.
+
+No evidence of team-strength or lineup double counting was found.
+
+#211 recommendation:
+
+BUILD MLB V4.1 CHALLENGER
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Determine WHY V4 underpredicts MLB scoring by approximately:
+
+2.327 runs per game
+
+and build an independent MLB V4.1 research challenger that corrects the underlying baseball run-model problem IF supported by evidence.
+
+Do NOT solve this by blindly adding:
+
++1.1635 runs to each team
+
+or any equivalent intercept hack.
+
+We need to determine the actual cause.
+
+Potential causes include:
+
+offensive baseline construction
+starter run allowance
+starter innings
+bullpen innings
+bullpen run allowance
+lineup treatment
+missing lineup evidence
+park effects
+weather
+home-field treatment
+run-environment baseline
+Poisson implementation
+feature scaling
+normalization
+sample-window construction
+provider data
+missing feature behavior
+
+Investigate before changing anything.
+
+==================================================
+NON-NEGOTIABLE MODEL ISOLATION
+==================================================
+
+DO NOT modify MLB V3.
+
+DO NOT modify MLB V4.
+
+V3 remains the official production champion.
+
+V4 remains the original shadow baseline.
+
+Create:
+
+MLB V4.1
+
+as a NEW independent research challenger.
+
+Use the next registry-safe model/version identity.
+
+V4.1 must be:
+
+UNVALIDATED
+SHADOW
+NON-PUBLISHABLE
+
+It must have:
+
+official_pick = false
+official_units = 0
+notifications = false
+
+It cannot affect:
+
+public picks
+Results
+ROI
+Free Pick
+Top Pick
+Play of the Day
+notifications
+champion learning
+production registry
+production approval
+V3
+V4
+
+==================================================
+PHASE 1 — DIAGNOSE THE -2.327 RUN BIAS
+==================================================
+
+Before modifying the run model, reconstruct the run projection pipeline for all 79 clean #211 games.
+
+For each team-game calculate:
+
+base expected runs
+
+offensive adjustment
+
+starter adjustment
+
+starter expected innings
+
+starter expected runs allowed
+
+lineup adjustment
+
+platoon adjustment
+
+bullpen adjustment
+
+bullpen expected innings
+
+bullpen expected runs allowed
+
+park adjustment
+
+weather adjustment
+
+home-field adjustment
+
+rest/context adjustment
+
+unsupported-feature adjustment if any
+
+final expected runs
+
+actual runs
+
+prediction residual
+
+Define:
+
+run_residual =
+actual_runs - expected_runs
+
+Positive residual means V4 underpredicted scoring.
+
+Calculate residuals separately for:
+
+home teams
+away teams
+
+and overall.
+
+==================================================
+PHASE 2 — LOCATE THE SOURCE OF UNDERPREDICTION
+==================================================
+
+Determine whether the bias originates primarily from:
+
+A. BASE RUN ENVIRONMENT
+
+B. OFFENSIVE STRENGTH
+
+C. STARTER MODEL
+
+D. STARTER INNINGS
+
+E. BULLPEN MODEL
+
+F. BULLPEN INNINGS
+
+G. LINEUP HANDLING
+
+H. PARK
+
+I. WEATHER
+
+J. HOME-FIELD
+
+K. DISTRIBUTION CONVERSION
+
+L. FEATURE SCALING
+
+M. MISSING-DATA BEHAVIOR
+
+N. OTHER
+
+For every candidate source report:
+
+observed evidence
+average contribution
+expected contribution
+residual relationship
+sample size
+severity
+
+Do not assume there is only one cause.
+
+==================================================
+PHASE 3 — MLB RUN ENVIRONMENT
+==================================================
+
+Audit how V4 establishes the baseline scoring environment.
+
+Determine:
+
+What league-average runs/team/game does V4 implicitly assume?
+
+What was the point-in-time MLB run environment during the replay period?
+
+Compare:
+
+V4 baseline runs/team
+actual historical PIT league baseline
+actual replay sample runs/team
+
+IMPORTANT:
+
+The league run environment must be computed only using games completed BEFORE each target game.
+
+Do not use future games.
+
+Do not use end-of-season averages.
+
+Create a rolling/expanding point-in-time league run environment if appropriate.
+
+Evaluate reasonable windows such as:
+
+season-to-date
+
+last 30 days with regression
+
+season-to-date + recent environment blend
+
+Do not select the best window solely by in-sample RMSE.
+
+==================================================
+PHASE 4 — OFFENSIVE BASELINE AUDIT
+==================================================
+
+Audit how team offense becomes expected runs.
+
+Determine whether V4 systematically compresses strong and weak offenses too close to league average.
+
+For each team-game compare:
+
+V4 offensive baseline
+
+team historical runs/game
+
+opponent-adjusted offensive information currently available
+
+actual future game runs ONLY as evaluation target
+
+Do not use game result to construct the forecast.
+
+Analyze:
+
+high-scoring offenses
+low-scoring offenses
+home offenses
+away offenses
+
+Check whether offensive scaling is too conservative.
+
+==================================================
+PHASE 5 — STARTING PITCHER RUN MODEL
+==================================================
+
+Audit the conversion from pitcher evidence to expected runs allowed.
+
+Current available pitcher evidence includes:
+
+FIP
+recent ERA
+K-BB%
+workload
+pitch count
+sample reliability
+handedness
+season ERA
+WHIP
+
+Determine whether V4:
+
+overrates starters
+
+assumes too many innings
+
+suppresses opponent runs too aggressively
+
+double-counts pitcher quality
+
+incorrectly translates FIP/ERA into run expectancy
+
+For each starter calculate:
+
+projected innings
+actual innings if historical result permits evaluation
+projected starter runs allowed
+actual starter runs allowed where available
+
+Report:
+
+innings MAE
+run allowance MAE
+bias
+
+Segment by:
+
+elite starter
+above average
+average
+below average
+poor
+
+Do NOT arbitrarily weaken starter influence.
+
+==================================================
+PHASE 6 — STARTER INNINGS MODEL
+==================================================
+
+This deserves independent analysis.
+
+If V4 expects starters to pitch too deep into games, it can systematically understate scoring.
+
+Compare:
+
+projected starter IP
+actual starter IP
+
+Report:
+
+mean projected
+mean actual
+bias
+MAE
+RMSE
+
+Segment by:
+
+recent IP average
+recent pitch count
+starter quality
+rest
+game environment
+
+If projected starter innings are materially biased, build an evidence-supported V4.1 innings model.
+
+==================================================
+PHASE 7 — BULLPEN RUN MODEL
+==================================================
+
+V4 currently has stronger information about bullpen workload than bullpen talent.
+
+Audit whether the model effectively assumes too much bullpen quality.
+
+Calculate:
+
+projected bullpen innings
+actual bullpen innings
+
+projected bullpen runs allowed
+actual bullpen runs allowed where reconstructable
+
+Determine whether:
+
+missing reliever-quality data
+
+is causing an unrealistically league-average or strong bullpen assumption.
+
+Do NOT fabricate reliever talent.
+
+If current data cannot estimate bullpen quality adequately, represent the uncertainty explicitly and use a defensible regressed baseline.
+
+==================================================
+PHASE 8 — LINEUP ABSENCE
+==================================================
+
+All 79 #211 replay games lacked confirmed lineup evidence.
+
+This is a major limitation.
+
+Determine exactly what V4 did when lineups were unconfirmed.
+
+Audit whether:
+
+lineup contribution became neutral
+
+team offense already represented projected lineup strength
+
+missing lineup information suppressed offense
+
+missing lineup information only increased uncertainty
+
+or another fallback occurred.
+
+The absence of confirmed historical lineups must NOT automatically cause lower expected runs unless justified.
+
+Do not fabricate historical lineups.
+
+Report whether the -2.327 run bias appears related to lineup fallback behavior.
+
+==================================================
+PHASE 9 — PARK AND WEATHER
+==================================================
+
+Audit park and weather transformations.
+
+For each replay game record:
+
+raw expected total before park/weather
+
+park contribution
+
+weather contribution
+
+final expected total
+
+actual total
+
+Determine whether park/weather transformations systematically reduce expected scoring.
+
+Verify:
+
+park-factor units
+normalization
+home/away application
+dome handling
+wind direction
+temperature treatment
+
+Look specifically for scaling/unit errors.
+
+==================================================
+PHASE 10 — HOME/AWAY SCORING
+==================================================
+
+Because #211 found away-side weakness, separate:
+
+home run bias
+away run bias
+
+Calculate:
+
+projected home runs - actual home runs
+
+projected away runs - actual away runs
+
+Determine whether the total -2.327 bias is:
+
+approximately symmetric
+
+primarily away-team underprojection
+
+primarily home-team underprojection
+
+or matchup dependent.
+
+Do not modify underdog policy yet.
+
+If the sports forecast systematically underprojects away offense, fix the forecast before changing betting rules.
+
+==================================================
+PHASE 11 — DISTRIBUTION VS RUN EXPECTATION
+==================================================
+
+Separate two issues:
+
+EXPECTED RUN QUALITY
+
+and
+
+WIN-PROBABILITY DISTRIBUTION QUALITY.
+
+Independent Poisson cannot cause expected-run inputs themselves to be 2.327 runs low if the lambda values are already low.
+
+Verify this explicitly.
+
+Determine whether the primary problem is:
+
+lambda generation
+
+distribution conversion
+
+or both.
+
+Do not blame Poisson for an upstream expected-run bias without evidence.
+
+==================================================
+PHASE 12 — BUILD V4.1 ONLY FROM EVIDENCE
+==================================================
+
+After completing diagnosis, build V4.1 with ONLY changes supported by the diagnostic evidence.
+
+Every V4.1 change must have:
+
+problem identified
+evidence
+sample size
+old behavior
+new behavior
+reason
+expected impact
+
+Do not introduce arbitrary constants to force the replay mean to match actual scoring.
+
+Acceptable examples:
+
+correcting an identified scaling bug
+
+correcting biased starter-IP estimation
+
+using PIT league run environment
+
+correcting bullpen baseline
+
+fixing missing-lineup fallback
+
+correcting park normalization
+
+improving offensive scaling
+
+Not acceptable:
+
+"V4 was 2.327 runs low, so add 2.327."
+
+==================================================
+PHASE 13 — PRESERVE V4 AS BASELINE
+==================================================
+
+After V4.1 exists, replay BOTH:
+
+V4 original
+
+V4.1
+
+on exactly the same games.
+
+Do not replace V4 records.
+
+Do not mutate V4.
+
+V4 is now an immutable research baseline.
+
+==================================================
+PHASE 14 — SAME-SAMPLE V4 VS V4.1
+==================================================
+
+On identical eligible games compare:
+
+Total Run Bias
+
+Home Run Bias
+
+Away Run Bias
+
+Home Run MAE
+
+Away Run MAE
+
+Total Run MAE
+
+Total Run RMSE
+
+Margin MAE
+
+Brier
+
+Brier Skill vs PIT no-vig market
+
+Log Loss
+
+Calibration
+
+ECE
+
+Average probability
+
+Extreme-probability frequency
+
+Model-market disagreement
+
+==================================================
+PHASE 15 — MARKET BASELINE
+==================================================
+
+Continue comparing against:
+
+POINT-IN-TIME NO-VIG MARKET
+
+not closing market.
+
+Calculate:
+
+V4 Brier Skill
+
+V4.1 Brier Skill
+
+Closing market remains CLV evidence only.
+
+We want V4.1 eventually to demonstrate independent predictive value beyond the sportsbook baseline.
+
+Do NOT manipulate V4.1 toward sportsbook probabilities.
+
+The market remains an evaluation baseline, not an input to the sports forecast.
+
+==================================================
+PHASE 16 — UNDERDOG / AWAY DIAGNOSTIC
+==================================================
+
+Re-evaluate the #211 away/underdog weakness after correcting the run model.
+
+Compare:
+
+V4 away/underdog forecasts
+
+V4.1 away/underdog forecasts
+
+Do NOT add an underdog penalty merely because underdogs lost in the 79-game sample.
+
+Determine whether correcting run expectancy naturally improves:
+
+away calibration
+
+underdog calibration
+
+extreme away edges
+
+If weakness persists, flag it for future research.
+
+==================================================
+PHASE 17 — PROBABILITY EXTREMES
+==================================================
+
+Compare V4 vs V4.1 for:
+
+60%+
+65%+
+70%+
+75%+
+80%+
+
+Report:
+
+count
+average forecast
+actual win rate
+Brier
+market Brier
+Brier Skill
+
+Determine whether correcting run expectancy causes more or less probability extremity.
+
+Do not artificially cap probabilities without evidence.
+
+==================================================
+PHASE 18 — UNCERTAINTY
+==================================================
+
+If V4.1 changes inputs or run estimation, update research uncertainty only where mathematically justified.
+
+Do not reduce uncertainty merely because V4.1 fits the replay better.
+
+Remember:
+
+79 games is a small sample.
+
+V4.1 must remain conservative about model certainty.
+
+==================================================
+PHASE 19 — DATA QUALITY
+==================================================
+
+Do not increase data-quality scores simply because V4.1 performs better.
+
+Data quality represents INPUT QUALITY.
+
+It does not represent:
+
+whether the prediction won
+
+whether the model had low error
+
+whether the bet made money.
+
+Preserve that distinction.
+
+==================================================
+PHASE 20 — DO NOT ADD ADVANCED DATA YET
+==================================================
+
+Do NOT integrate new Statcast or third-party providers in #212 unless required to fix an actual implementation defect.
+
+Continue recording unsupported:
+
+xERA
+xFIP if unavailable
+SIERA
+Statcast
+pitch repertoire
+pitch-type matchup
+OAA
+DRS
+baserunning
+reliever-quality
+MLB injuries
+umpire
+
+as unsupported/missing.
+
+Those belong to the later MLB Data Intelligence upgrade.
+
+#212 is about correcting the CURRENT run model using the evidence and data already available.
+
+==================================================
+PHASE 21 — NO BETTING POLICY OPTIMIZATION
+==================================================
+
+Do NOT change:
+
+Buy threshold
+
+Strong Buy threshold
+
+-160 guardrail
+
+units
+
+Kelly sizing
+
+Top Pick logic
+
+Free Pick logic
+
+POD logic
+
+market score
+
+sharp score
+
+publication policy
+
+We need to fix the sports forecast before optimizing the wagering layer.
+
+==================================================
+PHASE 22 — VALIDATION DISCIPLINE
+==================================================
+
+The 79 games used in #211 have now influenced our decision to build V4.1.
+
+Therefore they must NOT be treated as untouched final OOS evidence for V4.1.
+
+Label them appropriately as:
+
+DIAGNOSTIC / DEVELOPMENT SAMPLE
+
+This is critical.
+
+After V4.1 is built:
+
+use those games for same-sample diagnostic comparison,
+
+BUT do not claim V4.1 is validated because it improved on them.
+
+We need future or separately untouched historical data for true OOS validation.
+
+==================================================
+PHASE 23 — EXPAND HISTORICAL REPLAY IF POSSIBLE
+==================================================
+
+Investigate whether clean PIT replay can be extended earlier than August 23.
+
+Do not relax PIT integrity just to increase sample.
+
+Report exactly what prevents earlier replay if it cannot be expanded.
+
+Examples:
+
+missing immutable feature snapshots
+missing market snapshots
+missing starter snapshots
+schema introduced too recently
+provider history unavailable
+
+This will tell us whether we need to accumulate live shadow evidence or can build a larger historical research dataset.
+
+==================================================
+PHASE 24 — V4.1 REGISTRY SAFETY
+==================================================
+
+V4.1 must have a distinct exact identity.
+
+Bind:
+
+sport
+market
+model ID
+model version
+feature schema version
+run model version
+distribution version
+calibration version
+configuration hash
+
+V4.1 must fail closed for publication.
+
+No approval inheritance from V3 or V4.
+
+No registry fallback.
+
+No wildcard approval.
+
+No automatic promotion.
+
+==================================================
+PHASE 25 — REQUIRED TESTS
+==================================================
+
+Add tests proving:
+
+V3 unchanged.
+
+V4 unchanged.
+
+V4.1 cannot publish.
+
+V4.1 units always zero officially.
+
+V4.1 cannot notify.
+
+V4.1 cannot enter Results.
+
+V4.1 cannot enter ROI.
+
+V4.1 cannot become Free Pick.
+
+V4.1 cannot become Top Pick.
+
+V4.1 cannot become POD.
+
+V4.1 cannot mutate champion learning.
+
+V4.1 cannot inherit V3 approval.
+
+V4.1 cannot inherit V4 approval.
+
+V4 historical records remain immutable.
+
+PIT replay does not use future data.
+
+Run residual convention is consistent.
+
+No missing data is silently treated as real zero evidence.
+
+==================================================
+REQUIRED REPORT
+==================================================
+
+Create:
+
+reports/mlb-v4-1-run-model-diagnosis-2026-09-03.md
+
+Also create a machine-readable evidence file if useful.
+
+The report must contain:
+
+1. Executive summary
+
+2. Exact explanation of the V4 -2.327 run bias
+
+3. Run projection decomposition
+
+4. Home scoring bias
+
+5. Away scoring bias
+
+6. League run-environment audit
+
+7. Offensive baseline audit
+
+8. Starter run-model audit
+
+9. Starter innings audit
+
+10. Bullpen run-model audit
+
+11. Lineup fallback audit
+
+12. Park audit
+
+13. Weather audit
+
+14. Distribution-vs-lambda diagnosis
+
+15. Every V4.1 change made
+
+16. Evidence supporting each change
+
+17. V4 vs V4.1 same-sample run metrics
+
+18. V4 vs V4.1 Brier
+
+19. V4 vs V4.1 Brier Skill
+
+20. V4 vs V4.1 Log Loss
+
+21. V4 vs V4.1 calibration
+
+22. Away/underdog comparison
+
+23. Extreme-probability comparison
+
+24. Uncertainty review
+
+25. Data-quality review
+
+26. Historical replay expansion assessment
+
+27. Tests
+
+28. Build/typecheck results
+
+29. Registry/config identities
+
+30. Confirmation V3 unchanged
+
+31. Confirmation V4 unchanged
+
+32. Confirmation V4.1 shadow-only
+
+33. Recommended next step
+
+==================================================
+FINAL RECOMMENDATION
+==================================================
+
+At completion select ONE:
+
+A)
+
+V4.1 CORRECTS THE IDENTIFIED RUN-MODEL DEFECT — BEGIN NEW OOS SHADOW VALIDATION
+
+B)
+
+V4.1 IMPROVES THE RUN MODEL BUT MORE DEVELOPMENT IS REQUIRED
+
+C)
+
+V4.1 DOES NOT ADEQUATELY CORRECT THE PROBLEM — REVISIT MLB RUN ARCHITECTURE
+
+D)
+
+INSUFFICIENT EVIDENCE TO MODIFY V4 — CONTINUE DATA COLLECTION
+
+Do NOT promote V4.1 regardless of recommendation.
+
+==================================================
+FINAL VERIFICATION
+==================================================
+
+Run:
+
+TypeScript typecheck
+
+API build
+
+relevant API tests
+
+V4/V4.1 replay integrity checks
+
+registry integrity checks
+
+production configuration hash comparison
+
+Confirm explicitly:
+
+V3 champion unchanged
+
+V3 production configuration unchanged
+
+V4 baseline unchanged
+
+V4 remains shadow
+
+V4.1 is shadow-only
+
+No official picks changed
+
+No official units changed
+
+No Results changed
+
+No ROI changed
+
+No notifications changed
+
+No learning changed
+
+No historical rows rewritten
+
+==================================================
+STOP CONDITION
+==================================================
+
+STOP after:
+
+diagnosing the V4 run bias
+
+building the evidence-supported V4.1 challenger
+
+replaying V4 and V4.1 on identical development data
+
+reporting the comparison
+
+verifying production isolation
+
+Do NOT begin #213.
+
+Do NOT promote anything.
+
+We will review the #212 report before deciding the next MLB upgrade.
