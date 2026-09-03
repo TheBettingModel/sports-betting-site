@@ -32,6 +32,7 @@ import {
 } from "./oddsApi";
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { applyMaterialPregameRevision } from "./materialPregameRevisions";
+import { isActionablePublication } from "./publicationEligibility";
 import type { WnbaGameContext } from "./wnbaContext";
 import {
   writeSpreadCandidateSnapshots,
@@ -389,6 +390,10 @@ async function publishPick(
   proj: ProjectionResult,
   publishedAt: Date,
 ): Promise<void> {
+  // A display-only Neutral/Fade is never normalized into a wager. Do this
+  // before opening a transaction so neither publication nor pending result can
+  // be created for an ineligible recommendation.
+  if (!isActionablePublication(proj.valueRating, proj.units)) return;
   await db.transaction(async (tx) => {
     await tx.execute(publishedPickEffectivenessWriterLock());
     await tx.execute(publishedPickEffectivenessLock(game.espnId, "moneyline"));
@@ -415,7 +420,7 @@ async function publishPick(
     }
 
     const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
-    const units = proj.units > 0 ? proj.units : 1.0;
+    const units = proj.units;
     const pickIsHomePub = proj.edge >= 0;
 
     const [pick] = await tx

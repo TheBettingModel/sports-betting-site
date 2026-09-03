@@ -12,6 +12,7 @@ import {
   publishedPickEffectivenessLock,
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
+import { isActionablePublication } from "./publicationEligibility";
 import { MLB_MAX_FAVORITE_ODDS } from "./model";
 
 export interface MlbMoneylinePolicy {
@@ -368,6 +369,11 @@ export async function applyMlbPolicyRevision(
         })
         .returning({ id: modelPredictionsTable.id });
       if (!insertedPrediction) return { created: false, effective: false };
+      // Retain the immutable policy-revision prediction, but never normalize a
+      // non-actionable revision into a published one-unit wager.
+      if (!isActionablePublication(decision.recommendation, decision.units)) {
+        return { created: true, effective: false };
+      }
 
       const active = await tx
         .select({ id: publishedPicksTable.id })

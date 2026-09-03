@@ -147,6 +147,21 @@ paths:
                 type: object
                 additionalProperties: true
 
+  /admin/ncaaf-readiness:
+    get:
+      operationId: getAdminNcaafReadiness
+      tags: [admin]
+      summary: Get read-only NCAAF challenger evidence and validation readiness
+      description: Admin-only observability. This endpoint never changes model, evidence, publication, or promotion state.
+      responses:
+        "200":
+          description: NCAAF readiness and evidence coverage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NcaafReadiness"
+        "401": { description: Administrator credentials required }
+
   /admin/market-comparisons:
     get:
       operationId: getAdminMarketComparisons
@@ -659,6 +674,65 @@ components:
         metrics:
           type: object
           additionalProperties: true
+    NcaafReasonCount:
+      type: object
+      required: [reason, count]
+      properties:
+        reason: { type: string }
+        count: { type: integer, minimum: 0 }
+    NcaafReadiness:
+      type: object
+      required: [readyForV4, blockers, legacyCohort, featureSnapshots, evidenceRuns, sportsEvidenceCoverage, marketEvidenceCoverage, cohorts, pointInTime, validation, dataAsOf]
+      properties:
+        readyForV4: { type: boolean, enum: [false] }
+        blockers:
+          type: array
+          items: { type: string }
+        legacyCohort:
+          type: object
+          required: [total, classified, graded, pending, officialExcluded]
+          properties:
+            total: { type: integer }
+            classified: { type: integer }
+            graded: { type: integer }
+            pending: { type: integer }
+            officialExcluded: { type: integer }
+        featureSnapshots:
+          type: object
+          required: [total, ready, blocked, topBlockedReasons]
+          properties:
+            total: { type: integer }
+            ready: { type: integer }
+            blocked: { type: integer }
+            topBlockedReasons:
+              type: array
+              items: { $ref: "#/components/schemas/NcaafReasonCount" }
+        evidenceRuns:
+          type: object
+          required: [active, stale, finalized, recent]
+          properties:
+            active: { type: integer }
+            stale: { type: integer }
+            finalized: { type: integer }
+            recent:
+              type: array
+              items: { type: object, additionalProperties: true }
+        sportsEvidenceCoverage: { type: object, additionalProperties: true }
+        marketEvidenceCoverage: { type: object, additionalProperties: true }
+        cohorts:
+          type: object
+          required: [finalPregame, liveShadow, supported]
+          properties:
+            finalPregame: { type: integer }
+            liveShadow: { type: integer }
+            supported: { type: boolean }
+        pointInTime:
+          type: object
+          required: [violations]
+          properties:
+            violations: { type: integer }
+        validation: { type: object, additionalProperties: true }
+        dataAsOf: { type: string, format: date-time }
     MarketApprovalDecisionInput:
       type: object
       required:

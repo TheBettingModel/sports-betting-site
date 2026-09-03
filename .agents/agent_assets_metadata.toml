@@ -50,3 +50,17 @@ mtime_ms = 1788446998293
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/cb79b857-9810-4a32-9517-b357b73bde18/8d72a996-06d3-4702-8ffb-a271ca8054f1"
 storage_version_token = "1788447019739681"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "n_AoX87IhbHKQjuDFa0FS"
+uri = "file://reports/ncaaf-production-integrity-evidence-foundation-2026-09-03.md"
+type = "text"
+title = "NCAAF Production Integrity & Evidence Foundation"
+description = "The completed 58-section #220 implementation and verification report."
+logical_id = "506dd599-b376-48bb-93e4-53f0414473d9"
+content_hash = "sha256:1e5878c97fa685b2a1ba8018bbe52a2b8ffa926bd570184ef7f9dcae953ca6b0"
+size = 6135
+mtime_ms = 1788448288909
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/506dd599-b376-48bb-93e4-53f0414473d9/f50c1566-c454-48ba-a36b-d39a8aca5bc4"
+storage_version_token = "1788448359011639"
+content_type = "text/markdown"

@@ -43,3 +43,4 @@
 - [MLB PIT intelligence contract](mlb-pit-intelligence-contract.md) — live-only append-only evidence links forecasts, pregame freezes, outcomes, cohorts, and research evaluation without tuning.
 - [MLB advanced feature eligibility](mlb-advanced-feature-eligibility.md) — #215 may use only consistently available, identity-safe, immutable PIT features with honest historical validation.
 - [Recommendation vs publication](recommendation-publication-separation.md) — raw model opinion, publication state, and public display are separate; Admin must never collapse blocked plays into true Neutral.
+- [NCAAF invalid-wager quarantine](ncaaf-invalid-wager-quarantine.md) — preserve bad historical rows, but exclude them through an append-only eligibility ledger and enforce actionable positive-unit publication.

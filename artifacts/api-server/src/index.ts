@@ -7,6 +7,7 @@ import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
 import { reconcileMlbProductionRegistry } from "./services/modelRegistryReconciliation";
 import { ensureEstablishedMoneylineApprovals } from "./services/marketApproval";
 import { ensureProductionChampionSnapshots } from "./services/productionChampion";
+import { reconcileLegacyNcaafPerformanceEligibility } from "./services/legacyNcaafIntegrity";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 
@@ -195,6 +196,13 @@ async function startServer(): Promise<void> {
     await reconcileLegacyPublishedPickEffectiveness();
   } catch (err) {
     logger.error({ err }, "Legacy published-pick reconciliation failed");
+    process.exit(1);
+  }
+  try {
+    const classified = await reconcileLegacyNcaafPerformanceEligibility();
+    logger.info({ classified }, "Legacy NCAAF performance eligibility reconciled");
+  } catch (err) {
+    logger.error({ err }, "Legacy NCAAF performance eligibility reconciliation failed");
     process.exit(1);
   }
   try {

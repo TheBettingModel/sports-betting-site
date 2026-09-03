@@ -34,6 +34,8 @@ export const ncaafEvidenceRunsTable = pgTable(
     providers: jsonb("providers").notNull(),
     coverage: jsonb("coverage").notNull().default({}),
     errorDetails: jsonb("error_details"),
+    /** Append-only lifecycle audit trail (creation, stale reconciliation, finalization). */
+    statusHistory: jsonb("status_history").notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
@@ -144,6 +146,9 @@ export const ncaafMarketObservationsTable = pgTable(
     line: real("line"),
     observationPhase: text("observation_phase").notNull().default("current"),
     isMatchedToGame: boolean("is_matched_to_game").notNull().default(false),
+    /** Deliberately retains provider rows that cannot be safely identified. */
+    marketIdentityStatus: text("market_identity_status").notNull().default("unmatched"),
+    marketIdentityReason: text("market_identity_reason").notNull().default("unmatched_identity"),
     providerObservedAt: timestamp("provider_observed_at", { withTimezone: true }),
     capturedAt: timestamp("captured_at", { withTimezone: true }).notNull(),
     modeledAsOf: timestamp("modeled_as_of", { withTimezone: true }).notNull(),

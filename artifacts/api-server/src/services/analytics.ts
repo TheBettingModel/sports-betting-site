@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { refreshMoneylineApprovalDecisions } from "./marketApproval";
+import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -293,7 +294,10 @@ export async function runAnalytics(): Promise<number> {
       eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
     )
     .where(
-      inArray(pickResultsTable.result, ["win", "loss", "push", "void"]),
+      and(
+        inArray(pickResultsTable.result, ["win", "loss", "push", "void"]),
+        isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
+      ),
     );
 
   if (rows.length === 0) {

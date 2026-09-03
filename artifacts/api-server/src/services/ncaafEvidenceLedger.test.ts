@@ -11,7 +11,11 @@ import {
   stablePayloadHash,
   selectCurrentNcaafOddsForCapture,
   summarizeNcaafCoverage,
+  summarizeNcaafRunStates,
+  matchNcaafMarketIdentity,
+  runNcaafEvidenceSingleFlight,
 } from "./ncaafEvidenceLedger";
+import type { FetchedGame } from "./espn";
 
 describe("NCAAF evidence ledger helpers", () => {
   it("builds a stable idempotency key for equivalent provider payloads", () => {
@@ -131,5 +135,50 @@ describe("NCAAF evidence ledger helpers", () => {
       { status: "completed", coverage: { games: 2, markets: 8, matchedMarkets: 6, unmatchedMarkets: 2 } },
       { status: "partial", coverage: { games: 1, markets: 1, matchedMarkets: 0, unmatchedMarkets: 1 } },
     ])).toMatchObject({ runs: 2, completed: 1, partial: 1, games: 3, markets: 9, matchedMarkets: 6, unmatchedMarkets: 3 });
+  });
+
+  it("separates active and stale running runs using a caller supplied clock", () => {
+    expect(summarizeNcaafRunStates([
+      { status: "running", capturedAt: new Date("2025-09-06T11:45:00Z") },
+      { status: "running", capturedAt: new Date("2025-09-06T11:00:00Z") },
+      { status: "completed", capturedAt: new Date("2025-09-06T10:00:00Z") },
+    ], new Date("2025-09-06T12:00:00Z"))).toEqual({
+      activeRunning: 1, staleRunning: 1, finalized: 1,
+    });
+  });
+
+  it("coalesces concurrent scheduler capture callers process-wide", async () => {
+    let calls = 0;
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const operation = async () => {
+      calls++;
+      await gate;
+      return { runId: 7 };
+    };
+    const first = runNcaafEvidenceSingleFlight("test:single-flight", operation);
+    const second = runNcaafEvidenceSingleFlight("test:single-flight", operation);
+    expect(calls).toBe(1);
+    release?.();
+    await expect(Promise.all([first, second])).resolves.toEqual([{ runId: 7 }, { runId: 7 }]);
+  });
+
+  it("only links exact or known unambiguous market identities", () => {
+    const game = {
+      espnId: "1", homeTeamName: "Mississippi Rebels", awayTeamName: "Alabama Crimson Tide",
+      commenceTimeISO: "2025-09-06T18:00:00Z",
+    } as FetchedGame;
+    expect(matchNcaafMarketIdentity({
+      home_team: "Mississippi Rebels", away_team: "Alabama Crimson Tide", commence_time: "2025-09-06T18:05:00Z",
+    }, [game])).toMatchObject({ game, status: "matched_exact" });
+    expect(matchNcaafMarketIdentity({
+      home_team: "Ole Miss", away_team: "Alabama Crimson Tide", commence_time: "2025-09-06T18:05:00Z",
+    }, [game])).toMatchObject({ game, status: "matched_alias" });
+    expect(matchNcaafMarketIdentity({
+      home_team: "Mississippi Rebels", away_team: "Alabama Crimson Tide", commence_time: "2025-09-07T18:00:00Z",
+    }, [game])).toMatchObject({ game: null, status: "unmatched_kickoff" });
+    expect(matchNcaafMarketIdentity({
+      home_team: "Mississippi Rebels", away_team: "Alabama Crimson Tide", commence_time: "2025-09-06T18:00:00Z",
+    }, [game, { ...game, espnId: "2" }])).toMatchObject({ game: null, status: "unmatched_ambiguous" });
   });
 });

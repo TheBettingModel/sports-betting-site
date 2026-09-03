@@ -40,6 +40,15 @@ import {
   mlbOosCohortsTable,
   mlbAdvancedResearchEvidenceTable,
   mlbAdvancedFeatureSnapshotsTable,
+  ncaafEvidenceRunsTable,
+  ncaafGameEvidenceTable,
+  ncaafEntityObservationsTable,
+  ncaafMarketObservationsTable,
+  ncaafFeatureSnapshotsTable,
+  ncaafEvaluationsTable,
+  ncaafWalkForwardRunsTable,
+  ncaafPromotionDecisionsTable,
+  publishedPickPerformanceClassificationsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
 import { transitionModelStatus, rollbackModel } from "../services/modelRegistry";
@@ -246,6 +255,145 @@ router.delete("/admin/session", (req, res): void => {
 });
 
 router.use("/admin", requireMasterKey);
+
+/**
+ * Read-only evidence and validation readiness for the isolated NCAAF
+ * challenger. This deliberately reports gaps rather than treating missing
+ * evidence or legacy published-pick history as V4-ready evidence.
+ */
+router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - 30 * 60_000);
+  const reasonCounts = (values: unknown[]) => {
+    const counts = new Map<string, number>();
+    const visit = (value: unknown) => {
+      if (typeof value === "string") counts.set(value, (counts.get(value) ?? 0) + 1);
+      else if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === "object") Object.values(value as Record<string, unknown>).forEach(visit);
+    };
+    values.forEach(visit);
+    return [...counts.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason))
+      .slice(0, 10);
+  };
+  const [
+    legacyRows, featureRows, runRows, gameEvidence, entityEvidence, marketRows,
+    evaluations, walkForward, promotions,
+  ] = await Promise.all([
+    db.select({
+      pickId: publishedPicksTable.id,
+      result: pickResultsTable.result,
+      performanceEligible: publishedPickPerformanceClassificationsTable.performanceEligible,
+    }).from(publishedPicksTable)
+      .leftJoin(pickResultsTable, eq(pickResultsTable.pickId, publishedPicksTable.id))
+      .leftJoin(publishedPickPerformanceClassificationsTable,
+        eq(publishedPickPerformanceClassificationsTable.publishedPickId, publishedPicksTable.id))
+      .where(eq(publishedPicksTable.sport, "NCAAF")),
+    db.select({
+      id: ncaafFeatureSnapshotsTable.id, quality: ncaafFeatureSnapshotsTable.quality,
+      dataCutoffAt: ncaafFeatureSnapshotsTable.dataCutoffAt,
+      evidenceMaxModeledAsOf: ncaafFeatureSnapshotsTable.evidenceMaxModeledAsOf,
+    }).from(ncaafFeatureSnapshotsTable),
+    db.select({
+      id: ncaafEvidenceRunsTable.id, runKey: ncaafEvidenceRunsTable.runKey,
+      requestedFrom: ncaafEvidenceRunsTable.requestedFrom, requestedTo: ncaafEvidenceRunsTable.requestedTo,
+      capturedAt: ncaafEvidenceRunsTable.capturedAt, completedAt: ncaafEvidenceRunsTable.completedAt,
+      status: ncaafEvidenceRunsTable.status, providers: ncaafEvidenceRunsTable.providers,
+      coverage: ncaafEvidenceRunsTable.coverage, errorDetails: ncaafEvidenceRunsTable.errorDetails,
+    }).from(ncaafEvidenceRunsTable).orderBy(desc(ncaafEvidenceRunsTable.capturedAt)).limit(12),
+    db.select({
+      evidenceStatus: ncaafGameEvidenceTable.evidenceStatus,
+      missingReasons: ncaafGameEvidenceTable.missingReasons,
+    }).from(ncaafGameEvidenceTable),
+    db.select({ missingReasons: ncaafEntityObservationsTable.missingReasons })
+      .from(ncaafEntityObservationsTable),
+    db.select({
+      isMatchedToGame: ncaafMarketObservationsTable.isMatchedToGame,
+      marketIdentityStatus: ncaafMarketObservationsTable.marketIdentityStatus,
+      marketIdentityReason: ncaafMarketObservationsTable.marketIdentityReason,
+      missingReasons: ncaafMarketObservationsTable.missingReasons,
+    }).from(ncaafMarketObservationsTable),
+    db.select({ exclusionReason: ncaafEvaluationsTable.exclusionReason })
+      .from(ncaafEvaluationsTable),
+    db.select({ status: ncaafWalkForwardRunsTable.status }).from(ncaafWalkForwardRunsTable),
+    db.select({ decision: ncaafPromotionDecisionsTable.decision, reasons: ncaafPromotionDecisionsTable.reasons })
+      .from(ncaafPromotionDecisionsTable),
+  ]);
+
+  const legacyByPick = new Map<number, { classified: boolean; eligible: boolean; graded: boolean }>();
+  for (const row of legacyRows) {
+    const current = legacyByPick.get(row.pickId) ?? { classified: false, eligible: true, graded: false };
+    current.classified ||= row.performanceEligible != null;
+    if (row.performanceEligible === false) current.eligible = false;
+    current.graded ||= row.result === "win" || row.result === "loss" || row.result === "push";
+    legacyByPick.set(row.pickId, current);
+  }
+  const featureQuality = featureRows.map((row) => row.quality as Record<string, unknown>);
+  const readyFeatures = featureQuality.filter((quality) => quality.status === "ready").length;
+  const blockedFeatures = featureRows.length - readyFeatures;
+  const featureReasons = reasonCounts(featureQuality.map((quality) => quality.blockedReasons));
+  const pitViolations = featureRows.filter((row) =>
+    row.evidenceMaxModeledAsOf != null && row.evidenceMaxModeledAsOf > row.dataCutoffAt).length;
+  const activeRuns = runRows.filter((row) => row.status === "running" && row.capturedAt >= staleBefore).length;
+  const staleRuns = runRows.filter((row) => row.status === "running" && row.capturedAt < staleBefore).length;
+  const finalizedRuns = runRows.length - activeRuns - staleRuns;
+  const marketBreakdown = new Map<string, number>();
+  for (const row of marketRows) {
+    const key = `${row.marketIdentityStatus}:${row.marketIdentityReason}`;
+    marketBreakdown.set(key, (marketBreakdown.get(key) ?? 0) + 1);
+  }
+  const evaluationExcluded = evaluations.filter((row) => row.exclusionReason != null).length;
+  const blockers = [
+    ...(blockedFeatures > 0 ? [`${blockedFeatures} feature snapshot(s) are blocked`] : []),
+    ...(staleRuns > 0 ? [`${staleRuns} evidence run(s) are stale and still marked running`] : []),
+    ...(marketRows.some((row) => !row.isMatchedToGame) ? ["unmatched market evidence remains"] : []),
+    ...(pitViolations > 0 ? [`${pitViolations} feature snapshot(s) violate the point-in-time cutoff`] : []),
+    "NCAAF does not yet persist FINAL_PREGAME or LIVE_SHADOW cohort membership.",
+  ];
+
+  res.json({
+    readyForV4: false,
+    blockers,
+    legacyCohort: {
+      total: legacyByPick.size,
+      classified: [...legacyByPick.values()].filter((row) => row.classified).length,
+      graded: [...legacyByPick.values()].filter((row) => row.graded).length,
+      pending: [...legacyByPick.values()].filter((row) => !row.graded).length,
+      officialExcluded: [...legacyByPick.values()].filter((row) => row.classified && !row.eligible).length,
+    },
+    featureSnapshots: { total: featureRows.length, ready: readyFeatures, blocked: blockedFeatures, topBlockedReasons: featureReasons },
+    evidenceRuns: {
+      active: activeRuns, stale: staleRuns, finalized: finalizedRuns,
+      recent: runRows.map((row) => {
+        const coverage = row.coverage as Record<string, unknown> | null;
+        return { ...row, partialReasons: coverage?.partialReasons ?? [], errorDetails: row.errorDetails ?? null };
+      }),
+    },
+    sportsEvidenceCoverage: {
+      gameEvidenceRows: gameEvidence.length, entityObservationRows: entityEvidence.length,
+      observedGames: gameEvidence.filter((row) => row.evidenceStatus === "observed").length,
+      topMissingReasons: reasonCounts([...gameEvidence, ...entityEvidence].map((row) => row.missingReasons)),
+    },
+    marketEvidenceCoverage: {
+      total: marketRows.length, matched: marketRows.filter((row) => row.isMatchedToGame).length,
+      unmatched: marketRows.filter((row) => !row.isMatchedToGame).length,
+      byIdentity: [...marketBreakdown.entries()].map(([key, count]) => {
+        const [marketIdentityStatus, marketIdentityReason] = key.split(":");
+        return { marketIdentityStatus, marketIdentityReason, count };
+      }).sort((a, b) => b.count - a.count),
+      topMissingReasons: reasonCounts(marketRows.map((row) => row.missingReasons)),
+    },
+    cohorts: { finalPregame: 0, liveShadow: 0, supported: false },
+    pointInTime: { violations: pitViolations },
+    validation: {
+      evaluations: { total: evaluations.length, excluded: evaluationExcluded, graded: evaluations.length - evaluationExcluded },
+      walkForward: { total: walkForward.length, byStatus: Object.fromEntries(walkForward.map((row) => [row.status, (walkForward.filter((item) => item.status === row.status).length)])) },
+      promotions: { total: promotions.length, byDecision: Object.fromEntries(promotions.map((row) => [row.decision, promotions.filter((item) => item.decision === row.decision).length])), topReasons: reasonCounts(promotions.map((row) => row.reasons)) },
+    },
+    dataAsOf: now.toISOString(),
+  });
+});
 
 /**
  * List immutable MLB policy revisions with their affected decision counts.

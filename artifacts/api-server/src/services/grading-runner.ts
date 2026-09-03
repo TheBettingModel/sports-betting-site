@@ -25,6 +25,7 @@ import {
   publishedPickEffectivenessLock,
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
+import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
 
 /**
  * Process all effective pending pick_results rows that have a completed game_result.
@@ -49,6 +50,7 @@ export async function runGrading(): Promise<number> {
     .where(and(
       eq(pickResultsTable.result, "pending"),
       eq(publishedPicksTable.isEffective, true),
+      isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
     ));
 
   if (pendingRows.length === 0) return 0;
@@ -185,6 +187,7 @@ export async function runGrading(): Promise<number> {
           eq(pickResultsTable.id, pendingRow.pickResultId),
           eq(pickResultsTable.result, "pending"),
           eq(publishedPicksTable.isEffective, true),
+           isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
         ))
         .limit(1);
       if (!stillPending) return false;

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, lte } from "drizzle-orm";
 import {
   db,
   ncaafEntityObservationsTable,
@@ -15,6 +15,10 @@ import { fetchCurrentNcaafEvidenceOdds, type OddsApiGame } from "./oddsApi";
 
 export const MAX_NCAAF_BACKFILL_DAYS = 31;
 const UNAVAILABLE_BOOKMAKER_ID = "__unavailable__";
+/** A crashed worker must not make a ledger run appear active indefinitely. */
+export const NCAAF_EVIDENCE_RUN_STALE_AFTER_MS = 30 * 60_000;
+const NCAAF_MARKET_KICKOFF_TOLERANCE_MS = 6 * 60 * 60_000;
+const ncaafCaptureFlights = new Map<string, Promise<unknown>>();
 
 export interface MissingEvidence {
   fields: string[];
@@ -193,9 +197,55 @@ export function selectCurrentNcaafOddsForCapture(
   });
 }
 
-function namesMatch(a: string, b: string): boolean {
-  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return normalize(a) === normalize(b);
+function normalizedTeamIdentity(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** These are explicit, one-to-one provider naming aliases, not fuzzy matching. */
+const TEAM_IDENTITY_ALIASES: Readonly<Record<string, string>> = {
+  olemiss: "mississippirebels",
+  uconn: "connecticuthuskies",
+  smu: "southernmethodistmustangs",
+  unlv: "nevadalvrebels",
+};
+
+function canonicalTeamIdentity(value: string): string {
+  const normalized = normalizedTeamIdentity(value);
+  return TEAM_IDENTITY_ALIASES[normalized] ?? normalized;
+}
+
+export interface MarketIdentityMatch {
+  game: FetchedGame | null;
+  status: "matched_exact" | "matched_alias" | "unmatched_invalid_kickoff" | "unmatched_identity" | "unmatched_kickoff" | "unmatched_ambiguous";
+  reason: string;
+}
+
+/** Match only an ordered, normalized team identity with a plausible kickoff.
+ * A non-unique candidate is intentionally retained as unmatched. */
+export function matchNcaafMarketIdentity(
+  market: Pick<OddsApiGame, "home_team" | "away_team" | "commence_time">,
+  games: readonly FetchedGame[],
+): MarketIdentityMatch {
+  const marketKickoff = safeProviderDate(market.commence_time);
+  if (!marketKickoff) return { game: null, status: "unmatched_invalid_kickoff", reason: "provider event has an invalid kickoff timestamp" };
+  const exactHome = normalizedTeamIdentity(market.home_team);
+  const exactAway = normalizedTeamIdentity(market.away_team);
+  const home = canonicalTeamIdentity(market.home_team);
+  const away = canonicalTeamIdentity(market.away_team);
+  const candidates = games.filter((game) =>
+    canonicalTeamIdentity(game.homeTeamName) === home &&
+    canonicalTeamIdentity(game.awayTeamName) === away);
+  if (candidates.length === 0) return { game: null, status: "unmatched_identity", reason: "no exact normalized or known-alias home/away identity" };
+  const timeCandidates = candidates.filter((game) => {
+    const kickoff = safeProviderDate(game.commenceTimeISO);
+    return kickoff !== null && Math.abs(kickoff.getTime() - marketKickoff.getTime()) <= NCAAF_MARKET_KICKOFF_TOLERANCE_MS;
+  });
+  if (timeCandidates.length === 0) return { game: null, status: "unmatched_kickoff", reason: "matching team identity did not have a kickoff within six hours" };
+  if (timeCandidates.length !== 1) return { game: null, status: "unmatched_ambiguous", reason: "multiple games share the same identity and kickoff window" };
+  const game = timeCandidates[0]!;
+  const exact = normalizedTeamIdentity(game.homeTeamName) === exactHome &&
+    normalizedTeamIdentity(game.awayTeamName) === exactAway;
+  return { game, status: exact ? "matched_exact" : "matched_alias", reason: exact ? "exact normalized home/away identity and kickoff" : "known unambiguous team alias and kickoff" };
 }
 
 export interface EvidenceCaptureResult {
@@ -207,10 +257,43 @@ export interface EvidenceCaptureResult {
   providerErrors: Record<string, string>;
 }
 
+export async function reconcileStaleNcaafEvidenceRuns(
+  database: typeof db,
+  now: Date,
+  staleAfterMs = NCAAF_EVIDENCE_RUN_STALE_AFTER_MS,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - staleAfterMs);
+  const staleRuns = await database.select({
+    id: ncaafEvidenceRunsTable.id,
+    coverage: ncaafEvidenceRunsTable.coverage,
+    errorDetails: ncaafEvidenceRunsTable.errorDetails,
+    statusHistory: ncaafEvidenceRunsTable.statusHistory,
+  }).from(ncaafEvidenceRunsTable).where(and(
+    eq(ncaafEvidenceRunsTable.status, "running"),
+    lt(ncaafEvidenceRunsTable.capturedAt, cutoff),
+  ));
+  for (const stale of staleRuns) {
+    const reason = {
+      code: "stale_running_reconciled",
+      message: `Run exceeded ${staleAfterMs}ms without finalization`,
+      reconciledAt: now.toISOString(),
+    };
+    const history = Array.isArray(stale.statusHistory) ? stale.statusHistory : [];
+    await database.update(ncaafEvidenceRunsTable).set({
+      status: "failed",
+      completedAt: now,
+      coverage: { ...(stale.coverage as Record<string, unknown> ?? {}), partialReasons: [reason] },
+      errorDetails: { previous: stale.errorDetails, reconciliation: reason },
+      statusHistory: [...history, { status: "failed", ...reason }],
+    }).where(eq(ncaafEvidenceRunsTable.id, stale.id));
+  }
+  return staleRuns.length;
+}
+
 /** Captures a single date without changing canonical games, predictions, picks,
  * grading, or ROI. Providers can fail independently and that failure is recorded
  * in the durable run coverage. */
-export async function captureNcaafEvidenceDate(
+async function captureNcaafEvidenceDateUnsafe(
   date: Date | string,
   dependencies: EvidenceCaptureDependencies = {},
 ): Promise<EvidenceCaptureResult> {
@@ -218,16 +301,19 @@ export async function captureNcaafEvidenceDate(
   const now = dependencies.now?.() ?? new Date();
   const requestedDate = requestedCalendarDate(date);
   const yyyymmdd = requestedDate.replaceAll("-", "");
+  await reconcileStaleNcaafEvidenceRuns(database, now);
   const runKey = `${NCAAF_EVIDENCE_SCHEMA_VERSION}:${requestedDate}:${now.toISOString()}`;
   let [run] = await database.insert(ncaafEvidenceRunsTable).values({
     runKey, requestedFrom: requestedDate, requestedTo: requestedDate, capturedAt: now,
     status: "running", providers: ["espn", "odds_api"],
+    statusHistory: [{ status: "running", reason: "capture_started", at: now.toISOString() }],
   }).onConflictDoNothing().returning({ id: ncaafEvidenceRunsTable.id });
   run ??= (await database.select({ id: ncaafEvidenceRunsTable.id })
     .from(ncaafEvidenceRunsTable)
     .where(eq(ncaafEvidenceRunsTable.runKey, runKey))
     .limit(1))[0];
   if (!run) throw new Error(`Unable to create or resume NCAAF evidence run ${runKey}`);
+  try {
   const providerErrors: Record<string, string> = {};
   const isHistoricalRequest = requestedDate < easternDateString(now).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
   const [requestedEspnResult, oddsResult] = await Promise.allSettled([
@@ -274,7 +360,6 @@ export async function captureNcaafEvidenceDate(
     });
   }
   const espnGames = [...espnGamesById.values()];
-  const byTeams = new Map(espnGames.map((game) => [`${game.homeTeamName}|${game.awayTeamName}`, game]));
   const gameEvidenceIds = new Map<string, number>();
   let markets = 0; let matchedMarkets = 0; let missingEntityObservations = 0;
 
@@ -366,7 +451,9 @@ export async function captureNcaafEvidenceDate(
         runId: run?.id, gameEvidenceId: gameEvidenceId ?? null, provider: "odds_api",
         providerEventId: game.espnId, bookmakerProviderId: UNAVAILABLE_BOOKMAKER_ID, bookmakerName: null,
         marketKey: "all", selection: "unavailable", price: null, line: null, observationPhase: "unavailable",
-        isMatchedToGame: true, capturedAt: now, modeledAsOf: now, season: evidence.season,
+        isMatchedToGame: true, marketIdentityStatus: "matched_exact",
+        marketIdentityReason: "market unavailable; linked directly to captured ESPN game",
+        capturedAt: now, modeledAsOf: now, season: evidence.season,
         missingFields: ["market"], missingReasons: {
           market: "The configured Odds API endpoint supplies current markets only; historical market evidence was not available",
         },
@@ -377,8 +464,8 @@ export async function captureNcaafEvidenceDate(
   for (const oddsGame of oddsGames) {
     const providerDate = safeProviderDate(oddsGame.commence_time);
     if (!providerDate) continue;
-    const matched = [...byTeams.values()].find((game) =>
-      namesMatch(game.homeTeamName, oddsGame.home_team) && namesMatch(game.awayTeamName, oddsGame.away_team));
+    const identity = matchNcaafMarketIdentity(oddsGame, espnGames);
+    const matched = identity.game;
     const matchedGameEvidenceId = matched ? gameEvidenceIds.get(matched.espnId) ?? null : null;
     const normalizedMarkets = normalizeOddsApiMarkets(oddsGame);
     if (normalizedMarkets.length === 0) {
@@ -387,8 +474,9 @@ export async function captureNcaafEvidenceDate(
       await database.insert(ncaafMarketObservationsTable).values({
         runId: run?.id, provider: "odds_api", providerEventId: oddsGame.id,
         bookmakerProviderId: UNAVAILABLE_BOOKMAKER_ID, bookmakerName: null, marketKey: "all", selection: "unavailable",
-        price: null, line: null, observationPhase: "unavailable", gameEvidenceId: matchedGameEvidenceId, isMatchedToGame: Boolean(matched), capturedAt: now, modeledAsOf: now, season,
-        missingFields: ["market"], missingReasons: { market: "provider returned no market outcomes" },
+        price: null, line: null, observationPhase: "unavailable", gameEvidenceId: matchedGameEvidenceId, isMatchedToGame: Boolean(matched),
+        marketIdentityStatus: identity.status, marketIdentityReason: identity.reason, capturedAt: now, modeledAsOf: now, season,
+        missingFields: ["market"], missingReasons: { market: "provider returned no market outcomes", market_identity: identity.reason },
         payload, payloadHash: stablePayloadHash(payload),
       }).onConflictDoNothing();
       markets++; if (matched) matchedMarkets++;
@@ -402,17 +490,28 @@ export async function captureNcaafEvidenceDate(
         observationPhase: market.observationPhase,
         gameEvidenceId: matchedGameEvidenceId,
         isMatchedToGame: Boolean(matched), capturedAt: now, modeledAsOf: now, season,
-        missingFields: market.missing.fields, missingReasons: market.missing.reasons,
+        marketIdentityStatus: identity.status, marketIdentityReason: identity.reason,
+        missingFields: matched ? market.missing.fields : [...market.missing.fields, "market_identity"],
+        missingReasons: { ...market.missing.reasons, ...(!matched ? { market_identity: identity.reason } : {}) },
         payload: market.payload, payloadHash: stablePayloadHash(market.payload),
       }).onConflictDoNothing();
       markets++; if (matched) matchedMarkets++;
     }
   }
-  const status = Object.keys(providerErrors).length === 0 ? "completed" :
+  const partialReasons = [
+    ...Object.entries(providerErrors).map(([provider, error]) => ({
+      code: "provider_error", provider, message: error,
+    })),
+    ...(markets > matchedMarkets ? [{
+      code: "unmatched_market_identity", count: markets - matchedMarkets,
+      message: "One or more market rows could not be safely linked to an ESPN game",
+    }] : []),
+  ];
+  const status = partialReasons.length === 0 ? "completed" :
     (espnGames.length || oddsGames.length) ? "partial" : "failed";
   const coverage = {
     games: espnGames.length, markets, matchedMarkets, unmatchedMarkets: markets - matchedMarkets,
-    missingEntityObservations, providerErrors,
+    missingEntityObservations, providerErrors, partialReasons,
     providerLimitations: isHistoricalRequest ? {
       markets: "current Odds API endpoint is not historical",
       players: "no historical player provider is configured",
@@ -425,9 +524,53 @@ export async function captureNcaafEvidenceDate(
   ].sort();
   await database.update(ncaafEvidenceRunsTable).set({
     requestedTo: capturedCalendarDates.at(-1) ?? requestedDate,
-    status, coverage, errorDetails: Object.keys(providerErrors).length ? providerErrors : null, completedAt: now,
+    status, coverage, errorDetails: partialReasons.length ? { providerErrors, partialReasons } : null, completedAt: now,
+    statusHistory: [{ status: "running", reason: "capture_started", at: now.toISOString() }, {
+      status, reason: status === "completed" ? "capture_completed" : "capture_finalized_with_partial_evidence",
+      at: now.toISOString(), partialReasons,
+    }],
   }).where(eq(ncaafEvidenceRunsTable.id, run.id));
   return { runId: run?.id, games: espnGames.length, markets, matchedMarkets, missingEntityObservations, providerErrors };
+  } catch (error) {
+    const reason = {
+      code: "capture_exception",
+      message: error instanceof Error ? error.message : String(error),
+    };
+    await database.update(ncaafEvidenceRunsTable).set({
+      status: "failed", completedAt: now,
+      coverage: { games: 0, markets: 0, matchedMarkets: 0, unmatchedMarkets: 0, partialReasons: [reason] },
+      errorDetails: { partialReasons: [reason] },
+      statusHistory: [{ status: "running", reason: "capture_started", at: now.toISOString() }, {
+        status: "failed", reason: "capture_exception", at: now.toISOString(), partialReasons: [reason],
+      }],
+    }).where(eq(ncaafEvidenceRunsTable.id, run.id));
+    throw error;
+  }
+}
+
+/** Process-wide single-flight protection is intentionally here, rather than in
+ * either scheduler job, because odds ingestion and result grading both invoke it. */
+export async function runNcaafEvidenceSingleFlight<T>(
+  key: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const active = ncaafCaptureFlights.get(key);
+  if (active) return active as Promise<T>;
+  const capture = operation();
+  ncaafCaptureFlights.set(key, capture);
+  try {
+    return await capture;
+  } finally {
+    if (ncaafCaptureFlights.get(key) === capture) ncaafCaptureFlights.delete(key);
+  }
+}
+
+export async function captureNcaafEvidenceDate(
+  date: Date | string,
+  dependencies: EvidenceCaptureDependencies = {},
+): Promise<EvidenceCaptureResult> {
+  const key = requestedCalendarDate(date);
+  return runNcaafEvidenceSingleFlight(key, () => captureNcaafEvidenceDateUnsafe(date, dependencies));
 }
 
 export async function captureCurrentNcaafEvidence(dependencies: EvidenceCaptureDependencies = {}) {
@@ -538,6 +681,28 @@ export function summarizeNcaafCoverage(rows: Array<{ status: string; coverage: u
     for (const key of ["games", "markets", "matchedMarkets", "unmatchedMarkets"] as const) report[key] += Number(coverage?.[key] ?? 0);
   }
   return report;
+}
+
+export interface NcaafRunStateBreakdown {
+  activeRunning: number;
+  staleRunning: number;
+  finalized: number;
+}
+
+/** A running row is active only during the reconciliation window. This helper
+ * makes operational coverage reports deterministic for a caller-supplied clock. */
+export function summarizeNcaafRunStates(
+  rows: Array<{ status: string; capturedAt: Date }>,
+  now: Date,
+  staleAfterMs = NCAAF_EVIDENCE_RUN_STALE_AFTER_MS,
+): NcaafRunStateBreakdown {
+  const cutoff = now.getTime() - staleAfterMs;
+  return rows.reduce<NcaafRunStateBreakdown>((result, row) => {
+    if (row.status !== "running") result.finalized++;
+    else if (row.capturedAt.getTime() < cutoff) result.staleRunning++;
+    else result.activeRunning++;
+    return result;
+  }, { activeRunning: 0, staleRunning: 0, finalized: 0 });
 }
 
 export async function getNcaafCoverageReport() {

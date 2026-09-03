@@ -11,6 +11,7 @@ import {
   type RoiByRatingEntry, type RoiBySportEntry, type LossReviewEntry,
   type MarketCandidate,
   type MarketApprovalDecision,
+  type NcaafReadiness,
 } from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 
@@ -559,6 +560,39 @@ function OutcomeReviewPanel({
   );
 }
 
+function NcaafReadinessPanel({ readiness, isLoading }: {
+  readiness?: NcaafReadiness;
+  isLoading: boolean;
+}) {
+  if (isLoading) return <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">Loading NCAAF readiness…</div>;
+  if (!readiness) return <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">NCAAF readiness is unavailable.</div>;
+  const reasons = (items: Array<{ reason: string; count: number }>) =>
+    items.slice(0, 3).map((item) => `${item.reason.replaceAll("_", " ")} (${item.count})`).join(" · ") || "none";
+  return (
+    <section className="bg-card border border-amber-500/30 rounded-lg p-4 space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">NCAAF Readiness — Admin Evidence Surface</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Read-only challenger evidence and validation observability. V4 is not ready.</p>
+        </div>
+        <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-400">READY FOR V4: NO</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div className="rounded bg-background/50 p-2"><b>Legacy</b><br />{readiness.legacyCohort.graded}/{readiness.legacyCohort.total} graded · {readiness.legacyCohort.officialExcluded} excluded</div>
+        <div className="rounded bg-background/50 p-2"><b>Features</b><br />{readiness.featureSnapshots.ready} ready · {readiness.featureSnapshots.blocked} blocked</div>
+        <div className="rounded bg-background/50 p-2"><b>Runs</b><br />{readiness.evidenceRuns.active} active · {readiness.evidenceRuns.stale} stale</div>
+        <div className="rounded bg-background/50 p-2"><b>Market coverage</b><br />{readiness.marketEvidenceCoverage.matched}/{readiness.marketEvidenceCoverage.total} matched</div>
+      </div>
+      <div className="grid md:grid-cols-2 gap-3 text-xs">
+        <div className="rounded border border-border p-2"><b className="text-foreground">Blockers</b><p className="mt-1 text-amber-400">{readiness.blockers.join(" · ")}</p></div>
+        <div className="rounded border border-border p-2"><b className="text-foreground">PIT / cohorts / validation</b><p className="mt-1 text-muted-foreground">PIT violations: {readiness.pointInTime.violations} · FINAL_PREGAME: {readiness.cohorts.finalPregame} · LIVE_SHADOW: {readiness.cohorts.liveShadow} · evaluations: {readiness.validation.evaluations.total} · walk-forward: {readiness.validation.walkForward.total} · promotions: {readiness.validation.promotions.total}</p></div>
+        <div className="rounded border border-border p-2"><b className="text-foreground">Sports evidence</b><p className="mt-1 text-muted-foreground">{readiness.sportsEvidenceCoverage.gameEvidenceRows} game rows · {readiness.sportsEvidenceCoverage.entityObservationRows} entity rows</p><p className="mt-1 text-muted-foreground">{reasons(readiness.sportsEvidenceCoverage.topMissingReasons)}</p></div>
+        <div className="rounded border border-border p-2"><b className="text-foreground">Top feature blockers</b><p className="mt-1 text-muted-foreground">{reasons(readiness.featureSnapshots.topBlockedReasons)}</p><p className="mt-1 text-muted-foreground">Market unmatched: {readiness.marketEvidenceCoverage.unmatched}</p></div>
+      </div>
+    </section>
+  );
+}
+
 // ── Performance Panel ─────────────────────────────────────────────────────────
 
 function PerformancePanel() {
@@ -740,6 +774,11 @@ export function Models() {
     queryFn: () => adminApi.marketApprovals(),
     refetchInterval: 30_000,
   });
+  const { data: ncaafReadiness, isLoading: ncaafReadinessLoading } = useQuery({
+    queryKey: ["ncaaf-readiness"],
+    queryFn: () => adminApi.ncaafReadiness(),
+    refetchInterval: 30_000,
+  });
 
   const deployMutation = useMutation({
     mutationFn: (id: number) => adminApi.deployModel(id),
@@ -769,6 +808,8 @@ export function Models() {
 
       {/* Performance charts + stat cards */}
       <PerformancePanel />
+
+      <NcaafReadinessPanel readiness={ncaafReadiness} isLoading={ncaafReadinessLoading} />
 
       <section className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border">

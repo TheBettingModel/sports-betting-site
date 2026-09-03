@@ -182,6 +182,7 @@ export const adminApi = {
     api.get<MarketApprovalsResult>("/admin/market-approvals"),
   recommendationPublicationAudit: () =>
     api.get<RecommendationPublicationAudit>("/admin/recommendation-publication-audit"),
+  ncaafReadiness: () => api.get<NcaafReadiness>("/admin/ncaaf-readiness"),
 };
 
 export const modelApi = {
@@ -228,6 +229,45 @@ export interface AdminOverview {
   performance: { totalGradedPicks: number; avgROI: number | null; avgWinRate: number | null };
   automation: { health: string; lastRun: AutoRunSummary | null };
   feedHealth: FeedHealthEntry[];
+}
+
+export interface NcaafReasonCount {
+  reason: string;
+  count: number;
+}
+
+export interface NcaafReadiness {
+  readyForV4: false;
+  blockers: string[];
+  legacyCohort: { total: number; classified: number; graded: number; pending: number; officialExcluded: number };
+  featureSnapshots: { total: number; ready: number; blocked: number; topBlockedReasons: NcaafReasonCount[] };
+  evidenceRuns: {
+    active: number;
+    stale: number;
+    finalized: number;
+    recent: Array<{
+      id: number; runKey: string; requestedFrom: string; requestedTo: string;
+      capturedAt: string; completedAt: string | null; status: string;
+      providers: unknown; coverage: unknown; partialReasons: unknown; errorDetails: unknown;
+    }>;
+  };
+  sportsEvidenceCoverage: {
+    gameEvidenceRows: number; entityObservationRows: number; observedGames: number;
+    topMissingReasons: NcaafReasonCount[];
+  };
+  marketEvidenceCoverage: {
+    total: number; matched: number; unmatched: number;
+    byIdentity: Array<{ marketIdentityStatus: string; marketIdentityReason: string; count: number }>;
+    topMissingReasons: NcaafReasonCount[];
+  };
+  cohorts: { finalPregame: number; liveShadow: number; supported: boolean };
+  pointInTime: { violations: number };
+  validation: {
+    evaluations: { total: number; excluded: number; graded: number };
+    walkForward: { total: number; byStatus: Record<string, number> };
+    promotions: { total: number; byDecision: Record<string, number>; topReasons: NcaafReasonCount[] };
+  };
+  dataAsOf: string;
 }
 
 export interface RecommendationPublicationAuditRow {

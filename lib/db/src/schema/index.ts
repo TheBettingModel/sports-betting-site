@@ -25,6 +25,7 @@ export * from "./mlb-policy-revisions";
 export * from "./model-prediction-duplicate-archive";
 export * from "./model-predictions";
 export * from "./published-picks";
+export * from "./published-pick-performance-classifications";
 export * from "./daily-free-picks";
 export * from "./pick-results";
 export * from "./forecast-reviews";

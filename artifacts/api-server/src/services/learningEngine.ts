@@ -19,6 +19,7 @@ import type { FactorWeights } from "@workspace/db";
 import { effectiveWeights, SPORT_DEFAULT_WEIGHTS } from "./model";
 import { buildOutcomeReview, isDecisionSnapshot } from "./lossReview";
 import { logger } from "../lib/logger";
+import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
 
 const MIN_FACTOR_SAMPLE = 15;
 const BRIER_RANDOM_BASELINE = 0.25;
@@ -267,6 +268,7 @@ export async function runLearning(): Promise<void> {
     .where(
       and(
         inArray(pickResultsTable.result, ["win", "loss"]),
+         isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
           or(
             isNull(pickResultsTable.learningProcessedAt),
             // Before the snapshot-version fix, valid v3/v4 evidence was

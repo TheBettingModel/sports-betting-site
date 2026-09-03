@@ -19,6 +19,7 @@ import {
   publishedPickEffectivenessLock,
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
+import { isActionablePublication } from "./publicationEligibility";
 
 const MAX_PUBLIC_PICKS_PER_DAY = 6;
 const MATERIAL_EDGE_DELTA = 3;
@@ -525,6 +526,10 @@ export async function applyMaterialPregameRevision(
       })
       .returning({ id: modelPredictionsTable.id });
     if (!insertedPrediction) return false;
+    // Preserve the immutable revision snapshot for audit, but a withdrawal or
+    // Neutral/Fade recalculation is not a wager and must not enter either
+    // published_picks or the grading queue.
+    if (!isActionablePublication(current.recommendation, current.units)) return false;
 
     const [{ publicCount }] = await tx
       .select({ publicCount: sql<number>`count(*)::int` })
