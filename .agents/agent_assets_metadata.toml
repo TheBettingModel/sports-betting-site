@@ -22,3 +22,17 @@ mtime_ms = 1788432295144
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/653bef1c-c9bc-4cda-92ca-c51dbb35912b/7884580e-0b87-4783-98da-ddbfb5efe363"
 storage_version_token = "1788432313677758"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "S7w5qPePr86NSUmyhkEnU"
+uri = "file://reports/thebettingmodel-mlb-model-only-2026-09-03.md"
+type = "text"
+title = "TheBettingModel — Current MLB Moneyline Model"
+description = "MLB-only forensic review of production inputs, formulas, current weights, pitcher/bullpen/lineup signals, market evaluation, recommendation gates, publication, immutable evidence, and unit sizing."
+logical_id = "0fd3a881-aaf6-4d77-9f3f-23c54ee6415e"
+content_hash = "sha256:9d47cb263634d0fadb034aeebb7f94da04249701327ef7efd8ac8c6e25c09f1a"
+size = 29412
+mtime_ms = 1788432581927
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/0fd3a881-aaf6-4d77-9f3f-23c54ee6415e/ba31b15a-d6d3-4751-9130-6a1ff118f74b"
+storage_version_token = "1788432586443347"
+content_type = "text/markdown"
