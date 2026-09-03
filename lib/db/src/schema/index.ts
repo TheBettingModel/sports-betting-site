@@ -39,6 +39,7 @@ export * from "./feature-definitions";
 export * from "./feature-snapshots";
 export * from "./ncaaf-evidence-ledger";
 export * from "./ncaaf-college-football-data-evidence";
+export * from "./ncaaf-cfbd-advanced-intelligence";
 export * from "./ncaaf-feature-snapshots";
 export * from "./ncaaf-validation";
 export * from "./ncaaf-team-game-performance";

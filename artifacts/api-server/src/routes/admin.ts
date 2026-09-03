@@ -52,6 +52,11 @@ import {
   ncaafTeamGamePerformanceTable,
   ncaafPregameCohortAssignmentsTable,
   ncaafCollegeFootballDataEvidenceTable,
+  ncaafCfbdDomainEvidenceTable,
+  ncaafCfbdGameMappingsTable,
+  ncaafCfbdPlayerMappingsTable,
+  ncaafCfbdProviderHealthTable,
+  ncaafCfbdTeamMappingsTable,
   publishedPickPerformanceClassificationsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
@@ -299,6 +304,7 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   const [
     legacyRows, featureRows, runRows, gameEvidence, entityEvidence, marketRows,
     evaluations, walkForward, promotions, cohorts, teamPerformance, intelligenceSnapshots, cfbdEvidence,
+    cfbdDomains, cfbdTeamMappings, cfbdGameMappings, cfbdPlayerMappings, cfbdHealth,
   ] = await Promise.all([
     db.select({
       pickId: publishedPicksTable.id,
@@ -359,6 +365,22 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
       lastSuccessfulCapture: sql<Date | null>`max(case when ${ncaafCollegeFootballDataEvidenceTable.evidenceState} = 'observed' then ${ncaafCollegeFootballDataEvidenceTable.capturedAt} end)`,
     }).from(ncaafCollegeFootballDataEvidenceTable)
       .groupBy(ncaafCollegeFootballDataEvidenceTable.endpoint),
+    db.select({ domain: ncaafCfbdDomainEvidenceTable.domain, rows: sql<number>`count(*)` })
+      .from(ncaafCfbdDomainEvidenceTable).groupBy(ncaafCfbdDomainEvidenceTable.domain),
+    db.select({ state: ncaafCfbdTeamMappingsTable.state, rows: sql<number>`count(*)` })
+      .from(ncaafCfbdTeamMappingsTable).groupBy(ncaafCfbdTeamMappingsTable.state),
+    db.select({ state: ncaafCfbdGameMappingsTable.state, rows: sql<number>`count(*)` })
+      .from(ncaafCfbdGameMappingsTable).groupBy(ncaafCfbdGameMappingsTable.state),
+    db.select({ state: ncaafCfbdPlayerMappingsTable.state, rows: sql<number>`count(*)` })
+      .from(ncaafCfbdPlayerMappingsTable).groupBy(ncaafCfbdPlayerMappingsTable.state),
+    db.select({
+      endpoint: ncaafCfbdProviderHealthTable.endpoint, calls: sql<number>`count(*)`,
+      successful: sql<number>`count(*) filter (where ${ncaafCfbdProviderHealthTable.succeeded} = true)`,
+      failed: sql<number>`count(*) filter (where ${ncaafCfbdProviderHealthTable.succeeded} = false)`,
+      rateLimited: sql<number>`count(*) filter (where ${ncaafCfbdProviderHealthTable.rateLimited} = true)`,
+      timeouts: sql<number>`count(*) filter (where ${ncaafCfbdProviderHealthTable.timeout} = true)`,
+    }).from(ncaafCfbdProviderHealthTable).where(gte(ncaafCfbdProviderHealthTable.attemptedAt,
+      new Date(now.getUTCFullYear(), now.getUTCMonth(), 1))).groupBy(ncaafCfbdProviderHealthTable.endpoint),
   ]);
 
   const legacyByPick = new Map<number, { classified: boolean; eligible: boolean; graded: boolean }>();
@@ -424,6 +446,8 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
   }, {} as Record<string, number>);
   const cfbdLastSuccessfulCapture = cfbdEvidence.reduce<Date | null>((latest, row) =>
     !row.lastSuccessfulCapture || latest && latest >= row.lastSuccessfulCapture ? latest : row.lastSuccessfulCapture, null);
+  const stateCounts = (rows: Array<{ state: string; rows: number }>) =>
+    Object.fromEntries(rows.map((row) => [row.state, Number(row.rows)]));
   const performanceQuality = teamPerformance.filter((row) => row.quality != null);
   const performanceReliability = teamPerformance.filter((row) => row.reliability != null);
   const average = (values: Array<number | null>) => {
@@ -520,6 +544,9 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
           rawRows: cfbdEvidence.reduce((sum, row) => sum + Number(row.rows), 0),
           lastSuccessfulCapture: cfbdLastSuccessfulCapture?.toISOString() ?? null,
           endpointCounts: cfbdEndpointCounts,
+          domainCounts: Object.fromEntries(cfbdDomains.map((row) => [row.domain, Number(row.rows)])),
+          mappings: { teams: stateCounts(cfbdTeamMappings), games: stateCounts(cfbdGameMappings), players: stateCounts(cfbdPlayerMappings) },
+          usageCurrentMonth: cfbdHealth.map((row) => ({ ...row, calls: Number(row.calls), successful: Number(row.successful), failed: Number(row.failed), rateLimited: Number(row.rateLimited), timeouts: Number(row.timeouts) })),
         },
       },
     },

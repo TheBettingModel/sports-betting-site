@@ -4,7 +4,7 @@
  * another sport owns the scheduler's shared heavy-job lock.
  */
 import { and, eq, gt } from "drizzle-orm";
-import { db, ncaafGameEvidenceTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
+import { db, ncaafCfbdProviderHealthTable, ncaafGameEvidenceTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import {
   captureCurrentNcaafEvidence,
@@ -24,6 +24,8 @@ import {
   type NcaafPregameCohortStore,
 } from "./ncaafPregameCohorts";
 import { captureCollegeFootballDataEvidence, type CfbdCaptureResult } from "./ncaafCollegeFootballDataEvidence";
+import { captureScheduledCfbdAdvancedEvidence } from "./ncaafCfbdAdvancedEvidence";
+import { materializeCurrentCfbdMappings } from "./ncaafCfbdMappingMaterializer";
 
 export const NCAAF_FINAL_PREGAME_WINDOW_MINUTES = 45;
 export const MAX_NCAAF_BOOTSTRAP_DAYS = 14;
@@ -138,8 +140,29 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
       try {
         // Exactly one bounded current-season/week CFBD capture per dedicated cycle.
         result.cfbdCapture = await (dependencies.captureCfbd ?? captureCollegeFootballDataEvidence)();
+        if (!dependencies.captureCfbd) await db.insert(ncaafCfbdProviderHealthTable).values({
+          endpoint: "games", attemptedAt: cycleStartedAt, succeeded: true, httpStatus: 200,
+          latencyMs: 0, rowsMaterialized: result.cfbdCapture.rawRows + result.cfbdCapture.games,
+        });
+        if (!dependencies.captureCfbd) await materializeCurrentCfbdMappings(ncaafSeasonForDate(cycleStartedAt), cycleStartedAt);
+        // Non-game CFBD families have independent, rate-aware cadences and
+        // failures never prevent ESPN evidence or a pregame snapshot.
+        if (!dependencies.captureCfbd) try {
+          const advanced = await captureScheduledCfbdAdvancedEvidence({
+            season: ncaafSeasonForDate(cycleStartedAt), now: cycleStartedAt,
+          });
+          if (advanced.failed.length) log.warn({ failedEndpoints: advanced.failed.map((item) => item.endpoint) },
+            "NCAAF CFBD advanced evidence partially unavailable");
+        } catch (error) {
+          log.warn({ error }, "NCAAF CFBD advanced evidence scheduling failed");
+        }
       } catch (error) {
         result.cfbdCaptureCause = error instanceof Error ? error.message : String(error);
+        if (!dependencies.captureCfbd) await db.insert(ncaafCfbdProviderHealthTable).values({
+          endpoint: "games", attemptedAt: cycleStartedAt, succeeded: false, httpStatus: null, latencyMs: 0,
+          timeout: /timed out/i.test(result.cfbdCaptureCause), rateLimited: /\b429\b/.test(result.cfbdCaptureCause),
+          authError: /\b401\b|\b403\b/.test(result.cfbdCaptureCause), validationError: /invalid/i.test(result.cfbdCaptureCause), rowsMaterialized: 0,
+        });
         log.warn({ cause: result.cfbdCaptureCause }, "NCAAF CFBD evidence capture failed; continuing with ESPN evidence");
       }
       try {

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { and, eq, lt, ne, sql } from "drizzle-orm";
-import { db, ncaafTeamGamePerformanceTable } from "@workspace/db";
+import { and, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
+import { db, ncaafCfbdDomainEvidenceTable, ncaafCfbdTeamMappingsTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
 
-export const NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION = "ncaaf-football-intelligence-v1";
+export const NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION = "ncaaf-football-intelligence-v2";
 
 export type IntelligenceState = "VALID" | "PARTIAL" | "MISSING" | "UNSUPPORTED" | "INVALID";
 export type IntelligenceReadiness = "READY" | "PARTIAL" | "BLOCKED";
@@ -288,9 +288,17 @@ export async function createNcaafFootballIntelligenceSnapshot(
   target: NcaafIntelligenceTarget, dataCutoffAt: Date,
 ): Promise<{ id: number; snapshot: NcaafFootballIntelligenceSnapshotValue; inputHash: string }> {
   const rows = await loadPriorNcaafTeamPerformance(target, dataCutoffAt);
-  const snapshot = buildNcaafFootballIntelligenceSnapshot(target, rows, dataCutoffAt);
-  const inputHash = ncaafFootballIntelligenceInputHash(target, rows, dataCutoffAt);
-  const latestCaptured = rows.reduce<Date | null>((latest, row) => !latest || row.capturedAt > latest ? row.capturedAt : latest, null);
+  const suppliedDomains = await loadSafeCfbdDomains(target, dataCutoffAt);
+  const enrichedTarget = { ...target, suppliedDomains: {
+    ...target.suppliedDomains, home: { ...suppliedDomains.home, ...target.suppliedDomains?.home },
+    away: { ...suppliedDomains.away, ...target.suppliedDomains?.away },
+  } };
+  const snapshot = buildNcaafFootballIntelligenceSnapshot(enrichedTarget, rows, dataCutoffAt);
+  const inputHash = ncaafFootballIntelligenceInputHash(enrichedTarget, rows, dataCutoffAt);
+  const suppliedCaptured = Object.values(suppliedDomains).flatMap((side) => Object.values(side ?? {}))
+    .flatMap((domain) => domain?.evidence ?? []).map((reference) => new Date(reference.capturedAt));
+  const latestCaptured = [...rows.map((row) => row.capturedAt), ...suppliedCaptured]
+    .reduce<Date | null>((latest, value) => !latest || value > latest ? value : latest, null);
   const result = await db.execute(sql`
     INSERT INTO ncaaf_football_intelligence_snapshots
       (schema_version, target_provider, target_event_id, season, week, kickoff_at,
@@ -313,4 +321,45 @@ export async function createNcaafFootballIntelligenceSnapshot(
   const id = (existing as unknown as { rows: Array<{ id: number }> }).rows[0]?.id;
   if (id == null) throw new Error("Unable to idempotently persist NCAAF intelligence snapshot");
   return { id, snapshot, inputHash };
+}
+
+/**
+ * Resolve CFBD through an explicit mapping ledger.  There is deliberately no
+ * name fallback: an absent/ambiguous mapping simply leaves the domain missing.
+ */
+async function loadSafeCfbdDomains(target: NcaafIntelligenceTarget, cutoff: Date): Promise<NonNullable<NcaafIntelligenceTarget["suppliedDomains"]>> {
+  const output: NonNullable<NcaafIntelligenceTarget["suppliedDomains"]> = { home: {}, away: {} };
+  for (const [side, canonicalTeamId] of [["home", target.homeTeamId], ["away", target.awayTeamId]] as const) {
+    if (!canonicalTeamId) continue;
+    const mappings = await db.select().from(ncaafCfbdTeamMappingsTable).where(and(
+      eq(ncaafCfbdTeamMappingsTable.season, target.season), eq(ncaafCfbdTeamMappingsTable.canonicalProvider, target.provider),
+      eq(ncaafCfbdTeamMappingsTable.canonicalTeamId, canonicalTeamId), eq(ncaafCfbdTeamMappingsTable.state, "MAPPED"),
+      lt(ncaafCfbdTeamMappingsTable.capturedAt, cutoff),
+    ));
+    const teamIds = mappings.map((row) => row.cfbdTeamId);
+    if (!teamIds.length) continue;
+    const evidence = await db.select().from(ncaafCfbdDomainEvidenceTable).where(and(
+      inArray(ncaafCfbdDomainEvidenceTable.cfbdTeamId, teamIds), lt(ncaafCfbdDomainEvidenceTable.capturedAt, cutoff),
+      sql`(${ncaafCfbdDomainEvidenceTable.providerEffectiveAt} IS NULL OR ${ncaafCfbdDomainEvidenceTable.providerEffectiveAt} < ${cutoff})`,
+    )).orderBy(desc(ncaafCfbdDomainEvidenceTable.providerEffectiveAt), desc(ncaafCfbdDomainEvidenceTable.capturedAt), desc(ncaafCfbdDomainEvidenceTable.id));
+    const domainMap: Record<string, string> = {
+      advanced: "advanced", teamStats: "teamPerformance", roster: "roster", coaching: "coaching",
+      talent: "talent", returningProduction: "earlySeasonPrior", recruiting: "earlySeasonPrior",
+      sp: "earlySeasonPrior", elo: "earlySeasonPrior", srs: "earlySeasonPrior", fpi: "earlySeasonPrior",
+      weather: "weather",
+    };
+    for (const row of evidence) {
+      if (row.pitClassification === "C" || row.pitClassification === "D") continue;
+      const domain = domainMap[row.domain]; if (!domain) continue;
+      const current = output[side]![domain];
+      if (current) continue; // query order is provider append order; retaining first is deterministic enough for provenance.
+      output[side]![domain] = {
+        state: "VALID", provider: "college_football_data", quality: null, reliability: null,
+        evidence: [{ id: row.id, providerEventId: row.cfbdGameId ?? row.cfbdTeamId ?? "cfbd-domain", payloadHash: row.payloadHash, capturedAt: row.capturedAt.toISOString() }],
+        provenance: [{ provider: "college_football_data", endpoint: row.endpoint, pitClassification: row.pitClassification, capturedAt: row.capturedAt.toISOString(), effectiveAt: row.providerEffectiveAt?.toISOString() ?? null }],
+        sample: { observations: 1 }, missingReason: null, payload: row.payload as Record<string, unknown>,
+      };
+    }
+  }
+  return output;
 }

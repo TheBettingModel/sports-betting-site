@@ -134,3 +134,17 @@ mtime_ms = 1788460551346
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/c8b3b1ea-a94d-4d9d-b55a-2eea1c50d216/d5314c62-f4d6-43c3-8843-dc0d05d48ea8"
 storage_version_token = "1788460557749501"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "cpq12h2lyhnmnH2Adsore"
+uri = "file://reports/ncaaf-cfbd-advanced-intelligence-2026-09-03.md"
+type = "text"
+title = "#221E CFBD Advanced Intelligence Report"
+description = "61-section development report and 61 completion answers covering endpoint contracts, canonical mappings, PIT controls, provider telemetry, readiness, and pending production verification."
+logical_id = "0c4bfde6-7877-4276-ae9e-408db2ff89bc"
+content_hash = "sha256:0b936834b9de8059175a30c14613b2025116e101678f52381d1d4f2bd5ad497e"
+size = 8947
+mtime_ms = 1788461608654
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/0c4bfde6-7877-4276-ae9e-408db2ff89bc/05825a2c-42f5-445a-9834-86e5791bd637"
+storage_version_token = "1788461727536514"
+content_type = "text/markdown"

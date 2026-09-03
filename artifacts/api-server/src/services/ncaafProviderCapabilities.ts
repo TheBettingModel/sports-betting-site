@@ -79,16 +79,16 @@ export const NCAAF_PROVIDER_CAPABILITIES = freezeInventory([
   ] as const).map((capability) => ({
     provider: "college_football_data" as const, capability, state: "AVAILABLE_NOW" as const,
     pointInTimeState: "PARTIAL" as const,
-    evidence: "The server-only CFBD client and bounded current-season/week capture persist raw games and explicit CFBD team/game identities. It does not match CFBD IDs to ESPN IDs.",
+     evidence: "The server-only CFBD client captures bounded current-season games and runs an explicit exact-name/ordered-kickoff CFBD-to-ESPN mapping ledger; ambiguous identities remain unmapped.",
   } satisfies NcaafProviderCapability)),
   ...([
     "team_boxscore", "player_stats", "play_by_play", "player", "roster", "recruiting",
     "transfer", "coaching", "special_teams", "play_level_epa", "play_level_success",
     "play_level_explosiveness", "play_level_havoc", "drive", "current_weather",
   ] as const).map((capability) => ({
-    provider: "college_football_data" as const, capability, state: "AVAILABLE_BUT_NOT_CAPTURED" as const,
+     provider: "college_football_data" as const, capability, state: "PARTIAL" as const,
     pointInTimeState: "PARTIAL" as const,
-    evidence: "The server-only CFBD transport supports this endpoint family, but the bounded evidence cycle currently captures games only; no historical pre-kickoff reconstruction is claimed.",
+     evidence: "A rate-aware CFBD domain materializer schedules these endpoint families by game, daily, or weekly cadence and preserves raw payload before normalized evidence. Actual availability and PIT semantics remain explicitly audited per captured response.",
   } satisfies NcaafProviderCapability)),
   {
     provider: "college_football_data", capability: "historical_point_in_time", state: "PARTIAL",

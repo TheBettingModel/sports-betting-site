@@ -2,7 +2,7 @@ import { index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION = "ncaaf-football-intelligence-v1";
+export const NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION = "ncaaf-football-intelligence-v2";
 
 /**
  * Immutable, append-only, market-free NCAAF intelligence materializations.
