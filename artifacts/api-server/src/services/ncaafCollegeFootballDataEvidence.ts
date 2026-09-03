@@ -93,7 +93,9 @@ export async function captureCollegeFootballDataEvidence(
     providerObservedAt: response.providerObservedAt, payloadHash: response.payloadHash, payload: response.payload,
     evidenceState: "observed", missingFields: [], missingReasons: {},
   }).onConflictDoNothing().returning({ id: ncaafCollegeFootballDataEvidenceTable.id });
-  let games = 0; let entities = 0; let performances = 0;
+  const gameValues: Array<typeof ncaafGameEvidenceTable.$inferInsert> = [];
+  const entityValues: Array<typeof ncaafEntityObservationsTable.$inferInsert> = [];
+  const performanceValues: Array<typeof ncaafTeamGamePerformanceTable.$inferInsert> = [];
   for (const payload of response.payload) {
     if (!payload || typeof payload !== "object") continue;
     const game = payload as CfbdGame;
@@ -103,7 +105,7 @@ export async function captureCollegeFootballDataEvidence(
     const sportsPayload = removeMarketShapedFields(game) as CfbdGame;
     const missing = missingGame(game);
     const kickoffAt = date(game.startDate);
-    const insertedGame = await database.insert(ncaafGameEvidenceTable).values({
+    gameValues.push({
       provider: CFBD_PROVIDER, providerEventId: gameId, providerObservedAt: response.providerObservedAt,
       capturedAt: response.capturedAt, modeledAsOf: response.capturedAt, season, week: integer(game.week) ?? week,
       kickoffAt, gameStatus: game.completed === true ? "final" : null,
@@ -113,34 +115,47 @@ export async function captureCollegeFootballDataEvidence(
       homeTeamName: typeof game.homeTeam === "string" ? game.homeTeam : null, awayTeamName: typeof game.awayTeam === "string" ? game.awayTeam : null,
       neutralSite: typeof game.neutralSite === "boolean" ? game.neutralSite : null,
       missingFields: missing.fields, missingReasons: missing.reasons, payload: sportsPayload, payloadHash: cfbdPayloadHash(sportsPayload),
-    }).onConflictDoNothing().returning({ id: ncaafGameEvidenceTable.id });
-    if (insertedGame.length) games++;
+    });
     const sides = [{ teamId: game.homeId, opponentId: game.awayId, name: game.homeTeam, side: "home" as const, points: game.homePoints, against: game.awayPoints, class: game.homeClassification },
       { teamId: game.awayId, opponentId: game.homeId, name: game.awayTeam, side: "away" as const, points: game.awayPoints, against: game.homePoints, class: game.awayClassification }];
     for (const side of sides) {
       if (side.teamId == null) continue;
       const teamId = String(side.teamId);
       const entityPayload = { cfbdGameId: gameId, cfbdTeamId: teamId, teamName: side.name ?? null, classification: classification(side.class) };
-      const insertedEntity = await database.insert(ncaafEntityObservationsTable).values({
+      entityValues.push({
         provider: CFBD_PROVIDER, providerEntityId: teamId, entityType: "team_season", observationType: "game_team_identity",
         season, week, providerObservedAt: response.providerObservedAt, capturedAt: response.capturedAt, modeledAsOf: response.capturedAt,
         missingFields: side.name ? [] : ["team_name"], missingReasons: side.name ? {} : { team_name: "CFBD game response omitted team name" },
         payload: entityPayload, payloadHash: cfbdPayloadHash(entityPayload),
-      }).onConflictDoNothing().returning({ id: ncaafEntityObservationsTable.id });
-      if (insertedEntity.length) entities++;
+      });
       // Scores are inserted only when CFBD explicitly marks this game complete and supplies both legitimate integer scores.
       if (game.completed !== true || integer(side.points) == null || integer(side.against) == null || side.opponentId == null) continue;
       const performancePayload = { game: sportsPayload, teamId, side: side.side };
-      const insertedPerformance = await database.insert(ncaafTeamGamePerformanceTable).values({
+      performanceValues.push({
         provider: CFBD_PROVIDER, providerEventId: gameId, providerTeamId: teamId, providerOpponentTeamId: String(side.opponentId),
         season, week: integer(game.week) ?? week, kickoffAt, teamLocation: game.neutralSite === true ? "neutral" : side.side,
         competitionClassification: classification(side.class), pointsFor: integer(side.points), pointsAgainst: integer(side.against),
         missingFields: [], missingReasons: {}, providerObservedAt: response.providerObservedAt, capturedAt: response.capturedAt,
         payloadHash: cfbdPayloadHash(performancePayload),
         provenance: { source: "college_football_data", cfbdGameId: gameId, capturedAt: response.capturedAt.toISOString(), marketFieldsExcluded: true },
-      }).onConflictDoNothing().returning({ id: ncaafTeamGamePerformanceTable.id });
-      if (insertedPerformance.length) performances++;
+      });
     }
+  }
+  let games = 0; let entities = 0; let performances = 0;
+  for (let offset = 0; offset < gameValues.length; offset += 500) {
+    const inserted = await database.insert(ncaafGameEvidenceTable).values(gameValues.slice(offset, offset + 500))
+      .onConflictDoNothing().returning({ id: ncaafGameEvidenceTable.id });
+    games += inserted.length;
+  }
+  for (let offset = 0; offset < entityValues.length; offset += 500) {
+    const inserted = await database.insert(ncaafEntityObservationsTable).values(entityValues.slice(offset, offset + 500))
+      .onConflictDoNothing().returning({ id: ncaafEntityObservationsTable.id });
+    entities += inserted.length;
+  }
+  for (let offset = 0; offset < performanceValues.length; offset += 500) {
+    const inserted = await database.insert(ncaafTeamGamePerformanceTable).values(performanceValues.slice(offset, offset + 500))
+      .onConflictDoNothing().returning({ id: ncaafTeamGamePerformanceTable.id });
+    performances += inserted.length;
   }
   return { season, week: week ?? null, rawRows: rawInserted.length, games, entities, performances, transport: response.transport };
 }

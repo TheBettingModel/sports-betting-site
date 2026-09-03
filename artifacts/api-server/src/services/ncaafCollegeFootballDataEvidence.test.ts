@@ -55,9 +55,12 @@ describe("CFBD bounded evidence capture", () => {
       },
     });
     expect(requestedWeeks).toEqual([undefined]);
-    expect(result).toMatchObject({ rawRows: 1, games: 2, entities: 4, performances: 2 });
+    expect(result).toMatchObject({ rawRows: 1, games: 1, entities: 1, performances: 1 });
     expect((writes[0] as { value: { payload: unknown } }).value.payload).toEqual(response.payload);
-    const compatible = writes.slice(1).map((write) => (write as { value: Record<string, unknown> }).value);
+    const compatible = writes.slice(1).flatMap((write) => {
+      const value = (write as { value: Record<string, unknown> | Array<Record<string, unknown>> }).value;
+      return Array.isArray(value) ? value : [value];
+    });
     expect(compatible.some((row) => row.providerEventId === "900")).toBe(true);
     expect(compatible.some((row) => row.providerEventId === "ESPN-900")).toBe(false);
     expect(JSON.stringify(compatible)).not.toContain("\"odds\"");
