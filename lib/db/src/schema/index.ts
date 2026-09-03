@@ -39,6 +39,7 @@ export * from "./feature-snapshots";
 export * from "./ncaaf-evidence-ledger";
 export * from "./ncaaf-feature-snapshots";
 export * from "./ncaaf-validation";
+export * from "./mlb-point-in-time";
 
 // ── Training & evaluation ─────────────────────────────────────────────────────
 export * from "./training-datasets";

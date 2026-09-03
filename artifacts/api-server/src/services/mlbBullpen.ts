@@ -100,6 +100,50 @@ interface MlbScheduleGame {
   officialDate: string;
   status?: { abstractGameState?: string };
 }
+interface MlbIdentityScheduleGame {
+  gamePk: number; gameDate?: string; gameNumber?: number;
+  teams?: { home?: { team?: { id?: number; abbreviation?: string } }; away?: { team?: { id?: number; abbreviation?: string } } };
+}
+
+const identityScheduleCache = new Map<string, { fetchedAt: number; games: MlbIdentityScheduleGame[] }>();
+const IDENTITY_CACHE_MS = 15 * 60_000;
+export type MlbGamePkResolution = { state: "VALID"; gamePk: number } | { state: "UNAVAILABLE"; reason: string };
+/** Fail-closed schedule identity resolver. Doubleheader/time ambiguity is never guessed. */
+export async function resolveMlbGamePk(input: {
+  gameDate: string; homeAbbr: string; awayAbbr: string; startsAt: Date; homeTeamId?: string | null; awayTeamId?: string | null; gameNumber?: number | null;
+}): Promise<MlbGamePkResolution> {
+  let cached = identityScheduleCache.get(input.gameDate);
+  if (!cached || Date.now() - cached.fetchedAt > IDENTITY_CACHE_MS) {
+    try {
+      const response = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${input.gameDate}&hydrate=team,linescore`, {
+        signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "TheBettingModel/2.0" },
+      });
+      if (!response.ok) return { state: "UNAVAILABLE", reason: `schedule_http_${response.status}` };
+      const payload = await response.json() as { dates?: Array<{ games?: MlbIdentityScheduleGame[] }> };
+      cached = { fetchedAt: Date.now(), games: (payload.dates ?? []).flatMap((d) => d.games ?? []) };
+      identityScheduleCache.set(input.gameDate, cached);
+    } catch (error) {
+      return { state: "UNAVAILABLE", reason: error instanceof Error ? `schedule_error:${error.message}` : "schedule_error" };
+    }
+  }
+  const startMs = input.startsAt.getTime();
+  const candidates = cached.games.filter((game) => {
+    const home = game.teams?.home?.team; const away = game.teams?.away?.team;
+    const teamsMatch = home?.abbreviation === input.homeAbbr && away?.abbreviation === input.awayAbbr;
+    const idsMatch = input.homeTeamId && input.awayTeamId
+      ? String(home?.id) === input.homeTeamId && String(away?.id) === input.awayTeamId : true;
+    const startMatch = game.gameDate && Math.abs(new Date(game.gameDate).getTime() - startMs) <= 3 * 60 * 60_000;
+    const numberMatch = input.gameNumber == null || game.gameNumber === input.gameNumber;
+    return teamsMatch && idsMatch && startMatch && numberMatch;
+  });
+  return candidates.length === 1 ? { state: "VALID", gamePk: candidates[0]!.gamePk }
+    : { state: "UNAVAILABLE", reason: candidates.length ? "ambiguous_schedule_identity" : "schedule_identity_not_found" };
+}
+
+export async function fetchMlbResearchBoxscore(gamePk: number): Promise<{ boxscore: MlbBoxscoreResponse | null; error: string | null }> {
+  const boxscore = await fetchBoxscore(gamePk);
+  return boxscore ? { boxscore, error: null } : { boxscore: null, error: "boxscore_unavailable" };
+}
 
 interface MlbScheduleDate {
   date: string;
@@ -110,20 +154,48 @@ interface MlbScheduleResponse {
   dates?: MlbScheduleDate[];
 }
 
-interface MlbBoxscoreTeam {
+export interface MlbBoxscorePitching {
+  numberOfPitches?: number; inningsPitched?: string; battersFaced?: number; runs?: number; earnedRuns?: number;
+  hits?: number; baseOnBalls?: number; strikeOuts?: number; homeRuns?: number;
+}
+export interface MlbBoxscoreTeam {
   /** Pitcher person IDs in appearance order. First = starter, rest = relievers. */
   pitchers?: number[];
   players?: Record<string, {
-    stats?: { pitching?: { numberOfPitches?: number } };
+    person?: { id?: number; fullName?: string };
+    stats?: { pitching?: MlbBoxscorePitching };
   }>;
   team?: { id?: number };
 }
 
-interface MlbBoxscoreResponse {
+export interface MlbBoxscoreResponse {
   teams?: {
     home?: MlbBoxscoreTeam;
     away?: MlbBoxscoreTeam;
   };
+}
+
+export interface MlbPitchingActual {
+  playerId: number; name: string | null; inningsPitched: number | null; battersFaced: number | null;
+  pitchCount: number | null; runsAllowed: number | null; earnedRuns: number | null; hits: number | null;
+  walks: number | null; strikeouts: number | null; homeRunsAllowed: number | null;
+}
+function innings(value: string | undefined): number | null {
+  if (!value || !/^\d+(\.[0-2])?$/.test(value)) return null;
+  const [whole, thirds] = value.split(".");
+  return Number(whole) + (thirds ? Number(thirds) / 3 : 0);
+}
+/** First listed pitcher is the authoritative starter; later pitchers are bullpen. */
+export function parseMlbBoxscorePitching(team: MlbBoxscoreTeam | undefined): { starter: MlbPitchingActual | null; bullpen: MlbPitchingActual[] } {
+  if (!team?.pitchers?.length) return { starter: null, bullpen: [] };
+  const actual = (id: number): MlbPitchingActual => {
+    const player = team.players?.[`ID${id}`]; const p = player?.stats?.pitching;
+    return { playerId: player?.person?.id ?? id, name: player?.person?.fullName ?? null,
+      inningsPitched: innings(p?.inningsPitched), battersFaced: p?.battersFaced ?? null, pitchCount: p?.numberOfPitches ?? null,
+      runsAllowed: p?.runs ?? null, earnedRuns: p?.earnedRuns ?? null, hits: p?.hits ?? null, walks: p?.baseOnBalls ?? null,
+      strikeouts: p?.strikeOuts ?? null, homeRunsAllowed: p?.homeRuns ?? null };
+  };
+  return { starter: actual(team.pitchers[0]!), bullpen: team.pitchers.slice(1).map(actual) };
 }
 
 // ── Step 1: Fetch schedule to get gamePks ─────────────────────────────────────

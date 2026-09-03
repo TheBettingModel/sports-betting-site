@@ -16,6 +16,7 @@ import { createModelVersion, transitionModelStatus } from "./modelRegistry";
 import { hasValidMoneylineMarketForSport, isPregameCommenceTime } from "./oddsApi";
 import { removeVig2 } from "./model";
 import { logger } from "../lib/logger";
+import { assignMlbCohort, captureMlbDecisionMarket, captureMlbFeatureRevision, captureMlbPregameComponents, evidenceHash, freezeMlbFinalPregame, linkMlbV4Forecast, persistLeagueRunEnvironment } from "./mlbPointInTime";
 
 export const MLB_V4_MODEL_ID = "tbm-mlb-moneyline-v4";
 export const MLB_V4_FEATURE_SCHEMA_VERSION = "mlb-v4-features-v1";
@@ -1107,6 +1108,73 @@ export async function writeMlbV4ShadowPrediction(
     .returning({ id: modelPredictionsTable.id });
 
   if (inserted) {
+    // This is an additive research ledger only. A failure to retain auxiliary
+    // evidence must never affect the shadow forecast or any production flow.
+    try {
+      const featureId = await captureMlbFeatureRevision({
+        gameId: game.espnId,
+        gameStart: new Date(game.commenceTimeISO),
+        cutoff: capturedAt,
+        revisionKey: inputFingerprint,
+        revisionState: "UPDATED",
+        features: {
+          homeDbStats: input.homeDbStats ?? null, awayDbStats: input.awayDbStats ?? null,
+          starters: input.starters, lineups: input.lineups, bullpen: input.bullpen,
+          parkFactor: input.parkFactor ?? null, weather: input.weather ?? null,
+          weatherTotalAdjustment: input.weatherTotalAdjustment, market: input.market,
+        },
+        quality: forecast.dataQuality as unknown as Record<string, unknown>,
+        completenessPct: forecast.dataQuality.featureCompleteness,
+        rawPayloadHashes: {},
+      });
+      if (featureId != null) {
+        let linkedFeatureId = featureId;
+        await assignMlbCohort(game.espnId, "LIVE_SHADOW", "first live PIT V4 capture; legacy games are intentionally not reclassified");
+        await captureMlbPregameComponents({
+          featureSnapshotId: featureId, gameId: game.espnId, cutoff: capturedAt,
+          starters: input.starters as unknown as Record<string, any>,
+          bullpen: input.bullpen as unknown as Record<string, any> | null,
+          lineups: input.lineups as unknown as Record<string, any> | null,
+          forecast: forecast as unknown as Record<string, any>,
+        });
+        await captureMlbDecisionMarket({ gameId: game.espnId, cutoff: capturedAt, homeOdds: input.market.homeOdds, awayOdds: input.market.awayOdds });
+        // The final scheduler refresh in the final 45 minutes freezes precisely
+        // one evidence row. A later refresh cannot replace it.
+        if (new Date(game.commenceTimeISO).getTime() - capturedAt.getTime() <= 45 * 60_000) {
+          const finalId = await freezeMlbFinalPregame({
+            gameId: game.espnId, gameStart: new Date(game.commenceTimeISO), cutoff: capturedAt,
+            revisionKey: inputFingerprint, features: { starters: input.starters, lineups: input.lineups, bullpen: input.bullpen, market: input.market },
+            quality: forecast.dataQuality as unknown as Record<string, unknown>,
+            completenessPct: forecast.dataQuality.featureCompleteness, rawPayloadHashes: {},
+          });
+          if (finalId != null) {
+            linkedFeatureId = finalId;
+            await captureMlbPregameComponents({
+              featureSnapshotId: finalId, gameId: game.espnId, cutoff: capturedAt,
+              starters: input.starters as unknown as Record<string, any>,
+              bullpen: input.bullpen as unknown as Record<string, any> | null,
+              lineups: input.lineups as unknown as Record<string, any> | null,
+              forecast: forecast as unknown as Record<string, any>,
+            });
+          }
+        }
+        await persistLeagueRunEnvironment(game.espnId, Number(game.gameDate.slice(0, 4)), capturedAt);
+        await linkMlbV4Forecast({
+          predictionId: inserted.id, gameId: game.espnId, featureSnapshotId: linkedFeatureId,
+          cutoff: capturedAt, modelVersion: String(modelVersionId),
+          configHash: evidenceHash({
+            featureSchema: MLB_V4_FEATURE_SCHEMA_VERSION, dataset: MLB_V4_DATASET_INPUT_VERSION,
+            calibration: MLB_V4_CALIBRATION_VERSION,
+          }),
+          forecast: forecast as unknown as Record<string, unknown>,
+          contributions: forecast.contributions as unknown as Record<string, unknown>,
+          dataQuality: forecast.dataQuality.score,
+          uncertainty: forecast.uncertainty.homeProbabilityPoints,
+        });
+      }
+    } catch (err) {
+      logger.error({ err, gameId: game.espnId }, "MLB PIT evidence capture failed (nonfatal)");
+    }
     logger.info(
       {
         predictionId: inserted.id,

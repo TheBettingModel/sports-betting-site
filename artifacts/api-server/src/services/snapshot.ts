@@ -5,6 +5,7 @@ import {
   gameResultsTable,
   gamesTable,
   modelPredictionsTable,
+  mlbForecastEvidenceTable,
   oddsSnapshotsTable,
   publishedPicksTable,
   pickResultsTable,
@@ -38,6 +39,7 @@ import {
   type SpreadEvaluationInput,
 } from "./spreadModel";
 import { getMoneylinePublicationPermission } from "./marketApproval";
+import { captureCompletedMlbBoxscore, evaluateMlbForecastEvidence } from "./mlbPointInTime";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -666,6 +668,19 @@ export async function processGameSnapshot(
       await writeGameResult(game);
       await writeClosingLines(game, now, marketIds);
       await settleSpreadPredictions(game, now);
+      // Research-only V4 evaluation is deliberately independent from grading,
+      // Results, ROI, and learning. It is bounded to this completed game.
+      if (game.sport === "MLB") {
+        try {
+          await captureCompletedMlbBoxscore(game);
+          const evidence = await db.select({ id: mlbForecastEvidenceTable.id })
+            .from(mlbForecastEvidenceTable)
+            .where(eq(mlbForecastEvidenceTable.gameId, game.espnId));
+          for (const row of evidence) await evaluateMlbForecastEvidence(row.id);
+        } catch (err) {
+          logger.error({ err, gameId: game.espnId }, "MLB PIT postgame evaluation failed (nonfatal)");
+        }
+      }
     }
   } catch (err) {
     logger.error({ err, gameId: game.espnId }, "processGameSnapshot error");

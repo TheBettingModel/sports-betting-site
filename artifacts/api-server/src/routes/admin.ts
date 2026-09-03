@@ -35,6 +35,9 @@ import {
   sportSnoozesTable,
   subscribersTable,
   trainingDatasetsTable,
+  mlbFeatureSnapshotsTable,
+  mlbForecastEvidenceTable,
+  mlbOosCohortsTable,
 } from "@workspace/db";
 import { runBacktest } from "../services/backtesting";
 import { transitionModelStatus, rollbackModel } from "../services/modelRegistry";
@@ -244,6 +247,56 @@ router.use("/admin", requireMasterKey);
 router.get("/admin/mlb-policy-revisions", async (_req, res): Promise<void> => {
   const revisions = await listMlbPolicyRevisionAudit();
   res.json({ revisions, count: revisions.length });
+});
+
+/**
+ * Research-only collection observability. It intentionally exposes only
+ * aggregate evidence metadata and is protected by the admin router.
+ */
+router.get("/admin/mlb-pit-completeness", async (_req, res): Promise<void> => {
+  const date = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const [games, features, forecasts, untouched] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(gamesTable)
+      .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
+    db.select({
+      revisionState: mlbFeatureSnapshotsTable.revisionState,
+      completenessPct: mlbFeatureSnapshotsTable.completenessPct,
+      quality: mlbFeatureSnapshotsTable.quality,
+    }).from(mlbFeatureSnapshotsTable)
+      .innerJoin(gamesTable, eq(gamesTable.id, mlbFeatureSnapshotsTable.gameId))
+      .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
+    db.select({ dataQuality: mlbForecastEvidenceTable.dataQuality, uncertainty: mlbForecastEvidenceTable.uncertainty })
+      .from(mlbForecastEvidenceTable).innerJoin(gamesTable, eq(gamesTable.id, mlbForecastEvidenceTable.gameId))
+      .where(and(eq(gamesTable.sport, "MLB"), eq(gamesTable.gameDate, date))),
+    db.select({ count: sql<number>`count(*)::int` }).from(mlbOosCohortsTable)
+      .where(eq(mlbOosCohortsTable.cohort, "UNTOUCHED_OOS")),
+  ]);
+  const average = (values: Array<number | null>) => {
+    const valid = values.filter((value): value is number => value != null && Number.isFinite(value));
+    return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
+  };
+  const component = (name: string) => features.filter((row) => {
+    const quality = row.quality as Record<string, unknown>;
+    return quality?.[name] != null;
+  }).length;
+  res.json({
+    date, gamesToday: games[0]?.count ?? 0, v4ForecastsGenerated: forecasts.length,
+    finalPregameForecastsFrozen: features.filter((row) => row.revisionState === "FINAL_PREGAME").length,
+    completeness: {
+      averageFeaturePct: average(features.map((row) => row.completenessPct)),
+      starterPct: features.length ? component("starterQualityState") / features.length * 100 : null,
+      lineupPct: features.length ? component("lineupQualityState") / features.length * 100 : null,
+      bullpenPct: features.length ? component("bullpenQualityState") / features.length * 100 : null,
+      weatherPct: features.length ? component("weather") / features.length * 100 : null,
+      marketPct: features.length ? component("market") / features.length * 100 : null,
+      leagueEnvironmentPct: 0, postgameOutcomePct: 0, starterOutcomePct: 0, bullpenOutcomePct: 0, closingMarketPct: 0,
+    },
+    averageDataQuality: average(forecasts.map((row) => row.dataQuality)),
+    averageUncertainty: average(forecasts.map((row) => row.uncertainty)),
+    untouchedOosCount: untouched[0]?.count ?? 0,
+    limitations: ["No historical backfill is inferred.", "Final freeze and provider outcome ingestion await dedicated provider capture."],
+    dataAsOf: new Date().toISOString(),
+  });
 });
 
 function parseIsoDate(value: unknown, name: string): string | undefined {
