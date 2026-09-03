@@ -181,22 +181,6 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
           payloadBytes: result.cfbdCapture.transport.byteLength,
           rowsMaterialized: result.cfbdCapture.rawRows + result.cfbdCapture.games,
         });
-        // Non-game CFBD families have independent, rate-aware cadences and
-        // failures never prevent ESPN evidence or a pregame snapshot.
-        if (!dependencies.captureCfbd || dependencies.captureAdvancedCfbd) try {
-          const season = ncaafSeasonForDate(cycleStartedAt);
-          const advanced = dependencies.captureAdvancedCfbd
-            ? await dependencies.captureAdvancedCfbd(season, cycleStartedAt)
-            : await captureScheduledCfbdAdvancedEvidence({ season, now: cycleStartedAt });
-          if (advanced.failed.length) log.warn({ failedEndpoints: advanced.failed.map((item) => item.endpoint) },
-            "NCAAF CFBD advanced evidence partially unavailable");
-        } catch (error) {
-          log.warn({ error }, "NCAAF CFBD advanced evidence scheduling failed");
-        }
-        if (!dependencies.captureCfbd || dependencies.materializeCfbdMappings) {
-          const materialize = dependencies.materializeCfbdMappings ?? materializeCurrentCfbdMappings;
-          await materialize(ncaafSeasonForDate(cycleStartedAt), cycleStartedAt);
-        }
       } catch (error) {
         result.cfbdCaptureCause = error instanceof Error ? error.message : String(error);
         if (!dependencies.captureCfbd) {
@@ -214,6 +198,27 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
           });
         }
         log.warn({ cause: result.cfbdCaptureCause }, "NCAAF CFBD evidence capture failed; continuing with ESPN evidence");
+      }
+      // Non-game families are deliberately independent of the bulk games
+      // endpoint. A timeout or malformed games response must not starve all
+      // advanced evidence and mapping for the cycle.
+      if (!dependencies.captureCfbd || dependencies.captureAdvancedCfbd) try {
+        const season = ncaafSeasonForDate(cycleStartedAt);
+        const advanced = dependencies.captureAdvancedCfbd
+          ? await dependencies.captureAdvancedCfbd(season, cycleStartedAt)
+          : await captureScheduledCfbdAdvancedEvidence({ season, now: cycleStartedAt });
+        if (advanced.failed.length) log.warn({ failedEndpoints: advanced.failed.map((item) => item.endpoint) },
+          "NCAAF CFBD advanced evidence partially unavailable");
+      } catch (error) {
+        log.warn({ error }, "NCAAF CFBD advanced evidence scheduling failed");
+      }
+      if (!dependencies.captureCfbd || dependencies.materializeCfbdMappings) {
+        try {
+          const materialize = dependencies.materializeCfbdMappings ?? materializeCurrentCfbdMappings;
+          await materialize(ncaafSeasonForDate(cycleStartedAt), cycleStartedAt);
+        } catch (error) {
+          log.warn({ error }, "NCAAF CFBD mapping materialization failed");
+        }
       }
       try {
         result.capture = await (dependencies.captureCurrent ?? captureCurrentNcaafEvidence)();

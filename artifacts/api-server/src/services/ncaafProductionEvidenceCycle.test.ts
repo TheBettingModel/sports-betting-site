@@ -62,10 +62,20 @@ describe("NCAAF production evidence cycle", () => {
 
   it("continues existing evidence after capture failure and isolates game failures", async () => {
     let featureCalls = 0;
+    let advancedCalls = 0;
+    let mappingCalls = 0;
     const run = createNcaafProductionEvidenceCycle({
       now: () => now, reconcile: async () => 2, acquireGlobalLock: globalLock,
       captureCurrent: async () => { throw new Error("provider down"); },
       captureCfbd: async () => { throw new Error("cfbd unavailable"); },
+      captureAdvancedCfbd: async () => {
+        advancedCalls++;
+        return { requested: 1, rawRows: 1, domainRows: 1, failed: [] };
+      },
+      materializeCfbdMappings: async () => {
+        mappingCalls++;
+        return { teams: 1, games: 1 };
+      },
       listUpcomingGames: async () => [game, { ...game, eventId: "bad" }],
       createFeatureSnapshot: (async () => {
         featureCalls++;
@@ -83,6 +93,8 @@ describe("NCAAF production evidence cycle", () => {
     expect(result.staleRunsReconciled).toBe(2);
     expect(result.captureCause).toContain("provider down");
     expect(result.cfbdCaptureCause).toContain("cfbd unavailable");
+    expect(advancedCalls).toBe(1);
+    expect(mappingCalls).toBe(1);
     expect(result.gameFailures).toHaveLength(1);
   });
 
