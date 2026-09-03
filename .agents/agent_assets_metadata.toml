@@ -148,3 +148,17 @@ mtime_ms = 1788461608654
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/0c4bfde6-7877-4276-ae9e-408db2ff89bc/05825a2c-42f5-445a-9834-86e5791bd637"
 storage_version_token = "1788461727536514"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "O8wu0uLdpQrPZUE0ma9XT"
+uri = "file://reports/ncaaf-cfbd-advanced-intelligence-production-verification-2026-09-03.md"
+type = "text"
+title = "#221E-PROD Production Verification"
+description = "Read-only production audit with 45 required sections and 52 explicit answers. Final decision: NOT READY FOR #222 — DATA FOUNDATION BLOCKER."
+logical_id = "5992a265-d5ff-47eb-861b-aa8b671a468d"
+content_hash = "sha256:b1979985449cd08a7dba5372a2a227a52b8243b177ce18f4f6301905234907e2"
+size = 17810
+mtime_ms = 1788462693288
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/5992a265-d5ff-47eb-861b-aa8b671a468d/a99288ab-010a-42b1-89f5-928808e22e11"
+storage_version_token = "1788462706966778"
+content_type = "text/markdown"

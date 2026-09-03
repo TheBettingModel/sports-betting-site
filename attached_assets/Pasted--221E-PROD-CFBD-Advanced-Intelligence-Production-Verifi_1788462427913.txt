@@ -1,0 +1,847 @@
+#221E-PROD — CFBD Advanced Intelligence Production Verification
+
+#221E has now been published to production.
+
+Do NOT build #222.
+Do NOT alter any NCAAF forecast logic.
+Do NOT change expected scores, probabilities, recommendations, confidence, units, publication gates, or learning weights.
+Do NOT modify NFL or any other sport.
+
+The only objective is to verify the actual LIVE PRODUCTION state of the #221E CFBD advanced-intelligence implementation.
+
+============================================================
+AUTHORITATIVE PRE-PUBLISH STATUS
+============================================================
+
+#221E development implementation reported:
+
+- CFBD authentication working
+- games endpoint working
+- teams working
+- conferences working
+- venues working
+- team stats working
+- advanced team stats working
+- plays working
+- rosters working
+- player stats working
+- recruiting working
+- talent working
+- returning production working
+- coaches working
+- SP+ working
+- SRS working
+- Elo working
+- FPI working
+- weather working
+- transfer endpoint /player/portal?year=2026 verified with 200 / 4,470 rows
+- advanced materialization implemented
+- mapping/enrichment implemented
+- provider-health ledger implemented
+- call usage implemented
+- PIT classification implemented
+- FINAL_PREGAME logic implemented
+
+But production verification was pending.
+
+Before #221E publish, production had:
+
+- CFBD raw rows > 0
+- CFBD game evidence > 0
+- CFBD entity evidence > 0
+- CFBD performance rows > 0
+- CFBD advanced endpoint materialization = 0
+- CFBD-enriched intelligence snapshots = 0
+- FINAL_PREGAME = 0
+- prospective cohort = 0
+- DATA_PIPELINE_READY = false
+- V4_BUILD_READY = false
+
+============================================================
+PRIMARY TASK
+============================================================
+
+Verify whether #221E is now operating successfully in production.
+
+Do not simply inspect code.
+
+Inspect actual LIVE production database/runtime evidence.
+
+============================================================
+PHASE 1 — DEPLOYMENT VERIFICATION
+============================================================
+
+Confirm:
+
+- published build is active
+- #221E code version is running
+- production schema is current
+- scheduler is registered
+- CFBD_API_KEY is configured
+- no secret is exposed
+
+============================================================
+PHASE 2 — PROVIDER HEALTH
+============================================================
+
+Report:
+
+- last CFBD successful request
+- last CFBD failure
+- recent auth errors
+- recent 429/rate-limit errors
+- timeouts
+- validation errors
+- average/latest latency if tracked
+- calls today
+- calls current month
+- calls by endpoint if available
+- retries
+
+Confirm provider-health ledger is actually persisting production rows.
+
+============================================================
+PHASE 3 — RAW CFBD EVIDENCE COUNTS
+============================================================
+
+Report exact production raw evidence counts by endpoint/domain:
+
+- games
+- teams
+- conferences
+- venues
+- team stats
+- advanced team stats
+- plays
+- rosters
+- player stats
+- recruiting
+- talent
+- returning production
+- coaches
+- SP+
+- SRS
+- Elo
+- FPI
+- weather
+- transfers / player portal
+
+Also report:
+
+- total raw CFBD evidence rows
+- latest captured_at per domain
+- any domains still zero
+
+============================================================
+PHASE 4 — NORMALIZED EVIDENCE COUNTS
+============================================================
+
+Report actual production counts for:
+
+- CFBD game evidence
+- CFBD team/entity observations
+- CFBD player/provider identities
+- completed-game performance rows
+- team-stat records
+- advanced-stat records
+- play records / play payload records
+- roster records
+- player-stat records
+- rating records
+- recruiting records
+- talent records
+- returning-production records
+- coaching records
+- weather records
+- transfer records
+
+Do not count raw bulk response size as normalized rows unless actually materialized.
+
+============================================================
+PHASE 5 — TEAM MAPPING
+============================================================
+
+Report:
+
+- total CFBD teams encountered
+- MAPPED
+- UNMAPPED
+- AMBIGUOUS
+- INVALID
+
+Show representative unresolved mapping reasons.
+
+No fuzzy forced matches.
+
+============================================================
+PHASE 6 — GAME MAPPING
+============================================================
+
+Report:
+
+- total CFBD games considered
+- MAPPED
+- UNMATCHED
+- AMBIGUOUS
+- INVALID
+
+Confirm mapping uses:
+
+- ordered home/away
+- canonical team identities
+- kickoff tolerance
+- season/week
+- neutral-site context where required
+
+============================================================
+PHASE 7 — PLAYER IDENTITY
+============================================================
+
+Report:
+
+- CFBD player identities observed
+- PROVIDER_ONLY
+- MAPPED
+- AMBIGUOUS
+- INVALID
+
+Confirm name-only matching is not used.
+
+============================================================
+PHASE 8 — PLAY COVERAGE
+============================================================
+
+Verify production play capture.
+
+Report:
+
+- games with CFBD play coverage
+- total play rows or normalized play observations
+- games with driveId coverage
+- missing-down rate if measurable
+- missing-distance rate if measurable
+- missing-yardline rate if measurable
+- missing-team identity rate if measurable
+
+Sample representative games.
+
+============================================================
+PHASE 9 — PPA / EPA
+============================================================
+
+Confirm:
+
+- provider `ppa` remains labeled PPA
+- it has NOT been silently relabeled EPA
+- no unsupported EPA is claimed
+
+Report whether production PPA data exists and how many games/plays contain it.
+
+============================================================
+PHASE 10 — ADVANCED TEAM DOMAINS
+============================================================
+
+Inspect actual production advanced-team payloads and report whether these domains are legitimately observed:
+
+- success rate
+- explosiveness
+- havoc
+- line yards
+- pace
+- standard-down metrics
+- passing-down metrics
+- field position
+- finishing drives
+- other advanced fields
+
+For each:
+
+AVAILABLE
+PARTIAL
+UNAVAILABLE
+UNVERIFIED
+
+Do not infer fields not present.
+
+============================================================
+PHASE 11 — DRIVE INTELLIGENCE
+============================================================
+
+If sufficient play/drive evidence exists, report whether the data is complete enough to support future derivation of:
+
+- drives/game
+- points/drive
+- yards/drive
+- three-and-out rate
+- turnover-drive rate
+- red-zone drive efficiency
+
+Do not calculate final model features if completeness is not established.
+
+============================================================
+PHASE 12 — SPECIAL TEAMS
+============================================================
+
+Report actual production support for:
+
+- SP+ special-teams component
+- kicking
+- punting
+- returns
+- field-position evidence
+
+Do not fabricate a composite.
+
+============================================================
+PHASE 13 — RATINGS
+============================================================
+
+Report production capture counts for:
+
+- SP+
+- SRS
+- Elo
+- FPI
+
+For each, report:
+
+- season
+- week/effective context if available
+- PIT class
+- latest captured_at
+
+Confirm later-week ratings cannot enter earlier-game historical snapshots.
+
+============================================================
+PHASE 14 — RECRUITING / TALENT / RETURNING PRODUCTION
+============================================================
+
+Report production counts for:
+
+Recruiting
+Talent
+Returning production
+
+For each, report:
+
+- season
+- PIT classification
+- whether timing is safe enough for preseason/early-season use
+- whether currently A, B, C, or D
+
+Do not promote C/D to replay-safe.
+
+============================================================
+PHASE 15 — TRANSFERS
+============================================================
+
+Verify the production /player/portal integration.
+
+Report:
+
+- endpoint success/failure
+- raw rows
+- normalized rows
+- player IDs
+- origin/destination identity
+- timing semantics
+- PIT class
+
+If timing remains unsafe:
+
+keep transfer history Class D or research-only.
+
+============================================================
+PHASE 16 — ROSTERS
+============================================================
+
+Report:
+
+- roster evidence count
+- teams covered
+- players covered
+- season context
+
+Confirm:
+
+roster != depth chart
+roster != confirmed active status
+roster != known starter
+
+============================================================
+PHASE 17 — QB HISTORICAL INTELLIGENCE
+============================================================
+
+Determine whether production materialization now supports legitimate historical QB intelligence.
+
+Report whether TBM can construct:
+
+- QB provider identity
+- season passing history
+- prior-game performance
+- career/season attempts
+- completion
+- yards/attempt
+- TD/INT
+- rushing
+- PPA if available
+- team continuity
+
+Do NOT claim pregame starter certainty from this alone.
+
+============================================================
+PHASE 18 — PREGAME QB
+============================================================
+
+Explicitly report:
+
+Can production verify a timestamped pregame starting QB?
+
+YES / NO.
+
+If NO:
+
+keep:
+
+PREGAME_QB_STARTER =
+MISSING / SUPPLEMENTAL_PROVIDER_REQUIRED
+
+============================================================
+PHASE 19 — INJURY / AVAILABILITY
+============================================================
+
+Explicitly report:
+
+Does production now have timestamped pregame injuries/availability?
+
+YES / NO.
+
+If NO:
+
+keep:
+
+INJURY_AVAILABILITY =
+MISSING / SUPPLEMENTAL_PROVIDER_REQUIRED
+
+============================================================
+PHASE 20 — DEPTH CHART
+============================================================
+
+Explicitly report:
+
+Does production have legitimate NCAAF depth charts/starter state?
+
+YES / NO.
+
+Do not infer from roster order.
+
+============================================================
+PHASE 21 — WEATHER
+============================================================
+
+Verify actual production CFBD weather capture.
+
+Report:
+
+- weather rows
+- games covered
+- captured_at
+- whether forecast vs observation is distinguishable
+- PIT class
+
+Confirm postgame observation is not used as pregame forecast.
+
+============================================================
+PHASE 22 — EARLY-SEASON PRIOR FOUNDATION
+============================================================
+
+Determine whether production now has enough legitimate evidence to construct an NCAAF early-season prior dataset from:
+
+- prior-season team performance
+- SP+
+- SRS
+- Elo
+- FPI
+- advanced stats
+- recruiting
+- talent
+- returning production
+- QB historical continuity
+- coaching continuity
+- transfers where safe
+- subdivision
+
+Do NOT choose weights.
+
+Report whether:
+
+EARLY_SEASON_PRIOR_DATA_READY = true / false
+
+============================================================
+PHASE 23 — PIT CLASSIFICATION
+============================================================
+
+Report actual production feature families by:
+
+A — verified PIT
+B — defensible week/season chronology
+C — research-only / retrospective
+D — unsafe for replay
+
+List every materialized family under the correct class.
+
+============================================================
+PHASE 24 — CANONICAL SNAPSHOT ENRICHMENT
+============================================================
+
+Verify whether production:
+
+ncaaf-football-intelligence-v1
+
+is now enriched with CFBD-derived domains through explicit canonical mapping.
+
+Report:
+
+- total intelligence snapshots
+- snapshots with CFBD provenance
+- snapshots created since publish
+- latest CFBD-enriched snapshot timestamp
+
+============================================================
+PHASE 25 — SNAPSHOT READINESS
+============================================================
+
+Report exact production counts:
+
+READY
+PARTIAL
+BLOCKED
+
+Provide top BLOCKED reasons.
+
+Do not force READY.
+
+============================================================
+PHASE 26 — FINAL_PREGAME
+============================================================
+
+Report:
+
+- total FINAL_PREGAME
+- FINAL_PREGAME created since publish
+- CFBD-enriched FINAL_PREGAME count
+- latest timestamp
+- games represented
+- readiness states
+
+Remember:
+
+FINAL_PREGAME may contain MISSING/UNKNOWN domains.
+
+Snapshot existence and game forecast eligibility are different concepts.
+
+============================================================
+PHASE 27 — PROSPECTIVE INTERNAL COHORT
+============================================================
+
+Report:
+
+- prospective cohort count
+- new assignments since publish
+- CFBD-backed assignments
+- anti-backfill status
+
+No historical backfill.
+
+============================================================
+PHASE 28 — PIT VIOLATIONS
+============================================================
+
+Report:
+
+- PIT violation count
+- post-kickoff evidence violations
+- future-week rating violations
+- retrospective-data violations
+
+If any exist:
+
+identify exact cause.
+
+Do not hide them.
+
+============================================================
+PHASE 29 — SCHEDULER HEALTH
+============================================================
+
+Report:
+
+- last scheduler execution
+- last successful full #221E cycle
+- most recent PARTIAL
+- most recent FAILED
+- fresh RUNNING
+- stale RUNNING
+- execution duration if tracked
+
+Confirm the heavier multi-endpoint capture did not recreate scheduler starvation.
+
+============================================================
+PHASE 30 — CALL VOLUME
+============================================================
+
+Using actual production telemetry, report:
+
+- calls today
+- calls current month
+- calls by endpoint
+- retries
+- projected monthly calls
+
+Flag whether current cadence is safe under the expected subscription limit.
+
+Do not assume provider quota if not observable.
+
+============================================================
+PHASE 31 — DATA_PIPELINE_READY
+============================================================
+
+Recalculate honestly.
+
+DATA_PIPELINE_READY should require:
+
+- production CFBD auth working
+- multi-endpoint raw evidence flowing
+- canonical normalized evidence flowing
+- safe team/game identity mapping
+- provider health ledger active
+- scheduler healthy
+- CFBD enrichment reaching intelligence snapshots
+- PIT protection working
+- FINAL_PREGAME operating prospectively
+
+Return:
+
+DATA_PIPELINE_READY = TRUE / FALSE
+
+with exact reasons.
+
+============================================================
+PHASE 32 — V4_BUILD_READY
+============================================================
+
+Recalculate separately from live-pick readiness.
+
+Important distinction:
+
+V4_BUILD_READY does NOT mean:
+every upcoming game is publishable.
+
+It means:
+we now have enough legitimate independent NCAAF football data to begin building the expected-score model without fabricating the core architecture.
+
+Potential build-critical domains:
+
+- historical games/results
+- independent team strength
+- offense/defense evidence
+- advanced stats
+- stable identity
+- chronological prior data
+- QB historical evidence
+- PIT controls
+- canonical intelligence
+- FINAL_PREGAME contract
+
+Potential LIVE-game-critical supplemental domains:
+
+- confirmed/expected starting QB
+- injury availability
+- depth/starter state
+
+Do NOT automatically keep V4_BUILD_READY false solely because confirmed starter/injuries are unavailable.
+
+Instead answer:
+
+Do those missing domains block:
+A. building V4 itself
+or
+B. only certain future forecasts/publication decisions?
+
+This distinction is mandatory.
+
+============================================================
+PHASE 33 — SUPPLEMENTAL PROVIDER DECISION
+============================================================
+
+After production materialization, state exactly whether another provider is still needed.
+
+If yes:
+
+identify exact missing domains.
+
+Do not say merely "SportsDataIO required."
+
+State whether the provider is needed for:
+
+- V4 construction
+- V4 calibration
+- individual-game eligibility
+- live publication quality
+
+============================================================
+PHASE 34 — #222 DECISION
+============================================================
+
+Return exactly one:
+
+A. READY TO BEGIN #222
+
+B. NOT READY FOR #222 — DATA FOUNDATION BLOCKER
+
+C. V4 CAN BE BUILT, BUT SUPPLEMENTAL AVAILABILITY PROVIDER IS STILL REQUIRED BEFORE FULL LIVE PUBLICATION
+
+Option C is valid.
+
+Do not force an all-or-nothing answer if the underlying evidence supports building V4 before the player-availability feed is complete.
+
+============================================================
+NO MODEL CHANGES
+============================================================
+
+This task must not:
+
+- build expected scores
+- build win probabilities
+- build spread probabilities
+- build total probabilities
+- calibrate V4
+- create recommendations
+- change units
+- change current NCAAF picks
+- change approval gates
+- change NFL
+- change any other sport
+
+============================================================
+REQUIRED FINAL REPORT
+============================================================
+
+Return:
+
+#221E-PROD — CFBD ADVANCED INTELLIGENCE PRODUCTION VERIFICATION
+
+Include:
+
+1. Deployment status
+2. Provider health
+3. Call usage
+4. Raw evidence counts by endpoint
+5. Normalized evidence counts
+6. Team mappings
+7. Game mappings
+8. Player identities
+9. Play coverage
+10. PPA/EPA status
+11. Success
+12. Explosiveness
+13. Havoc
+14. Line yards
+15. Pace
+16. Drives
+17. Special teams
+18. SP+
+19. SRS
+20. Elo
+21. FPI
+22. Recruiting
+23. Talent
+24. Returning production
+25. Transfers
+26. Rosters
+27. QB history
+28. Pregame QB
+29. Injury availability
+30. Depth charts
+31. Coaches
+32. Weather
+33. Early-season prior readiness
+34. PIT A/B/C/D
+35. Canonical enrichment
+36. Snapshot counts
+37. READY/PARTIAL/BLOCKED
+38. FINAL_PREGAME
+39. Prospective cohort
+40. PIT violations
+41. Scheduler health
+42. DATA_PIPELINE_READY
+43. V4_BUILD_READY
+44. Supplemental provider need
+45. Recommendation for #222
+
+============================================================
+FINAL QUESTIONS
+============================================================
+
+Answer explicitly:
+
+1. Is #221E running in production?
+2. Are multi-endpoint CFBD rows > 0?
+3. Which endpoint families have production rows?
+4. Which still have zero?
+5. Are team mappings operating?
+6. Are game mappings operating?
+7. Are player identities operating?
+8. Is play-by-play materialized?
+9. Is PPA present?
+10. Is EPA legitimately present?
+11. Is success present?
+12. Is explosiveness present?
+13. Is havoc present?
+14. Are line yards present?
+15. Is pace supported?
+16. Are drives usable?
+17. Are special teams usable?
+18. Is SP+ materialized?
+19. Is SRS materialized?
+20. Is Elo materialized?
+21. Is FPI materialized?
+22. Is recruiting materialized?
+23. Is talent materialized?
+24. Is returning production materialized?
+25. Are transfers materialized?
+26. Are rosters materialized?
+27. Can QB historical intelligence be built?
+28. Can pregame starting QB be verified?
+29. Are timestamped injuries available?
+30. Are depth charts available?
+31. Are coaches materialized?
+32. Is weather materialized?
+33. Is the early-season prior dataset now usable?
+34. Which features are PIT Class A?
+35. Which are B?
+36. Which are C?
+37. Which are D?
+38. Are canonical snapshots CFBD-enriched?
+39. How many?
+40. READY count?
+41. PARTIAL count?
+42. BLOCKED count?
+43. FINAL_PREGAME count?
+44. Prospective cohort count?
+45. PIT violations?
+46. Is scheduler healthy?
+47. Estimated monthly call usage?
+48. Is DATA_PIPELINE_READY true?
+49. Is V4_BUILD_READY true?
+50. Do missing QB/injury/depth data block V4 construction or only future live-game eligibility?
+51. Is supplemental provider access still needed?
+52. Should we begin #222 next?
+
+============================================================
+STOP
+============================================================
+
+Do NOT continue automatically into #222.
+
+Return the production verification report and stop.
