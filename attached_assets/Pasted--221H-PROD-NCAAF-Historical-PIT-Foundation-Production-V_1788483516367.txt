@@ -1,0 +1,770 @@
+#221H-PROD — NCAAF Historical PIT Foundation Production Verification & Final V4 Readiness Decision
+
+The #221H implementation has now been REPUBLISHED to production.
+
+Do NOT make additional code changes yet.
+Do NOT begin #222 yet.
+Do NOT modify the current NCAAF production model.
+Do NOT modify NFL, MLB, or any other sport.
+Do NOT weaken PIT protections.
+
+This is a PRODUCTION VERIFICATION task.
+
+============================================================
+OBJECTIVE
+============================================================
+
+Verify that #221H is actually operating correctly in LIVE production and determine whether the historical PIT-safe NCAAF foundation is now sufficient to begin:
+
+#222 — Independent NCAAF V4 Expected-Score Engine
+
+Use:
+
+- live production database
+- live deployment
+- live scheduler/runtime logs
+- current repository
+- #221H implementation
+- historical reconstruction tables
+- training artifacts
+- PIT lineage
+- current prospective NCAAF evidence
+
+Do not base the decision only on local/dev tests.
+
+============================================================
+1. DEPLOYMENT
+============================================================
+
+Confirm:
+
+#221H code is deployed
+production schema is current
+required tables/views exist
+historical builder is available
+current live NCAAF scheduler remains operational
+no startup/runtime migration failures
+
+Report deployment/build/commit identifiers if available.
+
+============================================================
+2. HISTORICAL PIT FOUNDATION
+============================================================
+
+Verify the actual production historical reconstruction.
+
+Report:
+
+HISTORICAL_PIT_FOUNDATION_READY = TRUE / FALSE
+
+Report exact seasons represented.
+
+Expected target foundation:
+
+2023
+2024
+2025
+2026
+
+If different, explain why.
+
+Report exact counts by season:
+
+2023:
+2024:
+2025:
+2026:
+
+Then:
+
+TOTAL HISTORICAL GAMES:
+TOTAL PIT-SAFE TRAINING GAMES:
+FBS-vs-FBS:
+FBS-vs-FCS:
+EXCLUDED:
+
+List exclusion reasons and counts.
+
+============================================================
+3. CANONICAL HISTORICAL TEAM COVERAGE
+============================================================
+
+Report:
+
+historical teams encountered
+historical teams mapped
+FBS teams encountered
+FBS teams mapped
+FBS mapping percentage
+
+Do NOT require complete historical FCS identity coverage.
+
+Determine whether current FBS coverage is sufficient for V4.
+
+============================================================
+4. HISTORICAL GAME MAPPING
+============================================================
+
+Report:
+
+games considered
+games mapped
+games training-eligible
+games excluded
+mapping percentage
+
+Break failures into:
+
+unmapped team
+ambiguous team
+kickoff issue
+missing statistics
+PIT failure
+other
+
+============================================================
+5. ATOMIC PRE-GAME RECONSTRUCTION
+============================================================
+
+Prove that historical game features are reconstructed only from evidence occurring BEFORE the target game's kickoff.
+
+For sample games from:
+
+2023
+2024
+2025
+2026
+
+show:
+
+target game
+kickoff
+feature cutoff
+latest prior game used
+number of prior games used
+whether target-game evidence was excluded
+whether future evidence was excluded
+
+Do not expose secrets.
+
+============================================================
+6. SEASON-TO-DATE TEAM PERFORMANCE
+============================================================
+
+Verify PIT-safe reconstruction of available:
+
+points scored
+points allowed
+scoring margin
+yards/play
+yards allowed/play
+passing efficiency
+rushing efficiency
+turnovers
+PPA
+success metrics
+explosiveness
+pace
+drive efficiency
+
+For each report:
+
+AVAILABLE
+PARTIAL
+MISSING
+
+and coverage percentage.
+
+Do not claim a metric if its underlying evidence does not support it.
+
+============================================================
+7. ROLLING PERFORMANCE
+============================================================
+
+Verify legitimate rolling features such as:
+
+last 3
+last 5
+season to date
+prior season
+
+Confirm every rolling window terminates before target kickoff.
+
+============================================================
+8. OPPONENT ADJUSTMENT
+============================================================
+
+Determine whether chronological opponent adjustment is now usable.
+
+Return:
+
+OPPONENT_ADJUSTMENT_READY = TRUE / FALSE
+
+Explain methodology.
+
+Confirm no final-season opponent rating is leaking backward into earlier games.
+
+============================================================
+9. PRE-GAME ELO
+============================================================
+
+Verify whether TBM historical Elo reconstruction exists.
+
+For representative games confirm:
+
+pregame Elo frozen before result
+postgame Elo updated after result
+formula/version stored
+no target result included in pregame Elo
+
+Return:
+
+PREGAME_ELO_READY = TRUE / FALSE
+
+============================================================
+10. OTHER RATINGS
+============================================================
+
+Audit historical timing semantics for:
+
+SP+
+SRS
+FPI
+
+For each return:
+
+PIT A
+PIT B
+PIT C
+PIT D
+or MISSING
+
+Do not promote retrospective/final values to pregame-safe unless chronology proves it.
+
+============================================================
+11. PRESEASON / EARLY-SEASON PRIOR
+============================================================
+
+Verify the legitimate preseason prior evidence foundation.
+
+Potential inputs:
+
+prior-season performance
+pregame Elo
+talent
+recruiting
+returning production
+coaching continuity
+QB continuity where defensible
+conference/subdivision
+
+Report coverage for each.
+
+Return:
+
+EARLY_SEASON_PRIOR_FOUNDATION_READY = TRUE / FALSE
+
+No model weights should be created in this verification.
+
+============================================================
+12. HISTORICAL QB EVIDENCE
+============================================================
+
+Report whether historical QB performance is usable.
+
+Coverage:
+
+player identity
+team
+season
+game
+attempts
+completions
+yards
+YPA
+TD
+INT
+rushing
+PPA
+games played
+continuity
+
+Return:
+
+HISTORICAL_QB_EVIDENCE =
+AVAILABLE / PARTIAL / MISSING
+
+Keep separate:
+
+CONFIRMED_PREGAME_STARTER =
+AVAILABLE / PARTIAL / UNSUPPORTED
+
+Do not require confirmed historical starter state if V4 can treat QB as optional/missing.
+
+============================================================
+13. TALENT / RECRUITING / RETURNING PRODUCTION
+============================================================
+
+For each report:
+
+coverage
+effective-time semantics
+PIT classification
+whether eligible for V4 training
+
+Do not allow later-season information to leak into earlier games.
+
+============================================================
+14. COACHING
+============================================================
+
+Verify team-season coaching state.
+
+Report:
+
+team coverage
+season coverage
+coach tenure availability
+whether effective state is known before kickoff
+
+============================================================
+15. HOME / TRAVEL / VENUE
+============================================================
+
+Verify historical:
+
+home
+away
+neutral
+venue
+travel distance if implemented
+timezone change if implemented
+altitude if implemented
+
+Report coverage.
+
+============================================================
+16. WEATHER
+============================================================
+
+Keep:
+
+historical observed weather
+
+separate from:
+
+historical pregame forecast weather.
+
+Do not use observed final game weather as if it were a forecast.
+
+Return:
+
+HISTORICAL_PREGAME_WEATHER =
+AVAILABLE / PARTIAL / MISSING
+
+Also answer:
+
+IS WEATHER REQUIRED FOR INITIAL V4 = YES / NO
+
+============================================================
+17. TRAINING ARTIFACT
+============================================================
+
+Verify production existence of:
+
+ncaaf-v4-training-foundation-v1
+
+or the actual equivalent implemented name.
+
+Report:
+
+dataset version
+builder version
+schema version
+rows
+seasons
+teams
+games
+created/updated timestamp
+
+Confirm one row represents one historical target game.
+
+============================================================
+18. TRAINING FEATURE GROUPS
+============================================================
+
+Report coverage for:
+
+TEAM TRUE TALENT
+OFFENSE
+DEFENSE
+QB HISTORICAL
+TALENT
+RETURNING PRODUCTION
+RECRUITING
+COACHING
+MATCHUP
+HOME
+TRAVEL
+WEATHER
+
+For each provide:
+
+coverage %
+PIT A %
+PIT B %
+PIT C %
+PIT D %
+missing %
+
+============================================================
+19. TARGETS
+============================================================
+
+Verify historical targets:
+
+home points
+away points
+margin
+total
+home win
+
+Confirm targets are attached only AFTER the pregame feature state is frozen.
+
+============================================================
+20. LEAKAGE AUDIT
+============================================================
+
+Run explicit production leakage checks.
+
+Report:
+
+target-game-stat leakage
+future-game leakage
+future-week rating leakage
+post-cutoff evidence leakage
+future roster leakage
+C/D evidence entering A/B training features
+sportsbook/market leakage
+
+TOTAL VIOLATIONS:
+
+This must be zero for the PIT-safe training cohort.
+
+============================================================
+21. MARKET FIREWALL
+============================================================
+
+Confirm the SPORTS training dataset contains no:
+
+moneyline
+spread
+total sportsbook line
+odds
+price
+implied probability
+book
+sportsbook
+closing line
+CLV
+
+The V4 sports forecast must remain market-independent.
+
+============================================================
+22. CURRENT PROSPECTIVE PIPELINE
+============================================================
+
+Confirm #221H did not break current prospective collection.
+
+Report current:
+
+V2 snapshots
+CFBD-enriched V2
+READY
+PARTIAL
+BLOCKED
+LIVE_SHADOW
+FINAL_PREGAME
+
+Report latest prospective timestamp.
+
+============================================================
+23. FINAL_PREGAME
+============================================================
+
+Verify existing FINAL_PREGAME assignments remain immutable.
+
+Report any new assignments since #221H publication.
+
+Confirm:
+
+no backfill
+no post-kickoff assignment
+45-minute rule intact
+
+============================================================
+24. SCHEDULER
+============================================================
+
+Confirm historical reconstruction is NOT blocking the critical live NCAAF scheduler.
+
+Report:
+
+critical cycle duration
+historical/backfill process duration
+latest completed
+latest partial
+latest failed
+running
+stale
+
+Confirm DB-backed distributed lock remains healthy.
+
+============================================================
+25. EVIDENCE-RUN FINALIZATION
+============================================================
+
+Verify multiple consecutive production cycles if available.
+
+Every run should end as:
+
+COMPLETED
+PARTIAL
+FAILED
+
+No indefinite RUNNING rows.
+
+Return:
+
+RUN_FINALIZATION_HEALTHY = TRUE / FALSE
+
+============================================================
+26. NFL / OTHER SPORT ISOLATION
+============================================================
+
+Confirm:
+
+NFL forecasting code unchanged
+NFL model state unchanged
+MLB unchanged
+other sports unchanged
+
+NCAAF historical reconstruction must remain sport-isolated.
+
+============================================================
+27. V4 CONSTRUCTION READINESS
+============================================================
+
+V4_BUILD_READY should NOT require perfect data.
+
+It should require enough legitimate historical evidence to construct:
+
+TEAM TRUE TALENT
+OFFENSE
+DEFENSE
+MATCHUP
+HOME/TRAVEL
+EXPECTED HOME POINTS
+EXPECTED AWAY POINTS
+SCORE/MARGIN DISTRIBUTION
+
+QB may initially be optional/partial.
+
+Weather may initially be optional.
+
+Confirmed starter/injuries/depth may remain live eligibility enhancements.
+
+Do not keep V4 blocked simply because optional supplemental data is incomplete.
+
+============================================================
+28. V4 VALIDATION READINESS
+============================================================
+
+Determine whether the historical sample is sufficient for chronological:
+
+training
+validation
+out-of-sample evaluation
+walk-forward testing
+
+Propose the exact split based on actual data.
+
+Do NOT random split.
+
+Example only:
+
+Train 2023-2024
+Validate 2025
+OOS/prospective 2026
+
+Use actual production evidence to determine the correct structure.
+
+============================================================
+29. READINESS MATRIX
+============================================================
+
+Return exactly:
+
+HISTORICAL_PIT_FOUNDATION_READY =
+TRUE / FALSE
+
+DATA_PIPELINE_READY =
+TRUE / FALSE
+
+V4_BUILD_READY =
+TRUE / FALSE
+
+V4_VALIDATION_READY =
+TRUE / FALSE
+
+FULL_LIVE_PUBLICATION_DATA_READY =
+TRUE / FALSE
+
+Explain each separately.
+
+============================================================
+30. IMPORTANT RELEASE DISTINCTION
+============================================================
+
+Missing:
+
+confirmed starting QB
+injury feed
+depth chart
+
+must NOT automatically force:
+
+V4_BUILD_READY = FALSE
+
+if the core expected-score model can legitimately be constructed and evaluated without them.
+
+Instead determine whether they affect:
+
+model construction
+historical validation
+specific-game eligibility
+full public publication
+
+============================================================
+31. FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. READY TO BEGIN #222 — NCAAF V4 ENGINE
+
+B. HISTORICAL PIT FOUNDATION PARTIAL — SPECIFIC RECOVERABLE BLOCKER REMAINS
+
+C. CORE V4 FOUNDATION READY — BEGIN #222, SUPPLEMENTAL LIVE DATA REQUIRED BEFORE FULL PUBLIC RELEASE
+
+D. HISTORICAL FOUNDATION INSUFFICIENT — MORE PROSPECTIVE EVIDENCE REQUIRED
+
+============================================================
+32. IF A OR C
+============================================================
+
+If the decision is A or C:
+
+Do NOT start #222.
+
+Instead provide the recommended exact scope for:
+
+#222 — Independent NCAAF V4 Expected-Score Engine
+
+including the production-eligible feature families discovered by this audit.
+
+============================================================
+33. IF B
+============================================================
+
+If decision B:
+
+Identify ONE next narrowly scoped task required to remove the blocker.
+
+Do not propose another broad data redesign.
+
+============================================================
+34. IF D
+============================================================
+
+If decision D:
+
+Quantify what prospective evidence must accumulate before V4 can be trained/validated.
+
+Give:
+
+minimum games
+minimum weeks
+minimum team coverage
+minimum feature coverage
+
+and explain why historical reconstruction is insufficient.
+
+============================================================
+REPORT
+============================================================
+
+Create/update:
+
+reports/ncaaf-historical-pit-foundation-2026-09-04.md
+
+Include the LIVE PRODUCTION VERIFICATION results.
+
+Clearly distinguish:
+
+IMPLEMENTED
+DEPLOYED
+PRODUCTION VERIFIED
+NOT VERIFIED
+BLOCKED
+
+============================================================
+FINAL OUTPUT
+============================================================
+
+Start the response with:
+
+#221H-PROD FINAL VERIFICATION
+
+DEPLOYED:
+YES / NO
+
+HISTORICAL_PIT_FOUNDATION_READY:
+TRUE / FALSE
+
+DATA_PIPELINE_READY:
+TRUE / FALSE
+
+V4_BUILD_READY:
+TRUE / FALSE
+
+V4_VALIDATION_READY:
+TRUE / FALSE
+
+FULL_LIVE_PUBLICATION_DATA_READY:
+TRUE / FALSE
+
+TOTAL PIT-SAFE TRAINING GAMES:
+[number]
+
+SEASONS:
+[list]
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[task]
+
+Then provide the detailed evidence.
+
+============================================================
+STOP
+============================================================
+
+Do not modify the model.
+Do not begin #222.
+Do not promote anything.
+Do not enable NCAAF public wagers.
+
+Verify production, return the report, and stop.
