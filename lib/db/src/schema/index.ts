@@ -45,6 +45,7 @@ export * from "./ncaaf-validation";
 export * from "./ncaaf-team-game-performance";
 export * from "./ncaaf-pregame-cohorts";
 export * from "./ncaaf-football-intelligence-snapshots";
+export * from "./ncaaf-historical-training-rows";
 export * from "./mlb-point-in-time";
 
 // ── Training & evaluation ─────────────────────────────────────────────────────

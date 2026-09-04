@@ -165,6 +165,23 @@ describe("NCAAF production evidence cycle", () => {
     expect(errors).toHaveLength(2);
   });
 
+  it("allows a consecutive critical cycle after a capture failure", async () => {
+    let calls = 0;
+    const run = createNcaafProductionEvidenceCycle({
+      now: () => now, reconcile: async () => 0, acquireGlobalLock: globalLock,
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
+      captureCurrent: async () => {
+        calls++;
+        if (calls === 1) throw new Error("temporary capture failure");
+        return { games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} };
+      },
+      listUpcomingGames: async () => [],
+    });
+    expect((await run()).captureCause).toContain("temporary capture failure");
+    expect((await run()).captureCause).toBeNull();
+    expect(calls).toBe(2);
+  });
+
   it("bootstrap captures bounded completed performance dates without cohorts", async () => {
     const captured: Date[] = [];
     await bootstrapNcaafCurrentSeasonPerformanceEvidence(

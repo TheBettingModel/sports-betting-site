@@ -46,6 +46,7 @@ import {
   bootstrapMissingNcaafPerformanceEvidence,
   runNcaafProductionEvidenceCycle,
 } from "./ncaafProductionEvidenceCycle";
+import { materializeNcaafHistoricalTrainingRows } from "./ncaafHistoricalTrainingMaterializer";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
@@ -1476,12 +1477,18 @@ export function startScheduler(): void {
   // Warm up team stats cache in the background so the first game refresh
   // has advanced analytics immediately available.
   warmUpTeamStatsCache();
+  // Start prospective evidence work immediately. Historical performance
+  // repair can issue many date captures, so it must never hold the critical
+  // FINAL_PREGAME capture/assignment path behind its completion.
+  void runNcaafProductionEvidenceCycle();
   // One bounded, non-blocking catch-up after registration repairs missing
-  // completed-game performance evidence before the prospective cycle.
+  // completed-game performance evidence. It is intentionally independent of
+  // the prospective cycle above.
   void bootstrapMissingNcaafPerformanceEvidence()
-    .then((bootstrap) => {
+    .then(async (bootstrap) => {
       logger.info(bootstrap, "Scheduler: NCAAF completed-game bootstrap finished");
-      return runNcaafProductionEvidenceCycle();
+      const historical = await materializeNcaafHistoricalTrainingRows();
+      logger.info(historical, "Scheduler: NCAAF PIT-safe historical training rows materialized");
     })
     .catch((err) => logger.error({ err }, "Scheduler: NCAAF startup evidence catch-up failed"));
 
@@ -1500,6 +1507,7 @@ export const schedulerJobs = {
   mlbAdvancedResearchCapture: runMlbAdvancedResearchCapture,
   ncaafProductionEvidenceCycle: runNcaafProductionEvidenceCycle,
   ncaafPerformanceBootstrap: bootstrapMissingNcaafPerformanceEvidence,
+  ncaafHistoricalTrainingMaterialization: materializeNcaafHistoricalTrainingRows,
 };
 
 /**

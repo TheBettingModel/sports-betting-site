@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   isEvidenceAvailableAsOf,
   assertPregameEvidenceCutoff,
@@ -15,8 +15,47 @@ import {
   matchNcaafMarketIdentity,
   runNcaafEvidenceSingleFlight,
   finalizeNcaafEvidenceRun,
+  captureNcaafEvidenceDate,
 } from "./ncaafEvidenceLedger";
 import type { FetchedGame } from "./espn";
+
+function ncaafRunLifecycleDatabase(
+  terminalStates: Array<{ status: string }>,
+  finalUpdateResults: Array<Array<{ status: string }>>,
+) {
+  let selectCall = 0;
+  const select = vi.fn(() => {
+    // The reconciler's initial select is always the first call; subsequent
+    // reads occur after a zero-row compare-and-set update.
+    if (selectCall++ === 0) return selectBuilder([]);
+    const terminal = terminalStates.shift();
+    return selectBuilder(terminal ? [terminal] : []);
+  });
+  const update = vi.fn(() => {
+    const result = finalUpdateResults.shift() ?? [];
+    const builder: Record<string, unknown> = {};
+    builder.set = vi.fn().mockReturnValue(builder);
+    builder.where = vi.fn().mockReturnValue(builder);
+    builder.returning = vi.fn().mockResolvedValue(result);
+    return builder;
+  });
+  const insert = vi.fn(() => {
+    const builder: Record<string, unknown> = {};
+    builder.onConflictDoNothing = vi.fn().mockReturnValue(builder);
+    builder.returning = vi.fn().mockResolvedValue([{ id: 77 }]);
+    return { values: vi.fn().mockReturnValue(builder) };
+  });
+  return { select, update, insert };
+}
+
+function selectBuilder(result: unknown) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn().mockReturnValue(builder);
+  builder.where = vi.fn().mockReturnValue(builder);
+  builder.limit = vi.fn().mockResolvedValue(result);
+  builder.then = Promise.resolve(result).then.bind(Promise.resolve(result));
+  return builder;
+}
 
 describe("NCAAF evidence ledger helpers", () => {
   it("builds a stable idempotency key for equivalent provider payloads", () => {
@@ -171,6 +210,40 @@ describe("NCAAF evidence ledger helpers", () => {
       if (attempts < 3) throw new Error("temporary finalization failure");
     });
     expect(attempts).toBe(3);
+  });
+
+  it("surfaces an exhausted finalization failure so stale reconciliation remains available", async () => {
+    let attempts = 0;
+    await expect(finalizeNcaafEvidenceRun(async () => {
+      attempts++;
+      throw new Error("database unavailable");
+    }, 2)).rejects.toThrow("database unavailable");
+    expect(attempts).toBe(2);
+  });
+
+  it("rejects a stale reconciler terminal failure instead of reporting intended completion", async () => {
+    const database = ncaafRunLifecycleDatabase(
+      // Three completed-state attempts are retried, then the failure
+      // finalizer verifies the reconciler's terminal state once more.
+      [{ status: "failed" }, { status: "failed" }, { status: "failed" }, { status: "failed" }],
+      [[], [], [], []],
+    );
+    await expect(captureNcaafEvidenceDate("2025-09-06", {
+      database: database as never,
+      now: () => new Date("2025-09-06T12:00:00Z"),
+      fetchEspnByDate: async () => [],
+      fetchOdds: async () => [],
+    })).rejects.toThrow("terminal-state conflict: intended completed, observed failed");
+  });
+
+  it("accepts an ambiguous finalization retry when the terminal state matches", async () => {
+    const database = ncaafRunLifecycleDatabase([{ status: "completed" }], [[]]);
+    await expect(captureNcaafEvidenceDate("2025-09-06", {
+      database: database as never,
+      now: () => new Date("2025-09-06T12:00:00Z"),
+      fetchEspnByDate: async () => [],
+      fetchOdds: async () => [],
+    })).resolves.toMatchObject({ runId: 77, games: 0, providerErrors: {} });
   });
 
   it("only links exact or known unambiguous market identities", () => {

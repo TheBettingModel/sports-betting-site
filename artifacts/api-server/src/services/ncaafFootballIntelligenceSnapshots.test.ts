@@ -49,7 +49,7 @@ describe("NCAAF football intelligence snapshots", () => {
     }));
   });
 
-  it("makes a canonical sports-only domain snapshot and blocks missing critical QB evidence", () => {
+  it("makes a canonical sports-only domain snapshot without treating optional QB evidence as a blocker", () => {
     const rows = [
       row("home", "x", 2025, "home-current"), row("home", "x", 2024, "home-prior"),
       row("away", "y", 2025, "away-current"), row("away", "y", 2024, "away-prior"),
@@ -59,7 +59,7 @@ describe("NCAAF football intelligence snapshots", () => {
     expect(snapshot.teams.away.earlySeasonPrior.state).toBe("VALID");
     expect(snapshot.teams.home.quarterback.state).toBe("UNSUPPORTED");
     expect(snapshot.teams.home.venue.state).toBe("VALID");
-    expect(snapshot.readiness).toMatchObject({ state: "BLOCKED" });
+    expect(snapshot.readiness).toMatchObject({ state: "PARTIAL", blockedReasons: [] });
     expect(JSON.stringify(snapshot)).not.toMatch(/odds|probability|recommendation/i);
   });
 
@@ -75,9 +75,68 @@ describe("NCAAF football intelligence snapshots", () => {
       .teams.home.teamPerformance.state).toBe("MISSING");
   });
 
-  it("rejects market-shaped keys recursively and requires a strict cutoff", () => {
-    expect(() => assertNoNcaafMarketShapedKeys({ nested: { moneyline: 3 } })).toThrow(/market-shaped/);
+  it("distinguishes blocking absent team evidence from partial scored evidence", () => {
+    const incomplete = row("home", "x", 2025, "home-incomplete");
+    incomplete.pointsAgainst = null;
+    const partial = buildNcaafFootballIntelligenceSnapshot(target, [
+      row("home", "x", 2025, "home-complete"), incomplete,
+      row("away", "y", 2025, "away-complete"),
+    ], cutoff);
+    expect(partial.teams.home.teamPerformance.state).toBe("PARTIAL");
+    expect(partial.readiness).toMatchObject({
+      state: "PARTIAL",
+      blockedReasons: [],
+      partialReasons: expect.arrayContaining(["home.teamPerformance:PARTIAL"]),
+    });
+    expect(buildNcaafFootballIntelligenceSnapshot(target, [], cutoff).readiness.state).toBe("BLOCKED");
+  });
+
+  it("recursively rejects exact market keys without rejecting sports statistics", () => {
+    for (const key of [
+      "odds", "price", "line", "spread", "total", "moneyline", "impliedProbability",
+      "book", "sportsbook", "marketPrice", "openingLine", "closingLine",
+    ]) {
+      expect(() => assertNoNcaafMarketShapedKeys({ nested: [{ [key]: 1 }] })).toThrow(/market-shaped/);
+    }
+    expect(() => assertNoNcaafMarketShapedKeys({
+      pointsPerOpportunity: 4.2,
+      pointsPerDrive: 2.9,
+      yardsPerPlay: 6.1,
+      successRate: 0.48,
+      explosiveness: 1.2,
+      havoc: 0.17,
+      lineYards: 3.4,
+      ppa: 0.22,
+    })).not.toThrow();
     expect(() => buildNcaafFootballIntelligenceSnapshot(target, [], kickoff)).toThrow(/strictly before kickoff/);
+  });
+
+  it("retains mapped supplied team performance and composes supported early-season priors with provenance", () => {
+    const suppliedPerformance = {
+      state: "VALID" as const, provider: "college_football_data", quality: 0.9, reliability: 0.8,
+      evidence: [{ id: 98, providerEventId: "cfbd-home", payloadHash: "cfbd-hash", capturedAt: "2025-09-19T10:00:00.000Z" }],
+      provenance: [{ endpoint: "season_team_stats", pitClassification: "B" }],
+      sample: { observations: 1 }, missingReason: null, payload: { pointsPerOpportunity: 4.2 },
+    };
+    const suppliedPrior = {
+      ...suppliedPerformance,
+      evidence: [{ id: 99, providerEventId: "cfbd-prior", payloadHash: "prior-hash", capturedAt: "2025-09-19T10:00:00.000Z" }],
+      provenance: [{ endpoint: "sp", pitClassification: "B" }], payload: { rating: 12 },
+    };
+    const snapshot = buildNcaafFootballIntelligenceSnapshot({
+      ...target, suppliedDomains: { home: { teamPerformance: suppliedPerformance, earlySeasonPrior: suppliedPrior } },
+    }, [row("home", "x", 2024, "home-prior")], cutoff);
+    expect(snapshot.teams.home.teamPerformance).toMatchObject({
+      state: "VALID", provider: "college_football_data", payload: { pointsPerOpportunity: 4.2 },
+    });
+    expect(snapshot.teams.home.earlySeasonPrior.evidence).toHaveLength(2);
+    expect(snapshot.teams.home.earlySeasonPrior.provenance).toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: "scoreboard" }),
+      expect.objectContaining({ endpoint: "sp" }),
+    ]));
+    expect(snapshot.teams.home.earlySeasonPrior.payload).toMatchObject({
+      components: expect.arrayContaining([expect.objectContaining({ source: "completed_games" }), expect.objectContaining({ source: "supplied_prior" })]),
+    });
   });
 
   it("executes the v2 insert and reports newly persisted snapshots", async () => {

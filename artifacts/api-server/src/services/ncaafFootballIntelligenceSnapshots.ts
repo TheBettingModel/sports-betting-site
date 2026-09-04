@@ -66,12 +66,28 @@ export interface NcaafFootballIntelligenceSnapshotValue {
   };
 }
 
-const CRITICAL = ["teamPerformance", "quarterback", "earlySeasonPrior"] as const;
+// A team cannot be evaluated without observed team performance. Quarterback
+// identity is useful context, but is not universally available from a
+// pregame, sports-only source and therefore must never prevent a snapshot.
+const CRITICAL = ["teamPerformance"] as const;
 const IMPORTANT = ["venue", "roster", "injury", "advanced"] as const;
-const OPTIONAL = ["offensiveLine", "skill", "defensePersonnel", "talent", "transfers", "coaching", "specialTeams", "weather", "restTravel"] as const;
+const OPTIONAL = ["quarterback", "earlySeasonPrior", "offensiveLine", "skill", "defensePersonnel", "talent", "transfers", "coaching", "specialTeams", "weather", "restTravel"] as const;
 const ALL_DOMAINS = [...CRITICAL, ...IMPORTANT, ...OPTIONAL] as const;
 
-const MARKET_SHAPED_KEY = /(?:market|odds|sportsbook|bookmaker|moneyline|spread|price|wager|bet(?:ting)?|stake|unit|probabilit|forecast|project(?:ed|ion)?|recommendation|expected[_-]?score)/i;
+// This is deliberately an exact-key firewall, rather than a substring
+// heuristic. Sports statistics legitimately contain names such as
+// `pointsPerOpportunity`; broad matching is both lossy and unnecessary.
+const MARKET_SHAPED_KEYS = new Set([
+  "market", "markets", "odds", "sportsbook", "sportsbooks", "bookmaker", "bookmakers",
+  "book", "books", "moneyline", "spread", "pointspread", "line", "total", "price",
+  "marketprice", "openingline", "closingline", "wager", "wagers", "bet", "bets",
+  "betting", "stake", "stakes", "unit", "units", "probability", "probabilities",
+  "impliedprobability", "forecast", "projection", "projected", "recommendation", "expectedscore",
+]);
+
+function normalizedInputKey(key: string): string {
+  return key.replace(/[^a-z0-9]/gi, "").toLocaleLowerCase("en-US");
+}
 
 function canonical(value: unknown): unknown {
   if (value instanceof Date) return value.toISOString();
@@ -91,7 +107,9 @@ export function assertNoNcaafMarketShapedKeys(value: unknown, path = "payload"):
     value.forEach((item, index) => assertNoNcaafMarketShapedKeys(item, `${path}[${index}]`));
   } else if (value && typeof value === "object") {
     for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-      if (MARKET_SHAPED_KEY.test(key)) throw new Error(`NCAAF intelligence rejects market-shaped key: ${path}.${key}`);
+      if (MARKET_SHAPED_KEYS.has(normalizedInputKey(key))) {
+        throw new Error(`NCAAF intelligence rejects market-shaped key: ${path}.${key}`);
+      }
       assertNoNcaafMarketShapedKeys(item, `${path}.${key}`);
     }
   }
@@ -182,6 +200,37 @@ function venueDomain(target: NcaafIntelligenceTarget): IntelligenceDomain {
   };
 }
 
+/**
+ * Historical completed games and independently captured preseason priors are
+ * complementary evidence. Keep both components instead of allowing a later
+ * supplied CFBD row to erase the completed-game provenance.
+ */
+function composeEarlySeasonPrior(
+  completedGames: IntelligenceDomain,
+  supplied: IntelligenceDomain,
+): IntelligenceDomain {
+  const components = [
+    ...(completedGames.state === "MISSING" ? [] : [{ source: "completed_games", payload: completedGames.payload }]),
+    { source: "supplied_prior", payload: supplied.payload },
+  ];
+  return {
+    ...supplied,
+    state: supplied.state !== "VALID" ? supplied.state
+      : completedGames.state === "PARTIAL" ? "PARTIAL" : "VALID",
+    evidence: [...completedGames.evidence, ...supplied.evidence],
+    provenance: [...completedGames.provenance, ...supplied.provenance],
+    quality: average([completedGames.quality, supplied.quality]),
+    reliability: average([completedGames.reliability, supplied.reliability]),
+    sample: {
+      completedGameObservations: completedGames.sample.scoredGames ?? 0,
+      suppliedObservations: supplied.sample.observations ?? 0,
+    },
+    missingReason: completedGames.state === "PARTIAL" || supplied.state === "PARTIAL"
+      ? "Some early-season prior components are incomplete" : null,
+    payload: { components },
+  };
+}
+
 function domainsForTeam(
   target: NcaafIntelligenceTarget, side: "home" | "away", teamId: string | null, rows: NcaafPerformanceEvidenceRow[],
 ) {
@@ -214,7 +263,9 @@ function domainsForTeam(
     }
     if (!supplied) continue;
     assertNoNcaafMarketShapedKeys(supplied, `suppliedDomains.${side}.${domain}`);
-    domains[domain] = supplied;
+    domains[domain] = domain === "earlySeasonPrior" && !common
+      ? composeEarlySeasonPrior(domains.earlySeasonPrior!, supplied)
+      : supplied;
   }
   return domains;
 }
@@ -247,7 +298,14 @@ export function buildNcaafFootballIntelligenceSnapshot(
   const blockedReasons: string[] = [];
   const partialReasons: string[] = [];
   for (const [side, domains] of Object.entries(teams)) {
-    for (const domain of CRITICAL) if (domains[domain]!.state !== "VALID") blockedReasons.push(`${side}.${domain}:${domains[domain]!.state}`);
+    for (const domain of CRITICAL) {
+      const state = domains[domain]!.state;
+      if (state === "MISSING" || state === "INVALID" || state === "UNSUPPORTED") {
+        blockedReasons.push(`${side}.${domain}:${state}`);
+      } else if (state === "PARTIAL") {
+        partialReasons.push(`${side}.${domain}:PARTIAL`);
+      }
+    }
     for (const domain of IMPORTANT) if (domains[domain]!.state !== "VALID") partialReasons.push(`${side}.${domain}:${domains[domain]!.state}`);
   }
   return {
@@ -344,7 +402,9 @@ async function loadSafeCfbdDomains(target: NcaafIntelligenceTarget, cutoff: Date
     const teamIds = mappings.map((row) => row.cfbdTeamId);
     if (!teamIds.length) continue;
     const evidence = await db.select().from(ncaafCfbdDomainEvidenceTable).where(and(
-      inArray(ncaafCfbdDomainEvidenceTable.cfbdTeamId, teamIds), lt(ncaafCfbdDomainEvidenceTable.capturedAt, cutoff),
+      inArray(ncaafCfbdDomainEvidenceTable.cfbdTeamId, teamIds),
+      eq(ncaafCfbdDomainEvidenceTable.season, target.season),
+      lt(ncaafCfbdDomainEvidenceTable.capturedAt, cutoff),
       sql`(${ncaafCfbdDomainEvidenceTable.providerEffectiveAt} IS NULL OR ${ncaafCfbdDomainEvidenceTable.providerEffectiveAt} < ${cutoff})`,
     )).orderBy(desc(ncaafCfbdDomainEvidenceTable.providerEffectiveAt), desc(ncaafCfbdDomainEvidenceTable.capturedAt), desc(ncaafCfbdDomainEvidenceTable.id));
     const domainMap: Record<string, string> = {
@@ -357,13 +417,29 @@ async function loadSafeCfbdDomains(target: NcaafIntelligenceTarget, cutoff: Date
       if (row.pitClassification === "C" || row.pitClassification === "D") continue;
       const domain = domainMap[row.domain]; if (!domain) continue;
       const current = output[side]![domain];
-      if (current) continue; // query order is provider append order; retaining first is deterministic enough for provenance.
-      output[side]![domain] = {
+      const normalized: IntelligenceDomain = {
         state: "VALID", provider: "college_football_data", quality: null, reliability: null,
         evidence: [{ id: row.id, providerEventId: row.cfbdGameId ?? row.cfbdTeamId ?? "cfbd-domain", payloadHash: row.payloadHash, capturedAt: row.capturedAt.toISOString() }],
         provenance: [{ provider: "college_football_data", endpoint: row.endpoint, pitClassification: row.pitClassification, capturedAt: row.capturedAt.toISOString(), effectiveAt: row.providerEffectiveAt?.toISOString() ?? null }],
         sample: { observations: 1 }, missingReason: null, payload: row.payload as Record<string, unknown>,
       };
+      // A prior is an evidence composition, not an arbitrary winner selected
+      // by query order. Other domains retain their newest eligible observation.
+      if (current && domain !== "earlySeasonPrior") continue;
+      if (current) {
+        output[side]![domain] = {
+          ...current,
+          evidence: [...current.evidence, ...normalized.evidence],
+          provenance: [...current.provenance, ...normalized.provenance],
+          sample: { observations: (current.sample.observations ?? 0) + 1 },
+          payload: { components: [
+            ...(Array.isArray(current.payload.components) ? current.payload.components : [{ source: "cfbd_prior", payload: current.payload }]),
+            { source: "cfbd_prior", payload: normalized.payload },
+          ] },
+        };
+      } else {
+        output[side]![domain] = normalized;
+      }
     }
   }
   return output;
