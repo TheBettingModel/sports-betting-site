@@ -218,3 +218,17 @@ mtime_ms = 1788529107551
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/8044ac92-c155-44ad-95e8-f4864e963589/38f35281-e98a-4ebb-a772-22407b3e859b"
 storage_version_token = "1788529162089242"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "e-x0OZ3bUEjmy2zq5N0fK"
+uri = "file://reports/ncaaf-v4-2026-identity-bridge-2026-09-04.md"
+type = "text"
+title = "#222C Final Identity Bridge Report"
+description = "Production-verified 2026 NCAAF identity bridge and feature-compatibility report with the exact decision B."
+logical_id = "7ba8d5ce-fef3-403d-95a1-d9c005f8a819"
+content_hash = "sha256:d685ba60fd1951c648cf0ed34655a9218f8b75b6a7d68bf7854655c9e6ee4d5c"
+size = 9939
+mtime_ms = 1788530249822
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7ba8d5ce-fef3-403d-95a1-d9c005f8a819/0bff1a99-9c88-4bb8-9d73-0e2249e54f88"
+storage_version_token = "1788530264119052"
+content_type = "text/markdown"
