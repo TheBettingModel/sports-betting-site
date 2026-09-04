@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNcaafV42026FeatureBridge, classifyNcaafV42026Target } from "./ncaafV42026FeatureBridge";
+import { buildNcaafV42026FeatureBridge, classifyNcaafV42026Target, NCAAF_V4_2026_FBS_UNIVERSE_PROOF } from "./ncaafV42026FeatureBridge";
 
 const at = (s: string) => new Date(s);
 const completed = { provider: "college_football_data", providerEventId: "old", season: 2026, kickoffAt: at("2026-08-29T12:00:00Z"), gameStatus: "final", homeScore: 28, awayScore: 14, homeProviderTeamId: "A", awayProviderTeamId: "B", neutralSite: false, providerObservedAt: at("2026-08-29T15:00:00Z"), capturedAt: at("2026-08-29T15:00:00Z"), modeledAsOf: at("2026-08-29T15:00:00Z"), payload: { game: { homeClassification: "fbs", awayClassification: "fbs" } } };
@@ -46,5 +46,14 @@ describe("NCAAF V4 2026 feature bridge", () => {
     expect(buildNcaafV42026FeatureBridge({ snapshots: [{ ...snapshot, targetProvider: "espn", homeProviderTeamId: "espn-a", awayProviderTeamId: "espn-c" }], evidence: [], mappings, assessedAt: at("2026-09-05T12:00:00Z") }).inputs).toHaveLength(1);
     const rejected = buildNcaafV42026FeatureBridge({ snapshots: [{ ...snapshot, targetProvider: "espn", homeProviderTeamId: "espn-a", awayProviderTeamId: "espn-c" }], evidence: [], mappings: [{ ...mapping, mappingMethod: "EXPLICIT_ALIAS", evidenceRef: undefined }], assessedAt: at("2026-09-05T12:00:00Z") });
     expect(rejected.exclusions[0]).toMatchObject({ reason: "unsafe_target_team_identity_mapping" });
+  });
+  it("uses the immutable #222C FBS proof only after exact identities resolve", () => {
+    const mapping = { season: 2026, canonicalProvider: "espn", canonicalTeamId: "espn-a", cfbdTeamId: "A", state: "MAPPED", capturedAt: at("2026-09-01T00:00:00Z"), mappingMethod: "EXACT_PROVIDER_ID", evidenceRef: "espn-team:espn-a" };
+    const mappings = [mapping, { ...mapping, canonicalTeamId: "espn-c", cfbdTeamId: "C", evidenceRef: "espn-team:espn-c" }];
+    const unknownDomain = { ...snapshot, targetProvider: "espn", homeProviderTeamId: "espn-a", awayProviderTeamId: "espn-c", domainPayload: { home: { venue: { payload: { neutralSite: false } } } } };
+    const proof = buildNcaafV42026FeatureBridge({ snapshots: [unknownDomain], evidence: [], mappings, fbsUniverseProof: NCAAF_V4_2026_FBS_UNIVERSE_PROOF, assessedAt: at("2026-09-05T12:00:00Z") });
+    expect(proof.inputs).toHaveLength(1);
+    const noIdentity = buildNcaafV42026FeatureBridge({ snapshots: [{ ...unknownDomain, awayProviderTeamId: null }], evidence: [], mappings, fbsUniverseProof: NCAAF_V4_2026_FBS_UNIVERSE_PROOF, assessedAt: at("2026-09-05T12:00:00Z") });
+    expect(noIdentity.exclusions[0]).toMatchObject({ reason: "out_of_domain_fbs_vs_fcs" });
   });
 });

@@ -5,6 +5,264 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type NcaafV4ProjectionBoardModel = {
+  id: 'tbm-ncaaf-v4-expected-score';
+  modelStatus: 'V4_PREVIEW';
+  approvalStatus: 'UNVALIDATED';
+  publicationStatus: 'PREVIEW_ONLY';
+  configurationHash: string;
+  parameterHash: string;
+};
+
+export type NcaafV4ProjectionBoardExclusionsItem = { [key: string]: unknown };
+
+export type NcaafV4ProjectionBoardAudit = { [key: string]: unknown };
+
+export type NcaafV4ProjectionMarketMatchClassification = typeof NcaafV4ProjectionMarketMatchClassification[keyof typeof NcaafV4ProjectionMarketMatchClassification];
+
+
+export const NcaafV4ProjectionMarketMatchClassification = {
+  EXACT_ID_MATCH: 'EXACT_ID_MATCH',
+  EXACT_CANONICAL_MATCH: 'EXACT_CANONICAL_MATCH',
+  SAFE_TEAM_TIME_MATCH: 'SAFE_TEAM_TIME_MATCH',
+  AMBIGUOUS: 'AMBIGUOUS',
+  UNMATCHED: 'UNMATCHED',
+} as const;
+
+export type NcaafV4ModelOutputDataQuality = typeof NcaafV4ModelOutputDataQuality[keyof typeof NcaafV4ModelOutputDataQuality];
+
+
+export const NcaafV4ModelOutputDataQuality = {
+  HIGH: 'HIGH',
+  MEDIUM: 'MEDIUM',
+  LOW: 'LOW',
+  INSUFFICIENT: 'INSUFFICIENT',
+} as const;
+
+export interface NcaafV4ModelOutput {
+  id: string;
+  version: string;
+  configurationHash: string;
+  parameterHash: string;
+  featureSchema: string;
+  featureCutoff: string;
+  dataQuality: NcaafV4ModelOutputDataQuality;
+  expectedHomePoints: number;
+  expectedAwayPoints: number;
+  expectedMargin: number;
+  expectedTotal: number;
+  homeWinProbability: number;
+  awayWinProbability: number;
+  /** @nullable */
+  fairHomeMoneyline: number | null;
+  /** @nullable */
+  fairAwayMoneyline: number | null;
+  marginUncertainty: number;
+  totalUncertainty: number;
+}
+
+/**
+ * @nullable
+ */
+export type NcaafV4MarketOutputMoneyline = {
+  bookmaker: string;
+  capturedAt: string;
+  homeOdds: number;
+  awayOdds: number;
+  noVigHomeProbability: number;
+  noVigAwayProbability: number;
+} | null;
+
+/**
+ * @nullable
+ */
+export type NcaafV4MarketOutputSpread = {
+  bookmaker: string;
+  capturedAt: string;
+  selection: string;
+  line: number;
+  /** @nullable */
+  odds: number | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type NcaafV4MarketOutputTotal = {
+  bookmaker: string;
+  capturedAt: string;
+  selection: string;
+  line: number;
+  /** @nullable */
+  odds: number | null;
+} | null;
+
+export interface NcaafV4MarketOutput {
+  /** @nullable */
+  moneyline: NcaafV4MarketOutputMoneyline;
+  /** @nullable */
+  spread: NcaafV4MarketOutputSpread;
+  /** @nullable */
+  total: NcaafV4MarketOutputTotal;
+}
+
+/**
+ * @nullable
+ */
+export type NcaafV4ComparisonSpread = {
+  projectedHomeMargin: number;
+  line: number;
+  difference: number;
+} | null;
+
+/**
+ * @nullable
+ */
+export type NcaafV4ComparisonTotal = {
+  projectedTotal: number;
+  line: number;
+  difference: number;
+} | null;
+
+export interface NcaafV4Comparison {
+  /** @nullable */
+  moneylineHomeEdge: number | null;
+  /** @nullable */
+  spread: NcaafV4ComparisonSpread;
+  /** @nullable */
+  total: NcaafV4ComparisonTotal;
+}
+
+export type NcaafV4ProjectionV4ModelOpinion = typeof NcaafV4ProjectionV4ModelOpinion[keyof typeof NcaafV4ProjectionV4ModelOpinion];
+
+
+export const NcaafV4ProjectionV4ModelOpinion = {
+  BUY: 'BUY',
+  LEAN: 'LEAN',
+  NEUTRAL: 'NEUTRAL',
+  FADE: 'FADE',
+} as const;
+
+export type NcaafV4ProjectionIncumbentAgreement = typeof NcaafV4ProjectionIncumbentAgreement[keyof typeof NcaafV4ProjectionIncumbentAgreement];
+
+
+export const NcaafV4ProjectionIncumbentAgreement = {
+  AGREE: 'AGREE',
+  DISAGREE: 'DISAGREE',
+  NO_INCUMBENT_FORECAST: 'NO_INCUMBENT_FORECAST',
+} as const;
+
+export type NcaafV4ProjectionMarketMatch = {
+  classification: NcaafV4ProjectionMarketMatchClassification;
+  attachable: boolean;
+};
+
+export interface NcaafV4Projection {
+  /** @minimum 1 */
+  rank: number;
+  gameId: string;
+  predictionId: string;
+  predictionHash: string;
+  kickoffAt: string;
+  /** @nullable */
+  awayTeam?: string | null;
+  /** @nullable */
+  homeTeam?: string | null;
+  /** @nullable */
+  neutralSite?: boolean | null;
+  modelStatus: 'V4_PREVIEW';
+  approvalStatus: 'UNVALIDATED';
+  publicationStatus: 'PREVIEW_ONLY';
+  marketMatch: NcaafV4ProjectionMarketMatch;
+  model: NcaafV4ModelOutput;
+  market?: NcaafV4MarketOutput;
+  comparison?: NcaafV4Comparison;
+  v4ModelOpinion: NcaafV4ProjectionV4ModelOpinion;
+  recommendationReason?: string;
+  incumbentAgreement: NcaafV4ProjectionIncumbentAgreement;
+  status: string;
+}
+
+export interface NcaafV4ProjectionBoard {
+  date: string;
+  generatedAt: string;
+  model: NcaafV4ProjectionBoardModel;
+  evidencePersistence: string;
+  board: NcaafV4Projection[];
+  exclusions: NcaafV4ProjectionBoardExclusionsItem[];
+  audit: NcaafV4ProjectionBoardAudit;
+}
+
+export type NcaafV2TrainingCursorVersion = typeof NcaafV2TrainingCursorVersion[keyof typeof NcaafV2TrainingCursorVersion];
+
+
+export const NcaafV2TrainingCursorVersion = {
+  'ncaaf-v4-training-foundation-v2-cursor-v1': 'ncaaf-v4-training-foundation-v2-cursor-v1',
+} as const;
+
+export interface NcaafV2TrainingCursor {
+  version: NcaafV2TrainingCursorVersion;
+  /** @minimum 0 */
+  offset: number;
+}
+
+export interface NcaafCoreBackfillRequest {
+  dryRun?: boolean;
+  cursor?: NcaafV2TrainingCursor | null;
+}
+
+export type NcaafCoreBackfillResultSeasonsItem = typeof NcaafCoreBackfillResultSeasonsItem[keyof typeof NcaafCoreBackfillResultSeasonsItem];
+
+
+export const NcaafCoreBackfillResultSeasonsItem = {
+  NUMBER_2023: 2023,
+  NUMBER_2024: 2024,
+  NUMBER_2025: 2025,
+} as const;
+
+export type NcaafCoreBackfillResultCfbd = {
+  /** @minimum 0 */
+  requested: number;
+  /** @minimum 0 */
+  rawInserted: number;
+  /** @minimum 0 */
+  gamesInserted: number;
+  /** @minimum 0 */
+  malformed: number;
+};
+
+/**
+ * @nullable
+ */
+export type NcaafCoreBackfillResultMaterializationAudit = { [key: string]: unknown } | null;
+
+export type NcaafCoreBackfillResultMaterialization = {
+  /** @minimum 0 */
+  invocations: number;
+  /** @minimum 0 */
+  attempted: number;
+  /** @minimum 0 */
+  inserted: number;
+  /** @minimum 0 */
+  alreadyMaterialized: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  totalEligible: number | null;
+  nextCursor: NcaafV2TrainingCursor | null;
+  /** @nullable */
+  audit: NcaafCoreBackfillResultMaterializationAudit;
+};
+
+export interface NcaafCoreBackfillResult {
+  manualOnly: true;
+  dryRun: boolean;
+  seasons: NcaafCoreBackfillResultSeasonsItem[];
+  cfbd: NcaafCoreBackfillResultCfbd;
+  materialization: NcaafCoreBackfillResultMaterialization;
+}
+
 export type ApprovalLayerResultInputStatus = typeof ApprovalLayerResultInputStatus[keyof typeof ApprovalLayerResultInputStatus];
 
 
@@ -20,6 +278,112 @@ export interface ApprovalLayerResultInput {
   status: ApprovalLayerResultInputStatus;
   reasons: string[];
   metrics: ApprovalLayerResultInputMetrics;
+}
+
+export interface NcaafReasonCount {
+  reason: string;
+  /** @minimum 0 */
+  count: number;
+}
+
+export type NcaafReadinessGates = { [key: string]: unknown };
+
+export type NcaafReadinessLegacyCohort = {
+  total: number;
+  classified: number;
+  graded: number;
+  pending: number;
+  officialExcluded: number;
+};
+
+export type NcaafReadinessFeatureSnapshots = {
+  total: number;
+  ready: number;
+  blocked: number;
+  topBlockedReasons: NcaafReasonCount[];
+};
+
+export type NcaafReadinessEvidenceRunsRecentItem = { [key: string]: unknown };
+
+export type NcaafReadinessEvidenceRuns = {
+  active: number;
+  stale: number;
+  finalized: number;
+  recent: NcaafReadinessEvidenceRunsRecentItem[];
+};
+
+export type NcaafReadinessSportsEvidenceCoverage = { [key: string]: unknown };
+
+export type NcaafReadinessTeamGamePerformance = { [key: string]: unknown };
+
+export type NcaafReadinessMarketEvidenceCoverage = { [key: string]: unknown };
+
+export type NcaafReadinessCohorts = {
+  finalPregame: number;
+  liveShadow: number;
+  supported: boolean;
+};
+
+export type NcaafReadinessProviderCapabilities = { [key: string]: unknown };
+
+export type NcaafReadinessPointInTime = {
+  violations: number;
+};
+
+export type NcaafReadinessValidation = { [key: string]: unknown };
+
+export interface NcaafReadiness {
+  engineeringReadyForV4: boolean;
+  evidenceReadyForV4: boolean;
+  readyForV4: boolean;
+  gates: NcaafReadinessGates;
+  blockers: string[];
+  legacyCohort: NcaafReadinessLegacyCohort;
+  featureSnapshots: NcaafReadinessFeatureSnapshots;
+  evidenceRuns: NcaafReadinessEvidenceRuns;
+  sportsEvidenceCoverage: NcaafReadinessSportsEvidenceCoverage;
+  teamGamePerformance: NcaafReadinessTeamGamePerformance;
+  marketEvidenceCoverage: NcaafReadinessMarketEvidenceCoverage;
+  cohorts: NcaafReadinessCohorts;
+  providerCapabilities: NcaafReadinessProviderCapabilities;
+  pointInTime: NcaafReadinessPointInTime;
+  validation: NcaafReadinessValidation;
+  dataAsOf: string;
+}
+
+export type NcaafEventReadinessCanonicalIdentity = { [key: string]: unknown };
+
+export type NcaafEventReadinessSportsEvidenceItem = { [key: string]: unknown };
+
+export type NcaafEventReadinessFeatureSnapshotsItem = { [key: string]: unknown };
+
+export type NcaafEventReadinessCohortsItem = { [key: string]: unknown };
+
+export type NcaafEventReadinessTeamGamePerformance = { [key: string]: unknown };
+
+export type NcaafEventReadinessMarketMatch = { [key: string]: unknown };
+
+export type NcaafEventReadinessMissingReasons = { [key: string]: unknown };
+
+export type NcaafEventReadinessQuality = { [key: string]: unknown };
+
+export type NcaafEventReadinessBlockersItem = { [key: string]: unknown };
+
+export interface NcaafEventReadiness {
+  eventId: string;
+  canonicalIdentity: NcaafEventReadinessCanonicalIdentity;
+  sportsEvidence: NcaafEventReadinessSportsEvidenceItem[];
+  featureSnapshots: NcaafEventReadinessFeatureSnapshotsItem[];
+  cohorts: NcaafEventReadinessCohortsItem[];
+  teamGamePerformance: NcaafEventReadinessTeamGamePerformance;
+  marketMatch: NcaafEventReadinessMarketMatch;
+  missingReasons: NcaafEventReadinessMissingReasons;
+  quality: NcaafEventReadinessQuality;
+  engineeringReadyForV4: boolean;
+  evidenceReadyForV4: boolean;
+  readyForV4: boolean;
+  blockers: NcaafEventReadinessBlockersItem[];
+  dataAsOf: string;
 }
 
 export type MarketApprovalDecisionInputTrainingWindow = { [key: string]: unknown };
@@ -520,6 +884,14 @@ export interface UpdateUserPreferencesRequest {
 
 export type GetGamesTodayParams = {
 sport?: string;
+};
+
+export type GetNcaafV4ProjectionsParams = {
+/**
+ * YYYY-MM-DD in America/New_York; omitted selects today.
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date?: string;
 };
 
 export type GetAdminSpreadModels200 = { [key: string]: unknown };

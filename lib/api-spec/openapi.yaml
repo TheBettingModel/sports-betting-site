@@ -69,6 +69,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RefreshResponse"
 
+  /model/ncaaf/v4/projections:
+    get:
+      operationId: getNcaafV4Projections
+      tags: [model]
+      summary: Get the NCAAF V4 preview projection board for an Eastern calendar date
+      description: >-
+        Read-only NCAAF-only preview board. It never creates wagers, changes the
+        incumbent champion, or grants production publication approval.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: YYYY-MM-DD in America/New_York; omitted selects today.
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Frozen-model V4 preview board
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NcaafV4ProjectionBoard" }
+        "400": { description: Invalid requested date }
+        "401": { description: Authentication required }
+        "403": { description: Active subscription or owner access required }
+
   /chat/access:
     get:
       operationId: getChatAccess
@@ -717,6 +742,128 @@ components:
       name: X-Master-Key
       description: Internal master key. An authenticated admin session token is also accepted by the server.
   schemas:
+    NcaafV4ProjectionBoard:
+      type: object
+      required: [date, generatedAt, model, evidencePersistence, board, exclusions, audit]
+      properties:
+        date: { type: string, format: date }
+        generatedAt: { type: string, format: date-time }
+        model:
+          type: object
+          required: [id, modelStatus, approvalStatus, publicationStatus, configurationHash, parameterHash]
+          properties:
+            id: { type: string, const: tbm-ncaaf-v4-expected-score }
+            modelStatus: { type: string, const: V4_PREVIEW }
+            approvalStatus: { type: string, const: UNVALIDATED }
+            publicationStatus: { type: string, const: PREVIEW_ONLY }
+            configurationHash: { type: string }
+            parameterHash: { type: string }
+        evidencePersistence: { type: string }
+        board:
+          type: array
+          items: { $ref: "#/components/schemas/NcaafV4Projection" }
+        exclusions: { type: array, items: { type: object, additionalProperties: true } }
+        audit: { type: object, additionalProperties: true }
+    NcaafV4Projection:
+      type: object
+      required: [rank, gameId, predictionId, predictionHash, kickoffAt, modelStatus, approvalStatus, publicationStatus, marketMatch, model, v4ModelOpinion, incumbentAgreement, status]
+      properties:
+        rank: { type: integer, minimum: 1 }
+        gameId: { type: string }
+        predictionId: { type: string }
+        predictionHash: { type: string }
+        kickoffAt: { type: string, format: date-time }
+        awayTeam: { type: [string, "null"] }
+        homeTeam: { type: [string, "null"] }
+        neutralSite: { type: [boolean, "null"] }
+        modelStatus: { type: string, const: V4_PREVIEW }
+        approvalStatus: { type: string, const: UNVALIDATED }
+        publicationStatus: { type: string, const: PREVIEW_ONLY }
+        marketMatch:
+          type: object
+          required: [classification, attachable]
+          properties:
+            classification: { type: string, enum: [EXACT_ID_MATCH, EXACT_CANONICAL_MATCH, SAFE_TEAM_TIME_MATCH, AMBIGUOUS, UNMATCHED] }
+            attachable: { type: boolean }
+        model: { $ref: "#/components/schemas/NcaafV4ModelOutput" }
+        market: { $ref: "#/components/schemas/NcaafV4MarketOutput" }
+        comparison: { $ref: "#/components/schemas/NcaafV4Comparison" }
+        v4ModelOpinion: { type: string, enum: [BUY, LEAN, NEUTRAL, FADE] }
+        recommendationReason: { type: string }
+        incumbentAgreement: { type: string, enum: [AGREE, DISAGREE, NO_INCUMBENT_FORECAST] }
+        status: { type: string }
+    NcaafV4ModelOutput:
+      type: object
+      required: [id, version, configurationHash, parameterHash, featureSchema, featureCutoff, dataQuality, expectedHomePoints, expectedAwayPoints, expectedMargin, expectedTotal, homeWinProbability, awayWinProbability, fairHomeMoneyline, fairAwayMoneyline, marginUncertainty, totalUncertainty]
+      properties:
+        id: { type: string }
+        version: { type: string }
+        configurationHash: { type: string }
+        parameterHash: { type: string }
+        featureSchema: { type: string }
+        featureCutoff: { type: string, format: date-time }
+        dataQuality: { type: string, enum: [HIGH, MEDIUM, LOW, INSUFFICIENT] }
+        expectedHomePoints: { type: number }
+        expectedAwayPoints: { type: number }
+        expectedMargin: { type: number }
+        expectedTotal: { type: number }
+        homeWinProbability: { type: number }
+        awayWinProbability: { type: number }
+        fairHomeMoneyline: { type: [integer, "null"] }
+        fairAwayMoneyline: { type: [integer, "null"] }
+        marginUncertainty: { type: number }
+        totalUncertainty: { type: number }
+    NcaafV4MarketOutput:
+      type: object
+      required: [moneyline, spread, total]
+      properties:
+        moneyline:
+          type: [object, "null"]
+          required: [bookmaker, capturedAt, homeOdds, awayOdds, noVigHomeProbability, noVigAwayProbability]
+          properties:
+            bookmaker: { type: string }
+            capturedAt: { type: string, format: date-time }
+            homeOdds: { type: integer }
+            awayOdds: { type: integer }
+            noVigHomeProbability: { type: number }
+            noVigAwayProbability: { type: number }
+        spread:
+          type: [object, "null"]
+          required: [bookmaker, capturedAt, selection, line, odds]
+          properties:
+            bookmaker: { type: string }
+            capturedAt: { type: string, format: date-time }
+            selection: { type: string }
+            line: { type: number }
+            odds: { type: [integer, "null"] }
+        total:
+          type: [object, "null"]
+          required: [bookmaker, capturedAt, selection, line, odds]
+          properties:
+            bookmaker: { type: string }
+            capturedAt: { type: string, format: date-time }
+            selection: { type: string }
+            line: { type: number }
+            odds: { type: [integer, "null"] }
+    NcaafV4Comparison:
+      type: object
+      required: [moneylineHomeEdge, spread, total]
+      properties:
+        moneylineHomeEdge: { type: [number, "null"] }
+        spread:
+          type: [object, "null"]
+          required: [projectedHomeMargin, line, difference]
+          properties:
+            projectedHomeMargin: { type: number }
+            line: { type: number }
+            difference: { type: number }
+        total:
+          type: [object, "null"]
+          required: [projectedTotal, line, difference]
+          properties:
+            projectedTotal: { type: number }
+            line: { type: number }
+            difference: { type: number }
     NcaafV2TrainingCursor:
       type: object
       required: [version, offset]

@@ -7,6 +7,13 @@ import { NCAAF_V4_DATASET_VERSION, NCAAF_V4_FEATURE_SCHEMA_VERSION, type V4Predi
  * inputs and must explicitly provide an already-frozen prediction function. */
 export const NCAAF_V4_2026_FEATURE_BRIDGE_VERSION = "ncaaf-v4-2026-feature-bridge-v1";
 export const NCAAF_V4_2026_CORE_SCHEMA = "ncaaf-chronological-team-game-v2";
+/** Immutable #222C universe proof. It is deliberately a code constant rather
+ * than a runtime artifact read so a live request cannot alter domain truth. */
+export const NCAAF_V4_2026_FBS_UNIVERSE_PROOF = Object.freeze({
+  season: 2026 as const, cfbdFbsCount: 138, mappedFbsCount: 138, mappedNonFbsCount: 0,
+  capturedAt: new Date("2026-09-03T20:42:22.413Z"),
+  evidenceRef: "cfbd-teams-2026:138:2026-09-03T20:42:22.413Z",
+});
 /** Declared before assessment; out-of-domain games never enter this denominator. */
 export const NCAAF_V4_2026_COMPATIBILITY_PASS_GATE = Object.freeze({
   modelEligibleCoverage: 1,
@@ -130,9 +137,15 @@ function ledgerMetadata(mapping: NcaafSafeTeamMapping) {
   const evidenceRef = mapping.evidenceRef ?? mapping.payloadHash;
   return { method, evidenceRef };
 }
-function mapped(id: string, provider: string, season: number, cutoff: Date, mappings: readonly NcaafSafeTeamMapping[]): Identity | null {
+function mapped(id: string, provider: string, season: number, cutoff: Date, mappings: readonly NcaafSafeTeamMapping[], cache?: Map<string, Identity | null>): Identity | null {
+  const cacheKey = `${provider}:${id}:${season}:${cutoff.getTime()}`;
+  if (cache?.has(cacheKey)) return cache.get(cacheKey)!;
   // Native CFBD identities are the historical core's canonical identities.
-  if (provider === "college_football_data") return { cfbdTeamId: id, method: "EXACT_PROVIDER_ID", evidenceRef: `college_football_data:${id}` };
+  if (provider === "college_football_data") {
+    const identity = { cfbdTeamId: id, method: "EXACT_PROVIDER_ID", evidenceRef: `college_football_data:${id}` };
+    cache?.set(cacheKey, identity);
+    return identity;
+  }
   const candidates = mappings.filter(m => {
     const metadata = ledgerMetadata(m);
     return m.season === season && m.canonicalTeamId === id && m.canonicalProvider === provider
@@ -142,13 +155,15 @@ function mapped(id: string, provider: string, season: number, cutoff: Date, mapp
     && (!m.effectiveFrom || m.effectiveFrom <= cutoff) && (!m.effectiveTo || m.effectiveTo > cutoff);
   });
   const identities = [...new Set(candidates.map(m => m.cfbdTeamId))];
-  if (identities.length !== 1) return null;
+  if (identities.length !== 1) { cache?.set(cacheKey, null); return null; }
   const candidate = candidates.find(m => m.cfbdTeamId === identities[0])!;
   const metadata = ledgerMetadata(candidate);
-  return { cfbdTeamId: candidate.cfbdTeamId, method: metadata.method!, evidenceRef: metadata.evidenceRef! };
+  const identity = { cfbdTeamId: candidate.cfbdTeamId, method: metadata.method!, evidenceRef: metadata.evidenceRef! };
+  cache?.set(cacheKey, identity);
+  return identity;
 }
 
-function completedBefore(evidence: readonly Evidence[], cutoff: Date, mappings: readonly NcaafSafeTeamMapping[]) {
+function completedBefore(evidence: readonly Evidence[], cutoff: Date, mappings: readonly NcaafSafeTeamMapping[], cache?: Map<string, Identity | null>) {
   const excluded = new Map<string, number>();
   const reject = (reason: string) => excluded.set(reason, (excluded.get(reason) ?? 0) + 1);
   const games: NcaafCompletedAtomicGame[] = [];
@@ -157,8 +172,8 @@ function completedBefore(evidence: readonly Evidence[], cutoff: Date, mappings: 
     if (row.gameStatus?.toLowerCase() !== "final" || row.homeScore == null || row.awayScore == null || !fbs(row.payload)) { reject("not_completed_fbs_atomic"); continue; }
     if (!valid(row.capturedAt) || !valid(row.modeledAsOf) || row.capturedAt >= cutoff || row.modeledAsOf >= cutoff || (row.providerObservedAt && row.providerObservedAt >= cutoff)) { reject("post_cutoff_evidence"); continue; }
     if (!row.homeProviderTeamId || !row.awayProviderTeamId) { reject("missing_provider_identity"); continue; }
-    const home = mapped(row.homeProviderTeamId, row.provider, row.season, cutoff, mappings);
-    const away = mapped(row.awayProviderTeamId, row.provider, row.season, cutoff, mappings);
+    const home = mapped(row.homeProviderTeamId, row.provider, row.season, cutoff, mappings, cache);
+    const away = mapped(row.awayProviderTeamId, row.provider, row.season, cutoff, mappings, cache);
     if (!home || !away || home.cfbdTeamId === away.cfbdTeamId) { reject("unsafe_team_identity_mapping"); continue; }
     try { assertNoNcaafMarketShapedKeys(row.payload, "bridge.gameEvidence.payload"); } catch { reject("market_shaped_evidence"); continue; }
     games.push({ stableGameId: key(row.provider, row.providerEventId), season: row.season, kickoffAt: row.kickoffAt,
@@ -177,6 +192,11 @@ export function buildNcaafV42026FeatureBridge(input: NcaafV42026BridgeInput) {
   const exclusions: Exclusion[] = [];
   const inputs: NcaafV42026ChallengerInput[] = [];
   const predictions: NcaafV42026InternalPrediction[] = [];
+  const mappingCache = new Map<string, Identity | null>();
+  // A target cannot be in completed-before-cutoff evidence (its kickoff is
+  // after its own cutoff), so this immutable cutoff-keyed replay is equivalent
+  // to repeatedly filtering the full ledger per target.
+  const completedCache = new Map<number, ReturnType<typeof completedBefore>>();
   const latest = new Map<string, Snapshot>();
   for (const snapshot of input.snapshots) {
     if (snapshot.season !== 2026 || snapshot.kickoffAt <= input.assessedAt || snapshot.dataCutoffAt > input.assessedAt) continue;
@@ -194,8 +214,8 @@ export function buildNcaafV42026FeatureBridge(input: NcaafV42026BridgeInput) {
     if (snapshot.season !== 2026 || !valid(snapshot.kickoffAt) || !valid(snapshot.dataCutoffAt) || snapshot.kickoffAt <= input.assessedAt) { reject("not_a_frozen_future_2026_snapshot"); continue; }
     if (snapshot.dataCutoffAt >= snapshot.kickoffAt) { reject("invalid_snapshot_cutoff"); continue; }
     if ((snapshot.evidenceMaxCapturedAt && snapshot.evidenceMaxCapturedAt >= snapshot.dataCutoffAt) || (snapshot.evidenceMaxModeledAt && snapshot.evidenceMaxModeledAt >= snapshot.dataCutoffAt)) { reject("snapshot_evidence_after_cutoff"); continue; }
-    const home = snapshot.homeProviderTeamId ? mapped(snapshot.homeProviderTeamId, snapshot.targetProvider, 2026, snapshot.dataCutoffAt, input.mappings ?? []) : null;
-    const away = snapshot.awayProviderTeamId ? mapped(snapshot.awayProviderTeamId, snapshot.targetProvider, 2026, snapshot.dataCutoffAt, input.mappings ?? []) : null;
+    const home = snapshot.homeProviderTeamId ? mapped(snapshot.homeProviderTeamId, snapshot.targetProvider, 2026, snapshot.dataCutoffAt, input.mappings ?? [], mappingCache) : null;
+    const away = snapshot.awayProviderTeamId ? mapped(snapshot.awayProviderTeamId, snapshot.targetProvider, 2026, snapshot.dataCutoffAt, input.mappings ?? [], mappingCache) : null;
     let targetClassification = classifyNcaafV42026Target(snapshot.domainPayload);
     const proof = input.fbsUniverseProof;
     if (targetClassification === "IDENTITY_UNRESOLVED" && proof && proof.season === 2026
@@ -224,7 +244,12 @@ export function buildNcaafV42026FeatureBridge(input: NcaafV42026BridgeInput) {
     try { assertNoNcaafMarketShapedKeys(snapshot.domainPayload, "suppliedDomains"); } catch { audit.marketShapedSnapshotsRejected++; reject("market_shaped_snapshot_payload"); continue; }
     const neutralSite = explicitNeutralSite(snapshot.domainPayload);
     if (neutralSite == null) { reject("missing_explicit_home_neutral_context"); continue; }
-    const prior = completedBefore(input.evidence.filter(e => key(e.provider, e.providerEventId) !== key(snapshot.targetProvider, snapshot.targetEventId)), snapshot.dataCutoffAt, input.mappings ?? []);
+    const cutoffKey = snapshot.dataCutoffAt.getTime();
+    let prior = completedCache.get(cutoffKey);
+    if (!prior) {
+      prior = completedBefore(input.evidence, snapshot.dataCutoffAt, input.mappings ?? [], mappingCache);
+      completedCache.set(cutoffKey, prior);
+    }
     for (const [reason, count] of Object.entries(prior.excluded)) audit.excludedCompletedEvidence[reason] = (audit.excludedCompletedEvidence[reason] ?? 0) + count;
     // A result-free sentinel is never exposed or retained as a target.
     const sentinel: NcaafCompletedAtomicGame = { stableGameId: key(snapshot.targetProvider, snapshot.targetEventId), season: 2026, kickoffAt: snapshot.kickoffAt, homeTeamId: home.cfbdTeamId, awayTeamId: away.cfbdTeamId, homeScore: 0, awayScore: 0, neutralSite, completed: true, homeClassification: "FBS", awayClassification: "FBS" };

@@ -176,6 +176,114 @@ export const RefreshGamesResponse = zod.object({
 
 
 /**
+ * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
+ * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ */
+export const getNcaafV4ProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetNcaafV4ProjectionsQueryParams = zod.object({
+  "date": zod.coerce.string().regex(getNcaafV4ProjectionsQueryDateRegExp).optional().describe('YYYY-MM-DD in America\/New_York; omitted selects today.')
+})
+
+
+
+
+export const GetNcaafV4ProjectionsResponse = zod.object({
+  "date": zod.coerce.date(),
+  "generatedAt": zod.coerce.date(),
+  "model": zod.object({
+  "id": zod.literal("tbm-ncaaf-v4-expected-score"),
+  "modelStatus": zod.literal("V4_PREVIEW"),
+  "approvalStatus": zod.literal("UNVALIDATED"),
+  "publicationStatus": zod.literal("PREVIEW_ONLY"),
+  "configurationHash": zod.string(),
+  "parameterHash": zod.string()
+}),
+  "evidencePersistence": zod.string(),
+  "board": zod.array(zod.object({
+  "rank": zod.number().min(1),
+  "gameId": zod.string(),
+  "predictionId": zod.string(),
+  "predictionHash": zod.string(),
+  "kickoffAt": zod.coerce.date(),
+  "awayTeam": zod.string().nullish(),
+  "homeTeam": zod.string().nullish(),
+  "neutralSite": zod.boolean().nullish(),
+  "modelStatus": zod.literal("V4_PREVIEW"),
+  "approvalStatus": zod.literal("UNVALIDATED"),
+  "publicationStatus": zod.literal("PREVIEW_ONLY"),
+  "marketMatch": zod.object({
+  "classification": zod.enum(['EXACT_ID_MATCH', 'EXACT_CANONICAL_MATCH', 'SAFE_TEAM_TIME_MATCH', 'AMBIGUOUS', 'UNMATCHED']),
+  "attachable": zod.boolean()
+}),
+  "model": zod.object({
+  "id": zod.string(),
+  "version": zod.string(),
+  "configurationHash": zod.string(),
+  "parameterHash": zod.string(),
+  "featureSchema": zod.string(),
+  "featureCutoff": zod.coerce.date(),
+  "dataQuality": zod.enum(['HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT']),
+  "expectedHomePoints": zod.number(),
+  "expectedAwayPoints": zod.number(),
+  "expectedMargin": zod.number(),
+  "expectedTotal": zod.number(),
+  "homeWinProbability": zod.number(),
+  "awayWinProbability": zod.number(),
+  "fairHomeMoneyline": zod.number().nullable(),
+  "fairAwayMoneyline": zod.number().nullable(),
+  "marginUncertainty": zod.number(),
+  "totalUncertainty": zod.number()
+}),
+  "market": zod.object({
+  "moneyline": zod.object({
+  "bookmaker": zod.string(),
+  "capturedAt": zod.coerce.date(),
+  "homeOdds": zod.number(),
+  "awayOdds": zod.number(),
+  "noVigHomeProbability": zod.number(),
+  "noVigAwayProbability": zod.number()
+}).nullable(),
+  "spread": zod.object({
+  "bookmaker": zod.string(),
+  "capturedAt": zod.coerce.date(),
+  "selection": zod.string(),
+  "line": zod.number(),
+  "odds": zod.number().nullable()
+}).nullable(),
+  "total": zod.object({
+  "bookmaker": zod.string(),
+  "capturedAt": zod.coerce.date(),
+  "selection": zod.string(),
+  "line": zod.number(),
+  "odds": zod.number().nullable()
+}).nullable()
+}).optional(),
+  "comparison": zod.object({
+  "moneylineHomeEdge": zod.number().nullable(),
+  "spread": zod.object({
+  "projectedHomeMargin": zod.number(),
+  "line": zod.number(),
+  "difference": zod.number()
+}).nullable(),
+  "total": zod.object({
+  "projectedTotal": zod.number(),
+  "line": zod.number(),
+  "difference": zod.number()
+}).nullable()
+}).optional(),
+  "v4ModelOpinion": zod.enum(['BUY', 'LEAN', 'NEUTRAL', 'FADE']),
+  "recommendationReason": zod.string().optional(),
+  "incumbentAgreement": zod.enum(['AGREE', 'DISAGREE', 'NO_INCUMBENT_FORECAST']),
+  "status": zod.string()
+})),
+  "exclusions": zod.array(zod.record(zod.string(), zod.unknown())),
+  "audit": zod.record(zod.string(), zod.unknown())
+})
+
+
+/**
  * @summary Get authenticated chat access metadata
  */
 export const GetChatAccessResponse = zod.object({
@@ -246,6 +354,148 @@ export const UpdateChatPreferencesResponse = zod.object({
  * @summary Get isolated spread model configurations and validation metrics
  */
 export const GetAdminSpreadModelsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * Admin-only observability. This endpoint never changes model, evidence, publication, or promotion state.
+ * @summary Get read-only NCAAF challenger evidence and validation readiness
+ */
+export const getAdminNcaafReadinessResponseFeatureSnapshotsTopBlockedReasonsItemCountMin = 0;
+
+
+
+export const GetAdminNcaafReadinessResponse = zod.object({
+  "engineeringReadyForV4": zod.boolean(),
+  "evidenceReadyForV4": zod.boolean(),
+  "readyForV4": zod.boolean(),
+  "gates": zod.record(zod.string(), zod.unknown()),
+  "blockers": zod.array(zod.string()),
+  "legacyCohort": zod.object({
+  "total": zod.number(),
+  "classified": zod.number(),
+  "graded": zod.number(),
+  "pending": zod.number(),
+  "officialExcluded": zod.number()
+}),
+  "featureSnapshots": zod.object({
+  "total": zod.number(),
+  "ready": zod.number(),
+  "blocked": zod.number(),
+  "topBlockedReasons": zod.array(zod.object({
+  "reason": zod.string(),
+  "count": zod.number().min(getAdminNcaafReadinessResponseFeatureSnapshotsTopBlockedReasonsItemCountMin)
+}))
+}),
+  "evidenceRuns": zod.object({
+  "active": zod.number(),
+  "stale": zod.number(),
+  "finalized": zod.number(),
+  "recent": zod.array(zod.record(zod.string(), zod.unknown()))
+}),
+  "sportsEvidenceCoverage": zod.record(zod.string(), zod.unknown()),
+  "teamGamePerformance": zod.record(zod.string(), zod.unknown()),
+  "marketEvidenceCoverage": zod.record(zod.string(), zod.unknown()),
+  "cohorts": zod.object({
+  "finalPregame": zod.number(),
+  "liveShadow": zod.number(),
+  "supported": zod.boolean()
+}),
+  "providerCapabilities": zod.record(zod.string(), zod.unknown()),
+  "pointInTime": zod.object({
+  "violations": zod.number()
+}),
+  "validation": zod.record(zod.string(), zod.unknown()),
+  "dataAsOf": zod.coerce.date()
+})
+
+
+/**
+ * Internal, master-admin-only operation. It sequentially captures the 2023, 2024, and 2025 CFBD games aggregates and materializes bounded 500-row training batches. It is manual-only, idempotent, and does not acquire the live NCAAF lock. A returned nextCursor must be supplied to resume after the per-request materialization cap.
+ * @summary Manually backfill CFBD core games and materialize NCAAF v2 training rows
+ */
+export const runAdminNcaafCoreBackfillBodyDryRunDefault = false;
+export const runAdminNcaafCoreBackfillBodyCursorOneOffsetMin = 0;
+
+
+
+export const RunAdminNcaafCoreBackfillBody = zod.object({
+  "dryRun": zod.boolean().default(runAdminNcaafCoreBackfillBodyDryRunDefault),
+  "cursor": zod.union([zod.object({
+  "version": zod.enum(['ncaaf-v4-training-foundation-v2-cursor-v1']),
+  "offset": zod.number().min(runAdminNcaafCoreBackfillBodyCursorOneOffsetMin)
+}),zod.null()]).optional()
+})
+
+export const runAdminNcaafCoreBackfillResponseCfbdRequestedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseCfbdRawInsertedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseCfbdGamesInsertedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseCfbdMalformedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseMaterializationInvocationsMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseMaterializationAttemptedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseMaterializationInsertedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseMaterializationAlreadyMaterializedMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseMaterializationTotalEligibleMin = 0;
+
+export const runAdminNcaafCoreBackfillResponseMaterializationNextCursorOneOffsetMin = 0;
+
+
+
+export const RunAdminNcaafCoreBackfillResponse = zod.object({
+  "manualOnly": zod.boolean(),
+  "dryRun": zod.boolean(),
+  "seasons": zod.array(zod.union([zod.literal(2023),zod.literal(2024),zod.literal(2025)])),
+  "cfbd": zod.object({
+  "requested": zod.number().min(runAdminNcaafCoreBackfillResponseCfbdRequestedMin),
+  "rawInserted": zod.number().min(runAdminNcaafCoreBackfillResponseCfbdRawInsertedMin),
+  "gamesInserted": zod.number().min(runAdminNcaafCoreBackfillResponseCfbdGamesInsertedMin),
+  "malformed": zod.number().min(runAdminNcaafCoreBackfillResponseCfbdMalformedMin)
+}),
+  "materialization": zod.object({
+  "invocations": zod.number().min(runAdminNcaafCoreBackfillResponseMaterializationInvocationsMin),
+  "attempted": zod.number().min(runAdminNcaafCoreBackfillResponseMaterializationAttemptedMin),
+  "inserted": zod.number().min(runAdminNcaafCoreBackfillResponseMaterializationInsertedMin),
+  "alreadyMaterialized": zod.number().min(runAdminNcaafCoreBackfillResponseMaterializationAlreadyMaterializedMin),
+  "totalEligible": zod.number().min(runAdminNcaafCoreBackfillResponseMaterializationTotalEligibleMin).nullable(),
+  "nextCursor": zod.union([zod.object({
+  "version": zod.enum(['ncaaf-v4-training-foundation-v2-cursor-v1']),
+  "offset": zod.number().min(runAdminNcaafCoreBackfillResponseMaterializationNextCursorOneOffsetMin)
+}),zod.null()]),
+  "audit": zod.record(zod.string(), zod.unknown()).nullable()
+})
+})
+
+
+/**
+ * @summary Get read-only NCAAF evidence readiness for one canonical provider event
+ */
+export const GetAdminNcaafEventReadinessParams = zod.object({
+  "eventId": zod.coerce.string()
+})
+
+export const GetAdminNcaafEventReadinessResponse = zod.object({
+  "eventId": zod.string(),
+  "canonicalIdentity": zod.record(zod.string(), zod.unknown()),
+  "sportsEvidence": zod.array(zod.record(zod.string(), zod.unknown())),
+  "featureSnapshots": zod.array(zod.record(zod.string(), zod.unknown())),
+  "cohorts": zod.array(zod.record(zod.string(), zod.unknown())),
+  "teamGamePerformance": zod.record(zod.string(), zod.unknown()),
+  "marketMatch": zod.record(zod.string(), zod.unknown()),
+  "missingReasons": zod.record(zod.string(), zod.unknown()),
+  "quality": zod.record(zod.string(), zod.unknown()),
+  "engineeringReadyForV4": zod.boolean(),
+  "evidenceReadyForV4": zod.boolean(),
+  "readyForV4": zod.boolean(),
+  "blockers": zod.array(zod.record(zod.string(), zod.unknown())),
+  "dataAsOf": zod.coerce.date()
+})
 
 
 /**

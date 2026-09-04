@@ -39,6 +39,7 @@ import type {
   GetAdminOutcomeReviewsParams,
   GetAdminSpreadModels200,
   GetGamesTodayParams,
+  GetNcaafV4ProjectionsParams,
   GetResultsRoiParams,
   GetResultsSummaryParams,
   HealthStatus,
@@ -49,6 +50,11 @@ import type {
   MlbPolicyRevisionList,
   ModelStatsHistoryResponse,
   ModelStatsResponse,
+  NcaafCoreBackfillRequest,
+  NcaafCoreBackfillResult,
+  NcaafEventReadiness,
+  NcaafReadiness,
+  NcaafV4ProjectionBoard,
   NotificationPreferences,
   OutcomeReviewsResponse,
   PromoteAdminSpreadModel200,
@@ -328,6 +334,91 @@ export const useRefreshGames = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getRefreshGamesMutationOptions(options));
     }
+
+export const getGetNcaafV4ProjectionsUrl = (params?: GetNcaafV4ProjectionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/model/ncaaf/v4/projections?${stringifiedParams}` : `/api/model/ncaaf/v4/projections`
+}
+
+/**
+ * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
+ * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ */
+export const getNcaafV4Projections = async (params?: GetNcaafV4ProjectionsParams, options?: RequestInit): Promise<NcaafV4ProjectionBoard> => {
+
+  return customFetch<NcaafV4ProjectionBoard>(getGetNcaafV4ProjectionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNcaafV4ProjectionsQueryKey = (params?: GetNcaafV4ProjectionsParams,) => {
+    return [
+    `/api/model/ncaaf/v4/projections`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetNcaafV4ProjectionsQueryOptions = <TData = Awaited<ReturnType<typeof getNcaafV4Projections>>, TError = ErrorType<void>>(params?: GetNcaafV4ProjectionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNcaafV4Projections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNcaafV4ProjectionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNcaafV4Projections>>> = ({ signal }) => getNcaafV4Projections(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNcaafV4Projections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNcaafV4ProjectionsQueryResult = NonNullable<Awaited<ReturnType<typeof getNcaafV4Projections>>>
+export type GetNcaafV4ProjectionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ */
+
+export function useGetNcaafV4Projections<TData = Awaited<ReturnType<typeof getNcaafV4Projections>>, TError = ErrorType<void>>(
+ params?: GetNcaafV4ProjectionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNcaafV4Projections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNcaafV4ProjectionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetChatAccessUrl = () => {
 
@@ -690,6 +781,233 @@ export function useGetAdminSpreadModels<TData = Awaited<ReturnType<typeof getAdm
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminSpreadModelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminNcaafReadinessUrl = () => {
+
+
+
+
+  return `/api/admin/ncaaf-readiness`
+}
+
+/**
+ * Admin-only observability. This endpoint never changes model, evidence, publication, or promotion state.
+ * @summary Get read-only NCAAF challenger evidence and validation readiness
+ */
+export const getAdminNcaafReadiness = async ( options?: RequestInit): Promise<NcaafReadiness> => {
+
+  return customFetch<NcaafReadiness>(getGetAdminNcaafReadinessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminNcaafReadinessQueryKey = () => {
+    return [
+    `/api/admin/ncaaf-readiness`
+    ] as const;
+    }
+
+
+export const getGetAdminNcaafReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getAdminNcaafReadiness>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafReadiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminNcaafReadinessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminNcaafReadiness>>> = ({ signal }) => getAdminNcaafReadiness({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafReadiness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminNcaafReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminNcaafReadiness>>>
+export type GetAdminNcaafReadinessQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get read-only NCAAF challenger evidence and validation readiness
+ */
+
+export function useGetAdminNcaafReadiness<TData = Awaited<ReturnType<typeof getAdminNcaafReadiness>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafReadiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminNcaafReadinessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRunAdminNcaafCoreBackfillUrl = () => {
+
+
+
+
+  return `/api/admin/ncaaf/core-backfill`
+}
+
+/**
+ * Internal, master-admin-only operation. It sequentially captures the 2023, 2024, and 2025 CFBD games aggregates and materializes bounded 500-row training batches. It is manual-only, idempotent, and does not acquire the live NCAAF lock. A returned nextCursor must be supplied to resume after the per-request materialization cap.
+ * @summary Manually backfill CFBD core games and materialize NCAAF v2 training rows
+ */
+export const runAdminNcaafCoreBackfill = async (ncaafCoreBackfillRequest?: NcaafCoreBackfillRequest, options?: RequestInit): Promise<NcaafCoreBackfillResult> => {
+
+  return customFetch<NcaafCoreBackfillResult>(getRunAdminNcaafCoreBackfillUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ncaafCoreBackfillRequest)
+  }
+);}
+
+
+
+
+
+export const getRunAdminNcaafCoreBackfillMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAdminNcaafCoreBackfill>>, TError,{data?: BodyType<NcaafCoreBackfillRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runAdminNcaafCoreBackfill>>, TError,{data?: BodyType<NcaafCoreBackfillRequest>}, TContext> => {
+
+const mutationKey = ['runAdminNcaafCoreBackfill'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runAdminNcaafCoreBackfill>>, {data?: BodyType<NcaafCoreBackfillRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runAdminNcaafCoreBackfill(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunAdminNcaafCoreBackfillMutationResult = NonNullable<Awaited<ReturnType<typeof runAdminNcaafCoreBackfill>>>
+    export type RunAdminNcaafCoreBackfillMutationBody = BodyType<NcaafCoreBackfillRequest> | undefined
+    export type RunAdminNcaafCoreBackfillMutationError = ErrorType<void>
+
+    /**
+ * @summary Manually backfill CFBD core games and materialize NCAAF v2 training rows
+ */
+export const useRunAdminNcaafCoreBackfill = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAdminNcaafCoreBackfill>>, TError,{data?: BodyType<NcaafCoreBackfillRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runAdminNcaafCoreBackfill>>,
+        TError,
+        {data?: BodyType<NcaafCoreBackfillRequest>},
+        TContext
+      > => {
+      return useMutation(getRunAdminNcaafCoreBackfillMutationOptions(options));
+    }
+
+export const getGetAdminNcaafEventReadinessUrl = (eventId: string,) => {
+
+
+
+
+  return `/api/admin/ncaaf-readiness/${eventId}`
+}
+
+/**
+ * @summary Get read-only NCAAF evidence readiness for one canonical provider event
+ */
+export const getAdminNcaafEventReadiness = async (eventId: string, options?: RequestInit): Promise<NcaafEventReadiness> => {
+
+  return customFetch<NcaafEventReadiness>(getGetAdminNcaafEventReadinessUrl(eventId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminNcaafEventReadinessQueryKey = (eventId: string,) => {
+    return [
+    `/api/admin/ncaaf-readiness/${eventId}`
+    ] as const;
+    }
+
+
+export const getGetAdminNcaafEventReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>, TError = ErrorType<void>>(eventId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminNcaafEventReadinessQueryKey(eventId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>> = ({ signal }) => getAdminNcaafEventReadiness(eventId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: eventId !== null && eventId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminNcaafEventReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>>
+export type GetAdminNcaafEventReadinessQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get read-only NCAAF evidence readiness for one canonical provider event
+ */
+
+export function useGetAdminNcaafEventReadiness<TData = Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>, TError = ErrorType<void>>(
+ eventId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafEventReadiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminNcaafEventReadinessQueryOptions(eventId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
