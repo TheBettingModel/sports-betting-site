@@ -8,3 +8,5 @@ Credential history cleanup must include `refs/replit/agent-ledger`, not only bra
 **Why:** Initial path rewrites left blobs reachable through the agent-ledger ref, then revealed older filename aliases and two historical local-key configuration conventions.
 
 **How to apply:** Inventory every ref with `git for-each-ref`, rewrite all affected refs, scan `git rev-list --objects --all`, use pickaxe/grep checks for key configuration aliases, and verify the actual remote separately from the local remote-tracking ref.
+
+Replit checkpoints may preserve the replaced graph in a protected `main-old-*` ref on the internal `gitsafe` remote. Its pre-receive policy can reject deletion because workspace pushes are limited to `main`; when no UI or CLI deletion control exists, Replit Support must remove that exact ref before the reachable-history gate can pass.
