@@ -146,6 +146,8 @@ export async function materializeNcaafV2TrainingRows(
       canonicalProvider: "college_football_data",
       canonicalEventId: row.stableGameId,
       season: row.season,
+      // The V2 artifact is append-only/checksum-bound.  Week recovery for V4
+      // happens in its read-only loader; never mutate an existing projection.
       week: null,
       kickoffAt: new Date(row.kickoffAt),
       pregameCutoffAt: new Date(new Date(row.kickoffAt).getTime() - 1),

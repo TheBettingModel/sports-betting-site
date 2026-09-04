@@ -190,3 +190,17 @@ mtime_ms = 1788492544902
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1fea1e14-4402-4a27-be65-e11c889205df/b2f458f5-33f3-4dda-b743-33cd02a679a7"
 storage_version_token = "1788492551896470"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "qNE5PPCIo0ksdr7iFJasL"
+uri = "file://reports/ncaaf-v4-expected-score-engine-2026-09-04.md"
+type = "text"
+title = "#222 NCAAF V4 Expected-Score Engine Report"
+description = "Final v5 challenger report with chronological splits, baselines, OOS metrics, calibration, PIT/market audits, registry state, and exact B decision."
+logical_id = "a6498c14-d2c7-406f-84e8-a21058f56b3a"
+content_hash = "sha256:ef3472828b50c1f8e58c4077503c58f95a8a5b79df2ce4bf638a4eab780520fe"
+size = 12872
+mtime_ms = 1788528230203
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/a6498c14-d2c7-406f-84e8-a21058f56b3a/2d19e9e9-97ad-432f-9def-e687a1b3d34a"
+storage_version_token = "1788528278426695"
+content_type = "text/markdown"
