@@ -1,0 +1,941 @@
+#222C — NCAAF 2026 IDENTITY BRIDGE COMPLETION & FEATURE-COMPATIBILITY GATE
+
+AUTHORITATIVE STARTING STATE
+
+#221I is COMPLETE.
+
+#222 is ENGINE COMPLETE.
+
+#222B final decision:
+
+C. #222B PARTIAL — ONE SPECIFIC MODEL OR 2026 COMPATIBILITY BLOCKER REMAINS
+
+The one blocker is:
+
+249 future 2026 ESPN targets do not have an unambiguous, PIT-safe,
+pre-cutoff ESPN → CFBD team identity mapping.
+
+Current 2026 feature bridge:
+
+Targets assessed: 780
+Eligible exact V4 feature inputs: 531
+Internal challenger predictions: 531
+Excluded targets: 249
+Coverage: 68.1%
+
+Exclusion reason:
+
+unsafe_target_team_identity_mapping
+
+Historical PIT violations: 0
+2026 bridge PIT violations: 0
+Market leakage violations: 0
+
+============================================================
+MODEL DECISION ALREADY MADE
+============================================================
+
+Do NOT repeat #222B model selection.
+
+The distinct expanded challenger:
+
+expanded-ridge-k4-r36
+
+did NOT demonstrate meaningful OOS improvement.
+
+Its tiny margin-MAE improvement was accompanied by worse:
+
+away score
+total score
+Brier
+log loss
+
+and bootstrap evidence was INCONCLUSIVE.
+
+Therefore retain:
+
+CANONICAL NCAAF V4 CORE:
+
+tbm-ncaaf-v4-expected-score
+D-simple-expected-score-linear
+
+Current immutable Baseline D reference:
+
+OOS Home MAE:
+9.2826256764
+
+OOS Away MAE:
+8.4985635844
+
+OOS Margin MAE:
+12.5008391763
+
+OOS Total MAE:
+12.9390090779
+
+OOS Brier:
+0.1800233716
+
+OOS Log Loss:
+0.5347917462
+
+Do NOT alter the core model in #222C.
+
+Do NOT create another challenger.
+
+Do NOT recalibrate.
+
+Do NOT retune.
+
+Do NOT read OOS again for model selection.
+
+============================================================
+MISSION
+============================================================
+
+Complete the exact deterministic identity bridge required to reproduce
+the canonical NCAAF V4 feature schema prospectively in 2026.
+
+The goal is:
+
+2026 FEATURE COMPATIBILITY = PASS
+
+while preserving:
+
+PIT integrity
+identity integrity
+market firewall
+historical replay integrity
+model immutability
+sport isolation
+
+The task is identity and prospective feature compatibility only.
+
+============================================================
+HARD RULES
+============================================================
+
+DO NOT begin #223.
+
+DO NOT change V4 weights.
+
+DO NOT change model coefficients.
+
+DO NOT change shrinkage.
+
+DO NOT change probability calibration.
+
+DO NOT change training/validation/OOS cohorts.
+
+DO NOT promote V4.
+
+DO NOT change the production champion.
+
+DO NOT publish V4 picks.
+
+DO NOT create wagers.
+
+DO NOT create units.
+
+DO NOT modify NFL.
+
+DO NOT modify MLB.
+
+DO NOT modify unrelated sports.
+
+DO NOT weaken PIT rules.
+
+DO NOT weaken identity rules.
+
+DO NOT use fuzzy matching as authoritative evidence.
+
+DO NOT infer identities from matchup context alone.
+
+DO NOT create mappings after kickoff and pretend they existed before
+the cutoff.
+
+============================================================
+PART 1 — FORENSIC AUDIT OF THE 249 EXCLUSIONS
+============================================================
+
+Begin by auditing all 249 excluded targets.
+
+For each excluded target capture:
+
+ESPN game ID
+scheduled kickoff
+snapshot cutoff
+ESPN home team ID
+ESPN away team ID
+ESPN home team name
+ESPN away team name
+conference if known
+season
+week
+candidate CFBD identities
+existing identity-ledger entries
+existing provider mapping evidence
+reason mapping failed
+
+Group failures into exact categories.
+
+Examples:
+
+missing ESPN provider ID mapping
+missing historical ESPN identity
+CFBD alias/name mismatch
+school rename
+abbreviation mismatch
+FBS/FCS classification difference
+conference transition
+duplicate school-name candidate
+provider identity absent before cutoff
+other
+
+Return counts by category before modifying mappings.
+
+============================================================
+PART 2 — AUTHORITATIVE IDENTITY MODEL
+============================================================
+
+Use provider identity, not display strings, as the authoritative bridge.
+
+Required ledger should support:
+
+canonical TBM school identity
+ESPN team ID
+CFBD team ID / canonical CFBD school identity
+season applicability where necessary
+effective-from timestamp/date
+effective-to timestamp/date where necessary
+mapping method
+mapping confidence
+evidence source
+verified_at
+manual verification marker where applicable
+
+Do not overwrite historical identities.
+
+Identity history must be append-only/versioned where provider identity
+or school naming changes over time.
+
+============================================================
+PART 3 — ALLOWED MAPPING METHODS
+============================================================
+
+Only allow deterministic methods such as:
+
+EXACT_PROVIDER_ID
+
+EXACT_EXISTING_LEDGER
+
+EXACT_CANONICAL_SCHOOL
+
+EXACT_NORMALIZED_SCHOOL
+only when unique and structurally corroborated
+
+EXPLICIT_ALIAS
+only from a maintained verified alias ledger
+
+MANUAL_VERIFIED
+only when the underlying provider evidence is explicitly inspected
+
+Do NOT allow:
+
+fuzzy nearest-name matching
+LLM-generated identity guesses
+conference-only matching
+mascot-only matching
+matchup-pair guessing
+first candidate wins
+silent fallback
+
+Ambiguous identities must remain unresolved.
+
+============================================================
+PART 4 — PRE-CUTOFF REQUIREMENT
+============================================================
+
+This is critical.
+
+For a target at cutoff T:
+
+the ESPN → CFBD identity mapping used by the V4 bridge must be
+demonstrably knowable at or before T.
+
+Acceptable proof may include:
+
+provider identity evidence captured before T
+
+immutable provider IDs with historical validity proven independently
+
+a canonical mapping whose effective interval includes T
+
+verified school identity whose provider IDs are stable across the
+target season
+
+Do NOT use a mapping merely because we know today that two identities
+refer to the same school.
+
+Document the temporal semantics used.
+
+============================================================
+PART 5 — CURRENT FBS IDENTITY LEDGER
+============================================================
+
+Reconcile the complete current 2026 FBS universe.
+
+Report:
+
+ESPN FBS identities encountered
+CFBD FBS identities encountered
+exact mapped
+unmapped
+ambiguous
+invalid
+coverage %
+
+Target:
+
+100% deterministic mapping for legitimate current FBS schools if the
+provider evidence supports it.
+
+Do not fabricate mappings to reach 100%.
+
+============================================================
+PART 6 — FCS / NON-FBS TARGETS
+============================================================
+
+Audit whether some of the 249 exclusions involve:
+
+FBS vs FCS
+FCS vs FBS
+other non-FBS classifications
+
+The historical V4 training artifact is FBS-vs-FBS.
+
+Do NOT automatically declare every non-FBS matchup V4 eligible.
+
+Separate:
+
+IDENTITY COMPATIBILITY
+
+from
+
+MODEL ELIGIBILITY.
+
+A game may have perfectly mapped identities but still be ineligible for
+the current V4 model because its matchup classification is outside the
+training domain.
+
+Report these separately.
+
+This is important:
+
+2026 FEATURE COMPATIBILITY should measure whether the required V4
+schema can be faithfully constructed for MODEL-ELIGIBLE targets.
+
+Do not force FCS games into the model merely to make coverage appear
+higher.
+
+============================================================
+PART 7 — TARGET-UNIVERSE RECONCILIATION
+============================================================
+
+Recalculate the 780 future targets.
+
+Classify each into:
+
+MODEL_ELIGIBLE_FBS_VS_FBS
+
+OUT_OF_DOMAIN_FBS_VS_FCS
+
+OUT_OF_DOMAIN_FCS_VS_FBS
+
+OUT_OF_DOMAIN_OTHER
+
+IDENTITY_UNRESOLVED
+
+PIT_UNAVAILABLE
+
+OTHER_EXCLUSION
+
+This denominator matters.
+
+Do not require V4 to support games outside the model's declared
+training/application domain unless separately approved.
+
+Report both:
+
+ALL TARGET COVERAGE
+
+and
+
+MODEL-ELIGIBLE TARGET COVERAGE
+
+============================================================
+PART 8 — HISTORICAL IDENTITY SAFETY
+============================================================
+
+Do not break the 2023–2025 historical artifact.
+
+Re-run exact identity/replay verification.
+
+Required historical dataset remains:
+
+2023 = 792
+2024 = 798
+2025 = 808
+TOTAL = 2,398
+
+Required:
+
+duplicate rows = 0
+PIT violations = 0
+market leakage = 0
+
+Historical replay checksum must remain unchanged unless there is an
+explicit justified identity correction.
+
+If it changes:
+
+STOP
+
+and explain exactly why.
+
+Do not silently regenerate a different historical training artifact.
+
+============================================================
+PART 9 — 2026 CHRONOLOGICAL STATE BRIDGE
+============================================================
+
+Once identities are repaired, rerun the exact existing 2026 feature
+bridge.
+
+Do not change feature semantics.
+
+Required core fields remain:
+
+score-derived season offense
+score-derived season defense
+last 3
+last 5
+prior-season state
+TBM pregame Elo
+chronological opponent adjustment
+home/neutral context
+sample counts
+missing indicators
+data-quality indicators
+
+For target game G with cutoff T:
+
+only completed atomic evidence before T may be used.
+
+Target G must never update its own feature state.
+
+============================================================
+PART 10 — SAME SCHEMA GUARANTEE
+============================================================
+
+Prove that the 2026 feature bridge constructs the same semantic feature
+schema as:
+
+ncaaf-chronological-team-game-v2
+
+For every field report:
+
+historical field
+2026 source
+transformation
+cutoff rule
+identity source
+missing behavior
+semantic equivalence
+
+There should be no hidden 2026-only shortcut.
+
+============================================================
+PART 11 — EXACT MODEL REPRODUCIBILITY
+============================================================
+
+Run the frozen Baseline D model only.
+
+Model:
+
+tbm-ncaaf-v4-expected-score
+
+Do NOT use expanded-ridge-k4-r36 as the preferred core.
+
+For every eligible 2026 target, generate an INTERNAL V4 evaluation
+prediction from the frozen model.
+
+These remain:
+
+NON-PUBLIC
+NO WAGER
+NO UNITS
+NO CHAMPION CHANGE
+
+Persist or retain them using the existing safe challenger/evaluation
+architecture.
+
+============================================================
+PART 12 — PREDICTION CONTRACT
+============================================================
+
+Each internal prediction must include:
+
+game_id
+ESPN game ID if relevant
+CFBD game/team identities
+feature cutoff
+model version
+configuration hash
+parameter hash
+feature schema version
+dataset version
+
+expected_home_points
+expected_away_points
+expected_margin
+expected_total
+
+home_win_probability
+away_win_probability
+
+margin uncertainty
+total uncertainty
+data quality
+feature availability
+identity mapping method
+identity evidence reference
+
+============================================================
+PART 13 — IDENTITY FAIL-CLOSED TEST
+============================================================
+
+Add explicit tests showing that:
+
+ambiguous identity → no prediction
+
+missing identity → no prediction
+
+post-cutoff mapping evidence → no prediction
+
+multiple CFBD candidates → no prediction
+
+fuzzy-only similarity → no prediction
+
+conference-only coincidence → no prediction
+
+mascot-only coincidence → no prediction
+
+verified exact identity → eligible
+
+============================================================
+PART 14 — RENAMES / TRANSITIONS / ALIASES
+============================================================
+
+Test representative historical/current identity complexities such as:
+
+school display-name changes
+abbreviation differences
+conference changes
+mascot changes where applicable
+provider aliases
+
+Mapping must follow the stable school/provider identity, not a brittle
+display string.
+
+Do not invent alias entries without evidence.
+
+============================================================
+PART 15 — 2026 COVERAGE GATE
+============================================================
+
+The compatibility gate should not be:
+
+"all 780 targets must produce predictions."
+
+Instead:
+
+All MODEL-ELIGIBLE FBS-vs-FBS targets with legitimate pre-cutoff
+evidence must either:
+
+A. produce an exact feature-compatible V4 input
+
+or
+
+B. have a specific documented fail-closed reason.
+
+For the actual V4-supported target universe, identity compatibility
+should be effectively complete.
+
+Define the PASS rule before rerunning the final bridge.
+
+Suggested strict rule:
+
+- 100% of model-eligible targets have deterministic ESPN↔CFBD identity
+  OR a provably legitimate non-identity exclusion.
+- 0 ambiguous identities accepted.
+- 0 fuzzy mappings accepted.
+- 0 post-cutoff identity leakage.
+- 0 PIT violations.
+- 0 market leakage.
+- exact V4 feature schema reproduced for every generated prediction.
+
+Do not manipulate denominator after seeing results.
+
+============================================================
+PART 16 — PIT AUDIT
+============================================================
+
+Audit:
+
+identity evidence timestamp
+feature cutoff
+completed-game cutoff
+Elo state
+rolling state
+prior-season state
+opponent-adjusted state
+prediction generation eligibility
+
+Required:
+
+same-game leakage = 0
+future-game leakage = 0
+future-season leakage = 0
+post-kickoff feature evidence = 0
+post-cutoff identity evidence improperly accepted = 0
+
+============================================================
+PART 17 — MARKET FIREWALL
+============================================================
+
+Required:
+
+market leakage violations = 0
+
+Identity repair must not use:
+
+odds
+spread
+sportsbook total
+line movement
+price
+book
+implied probability
+CLV
+recommendation
+
+Sports market evidence is irrelevant to school identity.
+
+============================================================
+PART 18 — BASELINE D IMMUTABILITY
+============================================================
+
+Verify exact frozen hashes remain:
+
+Configuration hash:
+212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86
+
+Parameter hash:
+792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81
+
+If these change:
+
+FAIL #222C.
+
+No model training is authorized.
+
+============================================================
+PART 19 — REGISTRY STATE
+============================================================
+
+NCAAF V4 remains:
+
+CHALLENGER
+UNVALIDATED
+champion FALSE
+publication FALSE
+
+Current production champion remains unchanged.
+
+Do not promote.
+
+============================================================
+PART 20 — NFL / SPORT ISOLATION
+============================================================
+
+Verify explicitly:
+
+NFL code unchanged
+NFL model unchanged
+NFL weights unchanged
+NFL calibration unchanged
+NFL feature schema unchanged
+NFL registry unchanged
+
+Also:
+
+MLB unchanged
+other sports unchanged
+
+No shared football intelligence may be introduced.
+
+============================================================
+PART 21 — TESTS
+============================================================
+
+Add tests for:
+
+ESPN exact provider mapping
+CFBD exact identity mapping
+canonical ledger mapping
+alias mapping
+ambiguous identity rejection
+missing identity rejection
+post-cutoff mapping rejection
+fuzzy rejection
+conference-only rejection
+FBS/FBS eligibility
+FBS/FCS exclusion
+target-universe denominator
+2026 chronological replay
+feature-schema equivalence
+historical checksum preservation
+PIT audit
+market firewall
+Baseline D hash immutability
+internal prediction generation
+no-publication behavior
+NFL isolation
+
+Run:
+
+full relevant test suite
+typecheck
+build
+
+============================================================
+PART 22 — PRODUCTION VERIFICATION
+============================================================
+
+Do not stop with development-only success.
+
+Publish the identity/bridge fix.
+
+Then verify against actual production evidence.
+
+Required production report:
+
+targets assessed
+model-eligible FBS-vs-FBS targets
+out-of-domain targets
+identity-resolved
+identity-unresolved
+eligible V4 inputs
+internal V4 predictions
+coverage
+identity mapping methods
+PIT violations
+market leakage
+historical checksum
+model config hash
+model parameter hash
+
+No manual production shortcuts.
+
+============================================================
+PART 23 — READINESS
+============================================================
+
+Return these gates:
+
+IDENTITY_BRIDGE_READY
+2026_CORE_FEATURE_COMPATIBILITY_READY
+HISTORICAL_REPLAY_INTACT
+PIT_INTEGRITY_READY
+MARKET_FIREWALL_READY
+V4_BUILD_READY
+V4_VALIDATION_READY
+V4_PROSPECTIVE_EVALUATION_READY
+FULL_LIVE_PUBLICATION_DATA_READY
+
+TRUE/FALSE.
+
+Important:
+
+FULL_LIVE_PUBLICATION_DATA_READY may remain FALSE because:
+
+confirmed QB starter
+injury availability
+depth-chart state
+
+are still separate live-publication eligibility concerns.
+
+That must NOT automatically make:
+
+V4_PROSPECTIVE_EVALUATION_READY = FALSE
+
+if the core sports-model bridge is valid.
+
+============================================================
+PART 24 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-v4-2026-identity-bridge-2026-09-04.md
+
+Include:
+
+1. Executive summary
+2. Starting blocker
+3. 249-target forensic audit
+4. Failure categories
+5. Identity architecture
+6. Temporal identity semantics
+7. Mapping methods
+8. Current FBS identity coverage
+9. FCS/non-FBS treatment
+10. Target-universe reconciliation
+11. Historical checksum verification
+12. 2026 chronological replay
+13. Feature-schema equivalence
+14. Internal Baseline D predictions
+15. Prediction contract
+16. Fail-closed identity tests
+17. Alias/rename cases
+18. Model-eligible coverage
+19. PIT audit
+20. Market-firewall audit
+21. Model immutability
+22. Registry state
+23. NFL/other sport isolation
+24. Test/build results
+25. Production verification
+26. Readiness matrix
+27. Remaining limitations
+28. Final decision
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #222C COMPLETE — 2026 NCAAF FEATURE BRIDGE PASS; READY FOR #223
+
+B. #222C COMPLETE — CORE MODEL-ELIGIBLE BRIDGE PASS WITH DOCUMENTED
+OUT-OF-DOMAIN EXCLUSIONS; READY FOR #223
+
+C. #222C PARTIAL — ONE SPECIFIC IDENTITY OR FEATURE-COMPATIBILITY
+BLOCKER REMAINS
+
+D. #222C FAILED — SAFE 2026 V4 RECONSTRUCTION NOT SUPPORTED
+
+A or B are both successful advancement decisions.
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start with:
+
+#222C FINAL
+
+TARGETS ASSESSED:
+[number]
+
+MODEL-ELIGIBLE FBS-vs-FBS TARGETS:
+[number]
+
+OUT-OF-DOMAIN TARGETS:
+[number]
+
+IDENTITY-RESOLVED TARGETS:
+[number]
+
+IDENTITY-UNRESOLVED TARGETS:
+[number]
+
+ELIGIBLE V4 FEATURE INPUTS:
+[number]
+
+INTERNAL BASELINE D PREDICTIONS:
+[number]
+
+MODEL-ELIGIBLE FEATURE COVERAGE:
+[percent]
+
+AMBIGUOUS IDENTITIES ACCEPTED:
+[number]
+
+FUZZY IDENTITIES ACCEPTED:
+[number]
+
+POST-CUTOFF IDENTITY VIOLATIONS:
+[number]
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+HISTORICAL REPLAY CHECKSUM:
+[value]
+
+BASELINE D CONFIGURATION HASH:
+[value]
+
+BASELINE D PARAMETER HASH:
+[value]
+
+2026 CORE FEATURE COMPATIBILITY:
+PASS / PARTIAL / FAIL
+
+V4 PROSPECTIVE EVALUATION READY:
+TRUE / FALSE
+
+FULL LIVE PUBLICATION DATA READY:
+TRUE / FALSE
+
+MODEL REGISTRY:
+[value]
+
+CHAMPION CHANGED:
+YES / NO
+
+PUBLICATION CHANGED:
+YES / NO
+
+NFL CHANGED:
+YES / NO
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[value]
+
+Then provide the complete report.
+
+============================================================
+STOP CONDITION
+============================================================
+
+Do NOT begin #223 automatically.
+
+Do NOT retrain V4.
+
+Do NOT promote V4.
+
+Do NOT publish picks.
+
+Complete #222C,
+return the report,
+and STOP.
