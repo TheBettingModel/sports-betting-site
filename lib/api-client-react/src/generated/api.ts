@@ -55,6 +55,7 @@ import type {
   NcaafEventReadiness,
   NcaafReadiness,
   NcaafV4ProjectionBoard,
+  NcaafV4SubscriberProjectionBoard,
   NotificationPreferences,
   OutcomeReviewsResponse,
   PromoteAdminSpreadModel200,
@@ -354,9 +355,9 @@ export const getGetNcaafV4ProjectionsUrl = (params?: GetNcaafV4ProjectionsParams
  * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
  * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
  */
-export const getNcaafV4Projections = async (params?: GetNcaafV4ProjectionsParams, options?: RequestInit): Promise<NcaafV4ProjectionBoard> => {
+export const getNcaafV4Projections = async (params?: GetNcaafV4ProjectionsParams, options?: RequestInit): Promise<NcaafV4SubscriberProjectionBoard> => {
 
-  return customFetch<NcaafV4ProjectionBoard>(getGetNcaafV4ProjectionsUrl(params),
+  return customFetch<NcaafV4SubscriberProjectionBoard>(getGetNcaafV4ProjectionsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -859,6 +860,84 @@ export function useGetAdminNcaafReadiness<TData = Awaited<ReturnType<typeof getA
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminNcaafReadinessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminNcaafV4TodayBoardUrl = () => {
+
+
+
+
+  return `/api/admin/ncaaf/v4/today-board`
+}
+
+/**
+ * Master-admin-only, today-only observability endpoint. It does not accept a date override and never changes registry, publication, or champion state.
+ * @summary Get the complete current Eastern-day NCAAF V4 preview board
+ */
+export const getAdminNcaafV4TodayBoard = async ( options?: RequestInit): Promise<NcaafV4ProjectionBoard> => {
+
+  return customFetch<NcaafV4ProjectionBoard>(getGetAdminNcaafV4TodayBoardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminNcaafV4TodayBoardQueryKey = () => {
+    return [
+    `/api/admin/ncaaf/v4/today-board`
+    ] as const;
+    }
+
+
+export const getGetAdminNcaafV4TodayBoardQueryOptions = <TData = Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminNcaafV4TodayBoardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>> = ({ signal }) => getAdminNcaafV4TodayBoard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminNcaafV4TodayBoardQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>>
+export type GetAdminNcaafV4TodayBoardQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the complete current Eastern-day NCAAF V4 preview board
+ */
+
+export function useGetAdminNcaafV4TodayBoard<TData = Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminNcaafV4TodayBoard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminNcaafV4TodayBoardQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -160,6 +160,8 @@ export interface EvidenceCaptureDependencies {
   fetchOdds?: () => Promise<OddsApiGame[]>;
   fetchEspnSummary?: (eventId: string) => Promise<NcaafEspnSummaryPayload>;
   now?: () => Date;
+  /** Normal game-day capture must not fan out into tomorrow or later dates. */
+  restrictToRequestedDate?: boolean;
 }
 
 function easternDateString(date: Date): string {
@@ -201,6 +203,16 @@ export function selectCurrentNcaafOddsForCapture(
   return games.filter((game) => {
     const providerDate = safeProviderDate(game.commence_time);
     return providerDate != null && isWithinNcaafSeason(providerDate, season);
+  });
+}
+
+export function restrictNcaafOddsToRequestedDate(
+  games: OddsApiGame[],
+  yyyymmdd: string,
+): OddsApiGame[] {
+  return games.filter((game) => {
+    const providerDate = safeProviderDate(game.commence_time);
+    return providerDate != null && easternDateString(providerDate) === yyyymmdd;
   });
 }
 
@@ -360,7 +372,12 @@ async function captureNcaafEvidenceDateUnsafe(
   ]);
   const requestedSeason = ncaafSeasonForDate(requestedDate);
   const oddsGames = oddsResult.status === "fulfilled"
-    ? selectCurrentNcaafOddsForCapture(oddsResult.value, requestedSeason)
+    ? (dependencies.restrictToRequestedDate
+      ? restrictNcaafOddsToRequestedDate(
+        selectCurrentNcaafOddsForCapture(oddsResult.value, requestedSeason),
+        yyyymmdd,
+      )
+      : selectCurrentNcaafOddsForCapture(oddsResult.value, requestedSeason))
     : [];
   const espnGamesById = new Map<string, FetchedGame>();
   if (requestedEspnResult.status === "fulfilled") {
@@ -712,7 +729,10 @@ export async function captureNcaafEvidenceDate(
 }
 
 export async function captureCurrentNcaafEvidence(dependencies: EvidenceCaptureDependencies = {}) {
-  return captureNcaafEvidenceDate(dependencies.now?.() ?? new Date(), dependencies);
+  return captureNcaafEvidenceDate(dependencies.now?.() ?? new Date(), {
+    ...dependencies,
+    restrictToRequestedDate: true,
+  });
 }
 
 /** Bounded, append-only backfill. No prediction/pick references are written. */

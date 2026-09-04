@@ -185,6 +185,7 @@ export const adminApi = {
   ncaafReadiness: () => api.get<NcaafReadiness>("/admin/ncaaf-readiness"),
   ncaafReadinessEvent: (eventId: string) =>
     api.get<NcaafEventReadiness>(`/admin/ncaaf-readiness/${encodeURIComponent(eventId)}`),
+  ncaafV4Projections: () => api.get<NcaafV4ProjectionBoard>("/admin/ncaaf/v4/today-board"),
 };
 
 export const modelApi = {
@@ -706,4 +707,117 @@ export interface ForecastReview {
   finalScore: string | null;
   reviewedAt: string;
   createdAt: string;
+}
+
+export interface NcaafV4ModelOutput {
+  id: string;
+  version: string;
+  configurationHash: string;
+  parameterHash: string;
+  featureSchema: string;
+  featureCutoff: string;
+  dataQuality: string;
+  expectedHomePoints: number;
+  expectedAwayPoints: number;
+  expectedMargin: number;
+  expectedTotal: number;
+  homeWinProbability: number;
+  awayWinProbability: number;
+  fairHomeMoneyline: number | null;
+  fairAwayMoneyline: number | null;
+  marginUncertainty: number;
+  totalUncertainty: number;
+}
+
+export interface NcaafV4MarketOutputMoneyline {
+  bookmaker: string;
+  capturedAt: string;
+  homeOdds: number;
+  awayOdds: number;
+  noVigHomeProbability: number;
+  noVigAwayProbability: number;
+}
+
+export interface NcaafV4MarketOutputSpread {
+  bookmaker: string;
+  capturedAt: string;
+  selection: string;
+  line: number;
+  odds: number | null;
+}
+
+export interface NcaafV4MarketOutputTotal {
+  bookmaker: string;
+  capturedAt: string;
+  selection: string;
+  line: number;
+  odds: number | null;
+}
+
+export interface NcaafV4MarketOutput {
+  moneyline: NcaafV4MarketOutputMoneyline | null;
+  spread: NcaafV4MarketOutputSpread | null;
+  total: NcaafV4MarketOutputTotal | null;
+}
+
+export interface NcaafV4ComparisonSpread {
+  projectedHomeMargin: number;
+  line: number;
+  difference: number;
+}
+
+export interface NcaafV4ComparisonTotal {
+  projectedTotal: number;
+  line: number;
+  difference: number;
+}
+
+export interface NcaafV4Comparison {
+  moneylineHomeEdge: number | null;
+  spread: NcaafV4ComparisonSpread | null;
+  total: NcaafV4ComparisonTotal | null;
+}
+
+export interface NcaafV4Projection {
+  rank: number;
+  gameId: string;
+  predictionId: string;
+  predictionHash: string;
+  kickoffAt: string;
+  awayTeam?: string | null;
+  homeTeam?: string | null;
+  neutralSite?: boolean | null;
+  modelStatus: string;
+  approvalStatus: string;
+  publicationStatus: string;
+  marketMatch: {
+    classification: string;
+    attachable: boolean;
+    matchReason: string;
+    rootCause: string;
+  };
+  model: NcaafV4ModelOutput;
+  market?: NcaafV4MarketOutput;
+  comparison?: NcaafV4Comparison;
+  v4ModelOpinion: string;
+  recommendationReason?: string;
+  incumbentAgreement: string;
+  status: string;
+}
+
+export interface NcaafV4ProjectionBoard {
+  date: string;
+  generatedAt: string;
+  model: {
+    id: string;
+    modelStatus: string;
+    approvalStatus: string;
+    publicationStatus: string;
+    configurationHash: string;
+    parameterHash: string;
+  };
+  evidencePersistence: string;
+  board: NcaafV4Projection[];
+  exclusions: Record<string, unknown>[];
+  audit: Record<string, unknown>;
 }

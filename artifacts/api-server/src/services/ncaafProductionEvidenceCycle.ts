@@ -3,7 +3,7 @@
  * from odds ingestion: it must remain able to make its pregame snapshots while
  * another sport owns the scheduler's shared heavy-job lock.
  */
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, gte, lt } from "drizzle-orm";
 import { db, pool, ncaafCfbdProviderHealthTable, ncaafGameEvidenceTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import {
@@ -27,6 +27,7 @@ import { captureCollegeFootballDataEvidence, type CfbdCaptureResult } from "./nc
 import { captureScheduledCfbdAdvancedEvidence, type AdvancedCaptureResult } from "./ncaafCfbdAdvancedEvidence";
 import { materializeCurrentCfbdMappings } from "./ncaafCfbdMappingMaterializer";
 import { CollegeFootballDataError } from "./collegeFootballData";
+import { getNcaafV4ProjectionBoard } from "./ncaafV4GameDay";
 
 export const NCAAF_FINAL_PREGAME_WINDOW_MINUTES = 45;
 export const MAX_NCAAF_BOOTSTRAP_DAYS = 14;
@@ -62,6 +63,7 @@ export interface NcaafProductionEvidenceCycleResult {
   intelligenceSnapshotsDeduped: number;
   liveShadowAssignments: number;
   finalPregameAssignments: number;
+  v4ForecastInitialized: boolean;
   gameFailures: Array<{ provider: string; eventId: string; cause: string }>;
 }
 
@@ -69,7 +71,7 @@ type CycleLogger = Pick<typeof logger, "info" | "warn" | "error">;
 export interface NcaafProductionEvidenceCycleDependencies {
   now?: () => Date;
   reconcile?: (now: Date) => Promise<number>;
-  captureCurrent?: () => Promise<EvidenceCaptureResult>;
+  captureCurrent?: (now: Date) => Promise<EvidenceCaptureResult>;
   /** Optional server-side CFBD evidence hook. Its failure is intentionally isolated. */
   captureCfbd?: () => Promise<CfbdCaptureResult>;
   captureAdvancedCfbd?: (season: number, now: Date) => Promise<AdvancedCaptureResult>;
@@ -81,6 +83,8 @@ export interface NcaafProductionEvidenceCycleDependencies {
   cohortStore?: NcaafPregameCohortStore;
   assignLiveShadow?: typeof assignNcaafLiveShadowCohort;
   assignFinalPregame?: typeof assignNcaafFinalPregameCohort;
+  /** Isolated scheduled current-day forecast materialization hook. */
+  initializeV4Forecasts?: (cycleNow: Date) => Promise<unknown>;
   finalPregameWindowMinutes?: number;
   log?: CycleLogger;
 }
@@ -106,7 +110,36 @@ async function acquireNcaafGlobalLock(): Promise<(() => Promise<void>) | null> {
   }
 }
 
+export function ncaafCurrentEasternDate(now: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+/** IANA-zone local day bounds; this deliberately has no next-day schedule path. */
+export function ncaafCurrentEasternDayBounds(now: Date): { start: Date; end: Date } {
+  const date = ncaafCurrentEasternDate(now);
+  const localMidnight = (value: string) => {
+    const probe = new Date(`${value}T00:00:00.000Z`);
+    const zone = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", timeZoneName: "longOffset" })
+      .formatToParts(probe).find(x => x.type === "timeZoneName")?.value ?? "";
+    const found = /^GMT([+-])(\d{2}):(\d{2})$/.exec(zone);
+    if (!found) throw new Error("Unable to resolve America/New_York offset");
+    const offset = (Number(found[2]) * 60 + Number(found[3])) * (found[1] === "+" ? 1 : -1);
+    return new Date(probe.getTime() - offset * 60_000);
+  };
+  const tomorrow = new Date(`${date}T12:00:00.000Z`);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  return { start: localMidnight(date), end: localMidnight(tomorrow.toISOString().slice(0, 10)) };
+}
+export function isNcaafCurrentGameDayKickoff(kickoffAt: Date, now: Date): boolean {
+  const { start, end } = ncaafCurrentEasternDayBounds(now);
+  return kickoffAt > now && kickoffAt >= start && kickoffAt < end;
+}
+/** Normal scheduler-only initializer. It deliberately has no date argument, so
+ * the board resolves only the exact current America/New_York day from cycleNow. */
+export async function initializeCurrentNcaafV4Forecasts(cycleNow: Date): Promise<unknown> {
+  return getNcaafV4ProjectionBoard(undefined, cycleNow);
+}
 async function listCanonicalUpcomingGames(now: Date): Promise<NcaafProductionEvidenceGame[]> {
+  const { start, end } = ncaafCurrentEasternDayBounds(now);
   const rows = await db.select({
     id: ncaafGameEvidenceTable.id, provider: ncaafGameEvidenceTable.provider,
     eventId: ncaafGameEvidenceTable.providerEventId, season: ncaafGameEvidenceTable.season,
@@ -121,10 +154,12 @@ async function listCanonicalUpcomingGames(now: Date): Promise<NcaafProductionEvi
   }).from(ncaafGameEvidenceTable).where(and(
     eq(ncaafGameEvidenceTable.provider, "espn"),
     gt(ncaafGameEvidenceTable.kickoffAt, now),
+    gte(ncaafGameEvidenceTable.kickoffAt, start),
+    lt(ncaafGameEvidenceTable.kickoffAt, end),
   ));
   const latest = new Map<string, NcaafProductionEvidenceGame>();
   for (const row of rows) {
-    if (!row.kickoffAt || row.kickoffAt <= now || !row.homeTeamName || !row.awayTeamName) continue;
+    if (!row.kickoffAt || !isNcaafCurrentGameDayKickoff(row.kickoffAt, now) || !row.homeTeamName || !row.awayTeamName) continue;
     const candidate: NcaafProductionEvidenceGame = {
       id: row.id, provider: row.provider, eventId: row.eventId, season: row.season,
       week: row.week, kickoffAt: row.kickoffAt, homeTeamId: row.homeTeamId, awayTeamId: row.awayTeamId,
@@ -150,7 +185,7 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
       cfbdCapture: null, cfbdCaptureCause: null, gamesFound: 0,
       featureSnapshots: 0, intelligenceSnapshots: 0,
       intelligenceSnapshotsInserted: 0, intelligenceSnapshotsDeduped: 0, liveShadowAssignments: 0,
-      finalPregameAssignments: 0, gameFailures: [],
+        finalPregameAssignments: 0, v4ForecastInitialized: false, gameFailures: [],
     });
     if (running) {
       const result = empty();
@@ -232,7 +267,11 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
         }
       }
       try {
-        result.capture = await (dependencies.captureCurrent ?? captureCurrentNcaafEvidence)();
+        // Pass the cycle's one authoritative instant so the capture cannot
+        // resolve a different calendar day at a midnight boundary.
+        result.capture = await (dependencies.captureCurrent
+          ? dependencies.captureCurrent(cycleStartedAt)
+          : captureCurrentNcaafEvidence({ now: () => cycleStartedAt }));
         if (Object.keys(result.capture.providerErrors).length) result.captureCause = "provider_partial_failure";
       } catch (error) {
         result.captureCause = error instanceof Error ? error.message : String(error);
@@ -286,6 +325,22 @@ export function createNcaafProductionEvidenceCycle(dependencies: NcaafProduction
           result.gameFailures.push({ provider: game.provider, eventId: game.eventId,
             cause: error instanceof Error ? error.message : String(error) });
           log.warn({ eventId: game.eventId, error }, "NCAAF production evidence game failed");
+        }
+      }
+      // Initialize only after every current-day feature/intelligence snapshot
+      // attempt has completed. Use a fresh clock for assessment/write safety,
+      // but never allow a cycle crossing Eastern midnight to initialize date+1.
+      if (result.capture && (!dependencies.captureCurrent || dependencies.initializeV4Forecasts)) {
+        const initializationAt = dependencies.now?.() ?? new Date();
+        if (ncaafCurrentEasternDate(initializationAt) === ncaafCurrentEasternDate(cycleStartedAt)) {
+          try {
+            await (dependencies.initializeV4Forecasts ?? initializeCurrentNcaafV4Forecasts)(initializationAt);
+            result.v4ForecastInitialized = true;
+          } catch (error) {
+            log.warn({ error }, "NCAAF V4 current-day forecast initialization failed");
+          }
+        } else {
+          log.warn({ cycleStartedAt, initializationAt }, "NCAAF V4 initialization skipped after Eastern date rollover");
         }
       }
       log.info(result, "NCAAF production evidence cycle completed");

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   bootstrapNcaafCurrentSeasonPerformanceEvidence,
   createNcaafProductionEvidenceCycle,
+  isNcaafCurrentGameDayKickoff,
+  ncaafCurrentEasternDate,
+  ncaafCurrentEasternDayBounds,
   type NcaafProductionEvidenceGame,
 } from "./ncaafProductionEvidenceCycle";
 import type { NcaafPregameCohortStore } from "./ncaafPregameCohorts";
@@ -34,6 +37,29 @@ const captureTransport = {
 const globalLock = async () => async () => {};
 
 describe("NCAAF production evidence cycle", () => {
+  it("uses only the current Eastern game day, including DST boundaries", () => {
+    const boundary = new Date("2026-11-01T04:30:00Z"); // 00:30 EDT
+    expect(ncaafCurrentEasternDate(boundary)).toBe("2026-11-01");
+    const { start, end } = ncaafCurrentEasternDayBounds(boundary);
+    expect(end.getTime() - start.getTime()).toBe(25 * 60 * 60_000);
+    expect(isNcaafCurrentGameDayKickoff(new Date("2026-11-01T18:00:00Z"), boundary)).toBe(true);
+    expect(isNcaafCurrentGameDayKickoff(new Date("2026-11-02T18:00:00Z"), boundary)).toBe(false);
+  });
+
+  it("passes the cycle's current instant to capture rather than allowing a date+1 request", async () => {
+    let capturedAt: Date | undefined, initializedAt: Date | undefined;
+    const run = createNcaafProductionEvidenceCycle({
+      now: () => now, reconcile: async () => 0, acquireGlobalLock: globalLock,
+      captureCurrent: async (at) => { capturedAt = at; return { games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }; },
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 0, games: 0, entities: 0, performances: 0, transport: captureTransport }),
+      initializeV4Forecasts: async (at) => { initializedAt = at; },
+      listUpcomingGames: async () => [],
+    });
+    await run();
+    expect(capturedAt).toEqual(now);
+    expect(initializedAt).toEqual(now);
+    expect(ncaafCurrentEasternDate(initializedAt!)).toBe(ncaafCurrentEasternDate(now));
+  });
   it("single-flights duplicate invocations", async () => {
     let release!: () => void;
     const wait = new Promise<void>((resolve) => { release = resolve; });
@@ -123,6 +149,39 @@ describe("NCAAF production evidence cycle", () => {
     expect(result.intelligenceSnapshotsDeduped).toBe(1);
     expect(result.finalPregameAssignments).toBe(1);
     expect(final).toBe(1);
+  });
+
+  it("initializes V4 only after intelligence snapshots complete, using a fresh same-day instant", async () => {
+    const order: string[] = [];
+    const cycleAt = new Date("2026-09-10T15:00:00Z");
+    const snapshotAt = new Date("2026-09-10T15:01:00Z");
+    const initializationAt = new Date("2026-09-10T15:02:00Z");
+    const times = [cycleAt, snapshotAt, initializationAt];
+    const run = createNcaafProductionEvidenceCycle({
+      now: () => times.shift() ?? initializationAt,
+      reconcile: async () => 0, acquireGlobalLock: globalLock,
+      captureCurrent: async () => ({ games: 0, markets: 0, matchedMarkets: 0, missingEntityObservations: 0, teamPerformanceRows: 0, skippedTeamPerformanceRows: 0, providerErrors: {} }),
+      captureCfbd: async () => ({ season: 2026, week: 2, rawRows: 1, games: 0, entities: 0, performances: 0, transport: captureTransport }),
+      listUpcomingGames: async () => [{ ...game, kickoffAt: new Date("2026-09-10T20:00:00Z") }],
+      createFeatureSnapshot: (async () => { order.push("feature"); return { id: 1, snapshot: {}, inputHash: "x" }; }) as never,
+      createIntelligenceSnapshot: (async () => {
+        order.push("intelligence");
+        return { id: 2, snapshot: {}, inputHash: "x", persistence: "inserted" };
+      }) as never,
+      cohortStore: {
+        getFeatureSnapshot: async () => undefined,
+        getAssignment: async () => ({}) as any,
+        insertAssignment: async () => ({}) as any,
+      },
+      initializeV4Forecasts: async (at) => {
+        order.push("initialize");
+        expect(at).toEqual(initializationAt);
+        expect(ncaafCurrentEasternDate(at)).toBe(ncaafCurrentEasternDate(cycleAt));
+      },
+    });
+    const result = await run();
+    expect(order).toEqual(["feature", "intelligence", "initialize"]);
+    expect(result.v4ForecastInitialized).toBe(true);
   });
 
   it("counts inserted intelligence separately while preserving the processed total", async () => {

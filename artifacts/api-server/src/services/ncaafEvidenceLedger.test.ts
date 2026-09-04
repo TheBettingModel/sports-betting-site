@@ -10,6 +10,7 @@ import {
   normalizeEspnGameEvidence,
   stablePayloadHash,
   selectCurrentNcaafOddsForCapture,
+  restrictNcaafOddsToRequestedDate,
   summarizeNcaafCoverage,
   summarizeNcaafRunStates,
   matchNcaafMarketIdentity,
@@ -114,6 +115,24 @@ describe("NCAAF evidence ledger helpers", () => {
     expect(firstMarket.price).toBe(-110);
     expect(secondMarket.price).toBe(-125);
     expect(stablePayloadHash(firstMarket.payload)).not.toBe(stablePayloadHash(secondMarket.payload));
+  });
+
+  it("restricts normal odds capture to the requested Eastern date", () => {
+    const today = {
+      id: "today",
+      home_team: "Home",
+      away_team: "Away",
+      commence_time: "2026-09-05T01:00:00.000Z",
+      bookmakers: [],
+    };
+    const tomorrow = {
+      ...today,
+      id: "tomorrow",
+      commence_time: "2026-09-05T17:00:00.000Z",
+    };
+
+    expect(restrictNcaafOddsToRequestedDate([today, tomorrow], "20260904"))
+      .toEqual([today]);
   });
 
   it("retains enriched scoreboard evidence in normalized game fields", () => {

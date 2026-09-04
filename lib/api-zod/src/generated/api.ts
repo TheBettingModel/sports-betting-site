@@ -186,100 +186,49 @@ export const GetNcaafV4ProjectionsQueryParams = zod.object({
   "date": zod.coerce.string().regex(getNcaafV4ProjectionsQueryDateRegExp).optional().describe('YYYY-MM-DD in America\/New_York; omitted selects today.')
 })
 
-
-
-
 export const GetNcaafV4ProjectionsResponse = zod.object({
-  "date": zod.coerce.date(),
-  "generatedAt": zod.coerce.date(),
-  "model": zod.object({
-  "id": zod.literal("tbm-ncaaf-v4-expected-score"),
-  "modelStatus": zod.literal("V4_PREVIEW"),
-  "approvalStatus": zod.literal("UNVALIDATED"),
-  "publicationStatus": zod.literal("PREVIEW_ONLY"),
-  "configurationHash": zod.string(),
-  "parameterHash": zod.string()
-}),
-  "evidencePersistence": zod.string(),
+  "date": zod.string(),
+  "modelStatus": zod.enum(['V4_PREVIEW']),
+  "approvalStatus": zod.enum(['UNVALIDATED']),
+  "publicationStatus": zod.enum(['PREVIEW_ONLY']),
+  "disclaimer": zod.string(),
   "board": zod.array(zod.object({
-  "rank": zod.number().min(1),
-  "gameId": zod.string(),
-  "predictionId": zod.string(),
-  "predictionHash": zod.string(),
   "kickoffAt": zod.coerce.date(),
-  "awayTeam": zod.string().nullish(),
-  "homeTeam": zod.string().nullish(),
-  "neutralSite": zod.boolean().nullish(),
-  "modelStatus": zod.literal("V4_PREVIEW"),
-  "approvalStatus": zod.literal("UNVALIDATED"),
-  "publicationStatus": zod.literal("PREVIEW_ONLY"),
-  "marketMatch": zod.object({
-  "classification": zod.enum(['EXACT_ID_MATCH', 'EXACT_CANONICAL_MATCH', 'SAFE_TEAM_TIME_MATCH', 'AMBIGUOUS', 'UNMATCHED']),
-  "attachable": zod.boolean()
-}),
+  "awayTeam": zod.string().nullable(),
+  "homeTeam": zod.string().nullable(),
+  "v4ModelOpinion": zod.enum(['BUY', 'LEAN', 'FADE', 'NEUTRAL']),
+  "disclaimer": zod.string(),
   "model": zod.object({
-  "id": zod.string(),
-  "version": zod.string(),
-  "configurationHash": zod.string(),
-  "parameterHash": zod.string(),
-  "featureSchema": zod.string(),
-  "featureCutoff": zod.coerce.date(),
-  "dataQuality": zod.enum(['HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT']),
   "expectedHomePoints": zod.number(),
   "expectedAwayPoints": zod.number(),
-  "expectedMargin": zod.number(),
-  "expectedTotal": zod.number(),
   "homeWinProbability": zod.number(),
   "awayWinProbability": zod.number(),
   "fairHomeMoneyline": zod.number().nullable(),
-  "fairAwayMoneyline": zod.number().nullable(),
-  "marginUncertainty": zod.number(),
-  "totalUncertainty": zod.number()
+  "fairAwayMoneyline": zod.number().nullable()
 }),
   "market": zod.object({
   "moneyline": zod.object({
-  "bookmaker": zod.string(),
   "capturedAt": zod.coerce.date(),
   "homeOdds": zod.number(),
-  "awayOdds": zod.number(),
-  "noVigHomeProbability": zod.number(),
-  "noVigAwayProbability": zod.number()
+  "awayOdds": zod.number()
 }).nullable(),
   "spread": zod.object({
-  "bookmaker": zod.string(),
   "capturedAt": zod.coerce.date(),
   "selection": zod.string(),
   "line": zod.number(),
   "odds": zod.number().nullable()
 }).nullable(),
   "total": zod.object({
-  "bookmaker": zod.string(),
   "capturedAt": zod.coerce.date(),
   "selection": zod.string(),
   "line": zod.number(),
   "odds": zod.number().nullable()
 }).nullable()
-}).optional(),
+}),
   "comparison": zod.object({
-  "moneylineHomeEdge": zod.number().nullable(),
-  "spread": zod.object({
-  "projectedHomeMargin": zod.number(),
-  "line": zod.number(),
-  "difference": zod.number()
-}).nullable(),
-  "total": zod.object({
-  "projectedTotal": zod.number(),
-  "line": zod.number(),
-  "difference": zod.number()
-}).nullable()
-}).optional(),
-  "v4ModelOpinion": zod.enum(['BUY', 'LEAN', 'NEUTRAL', 'FADE']),
-  "recommendationReason": zod.string().optional(),
-  "incumbentAgreement": zod.enum(['AGREE', 'DISAGREE', 'NO_INCUMBENT_FORECAST']),
-  "status": zod.string()
-})),
-  "exclusions": zod.array(zod.record(zod.string(), zod.unknown())),
-  "audit": zod.record(zod.string(), zod.unknown())
+  "moneylineHomeEdge": zod.number().nullable()
+})
+}))
 })
 
 
@@ -406,6 +355,109 @@ export const GetAdminNcaafReadinessResponse = zod.object({
 }),
   "validation": zod.record(zod.string(), zod.unknown()),
   "dataAsOf": zod.coerce.date()
+})
+
+
+/**
+ * Master-admin-only, today-only observability endpoint. It does not accept a date override and never changes registry, publication, or champion state.
+ * @summary Get the complete current Eastern-day NCAAF V4 preview board
+ */
+
+
+
+export const GetAdminNcaafV4TodayBoardResponse = zod.object({
+  "date": zod.coerce.date(),
+  "generatedAt": zod.coerce.date(),
+  "model": zod.object({
+  "id": zod.literal("tbm-ncaaf-v4-expected-score"),
+  "modelStatus": zod.literal("V4_PREVIEW"),
+  "approvalStatus": zod.literal("UNVALIDATED"),
+  "publicationStatus": zod.literal("PREVIEW_ONLY"),
+  "configurationHash": zod.string(),
+  "parameterHash": zod.string()
+}),
+  "evidencePersistence": zod.string(),
+  "board": zod.array(zod.object({
+  "rank": zod.number().min(1),
+  "gameId": zod.string(),
+  "predictionId": zod.string(),
+  "predictionHash": zod.string(),
+  "kickoffAt": zod.coerce.date(),
+  "awayTeam": zod.string().nullish(),
+  "homeTeam": zod.string().nullish(),
+  "neutralSite": zod.boolean().nullish(),
+  "modelStatus": zod.literal("V4_PREVIEW"),
+  "approvalStatus": zod.literal("UNVALIDATED"),
+  "publicationStatus": zod.literal("PREVIEW_ONLY"),
+  "marketMatch": zod.object({
+  "classification": zod.enum(['EXACT_ID_MATCH', 'EXACT_CANONICAL_MATCH', 'SAFE_TEAM_TIME_MATCH', 'AMBIGUOUS', 'UNMATCHED']),
+  "attachable": zod.boolean(),
+  "matchReason": zod.enum(['SAFE_MATCH', 'NO_CURRENT_MARKET', 'STALE_MARKET', 'INCOMPLETE_COHERENT_SNAPSHOT', 'AMBIGUOUS_MATCH', 'REJECTED_UNSAFE_IDENTITY']),
+  "rootCause": zod.enum(['SAFE_MATCH', 'NO_CURRENT_MARKET', 'STALE_MARKET', 'INCOMPLETE_COHERENT_SNAPSHOT', 'AMBIGUOUS_MATCH', 'REJECTED_UNSAFE_IDENTITY'])
+}),
+  "model": zod.object({
+  "id": zod.string(),
+  "version": zod.string(),
+  "configurationHash": zod.string(),
+  "parameterHash": zod.string(),
+  "featureSchema": zod.string(),
+  "featureCutoff": zod.coerce.date(),
+  "dataQuality": zod.enum(['HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT']),
+  "expectedHomePoints": zod.number(),
+  "expectedAwayPoints": zod.number(),
+  "expectedMargin": zod.number(),
+  "expectedTotal": zod.number(),
+  "homeWinProbability": zod.number(),
+  "awayWinProbability": zod.number(),
+  "fairHomeMoneyline": zod.number().nullable(),
+  "fairAwayMoneyline": zod.number().nullable(),
+  "marginUncertainty": zod.number(),
+  "totalUncertainty": zod.number()
+}),
+  "market": zod.object({
+  "moneyline": zod.object({
+  "bookmaker": zod.string(),
+  "capturedAt": zod.coerce.date(),
+  "homeOdds": zod.number(),
+  "awayOdds": zod.number(),
+  "noVigHomeProbability": zod.number(),
+  "noVigAwayProbability": zod.number()
+}).nullable(),
+  "spread": zod.object({
+  "bookmaker": zod.string(),
+  "capturedAt": zod.coerce.date(),
+  "selection": zod.string(),
+  "line": zod.number(),
+  "odds": zod.number().nullable()
+}).nullable(),
+  "total": zod.object({
+  "bookmaker": zod.string(),
+  "capturedAt": zod.coerce.date(),
+  "selection": zod.string(),
+  "line": zod.number(),
+  "odds": zod.number().nullable()
+}).nullable()
+}).optional(),
+  "comparison": zod.object({
+  "moneylineHomeEdge": zod.number().nullable(),
+  "spread": zod.object({
+  "projectedHomeMargin": zod.number(),
+  "line": zod.number(),
+  "difference": zod.number()
+}).nullable(),
+  "total": zod.object({
+  "projectedTotal": zod.number(),
+  "line": zod.number(),
+  "difference": zod.number()
+}).nullable()
+}).optional(),
+  "v4ModelOpinion": zod.enum(['BUY', 'LEAN', 'NEUTRAL', 'FADE']),
+  "recommendationReason": zod.string().optional(),
+  "incumbentAgreement": zod.enum(['AGREE', 'DISAGREE', 'NO_INCUMBENT_FORECAST']),
+  "status": zod.string()
+})),
+  "exclusions": zod.array(zod.record(zod.string(), zod.unknown())),
+  "audit": zod.record(zod.string(), zod.unknown())
 })
 
 

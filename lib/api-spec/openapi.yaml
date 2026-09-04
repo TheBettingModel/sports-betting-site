@@ -89,7 +89,7 @@ paths:
           description: Frozen-model V4 preview board
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/NcaafV4ProjectionBoard" }
+              schema: { $ref: "#/components/schemas/NcaafV4SubscriberProjectionBoard" }
         "400": { description: Invalid requested date }
         "401": { description: Authentication required }
         "403": { description: Active subscription or owner access required }
@@ -188,6 +188,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/NcaafReadiness"
         "401": { description: Administrator credentials required }
+
+  /admin/ncaaf/v4/today-board:
+    get:
+      operationId: getAdminNcaafV4TodayBoard
+      tags: [admin]
+      summary: Get the complete current Eastern-day NCAAF V4 preview board
+      description: >-
+        Master-admin-only, today-only observability endpoint. It does not accept
+        a date override and never changes registry, publication, or champion state.
+      security: [{ masterApiKey: [] }]
+      responses:
+        "200":
+          description: Current-day frozen V4 preview board with market health and profiling
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NcaafV4ProjectionBoard" }
+        "401": { description: Master administrator credentials required }
+        "503": { description: Master administrator authentication is not configured }
 
   /admin/ncaaf/core-backfill:
     post:
@@ -742,6 +760,77 @@ components:
       name: X-Master-Key
       description: Internal master key. An authenticated admin session token is also accepted by the server.
   schemas:
+    NcaafV4SubscriberProjectionBoard:
+      type: object
+      required: [date, modelStatus, approvalStatus, publicationStatus, disclaimer, board]
+      additionalProperties: false
+      properties:
+        date: { type: string }
+        modelStatus: { type: string, enum: [V4_PREVIEW] }
+        approvalStatus: { type: string, enum: [UNVALIDATED] }
+        publicationStatus: { type: string, enum: [PREVIEW_ONLY] }
+        disclaimer: { type: string }
+        board:
+          type: array
+          items: { $ref: "#/components/schemas/NcaafV4SubscriberProjection" }
+    NcaafV4SubscriberProjection:
+      type: object
+      required: [kickoffAt, awayTeam, homeTeam, v4ModelOpinion, model, market, comparison, disclaimer]
+      additionalProperties: false
+      properties:
+        kickoffAt: { type: string, format: date-time }
+        awayTeam: { type: [string, "null"] }
+        homeTeam: { type: [string, "null"] }
+        v4ModelOpinion: { type: string, enum: [BUY, LEAN, FADE, NEUTRAL] }
+        disclaimer: { type: string }
+        model:
+          type: object
+          additionalProperties: false
+          required: [expectedHomePoints, expectedAwayPoints, homeWinProbability, awayWinProbability, fairHomeMoneyline, fairAwayMoneyline]
+          properties:
+            expectedHomePoints: { type: number }
+            expectedAwayPoints: { type: number }
+            homeWinProbability: { type: number }
+            awayWinProbability: { type: number }
+            fairHomeMoneyline: { type: [integer, "null"] }
+            fairAwayMoneyline: { type: [integer, "null"] }
+        market:
+          type: object
+          additionalProperties: false
+          required: [moneyline, spread, total]
+          properties:
+            moneyline:
+              type: [object, "null"]
+              additionalProperties: false
+              required: [capturedAt, homeOdds, awayOdds]
+              properties:
+                capturedAt: { type: string, format: date-time }
+                homeOdds: { type: integer }
+                awayOdds: { type: integer }
+            spread:
+              type: [object, "null"]
+              additionalProperties: false
+              required: [capturedAt, selection, line, odds]
+              properties:
+                capturedAt: { type: string, format: date-time }
+                selection: { type: string }
+                line: { type: number }
+                odds: { type: [integer, "null"] }
+            total:
+              type: [object, "null"]
+              additionalProperties: false
+              required: [capturedAt, selection, line, odds]
+              properties:
+                capturedAt: { type: string, format: date-time }
+                selection: { type: string }
+                line: { type: number }
+                odds: { type: [integer, "null"] }
+        comparison:
+          type: object
+          additionalProperties: false
+          required: [moneylineHomeEdge]
+          properties:
+            moneylineHomeEdge: { type: [number, "null"] }
     NcaafV4ProjectionBoard:
       type: object
       required: [date, generatedAt, model, evidencePersistence, board, exclusions, audit]
@@ -781,10 +870,12 @@ components:
         publicationStatus: { type: string, const: PREVIEW_ONLY }
         marketMatch:
           type: object
-          required: [classification, attachable]
+          required: [classification, attachable, matchReason, rootCause]
           properties:
             classification: { type: string, enum: [EXACT_ID_MATCH, EXACT_CANONICAL_MATCH, SAFE_TEAM_TIME_MATCH, AMBIGUOUS, UNMATCHED] }
             attachable: { type: boolean }
+            matchReason: { type: string, enum: [SAFE_MATCH, NO_CURRENT_MARKET, STALE_MARKET, INCOMPLETE_COHERENT_SNAPSHOT, AMBIGUOUS_MATCH, REJECTED_UNSAFE_IDENTITY] }
+            rootCause: { type: string, enum: [SAFE_MATCH, NO_CURRENT_MARKET, STALE_MARKET, INCOMPLETE_COHERENT_SNAPSHOT, AMBIGUOUS_MATCH, REJECTED_UNSAFE_IDENTITY] }
         model: { $ref: "#/components/schemas/NcaafV4ModelOutput" }
         market: { $ref: "#/components/schemas/NcaafV4MarketOutput" }
         comparison: { $ref: "#/components/schemas/NcaafV4Comparison" }

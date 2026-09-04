@@ -5,6 +5,115 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type NcaafV4SubscriberProjectionBoardModelStatus = typeof NcaafV4SubscriberProjectionBoardModelStatus[keyof typeof NcaafV4SubscriberProjectionBoardModelStatus];
+
+
+export const NcaafV4SubscriberProjectionBoardModelStatus = {
+  V4_PREVIEW: 'V4_PREVIEW',
+} as const;
+
+export type NcaafV4SubscriberProjectionBoardApprovalStatus = typeof NcaafV4SubscriberProjectionBoardApprovalStatus[keyof typeof NcaafV4SubscriberProjectionBoardApprovalStatus];
+
+
+export const NcaafV4SubscriberProjectionBoardApprovalStatus = {
+  UNVALIDATED: 'UNVALIDATED',
+} as const;
+
+export type NcaafV4SubscriberProjectionBoardPublicationStatus = typeof NcaafV4SubscriberProjectionBoardPublicationStatus[keyof typeof NcaafV4SubscriberProjectionBoardPublicationStatus];
+
+
+export const NcaafV4SubscriberProjectionBoardPublicationStatus = {
+  PREVIEW_ONLY: 'PREVIEW_ONLY',
+} as const;
+
+export type NcaafV4SubscriberProjectionV4ModelOpinion = typeof NcaafV4SubscriberProjectionV4ModelOpinion[keyof typeof NcaafV4SubscriberProjectionV4ModelOpinion];
+
+
+export const NcaafV4SubscriberProjectionV4ModelOpinion = {
+  BUY: 'BUY',
+  LEAN: 'LEAN',
+  FADE: 'FADE',
+  NEUTRAL: 'NEUTRAL',
+} as const;
+
+export type NcaafV4SubscriberProjectionModel = {
+  expectedHomePoints: number;
+  expectedAwayPoints: number;
+  homeWinProbability: number;
+  awayWinProbability: number;
+  /** @nullable */
+  fairHomeMoneyline: number | null;
+  /** @nullable */
+  fairAwayMoneyline: number | null;
+};
+
+/**
+ * @nullable
+ */
+export type NcaafV4SubscriberProjectionMarketMoneyline = {
+  capturedAt: string;
+  homeOdds: number;
+  awayOdds: number;
+} | null;
+
+/**
+ * @nullable
+ */
+export type NcaafV4SubscriberProjectionMarketSpread = {
+  capturedAt: string;
+  selection: string;
+  line: number;
+  /** @nullable */
+  odds: number | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type NcaafV4SubscriberProjectionMarketTotal = {
+  capturedAt: string;
+  selection: string;
+  line: number;
+  /** @nullable */
+  odds: number | null;
+} | null;
+
+export type NcaafV4SubscriberProjectionMarket = {
+  /** @nullable */
+  moneyline: NcaafV4SubscriberProjectionMarketMoneyline;
+  /** @nullable */
+  spread: NcaafV4SubscriberProjectionMarketSpread;
+  /** @nullable */
+  total: NcaafV4SubscriberProjectionMarketTotal;
+};
+
+export type NcaafV4SubscriberProjectionComparison = {
+  /** @nullable */
+  moneylineHomeEdge: number | null;
+};
+
+export interface NcaafV4SubscriberProjection {
+  kickoffAt: string;
+  /** @nullable */
+  awayTeam: string | null;
+  /** @nullable */
+  homeTeam: string | null;
+  v4ModelOpinion: NcaafV4SubscriberProjectionV4ModelOpinion;
+  disclaimer: string;
+  model: NcaafV4SubscriberProjectionModel;
+  market: NcaafV4SubscriberProjectionMarket;
+  comparison: NcaafV4SubscriberProjectionComparison;
+}
+
+export interface NcaafV4SubscriberProjectionBoard {
+  date: string;
+  modelStatus: NcaafV4SubscriberProjectionBoardModelStatus;
+  approvalStatus: NcaafV4SubscriberProjectionBoardApprovalStatus;
+  publicationStatus: NcaafV4SubscriberProjectionBoardPublicationStatus;
+  disclaimer: string;
+  board: NcaafV4SubscriberProjection[];
+}
+
 export type NcaafV4ProjectionBoardModel = {
   id: 'tbm-ncaaf-v4-expected-score';
   modelStatus: 'V4_PREVIEW';
@@ -27,6 +136,30 @@ export const NcaafV4ProjectionMarketMatchClassification = {
   SAFE_TEAM_TIME_MATCH: 'SAFE_TEAM_TIME_MATCH',
   AMBIGUOUS: 'AMBIGUOUS',
   UNMATCHED: 'UNMATCHED',
+} as const;
+
+export type NcaafV4ProjectionMarketMatchMatchReason = typeof NcaafV4ProjectionMarketMatchMatchReason[keyof typeof NcaafV4ProjectionMarketMatchMatchReason];
+
+
+export const NcaafV4ProjectionMarketMatchMatchReason = {
+  SAFE_MATCH: 'SAFE_MATCH',
+  NO_CURRENT_MARKET: 'NO_CURRENT_MARKET',
+  STALE_MARKET: 'STALE_MARKET',
+  INCOMPLETE_COHERENT_SNAPSHOT: 'INCOMPLETE_COHERENT_SNAPSHOT',
+  AMBIGUOUS_MATCH: 'AMBIGUOUS_MATCH',
+  REJECTED_UNSAFE_IDENTITY: 'REJECTED_UNSAFE_IDENTITY',
+} as const;
+
+export type NcaafV4ProjectionMarketMatchRootCause = typeof NcaafV4ProjectionMarketMatchRootCause[keyof typeof NcaafV4ProjectionMarketMatchRootCause];
+
+
+export const NcaafV4ProjectionMarketMatchRootCause = {
+  SAFE_MATCH: 'SAFE_MATCH',
+  NO_CURRENT_MARKET: 'NO_CURRENT_MARKET',
+  STALE_MARKET: 'STALE_MARKET',
+  INCOMPLETE_COHERENT_SNAPSHOT: 'INCOMPLETE_COHERENT_SNAPSHOT',
+  AMBIGUOUS_MATCH: 'AMBIGUOUS_MATCH',
+  REJECTED_UNSAFE_IDENTITY: 'REJECTED_UNSAFE_IDENTITY',
 } as const;
 
 export type NcaafV4ModelOutputDataQuality = typeof NcaafV4ModelOutputDataQuality[keyof typeof NcaafV4ModelOutputDataQuality];
@@ -155,6 +288,8 @@ export const NcaafV4ProjectionIncumbentAgreement = {
 export type NcaafV4ProjectionMarketMatch = {
   classification: NcaafV4ProjectionMarketMatchClassification;
   attachable: boolean;
+  matchReason: NcaafV4ProjectionMarketMatchMatchReason;
+  rootCause: NcaafV4ProjectionMarketMatchRootCause;
 };
 
 export interface NcaafV4Projection {

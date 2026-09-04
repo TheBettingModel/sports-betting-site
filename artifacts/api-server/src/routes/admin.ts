@@ -114,6 +114,7 @@ import {
   NCAAF_PROVIDER_CAPABILITIES,
   getNcaafReadinessBlockers,
 } from "../services/ncaafProviderCapabilities";
+import { getNcaafV4ProjectionBoard } from "../services/ncaafV4GameDay";
 import {
   parseNcaafV2CoreBackfillCursor,
   runNcaafV2CoreBackfill,
@@ -272,6 +273,17 @@ router.delete("/admin/session", (req, res): void => {
 });
 
 router.use("/admin", requireMasterKey);
+
+/** Complete, master-protected current Eastern-day V4 preview. This route has no
+ * date override by design and therefore cannot be used to prefetch tomorrow. */
+router.get("/admin/ncaaf/v4/today-board", async (req, res): Promise<void> => {
+  try {
+    res.json(await getNcaafV4ProjectionBoard(undefined));
+  } catch (error) {
+    req.log?.error({ error }, "NCAAF V4 admin today board failed");
+    res.status(500).json({ error: "Unable to build NCAAF V4 projection board" });
+  }
+});
 
 /**
  * Manual, bounded historical foundation backfill. This route intentionally does

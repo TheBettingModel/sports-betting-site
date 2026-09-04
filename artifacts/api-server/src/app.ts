@@ -1,7 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { generalLimiter } from "./middleware/rateLimiter";
@@ -52,14 +51,6 @@ app.use("/api", (req, res, next) => {
     error: "Service temporarily unavailable",
     code: "STARTUP_IN_PROGRESS",
   });
-});
-
-// Temporary: serve distribution cert for expo.dev setup (remove after upload)
-app.get("/dist-cert-tbm", (_req, res) => {
-  res.download(path.join(__dirname, "../REMOVED_APPLE_DISTRIBUTION_ARTIFACT"), "REMOVED_APPLE_DISTRIBUTION_ARTIFACT");
-});
-app.get("/dist-profile-tbm", (_req, res) => {
-  res.download(path.join(__dirname, "../REMOVED_APPLE_PROVISIONING_ARTIFACT"), "TheBettingModel.mobileprovision");
 });
 
 // Rate limiting — applied before routing so all /api endpoints are covered
