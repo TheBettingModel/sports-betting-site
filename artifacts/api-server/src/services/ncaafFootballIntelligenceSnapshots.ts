@@ -94,8 +94,11 @@ function isVerifiedFootballPerformanceTotal(path: string, key: string): boolean 
   const normalizedKey = normalizedInputKey(key);
   if (normalizedKey !== "total" && normalizedKey !== "totals") return false;
 
-  return /^suppliedDomains\.(home|away)\.(teamPerformance|earlySeasonPrior|advanced)\.payload\.(offense|defense)\.havoc$/u
-    .test(path);
+  const directPerformancePath =
+    /^suppliedDomains\.(home|away)\.(teamPerformance|earlySeasonPrior|advanced)\.payload\.(offense|defense)\.havoc$/u;
+  const composedPriorPath =
+    /^suppliedDomains\.(home|away)\.earlySeasonPrior\.payload(?:\.components\[\d+\]\.payload)+\.(offense|defense)\.havoc$/u;
+  return directPerformancePath.test(path) || composedPriorPath.test(path);
 }
 
 function canonical(value: unknown): unknown {

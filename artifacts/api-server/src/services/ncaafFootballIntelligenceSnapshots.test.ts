@@ -111,7 +111,7 @@ describe("NCAAF football intelligence snapshots", () => {
     expect(() => buildNcaafFootballIntelligenceSnapshot(target, [], kickoff)).toThrow(/strictly before kickoff/);
   });
 
-  it("allows only verified havoc totals while keeping sportsbook totals blocked recursively", () => {
+  it("allows direct and composed verified havoc totals while keeping sportsbook totals blocked recursively", () => {
     for (const domain of ["teamPerformance", "earlySeasonPrior", "advanced"]) {
       for (const unit of ["offense", "defense"]) {
         for (const key of ["total", "totals"]) {
@@ -121,6 +121,15 @@ describe("NCAAF football intelligence snapshots", () => {
           )).not.toThrow();
         }
       }
+    }
+
+    for (const path of [
+      "suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.defense.havoc",
+      "suppliedDomains.home.earlySeasonPrior.payload.components[1].payload.defense.havoc",
+      "suppliedDomains.away.earlySeasonPrior.payload.components[2].payload.defense.havoc",
+      "suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.components[1].payload.defense.havoc",
+    ]) {
+      expect(() => assertNoNcaafMarketShapedKeys({ total: 12.4 }, path)).not.toThrow();
     }
 
     for (const [path, payload] of [
@@ -138,9 +147,34 @@ describe("NCAAF football intelligence snapshots", () => {
       ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { odds: -110 }],
       ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { price: -110 }],
       ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { impliedProbability: 0.52 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload", { total: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.market", { total: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.sportsbook", { total: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.defense", { total: 12 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload", { openingTotal: 42.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload", { closingTotal: 43.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload", { odds: -110 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload", { price: -110 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.components[0].payload", { impliedProbability: 0.52 }],
     ] as const) {
       expect(() => assertNoNcaafMarketShapedKeys(payload, path)).toThrow(/market-shaped/);
     }
+  });
+
+  it("accepts a complete production-shaped composed early-season prior", () => {
+    const composedPrior = {
+      state: "VALID",
+      payload: {
+        components: [
+          { source: "completed_games", payload: { defense: { havoc: { total: 0.18 } } } },
+          { source: "supplied_prior", payload: { defense: { havoc: { total: 0.21 } } } },
+        ],
+      },
+    };
+    expect(() => assertNoNcaafMarketShapedKeys(
+      composedPrior,
+      "suppliedDomains.home.earlySeasonPrior",
+    )).not.toThrow();
   });
 
   it("retains mapped supplied team performance and composes supported early-season priors with provenance", () => {
@@ -179,6 +213,40 @@ describe("NCAAF football intelligence snapshots", () => {
     const statement = JSON.stringify(dbMocks.execute.mock.calls[0]![0]);
     expect(statement).toContain("INSERT INTO ncaaf_football_intelligence_snapshots");
     expect(statement).toContain(NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION);
+  });
+
+  it("persists a production-equivalent snapshot containing composed havoc totals", async () => {
+    dbMocks.execute.mockResolvedValueOnce({ rows: [{ id: 216 }] });
+    const suppliedPrior = {
+      state: "VALID" as const,
+      provider: "college_football_data",
+      quality: 0.9,
+      reliability: 0.9,
+      evidence: [{
+        id: 216,
+        providerEventId: "cfbd-prior",
+        payloadHash: "cfbd-prior-hash",
+        capturedAt: "2025-09-19T10:00:00.000Z",
+      }],
+      provenance: [{ endpoint: "advanced_stats", pitClassification: "B" }],
+      sample: { observations: 1 },
+      missingReason: null,
+      payload: { defense: { havoc: { total: 0.21 } } },
+    };
+    const result = await createNcaafFootballIntelligenceSnapshot({
+      ...target,
+      suppliedDomains: { home: { earlySeasonPrior: suppliedPrior } },
+    }, cutoff);
+    expect(result).toMatchObject({ id: 216, persistence: "inserted" });
+    expect(result.snapshot.teams.home.earlySeasonPrior.payload).toMatchObject({
+      components: expect.arrayContaining([
+        expect.objectContaining({
+          source: "supplied_prior",
+          payload: { defense: { havoc: { total: 0.21 } } },
+        }),
+      ]),
+    });
+    expect(dbMocks.execute).toHaveBeenCalledTimes(1);
   });
 
   it("reports conflict-resolved snapshots as deduped", async () => {
