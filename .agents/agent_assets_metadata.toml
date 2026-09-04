@@ -288,3 +288,17 @@ mtime_ms = 1788532507486
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/3dc48077-67d6-43d6-9de2-157cc61a1eab/c4148449-47e4-4442-811e-15e8079a4ca6"
 storage_version_token = "1788532560305628"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "afjobVFn45IkbtoiPBMOU"
+uri = "file://reports/apple-signing-credential-remediation-2026-09-04.md"
+type = "text"
+title = "#223D Apple Signing Credential Remediation Report"
+description = "Complete 32-section incident report covering local and remote history remediation, validation results, Apple/EAS owner actions, and remaining release blockers."
+logical_id = "1118a17f-1700-4249-b739-53b1c4161e9d"
+content_hash = "sha256:bc0122c33254e470ca7a6a46fbe1c1bf90b353895a5c7f27d2741aecb46d4fc5"
+size = 15283
+mtime_ms = 1788541872640
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1118a17f-1700-4249-b739-53b1c4161e9d/43fa7b30-d669-49b2-a9f9-59540aa9cd8b"
+storage_version_token = "1788541905278591"
+content_type = "text/markdown"

@@ -46,6 +46,7 @@
 - [NCAAF ESPN summary boundary](ncaaf-espn-summary-boundary.md) — completed-game boxscores/drives/player stats are usable; pregame QB/roster/injury and complete play-level history still require a provider.
 - [NCAAF scheduler independence](ncaaf-scheduler-independence.md) — production evidence capture must not share the all-sport heavy-job lock or aligned cron jobs can starve it.
 - [NCAAF today-capture boundary](ncaaf-today-capture-boundary.md) — filter current-day odds before deriving provider dates; downstream filtering alone still prefetches the future.
+- [Git credential purge coverage](git-credential-purge-coverage.md) — sanitize Replit’s agent-ledger ref plus path aliases and config-key aliases, then verify every reachable ref independently.
 - [CFBD advanced endpoint contracts](cfbd-advanced-endpoint-contracts.md) — plays are week-bulk, most advanced domains identify teams by name, and provider PPA must not be mislabeled EPA.
 - [NCAAF canonical identity bridge](ncaaf-canonical-identity-bridge.md) — equal CFBD/ESPN IDs are trusted only with exact school+mascot corroboration; name-only matches require comparable guards.
 - [NCAAF 2026 bridge denominator](ncaaf-2026-bridge-denominator.md) — compatibility covers FBS-vs-FBS only; prove the complete season FBS identity set before classifying other targets out-of-domain.
