@@ -32,6 +32,11 @@ node_modules
 /connect.lock
 /coverage
 /libpeerconnection.log
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+credentials.json
 npm-debug.log
 yarn-error.log
 testem.log
