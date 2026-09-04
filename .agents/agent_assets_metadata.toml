@@ -232,3 +232,31 @@ mtime_ms = 1788530249822
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7ba8d5ce-fef3-403d-95a1-d9c005f8a819/0bff1a99-9c88-4bb8-9d73-0e2249e54f88"
 storage_version_token = "1788530264119052"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "mLF36CIzLkwhLiD6Zk4yn"
+uri = "file://reports/ncaaf-v4-formal-validation-2026-09-04.md"
+type = "text"
+title = "#223 NCAAF V4 Formal Validation Report"
+description = "Complete 36-section formal validation report. Final decision: C, with zero legitimately graded prospective games as the sole advancement blocker."
+logical_id = "1ca45433-ed13-4e27-9c9e-4378d9abf8ef"
+content_hash = "sha256:7791db10b1ecc4e3ca9780ff63054d60b44cb4acfd1d44abdf7cc99be95d71e3"
+size = 16955
+mtime_ms = 1788531584182
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1ca45433-ed13-4e27-9c9e-4378d9abf8ef/bb2dd34a-7159-41b9-9314-287d3da9f73b"
+storage_version_token = "1788531642089050"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "C7n5bQBZAMCZ4RQbN6UjC"
+uri = "file://reports/ncaaf-v4-formal-validation-evidence-2026-09-04-v8.json"
+type = "unspecified"
+title = "#223 Immutable Validation Evidence"
+description = "Write-once machine-readable evidence with frozen identity, historical diagnostics, and complete hashed 656-input/656-prediction pre-kickoff ledgers."
+logical_id = "f67b6e20-a9ba-49d9-af47-eb1764f19bf9"
+content_hash = "sha256:bc23814777e40ee9ca9ecfba15d6a8198dd8fb2ff6739c1f86c7f974521c0f67"
+size = 2959435
+mtime_ms = 1788531481167
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/f67b6e20-a9ba-49d9-af47-eb1764f19bf9/42cbf0d1-f363-42c0-8e27-c326a06f6533"
+storage_version_token = "1788531643699675"
+content_type = "application/octet-stream"

@@ -1,0 +1,2320 @@
+{
+  "identity": {
+    "sport": "NCAAF",
+    "modelId": "tbm-ncaaf-v4-expected-score",
+    "configurationHash": "212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86",
+    "parameterHash": "792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81",
+    "datasetVersion": "ncaaf-v4-training-foundation-v2",
+    "featureSchemaVersion": "ncaaf-chronological-team-game-v2",
+    "splitChecksum": "7cee52d5188179d81a177aa55b9ac54e06211f11ed8a5b0d29b032ff94095abc",
+    "trainingWindow": "2023-2024",
+    "validationWindow": "2025 weeks 1-7",
+    "oosWindow": "2025 week 8+",
+    "prospectiveEvaluationVersion": "ncaaf-v4-2026-bridge-v1",
+    "evaluationCodeVersion": "ncaaf-v4-formal-validation-v1",
+    "evaluationTimestamp": "2026-09-04T14:00:00.000Z",
+    "calibrationVersion": "identity-or-validation-fitted-platt-temperature-v1",
+    "distributionVersion": "normal-margin-total-v1",
+    "evaluationHash": "2953dce959f2e66c97696740a0af4f6a63d7eaeddbdae01b4e3f95c788ff9c4b"
+  },
+  "frozenModel": {
+    "sport": "NCAAF",
+    "modelId": "tbm-ncaaf-v4-expected-score",
+    "configurationHash": "212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86",
+    "parameterHash": "792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81",
+    "datasetVersion": "ncaaf-v4-training-foundation-v2",
+    "featureSchemaVersion": "ncaaf-chronological-team-game-v2",
+    "splitChecksum": "7cee52d5188179d81a177aa55b9ac54e06211f11ed8a5b0d29b032ff94095abc"
+  },
+  "historical": {
+    "baselineComparison": [
+      {
+        "name": "A-historical-home-away-average",
+        "validation": {
+          "homeMae": 11.170854271356784,
+          "homeRmse": 13.98036056979581,
+          "awayMae": 10.250282860845116,
+          "awayRmse": 12.39213668845147,
+          "marginMae": 16.041408299358427,
+          "marginRmse": 20.560482757617986,
+          "totalMae": 13.317417275054513,
+          "totalRmse": 16.592094970413665,
+          "brier": 0.25,
+          "logLoss": 0.6931471805599467,
+          "count": 398
+        },
+        "oos": {
+          "homeMae": 10.973538886332264,
+          "homeRmse": 13.16695133055822,
+          "awayMae": 9.967636140512349,
+          "awayRmse": 12.53850632959786,
+          "marginMae": 15.761132075471707,
+          "marginRmse": 19.845382204802984,
+          "totalMae": 13.31526000920386,
+          "totalRmse": 16.350116262051404,
+          "brier": 0.25,
+          "logLoss": 0.6931471805599467,
+          "count": 410
+        }
+      },
+      {
+        "name": "B-prior-offense-vs-defense",
+        "validation": {
+          "homeMae": 10.4238114594721,
+          "homeRmse": 13.201986859069594,
+          "awayMae": 9.760198621216482,
+          "awayRmse": 11.78544265376468,
+          "marginMae": 14.932568863141595,
+          "marginRmse": 19.123978726690005,
+          "totalMae": 12.875753229237448,
+          "totalRmse": 16.14471024222956,
+          "brier": 0.25,
+          "logLoss": 0.6931471805599467,
+          "count": 398
+        },
+        "oos": {
+          "homeMae": 9.464268558533218,
+          "homeRmse": 11.832171944310888,
+          "awayMae": 9.068144351211506,
+          "awayRmse": 11.144251581163982,
+          "marginMae": 13.401617980489448,
+          "marginRmse": 16.813486506962104,
+          "totalMae": 12.809552658721735,
+          "totalRmse": 15.674691190841058,
+          "brier": 0.25,
+          "logLoss": 0.6931471805599467,
+          "count": 410
+        }
+      },
+      {
+        "name": "C-pregame-elo-winner",
+        "validation": {
+          "homeMae": 11.170854271356784,
+          "homeRmse": 13.98036056979581,
+          "awayMae": 10.250282860845116,
+          "awayRmse": 12.39213668845147,
+          "marginMae": 16.041408299358427,
+          "marginRmse": 20.560482757617986,
+          "totalMae": 13.317417275054513,
+          "totalRmse": 16.592094970413665,
+          "brier": 0.2431781113540396,
+          "logLoss": 0.6794435986895123,
+          "count": 398
+        },
+        "oos": {
+          "homeMae": 10.973538886332264,
+          "homeRmse": 13.16695133055822,
+          "awayMae": 9.967636140512349,
+          "awayRmse": 12.53850632959786,
+          "marginMae": 15.761132075471707,
+          "marginRmse": 19.845382204802984,
+          "totalMae": 13.31526000920386,
+          "totalRmse": 16.350116262051404,
+          "brier": 0.22213300731526192,
+          "logLoss": 0.6365384178532251,
+          "count": 410
+        }
+      },
+      {
+        "name": "D-simple-expected-score-linear",
+        "validation": {
+          "homeMae": 10.287789973117736,
+          "homeRmse": 12.874284947623016,
+          "awayMae": 8.978018169051618,
+          "awayRmse": 11.054095929130463,
+          "marginMae": 13.83860742671156,
+          "marginRmse": 17.73646710672768,
+          "totalMae": 12.883931882198755,
+          "totalRmse": 16.16472189732905,
+          "brier": 0.19456976319930142,
+          "logLoss": 0.5680802771897671,
+          "count": 398
+        },
+        "oos": {
+          "homeMae": 9.282625676397423,
+          "homeRmse": 11.530185139642787,
+          "awayMae": 8.498563584442126,
+          "awayRmse": 10.582372882018044,
+          "marginMae": 12.500839176319078,
+          "marginRmse": 15.480162948634515,
+          "totalMae": 12.939009077926592,
+          "totalRmse": 15.818600615122184,
+          "brier": 0.17828391985262818,
+          "logLoss": 0.5279580658139891,
+          "count": 410
+        }
+      }
+    ],
+    "validation": {
+      "metrics": {
+        "homeMae": 10.287789973117736,
+        "homeRmse": 12.874284947623016,
+        "awayMae": 8.978018169051618,
+        "awayRmse": 11.054095929130463,
+        "marginMae": 13.83860742671156,
+        "marginRmse": 17.73646710672768,
+        "totalMae": 12.883931882198755,
+        "totalRmse": 16.16472189732905,
+        "brier": 0.19505727325264602,
+        "logLoss": 0.5711985471751657,
+        "count": 398
+      },
+      "calibration": {
+        "buckets": [
+          {
+            "low": 0.5,
+            "high": 0.55,
+            "count": 79,
+            "predicted": 0.5292595884648923,
+            "observed": 0.5443037974683544,
+            "error": 0.01504420900346215
+          },
+          {
+            "low": 0.55,
+            "high": 0.6,
+            "count": 58,
+            "predicted": 0.5758208434958184,
+            "observed": 0.4482758620689655,
+            "error": 0.1275449814268529
+          },
+          {
+            "low": 0.6,
+            "high": 0.65,
+            "count": 69,
+            "predicted": 0.6258227023252169,
+            "observed": 0.6376811594202898,
+            "error": 0.011858457095072938
+          },
+          {
+            "low": 0.65,
+            "high": 0.7,
+            "count": 49,
+            "predicted": 0.6760145165097682,
+            "observed": 0.7551020408163265,
+            "error": 0.0790875243065583
+          },
+          {
+            "low": 0.7,
+            "high": 0.75,
+            "count": 53,
+            "predicted": 0.7251893556603722,
+            "observed": 0.8113207547169812,
+            "error": 0.08613139905660894
+          },
+          {
+            "low": 0.75,
+            "high": 0.8,
+            "count": 33,
+            "predicted": 0.7758125928613655,
+            "observed": 0.8181818181818182,
+            "error": 0.04236922532045273
+          },
+          {
+            "low": 0.8,
+            "high": 1.001,
+            "count": 57,
+            "predicted": 0.8572448742476335,
+            "observed": 0.9298245614035088,
+            "error": 0.07257968715587526
+          }
+        ],
+        "ece": 0.05874325230671475,
+        "mce": 0.1275449814268529
+      },
+      "residuals": {
+        "statistics": [
+          {
+            "name": "home",
+            "mean": -1.027855136347164,
+            "sd": 12.833188486548362,
+            "skew": -0.24135982976416068,
+            "quantiles": {
+              "p05": -22.317087643656848,
+              "p25": -9.501209658882765,
+              "p50": 0.08284325898325307,
+              "p75": 7.585511254040519,
+              "p95": 18.7114336330957
+            },
+            "tails": {
+              "absoluteOver15": 97,
+              "absoluteOver25": 21
+            }
+          },
+          {
+            "name": "away",
+            "mean": 1.4843413904672822,
+            "sd": 10.953984090136522,
+            "skew": -0.38581880900362797,
+            "quantiles": {
+              "p05": -19.069190601899408,
+              "p25": -5.843885896367876,
+              "p50": 2.8503957765862253,
+              "p75": 9.472942658414805,
+              "p95": 17.181516959880927
+            },
+            "tails": {
+              "absoluteOver15": 62,
+              "absoluteOver25": 11
+            }
+          },
+          {
+            "name": "margin",
+            "mean": -2.512196526814446,
+            "sd": 17.5576517233568,
+            "skew": -0.1139529643141764,
+            "quantiles": {
+              "p05": -32.7934509200668,
+              "p25": -13.061042315851452,
+              "p50": -2.352087084802516,
+              "p75": 8.556892150722156,
+              "p95": 26.22044352489137
+            },
+            "tails": {
+              "absoluteOver15": 141,
+              "absoluteOver25": 67
+            }
+          },
+          {
+            "name": "total",
+            "mean": 0.4564862541201183,
+            "sd": 16.158275103419573,
+            "skew": -0.1572728231059573,
+            "quantiles": {
+              "p05": -27.651324294190957,
+              "p25": -10.201047881919976,
+              "p50": 1.0740873731086253,
+              "p75": 11.103060516561357,
+              "p95": 26.939502943628796
+            },
+            "tails": {
+              "absoluteOver15": 145,
+              "absoluteOver25": 50
+            }
+          }
+        ],
+        "topOutliers": {
+          "margin": [
+            {
+              "gameId": "401752681",
+              "error": -56.86828246550559,
+              "week": 2,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401752810",
+              "error": -54.590875466923386,
+              "week": 2,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401752949",
+              "error": -50.16057193663343,
+              "week": 3,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401752839",
+              "error": -47.470957782420726,
+              "week": 3,
+              "dataQuality": "MEDIUM"
+            },
+            {
+              "gameId": "401754540",
+              "error": -46.40369574341848,
+              "week": 4,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401752798",
+              "error": -44.42514156349578,
+              "week": 1,
+              "dataQuality": "INSUFFICIENT"
+            },
+            {
+              "gameId": "401762485",
+              "error": -43.54148462791544,
+              "week": 7,
+              "dataQuality": "MEDIUM"
+            },
+            {
+              "gameId": "401754545",
+              "error": 43.324494124224486,
+              "week": 5,
+              "dataQuality": "MEDIUM"
+            },
+            {
+              "gameId": "401754523",
+              "error": 42.40111997369755,
+              "week": 1,
+              "dataQuality": "INSUFFICIENT"
+            },
+            {
+              "gameId": "401752717",
+              "error": 41.49039389544276,
+              "week": 5,
+              "dataQuality": "MEDIUM"
+            }
+          ],
+          "total": [
+            {
+              "gameId": "401761615",
+              "error": -50.13248459596895,
+              "week": 5,
+              "dataQuality": "MEDIUM"
+            },
+            {
+              "gameId": "401779841",
+              "error": 43.33362159187497,
+              "week": 1,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401778321",
+              "error": -42.55879345608763,
+              "week": 1,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401762789",
+              "error": 38.73562064517202,
+              "week": 1,
+              "dataQuality": "INSUFFICIENT"
+            },
+            {
+              "gameId": "401752816",
+              "error": -38.131617589210606,
+              "week": 2,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401760386",
+              "error": -37.83478252150974,
+              "week": 7,
+              "dataQuality": "MEDIUM"
+            },
+            {
+              "gameId": "401761618",
+              "error": 37.664493779891615,
+              "week": 6,
+              "dataQuality": "MEDIUM"
+            },
+            {
+              "gameId": "401754527",
+              "error": 36.72120402189927,
+              "week": 2,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401757168",
+              "error": -34.75175408611071,
+              "week": 3,
+              "dataQuality": "LOW"
+            },
+            {
+              "gameId": "401756900",
+              "error": 34.65868003958701,
+              "week": 4,
+              "dataQuality": "LOW"
+            }
+          ],
+          "score": [
+            {
+              "gameId": "401752810",
+              "homeError": -40.82190984968537,
+              "awayError": 13.768965617238017,
+              "week": 2
+            },
+            {
+              "gameId": "401752681",
+              "homeError": -40.352867056671215,
+              "awayError": 16.515415408834368,
+              "week": 2
+            },
+            {
+              "gameId": "401752798",
+              "homeError": -39.004344009687145,
+              "awayError": 5.420797553808633,
+              "week": 1
+            },
+            {
+              "gameId": "401752839",
+              "homeError": -34.591200582799445,
+              "awayError": 12.87975719962128,
+              "week": 3
+            },
+            {
+              "gameId": "401762481",
+              "homeError": 2.5797249433332468,
+              "awayError": -34.301376197561886,
+              "week": 7
+            },
+            {
+              "gameId": "401762485",
+              "homeError": -33.03132147323831,
+              "awayError": 10.51016315467713,
+              "week": 7
+            },
+            {
+              "gameId": "401754545",
+              "homeError": 32.53426586746305,
+              "awayError": -10.790228256761438,
+              "week": 5
+            },
+            {
+              "gameId": "401752843",
+              "homeError": -30.75409820499612,
+              "awayError": 10.197804474999224,
+              "week": 4
+            },
+            {
+              "gameId": "401754541",
+              "homeError": -30.490162590473695,
+              "awayError": 8.2209669000917,
+              "week": 4
+            },
+            {
+              "gameId": "401752842",
+              "homeError": 5.4549017659678185,
+              "awayError": -30.471563625325214,
+              "week": 4
+            }
+          ]
+        }
+      },
+      "buckets": [
+        {
+          "name": "week",
+          "buckets": [
+            {
+              "bucket": "week-1",
+              "count": 94,
+              "metrics": {
+                "homeMae": 11.771417820741771,
+                "homeRmse": 14.14334422022445,
+                "awayMae": 9.431778208514787,
+                "awayRmse": 11.51579941951404,
+                "marginMae": 14.400978905218828,
+                "marginRmse": 18.254730749281695,
+                "totalMae": 14.949080584368298,
+                "totalRmse": 18.22252587529243,
+                "brier": 0.21941363025382765,
+                "logLoss": 0.6271933209278368,
+                "count": 94
+              }
+            },
+            {
+              "bucket": "week-2",
+              "count": 50,
+              "metrics": {
+                "homeMae": 10.881403105055663,
+                "homeRmse": 14.141074900085204,
+                "awayMae": 8.605893584947399,
+                "awayRmse": 10.762288423213656,
+                "marginMae": 13.861832728310967,
+                "marginRmse": 18.720857552216863,
+                "totalMae": 14.322579869223649,
+                "totalRmse": 16.766728821631308,
+                "brier": 0.161361123113349,
+                "logLoss": 0.49527759053488246,
+                "count": 50
+              }
+            },
+            {
+              "bucket": "week-3",
+              "count": 47,
+              "metrics": {
+                "homeMae": 11.012257595066972,
+                "homeRmse": 13.845773112521945,
+                "awayMae": 9.065889584148549,
+                "awayRmse": 10.608753496740787,
+                "marginMae": 15.815600574107934,
+                "marginRmse": 19.6858435095875,
+                "totalMae": 11.974464594276457,
+                "totalRmse": 14.86505072282374,
+                "brier": 0.18441280065980453,
+                "logLoss": 0.5460459754613803,
+                "count": 47
+              }
+            },
+            {
+              "bucket": "week-4",
+              "count": 50,
+              "metrics": {
+                "homeMae": 10.72816428252523,
+                "homeRmse": 13.178171031363132,
+                "awayMae": 9.21688546761732,
+                "awayRmse": 11.389211533169002,
+                "marginMae": 14.615562971303302,
+                "marginRmse": 18.448036445399556,
+                "totalMae": 12.59083612371265,
+                "totalRmse": 16.322579865556378,
+                "brier": 0.1976761377053428,
+                "logLoss": 0.5712407590894748,
+                "count": 50
+              }
+            },
+            {
+              "bucket": "week-5",
+              "count": 51,
+              "metrics": {
+                "homeMae": 8.678581165936006,
+                "homeRmse": 11.184937973613774,
+                "awayMae": 8.448272473311624,
+                "awayRmse": 10.52798842495656,
+                "marginMae": 10.126615337650394,
+                "marginRmse": 14.0020604545336,
+                "totalMae": 13.213547657050153,
+                "totalRmse": 16.607981771630158,
+                "brier": 0.19074973152272093,
+                "logLoss": 0.5622927633063309,
+                "count": 51
+              }
+            },
+            {
+              "bucket": "week-6",
+              "count": 50,
+              "metrics": {
+                "homeMae": 8.413638409913226,
+                "homeRmse": 10.588971113287196,
+                "awayMae": 8.410115718460574,
+                "awayRmse": 10.258870805973078,
+                "marginMae": 13.289691119045528,
+                "marginRmse": 15.712901463981611,
+                "totalMae": 10.24866786082991,
+                "totalRmse": 13.705699780987445,
+                "brier": 0.19736740420516108,
+                "logLoss": 0.5790765207746408,
+                "count": 50
+              }
+            },
+            {
+              "bucket": "week-7",
+              "count": 56,
+              "metrics": {
+                "homeMae": 9.405055318670417,
+                "homeRmse": 11.56175360476369,
+                "awayMae": 9.251082759589526,
+                "awayRmse": 11.714966479366423,
+                "marginMae": 14.391585510792948,
+                "marginRmse": 18.313673136588974,
+                "totalMae": 11.210649197421825,
+                "totalRmse": 14.367969526208972,
+                "brier": 0.1927150414434132,
+                "logLoss": 0.567143112736456,
+                "count": 56
+              }
+            }
+          ]
+        },
+        {
+          "name": "earlyLate",
+          "buckets": [
+            {
+              "bucket": "early",
+              "count": 191,
+              "metrics": {
+                "homeMae": 11.351620614506064,
+                "homeRmse": 14.070106587114472,
+                "awayMae": 9.125542624621689,
+                "awayRmse": 11.10319750184573,
+                "marginMae": 14.607941782665923,
+                "marginRmse": 18.737880286724998,
+                "totalMae": 14.053101593313071,
+                "totalRmse": 17.070138565221825,
+                "brier": 0.1956038692698328,
+                "logLoss": 0.5726922122546896,
+                "count": 191
+              }
+            },
+            {
+              "bucket": "late",
+              "count": 207,
+              "metrics": {
+                "homeMae": 9.306187787102427,
+                "homeRmse": 11.662633248745976,
+                "awayMae": 8.841896569950727,
+                "awayRmse": 11.008595379262205,
+                "marginMae": 13.128738528222296,
+                "marginRmse": 16.75946391103968,
+                "totalMae": 11.805132776774439,
+                "totalRmse": 15.281778118160709,
+                "brier": 0.19455292620297165,
+                "logLoss": 0.5698203344689379,
+                "count": 207
+              }
+            }
+          ]
+        },
+        {
+          "name": "site",
+          "buckets": [
+            {
+              "bucket": "home",
+              "count": 348,
+              "metrics": {
+                "homeMae": 10.223918772286165,
+                "homeRmse": 12.840907676517695,
+                "awayMae": 9.029137301928019,
+                "awayRmse": 11.135591301512434,
+                "marginMae": 13.975171702331732,
+                "marginRmse": 17.929609069756275,
+                "totalMae": 12.716243796297414,
+                "totalRmse": 16.00967600509312,
+                "brier": 0.19040457445125553,
+                "logLoss": 0.5607968624163417,
+                "count": 348
+              }
+            },
+            {
+              "bucket": "neutral",
+              "count": 50,
+              "metrics": {
+                "homeMae": 10.732333530905454,
+                "homeRmse": 13.104236013005618,
+                "awayMae": 8.622229004231837,
+                "awayRmse": 10.46933012738011,
+                "marginMae": 12.888120068395253,
+                "marginRmse": 16.32903849903321,
+                "totalMae": 14.051040960072159,
+                "totalRmse": 17.205180943493037,
+                "brier": 0.22744005691032498,
+                "logLoss": 0.6435942730965789,
+                "count": 50
+              }
+            }
+          ]
+        },
+        {
+          "name": "dataQuality",
+          "buckets": [
+            {
+              "bucket": "HIGH",
+              "count": 50,
+              "metrics": {
+                "homeMae": 10.70244619104788,
+                "homeRmse": 13.195940319628441,
+                "awayMae": 9.56135881359952,
+                "awayRmse": 11.23322566371832,
+                "marginMae": 12.60001979764878,
+                "marginRmse": 15.769675603282574,
+                "totalMae": 15.265674605316768,
+                "totalRmse": 18.760429921237563,
+                "brier": 0.22120185395859399,
+                "logLoss": 0.6303817979189753,
+                "count": 50
+              }
+            },
+            {
+              "bucket": "INSUFFICIENT",
+              "count": 53,
+              "metrics": {
+                "homeMae": 12.383987483185141,
+                "homeRmse": 14.739404983627244,
+                "awayMae": 9.353618907208809,
+                "awayRmse": 11.73142571079526,
+                "marginMae": 15.959369060388825,
+                "marginRmse": 20.24217056987272,
+                "totalMae": 14.551096488391167,
+                "totalRmse": 17.320720180718414,
+                "brier": 0.195576263526138,
+                "logLoss": 0.572218030967108,
+                "count": 53
+              }
+            },
+            {
+              "bucket": "LOW",
+              "count": 102,
+              "metrics": {
+                "homeMae": 10.638074295530446,
+                "homeRmse": 13.55348240812163,
+                "awayMae": 9.596357181538478,
+                "awayRmse": 11.60997226899648,
+                "marginMae": 15.029497056208193,
+                "marginRmse": 19.266890208764654,
+                "totalMae": 13.26703771180421,
+                "totalRmse": 16.302258267849528,
+                "brier": 0.18636937416434365,
+                "logLoss": 0.5520343048429204,
+                "count": 102
+              }
+            },
+            {
+              "bucket": "MEDIUM",
+              "count": 193,
+              "metrics": {
+                "homeMae": 9.41960199479558,
+                "homeRmse": 11.829841348619812,
+                "awayMae": 8.396958839396762,
+                "awayRmse": 10.50058860453987,
+                "marginMae": 12.947717647745726,
+                "marginRmse": 16.600981053364766,
+                "totalMae": 11.606607245391215,
+                "totalRmse": 14.994080259103567,
+                "brier": 0.19273307733147743,
+                "logLoss": 0.5657143893499091,
+                "count": 193
+              }
+            }
+          ]
+        },
+        {
+          "name": "sample",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 46,
+              "metrics": {
+                "homeMae": 11.283154492940763,
+                "homeRmse": 13.663780577450424,
+                "awayMae": 9.441372970237307,
+                "awayRmse": 11.236817382934893,
+                "marginMae": 12.64869143929362,
+                "marginRmse": 16.008861732205492,
+                "totalMae": 15.660013713492656,
+                "totalRmse": 19.226187223976705,
+                "brier": 0.2289095082225911,
+                "logLoss": 0.6473368427829418,
+                "count": 46
+              }
+            },
+            {
+              "bucket": "3",
+              "count": 221,
+              "metrics": {
+                "homeMae": 10.637738133309922,
+                "homeRmse": 13.420337243640894,
+                "awayMae": 8.939835925683076,
+                "awayRmse": 10.987052456126262,
+                "marginMae": 14.140834100644206,
+                "marginRmse": 18.26293198878896,
+                "totalMae": 13.33280215919624,
+                "totalRmse": 16.37396903582998,
+                "brier": 0.18876951914040957,
+                "logLoss": 0.5560617142965,
+                "count": 221
+              }
+            },
+            {
+              "bucket": "6",
+              "count": 131,
+              "metrics": {
+                "homeMae": 9.347902100489241,
+                "homeRmse": 11.58306757133805,
+                "awayMae": 8.87972774866922,
+                "awayRmse": 11.102060731406834,
+                "marginMae": 13.746577201384216,
+                "marginRmse": 17.409203543690783,
+                "totalMae": 11.151870084825001,
+                "totalRmse": 14.552183536033422,
+                "brier": 0.19377781409376685,
+                "logLoss": 0.5699991461692678,
+                "count": 131
+              }
+            }
+          ]
+        },
+        {
+          "name": "probability",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 57,
+              "metrics": {
+                "homeMae": 9.885546120842381,
+                "homeRmse": 12.475074364505003,
+                "awayMae": 8.070552844713646,
+                "awayRmse": 9.836577212260169,
+                "marginMae": 13.000127284055841,
+                "marginRmse": 15.77103792392905,
+                "totalMae": 12.887683279933844,
+                "totalRmse": 16.001432001772955,
+                "brier": 0.06801456842214681,
+                "logLoss": 0.26596147853889424,
+                "count": 57
+              }
+            },
+            {
+              "bucket": "0.55",
+              "count": 79,
+              "metrics": {
+                "homeMae": 9.847440038222164,
+                "homeRmse": 12.394524797385156,
+                "awayMae": 10.59176328034534,
+                "awayRmse": 12.601452561563697,
+                "marginMae": 13.10374497592817,
+                "marginRmse": 17.345262211224632,
+                "totalMae": 14.002686320335057,
+                "totalRmse": 17.999543940126227,
+                "brier": 0.2474373287448337,
+                "logLoss": 0.6880141700778063,
+                "count": 79
+              }
+            },
+            {
+              "bucket": "0.6",
+              "count": 58,
+              "metrics": {
+                "homeMae": 10.312114051535957,
+                "homeRmse": 12.610722570941864,
+                "awayMae": 7.854064546483206,
+                "awayRmse": 9.72673694383759,
+                "marginMae": 13.813468686065123,
+                "marginRmse": 16.743021741783945,
+                "totalMae": 12.195856583895498,
+                "totalRmse": 15.064882794960775,
+                "brier": 0.26399539164491775,
+                "logLoss": 0.7214578371846688,
+                "count": 58
+              }
+            },
+            {
+              "bucket": "0.65",
+              "count": 69,
+              "metrics": {
+                "homeMae": 10.824191457174845,
+                "homeRmse": 13.084084117483888,
+                "awayMae": 9.633757445945529,
+                "awayRmse": 11.624587403238547,
+                "marginMae": 13.760786027055774,
+                "marginRmse": 17.8935533848826,
+                "totalMae": 13.71437475388461,
+                "totalRmse": 17.10173459740881,
+                "brier": 0.23177489889633654,
+                "logLoss": 0.6563014969405915,
+                "count": 69
+              }
+            },
+            {
+              "bucket": "0.7",
+              "count": 49,
+              "metrics": {
+                "homeMae": 9.612574929728545,
+                "homeRmse": 11.986235400189717,
+                "awayMae": 8.446691135972532,
+                "awayRmse": 10.247852582480283,
+                "marginMae": 13.378854853053753,
+                "marginRmse": 17.143893165246936,
+                "totalMae": 11.756725798853646,
+                "totalRmse": 14.264065703039137,
+                "brier": 0.19258158143938536,
+                "logLoss": 0.5748651569641172,
+                "count": 49
+              }
+            },
+            {
+              "bucket": "0.75",
+              "count": 53,
+              "metrics": {
+                "homeMae": 11.214187168236943,
+                "homeRmse": 13.97456873217283,
+                "awayMae": 8.71132083027975,
+                "awayRmse": 11.279090238572405,
+                "marginMae": 15.282444947907848,
+                "marginRmse": 19.983583290600958,
+                "totalMae": 12.250800302516419,
+                "totalRmse": 15.673841092335284,
+                "brier": 0.16037702448064742,
+                "logLoss": 0.5039970587594751,
+                "count": 53
+              }
+            },
+            {
+              "bucket": "0.8",
+              "count": 33,
+              "metrics": {
+                "homeMae": 10.387169708663226,
+                "homeRmse": 14.071353976334114,
+                "awayMae": 8.503864934934393,
+                "awayRmse": 10.833220788867349,
+                "marginMae": 15.616780540737105,
+                "marginRmse": 20.105931440048668,
+                "totalMae": 12.362763720946397,
+                "totalRmse": 15.049082088398139,
+                "brier": 0.15053741989067548,
+                "logLoss": 0.47922737611353466,
+                "count": 33
+              }
+            }
+          ]
+        },
+        {
+          "name": "margin",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 87,
+              "metrics": {
+                "homeMae": 10.641158756946977,
+                "homeRmse": 13.567169301175957,
+                "awayMae": 7.964926630901908,
+                "awayRmse": 10.01965328296366,
+                "marginMae": 13.26436302199585,
+                "marginRmse": 16.853965818736143,
+                "totalMae": 14.087149285866532,
+                "totalRmse": 16.87800064273092,
+                "brier": 0.10059418572536365,
+                "logLoss": 0.34910574700467717,
+                "count": 87
+              }
+            },
+            {
+              "bucket": "14",
+              "count": 118,
+              "metrics": {
+                "homeMae": 10.420043060892315,
+                "homeRmse": 13.018807687214712,
+                "awayMae": 9.326418110806934,
+                "awayRmse": 11.430076576655397,
+                "marginMae": 15.500359203886612,
+                "marginRmse": 19.684608037614026,
+                "totalMae": 11.440630913985283,
+                "totalRmse": 14.587262069877125,
+                "brier": 0.18620773710360408,
+                "logLoss": 0.5586984061157068,
+                "count": 118
+              }
+            },
+            {
+              "bucket": "3",
+              "count": 94,
+              "metrics": {
+                "homeMae": 9.66446809174929,
+                "homeRmse": 12.215344866135222,
+                "awayMae": 9.809664809185408,
+                "awayRmse": 11.8684703596031,
+                "marginMae": 12.49596984065578,
+                "marginRmse": 16.47903751283872,
+                "totalMae": 13.789643908027424,
+                "totalRmse": 17.566781162217552,
+                "brier": 0.2502870285895936,
+                "logLoss": 0.693741252457481,
+                "count": 94
+              }
+            },
+            {
+              "bucket": "7",
+              "count": 99,
+              "metrics": {
+                "homeMae": 10.411459753906536,
+                "homeRmse": 12.68401789593857,
+                "awayMae": 8.66340187126697,
+                "awayRmse": 10.655959699206946,
+                "marginMae": 13.637400220578842,
+                "marginRmse": 17.186220717668366,
+                "totalMae": 12.686888141816922,
+                "totalRmse": 15.921727030533205,
+                "brier": 0.23617784778585313,
+                "logLoss": 0.6649164861985086,
+                "count": 99
+              }
+            }
+          ]
+        },
+        {
+          "name": "total",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 51,
+              "metrics": {
+                "homeMae": 9.389660316509977,
+                "homeRmse": 12.085030632351483,
+                "awayMae": 10.224440447992835,
+                "awayRmse": 13.058178327092481,
+                "marginMae": 14.36429588818725,
+                "marginRmse": 18.236738879129902,
+                "totalMae": 13.899010481419364,
+                "totalRmse": 17.336358564256646,
+                "brier": 0.166238040179034,
+                "logLoss": 0.5048899021819964,
+                "count": 51
+              }
+            },
+            {
+              "bucket": "45",
+              "count": 47,
+              "metrics": {
+                "homeMae": 11.443907498508143,
+                "homeRmse": 14.288617072362385,
+                "awayMae": 9.352077717296558,
+                "awayRmse": 11.027308176930879,
+                "marginMae": 16.03422733585291,
+                "marginRmse": 20.048207490926842,
+                "totalMae": 12.222427615646456,
+                "totalRmse": 15.7987842361357,
+                "brier": 0.22503603949014078,
+                "logLoss": 0.6465041765812003,
+                "count": 47
+              }
+            },
+            {
+              "bucket": "52.5",
+              "count": 147,
+              "metrics": {
+                "homeMae": 10.160199642032527,
+                "homeRmse": 12.773653329011246,
+                "awayMae": 8.138323700696825,
+                "awayRmse": 10.147142653463286,
+                "marginMae": 13.817972029024714,
+                "marginRmse": 18.037254619860377,
+                "totalMae": 11.615412328158264,
+                "totalRmse": 14.38467561599197,
+                "brier": 0.19851403888073943,
+                "logLoss": 0.5808059008094375,
+                "count": 147
+              }
+            },
+            {
+              "bucket": "60",
+              "count": 153,
+              "metrics": {
+                "homeMae": 10.354606100328013,
+                "homeRmse": 12.76683179607539,
+                "awayMae": 9.254402168101551,
+                "awayRmse": 11.1687758532738,
+                "marginMae": 13.008732630600907,
+                "marginRmse": 16.474606319670205,
+                "totalMae": 13.96755323129457,
+                "totalRmse": 17.437156962985384,
+                "brier": 0.19213331460076566,
+                "logLoss": 0.5609377323276487,
+                "count": 153
+              }
+            }
+          ]
+        },
+        {
+          "name": "score",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 20,
+              "metrics": {
+                "homeMae": 10.937617851846673,
+                "homeRmse": 13.476707090097475,
+                "awayMae": 8.317591966595524,
+                "awayRmse": 11.039785529693981,
+                "marginMae": 13.367294543586599,
+                "marginRmse": 15.915276194951204,
+                "totalMae": 15.84071932840332,
+                "totalRmse": 18.806939695396164,
+                "brier": 0.015717217007542476,
+                "logLoss": 0.12506133510626674,
+                "count": 20
+              }
+            },
+            {
+              "bucket": "20",
+              "count": 1,
+              "metrics": {
+                "homeMae": 10.907524048120372,
+                "homeRmse": 10.907524048120372,
+                "awayMae": 20.503662402073015,
+                "awayRmse": 20.503662402073015,
+                "marginMae": 31.411186450193387,
+                "marginRmse": 31.411186450193387,
+                "totalMae": 9.59613835395264,
+                "totalRmse": 9.59613835395264,
+                "brier": 0.35345749006036936,
+                "logLoss": 0.902690904230494,
+                "count": 1
+              }
+            },
+            {
+              "bucket": "30",
+              "count": 185,
+              "metrics": {
+                "homeMae": 10.40821988186927,
+                "homeRmse": 12.816544913788027,
+                "awayMae": 9.18174491392956,
+                "awayRmse": 11.107167640008338,
+                "marginMae": 13.53295859430479,
+                "marginRmse": 17.616365786310563,
+                "totalMae": 12.765575439614098,
+                "totalRmse": 16.276659654354606,
+                "brier": 0.22967118168141729,
+                "logLoss": 0.6514220768647273,
+                "count": 185
+              }
+            },
+            {
+              "bucket": "40",
+              "count": 192,
+              "metrics": {
+                "homeMae": 10.100832552447864,
+                "homeRmse": 12.875035725270806,
+                "awayMae": 8.790483960789535,
+                "awayRmse": 10.933414519336512,
+                "marginMae": 14.090684055015087,
+                "marginRmse": 17.93200919565322,
+                "totalMae": 12.707098478460834,
+                "totalRmse": 15.781484155943149,
+                "brier": 0.17956158496499894,
+                "logLoss": 0.5386459372363821,
+                "count": 192
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "oos": {
+      "metrics": {
+        "homeMae": 9.282625676397423,
+        "homeRmse": 11.530185139642787,
+        "awayMae": 8.498563584442126,
+        "awayRmse": 10.582372882018044,
+        "marginMae": 12.500839176319078,
+        "marginRmse": 15.480162948634515,
+        "totalMae": 12.939009077926592,
+        "totalRmse": 15.818600615122184,
+        "brier": 0.18002337158123566,
+        "logLoss": 0.534791746210304,
+        "count": 410
+      },
+      "calibration": {
+        "buckets": [
+          {
+            "low": 0.5,
+            "high": 0.55,
+            "count": 62,
+            "predicted": 0.5237330593257922,
+            "observed": 0.7580645161290323,
+            "error": 0.23433145680324008
+          },
+          {
+            "low": 0.55,
+            "high": 0.6,
+            "count": 51,
+            "predicted": 0.5753947837961574,
+            "observed": 0.47058823529411764,
+            "error": 0.10480654850203974
+          },
+          {
+            "low": 0.6,
+            "high": 0.65,
+            "count": 61,
+            "predicted": 0.6231134868202863,
+            "observed": 0.5901639344262295,
+            "error": 0.032949552394056836
+          },
+          {
+            "low": 0.65,
+            "high": 0.7,
+            "count": 58,
+            "predicted": 0.6768496536465206,
+            "observed": 0.8103448275862069,
+            "error": 0.13349517393968624
+          },
+          {
+            "low": 0.7,
+            "high": 0.75,
+            "count": 54,
+            "predicted": 0.7224233346235619,
+            "observed": 0.7407407407407407,
+            "error": 0.018317406117178803
+          },
+          {
+            "low": 0.75,
+            "high": 0.8,
+            "count": 35,
+            "predicted": 0.7714704599423282,
+            "observed": 0.8,
+            "error": 0.02852954005767183
+          },
+          {
+            "low": 0.8,
+            "high": 1.001,
+            "count": 89,
+            "predicted": 0.8741574908285754,
+            "observed": 0.9438202247191011,
+            "error": 0.06966273389052569
+          }
+        ],
+        "ece": 0.09222922982572473,
+        "mce": 0.23433145680324008
+      },
+      "residuals": {
+        "statistics": [
+          {
+            "name": "home",
+            "mean": 0.8737251394206481,
+            "sd": 11.497033257983714,
+            "skew": -0.3299417862523185,
+            "quantiles": {
+              "p05": -18.707030338917463,
+              "p25": -5.622475314648039,
+              "p50": 1.7503076666646926,
+              "p75": 8.575940968519827,
+              "p95": 18.280515771233883
+            },
+            "tails": {
+              "absoluteOver15": 87,
+              "absoluteOver25": 10
+            }
+          },
+          {
+            "name": "away",
+            "mean": 0.5342183414412705,
+            "sd": 10.568880100452391,
+            "skew": -0.2361873083552851,
+            "quantiles": {
+              "p05": -18.532015832044685,
+              "p25": -6.831348859027091,
+              "p50": 1.1121628010937634,
+              "p75": 7.730866537283795,
+              "p95": 17.16267486588117
+            },
+            "tails": {
+              "absoluteOver15": 69,
+              "absoluteOver25": 6
+            }
+          },
+          {
+            "name": "margin",
+            "mean": 0.33950679797937805,
+            "sd": 15.476439514642982,
+            "skew": -0.18267839165196342,
+            "quantiles": {
+              "p05": -26.730153770417335,
+              "p25": -9.708709074935506,
+              "p50": 0.5108463874116076,
+              "p75": 11.640331212585991,
+              "p95": 25.304805978690023
+            },
+            "tails": {
+              "absoluteOver15": 134,
+              "absoluteOver25": 52
+            }
+          },
+          {
+            "name": "total",
+            "mean": 1.4079434808619187,
+            "sd": 15.755818626001059,
+            "skew": -0.33782251977215905,
+            "quantiles": {
+              "p05": -25.62579940079553,
+              "p25": -9.618986644238817,
+              "p50": 2.3935434027075075,
+              "p75": 12.941929428181837,
+              "p95": 24.25528353355527
+            },
+            "tails": {
+              "absoluteOver15": 149,
+              "absoluteOver25": 41
+            }
+          }
+        ],
+        "topOutliers": {
+          "margin": [
+            {
+              "gameId": "401760413",
+              "error": -52.09869863297488,
+              "week": 12,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401752779",
+              "error": -40.81601225430491,
+              "week": 13,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401762513",
+              "error": -38.252899679771275,
+              "week": 13,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401756937",
+              "error": 38.146959512323086,
+              "week": 10,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401756934",
+              "error": -37.2906344169917,
+              "week": 9,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401760402",
+              "error": 36.40957921745022,
+              "week": 10,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401760408",
+              "error": -36.01060425425485,
+              "week": 11,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401752876",
+              "error": 34.911769764541475,
+              "week": 8,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401754578",
+              "error": -34.79500572208406,
+              "week": 10,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401761654",
+              "error": 33.02130447357605,
+              "week": 12,
+              "dataQuality": "HIGH"
+            }
+          ],
+          "total": [
+            {
+              "gameId": "401756960",
+              "error": -45.5458147711081,
+              "week": 13,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401761631",
+              "error": -40.29956809004984,
+              "week": 8,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401757313",
+              "error": -38.82036332443403,
+              "week": 14,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401757293",
+              "error": -38.46576452927858,
+              "week": 10,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401756952",
+              "error": 38.32951574670996,
+              "week": 12,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401760415",
+              "error": 38.047297927706595,
+              "week": 13,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401752943",
+              "error": 37.96729023584713,
+              "week": 10,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401752749",
+              "error": -37.03604589496618,
+              "week": 9,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401754577",
+              "error": -36.341814837761895,
+              "week": 10,
+              "dataQuality": "HIGH"
+            },
+            {
+              "gameId": "401757310",
+              "error": -36.05571884951425,
+              "week": 14,
+              "dataQuality": "HIGH"
+            }
+          ],
+          "score": [
+            {
+              "gameId": "401761631",
+              "homeError": -33.2386898707781,
+              "awayError": -7.060878219271736,
+              "week": 8
+            },
+            {
+              "gameId": "401760413",
+              "homeError": -33.17486074780824,
+              "awayError": 18.923837885166645,
+              "week": 12
+            },
+            {
+              "gameId": "401757293",
+              "homeError": -32.94129039792607,
+              "awayError": -5.524474131352516,
+              "week": 10
+            },
+            {
+              "gameId": "401757296",
+              "homeError": -5.647344729790063,
+              "awayError": -30.19359810717592,
+              "week": 11
+            },
+            {
+              "gameId": "401762513",
+              "homeError": -29.80515097962149,
+              "awayError": 8.447748700149788,
+              "week": 13
+            },
+            {
+              "gameId": "401756938",
+              "homeError": -0.7819325807978856,
+              "awayError": -29.462105859362076,
+              "week": 10
+            },
+            {
+              "gameId": "401757310",
+              "homeError": -28.551493322631885,
+              "awayError": -7.504225526882369,
+              "week": 14
+            },
+            {
+              "gameId": "401756960",
+              "homeError": -17.13573783890166,
+              "awayError": -28.410076932206437,
+              "week": 13
+            },
+            {
+              "gameId": "401757281",
+              "homeError": 27.559644235286868,
+              "awayError": -4.950245138306261,
+              "week": 8
+            },
+            {
+              "gameId": "401756936",
+              "homeError": 0.7661799043390296,
+              "awayError": 26.87581699292483,
+              "week": 10
+            }
+          ]
+        }
+      },
+      "buckets": [
+        {
+          "name": "week",
+          "buckets": [
+            {
+              "bucket": "week-10",
+              "count": 52,
+              "metrics": {
+                "homeMae": 9.841618720660266,
+                "homeRmse": 12.825380665844747,
+                "awayMae": 8.69243016658257,
+                "awayRmse": 11.564672119563735,
+                "marginMae": 14.316787419769883,
+                "marginRmse": 17.629986293601206,
+                "totalMae": 13.473016982672492,
+                "totalRmse": 16.90111369706481,
+                "brier": 0.21837745214969967,
+                "logLoss": 0.6221113590262004,
+                "count": 52
+              }
+            },
+            {
+              "bucket": "week-11",
+              "count": 51,
+              "metrics": {
+                "homeMae": 8.369579407229617,
+                "homeRmse": 10.161172206300849,
+                "awayMae": 7.881517028240853,
+                "awayRmse": 9.837866735302093,
+                "marginMae": 11.28997543757619,
+                "marginRmse": 14.375226676964386,
+                "totalMae": 10.636483734008648,
+                "totalRmse": 13.907513904405063,
+                "brier": 0.19459747123644455,
+                "logLoss": 0.5699034557385619,
+                "count": 51
+              }
+            },
+            {
+              "bucket": "week-12",
+              "count": 58,
+              "metrics": {
+                "homeMae": 9.365029886730628,
+                "homeRmse": 11.147730104608724,
+                "awayMae": 8.378273855157866,
+                "awayRmse": 10.640136523218898,
+                "marginMae": 13.384736027368199,
+                "marginRmse": 16.08164793397936,
+                "totalMae": 12.623349686001884,
+                "totalRmse": 14.70881991063219,
+                "brier": 0.15313858587547458,
+                "logLoss": 0.46864614575354513,
+                "count": 58
+              }
+            },
+            {
+              "bucket": "week-13",
+              "count": 60,
+              "metrics": {
+                "homeMae": 10.172261645417104,
+                "homeRmse": 12.281290983676259,
+                "awayMae": 9.813210585684569,
+                "awayRmse": 11.448357558920458,
+                "marginMae": 13.35120314091446,
+                "marginRmse": 16.386473945232936,
+                "totalMae": 14.17336181776691,
+                "totalRmse": 17.18352320356452,
+                "brier": 0.17267463934944144,
+                "logLoss": 0.5148002240750418,
+                "count": 60
+              }
+            },
+            {
+              "bucket": "week-14",
+              "count": 67,
+              "metrics": {
+                "homeMae": 9.698679936348256,
+                "homeRmse": 11.68144097991801,
+                "awayMae": 8.03315635942343,
+                "awayRmse": 9.967904403603908,
+                "marginMae": 12.045579172226892,
+                "marginRmse": 15.005971425625019,
+                "totalMae": 13.423687919235482,
+                "totalRmse": 15.69876379549401,
+                "brier": 0.1615266517525638,
+                "logLoss": 0.48892447182446386,
+                "count": 67
+              }
+            },
+            {
+              "bucket": "week-15",
+              "count": 9,
+              "metrics": {
+                "homeMae": 8.561652974338639,
+                "homeRmse": 10.23495283942774,
+                "awayMae": 7.784013785614342,
+                "awayRmse": 8.88872272779679,
+                "marginMae": 11.932987036187022,
+                "marginRmse": 13.290067392512318,
+                "totalMae": 11.979629356040132,
+                "totalRmse": 13.816707690922723,
+                "brier": 0.23544417176790886,
+                "logLoss": 0.6535510212176332,
+                "count": 9
+              }
+            },
+            {
+              "bucket": "week-16",
+              "count": 1,
+              "metrics": {
+                "homeMae": 8.426417592324288,
+                "homeRmse": 8.426417592324288,
+                "awayMae": 8.23317903054259,
+                "awayRmse": 8.23317903054259,
+                "marginMae": 0.19323856178169763,
+                "marginRmse": 0.19323856178169763,
+                "totalMae": 16.65959662286688,
+                "totalRmse": 16.65959662286688,
+                "brier": 0.22321471946927987,
+                "logLoss": 0.6395231001441897,
+                "count": 1
+              }
+            },
+            {
+              "bucket": "week-8",
+              "count": 59,
+              "metrics": {
+                "homeMae": 9.067224790558331,
+                "homeRmse": 11.818750829048822,
+                "awayMae": 7.57780430407647,
+                "awayRmse": 9.391564364730867,
+                "marginMae": 11.867318179521424,
+                "marginRmse": 14.878623292341748,
+                "totalMae": 12.18721538709567,
+                "totalRmse": 15.309973013582857,
+                "brier": 0.19259208640449318,
+                "logLoss": 0.5718766980103366,
+                "count": 59
+              }
+            },
+            {
+              "bucket": "week-9",
+              "count": 53,
+              "metrics": {
+                "homeMae": 8.367872814808589,
+                "homeRmse": 10.669197721441114,
+                "awayMae": 9.28516189916055,
+                "awayRmse": 11.454541488457085,
+                "marginMae": 11.563769661995263,
+                "marginRmse": 14.20898588641213,
+                "totalMae": 13.89568147750415,
+                "totalRmse": 16.975904144984998,
+                "brier": 0.16527427228400465,
+                "logLoss": 0.5049077745289762,
+                "count": 53
+              }
+            }
+          ]
+        },
+        {
+          "name": "earlyLate",
+          "buckets": [
+            {
+              "bucket": "late",
+              "count": 410,
+              "metrics": {
+                "homeMae": 9.282625676397423,
+                "homeRmse": 11.530185139642787,
+                "awayMae": 8.498563584442126,
+                "awayRmse": 10.582372882018044,
+                "marginMae": 12.500839176319078,
+                "marginRmse": 15.480162948634515,
+                "totalMae": 12.939009077926592,
+                "totalRmse": 15.818600615122184,
+                "brier": 0.18002337158123566,
+                "logLoss": 0.534791746210304,
+                "count": 410
+              }
+            }
+          ]
+        },
+        {
+          "name": "site",
+          "buckets": [
+            {
+              "bucket": "home",
+              "count": 396,
+              "metrics": {
+                "homeMae": 9.278902209673664,
+                "homeRmse": 11.549952516305323,
+                "awayMae": 8.467282558779594,
+                "awayRmse": 10.556278833966209,
+                "marginMae": 12.523463375691401,
+                "marginRmse": 15.525112920016982,
+                "totalMae": 12.882323708109501,
+                "totalRmse": 15.76844065592484,
+                "brier": 0.1782899809171256,
+                "logLoss": 0.530782667698109,
+                "count": 396
+              }
+            },
+            {
+              "bucket": "neutral",
+              "count": 14,
+              "metrics": {
+                "homeMae": 9.387946592298125,
+                "homeRmse": 10.956289114583264,
+                "awayMae": 9.383369738896622,
+                "awayRmse": 11.295522016880497,
+                "marginMae": 11.860897536930384,
+                "marginRmse": 14.14970082641667,
+                "totalMae": 14.542395252752803,
+                "totalRmse": 17.176849074124128,
+                "brier": 0.22905356465177887,
+                "logLoss": 0.6481913955552476,
+                "count": 14
+              }
+            }
+          ]
+        },
+        {
+          "name": "dataQuality",
+          "buckets": [
+            {
+              "bucket": "HIGH",
+              "count": 405,
+              "metrics": {
+                "homeMae": 9.252760934554061,
+                "homeRmse": 11.48586705177222,
+                "awayMae": 8.564790864718823,
+                "awayRmse": 10.640136572487076,
+                "marginMae": 12.497600366485027,
+                "marginRmse": 15.467195626971181,
+                "totalMae": 12.952110471408197,
+                "totalRmse": 15.844278331982537,
+                "brier": 0.17848558618380508,
+                "logLoss": 0.5311589342067685,
+                "count": 405
+              }
+            },
+            {
+              "bucket": "MEDIUM",
+              "count": 5,
+              "metrics": {
+                "homeMae": 11.701669765709832,
+                "homeRmse": 14.68221341127106,
+                "awayMae": 3.1341538820295485,
+                "awayRmse": 3.562230758734485,
+                "marginMae": 12.763182772877006,
+                "marginRmse": 16.496699595130938,
+                "totalMae": 11.877796205916335,
+                "totalRmse": 13.578389438117116,
+                "brier": 0.3045839887731185,
+                "logLoss": 0.8290495184966892,
+                "count": 5
+              }
+            }
+          ]
+        },
+        {
+          "name": "sample",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 342,
+              "metrics": {
+                "homeMae": 9.372377388906527,
+                "homeRmse": 11.515057292765379,
+                "awayMae": 8.597794091116839,
+                "awayRmse": 10.720595707871384,
+                "marginMae": 12.623454513282436,
+                "marginRmse": 15.638427180138434,
+                "totalMae": 12.971054057807919,
+                "totalRmse": 15.827034747738026,
+                "brier": 0.17790216562578828,
+                "logLoss": 0.5290411142810654,
+                "count": 342
+              }
+            },
+            {
+              "bucket": "6",
+              "count": 68,
+              "metrics": {
+                "homeMae": 8.831227357601682,
+                "homeRmse": 11.605970339518521,
+                "awayMae": 7.999492506754602,
+                "awayRmse": 9.857851115877931,
+                "marginMae": 11.884156158062204,
+                "marginRmse": 14.658301211183378,
+                "totalMae": 12.777841679111699,
+                "totalRmse": 15.776113523026478,
+                "brier": 0.19069178976892703,
+                "logLoss": 0.5637140420897113,
+                "count": 68
+              }
+            }
+          ]
+        },
+        {
+          "name": "probability",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 89,
+              "metrics": {
+                "homeMae": 8.343615246628428,
+                "homeRmse": 10.1114131936457,
+                "awayMae": 8.018863888131772,
+                "awayRmse": 10.1368064407472,
+                "marginMae": 11.36798987532128,
+                "marginRmse": 13.8918197259459,
+                "totalMae": 11.653830363419582,
+                "totalRmse": 14.73120456315208,
+                "brier": 0.05824671699427611,
+                "logLoss": 0.23680585261939446,
+                "count": 89
+              }
+            },
+            {
+              "bucket": "0.55",
+              "count": 62,
+              "metrics": {
+                "homeMae": 8.992296880509949,
+                "homeRmse": 11.251254619901157,
+                "awayMae": 9.00834077305672,
+                "awayRmse": 11.484613918664452,
+                "marginMae": 12.838490133651758,
+                "marginRmse": 15.634542888637485,
+                "totalMae": 13.3832517351974,
+                "totalRmse": 16.5086414773782,
+                "brier": 0.23831765327050616,
+                "logLoss": 0.6697505364763712,
+                "count": 62
+              }
+            },
+            {
+              "bucket": "0.6",
+              "count": 51,
+              "metrics": {
+                "homeMae": 9.97808177935536,
+                "homeRmse": 12.345120446479628,
+                "awayMae": 9.090371862814038,
+                "awayRmse": 10.911098527924864,
+                "marginMae": 14.129450128495169,
+                "marginRmse": 17.550561683331775,
+                "totalMae": 13.143813294651297,
+                "totalRmse": 15.325988530855472,
+                "brier": 0.26031414570790096,
+                "logLoss": 0.7140160187732313,
+                "count": 51
+              }
+            },
+            {
+              "bucket": "0.65",
+              "count": 61,
+              "metrics": {
+                "homeMae": 8.084816612081969,
+                "homeRmse": 10.150745606720271,
+                "awayMae": 8.423244094619935,
+                "awayRmse": 10.534273256193792,
+                "marginMae": 11.329697981316745,
+                "marginRmse": 14.29020214333429,
+                "totalMae": 12.109550510889123,
+                "totalRmse": 14.96018788383573,
+                "brier": 0.2410913391842075,
+                "logLoss": 0.6751238983540511,
+                "count": 61
+              }
+            },
+            {
+              "bucket": "0.7",
+              "count": 58,
+              "metrics": {
+                "homeMae": 9.866673186460762,
+                "homeRmse": 12.18123148631509,
+                "awayMae": 8.657793589310172,
+                "awayRmse": 10.333349759199043,
+                "marginMae": 12.774346864358767,
+                "marginRmse": 16.300105440749142,
+                "totalMae": 13.117089100798763,
+                "totalRmse": 15.640575378122326,
+                "brier": 0.17115473993588032,
+                "logLoss": 0.5296527543830781,
+                "count": 58
+              }
+            },
+            {
+              "bucket": "0.75",
+              "count": 54,
+              "metrics": {
+                "homeMae": 10.890452809583413,
+                "homeRmse": 13.315891617132536,
+                "awayMae": 8.506364834091027,
+                "awayRmse": 10.94724972914296,
+                "marginMae": 13.277301034256467,
+                "marginRmse": 16.242804841385887,
+                "totalMae": 14.97516062240204,
+                "totalRmse": 18.179157936151324,
+                "brier": 0.1913436784419027,
+                "logLoss": 0.5705354046089032,
+                "count": 54
+              }
+            },
+            {
+              "bucket": "0.8",
+              "count": 35,
+              "metrics": {
+                "homeMae": 9.81042523328714,
+                "homeRmse": 12.329519240079518,
+                "awayMae": 7.808356332908227,
+                "awayRmse": 9.390363009371054,
+                "marginMae": 12.800190505845318,
+                "marginRmse": 15.209918935127781,
+                "totalMae": 13.130694610738038,
+                "totalRmse": 15.78132726564378,
+                "brier": 0.16022295313032245,
+                "logLoss": 0.5010918697552118,
+                "count": 35
+              }
+            }
+          ]
+        },
+        {
+          "name": "margin",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 94,
+              "metrics": {
+                "homeMae": 8.22105946844725,
+                "homeRmse": 9.971368327069584,
+                "awayMae": 8.067530382673565,
+                "awayRmse": 10.178235751171156,
+                "marginMae": 11.535770216454065,
+                "marginRmse": 13.938420818732702,
+                "totalMae": 11.512504925909278,
+                "totalRmse": 14.55231128449804,
+                "brier": 0.0636457515094159,
+                "logLoss": 0.2507854243248211,
+                "count": 94
+              }
+            },
+            {
+              "bucket": "14",
+              "count": 135,
+              "metrics": {
+                "homeMae": 10.385590901314668,
+                "homeRmse": 12.815819635440231,
+                "awayMae": 8.49788471054883,
+                "awayRmse": 10.475571484302964,
+                "marginMae": 13.013022997573717,
+                "marginRmse": 16.126877670219752,
+                "totalMae": 14.094864027021341,
+                "totalRmse": 16.96730615953874,
+                "brier": 0.17716972546335083,
+                "logLoss": 0.5403656562076653,
+                "count": 135
+              }
+            },
+            {
+              "bucket": "3",
+              "count": 79,
+              "metrics": {
+                "homeMae": 8.625208407152604,
+                "homeRmse": 10.953918570356711,
+                "awayMae": 9.217445349387841,
+                "awayRmse": 11.387379759089029,
+                "marginMae": 12.705272235018764,
+                "marginRmse": 15.36753756292085,
+                "totalMae": 13.300209061933852,
+                "totalRmse": 16.222215905962077,
+                "brier": 0.24560336430157953,
+                "logLoss": 0.6843836742892332,
+                "count": 79
+              }
+            },
+            {
+              "bucket": "7",
+              "count": 102,
+              "metrics": {
+                "homeMae": 9.310300994572277,
+                "homeRmse": 11.50834532869699,
+                "awayMae": 8.339907795335524,
+                "awayRmse": 10.440187417161425,
+                "marginMae": 12.553990693188284,
+                "marginRmse": 16.033430750518207,
+                "totalMae": 12.444069601703696,
+                "totalRmse": 15.026914167197877,
+                "brier": 0.24025787244161204,
+                "logLoss": 0.6732854137530137,
+                "count": 102
+              }
+            }
+          ]
+        },
+        {
+          "name": "total",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 69,
+              "metrics": {
+                "homeMae": 8.853857433134358,
+                "homeRmse": 11.259712553218534,
+                "awayMae": 8.442427046194577,
+                "awayRmse": 10.106886006849436,
+                "marginMae": 12.510458787156534,
+                "marginRmse": 15.337206735152147,
+                "totalMae": 12.629764173112404,
+                "totalRmse": 14.920812063567977,
+                "brier": 0.17196453974119066,
+                "logLoss": 0.5192620752846061,
+                "count": 69
+              }
+            },
+            {
+              "bucket": "45",
+              "count": 28,
+              "metrics": {
+                "homeMae": 8.340931365230562,
+                "homeRmse": 10.327346432398274,
+                "awayMae": 9.179668338065136,
+                "awayRmse": 10.851956771930574,
+                "marginMae": 13.231008692019676,
+                "marginRmse": 15.660834198426274,
+                "totalMae": 11.639112188694664,
+                "totalRmse": 14.268019219171263,
+                "brier": 0.1524056250477213,
+                "logLoss": 0.47758441494769954,
+                "count": 28
+              }
+            },
+            {
+              "bucket": "52.5",
+              "count": 140,
+              "metrics": {
+                "homeMae": 9.081231404189682,
+                "homeRmse": 11.558262545172573,
+                "awayMae": 8.577378625973566,
+                "awayRmse": 11.040851753474621,
+                "marginMae": 12.333094770467131,
+                "marginRmse": 15.697065152220382,
+                "totalMae": 13.177911790935854,
+                "totalRmse": 16.266217342013903,
+                "brier": 0.1788667452399881,
+                "logLoss": 0.5339675852913122,
+                "count": 140
+              }
+            },
+            {
+              "bucket": "60",
+              "count": 173,
+              "metrics": {
+                "homeMae": 9.769028263720621,
+                "homeRmse": 11.795518571278656,
+                "awayMae": 8.346935736021514,
+                "awayRmse": 10.341773813902144,
+                "marginMae": 12.514571645867472,
+                "marginRmse": 15.330019023168141,
+                "totalMae": 13.07940579185363,
+                "totalRmse": 16.03632142094585,
+                "brier": 0.18864351023832365,
+                "logLoss": 0.5509116022674434,
+                "count": 173
+              }
+            }
+          ]
+        },
+        {
+          "name": "score",
+          "buckets": [
+            {
+              "bucket": "+",
+              "count": 24,
+              "metrics": {
+                "homeMae": 8.50126606477788,
+                "homeRmse": 10.353220487060065,
+                "awayMae": 8.913230685418807,
+                "awayRmse": 10.197257717175109,
+                "marginMae": 12.028369433251333,
+                "marginRmse": 15.33557369969481,
+                "totalMae": 11.358819218656071,
+                "totalRmse": 13.680886598081425,
+                "brier": 0.04914528133200819,
+                "logLoss": 0.20493653693163816,
+                "count": 24
+              }
+            },
+            {
+              "bucket": "30",
+              "count": 172,
+              "metrics": {
+                "homeMae": 9.001364436770784,
+                "homeRmse": 11.412544740932073,
+                "awayMae": 8.61972465045909,
+                "awayRmse": 10.80736458104506,
+                "marginMae": 12.265367564489253,
+                "marginRmse": 15.596459928386214,
+                "totalMae": 12.842558306624602,
+                "totalRmse": 15.837962337531001,
+                "brier": 0.21869347450383145,
+                "logLoss": 0.6272010140058935,
+                "count": 172
+              }
+            },
+            {
+              "bucket": "40",
+              "count": 214,
+              "metrics": {
+                "homeMae": 9.596315227307038,
+                "homeRmse": 11.74746676304679,
+                "awayMae": 8.354677071459138,
+                "awayRmse": 10.441077375006218,
+                "marginMae": 12.743083994395516,
+                "marginRmse": 15.402283482193008,
+                "totalMae": 13.193747812909939,
+                "totalRmse": 16.02522410868803,
+                "brier": 0.16362064477420304,
+                "logLoss": 0.4975119843497749,
+                "count": 214
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "calibration": {
+      "fittingCohort": "validation-only",
+      "candidates": [
+        {
+          "name": "identity",
+          "parameters": {},
+          "validation": {
+            "homeMae": 10.287789973117736,
+            "homeRmse": 12.874284947623016,
+            "awayMae": 8.978018169051618,
+            "awayRmse": 11.054095929130463,
+            "marginMae": 13.83860742671156,
+            "marginRmse": 17.73646710672768,
+            "totalMae": 12.883931882198755,
+            "totalRmse": 16.16472189732905,
+            "brier": 0.19505727325264602,
+            "logLoss": 0.5711985471751657,
+            "count": 398
+          },
+          "oos": {
+            "homeMae": 9.282625676397423,
+            "homeRmse": 11.530185139642787,
+            "awayMae": 8.498563584442126,
+            "awayRmse": 10.582372882018044,
+            "marginMae": 12.500839176319078,
+            "marginRmse": 15.480162948634515,
+            "totalMae": 12.939009077926592,
+            "totalRmse": 15.818600615122184,
+            "brier": 0.18002337158123566,
+            "logLoss": 0.534791746210304,
+            "count": 410
+          }
+        },
+        {
+          "name": "platt",
+          "parameters": {
+            "a": 1.2371498940755625,
+            "b": 0.19608020451549538
+          },
+          "validation": {
+            "homeMae": 10.287789973117736,
+            "homeRmse": 12.874284947623016,
+            "awayMae": 8.978018169051618,
+            "awayRmse": 11.054095929130463,
+            "marginMae": 13.83860742671156,
+            "marginRmse": 17.73646710672768,
+            "totalMae": 12.883931882198755,
+            "totalRmse": 16.16472189732905,
+            "brier": 0.19281546570710584,
+            "logLoss": 0.5621393279926119,
+            "count": 398
+          },
+          "oos": {
+            "homeMae": 9.282625676397423,
+            "homeRmse": 11.530185139642787,
+            "awayMae": 8.498563584442126,
+            "awayRmse": 10.582372882018044,
+            "marginMae": 12.500839176319078,
+            "marginRmse": 15.480162948634515,
+            "totalMae": 12.939009077926592,
+            "totalRmse": 15.818600615122184,
+            "brier": 0.1805856845142186,
+            "logLoss": 0.5340328161704948,
+            "count": 410
+          }
+        },
+        {
+          "name": "temperature",
+          "parameters": {
+            "temperature": 0.9
+          },
+          "validation": {
+            "homeMae": 10.287789973117736,
+            "homeRmse": 12.874284947623016,
+            "awayMae": 8.978018169051618,
+            "awayRmse": 11.054095929130463,
+            "marginMae": 13.83860742671156,
+            "marginRmse": 17.73646710672768,
+            "totalMae": 12.883931882198755,
+            "totalRmse": 16.16472189732905,
+            "brier": 0.19413147698532332,
+            "logLoss": 0.5678578324872012,
+            "count": 398
+          },
+          "oos": {
+            "homeMae": 9.282625676397423,
+            "homeRmse": 11.530185139642787,
+            "awayMae": 8.498563584442126,
+            "awayRmse": 10.582372882018044,
+            "marginMae": 12.500839176319078,
+            "marginRmse": 15.480162948634515,
+            "totalMae": 12.939009077926592,
+            "totalRmse": 15.818600615122184,
+            "brier": 0.17889879821110571,
+            "logLoss": 0.5307566041482181,
+            "count": 410
+          }
+        }
+      ],
+      "selected": "platt",
+      "decision": "validation-improved-oos-not-materially-degraded"
+    },
+    "integrity": {
+      "invalidPredictions": 0,
+      "queryFailures": 0,
+      "valid": true
+    },
+    "audit": {
+      "rows": 2398,
+      "sameGameLeakage": 0,
+      "futureGameLeakage": 0,
+      "futureSeasonLeakage": 0,
+      "postKickoffEvidence": 0,
+      "marketLeakage": 0,
+      "unresolvedLineage": 0,
+      "invalidReplayProof": 0
+    },
+    "gates": {
+      "frozenIdentity": true,
+      "pitAndMarket": true,
+      "canonicalOos": true,
+      "probabilityIntegrity": true,
+      "queryIntegrity": true,
+      "pass": true
+    }
+  },
+  "prospective": {
+    "bridgeVersion": "ncaaf-v4-2026-feature-bridge-v1",
+    "bridgeAssessedAt": "2026-09-04T13:40:00.000Z",
+    "frozenPredictions": 656,
+    "eligibleInputs": 656,
+    "audit": {
+      "snapshotsSeen": 35976,
+      "targetsAssessed": 779,
+      "eligibleSnapshots": 656,
+      "modelEligibleFbsVsFbsTargets": 656,
+      "outOfDomainTargets": 123,
+      "identityResolvedTargets": 656,
+      "identityUnresolvedTargets": 0,
+      "targetUniverse": {
+        "MODEL_ELIGIBLE_FBS_VS_FBS": 656,
+        "OUT_OF_DOMAIN_FBS_VS_FCS": 122,
+        "OUT_OF_DOMAIN_OTHER": 1
+      },
+      "ambiguousIdentitiesAccepted": 0,
+      "fuzzyIdentitiesAccepted": 0,
+      "postCutoffIdentityViolations": 0,
+      "sameGameLeakage": 0,
+      "futureGameLeakage": 0,
+      "futureSeasonLeakage": 0,
+      "postKickoffEvidence": 0,
+      "marketLeakage": 0,
+      "marketShapedSnapshotsRejected": 0,
+      "excludedCompletedEvidence": {
+        "not_completed_fbs_atomic": 2250080,
+        "outside_cutoff_or_season": 6093318
+      }
+    },
+    "grading": {
+      "version": "ncaaf-v4-prospective-evaluation-v1",
+      "evaluatedAt": "2026-09-04T14:00:00.000Z",
+      "cohorts": {
+        "PREGAME_FROZEN_PENDING": 656,
+        "PREGAME_FROZEN_GRADED": 0,
+        "INVALID_AFTER_CUTOFF": 0,
+        "OUT_OF_DOMAIN": 123
+      },
+      "metrics": null,
+      "evidenceClassification": "INCONCLUSIVE"
+    },
+    "invalidProbabilityOutputs": 0,
+    "incumbentComparison": {
+      "sampleCount": 0,
+      "status": "UNAVAILABLE_NO_COMPARABLE_V4_MODEL_PREDICTION_ROWS"
+    },
+    "marketComparisonSandbox": {
+      "sampleCount": 0,
+      "status": "NOT_EVALUATED_NO_GRADED_PROSPECTIVE_GAMES"
+    },
+    "clvEvaluation": {
+      "sampleCount": 0,
+      "status": "NOT_AVAILABLE_AND_NOT_USED"
+    }
+  },
+  "recommendation": {
+    "calibration": {
+      "selectedHistoricalCandidate": "platt",
+      "applied": "identity",
+      "decision": "NO_CHANGE_PENDING_PROSPECTIVE_EVIDENCE"
+    },
+    "approvalState": "SHADOW_RECOMMENDED_NOT_APPLIED",
+    "maturity": "DEVELOPING",
+    "productionApprovalReady": false,
+    "blocker": "No frozen 2026 games have completed; prospective performance sample is 0.",
+    "championChanged": false,
+    "publicationChanged": false
+  }
+}
