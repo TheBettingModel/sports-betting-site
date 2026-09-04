@@ -204,3 +204,17 @@ mtime_ms = 1788528230203
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/a6498c14-d2c7-406f-84e8-a21058f56b3a/2d19e9e9-97ad-432f-9def-e687a1b3d34a"
 storage_version_token = "1788528278426695"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "Qq9roczUwM3jBzayAgrWA"
+uri = "file://reports/ncaaf-v4-distinct-challenger-2026-09-04.md"
+type = "text"
+title = "#222B NCAAF V4 Distinct Challenger Report"
+description = "Final validation-only challenger comparison and 2026 feature-bridge audit, with exact decision C and one remaining identity-mapping blocker."
+logical_id = "8044ac92-c155-44ad-95e8-f4864e963589"
+content_hash = "sha256:ec7d3f37fc5978ba7cc526121abd04f8db24e01ab5f51a3aaf1cf25d97a37805"
+size = 35651
+mtime_ms = 1788529107551
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/8044ac92-c155-44ad-95e8-f4864e963589/38f35281-e98a-4ebb-a772-22407b3e859b"
+storage_version_token = "1788529162089242"
+content_type = "text/markdown"

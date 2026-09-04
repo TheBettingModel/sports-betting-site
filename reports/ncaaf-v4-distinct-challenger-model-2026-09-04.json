@@ -1,0 +1,354 @@
+{
+  "identity": {
+    "modelId": "tbm-ncaaf-v4-distinct-expanded-ridge-huber",
+    "approval": "UNVALIDATED",
+    "champion": false,
+    "publication": false,
+    "oosUntouchedDuringSelection": true,
+    "datasetVersion": "ncaaf-v4-training-foundation-v2",
+    "selectedChallenger": {
+      "name": "expanded-ridge-k4-r36",
+      "family": "expanded-ridge",
+      "k": 4,
+      "ridge": 36
+    },
+    "configurationHash": "a29ca7880a89718102c9b25ae0493350f47c9e8e01e3660866492e2ada83b719",
+    "parameterHash": "8f0b5caff9271d06845f053236cc10b73f557c34653b5ee696ebf31dcc738240",
+    "calibration": {
+      "kind": "platt",
+      "a": 1.0868377443226718,
+      "b": 0.1959732418753627
+    }
+  },
+  "canonicalBaselineD": {
+    "artifact": "reports/ncaaf-v4-expected-score-engine-2026-09-04-v5.json",
+    "definition": "D-simple-expected-score-linear; unregularized 9-feature score regressions",
+    "configurationHash": "212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86",
+    "parameterHash": "792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81",
+    "probabilityReconciliation": "baseline table fixed normal margin sigma=14; final V4 derives training margin RMSE and applies declared sample/missing uncertainty multiplier",
+    "oos": {
+      "homeMae": 9.282625676397423,
+      "awayMae": 8.498563584442126,
+      "marginMae": 12.500839176319078,
+      "totalMae": 12.939009077926592,
+      "brier": 0.18002337158123566,
+      "logLoss": 0.534791746210304,
+      "count": 410
+    },
+    "tableProbabilityMetrics": {
+      "brier": 0.17828391985262818,
+      "logLoss": 0.5279580658139891
+    }
+  },
+  "predeclaredValidationScorecard": {
+    "primary": [
+      "marginMae",
+      "brier",
+      "logLoss"
+    ],
+    "secondary": [
+      "homeMae",
+      "awayMae",
+      "totalMae",
+      "stability"
+    ],
+    "selection": "validation only; OOS unavailable until frozen configuration"
+  },
+  "split": {
+    "training": 1590,
+    "validation": 398,
+    "oos": 410,
+    "checksum": "7cee52d5188179d81a177aa55b9ac54e06211f11ed8a5b0d29b032ff94095abc"
+  },
+  "candidates": [
+    {
+      "name": "expanded-ridge-k2-r36",
+      "family": "expanded-ridge",
+      "k": 2,
+      "ridge": 36,
+      "validation": {
+        "homeMae": 10.29358722770703,
+        "homeRmse": 12.86541605226529,
+        "awayMae": 8.886641471724483,
+        "awayRmse": 10.997753124447216,
+        "marginMae": 13.732276434385625,
+        "marginRmse": 17.707737214011924,
+        "totalMae": 12.884946852626554,
+        "totalRmse": 16.105124983304062,
+        "brier": 0.19373372664928426,
+        "logLoss": 0.5683743964134286,
+        "count": 398
+      }
+    },
+    {
+      "name": "expanded-huber-irls-k2-r12",
+      "family": "expanded-huber-irls",
+      "k": 2,
+      "ridge": 12,
+      "validation": {
+        "homeMae": 10.302191143707773,
+        "homeRmse": 12.902361376121315,
+        "awayMae": 8.828333310486581,
+        "awayRmse": 10.96641858167649,
+        "marginMae": 13.763949639079238,
+        "marginRmse": 17.749393688401334,
+        "totalMae": 12.855304682875671,
+        "totalRmse": 16.07561989073118,
+        "brier": 0.19426242631184903,
+        "logLoss": 0.5696671320123018,
+        "count": 398
+      }
+    },
+    {
+      "name": "expanded-ridge-k4-r36",
+      "family": "expanded-ridge",
+      "k": 4,
+      "ridge": 36,
+      "validation": {
+        "homeMae": 10.173995855090713,
+        "homeRmse": 12.748805783980746,
+        "awayMae": 8.908623935263115,
+        "awayRmse": 11.015002858771952,
+        "marginMae": 13.661092909892131,
+        "marginRmse": 17.570126029477628,
+        "totalMae": 12.868485398253576,
+        "totalRmse": 16.093953681463816,
+        "brier": 0.19275045924571368,
+        "logLoss": 0.5657109655116221,
+        "count": 398
+      }
+    },
+    {
+      "name": "expanded-huber-irls-k4-r12",
+      "family": "expanded-huber-irls",
+      "k": 4,
+      "ridge": 12,
+      "validation": {
+        "homeMae": 10.172755299512206,
+        "homeRmse": 12.777955850370397,
+        "awayMae": 8.841480224511956,
+        "awayRmse": 10.978374692777257,
+        "marginMae": 13.691606445216948,
+        "marginRmse": 17.603401461890485,
+        "totalMae": 12.83504284255029,
+        "totalRmse": 16.05372200424458,
+        "brier": 0.19325551198194396,
+        "logLoss": 0.5668838801113759,
+        "count": 398
+      }
+    },
+    {
+      "name": "expanded-ridge-k8-r36",
+      "family": "expanded-ridge",
+      "k": 8,
+      "ridge": 36,
+      "validation": {
+        "homeMae": 10.125810946081511,
+        "homeRmse": 12.7191558695765,
+        "awayMae": 8.965610753170356,
+        "awayRmse": 11.073055756629007,
+        "marginMae": 13.701036630374555,
+        "marginRmse": 17.582897258951686,
+        "totalMae": 12.901260409949701,
+        "totalRmse": 16.112749722786102,
+        "brier": 0.19321727923489676,
+        "logLoss": 0.5666775004973885,
+        "count": 398
+      }
+    },
+    {
+      "name": "expanded-huber-irls-k8-r12",
+      "family": "expanded-huber-irls",
+      "k": 8,
+      "ridge": 12,
+      "validation": {
+        "homeMae": 10.114548393540952,
+        "homeRmse": 12.740086538700675,
+        "awayMae": 8.89255563421127,
+        "awayRmse": 11.02821733084047,
+        "marginMae": 13.712638794490143,
+        "marginRmse": 17.60424709407289,
+        "totalMae": 12.856006298353224,
+        "totalRmse": 16.06092305163345,
+        "brier": 0.19360890120753455,
+        "logLoss": 0.5675291272475232,
+        "count": 398
+      }
+    }
+  ],
+  "validation": {
+    "raw": {
+      "homeMae": 10.173995855090713,
+      "homeRmse": 12.748805783980746,
+      "awayMae": 8.908623935263115,
+      "awayRmse": 11.015002858771952,
+      "marginMae": 13.661092909892131,
+      "marginRmse": 17.570126029477628,
+      "totalMae": 12.868485398253576,
+      "totalRmse": 16.093953681463816,
+      "brier": 0.19275045924571368,
+      "logLoss": 0.5657109655116221,
+      "count": 398
+    },
+    "calibrated": {
+      "homeMae": 10.173995855090713,
+      "homeRmse": 12.748805783980746,
+      "awayMae": 8.908623935263115,
+      "awayRmse": 11.015002858771952,
+      "marginMae": 13.661092909892131,
+      "marginRmse": 17.570126029477628,
+      "totalMae": 12.868485398253576,
+      "totalRmse": 16.093953681463816,
+      "brier": 0.19126769898192322,
+      "logLoss": 0.5606419516252674,
+      "count": 398
+    }
+  },
+  "oos": {
+    "raw": {
+      "homeMae": 9.256928825594951,
+      "homeRmse": 11.543541616655926,
+      "awayMae": 8.562762215590075,
+      "awayRmse": 10.649625838252602,
+      "marginMae": 12.477528239789445,
+      "marginRmse": 15.522039439325932,
+      "totalMae": 13.045405236693718,
+      "totalRmse": 15.887166479410356,
+      "brier": 0.18151327646693538,
+      "logLoss": 0.5375745864791811,
+      "count": 410
+    },
+    "calibrated": {
+      "homeMae": 9.256928825594951,
+      "homeRmse": 11.543541616655926,
+      "awayMae": 8.562762215590075,
+      "awayRmse": 10.649625838252602,
+      "marginMae": 12.477528239789445,
+      "marginRmse": 15.522039439325932,
+      "totalMae": 13.045405236693718,
+      "totalRmse": 15.887166479410356,
+      "brier": 0.18264045123691613,
+      "logLoss": 0.5392105045033949,
+      "count": 410
+    },
+    "selected": {
+      "homeMae": 9.256928825594951,
+      "homeRmse": 11.543541616655926,
+      "awayMae": 8.562762215590075,
+      "awayRmse": 10.649625838252602,
+      "marginMae": 12.477528239789445,
+      "marginRmse": 15.522039439325932,
+      "totalMae": 13.045405236693718,
+      "totalRmse": 15.887166479410356,
+      "brier": 0.18264045123691613,
+      "logLoss": 0.5392105045033949,
+      "count": 410
+    },
+    "deltas": {
+      "raw": {
+        "homeMae": {
+          "absolute": -0.02569685080247197,
+          "percent": -0.27682739451414456
+        },
+        "awayMae": {
+          "absolute": 0.06419863114794921,
+          "percent": 0.7554056695589627
+        },
+        "marginMae": {
+          "absolute": -0.023310936529632897,
+          "percent": -0.1864749734065205
+        },
+        "totalMae": {
+          "absolute": 0.10639615876712583,
+          "percent": 0.8222898533136763
+        },
+        "brier": {
+          "absolute": 0.0014899048856997221,
+          "percent": 0.8276174768937719
+        },
+        "logLoss": {
+          "absolute": 0.002782840268877096,
+          "percent": 0.5203596144849174
+        }
+      },
+      "calibrated": {
+        "homeMae": {
+          "absolute": -0.02569685080247197,
+          "percent": -0.27682739451414456
+        },
+        "awayMae": {
+          "absolute": 0.06419863114794921,
+          "percent": 0.7554056695589627
+        },
+        "marginMae": {
+          "absolute": -0.023310936529632897,
+          "percent": -0.1864749734065205
+        },
+        "totalMae": {
+          "absolute": 0.10639615876712583,
+          "percent": 0.8222898533136763
+        },
+        "brier": {
+          "absolute": 0.0026170796556804765,
+          "percent": 1.453744384794792
+        },
+        "logLoss": {
+          "absolute": 0.0044187582930909075,
+          "percent": 0.8262577581654101
+        }
+      },
+      "selected": {
+        "homeMae": {
+          "absolute": -0.02569685080247197,
+          "percent": -0.27682739451414456
+        },
+        "awayMae": {
+          "absolute": 0.06419863114794921,
+          "percent": 0.7554056695589627
+        },
+        "marginMae": {
+          "absolute": -0.023310936529632897,
+          "percent": -0.1864749734065205
+        },
+        "totalMae": {
+          "absolute": 0.10639615876712583,
+          "percent": 0.8222898533136763
+        },
+        "brier": {
+          "absolute": 0.0026170796556804765,
+          "percent": 1.453744384794792
+        },
+        "logLoss": {
+          "absolute": 0.0044187582930909075,
+          "percent": 0.8262577581654101
+        }
+      }
+    }
+  },
+  "bootstrap": {
+    "replicates": 1000,
+    "probabilityImproves": 0.616,
+    "classification": "INCONCLUSIVE"
+  },
+  "audits": {
+    "rows": 2398,
+    "sameGameLeakage": 0,
+    "futureGameLeakage": 0,
+    "futureSeasonLeakage": 0,
+    "postKickoffEvidence": 0,
+    "marketLeakage": 0,
+    "unresolvedLineage": 0,
+    "invalidReplayProof": 0
+  },
+  "featureBridge2026": {
+    "status": "PENDING_SEPARATE_AUDIT",
+    "predictions": null
+  },
+  "registry": {
+    "approval": "UNVALIDATED",
+    "championChanged": false,
+    "publicationChanged": false,
+    "nflChanged": false
+  },
+  "finalDecision": "C. #222B PARTIAL — ONE SPECIFIC MODEL OR 2026 COMPATIBILITY BLOCKER REMAINS"
+}
