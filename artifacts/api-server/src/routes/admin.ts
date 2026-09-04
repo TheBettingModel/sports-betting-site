@@ -114,6 +114,10 @@ import {
   NCAAF_PROVIDER_CAPABILITIES,
   getNcaafReadinessBlockers,
 } from "../services/ncaafProviderCapabilities";
+import {
+  parseNcaafV2CoreBackfillCursor,
+  runNcaafV2CoreBackfill,
+} from "../services/ncaafV2CoreBackfill";
 
 const router: IRouter = Router();
 
@@ -268,6 +272,26 @@ router.delete("/admin/session", (req, res): void => {
 });
 
 router.use("/admin", requireMasterKey);
+
+/**
+ * Manual, bounded historical foundation backfill. This route intentionally does
+ * not use scheduler jobs or the live NCAAF execution lock.
+ */
+router.post("/admin/ncaaf/core-backfill", async (req, res): Promise<void> => {
+  try {
+    const cursor = parseNcaafV2CoreBackfillCursor(req.body?.cursor);
+    const dryRun = req.body?.dryRun;
+    if (dryRun !== undefined && typeof dryRun !== "boolean") {
+      res.status(400).json({ error: "dryRun must be a boolean" });
+      return;
+    }
+    const result = await runNcaafV2CoreBackfill({ cursor, dryRun });
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "NCAAF core backfill failed";
+    res.status(/cursor|dryRun/i.test(message) ? 400 : 500).json({ error: message });
+  }
+});
 
 /**
  * Read-only evidence and validation readiness for the isolated NCAAF

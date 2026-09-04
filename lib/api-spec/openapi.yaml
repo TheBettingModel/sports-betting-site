@@ -20,6 +20,8 @@ tags:
     description: Device push token and preference management
   - name: chat
     description: Subscriber community chat
+  - name: admin
+    description: Internal administrator operations
 paths:
   /healthz:
     get:
@@ -161,6 +163,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/NcaafReadiness"
         "401": { description: Administrator credentials required }
+
+  /admin/ncaaf/core-backfill:
+    post:
+      operationId: runAdminNcaafCoreBackfill
+      tags: [admin]
+      summary: Manually backfill CFBD core games and materialize NCAAF v2 training rows
+      description: >-
+        Internal, master-admin-only operation. It sequentially captures the 2023,
+        2024, and 2025 CFBD games aggregates and materializes bounded 500-row
+        training batches. It is manual-only, idempotent, and does not acquire the
+        live NCAAF lock. A returned nextCursor must be supplied to resume after
+        the per-request materialization cap.
+      security: [{ masterApiKey: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NcaafCoreBackfillRequest"
+      responses:
+        "200":
+          description: Aggregate counts and replay audit; provider payloads are never returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NcaafCoreBackfillResult"
+        "400": { description: Invalid cursor or dryRun value }
+        "401": { description: Master administrator credentials required }
+        "503": { description: Master administrator authentication is not configured }
 
   /admin/ncaaf-readiness/{eventId}:
     get:
@@ -679,7 +710,63 @@ paths:
           description: Unauthorized
 
 components:
+  securitySchemes:
+    masterApiKey:
+      type: apiKey
+      in: header
+      name: X-Master-Key
+      description: Internal master key. An authenticated admin session token is also accepted by the server.
   schemas:
+    NcaafV2TrainingCursor:
+      type: object
+      required: [version, offset]
+      properties:
+        version:
+          type: string
+          enum: [ncaaf-v4-training-foundation-v2-cursor-v1]
+        offset: { type: integer, minimum: 0 }
+    NcaafCoreBackfillRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        dryRun: { type: boolean, default: false }
+        cursor:
+          oneOf:
+            - $ref: "#/components/schemas/NcaafV2TrainingCursor"
+            - type: "null"
+    NcaafCoreBackfillResult:
+      type: object
+      required: [manualOnly, dryRun, seasons, cfbd, materialization]
+      properties:
+        manualOnly: { type: boolean, const: true }
+        dryRun: { type: boolean }
+        seasons:
+          type: array
+          items: { type: integer, enum: [2023, 2024, 2025] }
+        cfbd:
+          type: object
+          required: [requested, rawInserted, gamesInserted, malformed]
+          properties:
+            requested: { type: integer, minimum: 0 }
+            rawInserted: { type: integer, minimum: 0 }
+            gamesInserted: { type: integer, minimum: 0 }
+            malformed: { type: integer, minimum: 0 }
+        materialization:
+          type: object
+          required: [invocations, attempted, inserted, alreadyMaterialized, totalEligible, nextCursor, audit]
+          properties:
+            invocations: { type: integer, minimum: 0 }
+            attempted: { type: integer, minimum: 0 }
+            inserted: { type: integer, minimum: 0 }
+            alreadyMaterialized: { type: integer, minimum: 0 }
+            totalEligible: { type: [integer, "null"], minimum: 0 }
+            nextCursor:
+              oneOf:
+                - $ref: "#/components/schemas/NcaafV2TrainingCursor"
+                - type: "null"
+            audit:
+              type: [object, "null"]
+              additionalProperties: true
     ApprovalLayerResultInput:
       type: object
       required: [status, reasons, metrics]

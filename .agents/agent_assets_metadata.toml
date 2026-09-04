@@ -176,3 +176,17 @@ mtime_ms = 1788467183584
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1c38c5e2-535b-42b0-9f96-a03909d6f49c/cdccc4b5-a617-4c89-8864-5342c630a7a3"
 storage_version_token = "1788467193983548"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "uxAmjBcQqCQ_w_hpfKMXy"
+uri = "file://reports/ncaaf-historical-atomic-replay-2026-09-04.md"
+type = "text"
+title = "NCAAF Historical Atomic Replay Report"
+description = "Development-complete #221I audit with source classifications, 2,398-row replay results, leakage checks, readiness matrix, and explicit production-pending gate."
+logical_id = "1fea1e14-4402-4a27-be65-e11c889205df"
+content_hash = "sha256:4956ce3a3a145cd2feb7b8f93f887ad120079ad0be34dbdce962a15abab14f2a"
+size = 9425
+mtime_ms = 1788491694697
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1fea1e14-4402-4a27-be65-e11c889205df/d2e02a99-78bb-4e2c-b2ac-ef4a50a205ab"
+storage_version_token = "1788491894129047"
+content_type = "text/markdown"

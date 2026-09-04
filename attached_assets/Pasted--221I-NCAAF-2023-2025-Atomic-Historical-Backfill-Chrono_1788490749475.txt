@@ -1,0 +1,1203 @@
+#221I — NCAAF 2023–2025 Atomic Historical Backfill & Chronological PIT Replay
+
+AUTHORITATIVE STARTING STATE
+
+#216 is COMPLETE.
+
+Final production verification:
+
+A. #216 COMPLETE — FIREWALL AND PRODUCTION SNAPSHOT PATH VERIFIED
+
+Latest verified production run:
+- Run 236
+- 783 games
+- 7,270 market observations
+- 6,162 matched markets
+- 1,108 unmatched markets
+- 30 team-performance rows
+- 18 new V2 snapshots
+- 18 new CFBD-enriched snapshots
+- V2 total = 679
+- CFBD-enriched total = 667
+- no provider errors
+- no market-firewall errors
+- no prohibited market-shaped fields
+- run finalized normally as PARTIAL
+- current advisory locks = 0
+- current RUNNING evidence runs = 0
+- current stale RUNNING runs = 0
+
+The live NCAAF snapshot pipeline is therefore considered operational.
+
+DO NOT reopen #216.
+
+============================================================
+CURRENT NCAAF V4 BLOCKER
+============================================================
+
+The remaining major blocker is:
+
+TOTAL PIT-SAFE HISTORICAL TRAINING GAMES = 0
+
+Previous #221H production verification found:
+
+HISTORICAL_PIT_FOUNDATION_READY = FALSE
+DATA_PIPELINE_READY = FALSE
+V4_BUILD_READY = FALSE
+V4_VALIDATION_READY = FALSE
+
+The previous historical materializer had only:
+- 100 input games
+- source evidence primarily from 2026
+- 0 eligible historical training rows
+
+This does NOT yet prove historical NCAAF pregame states cannot be reconstructed.
+
+The next task must determine whether 2023–2025 atomic historical football evidence can be ingested and chronologically replayed to construct legitimate pregame feature states.
+
+============================================================
+CRITICAL RULE
+============================================================
+
+DO NOT begin #222.
+
+DO NOT train NCAAF V4.
+
+DO NOT create V4 weights.
+
+DO NOT generate V4 predictions.
+
+DO NOT promote any model.
+
+DO NOT enable NCAAF public wagers.
+
+DO NOT modify NFL.
+
+DO NOT modify MLB.
+
+DO NOT modify any other sport.
+
+DO NOT weaken PIT protections.
+
+DO NOT relabel retrospectively captured aggregate values as historical pregame snapshots.
+
+DO NOT use sportsbook information as sports-model features.
+
+============================================================
+CORE PRINCIPLE
+============================================================
+
+We do NOT require TBM to have physically captured a database snapshot in 2024 in order for every historical feature to be PIT-safe.
+
+A feature may legitimately be reconstructed if it can be deterministically derived from atomic events that occurred BEFORE the historical target game's kickoff.
+
+Example:
+
+For a 2024 Week 8 game:
+
+VALID:
+derive season-to-date offense using completed Weeks 1–7.
+
+INVALID:
+use final 2024 season offense.
+
+VALID:
+calculate pregame Elo by sequentially updating ratings after Weeks 1–7.
+
+INVALID:
+use an Elo/rating calculated using Week 8 or future results.
+
+VALID:
+derive QB historical performance from prior games.
+
+INVALID:
+use target-game QB statistics.
+
+The historical replay engine must behave as though it is moving through history one game at a time.
+
+============================================================
+PRIMARY OBJECTIVE
+============================================================
+
+Build a legitimate multi-season NCAAF PIT-safe historical foundation from:
+
+2023
+2024
+2025
+
+and integrate 2026 prospective evidence where appropriate.
+
+Target outcome:
+
+A versioned market-free training artifact containing one frozen PRE-GAME sports feature state per eligible historical game.
+
+Suggested artifact:
+
+ncaaf-v4-training-foundation-v2
+
+or equivalent versioned implementation.
+
+============================================================
+PHASE 1 — HISTORICAL CFBD SOURCE AUDIT
+============================================================
+
+Before large ingestion, audit what CFBD can actually return historically for:
+
+2023
+2024
+2025
+
+Check:
+
+games
+teams
+conferences
+venues
+team game stats
+team season stats
+advanced team stats
+plays / play-by-play
+player game stats
+player season stats
+rosters
+SP+
+SRS
+Elo if provider supplies it
+FPI
+recruiting
+talent
+returning production
+coaches
+transfers
+
+For each domain report:
+
+2023 availability
+2024 availability
+2025 availability
+row/item count
+team coverage
+game coverage
+temporal semantics
+PIT classification
+
+Classify:
+
+A = inherently known/effective before target game
+
+B = safely reconstructable from prior atomic events
+
+C = historical value exists but exact historical pregame state cannot be proven
+
+D = unsafe / future leakage
+
+Do not perform enormous backfills for C/D domains merely because the endpoint exists.
+
+============================================================
+PHASE 2 — PRIORITIZE CORE ATOMIC DATA
+============================================================
+
+Prioritize data that can directly unlock V4.
+
+Highest priority:
+
+1. games/schedules/results
+2. canonical team identity
+3. team game statistics
+4. play-by-play
+5. player/QB game statistics
+6. rosters where historically meaningful
+7. venue/home/away/neutral
+8. prior-season completed performance
+9. chronologically reconstructable ratings
+
+Secondary:
+
+SP+
+FPI
+SRS
+talent
+recruiting
+returning production
+coaching
+
+Research-only unless chronology is defensible:
+
+transfers
+retrospective aggregates
+historical observed weather presented as forecast
+ratings whose effective historical week cannot be proven
+
+Do not let optional domains prevent the core backfill.
+
+============================================================
+PHASE 3 — INGEST 2023–2025 GAMES
+============================================================
+
+Ingest the complete practical historical game universe for:
+
+2023
+2024
+2025
+
+Prioritize:
+
+FBS vs FBS
+
+Then optionally:
+
+FBS vs FCS
+
+when identity and evidence are sufficiently reliable.
+
+Store:
+
+provider game ID
+canonical game ID
+season
+week
+season type
+kickoff
+home team
+away team
+neutral site
+venue
+completed result
+home score
+away score
+
+Results are TARGET information.
+
+They must not enter the pregame feature state.
+
+============================================================
+PHASE 4 — HISTORICAL TEAM MAPPING
+============================================================
+
+Extend deterministic canonical mapping for teams required by the 2023–2025 FBS training universe.
+
+Allowed mapping methods remain:
+
+EXACT_PROVIDER_ID
+EXACT_CANONICAL_SCHOOL
+EXACT_NORMALIZED_SCHOOL
+EXPLICIT_ALIAS
+MANUAL_VERIFIED
+
+Do NOT introduce fuzzy matching.
+
+Report separately:
+
+2023 FBS coverage
+2024 FBS coverage
+2025 FBS coverage
+
+Do not require obsolete/FCS identities unrelated to the usable FBS cohort.
+
+============================================================
+PHASE 5 — TEAM GAME STATISTICS
+============================================================
+
+Capture historical game-level team statistics.
+
+Prefer atomic game-specific rows over retrospective season aggregates.
+
+Potential fields:
+
+points
+plays
+yards
+yards/play
+pass attempts
+completions
+passing yards
+passing TD
+interceptions
+rush attempts
+rushing yards
+rushing TD
+turnovers
+first downs
+penalties
+third-down performance
+fourth-down performance
+possession
+sacks
+TFL
+havoc components where legitimate
+
+Preserve raw provider evidence and normalized evidence separately.
+
+============================================================
+PHASE 6 — PLAY-BY-PLAY
+============================================================
+
+Where historical PBP is available, ingest it in bounded batches.
+
+Potential derivable metrics:
+
+EPA/PPA
+success rate
+explosiveness
+drive efficiency
+early-down efficiency
+passing efficiency
+rushing efficiency
+havoc
+pace
+garbage-time filtering
+
+Do NOT block the entire training foundation if PBP coverage is incomplete.
+
+Report exact coverage.
+
+============================================================
+PHASE 7 — PLAYER / QB GAME EVIDENCE
+============================================================
+
+Capture historical player-game statistics.
+
+Build stable provider-native player identity.
+
+For QBs, derive only from games occurring before target cutoff:
+
+attempts
+completions
+yards
+YPA
+TD
+INT
+rushing
+games played
+recent form
+season performance
+career experience where legitimate
+
+Do NOT infer confirmed pregame starter merely from who ultimately played.
+
+Historical QB performance and confirmed pregame starter are different concepts.
+
+============================================================
+PHASE 8 — CHRONOLOGICAL REPLAY ENGINE
+============================================================
+
+Build a deterministic replay engine.
+
+For each season:
+
+sort games chronologically by kickoff.
+
+For every target game G at time T:
+
+1. Freeze cutoff = T.
+2. Load ONLY evidence with effective event time < T.
+3. Construct home pregame state.
+4. Construct away pregame state.
+5. Freeze feature snapshot.
+6. Only AFTER snapshot is frozen attach target result.
+7. Advance timeline.
+8. Add target game's completed atomic statistics to state for FUTURE games.
+
+This ordering is mandatory.
+
+============================================================
+PHASE 9 — SEASON-TO-DATE OFFENSE
+============================================================
+
+For each target game reconstruct available pregame offense:
+
+games played
+points/game
+yards/play
+passing efficiency
+rushing efficiency
+turnover rate
+success rate where available
+PPA/EPA-style efficiency where legitimate
+explosiveness where available
+pace
+drive efficiency
+
+Every value must use only previous games.
+
+============================================================
+PHASE 10 — SEASON-TO-DATE DEFENSE
+============================================================
+
+Reconstruct:
+
+points allowed
+yards/play allowed
+pass efficiency allowed
+rush efficiency allowed
+takeaway rate
+success rate allowed
+PPA allowed
+explosiveness allowed
+havoc
+drive defense
+
+Only where underlying historical data supports it.
+
+============================================================
+PHASE 11 — ROLLING FORM
+============================================================
+
+Create PIT-safe rolling state where sample permits:
+
+last 3
+last 5
+season to date
+
+Do not use future games.
+
+Do not require five games if fewer existed.
+
+Store sample count with each rolling feature.
+
+============================================================
+PHASE 12 — PRIOR-SEASON STATE
+============================================================
+
+Completed previous-season information is legitimately known before the next season.
+
+Construct prior-season features such as:
+
+prior offense
+prior defense
+prior scoring margin
+prior efficiency
+prior record
+prior opponent-adjusted strength
+
+Classify these explicitly as:
+
+KNOWN_BEFORE_SEASON
+
+These will be especially important early in the season.
+
+============================================================
+PHASE 13 — PRE-GAME ELO
+============================================================
+
+Implement or materialize a TBM chronological NCAAF Elo if needed.
+
+For each game:
+
+PRE_GAME_ELO
+→ game result
+→ POST_GAME_ELO
+
+The target game's result must never affect its PRE_GAME_ELO.
+
+Store:
+
+rating version
+pregame home Elo
+pregame away Elo
+expected probability if useful for diagnostic purposes
+postgame ratings separately
+
+Do not tune Elo hyperparameters against future V4 OOS results in this task.
+
+This is evidence construction, not model fitting.
+
+============================================================
+PHASE 14 — OPPONENT ADJUSTMENT
+============================================================
+
+Construct a chronological opponent-strength framework.
+
+At target time T:
+
+team strength may use only opponent evidence known before T.
+
+Do not use final-season opponent quality to predict an earlier game.
+
+If sophisticated opponent adjustment is not yet defensible, create a simpler PIT-safe version rather than a leaked superior-looking version.
+
+============================================================
+PHASE 15 — EARLY-SEASON PRIOR FOUNDATION
+============================================================
+
+Construct evidence that can later support V4 shrinkage.
+
+Potential legitimate preseason components:
+
+prior-season performance
+pregame/preseason Elo
+talent
+recruiting
+returning production
+coaching continuity
+QB historical continuity where defensible
+
+Do NOT determine final V4 weights.
+
+Store each component independently with:
+
+availability
+effective date/season
+provenance
+PIT class
+
+============================================================
+PHASE 16 — SP+ / FPI / SRS
+============================================================
+
+Do not assume historical ratings are PIT-safe.
+
+For each determine whether CFBD exposes a genuine:
+
+season + week
+effective date
+historical snapshot
+
+If exact pregame timing can be proven:
+use A/B as appropriate.
+
+If only retrospective/final historical values are available:
+C / research-only.
+
+V4 must be capable of being built without these if necessary.
+
+============================================================
+PHASE 17 — TALENT / RECRUITING
+============================================================
+
+Determine which season-level talent/recruiting information was known before games.
+
+If a recruiting class was completed before the relevant season:
+it may be legitimate preseason evidence.
+
+Store effective season/date.
+
+Never use future recruiting classes.
+
+============================================================
+PHASE 18 — RETURNING PRODUCTION
+============================================================
+
+Audit historical availability.
+
+If a returning-production value represents a preseason state for that season and chronology is defensible:
+allow it as preseason evidence.
+
+Otherwise:
+C / research-only.
+
+Do not fabricate missing values.
+
+============================================================
+PHASE 19 — COACHING
+============================================================
+
+Construct historical team-season coaching state where available:
+
+head coach
+tenure
+first-year indicator
+coordinator continuity if available
+
+Only information effective before target game may enter features.
+
+============================================================
+PHASE 20 — HOME / NEUTRAL / VENUE / TRAVEL
+============================================================
+
+Construct structural context:
+
+home
+away
+neutral
+venue
+travel distance if deterministically derivable
+timezone change if derivable
+altitude if known
+
+These should be independent of sportsbook information.
+
+============================================================
+PHASE 21 — WEATHER
+============================================================
+
+Historical observed weather is NOT equivalent to historical pregame forecast weather.
+
+Keep separate.
+
+If historical forecast weather is unavailable:
+
+omit weather from the initial historical V4 training foundation.
+
+Weather is NOT required for V4_BUILD_READY.
+
+============================================================
+PHASE 22 — FEATURE AVAILABILITY OBJECT
+============================================================
+
+Every historical game row should contain explicit availability.
+
+Example:
+
+teamPerformance = AVAILABLE
+advancedPerformance = PARTIAL
+qbHistory = AVAILABLE
+confirmedStarter = UNSUPPORTED
+talent = AVAILABLE
+returningProduction = MISSING
+weatherForecast = MISSING
+
+Do not silently impute missing evidence during this task.
+
+============================================================
+PHASE 23 — TRAINING ROW
+============================================================
+
+Create one immutable row per eligible target game.
+
+Suggested artifact:
+
+ncaaf-v4-training-foundation-v2
+
+Each row should include:
+
+game ID
+provider game ID
+season
+week
+kickoff
+home team ID
+away team ID
+feature cutoff
+feature snapshot/version
+home pregame state
+away pregame state
+context
+availability
+PIT classifications
+provenance
+dataset version
+schema version
+builder version
+
+Then targets:
+
+home points
+away points
+margin
+total points
+home win
+
+Targets must be logically attached AFTER feature freeze.
+
+============================================================
+PHASE 24 — MARKET FIREWALL
+============================================================
+
+The training feature object must contain ZERO sportsbook-derived information.
+
+Forbidden sports features include:
+
+moneyline
+spread
+sportsbook total
+odds
+price
+book
+sportsbook
+implied probability
+opening line
+closing line
+CLV
+market movement
+sharp action
+
+Market data will be used downstream after V4 produces an independent sports forecast.
+
+============================================================
+PHASE 25 — LEAKAGE TESTS
+============================================================
+
+For every eligible training row prove:
+
+target game stats not in features
+future games not in features
+future player stats not in features
+future QB stats not in features
+future roster state not in features
+future-week ratings not in features
+postgame target information not in features
+market information not in sports features
+
+Return exact violation counts.
+
+Required:
+
+PIT VIOLATIONS = 0
+MARKET LEAKAGE = 0
+
+============================================================
+PHASE 26 — REPRESENTATIVE FORENSIC PROOF
+============================================================
+
+For representative games from each season:
+
+2023
+2024
+2025
+
+show:
+
+target game
+kickoff
+feature cutoff
+prior games used
+latest evidence timestamp
+season-to-date sample count
+rolling sample count
+pregame Elo
+target-game evidence excluded = TRUE/FALSE
+future evidence excluded = TRUE/FALSE
+
+Use enough samples to prove replay behavior.
+
+============================================================
+PHASE 27 — DATASET COUNTS
+============================================================
+
+Report:
+
+2023 total games
+2023 FBS-vs-FBS
+2023 PIT-safe training rows
+
+2024 total games
+2024 FBS-vs-FBS
+2024 PIT-safe training rows
+
+2025 total games
+2025 FBS-vs-FBS
+2025 PIT-safe training rows
+
+2026 prospective games
+2026 eligible prospective/frozen rows
+
+TOTAL PIT-SAFE TRAINING ROWS
+
+Do not inflate counts using duplicated snapshots.
+
+============================================================
+PHASE 28 — FEATURE COVERAGE
+============================================================
+
+Report coverage percentages for:
+
+true-talent inputs
+offense
+defense
+pregame Elo
+opponent adjustment
+QB historical
+talent
+recruiting
+returning production
+coaching
+home/neutral
+travel
+weather
+
+For each report:
+
+A %
+B %
+C %
+D %
+MISSING %
+
+============================================================
+PHASE 29 — CORE V4 FOUNDATION TEST
+============================================================
+
+Determine whether A/B evidence is sufficient to build an initial expected-score V4 with:
+
+TEAM TRUE TALENT
+OFFENSE
+DEFENSE
+MATCHUP
+HOME/NEUTRAL
+TRAVEL where available
+QB HISTORY where available
+
+and output eventually:
+
+EXPECTED HOME POINTS
+EXPECTED AWAY POINTS
+MARGIN DISTRIBUTION
+TOTAL DISTRIBUTION
+WIN PROBABILITY
+
+Do not require every optional feature.
+
+============================================================
+PHASE 30 — SAMPLE ADEQUACY
+============================================================
+
+Do NOT use an arbitrary 1,000-game threshold as the sole definition of readiness.
+
+Report sample size, but judge readiness based on whether there is enough legitimate chronological evidence to:
+
+train
+validate
+run out-of-sample testing
+measure calibration
+compare baselines
+detect instability
+
+If there are fewer than 1,000 legitimate games but statistically meaningful chronological validation is still possible, say so.
+
+If not, explain quantitatively why.
+
+============================================================
+PHASE 31 — PROPOSE WALK-FORWARD SPLIT
+============================================================
+
+Based on actual resulting data, propose the future #222/#223 chronology.
+
+Possible example:
+
+Train:
+2023–2024
+
+Validation:
+early/mid 2025
+
+OOS:
+late 2025
+
+Prospective:
+2026
+
+But choose based on actual sample.
+
+NO RANDOM SPLITS.
+
+Do not train the model during #221I.
+
+============================================================
+PHASE 32 — LIVE PIPELINE ISOLATION
+============================================================
+
+Historical backfill/replay MUST NOT block the live NCAAF critical scheduler.
+
+Keep separate:
+
+CRITICAL LIVE PIPELINE
+
+from:
+
+HISTORICAL BACKFILL / RESEARCH PIPELINE
+
+The historical process must support:
+
+batching
+checkpointing
+resume
+idempotency
+bounded concurrency
+
+Do not hold the live global NCAAF advisory lock for the entire historical backfill.
+
+============================================================
+PHASE 33 — PROVIDER QUOTA / LOAD SAFETY
+============================================================
+
+Before full backfill:
+
+estimate request volume.
+
+Use bulk historical endpoints where legitimate.
+
+Cache raw responses.
+
+Do not repeatedly redownload immutable historical evidence.
+
+Respect provider rate/quota constraints.
+
+Persist progress.
+
+============================================================
+PHASE 34 — CURRENT 2026 EVIDENCE
+============================================================
+
+Preserve all current prospective evidence.
+
+Do not overwrite:
+
+LIVE_SHADOW
+FINAL_PREGAME
+existing v2 snapshots
+CFBD raw evidence
+current prospective feature snapshots
+
+The 2026 prospective archive is valuable because it was genuinely captured in real time.
+
+============================================================
+PHASE 35 — NFL ISOLATION
+============================================================
+
+Confirm explicitly:
+
+NFL code unchanged
+NFL tables/state unchanged except generic infrastructure if absolutely unavoidable
+no shared football model
+no shared NCAAF/NFL weights
+no shared calibration
+no shared feature configuration
+no shared learning state
+
+NCAAF remains an independent sports engine.
+
+============================================================
+PHASE 36 — TESTS
+============================================================
+
+Add comprehensive tests for:
+
+historical ordering
+same-game exclusion
+future-game exclusion
+future-player exclusion
+season boundary
+prior-season availability
+rolling windows
+pregame Elo
+postgame Elo
+opponent adjustment chronology
+QB history chronology
+target attachment
+market firewall
+idempotent replay
+resume/checkpoint
+duplicate prevention
+NFL isolation
+
+Run:
+
+full relevant test suite
+typecheck
+build
+
+============================================================
+PHASE 37 — PRODUCTION BACKFILL
+============================================================
+
+After implementation/tests:
+
+publish.
+
+Run historical backfill in bounded production batches.
+
+Do NOT declare success based only on dev fixtures.
+
+Verify actual production database population for:
+
+2023
+2024
+2025
+
+If the full backfill cannot complete within one execution:
+
+checkpoint and resume through supported background/backfill cycles.
+
+Do not bypass runtime safety mechanisms.
+
+============================================================
+PHASE 38 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-historical-atomic-replay-2026-09-04.md
+
+Include:
+
+1. Executive summary
+2. Historical source audit
+3. CFBD domain availability
+4. PIT A/B/C/D classifications
+5. Backfill architecture
+6. Canonical historical mapping
+7. Atomic game evidence
+8. Team performance
+9. PBP coverage
+10. QB/player history
+11. Chronological replay methodology
+12. Season-to-date offense
+13. Season-to-date defense
+14. Rolling state
+15. Prior-season state
+16. Pregame Elo
+17. Opponent adjustment
+18. Early-season prior evidence
+19. SP+/FPI/SRS timing decision
+20. Talent/recruiting
+21. Returning production
+22. Coaching
+23. Home/travel
+24. Weather decision
+25. Training artifact
+26. Dataset counts by season
+27. Feature coverage
+28. Leakage audit
+29. Market firewall
+30. Representative forensic game examples
+31. Walk-forward recommendation
+32. Production backfill status
+33. Live scheduler isolation
+34. NFL isolation
+35. Readiness matrix
+36. Final decision
+
+============================================================
+READINESS MATRIX
+============================================================
+
+Return:
+
+HISTORICAL_ATOMIC_BACKFILL_READY =
+TRUE / FALSE
+
+HISTORICAL_PIT_FOUNDATION_READY =
+TRUE / FALSE
+
+DATA_PIPELINE_READY =
+TRUE / FALSE
+
+V4_BUILD_READY =
+TRUE / FALSE
+
+V4_VALIDATION_READY =
+TRUE / FALSE
+
+FULL_LIVE_PUBLICATION_DATA_READY =
+TRUE / FALSE
+
+Remember:
+
+FULL_LIVE_PUBLICATION_DATA_READY may remain FALSE because of:
+- confirmed QB starter
+- injuries
+- depth/availability
+
+That does NOT automatically mean V4_BUILD_READY must be FALSE.
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #221I COMPLETE — READY TO BEGIN #222 NCAAF V4
+
+B. #221I CORE FOUNDATION READY — BEGIN #222 WITH DOCUMENTED OPTIONAL DATA LIMITATIONS
+
+C. #221I PARTIAL — ONE SPECIFIC RECOVERABLE HISTORICAL BLOCKER REMAINS
+
+D. HISTORICAL RECONSTRUCTION INSUFFICIENT — PROSPECTIVE COLLECTION REQUIRED
+
+============================================================
+IF A OR B
+============================================================
+
+Do NOT automatically start #222.
+
+Provide the exact production-eligible feature families that #222 may use.
+
+Also identify:
+
+required features
+optional features
+research-only features
+live-publication-only eligibility features
+
+Then stop.
+
+============================================================
+IF C
+============================================================
+
+Identify the narrowest possible next task.
+
+Do not restart the entire NCAAF data program.
+
+============================================================
+IF D
+============================================================
+
+Quantify exactly what cannot be reconstructed and how much prospective evidence is required.
+
+Do not simply state "need more data."
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start the final response with:
+
+#221I FINAL
+
+2023 PIT-SAFE ROWS:
+[number]
+
+2024 PIT-SAFE ROWS:
+[number]
+
+2025 PIT-SAFE ROWS:
+[number]
+
+2026 PROSPECTIVE/FROZEN ROWS:
+[number]
+
+TOTAL PIT-SAFE HISTORICAL ROWS:
+[number]
+
+FBS-vs-FBS PIT-SAFE ROWS:
+[number]
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+HISTORICAL_PIT_FOUNDATION_READY:
+TRUE / FALSE
+
+V4_BUILD_READY:
+TRUE / FALSE
+
+V4_VALIDATION_READY:
+TRUE / FALSE
+
+FULL_LIVE_PUBLICATION_DATA_READY:
+TRUE / FALSE
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[task]
+
+Then provide the complete report.
+
+============================================================
+STOP
+============================================================
+
+Do not begin #222 automatically.
+
+Complete the atomic historical backfill,
+chronological PIT replay,
+production verification,
+readiness decision,
+and stop.
