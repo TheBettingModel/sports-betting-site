@@ -1,0 +1,355 @@
+TASK #223D-2 — FINAL SECURITY CLEANUP + DEPLOY NCAAF TODAY
+
+The production iOS build has now completed successfully using the new EAS-managed signing credentials.
+
+Verified current state:
+
+- Replacement App Store Connect API key is active in EAS.
+- Old compromised App Store Connect key ending 49S is revoked.
+- New Distribution Certificate is active.
+- New production provisioning profile is active.
+- Production iOS EAS build completed successfully.
+- Do NOT make any new model changes.
+- Do NOT start #224.
+- Do NOT change Baseline D.
+- Do NOT change publication thresholds.
+- Do NOT work on tomorrow's games.
+- Do NOT add new features or refactors.
+
+The goal of this task is now:
+
+1. Retire the old compromised Distribution Certificate.
+2. Remove the contaminated remote Git branch.
+3. Run all final security/test/build checks.
+4. Verify the completed #223C NCAAF today-only pipeline.
+5. Commit/push sanitized main.
+6. Deploy production.
+7. Verify NCAAF is live and showing legitimate projected picks for TODAY when market filters qualify them.
+
+==================================================
+STEP 1 — RETIRE OLD DISTRIBUTION CERTIFICATE
+==================================================
+
+The old EAS Distribution Certificate being replaced had a serial ending:
+
+9E35
+
+The new replacement certificate has already been created and successfully used for a production iOS build.
+
+Now identify the old Apple Distribution Certificate corresponding to the old EAS credential ending 9E35 and retire/revoke ONLY that certificate.
+
+Do NOT revoke unrelated Apple distribution certificates.
+
+If the old certificate can be positively identified and revoked through the supported Apple/EAS workflow, complete it.
+
+If owner interaction is genuinely required, stop and give the owner ONE simple action only.
+
+After revocation, verify that the NEW Distribution Certificate and NEW provisioning profile remain valid in EAS.
+
+==================================================
+STEP 2 — CHECK EAS.JSON FOR ACCIDENTAL PUSH SETTING
+==================================================
+
+During the production build, the owner accidentally selected:
+
+"No, don't ask again"
+
+for the Push Notifications setup question.
+
+Inspect eas.json and determine whether that choice introduced an unnecessary configuration change.
+
+If it added only a preference suppressing the prompt and it is unrelated to the current production requirements, revert that specific accidental change.
+
+Do NOT alter valid existing push-notification configuration.
+
+Do NOT change unrelated EAS settings.
+
+==================================================
+STEP 3 — REMOVE CONTAMINATED REMOTE BRANCH
+==================================================
+
+Fetch and inspect all remote refs:
+
+git fetch --all --prune
+git branch -a
+git ls-remote --heads origin
+
+Find the contaminated historical branch matching:
+
+main-old-20260904-*
+
+That branch contains credential-contaminated history and must no longer be reachable from retained remote refs.
+
+Attempt safe deletion:
+
+git push origin --delete <exact-contaminated-branch-name>
+
+If Replit/gitsafe blocks deletion again:
+
+DO NOT force-push main.
+DO NOT rewrite sanitized main.
+DO NOT push contaminated refs.
+
+Use any available Replit repository branch-management mechanism.
+
+If platform owner interaction is required, STOP and report only:
+
+- exact contaminated branch name
+- exact place to delete it
+- one action: Delete Branch
+
+After deletion:
+
+git fetch --all --prune
+git branch -a
+git ls-remote --heads origin
+
+Verify the contaminated branch is gone.
+
+Do not claim physical Git garbage collection unless the hosting platform explicitly verifies it.
+
+We only require that credential-bearing commits are no longer reachable from retained refs.
+
+==================================================
+STEP 4 — RUN SECURITY SCANS
+==================================================
+
+Run:
+
+pnpm run security:signing-credentials
+
+Also run repository/history scans sufficient to verify there are no reachable:
+
+- .p8 files
+- .p12 files
+- .cer files
+- .mobileprovision files
+- credentials.json signing artifacts
+- private key markers
+- old Apple API key aliases
+- credential-contaminated retained refs
+
+Report pass/fail.
+
+==================================================
+STEP 5 — VERIFY #223C NCAAF CODE IS PRESENT
+==================================================
+
+The completed sanitized #223C code was previously backed up at:
+
+/tmp/223c-sanitized-source-backup-20260904.tar.gz
+
+Do not restore from it unless needed.
+
+First inspect the current tree and verify the completed #223C work is already present.
+
+Required NCAAF behavior:
+
+- NCAAF V4 model: tbm-ncaaf-v4-expected-score
+- version: D-simple-expected-score-linear
+- status: V4_PREVIEW
+- approval: UNVALIDATED
+- publication: PREVIEW_ONLY
+- current-date-only game-day mode
+- timezone: America/New_York
+- no tomorrow prefetch
+- no tomorrow forecast
+- no tomorrow persistence
+- no tomorrow UI request
+- explicit ?date= only for controlled diagnostics/testing
+
+Do NOT alter the model.
+
+Do NOT promote it.
+
+Do NOT weaken filters to force picks.
+
+==================================================
+STEP 6 — RUN FULL TEST / BUILD GATES
+==================================================
+
+Run all of these:
+
+pnpm run security:signing-credentials
+
+pnpm --filter @workspace/api-server test
+pnpm --filter @workspace/api-server run typecheck
+pnpm --filter @workspace/admin run typecheck
+pnpm --filter @workspace/mobile run typecheck
+
+pnpm --filter @workspace/api-server run build
+pnpm --filter @workspace/admin run build
+
+Also run the existing supported static mobile validation/export checks for:
+
+- iOS
+- Android
+
+All must pass.
+
+Do not introduce unrelated fixes unless required for these checks.
+
+==================================================
+STEP 7 — RUN TODAY'S NCAAF PIPELINE
+==================================================
+
+Use the CURRENT Eastern date only.
+
+Do NOT process tomorrow.
+
+Execute the actual NCAAF V4 game-day refresh/pipeline through the production-intended service/API path.
+
+Report:
+
+- Eastern date
+- scheduled games
+- eligible games
+- out-of-domain games
+- unresolved identities
+- forecasts produced
+- safe current-market matches
+- stale market rows
+- ambiguous market rows
+- no-current-market rows
+- projected opportunities
+- persisted predictions
+- duplicate predictions
+- PIT leakage count
+- market leakage count
+- invalid probability count
+
+Important:
+
+Current sportsbook market availability may differ from earlier snapshots.
+
+That is acceptable.
+
+Do NOT alter immutable sports forecasts because market data changed.
+
+If projected opportunities are zero, verify whether that is due to legitimate market/publication filters.
+
+Do NOT manufacture picks.
+
+==================================================
+STEP 8 — COMMIT AND PUSH
+==================================================
+
+Once all gates pass:
+
+git status
+git add -A
+git commit -m "Finalize NCAAF V4 preview and security remediation"
+git push origin main
+
+If there is nothing new to commit, state that and continue.
+
+Do NOT push contaminated refs.
+
+==================================================
+STEP 9 — DEPLOY PRODUCTION
+==================================================
+
+Deploy the sanitized main branch to the existing production environment:
+
+https://Thebettingmodel.replit.app
+
+Deploy the current production services needed for:
+
+- API
+- admin/web
+- subscriber-facing NCAAF data path
+
+Do NOT wait for a new App Store submission unless the current app architecture genuinely requires a new native binary for this backend/web change.
+
+The successful iOS build already proves the new signing credentials work.
+
+==================================================
+STEP 10 — PRODUCTION VERIFICATION
+==================================================
+
+Verify directly against production after deploy.
+
+Required:
+
+1. Production health endpoint works.
+2. NCAAF today endpoint works.
+3. NCAAF V4 preview response is present.
+4. TODAY'S games appear.
+5. Tomorrow's games do NOT appear.
+6. Eligible forecasts appear.
+7. Legitimate projected opportunities/picks appear when safe market data qualifies them.
+8. Team/game identities are correct.
+9. No duplicate games or picks.
+10. No stale prior-date cache.
+11. Admin/web NCAAF page renders.
+12. Subscriber-facing NCAAF page renders.
+13. Existing MLB/NFL/other sport functionality remains unchanged.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return exactly this structure:
+
+TASK #223D-2 FINAL REPORT
+
+SECURITY
+
+Old 9E35 Distribution Certificate retired/revoked: PASS / FAIL
+New EAS Distribution Certificate remains valid: PASS / FAIL
+New production provisioning profile remains valid: PASS / FAIL
+Contaminated remote branch removed: PASS / FAIL
+Signing credential scan: PASS / FAIL
+Reachable credential/history scan: PASS / FAIL
+
+BUILD
+
+API tests: PASS / FAIL
+API typecheck: PASS / FAIL
+Admin typecheck: PASS / FAIL
+Mobile typecheck: PASS / FAIL
+API build: PASS / FAIL
+Admin build: PASS / FAIL
+iOS static validation: PASS / FAIL
+Android static validation: PASS / FAIL
+
+NCAAF
+
+Eastern date:
+Scheduled:
+Eligible:
+Out-of-domain:
+Unresolved:
+Forecasts:
+Safe market matches:
+Stale:
+Ambiguous:
+No current market:
+Projected opportunities:
+Persisted predictions:
+Duplicates:
+PIT leakage:
+Market leakage:
+Invalid probabilities:
+
+DEPLOYMENT
+
+Commit SHA:
+Push to main: PASS / FAIL
+Production deployment: PASS / FAIL
+Production API verification: PASS / FAIL
+NCAAF web verification: PASS / FAIL
+NCAAF subscriber/app verification: PASS / FAIL
+
+FINAL DECISION:
+
+FULLY COMPLETE — NCAAF LIVE
+
+or
+
+BLOCKED — OWNER ACTION REQUIRED
+
+If blocked, give the owner ONE action only.
+
+Do not begin #224.
+Do not make any additional model changes.
