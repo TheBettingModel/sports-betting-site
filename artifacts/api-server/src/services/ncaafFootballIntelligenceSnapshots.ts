@@ -79,14 +79,23 @@ const ALL_DOMAINS = [...CRITICAL, ...IMPORTANT, ...OPTIONAL] as const;
 // `pointsPerOpportunity`; broad matching is both lossy and unnecessary.
 const MARKET_SHAPED_KEYS = new Set([
   "market", "markets", "odds", "sportsbook", "sportsbooks", "bookmaker", "bookmakers",
-  "book", "books", "moneyline", "spread", "pointspread", "line", "total", "price",
-  "marketprice", "openingline", "closingline", "wager", "wagers", "bet", "bets",
+  "book", "books", "moneyline", "spread", "pointspread", "line", "total", "totals",
+  "over", "under", "price", "marketprice", "markettotal", "openingline", "openingtotal",
+  "closingline", "closingtotal", "wager", "wagers", "bet", "bets",
   "betting", "stake", "stakes", "unit", "units", "probability", "probabilities",
   "impliedprobability", "forecast", "projection", "projected", "recommendation", "expectedscore",
 ]);
 
 function normalizedInputKey(key: string): string {
   return key.replace(/[^a-z0-9]/gi, "").toLocaleLowerCase("en-US");
+}
+
+function isVerifiedFootballPerformanceTotal(path: string, key: string): boolean {
+  const normalizedKey = normalizedInputKey(key);
+  if (normalizedKey !== "total" && normalizedKey !== "totals") return false;
+
+  return /^suppliedDomains\.(home|away)\.(teamPerformance|earlySeasonPrior|advanced)\.payload\.(offense|defense)\.havoc$/u
+    .test(path);
 }
 
 function canonical(value: unknown): unknown {
@@ -107,7 +116,10 @@ export function assertNoNcaafMarketShapedKeys(value: unknown, path = "payload"):
     value.forEach((item, index) => assertNoNcaafMarketShapedKeys(item, `${path}[${index}]`));
   } else if (value && typeof value === "object") {
     for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-      if (MARKET_SHAPED_KEYS.has(normalizedInputKey(key))) {
+      if (
+        MARKET_SHAPED_KEYS.has(normalizedInputKey(key))
+        && !isVerifiedFootballPerformanceTotal(path, key)
+      ) {
         throw new Error(`NCAAF intelligence rejects market-shaped key: ${path}.${key}`);
       }
       assertNoNcaafMarketShapedKeys(item, `${path}.${key}`);

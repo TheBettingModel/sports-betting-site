@@ -1,0 +1,112 @@
+#216 — NCAAF Havoc Totals Firewall Precision Fix
+
+The latest #221H-PROD verification is complete.
+
+Do NOT begin #222.
+Do NOT change NCAAF model formulas.
+Do NOT modify NFL, MLB, or other sports.
+Do NOT weaken the market firewall broadly.
+
+There is a narrow production defect:
+
+Legitimate football advanced-stat fields associated with HAVOC TOTALS are being rejected because the market firewall interprets "total"/"totals" as sportsbook total-market data.
+
+OBJECTIVE:
+
+Allow verified football-performance fields representing havoc totals/counts to enter NCAAF canonical intelligence while continuing to reject sportsbook totals.
+
+STEP 1 — IDENTIFY EXACT FAILURE
+
+Trace the exact rejected field paths.
+
+Report:
+- field name
+- full nested path
+- provider/domain
+- semantic meaning
+- why current firewall rejects it
+
+STEP 2 — CLASSIFY SEMANTICS
+
+Distinguish:
+
+SPORTS PERFORMANCE:
+- havoc totals
+- defensive havoc counts
+- offensive havoc counts
+- tackles for loss
+- sacks
+- interceptions
+- forced fumbles
+- other verified football event totals/counts
+
+from:
+
+SPORTSBOOK MARKET:
+- total
+- totals
+- over
+- under
+- total line
+- opening total
+- closing total
+- sportsbook total
+- market total
+- price
+- odds
+- implied probability
+
+Do not whitelist the generic word "total" globally.
+
+STEP 3 — FIX PRECISELY
+
+Use path/domain-aware classification.
+
+A field should be permitted only when its semantic context proves it is a football-performance statistic.
+
+Do not allow arbitrary nested keys named total/totals.
+
+STEP 4 — REGRESSION TESTS
+
+Tests must prove:
+
+PASS:
+verified havoc total/count fields
+verified football statistical totals
+
+FAIL:
+sportsbook total
+over/under total
+opening total
+closing total
+market total
+odds
+price
+book
+sportsbook
+implied probability
+nested market totals
+
+STEP 5 — PRODUCTION VERIFICATION
+
+Publish the fix.
+
+Verify:
+- affected NCAAF snapshots no longer fail because of havoc totals
+- canonical intelligence continues persisting
+- sportsbook fields remain blocked
+- market firewall regression tests pass
+- PIT protections unchanged
+- NFL untouched
+- MLB untouched
+- no model logic changed
+
+Return:
+
+HAVOC_FIREWALL_FIX = PASS / FAIL
+MARKET_FIREWALL_INTACT = TRUE / FALSE
+NCAAF_SNAPSHOT_PATH_HEALTHY = TRUE / FALSE
+
+Do not begin #222.
+
+STOP after production verification.

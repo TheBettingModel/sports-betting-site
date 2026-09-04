@@ -111,6 +111,38 @@ describe("NCAAF football intelligence snapshots", () => {
     expect(() => buildNcaafFootballIntelligenceSnapshot(target, [], kickoff)).toThrow(/strictly before kickoff/);
   });
 
+  it("allows only verified havoc totals while keeping sportsbook totals blocked recursively", () => {
+    for (const domain of ["teamPerformance", "earlySeasonPrior", "advanced"]) {
+      for (const unit of ["offense", "defense"]) {
+        for (const key of ["total", "totals"]) {
+          expect(() => assertNoNcaafMarketShapedKeys(
+            { [key]: 12.4 },
+            `suppliedDomains.home.${domain}.payload.${unit}.havoc`,
+          )).not.toThrow();
+        }
+      }
+    }
+
+    for (const [path, payload] of [
+      ["payload", { total: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload", { total: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload", { totals: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload", { over: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload", { under: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload", { marketTotal: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.market", { total: 44.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense", { total: 12 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { openingTotal: 42.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { closingTotal: 43.5 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { sportsbook: { total: 44.5 } }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { odds: -110 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { price: -110 }],
+      ["suppliedDomains.home.earlySeasonPrior.payload.defense.havoc", { impliedProbability: 0.52 }],
+    ] as const) {
+      expect(() => assertNoNcaafMarketShapedKeys(payload, path)).toThrow(/market-shaped/);
+    }
+  });
+
   it("retains mapped supplied team performance and composes supported early-season priors with provenance", () => {
     const suppliedPerformance = {
       state: "VALID" as const, provider: "college_football_data", quality: 0.9, reliability: 0.8,
