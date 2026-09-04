@@ -1,0 +1,60 @@
+OWNER ACTION COMPLETE.
+
+The old compromised Apple Distribution Certificate ending 9E35 has now been removed from EAS and revoked on the Apple Developer Portal.
+
+Apple/EAS credential remediation is complete.
+
+Verified current production signing state:
+
+- Replacement App Store Connect API key "TBM EAS Submission" is active in EAS.
+- Old compromised App Store Connect API key ending 49S was revoked.
+- New EAS Distribution Certificate is active.
+- New certificate expires September 4, 2027.
+- New production provisioning profile is ACTIVE.
+- New provisioning profile expires September 4, 2027.
+- A real EAS production iOS build completed successfully using the new certificate and provisioning profile.
+- Old compromised Distribution Certificate ending 9E35 has now been removed from EAS and revoked on Apple Developer Portal.
+
+Do NOT perform any additional Apple credential changes.
+Do NOT delete any additional certificates.
+Do NOT recreate signing credentials.
+Do NOT start #224.
+Do NOT make model changes.
+Do NOT change Baseline D.
+Do NOT change publication thresholds.
+Do NOT add features or refactor unrelated code.
+
+Continue TASK #223D-2 from exactly where you stopped.
+
+Proceed now with:
+
+1. Verify the new EAS production certificate/profile remain valid.
+2. Inspect/revert only the accidental "No, don't ask again" push-notification preference in eas.json if it created an unnecessary change.
+3. Remove the contaminated remote Git branch main-old-20260904-*.
+4. Run the final repository credential/history security scans.
+5. Verify the completed sanitized #223C NCAAF V4 today-only code is present.
+6. Run the complete API/admin/mobile test, typecheck, build and static validation gates.
+7. Run the NCAAF game-day pipeline for the CURRENT America/New_York date only.
+8. Verify forecasts, current market matching, projected opportunities/picks, persistence, duplicates and leakage.
+9. Commit all legitimate sanitized changes.
+10. Push sanitized main.
+11. Deploy production to https://Thebettingmodel.replit.app.
+12. Verify NCAAF is live in production on web/subscriber/app-facing paths.
+13. Verify today's games only — NO tomorrow prefetch, forecast, persistence or UI data.
+14. Verify existing sports remain unaffected.
+
+If the contaminated remote branch cannot be deleted programmatically because of Replit/gitsafe restrictions, STOP and give me ONE owner action only.
+
+Otherwise continue all the way through deployment without stopping for intermediate approval.
+
+Do not manufacture NCAAF picks or weaken thresholds. If legitimate current market data produces qualifying projected opportunities, they must appear. If none qualify, report the exact market/filter reason.
+
+At completion return the full TASK #223D-2 FINAL REPORT and one final decision only:
+
+FULLY COMPLETE — NCAAF LIVE
+
+or
+
+BLOCKED — OWNER ACTION REQUIRED
+
+Do not begin #224 after completion.
