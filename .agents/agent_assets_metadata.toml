@@ -260,3 +260,31 @@ mtime_ms = 1788531481167
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/f67b6e20-a9ba-49d9-af47-eb1764f19bf9/42cbf0d1-f363-42c0-8e27-c326a06f6533"
 storage_version_token = "1788531643699675"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Nb5CQSyqhoxc6YtqrkI6E"
+uri = "file://reports/ncaaf-v4-prospective-validation-evidence-2026-09-04-20260904T143447911Z.json"
+type = "unspecified"
+title = "#223B Canonical Prospective Evidence"
+description = "Append-only machine-readable continuation evidence. All 656 forecasts remain pending; ledger/domain checks pass; runtime is PARTIAL."
+logical_id = "e1e48315-92e6-4034-a033-17f0239034c6"
+content_hash = "sha256:3affb3131815801b42e646d4dda5f5dcfe8392949de30ccdf385cd40bcd85738"
+size = 3767
+mtime_ms = 1788532488954
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e1e48315-92e6-4034-a033-17f0239034c6/e0be8d87-2898-4d0c-95d1-ec943ea83922"
+storage_version_token = "1788532559654619"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "bzKgS6lTKO3fFzTxjHpDN"
+uri = "file://reports/ncaaf-v4-prospective-validation-2026-09-04.md"
+type = "text"
+title = "#223B Prospective Validation Report"
+description = "Required 29-section report with final decision C: more legitimately graded prospective evidence is required."
+logical_id = "3dc48077-67d6-43d6-9de2-157cc61a1eab"
+content_hash = "sha256:6e36684284bc759ced9f66125543a212144a145fdb522d726782595cb8b214d8"
+size = 10878
+mtime_ms = 1788532507486
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/3dc48077-67d6-43d6-9de2-157cc61a1eab/c4148449-47e4-4442-811e-15e8079a4ca6"
+storage_version_token = "1788532560305628"
+content_type = "text/markdown"

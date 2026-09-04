@@ -1,0 +1,926 @@
+#223B — NCAAF V4 PROSPECTIVE GRADING & PRODUCTION-APPROVAL READINESS
+
+AUTHORITATIVE STARTING STATE
+
+#221I COMPLETE.
+#222 COMPLETE.
+#222B COMPLETE.
+#222C COMPLETE.
+#223 PARTIAL.
+
+#223 final decision:
+
+C. #223 PARTIAL — PROSPECTIVE SAMPLE OR ONE SPECIFIC VALIDATION BLOCKER REMAINS
+
+The ONLY model-validation blocker is:
+
+The immutable 2026 prospective ledger contained zero legitimately completed games at the #223 evaluation timestamp.
+
+Do NOT reopen historical model selection.
+
+============================================================
+FROZEN NCAAF V4 MODEL
+============================================================
+
+MODEL:
+tbm-ncaaf-v4-expected-score
+
+MODEL VERSION:
+D-simple-expected-score-linear
+
+CONFIGURATION HASH:
+212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86
+
+PARAMETER HASH:
+792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81
+
+DATASET:
+ncaaf-v4-training-foundation-v2
+
+FEATURE SCHEMA:
+ncaaf-chronological-team-game-v2
+
+HISTORICAL OOS:
+410 games
+
+CANONICAL OOS METRICS:
+
+Home MAE:
+9.2826256764
+
+Away MAE:
+8.4985635844
+
+Margin MAE:
+12.5008391763
+
+Total MAE:
+12.9390090779
+
+Brier:
+0.1800233716
+
+Log loss:
+0.5347917462
+
+============================================================
+FROZEN 2026 PROSPECTIVE LEDGER
+============================================================
+
+#223 created an immutable write-once prospective ledger containing:
+
+PREGAME_FROZEN_PENDING:
+656
+
+PREGAME_FROZEN_GRADED:
+0 at #223 cutoff
+
+INVALID_AFTER_CUTOFF:
+0
+
+OUT_OF_DOMAIN:
+123
+
+Input ledger hash:
+
+58b162ab5f4f984d018a3bfaa994eae80e323cf468b8dffdc3647884eeee4eab
+
+Prediction ledger hash:
+
+fd7c547fda608d0a045cab9687cabae868baeba2d99efab852110057f859bccf
+
+Evaluation identity hash:
+
+1d2bde61e2850b8dc6abe24764aa46816ec32ed10a1139cdcbb260592012c60e
+
+Do NOT rewrite these predictions.
+
+Do NOT generate retrospective replacements.
+
+============================================================
+MISSION
+============================================================
+
+Grade legitimately completed games from the frozen 2026 NCAAF V4
+prospective ledger and determine whether actual prospective evidence
+supports advancement to #224 controlled production approval.
+
+This task must answer:
+
+1. How many frozen predictions are now legitimately gradeable?
+2. How accurately did V4 predict those games?
+3. Is prospective error consistent with historical OOS?
+4. Is prospective probability calibration acceptable?
+5. Is there evidence of meaningful drift?
+6. Are there any operational integrity problems?
+7. Is there enough evidence for controlled provisional production
+   approval?
+8. Should V4 advance to #224?
+
+============================================================
+HARD RULES
+============================================================
+
+DO NOT retrain V4.
+
+DO NOT alter expected-score coefficients.
+
+DO NOT change configuration hash.
+
+DO NOT change parameter hash.
+
+DO NOT alter shrinkage.
+
+DO NOT apply a new calibration transform.
+
+DO NOT fit calibration using prospective results.
+
+DO NOT regenerate prior frozen predictions.
+
+DO NOT backfill forecasts after results are known.
+
+DO NOT use sportsbook lines as sports-model inputs.
+
+DO NOT optimize ROI.
+
+DO NOT promote V4 automatically.
+
+DO NOT publish V4 picks.
+
+DO NOT create wagers.
+
+DO NOT create units.
+
+DO NOT change production champion.
+
+DO NOT modify NFL.
+
+DO NOT modify MLB.
+
+DO NOT modify unrelated sports.
+
+============================================================
+PART 1 — VERIFY IMMUTABLE LEDGER
+============================================================
+
+Before grading, verify:
+
+input ledger hash
+prediction ledger hash
+evaluation identity hash
+model configuration hash
+model parameter hash
+
+All must match #223 exactly.
+
+If any immutable identity changed:
+
+STOP
+FAIL CLOSED
+
+Do not grade against a mutated ledger.
+
+============================================================
+PART 2 — RESOLVE COMPLETED GAMES
+============================================================
+
+From the frozen 656 predictions identify games that have legitimately
+completed.
+
+Use authoritative final game evidence.
+
+For each frozen prediction classify:
+
+PREGAME_FROZEN_PENDING
+
+PREGAME_FROZEN_GRADED
+
+INVALID_RESULT
+
+RESULT_UNAVAILABLE
+
+OUT_OF_DOMAIN
+
+Do NOT grade cancelled/postponed/no-contest games as normal finals.
+
+Do NOT assume a final result from partial/live score data.
+
+============================================================
+PART 3 — STRICT PREGAME ELIGIBILITY
+============================================================
+
+Before grading each completed game confirm:
+
+prediction generated before kickoff
+feature cutoff before kickoff
+identity valid
+model version exact
+configuration exact
+parameter hash exact
+feature schema exact
+domain = FBS-vs-FBS
+
+Any prediction failing those checks must not enter prospective metrics.
+
+Report exclusions.
+
+============================================================
+PART 4 — GRADE SPORTS OUTPUTS
+============================================================
+
+For each valid completed frozen prediction calculate:
+
+actual home points
+actual away points
+actual margin
+actual total
+actual winner
+
+prediction errors:
+
+home score error
+away score error
+margin error
+total error
+
+probability score:
+
+Brier
+log loss
+
+Do not grade sportsbook outcomes in the sports-model validation layer.
+
+============================================================
+PART 5 — AGGREGATE PROSPECTIVE METRICS
+============================================================
+
+Report:
+
+graded game count
+
+Home MAE
+Home RMSE
+
+Away MAE
+Away RMSE
+
+Margin MAE
+Margin RMSE
+
+Total MAE
+Total RMSE
+
+Moneyline Brier
+Moneyline log loss
+
+Also report:
+
+mean margin bias
+mean total bias
+home score bias
+away score bias
+
+============================================================
+PART 6 — HISTORICAL VS PROSPECTIVE
+============================================================
+
+Compare prospective results directly with frozen historical OOS:
+
+Historical Margin MAE:
+12.5008391763
+
+Historical Total MAE:
+12.9390090779
+
+Historical Brier:
+0.1800233716
+
+Historical Log Loss:
+0.5347917462
+
+Report absolute and percentage differences.
+
+Do not require exact equality.
+
+Classify prospective performance:
+
+CONSISTENT
+
+PROMISING
+
+INCONCLUSIVE
+
+CONCERNING
+
+Use both sample size and magnitude of differences.
+
+============================================================
+PART 7 — SAMPLE ADEQUACY
+============================================================
+
+Do NOT use a magical hardcoded sample threshold.
+
+Evaluate sample adequacy separately for:
+
+ARCHITECTURE CONFIRMATION
+
+PROVISIONAL PRODUCTION APPROVAL
+
+CALIBRATION CONFIDENCE
+
+MATURE VALIDATION
+
+Explain which are supported by the actual sample.
+
+A sample may be sufficient for controlled provisional approval while
+still insufficient for mature calibration.
+
+============================================================
+PART 8 — PROSPECTIVE CALIBRATION
+============================================================
+
+Using the frozen identity-calibrated probabilities only, report
+prospective reliability by sensible probability bands.
+
+Do not fit anything.
+
+Report:
+
+count
+mean predicted probability
+observed win rate
+absolute calibration error
+
+Also report:
+
+ECE
+MCE
+
+Only treat bands with useful sample size as evidence.
+
+============================================================
+PART 9 — EARLY-SEASON PERFORMANCE
+============================================================
+
+Because this is early September, explicitly assess whether prospective
+performance shows early-season degradation.
+
+Report by supported week groups.
+
+Compare with historical early-season diagnostics.
+
+Do not alter the score model because of one week.
+
+============================================================
+PART 10 — DATA-QUALITY PERFORMANCE
+============================================================
+
+Report prospective results by:
+
+HIGH
+MEDIUM
+LOW
+INSUFFICIENT
+
+For each:
+
+count
+margin MAE
+total MAE
+Brier
+log loss
+
+Determine whether later publication should abstain for:
+
+INSUFFICIENT
+
+or other weak quality states.
+
+Do not activate publication in this task.
+
+============================================================
+PART 11 — ERROR FORENSICS
+============================================================
+
+List the largest prospective misses.
+
+For largest margin/total errors inspect whether evidence suggests:
+
+normal game variance
+
+unexpected QB change
+
+material injury
+
+late roster change
+
+team discontinuity
+
+data-quality issue
+
+identity issue
+
+feature staleness
+
+other
+
+Do not modify coefficients because of individual games.
+
+============================================================
+PART 12 — OPTIONAL LIVE AVAILABILITY REVIEW
+============================================================
+
+#223 identified:
+
+confirmed starting QB
+injury availability
+depth-chart state
+
+as separate live-publication concerns.
+
+For graded prospective games, where reliable information is available,
+review whether major forecast misses correlate with these missing
+features.
+
+Do NOT infer unavailable information.
+
+Classify future policy relevance as:
+
+PUBLICATION REQUIRED
+
+ABSTENTION TRIGGER
+
+OPTIONAL ENHANCEMENT
+
+RESEARCH ONLY
+
+============================================================
+PART 13 — DRIFT DETECTION
+============================================================
+
+Assess whether 2026 prospective errors indicate distribution drift
+relative to historical OOS.
+
+Compare:
+
+score residual mean
+margin residual mean
+total residual mean
+residual SD
+Brier
+log loss
+
+Do not declare drift from tiny samples.
+
+Classify:
+
+NO EVIDENCE OF DRIFT
+
+POSSIBLE DRIFT
+
+MATERIAL DRIFT
+
+INSUFFICIENT SAMPLE
+
+============================================================
+PART 14 — PROBABILITY INTEGRITY
+============================================================
+
+Verify every graded prediction still has:
+
+finite expected scores
+finite uncertainty
+0 < probability < 1
+home + away probability ≈ 1
+
+Invalid output count must be reported.
+
+============================================================
+PART 15 — MARKET SANDBOX SEPARATION
+============================================================
+
+Only after grading the sports model, optionally evaluate exact matched
+pregame market information in a separate sandbox.
+
+Report:
+
+matched game count
+V4 fair probability
+market no-vig probability
+difference
+
+Do NOT use market data to modify the sports model.
+
+============================================================
+PART 16 — CLV SEPARATION
+============================================================
+
+If legitimate bet-time/closing-line information exists, report CLV
+availability separately.
+
+Do not alter:
+
+expected score
+probability
+weights
+calibration
+
+based on CLV.
+
+CLV belongs to future betting-policy evaluation.
+
+============================================================
+PART 17 — INCUMBENT COMPARISON
+============================================================
+
+If the incumbent:
+
+tbm-ncaaf-moneyline-v1
+
+has legitimate frozen predictions on any of the same completed games,
+compare only the exact overlapping cohort.
+
+Report:
+
+overlap count
+winner accuracy
+Brier
+log loss
+coverage
+prediction disagreement
+
+If overlap is too small, say so.
+
+Do not force a comparison.
+
+============================================================
+PART 18 — OPERATIONAL HEALTH
+============================================================
+
+#223 disclosed:
+
+duplicate scheduler processes
+earlier transient ESPN/database authentication timeouts
+unrelated Soccer foreign-key errors
+
+Audit NCAAF runtime health now.
+
+Report:
+
+active scheduler count
+duplicate invocation count
+stale NCAAF runs
+provider errors
+DB auth errors
+feature bridge failures
+prediction generation failures
+grading failures
+
+If duplicate scheduler execution still exists, fix ONLY the generic
+operational duplication issue if it can be done without changing
+sports-model behavior.
+
+Do NOT modify Soccer or unrelated sport logic in this task.
+
+If the operational issue is not safely isolated, report it rather than
+expanding scope.
+
+============================================================
+PART 19 — APPROVAL GATE
+============================================================
+
+Determine whether V4 meets requirements to advance to #224.
+
+At minimum:
+
+PIT violations = 0
+
+market leakage = 0
+
+immutable ledger intact
+
+valid prospective grading path
+
+prospective metrics not materially catastrophic
+
+no severe calibration defect
+
+no material unresolved model drift
+
+probability integrity intact
+
+domain enforcement intact
+
+runtime sufficiently healthy for controlled approval
+
+Do NOT require maturity.
+
+#224 is controlled production approval, not the same as mature
+long-term validation.
+
+============================================================
+PART 20 — APPROVAL STATE RECOMMENDATION
+============================================================
+
+Current:
+
+UNVALIDATED
+
+Determine whether evidence now supports recommending:
+
+SHADOW
+
+PROVISIONAL
+
+or continued UNVALIDATED.
+
+Do NOT apply PRODUCTION_APPROVED in #223B.
+
+That belongs to #224.
+
+============================================================
+PART 21 — MATURITY
+============================================================
+
+Current maturity:
+
+DEVELOPING
+
+Determine whether evidence supports:
+
+DEVELOPING
+
+VALIDATED
+
+MATURE
+
+Do not label MATURE with a small prospective sample.
+
+============================================================
+PART 22 — CONTINUOUS LEARNING RULE
+============================================================
+
+Preserve permanent NCAAF learning architecture:
+
+Every completed frozen game adds evidence.
+
+Production weights do NOT automatically change after each game.
+
+Learning evidence may update:
+
+evaluation datasets
+calibration diagnostics
+feature-performance diagnostics
+candidate challenger research
+
+Any future model-weight change requires:
+
+new version
+chronological validation
+OOS testing
+approval
+
+No uncontrolled online learning.
+
+============================================================
+PART 23 — TESTS
+============================================================
+
+Verify/add tests for:
+
+immutable prospective ledger
+final-result eligibility
+pending-game exclusion
+postponed/cancelled handling
+duplicate grading prevention
+prediction-before-kickoff rule
+feature cutoff rule
+sports grading
+Brier/log-loss grading
+probability integrity
+prospective aggregation
+historical/prospective comparison
+drift classification
+data-quality stratification
+market separation
+registry immutability
+no champion change
+no publication
+NFL isolation
+
+Run:
+
+full relevant tests
+typecheck
+production build
+
+============================================================
+PART 24 — EVIDENCE PACKAGE
+============================================================
+
+Create immutable continuation evidence package containing:
+
+#223 evaluation identity
+model identity
+ledger hashes
+graded prediction IDs
+result evidence IDs
+prospective metrics
+historical comparison
+calibration table
+drift diagnostics
+data-quality analysis
+error forensic summary
+runtime health
+approval recommendation
+maturity recommendation
+evaluation timestamp
+
+Suggested:
+
+reports/ncaaf-v4-prospective-validation-evidence-2026-09-04.json
+
+Use the actual run date if grading occurs later.
+
+============================================================
+PART 25 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-v4-prospective-validation-2026-09-04.md
+
+Use the actual date if grading occurs later.
+
+Include:
+
+1. Executive summary
+2. Immutable ledger verification
+3. Completed-game resolution
+4. Grading eligibility
+5. Prospective game count
+6. Prospective score metrics
+7. Prospective margin metrics
+8. Prospective total metrics
+9. Prospective Brier/log loss
+10. Historical comparison
+11. Sample adequacy
+12. Calibration
+13. Early-season performance
+14. Data-quality performance
+15. Error forensics
+16. Optional live availability review
+17. Drift analysis
+18. Probability integrity
+19. Market sandbox
+20. CLV separation
+21. Incumbent comparison
+22. Operational health
+23. Approval gates
+24. Registry recommendation
+25. Maturity
+26. Continuous-learning rule
+27. Tests/build
+28. Remaining limitations
+29. Final decision
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #223B COMPLETE — PROSPECTIVE VALIDATION SUPPORTS #224 CONTROLLED
+PRODUCTION APPROVAL
+
+B. #223B COMPLETE — PROSPECTIVE VALIDATION SUPPORTS #224 WITH
+DOCUMENTED ABSTENTION LIMITS
+
+C. #223B PARTIAL — MORE LEGITIMATELY GRADED PROSPECTIVE EVIDENCE IS
+REQUIRED
+
+D. #223B FAILED — PROSPECTIVE RESULTS REVEAL A MATERIAL V4 VALIDATION
+PROBLEM
+
+A or B advance to #224.
+
+C means continue accumulating frozen graded evidence without modifying
+the model.
+
+D means stop and diagnose before any production approval.
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start with:
+
+#223B FINAL
+
+MODEL:
+[value]
+
+CONFIGURATION HASH:
+[value]
+
+PARAMETER HASH:
+[value]
+
+FROZEN PROSPECTIVE LEDGER:
+[number]
+
+LEGITIMATELY GRADED GAMES:
+[number]
+
+PENDING GAMES:
+[number]
+
+INVALID/EXCLUDED GRADES:
+[number]
+
+PROSPECTIVE HOME MAE:
+[value or N/A]
+
+PROSPECTIVE AWAY MAE:
+[value or N/A]
+
+PROSPECTIVE MARGIN MAE:
+[value or N/A]
+
+PROSPECTIVE TOTAL MAE:
+[value or N/A]
+
+PROSPECTIVE BRIER:
+[value or N/A]
+
+PROSPECTIVE LOG LOSS:
+[value or N/A]
+
+HISTORICAL OOS MARGIN MAE:
+12.5008391763
+
+HISTORICAL OOS BRIER:
+0.1800233716
+
+PROSPECTIVE EVIDENCE:
+CONSISTENT / PROMISING / INCONCLUSIVE / CONCERNING
+
+DRIFT:
+NO EVIDENCE / POSSIBLE / MATERIAL / INSUFFICIENT SAMPLE
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+INVALID PROBABILITY OUTPUTS:
+[number]
+
+RUNTIME HEALTH:
+PASS / PARTIAL / FAIL
+
+MODEL APPROVAL RECOMMENDATION:
+[value]
+
+MODEL MATURITY:
+[value]
+
+PRODUCTION APPROVAL READY:
+TRUE / FALSE
+
+FULL LIVE PUBLICATION DATA READY:
+TRUE / FALSE
+
+CURRENT CHAMPION CHANGED:
+YES / NO
+
+PUBLICATION CHANGED:
+YES / NO
+
+NFL CHANGED:
+YES / NO
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[value]
+
+Then provide the complete report.
+
+============================================================
+STOP
+============================================================
+
+Do NOT begin #224.
+
+Do NOT promote V4.
+
+Do NOT publish V4 picks.
+
+Do NOT change production champion.
+
+Complete #223B,
+return the report,
+and STOP.

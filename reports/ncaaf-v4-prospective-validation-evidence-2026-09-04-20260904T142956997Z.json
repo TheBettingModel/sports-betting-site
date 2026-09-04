@@ -1,0 +1,102 @@
+{
+  "version": "ncaaf-v4-prospective-continuation-v1",
+  "evaluatedAt": "2026-09-04T14:29:56.997Z",
+  "source": {
+    "path": "reports/ncaaf-v4-formal-validation-evidence-2026-09-04-v8.json",
+    "inputLedgerHash": "58b162ab5f4f984d018a3bfaa994eae80e323cf468b8dffdc3647884eeee4eab",
+    "predictionLedgerHash": "fd7c547fda608d0a045cab9687cabae868baeba2d99efab852110057f859bccf",
+    "evaluationHash": "1d2bde61e2850b8dc6abe24764aa46816ec32ed10a1139cdcbb260592012c60e",
+    "configurationHash": "212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86",
+    "parameterHash": "792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81"
+  },
+  "ledgerVerification": {
+    "inputLedgerHash": "58b162ab5f4f984d018a3bfaa994eae80e323cf468b8dffdc3647884eeee4eab",
+    "predictionLedgerHash": "fd7c547fda608d0a045cab9687cabae868baeba2d99efab852110057f859bccf",
+    "evaluationHash": "1d2bde61e2850b8dc6abe24764aa46816ec32ed10a1139cdcbb260592012c60e",
+    "exactMatch": true,
+    "predictionCount": 656
+  },
+  "domainVerification": {
+    "proof": {
+      "season": 2026,
+      "cfbdFbsCount": 138,
+      "mappedFbsCount": 138,
+      "mappedNonFbsCount": 0,
+      "capturedAt": "2026-09-03T20:42:22.413Z",
+      "evidenceRef": "cfbd-teams-2026:138:2026-09-03T20:42:22.413Z"
+    },
+    "frozenFbsIds": 138,
+    "eligiblePredictionsVerifiedFbsVsFbs": 656,
+    "exactMatch": true
+  },
+  "modelIdentity": {
+    "modelId": "tbm-ncaaf-v4-expected-score",
+    "configurationHash": "212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86",
+    "parameterHash": "792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81",
+    "featureSchemaVersion": "ncaaf-chronological-team-game-v2"
+  },
+  "resolution": {
+    "PREGAME_FROZEN_PENDING": 656,
+    "PREGAME_FROZEN_GRADED": 0,
+    "INVALID_RESULT": 0,
+    "RESULT_UNAVAILABLE": 0,
+    "OUT_OF_DOMAIN": 123
+  },
+  "gradedPredictionIds": [],
+  "resultEvidenceIds": [],
+  "prospectiveMetrics": null,
+  "historicalComparison": null,
+  "calibration": {
+    "fitted": false,
+    "applied": "identity",
+    "bands": [],
+    "ece": null,
+    "mce": null
+  },
+  "drift": {
+    "classification": "INSUFFICIENT_SAMPLE",
+    "diagnostics": null
+  },
+  "dataQuality": [],
+  "errorForensics": [],
+  "probabilityIntegrity": {
+    "invalidOutputs": 0
+  },
+  "runtimeHealth": {
+    "activeSchedulerProcessCount": 2,
+    "duplicateInvocationCountObservedInCurrentLogs": 0,
+    "duplicateInvocationCountPersistentlyMeasurable": false,
+    "activeEvidenceRuns": 0,
+    "staleEvidenceRuns": 0,
+    "latestRunStatus": "partial",
+    "providerErrors": {},
+    "partialReasons": [
+      {
+        "code": "unmatched_market_identity",
+        "count": 1196,
+        "message": "One or more market rows could not be safely linked to an ESPN game"
+      }
+    ],
+    "databaseAuthErrorsPersistentlyMeasurable": false,
+    "featureBridgeFailures": 0,
+    "predictionGenerationFailures": 0,
+    "gradingFailures": 0,
+    "latestEvidenceRun": {
+      "id": 174,
+      "status": "partial",
+      "capturedAt": "2026-09-04T14:20:22.247Z"
+    },
+    "classification": "PARTIAL"
+  },
+  "approval": {
+    "recommendation": "CONTINUE_UNVALIDATED_SHADOW_EVIDENCE_ACCUMULATION",
+    "maturity": "DEVELOPING",
+    "productionApprovalReady": false,
+    "fullLivePublicationDataReady": false,
+    "evidenceClassification": "INCONCLUSIVE",
+    "blocker": "No frozen prospective games have legitimately completed yet.",
+    "championChanged": false,
+    "publicationChanged": false,
+    "nflChanged": false
+  }
+}
