@@ -1,0 +1,1524 @@
+TASK #224B — MLB V4 HISTORICAL POINT-IN-TIME FOUNDATION
+
+MISSION
+
+Build the historical point-in-time (PIT) data foundation required to legitimately train, validate, and eventually promote MLB V4.
+
+TASK #224A concluded:
+
+C — FOUNDATION WORK REQUIRED
+
+The primary blocker is insufficient historical/PIT-safe evidence, NOT lack of an expected-runs architecture.
+
+Current known state from #224A:
+
+- Production MLB champion:
+  tbm-mlb-moneyline-v1
+
+- Shadow expected-runs challenger:
+  tbm-mlb-moneyline-v4
+
+- Audit wrapper:
+  tbm-mlb-moneyline-v4-1
+
+- Current database primarily contains 2026 MLB data
+- 511 MLB game rows
+- 501 finals
+- only 25 immutable V4 feature/forecast games
+- only 9 persisted forecast evaluations
+- largest clean diagnostic replay: 79 games
+- no legitimate chronological train/validation/OOS split currently exists
+- current V4 diagnostic replay showed severe low-run compression:
+  total-run bias approximately -2.327 runs/game
+- current V4 MUST remain shadow-only
+- no production promotion is authorized
+
+The objective of #224B is to determine how much historical MLB data can be legitimately reconstructed point-in-time, build the largest clean chronological MLB foundation possible, validate its integrity, and prepare it for future MLB V4 training.
+
+This is a DATA FOUNDATION task.
+
+DO NOT TRAIN OR RETUNE MLB V4 IN THIS TASK.
+
+==================================================
+NON-NEGOTIABLE TBM RULE
+==================================================
+
+MLB must remain an independent sports intelligence system.
+
+Shared infrastructure is allowed.
+
+Shared forecasting intelligence is NOT.
+
+MLB historical data, feature construction, model parameters, calibration, evaluation, and future production behavior must remain MLB-specific.
+
+Changing MLB must produce ZERO forecasting changes in:
+
+- NCAAF
+- NFL
+- NBA
+- WNBA
+- NHL
+- Soccer
+- UFC
+- any other sport
+
+Hard rule:
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+==================================================
+SECURITY / #223D-2 PROTECTION
+==================================================
+
+NCAAF #223D-2 remains blocked pending Replit Support removal of the protected contaminated Git ref:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+DO NOT:
+
+- manipulate Git history
+- attempt to delete the protected ref
+- force push
+- modify Apple credentials
+- modify EAS credentials
+- deploy production
+- modify NCAAF model behavior
+- modify NCAAF forecasts
+- modify NCAAF Baseline D
+- modify NCAAF hashes/statuses
+- interfere with the sanitized repository checkpoint
+
+If tracked code changes are required for #224B, keep them isolated and clearly documented.
+
+DO NOT push or deploy during this task.
+
+==================================================
+PRIMARY #224B GOAL
+==================================================
+
+Determine whether TBM can reconstruct a legitimate multi-season historical MLB training foundation.
+
+Target conceptually:
+
+2023
+2024
+2025
+2026
+
+BUT:
+
+Do NOT assume those seasons are all available.
+
+Do NOT fabricate coverage.
+
+Do NOT use a season simply because we want it.
+
+Determine actual recoverable coverage first.
+
+If earlier seasons such as 2021 or 2022 are available and useful, report them.
+
+If 2023–2025 cannot be legitimately reconstructed, report that.
+
+We want:
+
+THE LARGEST TRUSTWORTHY CHRONOLOGICAL PIT DATASET POSSIBLE.
+
+Not:
+
+THE LARGEST DATASET AT ANY COST.
+
+==================================================
+SECTION 1 — HISTORICAL SOURCE DISCOVERY
+==================================================
+
+Audit every existing source available to the repository/application for historical MLB information.
+
+Search:
+
+- current database
+- existing raw snapshots
+- archived provider data
+- historical files
+- caches
+- repository artifacts
+- existing ingestion services
+- existing API/provider integrations
+- existing baseball data packages
+- existing scripts
+- previous backtest datasets
+- existing game-result tables
+- existing player/pitcher datasets
+
+Determine what historical MLB data can be retrieved or reconstructed using existing legitimate providers.
+
+For every source document:
+
+SOURCE NAME
+
+DATA FAMILY
+
+SEASONS AVAILABLE
+
+DATE COVERAGE
+
+GAME COVERAGE
+
+TEAM IDENTITY COVERAGE
+
+PLAYER IDENTITY COVERAGE
+
+TIMESTAMP / AS-OF SUPPORT
+
+HISTORICAL AVAILABILITY
+
+RATE LIMITS / OPERATIONAL CONSTRAINTS
+
+PIT SAFETY
+
+REPRODUCIBILITY
+
+LICENSE / ACCESS CONSTRAINTS IF RELEVANT
+
+Do not assume a source is PIT-safe merely because it provides historical values.
+
+==================================================
+SECTION 2 — CANONICAL MLB GAME LEDGER
+==================================================
+
+Build or repair the historical canonical MLB game ledger.
+
+We need one trustworthy canonical identity for every game.
+
+Required fields where available:
+
+canonical_game_id
+provider_game_id
+season
+game_date
+scheduled_first_pitch
+actual_start_time if available
+home_team_id
+away_team_id
+home_team_name
+away_team_name
+home_runs_actual
+away_runs_actual
+game_status
+innings_played
+game_number
+doubleheader_status
+postseason_flag
+neutral_site_flag
+suspended_flag
+resumed_flag
+completion_date
+
+Handle explicitly:
+
+- doubleheaders
+- postponed games
+- suspended games
+- resumed games
+- cancellations
+- extra innings
+- postseason
+- neutral-site games
+- historical seven-inning doubleheaders if covered
+
+Do not silently treat unusual games as standard nine-inning games.
+
+Report all unresolved cases.
+
+==================================================
+SECTION 3 — TEAM IDENTITY BRIDGE
+==================================================
+
+Create/verify deterministic historical team identity mapping.
+
+For every season in scope ensure:
+
+provider team
+canonical TBM team
+abbreviation
+franchise identity
+season identity
+
+Resolve naming differences safely.
+
+Examples:
+
+- abbreviations
+- city/name variants
+- provider-specific IDs
+
+Do NOT fuzzy-match ambiguous identities without an explicit auditable rule.
+
+Report:
+
+total identities
+resolved
+unresolved
+ambiguous
+duplicates
+
+Target:
+
+100% deterministic identity resolution for games admitted into the training foundation.
+
+Any unresolved game must be excluded or explicitly quarantined.
+
+==================================================
+SECTION 4 — PLAYER / STARTER IDENTITY
+==================================================
+
+Determine whether historical starting pitcher identity can be reconstructed reliably.
+
+Required where possible:
+
+game_id
+team_id
+pitcher_id
+pitcher_name
+starter_flag
+handedness
+pregame starter status
+actual starter
+stat-through date
+
+Critical distinction:
+
+ACTUAL STARTER is known after the game.
+
+PREGAME EXPECTED STARTER may differ.
+
+Do not pretend actual starter identity was known pregame unless historical evidence supports it.
+
+Classify starter identity per game:
+
+CONFIRMED_PREGAME
+PROJECTED_PREGAME
+ACTUAL_ONLY
+UNKNOWN
+
+For model training, define exactly which states are safe.
+
+Do not introduce hindsight leakage through actual starter substitutions.
+
+==================================================
+SECTION 5 — TEAM OFFENSE PIT RECONSTRUCTION
+==================================================
+
+Reconstruct team offensive features using ONLY games completed before the target game's cutoff.
+
+Potential features:
+
+- runs per game
+- runs scored
+- runs allowed where appropriate
+- rolling 5
+- rolling 10
+- rolling 20
+- rolling 30
+- season-to-date
+- home/away splits
+- handedness splits if legitimate historical data exists
+- wOBA
+- wRC+
+- OPS
+- ISO
+- K%
+- BB%
+- hard-hit rate
+- barrel rate
+- xwOBA
+- other Statcast features if legitimately reconstructable
+
+IMPORTANT:
+
+A team's final-season 2024 statistics may NOT be used to forecast a game from April 2024.
+
+Every statistic must have an explicit:
+
+stat_through_date
+
+or equivalent cutoff provenance.
+
+For early-season games, define prior handling.
+
+Potential approaches may include:
+
+- prior-season shrinkage
+- league-average priors
+- multi-year weighted priors
+
+But DO NOT tune those weights during #224B.
+
+Only establish data availability and deterministic feature construction.
+
+==================================================
+SECTION 6 — STARTING PITCHER PIT FEATURES
+==================================================
+
+Determine which starter metrics can be reconstructed as they existed before each game.
+
+Potential features:
+
+- ERA
+- FIP
+- xFIP
+- WHIP
+- K%
+- BB%
+- K-BB%
+- HR rate
+- GB%
+- FB%
+- hard-hit rate
+- barrel rate
+- xERA
+- xwOBA allowed
+- recent ERA
+- recent FIP
+- previous-start pitch count
+- rest days
+- innings workload
+- season innings
+- projected innings inputs
+- handedness
+- pitch mix
+- velocity
+- spin
+
+For every feature classify:
+
+PIT_SAFE
+PIT_RECONSTRUCTABLE
+CURRENT_ONLY
+LEAKAGE_RISK
+UNAVAILABLE
+
+Never use end-of-season pitcher statistics for earlier games.
+
+==================================================
+SECTION 7 — BULLPEN PIT RECONSTRUCTION
+==================================================
+
+Determine whether historical bullpen state can be reconstructed.
+
+Potential features:
+
+- bullpen ERA/FIP/xFIP
+- bullpen innings
+- reliever availability
+- previous-day workload
+- previous-two-day workload
+- previous-three-day workload
+- leverage reliever usage
+- consecutive-day usage
+- bullpen rest
+- team bullpen quality
+- projected available relievers
+
+Bullpen state must be calculated strictly from appearances completed BEFORE the target game's first pitch.
+
+No postgame information.
+
+Determine how much historical coverage is possible.
+
+==================================================
+SECTION 8 — LINEUP PIT RECONSTRUCTION
+==================================================
+
+This is a major leakage-risk area.
+
+Determine whether historical pregame lineups can legitimately be reconstructed.
+
+Classify each game:
+
+CONFIRMED_PREGAME
+PROJECTED_PREGAME
+PARTIAL
+ACTUAL_ONLY
+UNAVAILABLE
+
+Do NOT use the actual batting order as though it were known pregame unless timestamped historical evidence proves it was available before first pitch.
+
+Determine whether we can reconstruct:
+
+- batting order
+- player identities
+- handedness
+- lineup wOBA/wRC+
+- platoon composition
+- missing starters
+- scratches
+
+If reliable historical lineup timing is unavailable, the initial MLB V4 historical baseline must be designed to function without lineup-dependent features.
+
+Live lineup information can later become a prospective revision layer.
+
+This distinction must be explicit.
+
+==================================================
+SECTION 9 — PARK FACTORS
+==================================================
+
+Reconstruct historical park context.
+
+Required:
+
+game
+stadium
+season
+park factor version
+park factor as-of rule
+
+Avoid leakage from using a final full-season park factor for earlier games unless the park factor is explicitly treated as an external prior derived from prior seasons.
+
+Prefer:
+
+- prior-year park factor
+- multi-year pregame park factor
+- fixed published historical park prior
+
+Document exact methodology.
+
+==================================================
+SECTION 10 — WEATHER
+==================================================
+
+Determine whether historical PRE-GAME weather forecasts are available.
+
+Important distinction:
+
+Historical observed weather after/during a game is NOT automatically equivalent to what was known before first pitch.
+
+Classify:
+
+FORECAST_PIT_SAFE
+OBSERVED_ONLY
+RECONSTRUCTABLE_PROXY
+UNAVAILABLE
+
+Potential fields:
+
+temperature
+wind speed
+wind direction
+humidity
+precipitation
+roof status
+air density if derivable safely
+
+If historical forecasts cannot be recovered, DO NOT fabricate them.
+
+A baseline model can omit historical weather and introduce weather only prospectively after proper validation.
+
+==================================================
+SECTION 11 — LEAGUE RUN ENVIRONMENT
+==================================================
+
+Construct chronological MLB scoring environment features.
+
+Examples:
+
+runs per team-game:
+
+last 7 days
+last 14 days
+last 30 days
+season-to-date
+prior season
+
+Every window must contain only games completed before target first pitch.
+
+No target-game outcome.
+
+No future games.
+
+No end-of-season averages applied backward.
+
+Test cutoff enforcement thoroughly.
+
+==================================================
+SECTION 12 — MARKET FIREWALL
+==================================================
+
+The historical SPORTS training foundation must remain independent of sportsbook information.
+
+Sportsbook data must NOT become expected-runs features.
+
+Do not include:
+
+- moneyline
+- run line
+- total
+- implied probability
+- consensus probability
+- Pinnacle probability
+- opening line
+- closing line
+- line movement
+- CLV
+- sportsbook edge
+
+inside sports-model features.
+
+Historical market data may be stored separately for later evaluation.
+
+Architecture:
+
+SPORTS FEATURE FOUNDATION
+→ SPORTS FORECAST
+
+SEPARATE:
+
+MARKET SNAPSHOT
+→ MARKET EVALUATION
+
+Maintain a hard firewall.
+
+==================================================
+SECTION 13 — HISTORICAL MARKET DATA
+==================================================
+
+Separately determine what historical sportsbook data is available.
+
+We eventually want to evaluate:
+
+Moneyline
+Run Line
+Total
+
+But sportsbook history is NOT required to construct expected runs.
+
+For each available historical market source determine:
+
+- timestamp
+- sportsbook
+- market
+- price
+- line
+- opening snapshot
+- pregame snapshot
+- closing snapshot
+- capture provenance
+
+Classify market data as:
+
+PIT_SAFE
+CLOSING_ONLY
+APPROXIMATE
+UNAVAILABLE
+
+Do NOT invent historical lines.
+
+==================================================
+SECTION 14 — OUTCOME LEDGER
+==================================================
+
+Build immutable outcomes separately from features.
+
+Required where possible:
+
+game_id
+home_runs
+away_runs
+innings_played
+winner
+run_difference
+game_total
+extra_innings
+settlement_status
+completion_timestamp
+
+Also prepare future evaluation support for:
+
+home_run_error
+away_run_error
+team_run_MAE
+total_error
+margin_error
+winner_correct
+probability_error
+
+Do not calculate model errors yet unless evaluating existing frozen forecasts.
+
+#224B is not a model-training task.
+
+==================================================
+SECTION 15 — STARTER OUTCOME LEDGER
+==================================================
+
+#224A found zero starter outcomes.
+
+Repair this if historical data supports it.
+
+Store separately:
+
+game_id
+pitcher_id
+actual_IP
+actual_runs
+earned_runs
+hits
+walks
+strikeouts
+home_runs_allowed
+pitch_count if available
+
+These are OUTCOMES.
+
+They must never enter the same game's pregame feature snapshot.
+
+They may become historical inputs for FUTURE games after chronological cutoff.
+
+==================================================
+SECTION 16 — BULLPEN OUTCOME LEDGER
+==================================================
+
+Build bullpen game outcomes if possible.
+
+Potential fields:
+
+team
+game
+bullpen innings
+runs allowed
+earned runs
+hits
+walks
+strikeouts
+home runs
+relievers used
+high-leverage relievers used
+pitch counts if available
+
+Again:
+
+GAME N OUTCOME
+may inform
+GAME N+1 FEATURE STATE
+
+but never GAME N pregame features.
+
+==================================================
+SECTION 17 — FEATURE SNAPSHOT SCHEMA
+==================================================
+
+Create or extend the MLB chronological training schema.
+
+Target concept:
+
+mlb-chronological-team-game-v1
+
+or another appropriately versioned MLB-specific identity.
+
+Each target game should ultimately have immutable pregame feature rows.
+
+Required metadata:
+
+canonical_game_id
+season
+game_date
+scheduled_first_pitch
+feature_cutoff
+retrieved_at
+feature_schema_version
+source_versions
+source_hashes
+team identity
+starter state
+lineup state
+data quality
+missing feature indicators
+
+Then feature families.
+
+Do NOT silently impute unavailable information.
+
+Missingness should be represented explicitly.
+
+==================================================
+SECTION 18 — FEATURE PROVENANCE
+==================================================
+
+Every important historical feature should be explainable.
+
+We need to be able to answer:
+
+Where did this number come from?
+
+What games/statistics contributed to it?
+
+What was the cutoff?
+
+Could any future information have entered it?
+
+Store sufficient provenance/hashes to reproduce the foundation.
+
+Do not create an opaque historical table that cannot be audited.
+
+==================================================
+SECTION 19 — LEAKAGE TEST SUITE
+==================================================
+
+Build rigorous automated tests.
+
+At minimum test:
+
+1. No source event after target first pitch enters features.
+
+2. No target game's outcome enters its own features.
+
+3. No later game enters earlier-game rolling statistics.
+
+4. No end-of-season statistics are applied backward.
+
+5. No closing/in-play market information enters sports features.
+
+6. No actual lineup is treated as confirmed pregame without evidence.
+
+7. No actual starter is treated as confirmed pregame without evidence.
+
+8. Doubleheaders use correct chronological order.
+
+9. Suspended/resumed games do not contaminate earlier states.
+
+10. Feature generation is deterministic.
+
+11. Re-running the historical builder produces identical hashes.
+
+12. Game identities are unique.
+
+13. Team identities are deterministic.
+
+14. Player identities do not cross-map incorrectly.
+
+15. Missing values remain explicit.
+
+Any leakage failure is a HARD FAILURE.
+
+==================================================
+SECTION 20 — DATA QUALITY GATES
+==================================================
+
+For each season report:
+
+games expected
+games found
+games eligible
+games excluded
+identity resolution
+starter coverage
+lineup coverage
+bullpen coverage
+park coverage
+weather coverage
+advanced feature coverage
+outcome coverage
+
+Do not use one generic completeness percentage.
+
+Report coverage by feature family.
+
+Define:
+
+CORE_ELIGIBLE
+
+A game that contains enough PIT-safe information for the baseline expected-runs model.
+
+Define separately:
+
+ENHANCED_ELIGIBLE
+
+A game with optional richer features such as lineup/weather/advanced data.
+
+This allows MLB V4 baseline training to use a large clean core dataset without requiring every advanced feature.
+
+==================================================
+SECTION 21 — CORE BASELINE DATASET
+==================================================
+
+The first MLB V4 model should NOT require every sophisticated baseball feature.
+
+Determine the largest PIT-safe CORE dataset that could support a simple expected-runs baseline.
+
+Potential core requirements:
+
+- canonical game identity
+- first pitch
+- actual score
+- chronological league scoring environment
+- rolling team offense
+- starting pitcher identity/state
+- PIT-safe starter performance
+- bullpen workload/quality
+- park factor
+- home/away
+
+Optional/enhanced:
+
+- confirmed lineup
+- weather forecast
+- Statcast
+- pitch mix
+- BvP
+- advanced matchup features
+
+Do not throw away thousands of otherwise legitimate games merely because an optional feature is unavailable.
+
+==================================================
+SECTION 22 — EARLY-SEASON HANDLING
+==================================================
+
+Explicitly design data support for early-season games.
+
+April games have small current-season samples.
+
+Do not use future games to solve this.
+
+Determine what legitimate prior information exists:
+
+- prior-season team performance
+- returning pitcher history
+- multi-season pitcher history
+- league priors
+- roster information if available
+
+Do NOT choose/tune model weights.
+
+Just determine which PIT-safe priors can be constructed.
+
+==================================================
+SECTION 23 — ROOKIE / NEW PLAYER HANDLING
+==================================================
+
+Determine how historical data can represent:
+
+- rookie pitchers
+- pitchers with tiny MLB samples
+- recently promoted players
+- players changing teams
+- returning injured players
+
+Do not fabricate statistics.
+
+Prepare explicit:
+
+UNKNOWN
+SMALL_SAMPLE
+LEAGUE_PRIOR
+AVAILABLE
+
+states.
+
+==================================================
+SECTION 24 — TRADE / TEAM CHANGE HANDLING
+==================================================
+
+Player statistics must follow the player chronologically while team context changes appropriately.
+
+Audit:
+
+- traded pitchers
+- traded hitters
+- waiver claims
+- midseason roster movement
+
+Do not accidentally reset player history because a provider changes team ID.
+
+Do not accidentally attribute previous-team bullpen state to the new team.
+
+==================================================
+SECTION 25 — DATASET REPLAY
+==================================================
+
+Once the historical foundation is constructed:
+
+Run a deterministic replay WITHOUT training MLB V4.
+
+Purpose:
+
+Validate that every target game's features can be reconstructed using only information available before that game.
+
+For each target game:
+
+historical state before game
+→ feature snapshot
+→ freeze
+→ advance chronology
+→ add completed game to historical state
+→ next game
+
+This is the preferred architecture.
+
+Do NOT construct each game using a final full-season aggregate and then attempt to remove future information afterward.
+
+==================================================
+SECTION 26 — CHRONOLOGICAL SPLIT FEASIBILITY
+==================================================
+
+After building the dataset, determine what chronological splits are now legitimately possible.
+
+Do NOT train.
+
+Report possible structure based on actual recovered data.
+
+Example only:
+
+2023–2024 TRAIN
+2025 VALIDATION
+2026 LOCKED OOS
+
+OR:
+
+2022–2024 TRAIN
+2025 VALIDATION
+2026 OOS
+
+But use actual available coverage.
+
+For every candidate split report:
+
+train games
+validation games
+OOS games
+feature coverage
+starter coverage
+lineup coverage
+seasonal distribution
+
+The latest evaluation period must remain untouched for future #224C/#224D work.
+
+==================================================
+SECTION 27 — PRESERVE AN UNTOUCHED OOS COHORT
+==================================================
+
+This is extremely important.
+
+DO NOT allow future training work to consume all recovered history.
+
+Before any model training occurs, designate a chronological OOS holdout.
+
+Persist its definition.
+
+The holdout cannot later be casually changed because model results are disappointing.
+
+If enough data exists, preserve both:
+
+VALIDATION
+
+and
+
+LOCKED OOS TEST
+
+The coding agent must recommend the split but MUST NOT train against it during #224B.
+
+==================================================
+SECTION 28 — CURRENT 2026 LIVE-FORWARD FOUNDATION
+==================================================
+
+Do not abandon current live-forward evidence.
+
+Continue/verify append-only capture for current MLB games where existing architecture permits safely.
+
+We want prospective evidence for:
+
+- starters
+- lineup revisions
+- bullpen
+- weather
+- park
+- forecast states
+- markets
+- outcomes
+
+But #224B must NOT change the production MLB model.
+
+Current champion remains:
+
+tbm-mlb-moneyline-v1
+
+Current V4/V4.1 remain shadow/unvalidated.
+
+==================================================
+SECTION 29 — CURRENT V4 LOW-RUN BIAS
+==================================================
+
+#224A found:
+
+79-game diagnostic replay
+total-run bias ≈ -2.327 runs/game
+76/79 projected totals below 8 runs
+
+DO NOT FIX THIS DURING #224B.
+
+Do not tune the 4.50 prior.
+
+Do not modify weights.
+
+Do not modify starter transformations.
+
+Do not adjust bullpen weights.
+
+Do not alter expected-run clamps.
+
+Do not calibrate using the diagnostic window.
+
+Instead:
+
+Preserve this as a known challenger failure that future #224C must address using the new historical foundation.
+
+We want to know whether the future model actually solves the problem OOS.
+
+==================================================
+SECTION 30 — GLOBAL SIX-PICK CAP AUDIT
+==================================================
+
+#224A found that a global daily six-pick cap / processing order can allow one sport to consume publication capacity that would otherwise be available to another sport.
+
+DO NOT CHANGE THIS DURING #224B.
+
+Document exactly:
+
+- where the global cap exists
+- how processing order works
+- whether it affects sport-specific cards
+- whether it affects only cross-sport ranking
+- what would need to change later to make sport publication independent
+
+Desired future rule:
+
+Each sport independently determines its qualifying plays.
+
+Cross-sport products such as Play of the Day may rank across sports afterward.
+
+MLB should not lose a legitimate MLB qualifying play merely because another sport filled a global cap.
+
+This is an architecture note only for #224B.
+
+==================================================
+SECTION 31 — PROJECTED SCORE DATA CONTRACT
+==================================================
+
+Prepare the foundation for the future subscriber output:
+
+MODEL PROJECTED SCORE
+
+ATL 3 — PHI 2
+
+The eventual model must persist unrounded values such as:
+
+ATL = 3.4237
+PHI = 1.8732
+
+UI may round.
+
+Do NOT implement/redesign the UI during #224B.
+
+Do NOT fabricate projected scores.
+
+Do NOT publish current shadow V4 scores.
+
+Only ensure the historical/training architecture can support:
+
+home_expected_runs
+away_expected_runs
+
+as first-class future outputs.
+
+==================================================
+SECTION 32 — STORAGE SAFETY
+==================================================
+
+Historical reconstruction must not overwrite:
+
+- production forecasts
+- production picks
+- graded picks
+- market snapshots
+- current champion model identity
+- NCAAF data
+- another sport's data
+
+Prefer new/versioned MLB historical tables/artifacts.
+
+If existing schemas can safely be reused, prove that before writing.
+
+Create backups/checkpoints where appropriate WITHOUT manipulating the protected Git history issue.
+
+==================================================
+SECTION 33 — PERFORMANCE / SCALE
+==================================================
+
+If multiple seasons are recovered, ensure reconstruction is operationally practical.
+
+Report:
+
+- total rows
+- build duration
+- memory use if meaningful
+- batching
+- database impact
+- provider calls
+- caching
+- deterministic rerun time
+
+Do not sacrifice PIT correctness for speed.
+
+==================================================
+SECTION 34 — REQUIRED TESTS
+==================================================
+
+Run all relevant focused tests.
+
+Also run existing regression tests necessary to prove no other sport changed.
+
+At minimum verify:
+
+MLB historical builder tests
+MLB PIT tests
+identity tests
+leakage tests
+database/schema tests
+API tests if affected
+typecheck if affected
+
+And prove:
+
+NCAAF predictive behavior unchanged
+NFL predictive behavior unchanged
+other sports untouched
+
+Do not deploy.
+
+==================================================
+SECTION 35 — SUCCESS CRITERIA
+==================================================
+
+#224B succeeds only if we can answer:
+
+1. Exactly how many historical MLB games can be reconstructed safely?
+
+2. Which seasons are usable?
+
+3. Which feature families are PIT-safe?
+
+4. Which are unavailable?
+
+5. Can we create a large CORE baseline dataset?
+
+6. Can we preserve a meaningful chronological validation period?
+
+7. Can we preserve a locked untouched OOS test?
+
+8. Are game/team identities deterministic?
+
+9. Is starter identity safe?
+
+10. Is historical lineup information safe or should it remain prospective-only?
+
+11. Can bullpen state be reconstructed?
+
+12. Can park context be reconstructed?
+
+13. Can weather legitimately be historical, or should it be prospective-only?
+
+14. Are outcomes fully separated from features?
+
+15. Do leakage tests pass?
+
+16. Is the dataset deterministic/reproducible?
+
+17. Can future MLB V4 training proceed without sportsbook contamination?
+
+==================================================
+READINESS DECISION
+==================================================
+
+At completion classify the historical foundation exactly:
+
+A — MLB V4 TRAINING FOUNDATION READY
+
+Large, deterministic, PIT-safe historical dataset exists with valid chronological validation and locked OOS cohorts.
+
+B — CORE MLB V4 FOUNDATION READY
+
+Large PIT-safe baseline dataset exists, but some enhanced feature families must remain prospective-only.
+
+C — PARTIAL FOUNDATION
+
+Historical reconstruction improved coverage but remains insufficient for legitimate V4 training/validation.
+
+D — FOUNDATION UNSAFE
+
+Leakage, identity, provenance, or source limitations prevent legitimate historical training.
+
+Do NOT choose A simply because the build completed.
+
+==================================================
+NEXT-TASK RECOMMENDATION
+==================================================
+
+If A or B:
+
+Recommend the shortest safe next task for actually building/training the MLB V4 expected-runs baseline.
+
+Likely concept:
+
+#224C — MLB V4 Expected-Runs Baseline Training
+
+But do not start it.
+
+If C or D:
+
+Specify exactly what must be solved before training.
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #224B — MLB V4 HISTORICAL PIT FOUNDATION REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Foundation decision:
+Seasons recovered:
+Games recovered:
+Core eligible:
+Enhanced eligible:
+PIT violations:
+Identity failures:
+Locked OOS available:
+Training readiness:
+
+## 2. SOURCE INVENTORY
+
+List every historical source investigated and its usefulness.
+
+## 3. CANONICAL GAME LEDGER
+
+By season:
+
+games
+finals
+eligible
+excluded
+special cases
+identity status
+
+## 4. TEAM IDENTITY
+
+Total:
+Resolved:
+Unresolved:
+Ambiguous:
+Duplicates:
+
+## 5. STARTER IDENTITY
+
+Confirmed pregame:
+Projected pregame:
+Actual only:
+Unknown:
+
+Explain what is safe for training.
+
+## 6. TEAM OFFENSE
+
+Available historical features.
+Coverage.
+PIT methodology.
+
+## 7. STARTING PITCHING
+
+Available historical features.
+Coverage.
+PIT methodology.
+
+## 8. BULLPEN
+
+Available historical features.
+Coverage.
+PIT methodology.
+
+## 9. LINEUPS
+
+Historical pregame coverage.
+Actual-only coverage.
+Recommendation for baseline vs prospective model.
+
+## 10. PARK / WEATHER / CONTEXT
+
+Park coverage:
+Weather coverage:
+Context coverage:
+PIT classification:
+
+## 11. LEAGUE RUN ENVIRONMENT
+
+Windows built.
+Coverage.
+Cutoff validation.
+
+## 12. OUTCOMES
+
+Game outcome coverage.
+Starter outcome coverage.
+Bullpen outcome coverage.
+
+## 13. MARKET FIREWALL
+
+PASS / FAIL
+
+Confirm sportsbook information is excluded from sports features.
+
+## 14. HISTORICAL MARKET DATA
+
+Coverage separately from sports foundation.
+
+## 15. FINAL FEATURE SCHEMA
+
+Document the exact MLB historical feature schema/version.
+
+## 16. DATASET SIZE
+
+Total games:
+Total team-game rows:
+Core eligible:
+Enhanced eligible:
+Excluded:
+Missingness by feature family:
+
+## 17. PIT / LEAKAGE AUDIT
+
+Report every automated test and result.
+
+Target:
+
+0 future-information violations
+0 target-outcome leakage
+0 market leakage
+0 invalid chronology
+0 identity ambiguity among admitted rows
+
+## 18. DETERMINISM
+
+Dataset checksum/hash:
+Replay checksum:
+Rerun result:
+Duplicate count:
+
+## 19. CHRONOLOGICAL SPLITS
+
+Recommended future:
+
+TRAIN:
+VALIDATION:
+LOCKED OOS:
+
+Provide game counts and coverage.
+
+DO NOT train during #224B.
+
+## 20. 2026 PROSPECTIVE STATUS
+
+Current live-forward evidence status.
+
+Confirm production V1 unchanged.
+Confirm V4/V4.1 remain shadow.
+
+## 21. KNOWN V4 LOW-RUN FAILURE
+
+Confirm no tuning was performed.
+
+Preserve #224A diagnostic findings for future comparison.
+
+## 22. GLOBAL PUBLICATION CAP
+
+Document current behavior and recommended future isolation.
+
+No implementation yet.
+
+## 23. CROSS-SPORT INDEPENDENCE
+
+Confirm no forecasting changes to:
+
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+## 24. TEST / BUILD RESULTS
+
+List exact commands/results.
+
+## 25. RISKS / REMAINING GAPS
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+## 26. FOUNDATION DECISION
+
+Return exactly one:
+
+A — MLB V4 TRAINING FOUNDATION READY
+
+B — CORE MLB V4 FOUNDATION READY
+
+C — PARTIAL FOUNDATION
+
+D — FOUNDATION UNSAFE
+
+Explain why.
+
+## 27. NEXT RECOMMENDED TASK
+
+Give the exact next task.
+
+Do NOT execute it.
+
+==================================================
+HARD STOP
+==================================================
+
+After completing #224B:
+
+STOP.
+
+DO NOT train MLB V4.
+
+DO NOT retune V4.
+
+DO NOT modify tbm-mlb-moneyline-v1.
+
+DO NOT promote V4/V4.1.
+
+DO NOT change publication thresholds.
+
+DO NOT publish projected scores.
+
+DO NOT change the global six-pick cap.
+
+DO NOT start NFL V4.
+
+DO NOT modify NCAAF.
+
+DO NOT deploy.
+
+DO NOT push.
+
+DO NOT manipulate Git history.
+
+DO NOT touch Apple/EAS credentials.
+
+Return the report and wait for owner review.

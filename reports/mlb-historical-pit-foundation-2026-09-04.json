@@ -1,0 +1,119 @@
+{
+  "task": "224B",
+  "classification": "C — PARTIAL FOUNDATION",
+  "trainingSafe": false,
+  "pitSafetyStatus": "UNVERIFIED_COMPLETION_BOUNDARIES",
+  "rawProviderBodiesArchived": false,
+  "artifactKey": "mlb-historical-2023-2026-v1",
+  "schemaVersion": "mlb-chronological-team-game-v1",
+  "splitVersion": "mlb-chronological-split-2023-2026-v1",
+  "retrievalCutoff": "2026-09-04",
+  "sourceRequests": [
+    {
+      "season": 2023,
+      "startDate": "2023-03-01",
+      "endDate": "2023-11-30",
+      "retrievedAt": "2026-09-05T02:35:10.456Z",
+      "requestUrl": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=2023-03-01&endDate=2023-11-30&gameTypes=R%2CF%2CD%2CL%2CW&hydrate=team%2CprobablePitcher%2Clinescore",
+      "payloadHash": "e7ff945fc7af88520757c143b7e0b06307b845eb55062049f3210e46b513fc5c",
+      "parsedRows": 2517
+    },
+    {
+      "season": 2024,
+      "startDate": "2024-03-01",
+      "endDate": "2024-11-30",
+      "retrievedAt": "2026-09-05T02:35:13.755Z",
+      "requestUrl": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=2024-03-01&endDate=2024-11-30&gameTypes=R%2CF%2CD%2CL%2CW&hydrate=team%2CprobablePitcher%2Clinescore",
+      "payloadHash": "68d333b7f41598dec0f0735838f08fb02d5803c028ecaa78b7003aeeb2e3e8eb",
+      "parsedRows": 2512
+    },
+    {
+      "season": 2025,
+      "startDate": "2025-03-01",
+      "endDate": "2025-11-30",
+      "retrievedAt": "2026-09-05T02:35:16.648Z",
+      "requestUrl": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=2025-03-01&endDate=2025-11-30&gameTypes=R%2CF%2CD%2CL%2CW&hydrate=team%2CprobablePitcher%2Clinescore",
+      "payloadHash": "a642081892eae774c55c05f68057e829bdb48d43134f8624f63e7e3787222b03",
+      "parsedRows": 2511
+    },
+    {
+      "season": 2026,
+      "startDate": "2026-03-01",
+      "endDate": "2026-09-04",
+      "retrievedAt": "2026-09-05T02:35:19.012Z",
+      "requestUrl": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=2026-03-01&endDate=2026-09-04&gameTypes=R%2CF%2CD%2CL%2CW&hydrate=team%2CprobablePitcher%2Clinescore",
+      "payloadHash": "6d85138cf9ebaaad54bc0ba7bd196a29eb7b234f54037e3387d11ee7d891c0d3",
+      "parsedRows": 2152
+    }
+  ],
+  "sourceManifestHash": "3d6132945d04452d12c7b2e58891cdb13ebbd3d14c7f723d86c6eb4960eb0a1f",
+  "summary": {
+    "seasons": {
+      "2023": {
+        "recoveredGames": 2425,
+        "coreEligibleGames": 0,
+        "coreCandidateGames": 2347,
+        "enhancedEligibleGames": 0,
+        "excludedGames": 46
+      },
+      "2024": {
+        "recoveredGames": 2435,
+        "coreEligibleGames": 0,
+        "coreCandidateGames": 2353,
+        "enhancedEligibleGames": 0,
+        "excludedGames": 38
+      },
+      "2025": {
+        "recoveredGames": 2443,
+        "coreEligibleGames": 0,
+        "coreCandidateGames": 2363,
+        "enhancedEligibleGames": 0,
+        "excludedGames": 34
+      },
+      "2026": {
+        "recoveredGames": 2090,
+        "coreEligibleGames": 0,
+        "coreCandidateGames": 2013,
+        "enhancedEligibleGames": 0,
+        "excludedGames": 35
+      }
+    },
+    "totalGames": 9393,
+    "teamGameRows": 18786,
+    "coreEligibleGames": 0,
+    "coreCandidateGames": 9076,
+    "enhancedEligibleGames": 0,
+    "excludedGames": 153,
+    "duplicateSourceRows": 144,
+    "observedPitViolations": 0,
+    "unverifiedCompletionBoundaryRows": 18786,
+    "marketLeakageViolations": 0
+  },
+  "checksum": "bc7c6aaa778bce0c1a078aaac14536a32bc77e0d125324ce906a672ae46792cf",
+  "replayChecksum": "64f75e6ad20100a61c712dfcf79909d8577999220adb756cc33187c2042fc42e",
+  "starterBoundary": "Final historical schedule probablePitcher is ACTUAL_ONLY, never CONFIRMED_PREGAME",
+  "lineupBoundary": "UNAVAILABLE historically; prospective-only",
+  "weatherBoundary": "UNAVAILABLE historically; prospective-only",
+  "marketFirewall": "Sportsbook data is absent from every historical sports feature row",
+  "completionBoundary": "Normal-game date ordering is a reconstructable proxy; no row is claimed PIT-safe for training until completion times are proven",
+  "integrityAudit": {
+    "status": "PASS_PARTIAL",
+    "featureSideCoverageViolations": 0,
+    "outcomeCoverageViolations": 0,
+    "invalidOutcomeHashes": 0,
+    "invalidFeatureHashes": 0,
+    "invalidExclusionHashes": 0,
+    "invalidCutoffs": 0,
+    "marketLeakage": 0,
+    "outcomesEmbeddedInFeatures": 0,
+    "duplicateGroups": 0,
+    "splitCoverageViolations": 0,
+    "splitChecksumViolations": 0,
+    "splitAssignmentViolations": 0,
+    "manifestReplayMismatch": false,
+    "sourceManifestHashMismatch": false,
+    "appendOnlyGuardCount": 14
+  },
+  "buildStartedAt": "2026-09-05T02:35:07.063Z",
+  "buildCompletedAt": "2026-09-05T02:37:29.813Z"
+}

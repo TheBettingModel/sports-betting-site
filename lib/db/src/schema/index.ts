@@ -48,6 +48,7 @@ export * from "./ncaaf-football-intelligence-snapshots";
 export * from "./ncaaf-v4-game-day-evidence";
 export * from "./ncaaf-historical-training-rows";
 export * from "./mlb-point-in-time";
+export * from "./mlb-historical-pit";
 
 // ── Training & evaluation ─────────────────────────────────────────────────────
 export * from "./training-datasets";
