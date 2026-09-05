@@ -456,3 +456,31 @@ mtime_ms = 1788646868938
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/f81b1aa0-9697-48ac-b9fb-3d78a66668df/3d2047a9-e615-4888-a999-0996a96f74dd"
 storage_version_token = "1788646949752664"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "0oQEnPBIASfWCnmygdHrk"
+uri = "file://reports/task-232-mlb-v4-live-foundation.md"
+type = "text"
+title = "Task 232 — MLB V4 Live Foundation Report"
+description = "Final 43-section evidence report. Classification: B — live foundation complete, prospective evidence accumulating."
+logical_id = "e4698969-1c4d-4f3b-9631-2c364d8a4840"
+content_hash = "sha256:e80da728e6e6fc39bf5327ac90311ae165ee86d41a8e26c5794e2f23ebac54ba"
+size = 6027
+mtime_ms = 1788649726554
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e4698969-1c4d-4f3b-9631-2c364d8a4840/e6236138-8339-4736-ab6f-b358f0f2314a"
+storage_version_token = "1788649824883576"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "8AlqTImrD-daSbUsnwh9I"
+uri = "file://reports/task-232-verification.json"
+type = "unspecified"
+title = "Task 232 — Verification Ledger"
+description = "Machine-readable current-version metrics, hashes, test results, lifecycle evidence, and immutable-scope checks."
+logical_id = "be7c5c1e-d6bb-416b-b85e-c4a5d1fa4bca"
+content_hash = "sha256:8492f5a81b9d977f8e93fb7931cf0724d3663e2be54a7e3b353e64a6dbfdb957"
+size = 3908
+mtime_ms = 1788649743810
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/be7c5c1e-d6bb-416b-b85e-c4a5d1fa4bca/cf72b3d7-0359-4753-a4a4-414995d1e27f"
+storage_version_token = "1788649825500959"
+content_type = "application/octet-stream"

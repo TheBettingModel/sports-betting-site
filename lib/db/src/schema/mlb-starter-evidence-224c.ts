@@ -22,6 +22,9 @@ export const MLB_STARTER_EVIDENCE_224C_SCHEMA_VERSION = "mlb-starter-evidence-22
 
 export const mlbPregameStarterEvidenceSnapshotsTable = pgTable("mlb_pregame_starter_evidence_snapshots", {
   id: serial("id").primaryKey(),
+  // Nullable only for preserved v1-v3 starter snapshots collected before #232.
+  // New collection writes link to the dedicated immutable collection run.
+  collectionRunId: text("collection_run_id"),
   schemaVersion: text("schema_version").notNull().default(MLB_STARTER_EVIDENCE_224C_SCHEMA_VERSION),
   provider: text("provider").notNull(), // MLB_STATS_API
   sourceRecordId: text("source_record_id").notNull(),

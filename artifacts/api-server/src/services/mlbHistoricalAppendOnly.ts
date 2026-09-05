@@ -23,6 +23,21 @@ export const MLB_HISTORICAL_APPEND_ONLY_TABLES = [
   "mlb_historical_evaluation_runs",
   "mlb_pregame_starter_evidence_snapshots",
   "mlb_research_experiment_disposition_ledger",
+  "mlb_v4_collection_runs",
+  "mlb_v4_collection_run_events",
+  "mlb_v4_game_discoveries",
+  "mlb_v4_starter_pit_states",
+  "mlb_v4_team_pit_states",
+  "mlb_v4_context_states",
+  "mlb_v4_pregame_feature_snapshots",
+  "mlb_v4_game_outcomes",
+  "mlb_v4_starter_outcomes",
+  "mlb_v4_bullpen_outcomes",
+  "mlb_v4_evidence_pairs",
+  "mlb_v4_shadow_forecasts",
+  "mlb_v4_market_snapshots",
+  "mlb_v4_forecast_evaluations",
+  "mlb_v4_model_registry",
 ] as const;
 
 export const MLB_HISTORICAL_APPEND_ONLY_SQL = `
@@ -66,6 +81,21 @@ BEGIN
     'mlb_historical_evaluation_runs'
     ,'mlb_pregame_starter_evidence_snapshots'
     ,'mlb_research_experiment_disposition_ledger'
+    ,'mlb_v4_collection_runs'
+    ,'mlb_v4_collection_run_events'
+    ,'mlb_v4_game_discoveries'
+    ,'mlb_v4_starter_pit_states'
+    ,'mlb_v4_team_pit_states'
+    ,'mlb_v4_context_states'
+    ,'mlb_v4_pregame_feature_snapshots'
+    ,'mlb_v4_game_outcomes'
+    ,'mlb_v4_starter_outcomes'
+    ,'mlb_v4_bullpen_outcomes'
+    ,'mlb_v4_evidence_pairs'
+    ,'mlb_v4_shadow_forecasts'
+    ,'mlb_v4_market_snapshots'
+    ,'mlb_v4_forecast_evaluations'
+    ,'mlb_v4_model_registry'
   ]
   LOOP
     row_trigger := table_name || '_block_row_mutation';

@@ -1,0 +1,118 @@
+{
+  "task": "232",
+  "classification": "B — MLB V4 LIVE FOUNDATION COMPLETE, EVIDENCE ACCUMULATING",
+  "authoritativeVersions": {
+    "collector": "mlb-v4-live-collector-v2",
+    "starterEvidence": "mlb-starter-evidence-224c-v3",
+    "starterState": "mlb-v4-starter-pit-v4",
+    "teamState": "mlb-v4-team-pit-v4",
+    "context": "mlb-v4-context-v2",
+    "modelInput": "mlb-v4-model-input-v4"
+  },
+  "authoritativeMetrics": {
+    "collectionRuns": 3,
+    "runStatuses": { "SUCCEEDED": 3 },
+    "scheduleRequests": 3,
+    "discoveryRows": 45,
+    "scheduledGames": 15,
+    "gamesProcessed": 45,
+    "starterSlotsExpected": 38,
+    "starterSlotsObserved": 38,
+    "starterSlotsInserted": 0,
+    "starterSlotsUnchanged": 38,
+    "postStartRejected": 40,
+    "sourceErrors": 0,
+    "timeouts": 0,
+    "rateLimitEvents": 0,
+    "lifecycleEvents": {
+      "STARTED": 3,
+      "COMPLETED": 3,
+      "DOWNSTREAM_COMPLETED": 3
+    },
+    "successfulLifecycleCycles": 3,
+    "capturedGames": 15,
+    "bothStarterGames": 15,
+    "starterStates": 30,
+    "teamStates": 60,
+    "contextStates": 15,
+    "featureSnapshots": 15,
+    "baselineCoreSnapshots": 15,
+    "starterCoreSnapshots": 15,
+    "completePairs": 1,
+    "teamsRepresented": 30,
+    "uniqueStarters": 30,
+    "repeatStarters": 0,
+    "pitViolations": 0,
+    "marketLeakage": 0,
+    "targetLeakage": 0,
+    "actualStarterLeakage": 0
+  },
+  "latestDueCounters": {
+    "expected": 10,
+    "observed": 10,
+    "inserted": 0,
+    "unchanged": 10,
+    "postStartRejected": 16,
+    "notDue": 4
+  },
+  "idempotencyProof": {
+    "immediateSecondMaterializationWrites": {
+      "starterStates": 0,
+      "teamStates": 0,
+      "featureSnapshots": 0,
+      "gameOutcomes": 0,
+      "starterOutcomes": 0,
+      "bullpenOutcomes": 0,
+      "evidencePairs": 0
+    }
+  },
+  "historicalAvailability": {
+    "rule": "completion/effective time and record createdAt must both be strictly before cutoff",
+    "pitcherCanonicalGameDeduplication": true
+  },
+  "supersededImmutableInventory": {
+    "collectorRuns": { "mlb-v4-live-foundation-v1": 4 },
+    "starterEvidence": {
+      "mlb-starter-evidence-224c-v1": 30,
+      "mlb-starter-evidence-224c-v2": 30
+    },
+    "starterStates": {
+      "mlb-v4-starter-pit-v1": 30,
+      "mlb-v4-starter-pit-v2": 30,
+      "mlb-v4-starter-pit-v3": 30
+    },
+    "teamStates": {
+      "mlb-v4-team-pit-v1": 60,
+      "mlb-v4-team-pit-v2": 180,
+      "mlb-v4-team-pit-v3": 60
+    },
+    "contextStates": { "mlb-v4-context-v1": 16 },
+    "modelInputs": {
+      "mlb-v4-model-input-v1": 45,
+      "mlb-v4-model-input-v2": 27,
+      "mlb-v4-model-input-v3": 28
+    },
+    "readinessTreatment": "retained immutable and excluded from authoritative metrics"
+  },
+  "readiness": {
+    "pipelineReady": true,
+    "modelEvidenceReady": false,
+    "reason": "one current-v4 COMPLETE pair and zero repeat starters",
+    "training": "NOT_RUN",
+    "promotion": "NOT_PROMOTED",
+    "production": "MLB V1 unchanged",
+    "historicalOpened2012Cohort": "benchmark-only"
+  },
+  "verification": [
+    { "name": "Focused tests", "result": "3 files / 36 tests passed", "status": "PASS" },
+    { "name": "Full API tests", "result": "83 files / 527 tests passed", "status": "PASS" },
+    { "name": "API typecheck", "result": "passed", "status": "PASS" },
+    { "name": "DB tsc --noEmit", "result": "passed", "status": "PASS" },
+    { "name": "Production build", "result": "passed", "status": "PASS" },
+    { "name": "Append-only UPDATE and DELETE rejection", "result": "proved", "status": "PASS" },
+    { "name": "Credential/ref/diff scans", "result": "clean", "status": "PASS" },
+    { "name": "Final architect review", "result": "no other blocker after pair-version boundary request", "status": "PASS" }
+  ],
+  "reportPath": "reports/task-232-mlb-v4-live-foundation.md",
+  "reportSha256": "e80da728e6e6fc39bf5327ac90311ae165ee86d41a8e26c5794e2f23ebac54ba"
+}

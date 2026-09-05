@@ -16,6 +16,7 @@ import resultsRouter from "./results";
 import subscriptionsRouter from "./subscriptions";
 import chatRouter from "./chat";
 import ncaafV4Router from "./ncaaf-v4";
+import mlbV4ReadinessRouter from "./mlb-v4-readiness";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(resultsRouter);
 router.use(subscriptionsRouter);
 router.use(chatRouter);
 router.use(ncaafV4Router);
+router.use(mlbV4ReadinessRouter);
 
 export default router;

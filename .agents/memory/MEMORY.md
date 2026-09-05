@@ -50,3 +50,4 @@
 - [CFBD advanced endpoint contracts](cfbd-advanced-endpoint-contracts.md) — plays are week-bulk, most advanced domains identify teams by name, and provider PPA must not be mislabeled EPA.
 - [NCAAF canonical identity bridge](ncaaf-canonical-identity-bridge.md) — equal CFBD/ESPN IDs are trusted only with exact school+mascot corroboration; name-only matches require comparable guards.
 - [NCAAF 2026 bridge denominator](ncaaf-2026-bridge-denominator.md) — compatibility covers FBS-vs-FBS only; prove the complete season FBS identity set before classifying other targets out-of-domain.
+- [MLB live PIT materialization](mlb-live-pit-materialization.md) — freeze derived evidence by source availability, canonical dedupe, and exact-version readiness joins.
