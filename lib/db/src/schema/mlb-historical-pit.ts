@@ -1,9 +1,11 @@
 import {
   boolean,
+  check,
   date,
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   real,
   serial,
@@ -11,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Historical MLB reconstruction ledger. These tables are additive research
@@ -21,6 +24,7 @@ export const MLB_HISTORICAL_SCHEMA_VERSION = "mlb-chronological-team-game-v1";
 export const MLB_HISTORICAL_CHRONOLOGY_SCHEMA_VERSION = "mlb-completion-chronology-v2";
 export const MLB_HISTORICAL_CHRONOLOGY_V3_SCHEMA_VERSION = "mlb-completion-chronology-v3";
 export const MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION = "mlb-pitcher-bullpen-pit-v5";
+export const MLB_HISTORICAL_EXPECTED_RUNS_SCHEMA_VERSION = "mlb-v4-expected-runs-training-v3";
 
 export const mlbHistoricalArtifactsTable = pgTable("mlb_historical_artifacts", {
   id: serial("id").primaryKey(),
@@ -597,6 +601,172 @@ export const mlbHistoricalPitchingEligibilityTable = pgTable("mlb_historical_pit
   index("mlb_hist_pitching_eligibility_checksum_idx").on(t.checksum),
 ]);
 
+export const mlbHistoricalTrainingManifestsTable = pgTable("mlb_historical_training_manifests", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_EXPECTED_RUNS_SCHEMA_VERSION),
+  manifestId: text("manifest_id").notNull(),
+  foundationArtifactKey: text("foundation_artifact_key").notNull(),
+  foundationHash: text("foundation_hash").notNull(),
+  replayHash: text("replay_hash").notNull(),
+  sourceManifestHash: text("source_manifest_hash").notNull(),
+  splitVersion: text("split_version").notNull(),
+  trainGameIds: jsonb("train_game_ids").notNull(),
+  validationGameIds: jsonb("validation_game_ids").notNull(),
+  oosGameIds: jsonb("oos_game_ids").notNull(),
+  trainGameCount: integer("train_game_count").notNull(),
+  validationGameCount: integer("validation_game_count").notNull(),
+  oosOriginalGameCount: integer("oos_original_game_count").notNull(),
+  oosEligibleGameCount: integer("oos_eligible_game_count").notNull(),
+  oosExcludedGameCount: integer("oos_excluded_game_count").notNull(),
+  oosNewMemberCount: integer("oos_new_member_count").notNull(),
+  rejectedCounts: jsonb("rejected_counts").notNull(),
+  trainCohortHash: text("train_cohort_hash").notNull(),
+  validationCohortHash: text("validation_cohort_hash").notNull(),
+  oosCohortHash: text("oos_cohort_hash").notNull(),
+  manifestHash: text("manifest_hash").notNull(),
+  sealedAt: timestamp("sealed_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_training_manifest_id_idx").on(t.schemaVersion, t.manifestId),
+  uniqueIndex("mlb_hist_training_manifest_hash_idx").on(t.schemaVersion, t.manifestHash),
+]);
+
+export const mlbHistoricalModelArtifactsTable = pgTable("mlb_historical_model_artifacts", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_EXPECTED_RUNS_SCHEMA_VERSION),
+  artifactId: text("artifact_id").notNull(),
+  modelId: text("model_id").notNull(),
+  modelVersion: text("model_version").notNull(),
+  modelState: text("model_state").notNull(),
+  modelFamily: text("model_family").notNull(),
+  objective: text("objective").notNull(),
+  softwareVersion: text("software_version").notNull(),
+  randomSeed: integer("random_seed"),
+  trainingManifestHash: text("training_manifest_hash").notNull(),
+  featureSchema: jsonb("feature_schema").notNull(),
+  featureSchemaHash: text("feature_schema_hash").notNull(),
+  configuration: jsonb("configuration").notNull(),
+  configurationHash: text("configuration_hash").notNull(),
+  transforms: jsonb("transforms").notNull(),
+  transformsHash: text("transforms_hash").notNull(),
+  parameters: jsonb("parameters").notNull(),
+  parameterHash: text("parameter_hash").notNull(),
+  calibration: jsonb("calibration").notNull(),
+  calibrationHash: text("calibration_hash").notNull(),
+  distribution: jsonb("distribution").notNull(),
+  distributionHash: text("distribution_hash").notNull(),
+  artifactHash: text("artifact_hash").notNull(),
+  frozenAt: timestamp("frozen_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_model_artifact_id_idx").on(t.schemaVersion, t.artifactId),
+  uniqueIndex("mlb_hist_model_version_idx").on(t.schemaVersion, t.modelId, t.modelVersion),
+  uniqueIndex("mlb_hist_model_artifact_hash_idx").on(t.schemaVersion, t.artifactHash),
+]);
+
+export const mlbHistoricalPreOosLocksTable = pgTable("mlb_historical_pre_oos_locks", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_EXPECTED_RUNS_SCHEMA_VERSION),
+  lockId: text("lock_id").notNull(),
+  modelId: text("model_id").notNull(),
+  modelVersion: text("model_version").notNull(),
+  modelState: text("model_state").notNull(),
+  modelFamily: text("model_family").notNull(),
+  modelArtifactHash: text("model_artifact_hash").notNull(),
+  trainingManifestHash: text("training_manifest_hash").notNull(),
+  featureSchema: jsonb("feature_schema").notNull(),
+  featureSchemaHash: text("feature_schema_hash").notNull(),
+  configuration: jsonb("configuration").notNull(),
+  configurationHash: text("configuration_hash").notNull(),
+  transforms: jsonb("transforms").notNull(),
+  transformsHash: text("transforms_hash").notNull(),
+  parameters: jsonb("parameters").notNull(),
+  parameterHash: text("parameter_hash").notNull(),
+  calibration: jsonb("calibration").notNull(),
+  calibrationHash: text("calibration_hash").notNull(),
+  distribution: jsonb("distribution").notNull(),
+  distributionHash: text("distribution_hash").notNull(),
+  selectionRule: jsonb("selection_rule").notNull(),
+  selectionRuleHash: text("selection_rule_hash").notNull(),
+  lockPayload: jsonb("lock_payload").notNull(),
+  lockHash: text("lock_hash").notNull(),
+  lockedAt: timestamp("locked_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_pre_oos_lock_id_idx").on(t.schemaVersion, t.lockId),
+  uniqueIndex("mlb_hist_pre_oos_model_version_idx").on(t.schemaVersion, t.modelId, t.modelVersion),
+  uniqueIndex("mlb_hist_pre_oos_lock_hash_idx").on(t.schemaVersion, t.lockHash),
+]);
+
+export const mlbHistoricalExpectedRunsForecastsTable = pgTable("mlb_historical_expected_runs_forecasts", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_EXPECTED_RUNS_SCHEMA_VERSION),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  modelId: text("model_id").notNull(),
+  modelVersion: text("model_version").notNull(),
+  cohort: text("cohort").notNull(),
+  featureSnapshotHash: text("feature_snapshot_hash").notNull(),
+  forecastGeneratedAt: timestamp("forecast_generated_at", { withTimezone: true }).notNull(),
+  forecastCutoff: timestamp("forecast_cutoff", { withTimezone: true }).notNull(),
+  homeExpectedRunsExact: numeric("home_expected_runs_exact", { precision: 20, scale: 10 }).notNull(),
+  awayExpectedRunsExact: numeric("away_expected_runs_exact", { precision: 20, scale: 10 }).notNull(),
+  projectedTotalExact: numeric("projected_total_exact", { precision: 20, scale: 10 }).notNull(),
+  projectedMarginExact: numeric("projected_margin_exact", { precision: 20, scale: 10 }).notNull(),
+  homeWinProbability: numeric("home_win_probability", { precision: 20, scale: 15 }).notNull(),
+  awayWinProbability: numeric("away_win_probability", { precision: 20, scale: 15 }).notNull(),
+  fairHomeMoneyline: numeric("fair_home_moneyline", { precision: 24, scale: 10 }).notNull(),
+  fairAwayMoneyline: numeric("fair_away_moneyline", { precision: 24, scale: 10 }).notNull(),
+  calibrationVersion: text("calibration_version").notNull(),
+  distributionVersion: text("distribution_version").notNull(),
+  trainingManifestHash: text("training_manifest_hash").notNull(),
+  parameterHash: text("parameter_hash").notNull(),
+  calibrationHash: text("calibration_hash").notNull(),
+  distributionHash: text("distribution_hash").notNull(),
+  forecastHash: text("forecast_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_expected_runs_game_model_idx").on(
+    t.schemaVersion, t.canonicalGameId, t.modelId, t.modelVersion,
+  ),
+  uniqueIndex("mlb_hist_expected_runs_forecast_hash_idx").on(t.schemaVersion, t.forecastHash),
+  index("mlb_hist_expected_runs_cohort_idx").on(t.modelId, t.modelVersion, t.cohort),
+]);
+
+export const mlbHistoricalEvaluationRunsTable = pgTable("mlb_historical_evaluation_runs", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_EXPECTED_RUNS_SCHEMA_VERSION),
+  evaluationRunId: text("evaluation_run_id").notNull(),
+  modelId: text("model_id").notNull(),
+  modelVersion: text("model_version").notNull(),
+  phase: text("phase").notNull(),
+  cohort: text("cohort").notNull(),
+  foldIdentity: text("fold_identity").notNull(),
+  gameCount: integer("game_count").notNull(),
+  trainingManifestHash: text("training_manifest_hash").notNull(),
+  modelArtifactHash: text("model_artifact_hash").notNull(),
+  forecastSetHash: text("forecast_set_hash").notNull(),
+  metrics: jsonb("metrics").notNull(),
+  segments: jsonb("segments").notNull(),
+  baselines: jsonb("baselines").notNull(),
+  integrity: jsonb("integrity").notNull(),
+  checksum: text("checksum").notNull(),
+  evaluatedAt: timestamp("evaluated_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_evaluation_run_identity_idx").on(
+    t.schemaVersion, t.modelId, t.modelVersion, t.phase, t.evaluationRunId,
+  ),
+  uniqueIndex("mlb_hist_evaluation_checksum_idx").on(t.schemaVersion, t.checksum),
+  uniqueIndex("mlb_hist_one_locked_oos_idx")
+    .on(t.schemaVersion, t.modelId, t.modelVersion)
+    .where(sql`${t.phase} = 'LOCKED_OOS'`),
+  index("mlb_hist_evaluation_phase_idx").on(t.phase, t.modelId, t.modelVersion),
+  check(
+    "mlb_hist_evaluation_phase_check",
+    sql`${t.phase} IN ('TRAIN', 'VALIDATION', 'WALK_FORWARD', 'LOCKED_OOS')`,
+  ),
+]);
+
 export type MlbHistoricalGame = typeof mlbHistoricalGamesTable.$inferSelect;
 export type InsertMlbHistoricalGame = typeof mlbHistoricalGamesTable.$inferInsert;
 export type MlbHistoricalTeamGameRow = typeof mlbHistoricalTeamGameRowsTable.$inferSelect;
@@ -607,3 +777,13 @@ export type MlbHistoricalPregamePitcherSnapshot = typeof mlbHistoricalPregamePit
 export type InsertMlbHistoricalPregamePitcherSnapshot = typeof mlbHistoricalPregamePitcherSnapshotsTable.$inferInsert;
 export type MlbHistoricalPregameBullpenSnapshot = typeof mlbHistoricalPregameBullpenSnapshotsTable.$inferSelect;
 export type InsertMlbHistoricalPregameBullpenSnapshot = typeof mlbHistoricalPregameBullpenSnapshotsTable.$inferInsert;
+export type MlbHistoricalTrainingManifest = typeof mlbHistoricalTrainingManifestsTable.$inferSelect;
+export type InsertMlbHistoricalTrainingManifest = typeof mlbHistoricalTrainingManifestsTable.$inferInsert;
+export type MlbHistoricalModelArtifact = typeof mlbHistoricalModelArtifactsTable.$inferSelect;
+export type InsertMlbHistoricalModelArtifact = typeof mlbHistoricalModelArtifactsTable.$inferInsert;
+export type MlbHistoricalPreOosLock = typeof mlbHistoricalPreOosLocksTable.$inferSelect;
+export type InsertMlbHistoricalPreOosLock = typeof mlbHistoricalPreOosLocksTable.$inferInsert;
+export type MlbHistoricalExpectedRunsForecast = typeof mlbHistoricalExpectedRunsForecastsTable.$inferSelect;
+export type InsertMlbHistoricalExpectedRunsForecast = typeof mlbHistoricalExpectedRunsForecastsTable.$inferInsert;
+export type MlbHistoricalEvaluationRun = typeof mlbHistoricalEvaluationRunsTable.$inferSelect;
+export type InsertMlbHistoricalEvaluationRun = typeof mlbHistoricalEvaluationRunsTable.$inferInsert;

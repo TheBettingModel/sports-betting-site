@@ -20,3 +20,9 @@ The first V4.1 diagnosis found no defensible score-changing correction. The appa
 **Why:** A 79-game development sample can reveal bias but cannot distinguish a true run-model defect from period/sample effects well enough to justify an intercept, scaling change, or pitcher retune.
 
 **How to apply:** Keep the V4.1 identity as an exact-output audit wrapper around V4, permanently non-publishable. Do not fork formulas until new untouched PIT evidence captures league environment, confirmed lineups, and starter outcomes.
+
+The sealed offense-plus-bullpen expected-runs challenger is classification C: trained and integrity-clean, but not competitive. It failed the predeclared development bias rule, and the one permitted locked-OOS evaluation confirmed severe low-run compression. That OOS cohort is now permanently spent.
+
+**Why:** An untouched full-season chronological evaluation confirmed that PIT-safe offense, league context, and bullpen features without target-game starter evidence do not produce a promotable run forecast. Integrity and reasonable probability calibration do not override a failed run-level acceptance gate.
+
+**How to apply:** Preserve the authoritative model, mapping, forecasts, and evaluation append-only. Never repair, recalibrate, reselect, or promote this candidate using its OOS outcomes. Any future challenger requires genuinely new PIT-safe evidence and a newly predeclared untouched evaluation plan.

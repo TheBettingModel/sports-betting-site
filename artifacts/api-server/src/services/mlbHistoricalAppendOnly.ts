@@ -16,6 +16,11 @@ export const MLB_HISTORICAL_APPEND_ONLY_TABLES = [
   "mlb_historical_pregame_pitcher_snapshots",
   "mlb_historical_pregame_bullpen_snapshots",
   "mlb_historical_pitching_eligibility",
+  "mlb_historical_training_manifests",
+  "mlb_historical_model_artifacts",
+  "mlb_historical_pre_oos_locks",
+  "mlb_historical_expected_runs_forecasts",
+  "mlb_historical_evaluation_runs",
 ] as const;
 
 export const MLB_HISTORICAL_APPEND_ONLY_SQL = `
@@ -51,7 +56,12 @@ BEGIN
     'mlb_historical_bullpen_outcomes',
     'mlb_historical_pregame_pitcher_snapshots',
     'mlb_historical_pregame_bullpen_snapshots',
-    'mlb_historical_pitching_eligibility'
+    'mlb_historical_pitching_eligibility',
+    'mlb_historical_training_manifests',
+    'mlb_historical_model_artifacts',
+    'mlb_historical_pre_oos_locks',
+    'mlb_historical_expected_runs_forecasts',
+    'mlb_historical_evaluation_runs'
   ]
   LOOP
     row_trigger := table_name || '_block_row_mutation';

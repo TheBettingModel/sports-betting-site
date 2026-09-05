@@ -358,3 +358,31 @@ mtime_ms = 1788611857336
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/04078e93-cccf-41c8-b309-fa8c8dc2b9e8/8663a195-77e9-4612-9a27-5dd2e6b06ce5"
 storage_version_token = "1788611893293144"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "wR1Tilv6YTVfVTFgKBmqi"
+uri = "file://reports/mlb-v4-expected-runs-training-2026-09-05.md"
+type = "text"
+title = "MLB V4 Expected-Runs Training Report"
+description = "Complete 31-section TASK 224C report. Final classification: C — trained but not competitive."
+logical_id = "de68833c-560b-4620-8bd4-8d5c0832dbf0"
+content_hash = "sha256:60c6ad90d7e97de9bc2da703cd4a9309c5292d0f21fdcdd0f1479b9b3f47d78f"
+size = 2112725
+mtime_ms = 1788619267399
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/de68833c-560b-4620-8bd4-8d5c0832dbf0/3f97b1a7-6ed7-4b1b-99d9-d5abdb1e1984"
+storage_version_token = "1788619331266029"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "R6sFbJftUG4nRu9LNhCO1"
+uri = "file://reports/mlb-v4-expected-runs-training-2026-09-05.json"
+type = "unspecified"
+title = "MLB V4 Expected-Runs Training Report (JSON)"
+description = "Machine-readable 31-section TASK 224C report with sealed validation, OOS, audit, and reproducibility evidence."
+logical_id = "e788ad31-3f9d-4d50-a43d-7697478827c7"
+content_hash = "sha256:0e21984bfa292d8eb2c04f3f6bf804d1cd9cc7a255c7202d46494d2a6f9af473"
+size = 2451671
+mtime_ms = 1788619267383
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e788ad31-3f9d-4d50-a43d-7697478827c7/cc184952-5fe1-481f-a0bb-e24523524cfa"
+storage_version_token = "1788619332678679"
+content_type = "application/octet-stream"
