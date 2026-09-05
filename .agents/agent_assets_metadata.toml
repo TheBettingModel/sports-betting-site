@@ -386,3 +386,31 @@ mtime_ms = 1788619267383
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e788ad31-3f9d-4d50-a43d-7697478827c7/cc184952-5fe1-481f-a0bb-e24523524cfa"
 storage_version_token = "1788619332678679"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Sepp_rgbvVmogUdNKKM8-"
+uri = "file://reports/mlb-v4-pregame-starter-recovery-root-cause-2026-09-05.md"
+type = "text"
+title = "MLB V4 Pregame Starter Recovery & Root-Cause Audit"
+description = "Final 36-section #224C-1 report. Classification: C — prospective starter foundation required."
+logical_id = "b1ad3993-05c4-4748-a02f-c5acd2a44cb6"
+content_hash = "sha256:3ff7d068c326d122ccd395f4af3994e63837761bc9347c5b3ea957ddaf153b7f"
+size = 97630
+mtime_ms = 1788628027007
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b1ad3993-05c4-4748-a02f-c5acd2a44cb6/6c1a09e8-2d3d-4e24-a236-e0b72e7721b7"
+storage_version_token = "1788628077220892"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "KpuYsLhdtuVKOcov5UEwz"
+uri = "file://reports/mlb-v4-pregame-starter-recovery-root-cause-2026-09-05.json"
+type = "unspecified"
+title = "MLB V4 Pregame Starter Audit — JSON"
+description = "Machine-readable companion with all 36 report sections and deterministic report hash."
+logical_id = "fab7dc8e-e18b-4126-a052-45a5c782ea09"
+content_hash = "sha256:be25177c895b18ebb91ad774dff0acd96e3c63c171cee3340d652b407d157413"
+size = 121248
+mtime_ms = 1788628027007
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/fab7dc8e-e18b-4126-a052-45a5c782ea09/35882118-056e-45da-91de-0a4873558cda"
+storage_version_token = "1788628078075172"
+content_type = "application/octet-stream"

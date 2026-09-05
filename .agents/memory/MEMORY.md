@@ -37,7 +37,7 @@
 - [Safe free-pick contract](safe-free-pick-contract.md) — persist one exact published market; free clients receive a dedicated allowlisted DTO, never a full game projection.
 - [Managed database publish binding](managed-database-publish-binding.md) — a manually stored DATABASE_URL can make Replit reject publishing as an external database.
 - [MLB audit-first sequence](mlb-audit-first.md) — freeze production weights until auditability/publication safety passes, then run challenger replay before any promotion decision.
-- [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 stays non-deployable; the sealed expected-runs challenger is classification C and its OOS cohort is spent.
+- [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 stays nondeployable; OOS is spent; historical starters are actual-only, so future starter work is prospective.
 - [MLB PIT intelligence contract](mlb-pit-intelligence-contract.md) — append-only PIT evidence requires proven completion cutoffs and exact raw-body snapshots with shared version binding.
 - [MLB advanced feature eligibility](mlb-advanced-feature-eligibility.md) — #215 may use only consistently available, identity-safe, immutable PIT features with honest historical validation.
 - [Recommendation vs publication](recommendation-publication-separation.md) — raw model opinion, publication state, and public display are separate; Admin must never collapse blocked plays into true Neutral.

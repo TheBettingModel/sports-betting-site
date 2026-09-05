@@ -1,0 +1,2000 @@
+TASK #224C-1 — MLB V4 PREGAME STARTING-PITCHER EVIDENCE RECOVERY & RUN-ENVIRONMENT ROOT-CAUSE AUDIT
+
+MISSION
+
+Determine the shortest legitimate path from the failed #224C MLB V4 expected-runs challenger to a genuinely stronger MLB V4 model.
+
+This is primarily a DATA RECOVERY + ROOT-CAUSE AUDIT + PROSPECTIVE FOUNDATION task.
+
+DO NOT train a replacement MLB V4 model in this task.
+
+The two primary objectives are:
+
+1. Determine whether legitimate historical PRE-GAME starting-pitcher identity can be recovered at sufficient scale to support a new MLB V4 training foundation.
+
+2. Determine why the #224C expected-runs models systematically underpredicted MLB scoring by roughly two runs per game, without tuning against the already-opened locked OOS cohort.
+
+We must preserve the integrity of the failed #224C experiment.
+
+==================================================
+AUTHORITATIVE CURRENT STATE
+==================================================
+
+#224B-1:
+
+Final classification:
+
+B — COMPLETION-TIME GATE MOSTLY RESOLVED
+
+Verified:
+
+- 9,393 canonical games
+- 9,390 chronology-safe games
+- 3 quarantined rain-shortened games
+- deterministic replay
+- zero chronology violations
+
+#224B-2:
+
+Final classification:
+
+B — MLB V4 BASELINE TRAINING FOUNDATION READY
+
+Authoritative artifact:
+
+mlb-historical-2023-2026-pitcher-bullpen-pit-v5
+
+Foundation hash:
+
+cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050
+
+Replay hash:
+
+a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42
+
+Source manifest:
+
+8da8c322a3ec1ac6723d267cc9aa4b922c185654f809f26246934bbefd8a6d98
+
+Foundation:
+
+- 9,393 games archived
+- 9,390 chronology-safe
+- 3 quarantined
+- 80,298 pitcher appearances
+- 18,780 bullpen outcomes
+- 9,073 offense-plus-bullpen eligible games
+- 0 pitcher/full/enhanced eligible games
+- locked 2026 OOS = 2,012
+- production audit PASS
+- persisted independent audit PASS
+- deterministic checksum match
+- 479/479 regression tests at completion
+
+Critical #224B-2 limitation:
+
+Historical ACTUAL starter identity exists extensively, but legitimate evidence proving who was expected/confirmed to start BEFORE the target game was not available at sufficient scale.
+
+Therefore actual starter identity was correctly prohibited as a historical pregame feature.
+
+==================================================
+#224C FAILED CHALLENGER
+==================================================
+
+Final classification:
+
+C — MLB V4 TRAINED BUT NOT COMPETITIVE
+
+Authoritative selected model:
+
+224c-v3-cadb433dbbd7
+
+Family:
+
+NB2 expected runs
+
+Ridge lambda:
+
+10
+
+Dispersion alpha:
+
+0.5
+
+Outcome distribution:
+
+independent Poisson
+
+Development cohorts:
+
+TRAIN:
+4,700 games
+
+VALIDATION:
+2,361 games
+
+LOCKED OOS:
+2,012 games
+
+Integrity:
+
+PIT violations = 0
+starter leakage = 0
+market leakage = 0
+cross-sport violations = 0
+
+Locked OOS was opened exactly once.
+
+LOCKED OOS RESULTS:
+
+Total MAE:
+3.7581
+
+Total RMSE:
+4.9752
+
+Total bias:
+-2.0233
+
+Predicted average total:
+6.9514
+
+Actual average total:
+8.9747
+
+Margin MAE:
+3.5898
+
+Brier:
+0.2488
+
+Log loss:
+0.6909
+
+Accuracy:
+54.32%
+
+ECE:
+0.0165
+
+Important interpretation:
+
+The model was reasonably calibrated but insufficiently discriminative and remained severely biased toward low expected scoring.
+
+The old shadow V4 diagnostic failure was approximately:
+
+total bias:
+-2.327 runs/game
+
+76/79 projected totals below 8 runs.
+
+Therefore #224C materially failed the run-level acceptance gate.
+
+==================================================
+CRITICAL OOS RULE
+==================================================
+
+The 2,012-game locked 2026 OOS cohort has now been OPENED.
+
+It is no longer an untouched development resource.
+
+DO NOT:
+
+train on those outcomes
+tune against those outcomes
+select features from those outcomes
+choose coefficients from those outcomes
+choose priors from those outcomes
+choose model families based on those outcomes
+choose shrinkage based on those outcomes
+choose starter adjustments based on those outcomes
+choose bullpen weights based on those outcomes
+choose run-environment corrections based on those outcomes
+choose distribution parameters based on those outcomes
+choose calibration based on those outcomes
+
+The cohort may remain an immutable historical benchmark for reporting.
+
+It must NEVER again be described as untouched OOS for a new challenger.
+
+A future challenger requires a NEW validation protocol and genuinely untouched prospective/future evidence for final promotion decisions.
+
+==================================================
+HARD PRINCIPLE
+==================================================
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+MLB intelligence must remain baseball-specific.
+
+Do not import:
+
+NCAAF features
+NCAAF coefficients
+NFL logic
+NBA logic
+cross-sport priors
+cross-sport calibration
+cross-sport thresholds
+
+==================================================
+SECTION 1 — FREEZE FAILED #224C EVIDENCE
+==================================================
+
+Before doing anything else:
+
+Freeze and preserve all #224C artifacts.
+
+Verify:
+
+model ID
+model version
+training manifest
+feature schema
+parameters
+calibration
+distribution
+forecast artifact
+OOS forecast artifact
+audit artifact
+hashes
+
+Mark:
+
+224c-v3-cadb433dbbd7
+
+as:
+
+RESEARCH_FAILED / NOT_COMPETITIVE
+
+or the closest existing non-production status without changing shared approval semantics.
+
+Do not overwrite it.
+
+Do not delete it.
+
+Do not silently regenerate its OOS forecasts.
+
+The failed experiment is valuable evidence.
+
+==================================================
+SECTION 2 — SOURCE DISCOVERY FOR HISTORICAL PREGAME STARTERS
+==================================================
+
+Perform a thorough source inventory for historical PRE-GAME probable/expected/confirmed starting pitchers.
+
+Search all already-accessible legitimate sources and provider capabilities.
+
+Investigate sources such as, where actually available:
+
+existing provider archives
+MLB official schedule/game feeds
+MLB Stats API historical metadata
+MLB probable-pitcher fields
+pregame game feeds
+archived schedule payloads
+existing raw provider responses
+pregame snapshots already stored in TBM
+historical odds/event payloads that may include pitcher metadata
+game notes if legitimately accessible
+other authoritative structured baseball feeds already available to the project
+
+Do NOT assume any source exists.
+
+Do NOT fabricate archived timestamps.
+
+Do NOT scrape unreliable retrospective articles merely to increase coverage.
+
+For every candidate source determine:
+
+source name
+authority
+historical coverage
+seasons
+pregame starter field
+timestamp availability
+whether timestamp proves pregame availability
+whether field can change
+whether revision history exists
+whether archived raw payload exists
+identity quality
+coverage rate
+rate limits
+licensing/operational concerns
+PIT classification
+
+Classify each source:
+
+A — AUTHORITATIVE PIT-SAFE
+
+B — STRONG PIT-SAFE PROXY
+
+C — RETROSPECTIVE / ACTUAL-ONLY
+
+D — UNSAFE / UNVERIFIABLE
+
+Only A/B may support historical pregame starter features.
+
+==================================================
+SECTION 3 — DEFINE STARTER EVIDENCE SEMANTICS
+==================================================
+
+Create explicit starter evidence states.
+
+At minimum:
+
+CONFIRMED_PREGAME
+PROJECTED_PREGAME
+PROBABLE_PREGAME
+ACTUAL_ONLY
+UNKNOWN
+AMBIGUOUS
+
+Each historical starter evidence record should support:
+
+game_id
+team_id
+pitcher_id
+pitcher_name
+starter_evidence_state
+source
+source_record_id
+source_timestamp
+observed_at
+effective_at if applicable
+feature_cutoff
+raw_payload_hash
+identity_confidence
+PIT_safe boolean
+reason
+
+Never collapse ACTUAL_ONLY into CONFIRMED_PREGAME.
+
+==================================================
+SECTION 4 — DEFINE FEATURE CUTOFF
+==================================================
+
+For each target game, determine the existing authoritative pregame feature cutoff.
+
+Starter evidence is eligible only if:
+
+starter_evidence_timestamp < target_feature_cutoff
+
+or satisfies the project's formally defined inclusive/exclusive cutoff semantics.
+
+Use one deterministic rule.
+
+Do not allow:
+
+post-first-pitch starter confirmation
+box-score starter identity
+game-completion starter identity
+retrospective probable-pitcher pages without historical timestamp proof
+
+to become pregame evidence.
+
+==================================================
+SECTION 5 — HISTORICAL STARTER RECOVERY
+==================================================
+
+If legitimate A/B sources exist:
+
+Recover as much historical pregame starter evidence as safely possible.
+
+Target seasons:
+
+2023
+2024
+2025
+2026
+
+But do not force coverage.
+
+For every game/team report whether pregame starter evidence is:
+
+confirmed
+projected/probable
+unknown
+ambiguous
+actual-only
+
+Report separately by season.
+
+Do not silently substitute actual starter when probable starter is missing.
+
+==================================================
+SECTION 6 — STARTER IDENTITY BRIDGE
+==================================================
+
+Build or validate deterministic pitcher identity resolution across:
+
+provider IDs
+MLB IDs
+TBM IDs
+names
+teams
+trades
+rookies
+call-ups
+optioning
+same-name collisions
+
+Prefer stable provider/player IDs.
+
+Names alone are not sufficient where ambiguity exists.
+
+Persist mapping provenance.
+
+Report:
+
+unique pitchers
+resolved
+ambiguous
+unresolved
+collision count
+
+==================================================
+SECTION 7 — STARTER CHANGE / SCRATCH ANALYSIS
+==================================================
+
+Pregame probable pitchers can change.
+
+If historical snapshots permit, identify:
+
+initial probable starter
+latest safe pregame probable starter
+confirmed starter if available before cutoff
+actual starter after game
+
+Measure:
+
+probable → actual agreement
+confirmed → actual agreement
+scratch/change rate
+late-change rate
+unknown rate
+
+Do not use actual outcome to rewrite historical pregame evidence.
+
+==================================================
+SECTION 8 — STARTER FEATURE SNAPSHOT FOUNDATION
+==================================================
+
+For games with PIT-safe pregame starter identity, construct the starter's pregame state using ONLY appearances completed before the target feature cutoff.
+
+Potential legitimate features:
+
+career appearances
+career starts
+season appearances
+season starts
+season innings
+days rest
+days since last appearance
+days since last start
+last-start innings
+last-start pitch count if safely reconstructed
+rolling 3-start innings
+rolling 5-start innings
+rolling 3-start ERA
+rolling 5-start ERA
+season ERA
+season WHIP
+season K%
+season BB%
+season K-BB%
+season HR rate
+FIP only if reconstructed PIT-safe
+prior-season starter state
+career prior
+sample size
+rookie flag
+missingness
+starter role certainty
+
+Only include metrics supported by #224B-2's legitimate pitcher outcome ledger.
+
+Do not use final-season statistics backward.
+
+==================================================
+SECTION 9 — STARTER QUALITY PRIOR DESIGN
+==================================================
+
+Do NOT train a new model.
+
+But determine what legitimate pregame pitcher priors could be available for future modeling.
+
+Examples:
+
+career prior
+previous-season prior
+multi-season prior
+league-average pitcher prior
+rookie/unknown prior
+current-season evidence
+rolling evidence
+
+Document candidate state variables and availability.
+
+Do not optimize blend weights in this task.
+
+==================================================
+SECTION 10 — EXPECTED STARTER WORKLOAD FOUNDATION
+==================================================
+
+Audit whether future expected starter workload modeling is feasible.
+
+Inputs may include PIT-safe:
+
+recent starter innings
+recent pitch counts
+rest
+season average innings/start
+season average BF/start
+career workload
+role
+recent workload
+opener indicator if knowable
+team context if legitimate
+
+Targets for a FUTURE model could include:
+
+actual target starter innings
+actual target starter batters faced
+actual target starter pitches
+
+Do NOT train this model now.
+
+Report target coverage and feasibility only.
+
+==================================================
+SECTION 11 — OPENER / BULK / BULLPEN GAME HANDLING
+==================================================
+
+Audit games where the named starter may not represent a traditional starter.
+
+Identify where possible:
+
+traditional starter
+opener
+bulk follower
+bullpen game
+TBD
+late scratch
+doubleheader emergency starter
+
+Do not assume all starting pitchers have equal expected workload.
+
+If historical role classification cannot be established PIT-safe, mark it unknown.
+
+==================================================
+SECTION 12 — PROSPECTIVE STARTER CAPTURE
+==================================================
+
+Regardless of historical recovery success, build or verify a prospective live-forward starter evidence contract.
+
+For FUTURE MLB games, TBM should be capable of storing immutable snapshots of:
+
+game_id
+team_id
+opponent_id
+projected starter
+projected starter provider ID
+starter evidence state
+source
+observed_at
+feature_cutoff
+starter PIT metrics
+days rest
+recent workload
+sample sizes
+missingness
+raw payload hash
+
+Snapshots must be append-only/versioned.
+
+Do not overwrite earlier probable-starter states when they change.
+
+==================================================
+SECTION 13 — STARTER SNAPSHOT TIMING
+==================================================
+
+Design future capture so TBM can observe starter changes over time.
+
+Where operationally feasible, capture starter state at meaningful pregame intervals, for example:
+
+first available
+morning
+several hours before game
+near model-generation cutoff
+
+Do not invent a schedule if current infrastructure cannot support it.
+
+Report recommended schedule based on existing scheduler capabilities.
+
+Do not modify production scheduling unless safe and explicitly isolated.
+
+==================================================
+SECTION 14 — ROOT-CAUSE AUDIT OF -2 RUN BIAS
+==================================================
+
+This is equally important to starter recovery.
+
+Investigate WHY expected-run models are systematically low.
+
+Do NOT tune against the opened 2,012 OOS games.
+
+Use:
+
+TRAIN
+VALIDATION
+feature construction
+target distributions
+model equations
+candidate diagnostics already produced during #224C
+historical foundation
+
+The opened OOS may be referenced only as confirmation that the previously observed failure persisted.
+
+Do not derive new parameter choices from it.
+
+==================================================
+SECTION 15 — TARGET DISTRIBUTION AUDIT
+==================================================
+
+For TRAIN and VALIDATION independently report:
+
+mean home runs
+mean away runs
+mean total runs
+median total
+run variance
+zero-run frequency
+1-run frequency
+high-score frequency
+distribution by season
+distribution by month
+
+Compare these directly with the training targets actually supplied to #224C.
+
+Verify target values were not:
+
+normalized incorrectly
+divided incorrectly
+shrunk
+clipped
+transformed without inverse transformation
+duplicated
+misjoined
+assigned to wrong team
+assigned to wrong game
+
+==================================================
+SECTION 16 — FEATURE SCALE AUDIT
+==================================================
+
+Inspect all #224C selected-model inputs.
+
+Verify:
+
+units
+scaling
+normalization
+standardization
+imputation
+sign
+team directionality
+
+Specifically search for features where:
+
+runs/game was treated as runs/inning
+per-nine rate was treated as raw rate
+percentage was treated as decimal incorrectly
+home/away features were reversed
+opponent bullpen was mapped incorrectly
+offense and defense directionality were inverted
+league baseline was double-shrunk
+rolling averages were divided twice
+
+Report every suspicious transformation.
+
+==================================================
+SECTION 17 — NB2 LINK / INTERCEPT AUDIT
+==================================================
+
+Audit the selected #224C NB2 model mathematically.
+
+Selected model:
+
+224c-v3-cadb433dbbd7
+
+NB2
+ridge lambda = 10
+dispersion alpha = 0.5
+
+Inspect:
+
+link function
+intercept
+offsets
+exposure
+feature scaling
+coefficient magnitude
+regularization
+inverse-link conversion
+
+Determine whether the model architecture itself structurally produces low lambdas.
+
+Report:
+
+home intercept
+away intercept if separate
+baseline lambda implied by intercept
+average predicted home lambda
+average predicted away lambda
+
+Compare with TRAIN and VALIDATION actual run means.
+
+Do not change parameters.
+
+==================================================
+SECTION 18 — RIDGE SHRINKAGE AUDIT
+==================================================
+
+Determine whether lambda = 10 materially compressed predictions.
+
+Use the already-completed TRAIN/VALIDATION candidate evidence from #224C.
+
+Do NOT launch new tuning.
+
+Review candidate results already produced.
+
+Determine whether stronger ridge corresponded to:
+
+lower predicted totals
+reduced variance
+better/worse MAE
+better/worse bias
+
+Do not choose a new lambda.
+
+This is diagnosis only.
+
+==================================================
+SECTION 19 — DISPERSION AUDIT
+==================================================
+
+Inspect whether:
+
+NB2 alpha = 0.5
+
+was appropriate relative to TRAIN/VALIDATION count variance.
+
+Do not tune alpha.
+
+Report:
+
+empirical mean/variance relationship
+Poisson assumption behavior
+NB2 assumption behavior
+whether overdispersion was present
+whether dispersion choice explains mean bias
+
+Important:
+
+Dispersion should primarily affect variance, not justify a two-run mean error.
+
+If the mean remains wrong, identify the more likely cause.
+
+==================================================
+SECTION 20 — OFFENSE FEATURE AUDIT
+==================================================
+
+Determine whether offense state itself is systematically low.
+
+For each team-game TRAIN/VALIDATION feature snapshot compare:
+
+pregame offensive run-rate estimate
+eventual target runs
+
+Aggregate:
+
+league
+season
+month
+home
+away
+early season
+late season
+
+Determine whether offensive priors/rolling states are:
+
+properly centered
+over-shrunk
+stale
+missing important run environment
+incorrectly normalized
+
+==================================================
+SECTION 21 — BULLPEN FEATURE AUDIT
+==================================================
+
+Determine whether bullpen state is causing excessive run suppression.
+
+Audit:
+
+bullpen ERA/rates
+rolling bullpen features
+fatigue features
+quality directionality
+opponent mapping
+missingness
+priors
+
+Confirm:
+
+home expected runs use AWAY bullpen evidence
+
+away expected runs use HOME bullpen evidence.
+
+Check for accidental use of:
+
+own bullpen
+double-counted bullpen quality
+sign inversion
+ERA treated as run prevention in wrong direction
+
+==================================================
+SECTION 22 — STARTER ABSENCE QUANTIFICATION
+==================================================
+
+Do NOT assume missing starter information explains all -2.02 runs.
+
+Quantify what can legitimately be concluded.
+
+Using TRAIN/VALIDATION and actual-starter information only as RETROSPECTIVE DIAGNOSTIC OUTCOME metadata, investigate whether residuals correlate with eventual starter quality.
+
+This is diagnostic only.
+
+Do NOT use these results to train or tune.
+
+Questions:
+
+Are high-quality actual starters associated with overprediction?
+
+Are poor actual starters associated with underprediction?
+
+Does missing starter identity increase residual variance?
+
+Does starter quality explain bias or primarily game-to-game discrimination?
+
+Clearly distinguish:
+
+aggregate mean bias
+
+from
+
+missing matchup-specific predictive information.
+
+==================================================
+SECTION 23 — LEAGUE RUN ENVIRONMENT AUDIT
+==================================================
+
+Audit how league scoring environment enters the model.
+
+For each season/month in TRAIN/VALIDATION:
+
+actual league runs/team/game
+feature-side league prior
+model implied baseline
+predicted runs/team/game
+
+Look for lag or structural mismatch.
+
+Ensure future data did not enter historical league environment.
+
+Determine whether model run-environment state responds appropriately over time.
+
+==================================================
+SECTION 24 — HOME-FIELD AUDIT
+==================================================
+
+Report actual TRAIN/VALIDATION:
+
+home runs/team/game
+away runs/team/game
+
+Compare with predicted:
+
+home expected runs
+away expected runs
+
+Determine whether:
+
+home advantage is learned correctly
+home and away baselines are centered correctly
+one side accounts disproportionately for low bias
+
+==================================================
+SECTION 25 — EARLY-SEASON PRIOR AUDIT
+==================================================
+
+Examine March/April separately.
+
+Verify early-season priors.
+
+Determine whether prior-season/league priors are:
+
+available
+correctly centered
+over-shrunk
+stale
+mis-scaled
+
+Report early-season total bias vs later-season total bias.
+
+==================================================
+SECTION 26 — SEASON DRIFT
+==================================================
+
+Report #224C TRAIN/VALIDATION residual bias separately for:
+
+2023
+2024
+2025
+2026 development data if applicable
+
+Do not use opened OOS for tuning.
+
+Determine whether low bias is:
+
+universal
+season-specific
+month-specific
+early-season-specific
+recent-season-specific
+
+==================================================
+SECTION 27 — CANDIDATE FAMILY DIAGNOSTIC
+==================================================
+
+#224C reconstructed 15 predefined candidates using TRAIN/VALIDATION only.
+
+Use those EXISTING results.
+
+Do not train new candidates.
+
+Create comparison table with:
+
+candidate ID
+family
+validation total MAE
+validation total bias
+margin MAE
+Brier
+log loss
+predicted avg total
+actual avg total
+
+Determine:
+
+Did ALL candidates underpredict totals?
+
+Did only count models underpredict?
+
+Did linear models center better?
+
+Was the selected NB2 candidate chosen despite material bias because of other metrics?
+
+Was model-selection logic functioning as intended?
+
+Do not change the winner.
+
+This is retrospective diagnosis.
+
+==================================================
+SECTION 28 — MODEL-SELECTION AUDIT
+==================================================
+
+Review #224C's predeclared selection criteria.
+
+Verify the selected NB2 candidate genuinely won under the frozen rule.
+
+If a model with materially worse bias won due to ranking implementation error, report it as a bug.
+
+Do not retroactively select another candidate.
+
+A new selection requires a new experiment.
+
+==================================================
+SECTION 29 — DISTRIBUTION MAPPING AUDIT
+==================================================
+
+#224C used independent Poisson for outcome probabilities.
+
+Audit whether expected-run lambdas were passed correctly.
+
+Verify:
+
+home lambda
+away lambda
+win probability calculation
+extra-inning/tie handling
+probability normalization
+
+Confirm:
+
+P(home win) + P(away win) = 1
+
+within tolerance.
+
+Determine whether the probability mapping explains Brier/log-loss weakness independently from run bias.
+
+Do not change distribution in this task.
+
+==================================================
+SECTION 30 — CALIBRATION INTERPRETATION
+==================================================
+
+#224C OOS ECE was:
+
+0.0165
+
+while:
+
+Brier = 0.2488
+log loss = 0.6909
+accuracy = 54.32%
+
+Document clearly:
+
+low ECE does NOT prove strong predictive discrimination.
+
+Determine whether probabilities were compressed near 50%.
+
+Using TRAIN/VALIDATION diagnostics report:
+
+probability mean
+standard deviation
+min/max
+share 50–55%
+share 55–60%
+share 60–65%
+share 65%+
+
+Determine whether the model is well calibrated largely because it is conservative.
+
+Do not tune probabilities.
+
+==================================================
+SECTION 31 — MARKET FIREWALL
+==================================================
+
+Market data remains forbidden as a sports-forecast feature.
+
+Do not use:
+
+moneylines
+run lines
+totals
+opening prices
+closing prices
+implied probability
+consensus
+sharp books
+line movement
+CLV
+
+to repair expected runs.
+
+Market data may be used only as a post-forecast diagnostic if already part of an existing immutable report.
+
+Target market leakage:
+
+0.
+
+==================================================
+SECTION 32 — HISTORICAL OOS STATUS
+==================================================
+
+Update research metadata so future developers cannot accidentally treat the 2,012 games as untouched.
+
+Record clearly:
+
+224C_LOCKED_OOS_OPENED = TRUE
+
+opened_by_model:
+
+224c-v3-cadb433dbbd7
+
+purpose:
+
+FINAL_224C_EVALUATION
+
+Future use:
+
+HISTORICAL_BENCHMARK_ONLY
+
+Do not alter game membership.
+
+Do not delete forecasts.
+
+==================================================
+SECTION 33 — NEW FUTURE EVALUATION PLAN
+==================================================
+
+Design, but do not execute, the evaluation protocol for the NEXT MLB V4 challenger.
+
+Because the 2026 OOS cohort has been opened, the next challenger needs a new final evidence source.
+
+Preferred structure:
+
+historical TRAIN
+→
+historical VALIDATION
+→
+freeze model
+→
+PROSPECTIVE SHADOW games not used in development
+→
+promotion decision
+
+If sufficient genuinely untouched historical evidence exists outside prior development/OOS membership, document it, but do not manufacture a new holdout by relabeling already-inspected outcomes.
+
+Prospective evidence is preferred.
+
+==================================================
+SECTION 34 — NEW CHALLENGER DATA REQUIREMENTS
+==================================================
+
+At the end of the audit determine the minimum data required for a new model.
+
+Possible result:
+
+OFFENSE
++
+BULLPEN
++
+PREGAME STARTER
++
+LEAGUE ENVIRONMENT
++
+HOME CONTEXT
+
+If other critical missing PIT-safe variables are identified, document them.
+
+Do not automatically expand scope to every possible baseball statistic.
+
+We want the smallest legitimate feature set that materially improves the forecast.
+
+==================================================
+SECTION 35 — PARK FACTOR AUDIT
+==================================================
+
+Determine whether PIT-safe park context is currently available.
+
+If yes:
+
+report source
+coverage
+method
+PIT safety
+whether it entered #224C
+
+If no:
+
+mark unavailable/deferred.
+
+Do not derive park factors using future target games.
+
+Do not train them now.
+
+==================================================
+SECTION 36 — WEATHER AUDIT
+==================================================
+
+Determine whether historical PIT-safe pregame weather is available.
+
+Potential future fields:
+
+temperature
+wind speed
+wind direction
+humidity
+precipitation
+roof status
+
+But only if historical timestamp/provenance proves pregame availability.
+
+Do not add retrospective final weather as pregame evidence.
+
+Report feasibility only.
+
+==================================================
+SECTION 37 — LINEUP AUDIT
+==================================================
+
+Determine whether historical pregame lineup evidence exists.
+
+Classify:
+
+CONFIRMED_PREGAME
+PROJECTED_PREGAME
+ACTUAL_ONLY
+UNKNOWN
+
+Do not use actual batting order as historical pregame evidence without timestamp proof.
+
+Lineups are secondary to starter recovery in this task.
+
+Do not let lineup research block completion.
+
+==================================================
+SECTION 38 — ADVANCED PITCHING / STATCAST AUDIT
+==================================================
+
+Briefly determine whether PIT-safe historical advanced pitching data can be reconstructed.
+
+Examples:
+
+xERA
+FIP
+xFIP
+SIERA
+K-BB%
+barrel rate
+hard-hit rate
+velocity
+spin
+pitch mix
+
+Do not add them merely because they exist retrospectively.
+
+For each classify:
+
+PIT_SAFE
+RECONSTRUCTABLE_PIT_SAFE
+RETROSPECTIVE_ONLY
+UNAVAILABLE
+
+This is discovery only.
+
+==================================================
+SECTION 39 — DATA TIER DESIGN
+==================================================
+
+After source discovery define future training tiers.
+
+Possible structure:
+
+BASELINE_CORE
+offense + bullpen + context
+
+STARTER_CORE
+baseline + PIT-safe pregame starter identity/state
+
+ENHANCED
+starter core + legitimate lineup/park/weather/advanced data
+
+Do not require ENHANCED for next challenger unless evidence demonstrates it is necessary.
+
+==================================================
+SECTION 40 — COVERAGE ACCEPTANCE
+==================================================
+
+Do not invent a minimum starter coverage threshold after seeing results.
+
+Report coverage transparently.
+
+Evaluate whether recovered starter evidence is sufficiently:
+
+large
+multi-season
+chronologically distributed
+team-distributed
+stable
+
+to support a legitimate new training experiment.
+
+A dataset concentrated in one month is not equivalent to multi-season coverage.
+
+==================================================
+SECTION 41 — PROSPECTIVE DATA CAPTURE TEST
+==================================================
+
+If current live provider data exposes today's probable starters, test the prospective capture mechanism in development.
+
+Do NOT publish predictions.
+
+Do NOT alter production cards.
+
+Verify:
+
+game discovery
+starter discovery
+identity mapping
+timestamp
+snapshot persistence
+append-only behavior
+change history
+
+Do not process tomorrow merely for NCAAF.
+
+MLB prospective capture may follow MLB-specific operational requirements, but do not alter NCAAF's TODAY-ONLY rule.
+
+==================================================
+SECTION 42 — APPEND-ONLY / IMMUTABILITY
+==================================================
+
+Historical recovered evidence and future snapshots must be append-only/versioned.
+
+No silent updates.
+
+If a probable starter changes:
+
+retain old snapshot
+append new snapshot
+
+Persist source/raw hashes.
+
+Test mutation guards.
+
+==================================================
+SECTION 43 — DETERMINISM
+==================================================
+
+Run historical starter recovery twice if recovery is performed.
+
+Require deterministic:
+
+identity mappings
+eligibility
+feature snapshots
+coverage counts
+hashes
+
+Report mismatch count.
+
+==================================================
+SECTION 44 — PERFORMANCE / SCALE
+==================================================
+
+Report:
+
+source calls
+archive size
+rows created
+runtime
+DB impact
+indexing
+memory concerns
+rate-limit concerns
+
+Do not create an inefficient live process that requires thousands of unnecessary calls each day.
+
+==================================================
+SECTION 45 — PRODUCTION MODEL PROTECTION
+==================================================
+
+Do NOT modify:
+
+tbm-mlb-moneyline-v1
+
+Do NOT promote:
+
+224c-v3-cadb433dbbd7
+
+Do NOT change:
+
+current MLB picks
+current MLB publication
+unit sizing
+edge thresholds
+recommendation tiers
+Play of the Day
+six-pick cap
+subscriber UI
+analytics UI
+
+==================================================
+SECTION 46 — CROSS-SPORT PROTECTION
+==================================================
+
+Do not modify forecasting intelligence for:
+
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+NCAAF TODAY-ONLY behavior remains unchanged.
+
+Do not start NFL V4.
+
+==================================================
+SECTION 47 — REPLIT / SECURITY BLOCKER
+==================================================
+
+The protected contaminated Replit Git ref remains a separate repository-level deployment blocker unless owner provides explicit confirmation that Replit Support removed it.
+
+Do not:
+
+delete Git refs
+force push
+rewrite history
+rotate credentials
+modify Apple signing
+modify EAS
+deploy
+push
+
+Security scans may be run read-only.
+
+==================================================
+SECTION 48 — TESTS
+==================================================
+
+Add/run focused tests for:
+
+starter evidence state semantics
+starter cutoff
+actual-starter exclusion
+starter identity
+late starter change
+doubleheaders
+trades
+rookies
+append-only snapshots
+chronology
+target leakage
+market firewall
+opened-OOS metadata
+feature directionality
+run-target integrity
+bullpen opponent mapping
+NB2 diagnostic reproduction
+probability normalization
+cross-sport isolation
+
+Any leakage violation is a hard failure.
+
+==================================================
+SECTION 49 — REGRESSION / BUILD
+==================================================
+
+Run:
+
+focused MLB tests
+PIT tests
+chronology tests
+DB tests
+API tests
+typechecks
+API production build
+signing credential scan
+diff validation
+
+If unrelated existing tests fail:
+
+prove they are unrelated
+rerun in isolation
+report honestly
+
+Do not hide failures.
+
+==================================================
+SECTION 50 — DECISION TREE
+==================================================
+
+At completion choose the shortest safe next path.
+
+PATH A:
+
+Historical pregame starter evidence recovered at meaningful multi-season scale AND root cause understood.
+
+Next:
+
+#224C-2 — MLB V4 STARTER-AWARE EXPECTED-RUNS CHALLENGER
+
+PATH B:
+
+Historical starter evidence only partially recovered but enough for a legitimate reduced-cohort experiment.
+
+Next:
+
+#224C-2 may proceed with explicitly reduced starter-safe cohort plus prospective validation, if statistically defensible.
+
+PATH C:
+
+Historical pregame starter evidence cannot be recovered sufficiently.
+
+Next:
+
+Do NOT use actual starters.
+
+Build prospective starter evidence from now forward and determine whether a new baseline architecture/root-cause fix can be tested without starter hindsight.
+
+PATH D:
+
+Root-cause audit identifies a fundamental implementation/data bug in #224C independent of missing starters.
+
+Next:
+
+Correct the foundation/pipeline in a NEW version, then rerun a new challenger experiment under a new evaluation protocol.
+
+Do not silently repair #224C.
+
+==================================================
+FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — HISTORICAL STARTER FOUNDATION READY
+
+Legitimate multi-season pregame starter evidence is sufficient for a new starter-aware MLB V4 challenger.
+
+B — HISTORICAL STARTER FOUNDATION PARTIAL
+
+Legitimate pregame starter evidence exists but coverage/quality is incomplete. A reduced-cohort or prospective strategy is required.
+
+C — PROSPECTIVE STARTER FOUNDATION REQUIRED
+
+Historical pregame starter evidence cannot be recovered safely at sufficient scale. Actual starter hindsight remains prohibited.
+
+D — FUNDAMENTAL RUN-MODEL PIPELINE ISSUE FOUND
+
+The dominant #224C failure is attributable to a data/model implementation issue requiring correction before another training experiment.
+
+E — FOUNDATION INTEGRITY FAILURE
+
+New PIT/leakage/data integrity findings invalidate part of the existing foundation.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+#224C-1 must answer:
+
+1. Can legitimate historical pregame starting pitchers be recovered?
+
+2. For how many games and seasons?
+
+3. Are those starter identities provably known before feature cutoff?
+
+4. How often did probable starters differ from actual starters?
+
+5. Can PIT-safe starter performance states be reconstructed?
+
+6. Can expected starter workload eventually be modeled?
+
+7. Can prospective starter snapshots be captured immutably going forward?
+
+8. Why did #224C predict only 6.95 runs/game against an actual 8.97?
+
+9. Was the -2 run bias caused by:
+   - missing starters,
+   - feature centering,
+   - run-environment priors,
+   - model intercept/link,
+   - regularization,
+   - bullpen directionality,
+   - target construction,
+   - or another implementation issue?
+
+10. Did all 15 candidates show low-run compression?
+
+11. Was #224C model selection implemented correctly?
+
+12. Is the independent Poisson probability mapping implemented correctly?
+
+13. Why was ECE low while Brier/log loss remained weak?
+
+14. Is market leakage still exactly zero?
+
+15. Is actual-starter hindsight leakage still exactly zero?
+
+16. What is the smallest legitimate data foundation needed for the next challenger?
+
+17. What should #224C-2 actually build?
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #224C-1 — MLB V4 PREGAME STARTING-PITCHER EVIDENCE RECOVERY & RUN-ENVIRONMENT ROOT-CAUSE AUDIT REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Classification:
+Historical starter coverage:
+Root cause of low-run bias:
+Starter foundation status:
+Prospective capture status:
+PIT violations:
+Market leakage:
+Actual-starter leakage:
+Recommended next task:
+
+## 2. #224C ARTIFACT FREEZE
+
+Model:
+Status:
+Artifact hashes:
+OOS opened metadata:
+Forecast immutability:
+
+## 3. STARTER SOURCE INVENTORY
+
+For each source:
+
+Source
+Authority
+Seasons
+Coverage
+Timestamp proof
+PIT classification
+
+## 4. HISTORICAL PREGAME STARTER COVERAGE
+
+2023:
+games
+team-starter slots
+confirmed
+probable/projected
+unknown
+ambiguous
+
+2024:
+same
+
+2025:
+same
+
+2026:
+same
+
+TOTAL:
+same
+
+## 5. STARTER IDENTITY
+
+Unique pitchers:
+Resolved:
+Ambiguous:
+Unresolved:
+Trades:
+Rookies:
+Collisions:
+
+## 6. STARTER EVIDENCE QUALITY
+
+Confirmed pregame:
+Probable pregame:
+Projected pregame:
+Actual-only:
+Unknown:
+
+## 7. PROBABLE VS ACTUAL
+
+Matched:
+Changed:
+Late scratches:
+Unknown:
+Agreement rate:
+
+Diagnostic only.
+
+## 8. STARTER PIT FEATURE FOUNDATION
+
+Available features:
+Coverage:
+Missingness:
+Early-season priors:
+Leakage audit:
+
+## 9. EXPECTED STARTER WORKLOAD FEASIBILITY
+
+Input coverage:
+Target coverage:
+Opener/bulk limitations:
+Recommendation:
+
+## 10. PROSPECTIVE STARTER CAPTURE
+
+Schema:
+Sources:
+Snapshot timing:
+Append-only:
+Change tracking:
+Development test result:
+
+## 11. #224C TARGET AUDIT
+
+Train actual means:
+Validation actual means:
+Target integrity:
+Violations:
+
+## 12. FEATURE SCALE AUDIT
+
+List issues checked.
+List issues found.
+
+## 13. NB2 ARCHITECTURE AUDIT
+
+Intercept:
+Baseline lambda:
+Average predicted home lambda:
+Average predicted away lambda:
+Link:
+Offsets:
+Exposure:
+Regularization:
+Findings:
+
+## 14. RIDGE / DISPERSION DIAGNOSTIC
+
+Existing candidate evidence only.
+
+Findings:
+
+## 15. OFFENSE AUDIT
+
+Centering:
+Season behavior:
+Month behavior:
+Missingness:
+Findings:
+
+## 16. BULLPEN AUDIT
+
+Directionality:
+Opponent mapping:
+Fatigue:
+Quality:
+Findings:
+
+## 17. STARTER ABSENCE DIAGNOSTIC
+
+Residual relationship:
+Bias contribution:
+Variance contribution:
+What can/cannot be concluded:
+
+## 18. LEAGUE RUN ENVIRONMENT
+
+By season/month:
+
+Actual:
+Feature prior:
+Predicted:
+Bias:
+
+## 19. HOME/AWAY AUDIT
+
+Actual home:
+Predicted home:
+Bias:
+
+Actual away:
+Predicted away:
+Bias:
+
+## 20. EARLY-SEASON AUDIT
+
+Actual:
+Predicted:
+Bias:
+Prior behavior:
+
+## 21. CANDIDATE FAMILY COMPARISON
+
+All 15 existing #224C candidates.
+
+Candidate
+Family
+Total MAE
+Total bias
+Margin MAE
+Brier
+Log loss
+Pred avg total
+Actual avg total
+
+## 22. MODEL-SELECTION AUDIT
+
+Frozen selection rule:
+Selected model:
+Implementation correct:
+Issues:
+
+## 23. DISTRIBUTION / PROBABILITY AUDIT
+
+Poisson mapping:
+Tie handling:
+Normalization:
+Probability spread:
+Calibration interpretation:
+
+## 24. ROOT-CAUSE CONCLUSION
+
+Rank causes from most supported to least supported.
+
+Explicitly distinguish:
+
+PROVEN
+STRONGLY SUPPORTED
+POSSIBLE
+NOT SUPPORTED
+
+## 25. PARK / WEATHER / LINEUP / ADVANCED DATA
+
+Park:
+Weather:
+Lineup:
+Advanced pitching:
+
+PIT classification for each.
+
+## 26. FUTURE DATA TIERS
+
+Baseline core:
+Starter core:
+Enhanced:
+
+## 27. NEW EVALUATION PROTOCOL
+
+Explain how the next challenger will be evaluated now that the 2,012-game OOS cohort has been opened.
+
+## 28. MARKET FIREWALL
+
+PASS / FAIL
+
+Market forecast features:
+Must equal 0.
+
+## 29. PIT / LEAKAGE AUDIT
+
+Future information:
+Target leakage:
+Actual starter leakage:
+Market leakage:
+Opened OOS misuse:
+
+Target all 0.
+
+## 30. DETERMINISM
+
+Artifact:
+Hash:
+Second run:
+Mismatch count:
+
+## 31. TESTS / BUILD
+
+Exact commands/results.
+
+## 32. CROSS-SPORT REGRESSION
+
+NCAAF unchanged:
+NFL unchanged:
+NBA unchanged:
+WNBA unchanged:
+NHL unchanged:
+Soccer unchanged:
+UFC unchanged:
+
+## 33. PRODUCTION STATE
+
+MLB V1 unchanged:
+Failed #224C model unchanged:
+Publication unchanged:
+UI unchanged:
+Analytics unchanged:
+Six-pick cap unchanged:
+Deployment NOT RUN:
+Push NOT RUN:
+
+## 34. RISKS / LIMITATIONS
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+## 35. FINAL CLASSIFICATION
+
+Return exactly one:
+
+A — HISTORICAL STARTER FOUNDATION READY
+
+B — HISTORICAL STARTER FOUNDATION PARTIAL
+
+C — PROSPECTIVE STARTER FOUNDATION REQUIRED
+
+D — FUNDAMENTAL RUN-MODEL PIPELINE ISSUE FOUND
+
+E — FOUNDATION INTEGRITY FAILURE
+
+Explain why.
+
+## 36. NEXT RECOMMENDED TASK
+
+Give exactly one next task.
+
+If A/B and starter evidence is sufficient:
+
+#224C-2 — MLB V4 STARTER-AWARE EXPECTED-RUNS CHALLENGER
+
+If C:
+
+recommend the shortest prospective-data/foundation path.
+
+If D:
+
+recommend a NEW versioned pipeline correction experiment.
+
+If E:
+
+stop and identify the integrity remediation.
+
+DO NOT execute the next task.
+
+==================================================
+HARD STOP
+==================================================
+
+After the report:
+
+STOP.
+
+DO NOT train a new MLB model.
+
+DO NOT retune #224C.
+
+DO NOT use the opened 2,012 OOS outcomes for model development.
+
+DO NOT relabel those games as untouched.
+
+DO NOT use actual historical starters as pregame evidence.
+
+DO NOT begin #224C-2.
+
+DO NOT modify MLB V1.
+
+DO NOT promote any MLB V4 model.
+
+DO NOT change picks.
+
+DO NOT change thresholds.
+
+DO NOT change unit sizing.
+
+DO NOT change publication.
+
+DO NOT modify the six-pick cap.
+
+DO NOT update subscriber analytics/UI.
+
+DO NOT publish projected scores.
+
+DO NOT modify NCAAF.
+
+DO NOT start NFL V4.
+
+DO NOT deploy.
+
+DO NOT push.
+
+DO NOT manipulate Git history.
+
+DO NOT touch Apple/EAS credentials.
+
+Return the complete #224C-1 report and wait for owner review.

@@ -28,7 +28,11 @@
     "evaluate:mlb-v4-expected-runs:oos": "tsx ./scripts/evaluate-mlb-v4-expected-runs-oos.ts",
     "audit:mlb-v4-expected-runs": "tsx ./scripts/audit-mlb-v4-expected-runs.ts",
     "report:mlb-v4-expected-runs": "tsx ./scripts/report-mlb-v4-expected-runs.ts",
-    "report:mlb-v4-candidates": "tsx ./scripts/report-mlb-v4-candidate-diagnostics.ts"
+    "report:mlb-v4-candidates": "tsx ./scripts/report-mlb-v4-candidate-diagnostics.ts",
+    "freeze:mlb-224c1": "tsx ./scripts/freeze-mlb-224c1-research-state.ts",
+    "audit:mlb-224c1-root-cause": "tsx ./scripts/audit-mlb-224c1-root-cause.ts",
+    "capture:mlb-224c1-starters": "MLB_STARTER_EVIDENCE_224C_MANUAL=1 tsx ./scripts/mlb-starter-evidence-224c-manual.ts",
+    "report:mlb-224c1": "tsx ./scripts/report-mlb-224c1.ts"
   },
   "dependencies": {
     "@replit/connectors-sdk": "*",

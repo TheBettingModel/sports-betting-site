@@ -153,7 +153,7 @@ const guardNames = MLB_HISTORICAL_APPEND_ONLY_TABLES.flatMap((table) =>
   [`${table}_block_row_mutation`, `${table}_block_truncate`]);
 const triggerResult = await db.execute(sql<{ tgname: string }>`
   select tgname from pg_trigger
-  where not tgisinternal and tgname like 'mlb_historical_%_block_%'
+  where not tgisinternal
 `);
 const actualGuards = new Set(triggerResult.rows.map((row) => row.tgname));
 violations.appendOnly = guardNames.filter((name) => !actualGuards.has(name)).length;
