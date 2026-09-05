@@ -414,3 +414,45 @@ mtime_ms = 1788628027007
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/fab7dc8e-e18b-4126-a052-45a5c782ea09/35882118-056e-45da-91de-0a4873558cda"
 storage_version_token = "1788628078075172"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "QW2DuHhagvz0UWKPHRL4C"
+uri = "file://reports/mlb-224c1b-prospective-starter-completeness.md"
+type = "text"
+title = "MLB V4 Prospective Starter Evidence Completeness Report"
+description = "Final 36-section #224C-1B audit. Classification: C — prospective pipeline partial."
+logical_id = "74e77979-7686-4938-9a3d-92c495b32a39"
+content_hash = "sha256:a860e9b2a8ed0b7b4a10b31e65f71e4eb239c7134f8887179ad3d789262b3d73"
+size = 25876
+mtime_ms = 1788646889086
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/74e77979-7686-4938-9a3d-92c495b32a39/f706cb77-3378-42d1-a26f-402339564951"
+storage_version_token = "1788646948120735"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "QG4IXyZ40eApb5118JfsE"
+uri = "file://reports/mlb-224c1b-prospective-starter-completeness.json"
+type = "unspecified"
+title = "MLB Prospective Starter Completeness — JSON"
+description = "Machine-readable audit with deterministic hash, completeness metrics, leakage gates, and verification results."
+logical_id = "99059f87-3712-4419-9702-2b7518b2a087"
+content_hash = "sha256:f0f00af51d89e262ab7efc3427d8faf921b91e6230c35abdbe50e4fd04e345bc"
+size = 32372
+mtime_ms = 1788646889086
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/99059f87-3712-4419-9702-2b7518b2a087/1b24bac0-b689-4699-812f-7da9f21dac59"
+storage_version_token = "1788646949040678"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Qq_iHkGpDHOGhf5Os0fyx"
+uri = "file://reports/mlb-224c1b-verification.json"
+type = "unspecified"
+title = "MLB Starter Evidence Audit Verification Ledger"
+description = "Exact focused/full test, typecheck, build, append-only, security, and independent-review results."
+logical_id = "f81b1aa0-9697-48ac-b9fb-3d78a66668df"
+content_hash = "sha256:ebffc69d008ce6575b6be39c39c600641eb6ebe45a8fb1ec8ccf5c6b855707bf"
+size = 3044
+mtime_ms = 1788646868938
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/f81b1aa0-9697-48ac-b9fb-3d78a66668df/3d2047a9-e615-4888-a999-0996a96f74dd"
+storage_version_token = "1788646949752664"
+content_type = "application/octet-stream"

@@ -32,3 +32,9 @@ Historical pregame MLB starter recovery is not viable at meaningful multi-season
 **Why:** Official schedule `probablePitcher` data is authoritative only when the exact response is received and archived before first pitch. Historical schedule and boxscore responses expose current/actual state without revision timestamps, so treating them as pregame knowledge would manufacture PIT evidence.
 
 **How to apply:** Capture the official schedule response after receipt but strictly before first pitch, retain exact raw payload/hash and UNKNOWN/AMBIGUOUS slots append-only, and deduplicate state atomically. Accumulate a prospective readiness cohort before any starter-aware challenger; final evaluation must use genuinely future games, never the spent historical OOS cohort.
+
+Prospective probable-starter identity capture alone does not make the next modeling pipeline ready. Pipeline readiness requires a durable collection-run/discovery denominator, safe repeated operation, physically separate actual outcomes, frozen pregame offense/bullpen features, and a materialized chronology-safe starter state/role contract.
+
+**Why:** The first live-forward audit had complete PIT-safe identity for one slate but no trustworthy observation-period denominator, outcome pairs, repeat/change diversity, or persisted starter state; classifying that as ready would turn missing evidence into an implicit pass.
+
+**How to apply:** Keep the prospective pipeline classified partial and block any starter-aware challenger until the missing accumulation and pairing contracts are operational and independently reassessed. Report unavailable denominators as null, never as capture-derived 100% coverage.

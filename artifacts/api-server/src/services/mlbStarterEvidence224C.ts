@@ -12,6 +12,7 @@ export const MLB_STARTER_EVIDENCE_STATES = [
   "ACTUAL_ONLY",
   "UNKNOWN",
   "AMBIGUOUS",
+  "MISSED_PREGAME_CAPTURE",
 ] as const;
 export type StarterState = typeof MLB_STARTER_EVIDENCE_STATES[number];
 export type IdentityState = "UNKNOWN" | "OFFICIAL_ID" | "AMBIGUOUS";

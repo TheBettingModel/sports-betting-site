@@ -32,7 +32,8 @@
     "freeze:mlb-224c1": "tsx ./scripts/freeze-mlb-224c1-research-state.ts",
     "audit:mlb-224c1-root-cause": "tsx ./scripts/audit-mlb-224c1-root-cause.ts",
     "capture:mlb-224c1-starters": "MLB_STARTER_EVIDENCE_224C_MANUAL=1 tsx ./scripts/mlb-starter-evidence-224c-manual.ts",
-    "report:mlb-224c1": "tsx ./scripts/report-mlb-224c1.ts"
+    "report:mlb-224c1": "tsx ./scripts/report-mlb-224c1.ts",
+    "report:mlb-224c1b": "NODE_ENV=development tsx ./scripts/report-mlb-224c1b.ts"
   },
   "dependencies": {
     "@replit/connectors-sdk": "*",

@@ -70,7 +70,7 @@ describe("MLB #224C prospective starter evidence", () => {
   it("defines every required evidence state without collapsing actual-only into pregame", () => {
     expect(MLB_STARTER_EVIDENCE_STATES).toEqual([
       "CONFIRMED_PREGAME", "PROJECTED_PREGAME", "PROBABLE_PREGAME",
-      "ACTUAL_ONLY", "UNKNOWN", "AMBIGUOUS",
+      "ACTUAL_ONLY", "UNKNOWN", "AMBIGUOUS", "MISSED_PREGAME_CAPTURE",
     ]);
     expect(MLB_STARTER_EVIDENCE_STATES.indexOf("ACTUAL_ONLY"))
       .not.toBe(MLB_STARTER_EVIDENCE_STATES.indexOf("CONFIRMED_PREGAME"));
