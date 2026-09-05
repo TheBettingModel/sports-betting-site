@@ -302,3 +302,31 @@ mtime_ms = 1788541872640
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1118a17f-1700-4249-b739-53b1c4161e9d/43fa7b30-d669-49b2-a9f9-59540aa9cd8b"
 storage_version_token = "1788541905278591"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "chgIZWnEZfHvzHo3lFai_"
+uri = "file://reports/mlb-historical-completion-chronology-2026-09-04.md"
+type = "text"
+title = "MLB Completion Chronology Report"
+description = "The required 19-section TASK #224B-1 report with final chronology classification, coverage, replay checksums, blockers, and next-task boundary."
+logical_id = "aabda932-81bb-4b78-a6bf-9eac92ac666d"
+content_hash = "sha256:1149b5db5c4489830b03246fad46b42531f8eba0320ccdad8ab0577053650192"
+size = 9866
+mtime_ms = 1788579106035
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/aabda932-81bb-4b78-a6bf-9eac92ac666d/991965ad-4a99-433b-a546-4e9cd8608ff8"
+storage_version_token = "1788579139777847"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "uMRCfFZkZ_-CSdXjEfFae"
+uri = "file://reports/mlb-historical-completion-chronology-2026-09-04.json"
+type = "unspecified"
+title = "MLB Completion Chronology Audit Data"
+description = "Machine-readable TASK #224B-1 report containing the sealed v3 artifact identity, counts, checksums, validation results, and final classification."
+logical_id = "4fcb4450-d70e-4e6b-873e-49635ffeae4f"
+content_hash = "sha256:dbf51e7d700c55962e89410bdcf23c4b6d24d3b3c819ce61f5f56b0bf4ef294f"
+size = 9741
+mtime_ms = 1788579084919
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/4fcb4450-d70e-4e6b-873e-49635ffeae4f/65bed911-fdcb-4b96-8760-e27562531031"
+storage_version_token = "1788579140375060"
+content_type = "application/octet-stream"

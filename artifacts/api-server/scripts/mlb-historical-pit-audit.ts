@@ -10,6 +10,7 @@ import {
   mlbHistoricalTeamGameRowsTable,
 } from "@workspace/db";
 import { stableHistoricalJson } from "../src/services/mlbHistoricalSource";
+import { MLB_HISTORICAL_APPEND_ONLY_TABLES } from "../src/services/mlbHistoricalAppendOnly";
 
 const ARTIFACT_KEY = "mlb-historical-2023-2026-v1";
 const SCHEMA_VERSION = "mlb-chronological-team-game-v1";
@@ -250,7 +251,7 @@ const result = {
     && splitAssignmentViolations === 0
     && !manifestReplayMismatch
     && !sourceManifestHashMismatch
-    && appendOnlyGuardCount === 14
+    && appendOnlyGuardCount === MLB_HISTORICAL_APPEND_ONLY_TABLES.length * 2
     && artifact?.status === "SEALED_PARTIAL_FOUNDATION"
     ? "PASS_PARTIAL"
     : "FAIL",

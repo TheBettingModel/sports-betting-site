@@ -1,0 +1,926 @@
+TASK #224B-1 — MLB HISTORICAL COMPLETION-TIME & CHRONOLOGY PROOF
+
+MISSION
+
+Convert the current MLB historical foundation from date-ordered reconstruction into a genuinely point-in-time-safe chronological dataset by proving when each historical game result became final and preventing that result from influencing any later-game feature state until the prior game was actually complete.
+
+This task exists because #224B produced:
+
+- 9,393 canonical MLB games
+- 18,786 team-game feature rows
+- 9,393 separate outcome rows
+- 9,076 offense-only partial candidates
+- 0 core-eligible games
+- 0 enhanced-eligible games
+- 153 quarantined games
+- 2,013 locked 2026 OOS candidates
+
+Current blocker:
+
+All 18,786 feature rows have unverified completion boundaries.
+
+The historical schedule provides official dates but not yet authoritative completion timestamps.
+
+Therefore:
+
+- official-date ordering is only a proxy;
+- same-day chronology is not proven;
+- a game's outcome cannot yet safely influence another game's features;
+- the dataset is NOT training-safe;
+- MLB V4 training must NOT begin.
+
+The sole objective of #224B-1 is to resolve this chronology gate as rigorously as possible.
+
+DO NOT train MLB V4.
+DO NOT retune V4/V4.1.
+DO NOT modify production MLB V1.
+DO NOT deploy.
+DO NOT push.
+DO NOT change NCAAF.
+DO NOT start NFL V4.
+DO NOT modify Apple/EAS credentials.
+DO NOT manipulate Git history.
+
+==================================================
+CORE PIT RULE
+==================================================
+
+For any target game G:
+
+A prior game P may influence G's pregame features ONLY if there is trustworthy evidence that P was complete before G's feature cutoff.
+
+Required logic:
+
+completion_time(P) < feature_cutoff(G)
+
+If that cannot be proven:
+
+P MUST NOT influence G.
+
+No same-date assumption is allowed.
+
+No schedule-order assumption is allowed unless backed by authoritative timing evidence.
+
+No result may enter rolling offense, bullpen workload, pitcher history, or any other state before the game was actually complete.
+
+==================================================
+SECTION 1 — COMPLETION-TIME SOURCE DISCOVERY
+==================================================
+
+Audit all existing and legitimate sources that may provide historical MLB timing information.
+
+Search:
+
+- current database
+- raw provider snapshots
+- historical provider responses
+- MLB schedule feeds
+- MLB game feeds
+- boxscore feeds
+- play-by-play feeds
+- game status history
+- first pitch timestamps
+- final status timestamps
+- last-play timestamps
+- game-end timestamps
+- completed-at timestamps
+- event logs
+- archived files
+- existing ingestion code
+- prior backtest artifacts
+- persistent cache/history
+- legitimate external providers already used by the project
+
+For every source report:
+
+SOURCE
+SEASONS COVERED
+GAMES COVERED
+START TIME AVAILABLE
+FINAL/COMPLETION TIME AVAILABLE
+TIMEZONE
+TIMESTAMP PRECISION
+AUTHORITATIVE / DERIVED
+PIT RELIABILITY
+REPRODUCIBILITY
+
+Do not assume one source is authoritative simply because it contains a timestamp.
+
+==================================================
+SECTION 2 — TIMESTAMP DEFINITIONS
+==================================================
+
+Define and distinguish:
+
+scheduled_start_time
+actual_start_time
+first_pitch_time
+last_play_time
+game_end_time
+final_status_time
+provider_final_seen_at
+completion_time_authoritative
+completion_time_derived
+
+Do not collapse these into one field.
+
+For PIT purposes define an explicit canonical field:
+
+canonical_completion_time
+
+Each admitted historical game must also have:
+
+completion_time_source
+completion_time_method
+completion_time_confidence
+completion_time_precision
+
+Suggested confidence states:
+
+AUTHORITATIVE
+HIGH_CONFIDENCE_DERIVED
+DATE_ONLY
+UNRESOLVED
+
+Only approved states may pass the training gate.
+
+==================================================
+SECTION 3 — AUTHORITATIVE COMPLETION RULE
+==================================================
+
+Establish the strictest practical rule for considering a game complete.
+
+Preferred hierarchy:
+
+1. Explicit official final/completion timestamp
+2. Official play-by-play last-event timestamp plus final status
+3. Official game-end timestamp
+4. High-confidence provider final timestamp with deterministic provenance
+5. Derived estimate only if proven safe and approved
+
+Do NOT use:
+
+- official game date alone
+- database insertion time
+- current lookup retrieval time
+- post hoc arbitrary duration estimates
+- average game duration
+- schedule list ordering
+
+as authoritative completion proof.
+
+==================================================
+SECTION 4 — HISTORICAL GAME LEDGER ENRICHMENT
+==================================================
+
+Extend the canonical MLB game ledger with timing provenance.
+
+Required fields:
+
+canonical_game_id
+season
+game_date
+scheduled_first_pitch
+actual_start_time
+canonical_completion_time
+completion_time_source
+completion_time_method
+completion_time_confidence
+completion_time_precision
+game_status
+innings_played
+doubleheader_game_number
+suspended_flag
+resumed_flag
+completion_date
+quarantine_reason
+
+Do not overwrite prior immutable evidence destructively.
+
+Use versioned/research-safe schema changes.
+
+==================================================
+SECTION 5 — SAME-DAY CHRONOLOGY
+==================================================
+
+This is the core problem.
+
+For all games involving the same team on the same calendar day, explicitly establish chronology.
+
+Examples:
+
+Game 1
+Game 2
+
+Game 1 may inform Game 2 only if:
+
+completion_time(Game 1) < feature_cutoff(Game 2)
+
+If Game 2's pregame cutoff occurred before Game 1 ended:
+
+Game 1 must NOT influence Game 2.
+
+Do not assume doubleheader Game 1 always finished before Game 2 pregame state was known.
+
+Handle:
+
+- traditional doubleheaders
+- split doubleheaders
+- day/night doubleheaders
+- delayed starts
+- long extra-inning games
+- resumed suspended games
+- rain delays
+
+==================================================
+SECTION 6 — SUSPENDED / RESUMED GAMES
+==================================================
+
+Treat suspended games conservatively.
+
+A suspended game's result is not complete until the game is officially completed.
+
+If a game starts on Date A and finishes on Date B:
+
+its outcome must not influence another game's features before final completion on Date B.
+
+Track:
+
+original_start_time
+suspension_time if available
+resume_time if available
+final_completion_time
+
+If safe chronology cannot be proven, quarantine the affected relationship/game.
+
+==================================================
+SECTION 7 — POSTPONED / RESCHEDULED GAMES
+==================================================
+
+Ensure postponed games use actual played chronology, not original scheduled date.
+
+A game scheduled Monday but played Wednesday must enter historical state only after Wednesday completion.
+
+Do not let original scheduled date influence chronological ordering.
+
+==================================================
+SECTION 8 — EXTRA-INNING GAMES
+==================================================
+
+Extra-inning games may finish materially later than standard-duration assumptions.
+
+Therefore:
+
+No estimated standard game duration may be used to determine completion.
+
+Require real or high-confidence completion evidence.
+
+==================================================
+SECTION 9 — FEATURE CUTOFF DEFINITION
+==================================================
+
+For every historical target game establish a deterministic pregame feature cutoff.
+
+Preferred hierarchy:
+
+FINAL_PREGAME_CAPTURE if available
+otherwise
+ACTUAL_START_TIME minus approved safety buffer
+otherwise
+SCHEDULED_START_TIME minus approved safety buffer
+
+But document exact rules.
+
+Do not use a cutoff after first pitch.
+
+Persist:
+
+feature_cutoff
+feature_cutoff_source
+feature_cutoff_confidence
+
+==================================================
+SECTION 10 — PRIOR-GAME ELIGIBILITY ENGINE
+==================================================
+
+Build a deterministic rule/function:
+
+can_prior_game_influence_target(prior_game, target_game)
+
+Return:
+
+true / false
+
+with reason.
+
+Minimum conditions:
+
+prior_game.canonical_completion_time is valid
+
+AND
+
+prior_game.canonical_completion_time < target_game.feature_cutoff
+
+AND
+
+prior_game is actually final
+
+AND
+
+prior_game is not quarantined
+
+AND
+
+identity is deterministic
+
+Persist/reproduce the reasoning.
+
+==================================================
+SECTION 11 — REBUILD ROLLING OFFENSE CHRONOLOGY
+==================================================
+
+Recompute all historical rolling offense features using the completion-aware prior-game eligibility rule.
+
+Examples:
+
+rolling_5
+rolling_10
+rolling_20
+rolling_30
+season_to_date
+
+A game's outcome enters state only after completion.
+
+For same-day doubleheaders this may create:
+
+Game 1 does not influence Game 2
+OR
+Game 1 does influence Game 2
+
+depending on actual completion and target cutoff.
+
+Do not assume either globally.
+
+==================================================
+SECTION 12 — FUTURE PITCHER / BULLPEN COMPATIBILITY
+==================================================
+
+Although #224B-1 does NOT reconstruct pitcher or bullpen history yet, the chronology framework must support it.
+
+The same rule will later govern:
+
+Pitcher previous starts
+Bullpen previous appearances
+Pitch counts
+Rest days
+Consecutive-day use
+Recent workload
+
+Design the completion proof generically enough that #224B-2 can reuse it.
+
+==================================================
+SECTION 13 — DATE-ONLY FALLBACK POLICY
+==================================================
+
+Some historical games may never receive trustworthy completion timestamps.
+
+Do NOT force them into training.
+
+Classify them:
+
+DATE_ONLY_UNSAFE
+
+or equivalent.
+
+Possible conservative handling:
+
+- allow them only when no same-team target exists until a later calendar day with a sufficient safety margin
+- OR quarantine entirely
+
+If proposing a conservative date-boundary fallback, prove why it cannot leak.
+
+Example:
+
+If prior game occurred on Aug 1 and target game starts Aug 3, game completion by Aug 3 may be logically certain if official final status is known.
+
+But formalize the rule.
+
+Do NOT use same-day date-only chronology.
+
+Any fallback must be documented separately from authoritative timestamps.
+
+==================================================
+SECTION 14 — SAFE DAY-BOUNDARY RULE
+==================================================
+
+Investigate whether a conservative next-day rule can safely recover games without exact end timestamps.
+
+Potential concept:
+
+A final game dated Day D may enter state for a target on Day D+1 only if:
+
+- prior game is officially final
+- target cutoff is on a later Eastern calendar date
+- no suspension/resumption ambiguity exists
+- no corrected completion date later than Day D exists
+
+Do not implement this merely for coverage.
+
+Prove it is logically safe first.
+
+Report authoritative-timestamp eligibility separately from conservative day-boundary eligibility.
+
+==================================================
+SECTION 15 — COMPLETION PROVENANCE AUDIT
+==================================================
+
+For each season report:
+
+games total
+authoritative completion timestamps
+high-confidence derived timestamps
+safe day-boundary-only games
+date-only unresolved
+quarantined
+suspended/resumed
+doubleheaders
+postponements
+special cases
+
+Coverage must be explicit.
+
+==================================================
+SECTION 16 — RECOMPUTE CORE ELIGIBILITY
+==================================================
+
+After chronology repair, recompute historical eligibility.
+
+Current baseline:
+
+core eligible: 0
+enhanced eligible: 0
+offense-only partial candidates: 9,076
+
+Report new counts:
+
+CORE_ELIGIBLE
+ENHANCED_ELIGIBLE
+PARTIAL
+QUARANTINED
+
+Do not alter feature requirements merely to inflate eligibility.
+
+The only goal here is chronology proof.
+
+==================================================
+SECTION 17 — PRESERVE LOCKED 2026 OOS
+==================================================
+
+Current #224B identified:
+
+2,013 locked 2026 OOS candidates
+
+Protect this cohort.
+
+Do NOT train on it.
+Do NOT tune against it.
+Do NOT inspect future model performance against it during this task.
+
+Chronology repair may change whether individual rows are technically eligible, but do not redefine the OOS window casually.
+
+Report:
+
+original locked OOS count
+chronology-safe locked OOS count
+excluded/quarantined count
+
+==================================================
+SECTION 18 — DATASET REPLAY
+==================================================
+
+Run the full historical reconstruction chronologically.
+
+Preferred replay:
+
+initialize historical state
+
+for each target game in chronological order:
+
+1. determine target cutoff
+
+2. admit only prior games proven complete before cutoff
+
+3. construct feature snapshot
+
+4. freeze snapshot
+
+5. do NOT add target outcome yet
+
+6. advance clock
+
+7. add target outcome only after canonical completion time
+
+8. proceed
+
+This replay should become the authoritative PIT builder.
+
+Do not build final-season aggregates first and remove future games afterward.
+
+==================================================
+SECTION 19 — DETERMINISM
+==================================================
+
+Run the chronology builder at least twice.
+
+Require identical:
+
+game ordering
+eligible prior-game sets
+feature rows
+exclusions
+quarantine states
+hashes/checksums
+
+Report:
+
+dataset checksum
+replay checksum
+rerun checksum
+mismatch count
+
+Target:
+
+0 mismatches
+
+==================================================
+SECTION 20 — LEAKAGE TESTS
+==================================================
+
+Add specific chronology leakage tests.
+
+At minimum:
+
+1. Prior game completion must be before target cutoff.
+
+2. Same-day result cannot enter target features unless actual completion is proven before cutoff.
+
+3. Suspended game cannot enter state before final completion.
+
+4. Postponed game uses actual played chronology.
+
+5. Extra-inning duration cannot be estimated arbitrarily.
+
+6. Target outcome cannot enter target features.
+
+7. Later game cannot enter earlier features.
+
+8. Doubleheader ordering is timestamp-based.
+
+9. Date-only same-day ordering is rejected.
+
+10. Completion timestamps cannot be created from DB insertion time.
+
+11. Retrieval timestamps cannot masquerade as historical completion times.
+
+12. Final-status timestamp provenance must be auditable.
+
+13. Conservative next-day fallback, if used, must pass dedicated proof tests.
+
+Any failure is a HARD FAILURE.
+
+==================================================
+SECTION 21 — SPECIAL-CASE FIXTURES
+==================================================
+
+Create explicit test fixtures for:
+
+- ordinary day game
+- ordinary night game
+- same-team same-day doubleheader
+- split doubleheader
+- postponed game
+- suspended/resumed game
+- extra-inning game
+- rain-delayed game
+- game with missing completion timestamp
+- game crossing midnight if present
+
+Tests must verify exact chronology behavior.
+
+==================================================
+SECTION 22 — NO MODEL CHANGES
+==================================================
+
+Do NOT:
+
+- modify tbm-mlb-moneyline-v1
+- modify V4 expected-run weights
+- modify V4.1
+- fix the -2.327 total-run bias
+- calibrate probabilities
+- train a model
+- alter publication thresholds
+- publish projected scores
+- change market logic
+- change global six-pick cap
+
+This task is chronology only.
+
+==================================================
+SECTION 23 — CROSS-SPORT INDEPENDENCE
+==================================================
+
+Confirm chronology work is MLB-specific.
+
+No forecast behavior may change for:
+
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+Shared schema changes, if any, must not alter another sport's historical builder or live prediction logic.
+
+==================================================
+SECTION 24 — SECURITY PROTECTION
+==================================================
+
+The #223D-2 protected Git ref remains a separate Replit Support issue.
+
+Do NOT:
+
+- retry deletion
+- force push
+- rewrite refs
+- modify signing credentials
+- touch Apple/EAS credentials
+- deploy
+
+Keep this task isolated.
+
+==================================================
+SECTION 25 — TEST / BUILD REQUIREMENTS
+==================================================
+
+Run all focused chronology tests.
+
+Also run relevant regressions:
+
+MLB PIT tests
+historical builder tests
+identity tests
+leakage tests
+database tests
+API tests if affected
+typecheck
+API build
+
+Confirm no signing credential regression.
+
+Do not deploy.
+
+Do not push.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+#224B-1 succeeds if:
+
+1. Historical MLB completion chronology is materially improved.
+
+2. Every admitted prior-game result has proof it was complete before target cutoff.
+
+3. Same-day chronology is safe.
+
+4. Suspended/resumed/postponed games are handled correctly.
+
+5. Feature reconstruction is deterministic.
+
+6. PIT leakage tests pass.
+
+7. Core eligibility materially increases OR the remaining impossibility is precisely documented.
+
+8. Locked 2026 OOS remains protected.
+
+9. No MLB model changes occur.
+
+10. No other sport changes.
+
+==================================================
+FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — COMPLETION-TIME GATE RESOLVED
+
+Enough historical games now have safe chronology to support the next foundation phase.
+
+B — COMPLETION-TIME GATE MOSTLY RESOLVED
+
+A large training-safe cohort exists, with a minority of unresolved/quarantined games.
+
+C — PARTIAL CHRONOLOGY RECOVERY
+
+Coverage improved but remains insufficient for legitimate training.
+
+D — CHRONOLOGY UNSAFE
+
+Historical completion evidence is not sufficient to establish training-safe ordering.
+
+Do not choose A merely because timestamps were populated.
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #224B-1 — MLB HISTORICAL COMPLETION-TIME & CHRONOLOGY REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Classification:
+Games audited:
+Authoritative completion:
+Derived completion:
+Safe day-boundary:
+Unresolved:
+Quarantined:
+Core eligible before:
+Core eligible after:
+Locked OOS safe:
+PIT violations:
+
+## 2. COMPLETION-TIME SOURCES
+
+List every source investigated and exact usefulness.
+
+## 3. CANONICAL TIMESTAMP DESIGN
+
+Document fields and hierarchy.
+
+## 4. COMPLETION COVERAGE BY SEASON
+
+2023:
+2024:
+2025:
+2026:
+
+For each:
+
+games
+authoritative
+derived
+day-boundary-safe
+unresolved
+quarantined
+
+## 5. SAME-DAY / DOUBLEHEADER RESULTS
+
+Games audited:
+Safe:
+Unsafe:
+Quarantined:
+
+Explain rules.
+
+## 6. SUSPENDED / RESUMED GAMES
+
+Count and handling.
+
+## 7. POSTPONED / SPECIAL GAMES
+
+Count and handling.
+
+## 8. FEATURE CUTOFF RULE
+
+Exact algorithm.
+
+## 9. PRIOR-GAME ELIGIBILITY RULE
+
+Exact deterministic logic.
+
+## 10. REBUILT OFFENSE CHRONOLOGY
+
+Rows:
+Coverage:
+Changes from #224B:
+Invalid chronology:
+
+## 11. CORE ELIGIBILITY
+
+Before:
+After:
+Partial:
+Enhanced:
+Quarantined:
+
+## 12. LOCKED 2026 OOS
+
+Original:
+Chronology-safe:
+Excluded:
+Definition changed? YES/NO
+
+Target answer should normally be NO unless a real integrity problem requires change.
+
+## 13. PIT / LEAKAGE TESTS
+
+List tests and PASS/FAIL.
+
+## 14. DETERMINISM
+
+Dataset hash:
+Replay hash:
+Second-run hash:
+Mismatch count:
+
+## 15. CROSS-SPORT REGRESSION
+
+NCAAF unchanged:
+NFL unchanged:
+NBA unchanged:
+WNBA unchanged:
+NHL unchanged:
+Soccer unchanged:
+UFC unchanged:
+
+## 16. TEST / BUILD RESULTS
+
+Exact commands and outcomes.
+
+## 17. REMAINING BLOCKERS
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+## 18. FINAL CLASSIFICATION
+
+Return exactly one:
+
+A — COMPLETION-TIME GATE RESOLVED
+
+B — COMPLETION-TIME GATE MOSTLY RESOLVED
+
+C — PARTIAL CHRONOLOGY RECOVERY
+
+D — CHRONOLOGY UNSAFE
+
+Explain why.
+
+## 19. NEXT RECOMMENDED TASK
+
+If A or B:
+
+Recommend:
+
+#224B-2 — MLB Historical Pitcher & Bullpen PIT Reconstruction
+
+or a shorter prerequisite if required.
+
+Do NOT execute it.
+
+If C or D:
+
+Specify exactly what chronology problem remains.
+
+==================================================
+HARD STOP
+==================================================
+
+After the report:
+
+STOP.
+
+DO NOT begin #224B-2.
+
+DO NOT train MLB V4.
+
+DO NOT retune V4/V4.1.
+
+DO NOT modify MLB V1.
+
+DO NOT publish projected scores.
+
+DO NOT change publication logic.
+
+DO NOT start NFL V4.
+
+DO NOT modify NCAAF.
+
+DO NOT deploy.
+
+DO NOT push.
+
+DO NOT manipulate Git history.
+
+DO NOT touch Apple/EAS credentials.
+
+Return the report and wait for owner review.

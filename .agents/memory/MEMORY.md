@@ -38,7 +38,7 @@
 - [Managed database publish binding](managed-database-publish-binding.md) — a manually stored DATABASE_URL can make Replit reject publishing as an external database.
 - [MLB audit-first sequence](mlb-audit-first.md) — freeze production weights until auditability/publication safety passes, then run challenger replay before any promotion decision.
 - [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 is permanently non-deployable; append immutable PIT revisions and grade only in the research ledger.
-- [MLB PIT intelligence contract](mlb-pit-intelligence-contract.md) — live-only append-only evidence links forecasts, pregame freezes, outcomes, cohorts, and research evaluation without tuning.
+- [MLB PIT intelligence contract](mlb-pit-intelligence-contract.md) — append-only PIT evidence requires proven completion cutoffs and exact raw-body snapshots with shared version binding.
 - [MLB advanced feature eligibility](mlb-advanced-feature-eligibility.md) — #215 may use only consistently available, identity-safe, immutable PIT features with honest historical validation.
 - [Recommendation vs publication](recommendation-publication-separation.md) — raw model opinion, publication state, and public display are separate; Admin must never collapse blocked plays into true Neutral.
 - [NCAAF invalid-wager quarantine](ncaaf-invalid-wager-quarantine.md) — preserve bad historical rows, but exclude them through an append-only eligibility ledger and enforce actionable positive-unit publication.

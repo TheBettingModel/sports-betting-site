@@ -4,6 +4,9 @@ export const MLB_HISTORICAL_APPEND_ONLY_TABLES = [
   "mlb_historical_team_identity",
   "mlb_historical_team_game_rows",
   "mlb_historical_outcomes",
+  "mlb_historical_completion_evidence",
+  "mlb_historical_raw_completion_snapshots",
+  "mlb_historical_chronology_decisions",
   "mlb_historical_exclusions",
   "mlb_historical_splits",
 ] as const;
@@ -30,6 +33,9 @@ BEGIN
     'mlb_historical_team_identity',
     'mlb_historical_team_game_rows',
     'mlb_historical_outcomes',
+    'mlb_historical_completion_evidence',
+    'mlb_historical_raw_completion_snapshots',
+    'mlb_historical_chronology_decisions',
     'mlb_historical_exclusions',
     'mlb_historical_splits'
   ]
