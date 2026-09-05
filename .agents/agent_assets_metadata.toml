@@ -330,3 +330,31 @@ mtime_ms = 1788579084919
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/4fcb4450-d70e-4e6b-873e-49635ffeae4f/65bed911-fdcb-4b96-8760-e27562531031"
 storage_version_token = "1788579140375060"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "qjeXdm7WVxG_4AF8YTHos"
+uri = "file://reports/mlb-historical-pitcher-bullpen-pit-2026-09-05.md"
+type = "text"
+title = "MLB Historical Pitcher & Bullpen PIT Report"
+description = "Complete 25-section TASK #224B-2 report with final classification B, authoritative v5 lineage, audits, coverage, risks, and hard-stop confirmation."
+logical_id = "b54354b3-cd74-4a71-8c4b-3e8cb1d281f5"
+content_hash = "sha256:2c1e0616a59f038ebc62eb09d439600d9a22c0e7d38a3e10b07a113dafda14aa"
+size = 17276
+mtime_ms = 1788611856884
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b54354b3-cd74-4a71-8c4b-3e8cb1d281f5/91fd6393-c7fd-4b92-91eb-1d9eff6610f1"
+storage_version_token = "1788611892533616"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "hQZPopKdXOmUu-FjwY1PO"
+uri = "file://reports/mlb-historical-pitcher-bullpen-pit-2026-09-05.json"
+type = "unspecified"
+title = "MLB Historical Pitcher & Bullpen PIT Report — JSON"
+description = "Machine-readable 25-section TASK #224B-2 report and authoritative v5 checksums."
+logical_id = "04078e93-cccf-41c8-b309-fa8c8dc2b9e8"
+content_hash = "sha256:b0cdc9cda6eaf8510b310354271735d7a17b4a023c1c3f29a466a9763c5c215a"
+size = 12847
+mtime_ms = 1788611857336
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/04078e93-cccf-41c8-b309-fa8c8dc2b9e8/8663a195-77e9-4612-9a27-5dd2e6b06ce5"
+storage_version_token = "1788611893293144"
+content_type = "application/octet-stream"

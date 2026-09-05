@@ -20,6 +20,7 @@ import {
 export const MLB_HISTORICAL_SCHEMA_VERSION = "mlb-chronological-team-game-v1";
 export const MLB_HISTORICAL_CHRONOLOGY_SCHEMA_VERSION = "mlb-completion-chronology-v2";
 export const MLB_HISTORICAL_CHRONOLOGY_V3_SCHEMA_VERSION = "mlb-completion-chronology-v3";
+export const MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION = "mlb-pitcher-bullpen-pit-v5";
 
 export const mlbHistoricalArtifactsTable = pgTable("mlb_historical_artifacts", {
   id: serial("id").primaryKey(),
@@ -311,7 +312,298 @@ export const mlbHistoricalSplitsTable = pgTable("mlb_historical_splits", {
   index("mlb_historical_split_cohort_idx").on(t.splitVersion, t.cohort, t.assignedAt),
 ]);
 
+export const mlbHistoricalRawBoxscoreSnapshotsTable = pgTable("mlb_historical_raw_boxscore_snapshots", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  provider: text("provider").notNull(),
+  providerGameId: text("provider_game_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  retrievedAt: timestamp("retrieved_at", { withTimezone: true }).notNull(),
+  httpStatus: integer("http_status").notNull(),
+  contentType: text("content_type"),
+  rawBody: text("raw_body").notNull(),
+  rawBodyHash: text("raw_body_hash").notNull(),
+  byteLength: integer("byte_length").notNull(),
+  sourceManifestHash: text("source_manifest_hash").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  checksum: text("checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_boxscore_game_idx").on(
+    t.schemaVersion, t.artifactKey, t.provider, t.providerGameId,
+  ),
+  uniqueIndex("mlb_hist_boxscore_hash_idx").on(
+    t.schemaVersion, t.artifactKey, t.rawBodyHash,
+  ),
+  index("mlb_hist_boxscore_canonical_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId,
+  ),
+]);
+
+export const mlbHistoricalPitcherIdentitiesTable = pgTable("mlb_historical_pitcher_identities", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalPitcherId: text("canonical_pitcher_id").notNull(),
+  provider: text("provider").notNull(),
+  providerPitcherId: text("provider_pitcher_id").notNull(),
+  pitcherName: text("pitcher_name").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  canonicalTeamId: text("canonical_team_id").notNull(),
+  providerTeamId: text("provider_team_id"),
+  throws: text("throws"),
+  season: integer("season").notNull(),
+  resolutionState: text("resolution_state").notNull(),
+  resolutionRule: text("resolution_rule").notNull(),
+  ambiguous: boolean("ambiguous").notNull().default(false),
+  sourceHashes: jsonb("source_hashes").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  checksum: text("checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_pitcher_provider_game_idx").on(
+    t.schemaVersion, t.artifactKey, t.provider, t.providerPitcherId, t.canonicalGameId,
+  ),
+  uniqueIndex("mlb_hist_pitcher_canonical_game_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalPitcherId, t.canonicalGameId,
+  ),
+  index("mlb_hist_pitcher_canonical_idx").on(t.canonicalPitcherId, t.season),
+  index("mlb_hist_pitcher_resolution_idx").on(t.resolutionState, t.ambiguous, t.season),
+]);
+
+export const mlbHistoricalPitcherAppearancesTable = pgTable("mlb_historical_pitcher_appearances", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  providerGameId: text("provider_game_id").notNull(),
+  season: integer("season").notNull(),
+  canonicalPitcherId: text("canonical_pitcher_id").notNull(),
+  providerPitcherId: text("provider_pitcher_id").notNull(),
+  canonicalTeamId: text("canonical_team_id").notNull(),
+  opponentCanonicalTeamId: text("opponent_canonical_team_id").notNull(),
+  appearanceOrder: integer("appearance_order").notNull(),
+  starterFlagActual: boolean("starter_flag_actual").notNull(),
+  inningsPitched: real("innings_pitched"),
+  outsRecorded: integer("outs_recorded"),
+  battersFaced: integer("batters_faced"),
+  runsAllowed: integer("runs_allowed"),
+  earnedRuns: integer("earned_runs"),
+  hitsAllowed: integer("hits_allowed"),
+  walks: integer("walks"),
+  hitBatters: integer("hit_batters"),
+  strikeouts: integer("strikeouts"),
+  homeRunsAllowed: integer("home_runs_allowed"),
+  pitchCount: integer("pitch_count"),
+  strikes: integer("strikes"),
+  appearanceCompletionTime: timestamp("appearance_completion_time", { withTimezone: true }).notNull(),
+  source: text("source").notNull(),
+  sourceHash: text("source_hash").notNull(),
+  missingness: jsonb("missingness").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  outcomeChecksum: text("outcome_checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_pitcher_appearance_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId, t.canonicalTeamId,
+    t.appearanceOrder,
+  ),
+  uniqueIndex("mlb_hist_pitcher_game_player_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId, t.canonicalPitcherId,
+  ),
+  index("mlb_hist_pitcher_appearance_time_idx").on(
+    t.canonicalPitcherId, t.appearanceCompletionTime,
+  ),
+  index("mlb_hist_pitcher_appearance_team_idx").on(
+    t.canonicalTeamId, t.season, t.appearanceCompletionTime,
+  ),
+]);
+
+export const mlbHistoricalBullpenOutcomesTable = pgTable("mlb_historical_bullpen_outcomes", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  providerGameId: text("provider_game_id").notNull(),
+  season: integer("season").notNull(),
+  canonicalTeamId: text("canonical_team_id").notNull(),
+  opponentCanonicalTeamId: text("opponent_canonical_team_id").notNull(),
+  bullpenInnings: real("bullpen_innings"),
+  bullpenOutsRecorded: integer("bullpen_outs_recorded"),
+  bullpenBattersFaced: integer("bullpen_batters_faced"),
+  bullpenRuns: integer("bullpen_runs"),
+  bullpenEarnedRuns: integer("bullpen_earned_runs"),
+  bullpenHits: integer("bullpen_hits"),
+  bullpenWalks: integer("bullpen_walks"),
+  bullpenHitBatters: integer("bullpen_hit_batters"),
+  bullpenStrikeouts: integer("bullpen_strikeouts"),
+  bullpenHomeRuns: integer("bullpen_home_runs"),
+  relieversUsed: integer("relievers_used"),
+  bullpenPitchCount: integer("bullpen_pitch_count"),
+  bullpenStrikes: integer("bullpen_strikes"),
+  highLeverageUsage: jsonb("high_leverage_usage"),
+  gameCompletionTime: timestamp("game_completion_time", { withTimezone: true }).notNull(),
+  sourceHashes: jsonb("source_hashes").notNull(),
+  missingness: jsonb("missingness").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  outcomeChecksum: text("outcome_checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_bullpen_outcome_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId, t.canonicalTeamId,
+  ),
+  index("mlb_hist_bullpen_outcome_time_idx").on(
+    t.canonicalTeamId, t.gameCompletionTime,
+  ),
+  index("mlb_hist_bullpen_outcome_season_idx").on(t.season, t.providerGameId),
+]);
+
+export const mlbHistoricalPregamePitcherSnapshotsTable = pgTable("mlb_historical_pregame_pitcher_snapshots", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  season: integer("season").notNull(),
+  canonicalTeamId: text("canonical_team_id").notNull(),
+  opponentCanonicalTeamId: text("opponent_canonical_team_id").notNull(),
+  featureCutoff: timestamp("feature_cutoff", { withTimezone: true }).notNull(),
+  statThroughTime: timestamp("stat_through_time", { withTimezone: true }),
+  pregameStarterId: text("pregame_starter_id"),
+  starterIdentityState: text("starter_identity_state").notNull(),
+  starterHandedness: text("starter_handedness"),
+  starterRoleState: text("starter_role_state").notNull(),
+  starterSeasonInnings: real("starter_season_innings"),
+  starterSeasonEra: real("starter_season_era"),
+  starterSeasonWhip: real("starter_season_whip"),
+  starterSeasonKPct: real("starter_season_k_pct"),
+  starterSeasonBbPct: real("starter_season_bb_pct"),
+  starterSeasonKMinusBbPct: real("starter_season_k_minus_bb_pct"),
+  starterSeasonHrRate: real("starter_season_hr_rate"),
+  starterSeasonFip: real("starter_season_fip"),
+  starterRecentInnings: real("starter_recent_innings"),
+  starterRecentEra: real("starter_recent_era"),
+  starterRecentWhip: real("starter_recent_whip"),
+  starterRecentKPct: real("starter_recent_k_pct"),
+  starterRecentBbPct: real("starter_recent_bb_pct"),
+  starterDaysRest: integer("starter_days_rest"),
+  starterLastStartInnings: real("starter_last_start_innings"),
+  starterLastStartPitchCount: integer("starter_last_start_pitch_count"),
+  starterRecentWorkload: jsonb("starter_recent_workload").notNull(),
+  sourceAppearanceCount: integer("source_appearance_count").notNull(),
+  starterSampleSize: integer("starter_sample_size").notNull(),
+  starterPriorState: text("starter_prior_state").notNull(),
+  starterFeatureCompleteness: real("starter_feature_completeness").notNull(),
+  advancedMetricStates: jsonb("advanced_metric_states").notNull(),
+  missingness: jsonb("missingness").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  sourceHashes: jsonb("source_hashes").notNull(),
+  checksum: text("checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_pregame_pitcher_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId, t.canonicalTeamId,
+  ),
+  index("mlb_hist_pregame_pitcher_cutoff_idx").on(
+    t.canonicalTeamId, t.featureCutoff,
+  ),
+  index("mlb_hist_pregame_pitcher_state_idx").on(t.starterIdentityState, t.season),
+  index("mlb_hist_pregame_pitcher_checksum_idx").on(t.checksum),
+]);
+
+export const mlbHistoricalPregameBullpenSnapshotsTable = pgTable("mlb_historical_pregame_bullpen_snapshots", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  season: integer("season").notNull(),
+  canonicalTeamId: text("canonical_team_id").notNull(),
+  opponentCanonicalTeamId: text("opponent_canonical_team_id").notNull(),
+  featureCutoff: timestamp("feature_cutoff", { withTimezone: true }).notNull(),
+  statThroughTime: timestamp("stat_through_time", { withTimezone: true }),
+  bullpenSeasonInnings: real("bullpen_season_innings"),
+  bullpenSeasonEra: real("bullpen_season_era"),
+  bullpenSeasonWhip: real("bullpen_season_whip"),
+  bullpenSeasonKPct: real("bullpen_season_k_pct"),
+  bullpenSeasonBbPct: real("bullpen_season_bb_pct"),
+  bullpenSeasonKMinusBbPct: real("bullpen_season_k_minus_bb_pct"),
+  bullpenSeasonHrRate: real("bullpen_season_hr_rate"),
+  bullpenSeasonFip: real("bullpen_season_fip"),
+  bullpenLast3Innings: real("bullpen_last_3_innings"),
+  bullpenLast5Innings: real("bullpen_last_5_innings"),
+  bullpenLast10Era: real("bullpen_last_10_era"),
+  bullpenPitchesLast1d: integer("bullpen_pitches_last_1d"),
+  bullpenPitchesLast2d: integer("bullpen_pitches_last_2d"),
+  bullpenPitchesLast3d: integer("bullpen_pitches_last_3d"),
+  bullpenInningsLast1d: real("bullpen_innings_last_1d"),
+  bullpenInningsLast2d: real("bullpen_innings_last_2d"),
+  bullpenInningsLast3d: real("bullpen_innings_last_3d"),
+  relieversUsedLast1d: integer("relievers_used_last_1d"),
+  relieversUsedLast2d: integer("relievers_used_last_2d"),
+  backToBackRelievers: integer("back_to_back_relievers"),
+  threeDayRelievers: integer("three_day_relievers"),
+  bullpenFatigueState: text("bullpen_fatigue_state").notNull(),
+  sourceGameCount: integer("source_game_count").notNull(),
+  bullpenSampleSize: integer("bullpen_sample_size").notNull(),
+  bullpenPriorState: text("bullpen_prior_state").notNull(),
+  bullpenFeatureCompleteness: real("bullpen_feature_completeness").notNull(),
+  relieverAvailability: jsonb("reliever_availability").notNull(),
+  missingness: jsonb("missingness").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  sourceHashes: jsonb("source_hashes").notNull(),
+  checksum: text("checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_pregame_bullpen_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId, t.canonicalTeamId,
+  ),
+  index("mlb_hist_pregame_bullpen_cutoff_idx").on(
+    t.canonicalTeamId, t.featureCutoff,
+  ),
+  index("mlb_hist_pregame_bullpen_state_idx").on(t.bullpenFatigueState, t.season),
+  index("mlb_hist_pregame_bullpen_checksum_idx").on(t.checksum),
+]);
+
+export const mlbHistoricalPitchingEligibilityTable = pgTable("mlb_historical_pitching_eligibility", {
+  id: serial("id").primaryKey(),
+  schemaVersion: text("schema_version").notNull().default(MLB_HISTORICAL_PITCHER_BULLPEN_SCHEMA_VERSION),
+  artifactKey: text("artifact_key").notNull(),
+  canonicalGameId: text("canonical_game_id").notNull(),
+  providerGameId: text("provider_game_id").notNull(),
+  season: integer("season").notNull(),
+  featureCutoff: timestamp("feature_cutoff", { withTimezone: true }).notNull(),
+  coreOffenseEligible: boolean("core_offense_eligible").notNull(),
+  pitcherCoreEligible: boolean("pitcher_core_eligible").notNull(),
+  bullpenCoreEligible: boolean("bullpen_core_eligible").notNull(),
+  fullCoreEligible: boolean("full_core_eligible").notNull(),
+  enhancedEligible: boolean("enhanced_eligible").notNull(),
+  quarantined: boolean("quarantined").notNull(),
+  eligibilityTier: text("eligibility_tier").notNull(),
+  reasonCodes: jsonb("reason_codes").notNull(),
+  missingness: jsonb("missingness").notNull(),
+  provenance: jsonb("provenance").notNull(),
+  sourceHashes: jsonb("source_hashes").notNull(),
+  checksum: text("checksum").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("mlb_hist_pitching_eligibility_game_idx").on(
+    t.schemaVersion, t.artifactKey, t.canonicalGameId,
+  ),
+  index("mlb_hist_pitching_eligibility_tier_idx").on(t.eligibilityTier, t.season),
+  index("mlb_hist_pitching_eligibility_flags_idx").on(
+    t.pitcherCoreEligible, t.bullpenCoreEligible, t.fullCoreEligible, t.season,
+  ),
+  index("mlb_hist_pitching_eligibility_checksum_idx").on(t.checksum),
+]);
+
 export type MlbHistoricalGame = typeof mlbHistoricalGamesTable.$inferSelect;
 export type InsertMlbHistoricalGame = typeof mlbHistoricalGamesTable.$inferInsert;
 export type MlbHistoricalTeamGameRow = typeof mlbHistoricalTeamGameRowsTable.$inferSelect;
 export type InsertMlbHistoricalTeamGameRow = typeof mlbHistoricalTeamGameRowsTable.$inferInsert;
+export type MlbHistoricalPitcherAppearance = typeof mlbHistoricalPitcherAppearancesTable.$inferSelect;
+export type InsertMlbHistoricalPitcherAppearance = typeof mlbHistoricalPitcherAppearancesTable.$inferInsert;
+export type MlbHistoricalPregamePitcherSnapshot = typeof mlbHistoricalPregamePitcherSnapshotsTable.$inferSelect;
+export type InsertMlbHistoricalPregamePitcherSnapshot = typeof mlbHistoricalPregamePitcherSnapshotsTable.$inferInsert;
+export type MlbHistoricalPregameBullpenSnapshot = typeof mlbHistoricalPregameBullpenSnapshotsTable.$inferSelect;
+export type InsertMlbHistoricalPregameBullpenSnapshot = typeof mlbHistoricalPregameBullpenSnapshotsTable.$inferInsert;

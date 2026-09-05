@@ -16,3 +16,9 @@ Completion-time proof must retain the exact provider response body used by the r
 **Why:** Normalized evidence can prove internal consistency but cannot establish that omitted provider fields were faithfully represented. Exact raw-body retention allows a later audit to re-hash, re-parse, and re-derive every timestamp.
 
 **How to apply:** Use a fixed, documented provider projection; store its exact body, endpoint, retrieval time, byte length, and hash append-only; bind the normalized evidence and artifact manifest to that snapshot. Keep schema, resolver, collector, materializer, and audit versions sourced from one shared constant so a partial collection cannot land under a mismatched version.
+
+Calendar-day workload features must use the provider's official baseball date, while information admission must independently use strict canonical completion-before-cutoff proof. Empty evidence states may retain zero sample counts, but every unavailable statistical metric remains null.
+
+**Why:** UTC completion dates can cross midnight and non-adjacent games can fall inside elapsed-time windows, so they cannot prove back-to-back baseball dates. Encoding unavailable rates as zero creates false statistical certainty.
+
+**How to apply:** Consecutive-use features require appearances on every immediately preceding official baseball date; doubleheaders remain one baseball date. Verify sealed datasets with a separately implemented persisted audit that does not reuse production parse, replay, normalization, or hash helpers.

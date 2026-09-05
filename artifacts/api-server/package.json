@@ -18,6 +18,10 @@
     "collect:mlb-historical-completion": "tsx ./scripts/mlb-historical-completion-collect.ts",
     "build:mlb-historical-completion": "tsx ./scripts/mlb-historical-completion-foundation.ts",
     "audit:mlb-historical-completion": "tsx ./scripts/mlb-historical-completion-audit.ts",
+    "collect:mlb-historical-pitcher-bullpen": "tsx ./scripts/mlb-historical-pitcher-bullpen-collect.ts",
+    "build:mlb-historical-pitcher-bullpen": "tsx ./scripts/mlb-historical-pitcher-bullpen-materialize.ts",
+    "audit:mlb-historical-pitcher-bullpen": "tsx ./scripts/mlb-historical-pitcher-bullpen-audit.ts",
+    "audit:mlb-historical-pitcher-bullpen:independent": "tsx ./scripts/mlb-historical-pitcher-bullpen-independent-audit.ts",
     "report:mlb-pit": "tsx ./scripts/mlb-pit-research-report.ts",
     "report:mlb-advanced-data": "tsx ./scripts/mlb-advanced-data-report.ts"
   },
