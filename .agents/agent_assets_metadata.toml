@@ -596,3 +596,31 @@ mtime_ms = 1788665707718
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/4be09e14-f450-41b3-af0a-dbf9fcb74c65/e87b7429-a30e-4850-94fd-38302a3e9a43"
 storage_version_token = "1788665732012850"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "CefEFJjqnigvLm5BHtYjE"
+uri = "file://reports/task-237p-production-model-performance-autopsy-2026-09-06.md"
+type = "text"
+title = "Task 237P Production Model Performance Autopsy"
+description = "Complete 36-section read-only production diagnosis with cohort definitions, attribution, validation, and final classification."
+logical_id = "a8a67878-35ce-496f-84a8-bad5f2e2adbd"
+content_hash = "sha256:2e93c1d7f98a0a72b484f566d17c21429897bf121830218f04417b843e88db35"
+size = 31416
+mtime_ms = 1788732976540
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/a8a67878-35ce-496f-84a8-bad5f2e2adbd/68281ffb-b64b-4722-8cc2-8d1102024528"
+storage_version_token = "1788733024016629"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "Rc2-rKQswSHmZ3abkoMJt"
+uri = "file://reports/task-237p-production-model-performance-autopsy-2026-09-06.json"
+type = "unspecified"
+title = "Task 237P Machine-Readable Metrics"
+description = "Structured JSON companion containing the fixed cutoff, cohorts, performance metrics, health flags, checksums, and validation results."
+logical_id = "808af43d-f96e-4d41-a791-2bc58c3592e7"
+content_hash = "sha256:fffbd20a3b12aad23d892a9362cdf7d4bec89c8fcd48b3e6fc1aa417b7cd890e"
+size = 6752
+mtime_ms = 1788732994419
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/808af43d-f96e-4d41-a791-2bc58c3592e7/c9e7ac3b-6734-4616-b56f-9e644abdada9"
+storage_version_token = "1788733024810837"
+content_type = "application/octet-stream"
