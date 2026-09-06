@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MLB_224C_FEATURE_SCHEMA } from "./mlbExpectedRuns224C";
 import {
   fitMoneylineTransform, fitRegularizedMoneyline, gameFeatures, modelHash, predictMoneyline,
-  selectMoneylineCandidate,
+  rocAuc, selectMoneylineCandidate,
 } from "./mlbV4Moneyline237";
 import { probabilityMetrics } from "./mlbV4ExpectedRuns";
 
@@ -17,10 +17,12 @@ const data = Array.from({ length: 20 }, (_, i) => ({
 describe("MLB task 237 moneyline logistic", () => {
   it("uses TRAIN-only transform values and supports missing values", () => {
     const transform = fitMoneylineTransform(data, MLB_224C_FEATURE_SCHEMA);
-    const heldOutChanged = [{ ...data[0]!, home: side(999999), away: side(-999999) }];
-    expect(fitMoneylineTransform(data, MLB_224C_FEATURE_SCHEMA).sideTransform.medians)
-      .toEqual(transform.sideTransform.medians);
-    expect(gameFeatures(heldOutChanged[0]!, MLB_224C_FEATURE_SCHEMA, transform)).toHaveLength(38);
+    const mediansBeforeScoring = [...transform.sideTransform.medians];
+    const heldOut = { ...data[0]!, home: side(999999), away: side(-999999) };
+    expect(gameFeatures(heldOut, MLB_224C_FEATURE_SCHEMA, transform)).toHaveLength(38);
+    expect(transform.sideTransform.medians).toEqual(mediansBeforeScoring);
+    expect(transform.sideTransform.means).toEqual(
+      fitMoneylineTransform(data, MLB_224C_FEATURE_SCHEMA).sideTransform.means);
     expect(gameFeatures(data[0]!, MLB_224C_FEATURE_SCHEMA, transform)).toHaveLength(38);
   });
   it("is deterministic and returns bounded probabilities", () => {
@@ -36,17 +38,28 @@ describe("MLB task 237 moneyline logistic", () => {
     const invalid = { ...data[0]!, home: { ...data[0]!.home, ownOffense: { ...data[0]!.home.ownOffense, marketOdds: 1 } } };
     expect(() => fitRegularizedMoneyline([invalid], MLB_224C_FEATURE_SCHEMA, .1)).toThrow();
   });
+  it("computes deterministic rank AUC with tie handling", () => {
+    expect(rocAuc([{ probability: .1, outcome: 0 }, { probability: .9, outcome: 1 }])).toBe(1);
+    expect(rocAuc([{ probability: .9, outcome: 0 }, { probability: .1, outcome: 1 }])).toBe(0);
+    expect(rocAuc([{ probability: .5, outcome: 0 }, { probability: .5, outcome: 1 }])).toBe(.5);
+    expect(() => rocAuc([{ probability: .5, outcome: 1 }])).toThrow(/both outcome classes/);
+  });
   it("enforces every predeclared selection gate", () => {
     const naive = probabilityMetrics([{ probability: .5, outcome: 1 }, { probability: .5, outcome: 0 }]);
+    const calibratedRows = [
+      ...Array.from({ length: 4 }, () => ({ probability: .4, outcome: 1 as const })),
+      ...Array.from({ length: 6 }, () => ({ probability: .4, outcome: 0 as const })),
+      { probability: .5, outcome: 1 as const }, { probability: .5, outcome: 0 as const },
+    ];
     const candidate = { id: "ok", family: "binary-logistic", lambda: .1,
-      validation: probabilityMetrics([{ probability: .6, outcome: 1 }, { probability: .6, outcome: 1 },
-        { probability: .4, outcome: 0 }, { probability: .4, outcome: 0 }]),
+      validation: probabilityMetrics(calibratedRows),
       integrityIssues: 0, numericalIssues: 0, deterministic: true, worstFoldLogLoss: .6 };
     expect(selectMoneylineCandidate([candidate], naive)?.id).toBe("ok");
-    expect(selectMoneylineCandidate([{ ...candidate, validation: naive }], naive)).toBeNull();
     expect(selectMoneylineCandidate([{ ...candidate, integrityIssues: 1 }], naive)).toBeNull();
     expect(selectMoneylineCandidate([{ ...candidate, numericalIssues: 1 }], naive)).toBeNull();
     expect(selectMoneylineCandidate([{ ...candidate, deterministic: false }], naive)).toBeNull();
+    expect(selectMoneylineCandidate([{ ...candidate, validation: { ...candidate.validation, logLoss: naive.logLoss } }], naive)).toBeNull();
+    expect(selectMoneylineCandidate([{ ...candidate, validation: { ...candidate.validation, brier: naive.brier } }], naive)).toBeNull();
     expect(selectMoneylineCandidate([{ ...candidate, validation: { ...candidate.validation, ece: .06 } }], naive)).toBeNull();
     expect(selectMoneylineCandidate([{ ...candidate, worstFoldLogLoss: naive.logLoss + .11 }], naive)).toBeNull();
   });

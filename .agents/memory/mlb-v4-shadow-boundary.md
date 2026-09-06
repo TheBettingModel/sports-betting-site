@@ -27,6 +27,12 @@ The sealed offense-plus-bullpen expected-runs challenger is classification C: tr
 
 **How to apply:** Preserve the authoritative model, mapping, forecasts, and evaluation append-only. Never repair, recalibrate, reselect, or promote this candidate using its OOS outcomes. Any future challenger requires genuinely new PIT-safe evidence and a newly predeclared untouched evaluation plan.
 
+A candidate-unseen cohort is not an untouched final holdout when the same games were opened for any earlier MLB candidate. A new candidate also cannot freeze until a versioned adapter proves that every historical training feature is reproduced exactly from live snapshots, including windows, denominators, ordering, missingness, and PIT cutoffs.
+
+**Why:** A later validation-selected logistic model had modest point-estimate lift, but the only available OOS games were already spent globally and its flat historical feature contract did not match the nested live input contract. Calling either condition “close enough” would overstate final evidence and permit train/serve skew.
+
+**How to apply:** Do not reopen the spent OOS cohort. Reserve genuinely future games before any next model selection, and require field-by-field historical/live parity tests against the exact input-contract version before freezing an artifact or building an executor.
+
 Historical pregame MLB starter recovery is not viable at meaningful multi-season scale from the current or retrospective official sources. Completed-game starter identities are actual-only; a retrospective probable-pitcher response has no historical as-of proof. The final evidence classification is prospective foundation required.
 
 **Why:** Official schedule `probablePitcher` data is authoritative only when the exact response is received and archived before first pitch. Historical schedule and boxscore responses expose current/actual state without revision timestamps, so treating them as pregame knowledge would manufacture PIT evidence.

@@ -19,7 +19,7 @@ export interface MoneylineModel {
   lambda: number; iterations: number; converged: boolean; objective: number; trainingRows: number;
 }
 export interface MoneylineCandidateScore {
-  id: string; family: string; lambda: number; validation: ReturnType<typeof probabilityMetrics>;
+  id: string; family: string; lambda: number; alpha?: number | null; validation: ReturnType<typeof probabilityMetrics>;
   integrityIssues: number; numericalIssues: number; worstFoldLogLoss: number; deterministic: boolean; coefficientSimplicity?: number;
 }
 
@@ -64,7 +64,7 @@ export function fitRegularizedMoneyline(
   const y = rows.map((r) => r.homeWon);
   let beta = Array(x[0]!.length + 1).fill(0);
   let current = objective(x, y, beta, lambda), converged = false, iterations = 0;
-  for (; iterations < 1000; iterations++) {
+  for (; iterations < 5000; iterations++) {
     const gradient = Array(beta.length).fill(0);
     x.forEach((row, i) => {
       const error = sigmoid(beta[0]! + dot(beta.slice(1), row)) - y[i]!;
@@ -73,7 +73,7 @@ export function fitRegularizedMoneyline(
     });
     for (let j = 1; j < gradient.length; j++) gradient[j] += lambda * beta[j]!;
     const maxGradient = Math.max(...gradient.map(Math.abs));
-    if (maxGradient < 1e-7) { converged = true; break; }
+    if (maxGradient < 1e-6) { converged = true; break; }
     let step = 1, next = beta.map((v, j) => Math.max(-30, Math.min(30, v - step * gradient[j]!)));
     let nextObjective = objective(x, y, next, lambda);
     while (nextObjective > current && step > 1e-10) {
@@ -99,6 +99,28 @@ export function predictMoneyline(model: MoneylineModel, row: Pick<MoneylineGameR
   const p = sigmoid(model.intercept + dot(model.coefficients, gameFeatures(row, schema, model.transform)));
   if (!Number.isFinite(p) || p <= 0 || p >= 1) throw new Error("Invalid moneyline probability");
   return p;
+}
+
+export function rocAuc(rows: readonly { probability: number; outcome: 0 | 1 }[]): number {
+  if (!rows.length || rows.some((row) => !Number.isFinite(row.probability)
+    || row.probability < 0 || row.probability > 1 || (row.outcome !== 0 && row.outcome !== 1))) {
+    throw new Error("Invalid AUC rows");
+  }
+  const positives = rows.filter((row) => row.outcome === 1).length;
+  const negatives = rows.length - positives;
+  if (!positives || !negatives) throw new Error("AUC requires both outcome classes");
+  const sorted = [...rows].sort((a, b) => a.probability - b.probability || a.outcome - b.outcome);
+  let positiveRankSum = 0;
+  for (let start = 0; start < sorted.length;) {
+    let end = start + 1;
+    while (end < sorted.length && sorted[end]!.probability === sorted[start]!.probability) end++;
+    const averageRank = ((start + 1) + end) / 2;
+    for (let index = start; index < end; index++) {
+      if (sorted[index]!.outcome === 1) positiveRankSum += averageRank;
+    }
+    start = end;
+  }
+  return (positiveRankSum - positives * (positives + 1) / 2) / (positives * negatives);
 }
 
 export const MLB_237_SELECTION_RULE = Object.freeze({

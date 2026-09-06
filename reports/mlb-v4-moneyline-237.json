@@ -1,0 +1,1511 @@
+{
+  "task": "237",
+  "status": "VALIDATION_GATES_PASSED_RESEARCH_ONLY",
+  "LOCKED_OOS_NOT_QUERIED": true,
+  "freezeEligibility": false,
+  "cohortHashes": {
+    "train": "feb1892c7be1f7ef50ddf050002aa83f55e26b460bfec2d1cd412036c07fc8af",
+    "validation": "83dd5bc8a37ea91aa04c1587d668bfa742c12621412451040a8a3cadb2cf5867"
+  },
+  "researchFeatureManifest": {
+    "version": "mlb-v4-moneyline-237-flat-38-v1",
+    "hash": "e6eb8f018049f4cf2030f40c8ab4e5763a6d9d1f55f22ca591dd74b969c1cfed",
+    "count": 38,
+    "schema": {
+      "ownOffense": [
+        "priorGames",
+        "seasonGames",
+        "runsPerGame5",
+        "runsPerGame10",
+        "runsPerGame20",
+        "runsPerGame30",
+        "seasonRunsPerGame",
+        "homeAwayRunsPerGame"
+      ],
+      "leagueEnvironment": [
+        "isHome",
+        "priorGames",
+        "runsPerTeamGame7d",
+        "runsPerTeamGame14d",
+        "runsPerTeamGame30d",
+        "seasonRunsPerTeamGame"
+      ],
+      "opponentBullpen": [
+        "bullpenSeasonInnings",
+        "bullpenSeasonEra",
+        "bullpenSeasonWhip",
+        "bullpenSeasonKPct",
+        "bullpenSeasonBbPct",
+        "bullpenSeasonKMinusBbPct",
+        "bullpenSeasonHrRate",
+        "bullpenSeasonFip",
+        "bullpenLast3Innings",
+        "bullpenLast5Innings",
+        "bullpenLast10Era",
+        "bullpenPitchesLast1d",
+        "bullpenPitchesLast2d",
+        "bullpenPitchesLast3d",
+        "bullpenInningsLast1d",
+        "bullpenInningsLast2d",
+        "bullpenInningsLast3d",
+        "relieversUsedLast1d",
+        "relieversUsedLast2d",
+        "backToBackRelievers",
+        "threeDayRelievers",
+        "sourceGameCount",
+        "bullpenSampleSize",
+        "bullpenFeatureCompleteness"
+      ]
+    }
+  },
+  "selectionRule": {
+    "eligibility": "zero integrity/numerical issues and deterministic rebuild",
+    "order": [
+      "validation log loss",
+      "validation Brier",
+      "validation ECE",
+      "temporal stability",
+      "simplicity"
+    ],
+    "gates": {
+      "beatsTrainNaivePriorOnValidationLogLoss": true,
+      "beatsTrainNaivePriorOnValidationBrier": true,
+      "maxEce": 0.05,
+      "noCatastrophicTemporalFoldFailure": true
+    },
+    "usesRoi": false
+  },
+  "trainNaiveHomeWinPrior": {
+    "probability": 0.5238297872340425,
+    "validation": {
+      "brier": 0.24861989224704767,
+      "logLoss": 0.690385303051932,
+      "accuracy": 0.540872511647607,
+      "ece": 0.017042724413571242,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.5,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.55,
+          "count": 2361,
+          "meanProbability": 0.5238297872340357,
+          "outcomeRate": 0.540872511647607,
+          "warning": null
+        },
+        {
+          "lower": 0.55,
+          "upper": 0.6,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.65,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.65,
+          "upper": 0.7,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.75,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.75,
+          "upper": 1,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        }
+      ]
+    }
+  },
+  "candidateTable": [
+    {
+      "id": "binary-logistic-l2-0.1",
+      "family": "binary-logistic",
+      "lambda": 0.1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6825324244098477,
+      "worstFoldLogLoss": 0.6847117980141533,
+      "validation": {
+        "brier": 0.24703246807516793,
+        "logLoss": 0.6874382383523808,
+        "accuracy": 0.540872511647607,
+        "ece": 0.025444315414265554,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 850,
+            "meanProbability": 0.45074160017466586,
+            "outcomeRate": 0.5,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 727,
+            "meanProbability": 0.525294771413299,
+            "outcomeRate": 0.5295735900962861,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 496,
+            "meanProbability": 0.5723198248364705,
+            "outcomeRate": 0.5866935483870968,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 217,
+            "meanProbability": 0.6202555368391076,
+            "outcomeRate": 0.6129032258064516,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 49,
+            "meanProbability": 0.6734427746738032,
+            "outcomeRate": 0.5918367346938775,
+            "warning": null
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 17,
+            "meanProbability": 0.7217293156139583,
+            "outcomeRate": 0.5882352941176471,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 5,
+            "meanProbability": 0.8201549918729452,
+            "outcomeRate": 0.8,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      },
+      "validationAuc": 0.5554350747109664,
+      "integrityIssues": 0,
+      "numericalIssues": 0,
+      "deterministic": true,
+      "coefficientSimplicity": 0
+    },
+    {
+      "id": "ridge-runs-1-none",
+      "family": "expected-runs-ridge",
+      "lambda": 1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.7227956352147608,
+      "worstFoldLogLoss": 0.7716975317627303,
+      "validation": {
+        "brier": 0.27075377865063593,
+        "logLoss": 0.755140216568428,
+        "accuracy": 0.5328250741211351,
+        "ece": 0.13727917964849226,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 1075,
+            "meanProbability": 0.3446622153065645,
+            "outcomeRate": 0.5088372093023256,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 186,
+            "meanProbability": 0.5244507307082638,
+            "outcomeRate": 0.5376344086021505,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 201,
+            "meanProbability": 0.5747047071767935,
+            "outcomeRate": 0.5323383084577115,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 185,
+            "meanProbability": 0.6231122949242848,
+            "outcomeRate": 0.5135135135135135,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 183,
+            "meanProbability": 0.6760971318713065,
+            "outcomeRate": 0.5519125683060109,
+            "warning": null
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 183,
+            "meanProbability": 0.7241871162563106,
+            "outcomeRate": 0.5846994535519126,
+            "warning": null
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 348,
+            "meanProbability": 0.8279667310502934,
+            "outcomeRate": 0.632183908045977,
+            "warning": null
+          }
+        ]
+      },
+      "validationAuc": 0.5500221055460359,
+      "integrityIssues": 0,
+      "numericalIssues": 0,
+      "deterministic": true,
+      "coefficientSimplicity": 1
+    },
+    {
+      "id": "poisson-runs-1-none",
+      "family": "expected-runs-poisson",
+      "lambda": 1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6842682369872447,
+      "worstFoldLogLoss": 0.6861327228973048,
+      "validation": {
+        "brier": 0.2493309282762194,
+        "logLoss": 0.6922043035665741,
+        "accuracy": 0.5404489623041084,
+        "ece": 0.050030881383174096,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 1255,
+            "meanProbability": 0.4370137970231673,
+            "outcomeRate": 0.500398406374502,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 558,
+            "meanProbability": 0.5233674048637281,
+            "outcomeRate": 0.5716845878136201,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 376,
+            "meanProbability": 0.5716068235230818,
+            "outcomeRate": 0.5904255319148937,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 110,
+            "meanProbability": 0.6203733846787933,
+            "outcomeRate": 0.5909090909090909,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 45,
+            "meanProbability": 0.6722670012297889,
+            "outcomeRate": 0.6888888888888889,
+            "warning": null
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 13,
+            "meanProbability": 0.7208566598798912,
+            "outcomeRate": 0.6923076923076923,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 4,
+            "meanProbability": 0.7945524826556768,
+            "outcomeRate": 0.75,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      },
+      "validationAuc": 0.5523135693377293,
+      "integrityIssues": 0,
+      "numericalIssues": 0,
+      "deterministic": true,
+      "coefficientSimplicity": 2
+    },
+    {
+      "id": "nb2-runs-1-0.1",
+      "family": "expected-runs-nb2",
+      "lambda": 1,
+      "alpha": 0.1,
+      "trainingFoldLogLoss": 0.6837872382683412,
+      "worstFoldLogLoss": 0.6845558644436753,
+      "validation": {
+        "brier": 0.24861124232600884,
+        "logLoss": 0.6905098764072195,
+        "accuracy": 0.5404489623041084,
+        "ece": 0.046119200478567386,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 1259,
+            "meanProbability": 0.4477059018187986,
+            "outcomeRate": 0.5003971405877681,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 648,
+            "meanProbability": 0.5234611066614356,
+            "outcomeRate": 0.5694444444444444,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 342,
+            "meanProbability": 0.5689454427983923,
+            "outcomeRate": 0.5877192982456141,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 80,
+            "meanProbability": 0.621523835031968,
+            "outcomeRate": 0.675,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 26,
+            "meanProbability": 0.6677582191373707,
+            "outcomeRate": 0.7307692307692307,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 3,
+            "meanProbability": 0.7072884696515152,
+            "outcomeRate": 0.6666666666666666,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 3,
+            "meanProbability": 0.7643521215333454,
+            "outcomeRate": 0.6666666666666666,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      },
+      "validationAuc": 0.5521531957684495,
+      "integrityIssues": 0,
+      "numericalIssues": 0,
+      "deterministic": true,
+      "coefficientSimplicity": 3
+    }
+  ],
+  "selected": {
+    "id": "binary-logistic-l2-0.1",
+    "family": "binary-logistic",
+    "lambda": 0.1,
+    "alpha": null,
+    "trainingFoldLogLoss": 0.6825324244098477,
+    "worstFoldLogLoss": 0.6847117980141533,
+    "validation": {
+      "brier": 0.24703246807516793,
+      "logLoss": 0.6874382383523808,
+      "accuracy": 0.540872511647607,
+      "ece": 0.025444315414265554,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.5,
+          "count": 850,
+          "meanProbability": 0.45074160017466586,
+          "outcomeRate": 0.5,
+          "warning": null
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.55,
+          "count": 727,
+          "meanProbability": 0.525294771413299,
+          "outcomeRate": 0.5295735900962861,
+          "warning": null
+        },
+        {
+          "lower": 0.55,
+          "upper": 0.6,
+          "count": 496,
+          "meanProbability": 0.5723198248364705,
+          "outcomeRate": 0.5866935483870968,
+          "warning": null
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.65,
+          "count": 217,
+          "meanProbability": 0.6202555368391076,
+          "outcomeRate": 0.6129032258064516,
+          "warning": null
+        },
+        {
+          "lower": 0.65,
+          "upper": 0.7,
+          "count": 49,
+          "meanProbability": 0.6734427746738032,
+          "outcomeRate": 0.5918367346938775,
+          "warning": null
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.75,
+          "count": 17,
+          "meanProbability": 0.7217293156139583,
+          "outcomeRate": 0.5882352941176471,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.75,
+          "upper": 1,
+          "count": 5,
+          "meanProbability": 0.8201549918729452,
+          "outcomeRate": 0.8,
+          "warning": "INSUFFICIENT_SAMPLE"
+        }
+      ]
+    },
+    "validationAuc": 0.5554350747109664,
+    "integrityIssues": 0,
+    "numericalIssues": 0,
+    "deterministic": true,
+    "coefficientSimplicity": 0
+  },
+  "trainOnlyHyperparameterGrid": [
+    {
+      "id": "binary-logistic-l2-0.01",
+      "family": "binary-logistic",
+      "lambda": 0.01,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6854996852076315,
+      "worstFoldLogLoss": 0.6934298762845532
+    },
+    {
+      "id": "binary-logistic-l2-0.1",
+      "family": "binary-logistic",
+      "lambda": 0.1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6825324244098477,
+      "worstFoldLogLoss": 0.6847117980141533
+    },
+    {
+      "id": "binary-logistic-l2-1",
+      "family": "binary-logistic",
+      "lambda": 1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6829532882539987,
+      "worstFoldLogLoss": 0.6866876156453904
+    },
+    {
+      "id": "binary-logistic-l2-10",
+      "family": "binary-logistic",
+      "lambda": 10,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6884231743346101,
+      "worstFoldLogLoss": 0.6909452714900088
+    },
+    {
+      "id": "ridge-runs-0-none",
+      "family": "expected-runs-ridge",
+      "lambda": 0,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.7267784863994237,
+      "worstFoldLogLoss": 0.7792350258149959
+    },
+    {
+      "id": "ridge-runs-1-none",
+      "family": "expected-runs-ridge",
+      "lambda": 1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.7227956352147608,
+      "worstFoldLogLoss": 0.7716975317627303
+    },
+    {
+      "id": "ridge-runs-10-none",
+      "family": "expected-runs-ridge",
+      "lambda": 10,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.7338717890794597,
+      "worstFoldLogLoss": 0.7508941571223907
+    },
+    {
+      "id": "poisson-runs-0-none",
+      "family": "expected-runs-poisson",
+      "lambda": 0,
+      "alpha": null,
+      "trainingFoldLogLoss": null,
+      "worstFoldLogLoss": null,
+      "error": "Error: TRAIN-fold expected-runs model did not converge"
+    },
+    {
+      "id": "poisson-runs-1-none",
+      "family": "expected-runs-poisson",
+      "lambda": 1,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6842682369872447,
+      "worstFoldLogLoss": 0.6861327228973048
+    },
+    {
+      "id": "poisson-runs-10-none",
+      "family": "expected-runs-poisson",
+      "lambda": 10,
+      "alpha": null,
+      "trainingFoldLogLoss": 0.6843210520183421,
+      "worstFoldLogLoss": 0.6863875779067838
+    },
+    {
+      "id": "nb2-runs-0-0.1",
+      "family": "expected-runs-nb2",
+      "lambda": 0,
+      "alpha": 0.1,
+      "trainingFoldLogLoss": null,
+      "worstFoldLogLoss": null,
+      "error": "Error: TRAIN-fold expected-runs model did not converge"
+    },
+    {
+      "id": "nb2-runs-1-0.1",
+      "family": "expected-runs-nb2",
+      "lambda": 1,
+      "alpha": 0.1,
+      "trainingFoldLogLoss": 0.6837872382683412,
+      "worstFoldLogLoss": 0.6845558644436753
+    },
+    {
+      "id": "nb2-runs-10-0.1",
+      "family": "expected-runs-nb2",
+      "lambda": 10,
+      "alpha": 0.1,
+      "trainingFoldLogLoss": 0.6838361149368609,
+      "worstFoldLogLoss": 0.6846635227203938
+    },
+    {
+      "id": "nb2-runs-0-0.25",
+      "family": "expected-runs-nb2",
+      "lambda": 0,
+      "alpha": 0.25,
+      "trainingFoldLogLoss": null,
+      "worstFoldLogLoss": null,
+      "error": "Error: TRAIN-fold expected-runs model did not converge"
+    },
+    {
+      "id": "nb2-runs-1-0.25",
+      "family": "expected-runs-nb2",
+      "lambda": 1,
+      "alpha": 0.25,
+      "trainingFoldLogLoss": 0.6840265308166518,
+      "worstFoldLogLoss": 0.6849010915585719
+    },
+    {
+      "id": "nb2-runs-10-0.25",
+      "family": "expected-runs-nb2",
+      "lambda": 10,
+      "alpha": 0.25,
+      "trainingFoldLogLoss": 0.6841012729732837,
+      "worstFoldLogLoss": 0.684835190012469
+    },
+    {
+      "id": "nb2-runs-0-0.5",
+      "family": "expected-runs-nb2",
+      "lambda": 0,
+      "alpha": 0.5,
+      "trainingFoldLogLoss": null,
+      "worstFoldLogLoss": null,
+      "error": "Error: TRAIN-fold expected-runs model did not converge"
+    },
+    {
+      "id": "nb2-runs-1-0.5",
+      "family": "expected-runs-nb2",
+      "lambda": 1,
+      "alpha": 0.5,
+      "trainingFoldLogLoss": 0.6848381253579022,
+      "worstFoldLogLoss": 0.685949254319059
+    },
+    {
+      "id": "nb2-runs-10-0.5",
+      "family": "expected-runs-nb2",
+      "lambda": 10,
+      "alpha": 0.5,
+      "trainingFoldLogLoss": 0.6849601040400991,
+      "worstFoldLogLoss": 0.6858885774836261
+    }
+  ],
+  "trainOnlyHyperparameterSelection": [
+    {
+      "family": "binary-logistic",
+      "id": "binary-logistic-l2-0.1",
+      "lambda": 0.1,
+      "alpha": null,
+      "chronologicalTrainFoldLogLoss": 0.6825324244098477
+    },
+    {
+      "family": "expected-runs-ridge",
+      "id": "ridge-runs-1-none",
+      "lambda": 1,
+      "alpha": null,
+      "chronologicalTrainFoldLogLoss": 0.7227956352147608
+    },
+    {
+      "family": "expected-runs-poisson",
+      "id": "poisson-runs-1-none",
+      "lambda": 1,
+      "alpha": null,
+      "chronologicalTrainFoldLogLoss": 0.6842682369872447
+    },
+    {
+      "family": "expected-runs-nb2",
+      "id": "nb2-runs-1-0.1",
+      "lambda": 1,
+      "alpha": 0.1,
+      "chronologicalTrainFoldLogLoss": 0.6837872382683412
+    }
+  ],
+  "validationFamilySelection": {
+    "comparedOnlyTrainFoldWinners": true,
+    "selectedId": "binary-logistic-l2-0.1"
+  },
+  "researchCandidateIdentity": {
+    "status": "VALIDATION_SELECTED_UNFROZEN_RESEARCH_ONLY",
+    "modelId": "tbm-mlb-moneyline-v4-research-237",
+    "version": "validation-only-binary-logistic-l2-0.1",
+    "modelHash": "7761ffd0f2a75bdf89b4b7f891a3971194b47438f27869be3c2d758b909a6a33",
+    "parameterHash": "742d5cd1128aaf9b40040f9aef11b2a0d2df53afdee5e9338cd6f7626d5e736d",
+    "transformHash": "3677ed49c9e711ea5cde8796e0b4700007c0bf3769b197d2814200b9fa11d6f1",
+    "configurationHash": "9b27c9fff277fa1ad8e0818d6812c02643318cc4467f389412b57d646ad93be0",
+    "notAnArtifact": true
+  },
+  "calibrationRationale": "Identity calibration for every candidate; no VALIDATION-fitted calibration. Any future calibration must be selected from chronological TRAIN out-of-fold predictions only.",
+  "validationMetrics": {
+    "brier": 0.24703246807516793,
+    "logLoss": 0.6874382383523808,
+    "accuracy": 0.540872511647607,
+    "ece": 0.025444315414265554,
+    "reliability": [
+      {
+        "lower": 0,
+        "upper": 0.5,
+        "count": 850,
+        "meanProbability": 0.45074160017466586,
+        "outcomeRate": 0.5,
+        "warning": null
+      },
+      {
+        "lower": 0.5,
+        "upper": 0.55,
+        "count": 727,
+        "meanProbability": 0.525294771413299,
+        "outcomeRate": 0.5295735900962861,
+        "warning": null
+      },
+      {
+        "lower": 0.55,
+        "upper": 0.6,
+        "count": 496,
+        "meanProbability": 0.5723198248364705,
+        "outcomeRate": 0.5866935483870968,
+        "warning": null
+      },
+      {
+        "lower": 0.6,
+        "upper": 0.65,
+        "count": 217,
+        "meanProbability": 0.6202555368391076,
+        "outcomeRate": 0.6129032258064516,
+        "warning": null
+      },
+      {
+        "lower": 0.65,
+        "upper": 0.7,
+        "count": 49,
+        "meanProbability": 0.6734427746738032,
+        "outcomeRate": 0.5918367346938775,
+        "warning": null
+      },
+      {
+        "lower": 0.7,
+        "upper": 0.75,
+        "count": 17,
+        "meanProbability": 0.7217293156139583,
+        "outcomeRate": 0.5882352941176471,
+        "warning": "INSUFFICIENT_SAMPLE"
+      },
+      {
+        "lower": 0.75,
+        "upper": 1,
+        "count": 5,
+        "meanProbability": 0.8201549918729452,
+        "outcomeRate": 0.8,
+        "warning": "INSUFFICIENT_SAMPLE"
+      }
+    ]
+  },
+  "validationPairedUncertaintyVersusNaive": {
+    "method": "paired per-game normal interval; descriptive because games are not guaranteed independent",
+    "logLoss": {
+      "candidateMinusNaiveMean": -0.002947064699557773,
+      "standardError": 0.0030305875877278204,
+      "confidenceInterval95": [
+        -0.0088870163715043,
+        0.0029928869723887547
+      ],
+      "interpretation": "DIFFERENCE_NOT_RESOLVED_AT_APPROXIMATE_95_PERCENT"
+    },
+    "brier": {
+      "candidateMinusNaiveMean": -0.0015874241718854159,
+      "standardError": 0.0014505858832305236,
+      "confidenceInterval95": [
+        -0.004430572503017242,
+        0.0012557241592464103
+      ],
+      "interpretation": "DIFFERENCE_NOT_RESOLVED_AT_APPROXIMATE_95_PERCENT"
+    }
+  },
+  "temporalFolds": [
+    {
+      "id": "wf-1-2023-07-01-2024-04-01",
+      "trainCount": 1127,
+      "validationCount": 1220,
+      "metrics": {
+        "brier": 0.24571589067298574,
+        "logLoss": 0.6845064567936261,
+        "accuracy": 0.5459016393442623,
+        "ece": 0.021676128819623473,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 447,
+            "meanProbability": 0.4557476633940371,
+            "outcomeRate": 0.46308724832214765,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 375,
+            "meanProbability": 0.5253829000130131,
+            "outcomeRate": 0.49333333333333335,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 268,
+            "meanProbability": 0.5732897296935784,
+            "outcomeRate": 0.5634328358208955,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 107,
+            "meanProbability": 0.6198994037308524,
+            "outcomeRate": 0.6915887850467289,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 20,
+            "meanProbability": 0.6648040411534641,
+            "outcomeRate": 0.7,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 3,
+            "meanProbability": 0.7097215521955974,
+            "outcomeRate": 0.6666666666666666,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wf-2-2024-04-01-2024-07-01",
+      "trainCount": 2347,
+      "validationCount": 1161,
+      "metrics": {
+        "brier": 0.24264224884177496,
+        "logLoss": 0.6783790184217637,
+        "accuracy": 0.5770887166236004,
+        "ece": 0.028450552883013527,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 488,
+            "meanProbability": 0.4391575638124874,
+            "outcomeRate": 0.45901639344262296,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 230,
+            "meanProbability": 0.5241638445981507,
+            "outcomeRate": 0.5695652173913044,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 208,
+            "meanProbability": 0.5712213588690905,
+            "outcomeRate": 0.6105769230769231,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 159,
+            "meanProbability": 0.6233828286806717,
+            "outcomeRate": 0.6289308176100629,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 62,
+            "meanProbability": 0.6687425488261229,
+            "outcomeRate": 0.6129032258064516,
+            "warning": null
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 11,
+            "meanProbability": 0.7217948568776894,
+            "outcomeRate": 0.7272727272727273,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 3,
+            "meanProbability": 0.7690950328932628,
+            "outcomeRate": 0.6666666666666666,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wf-3-2024-07-01-2025-01-01",
+      "trainCount": 3508,
+      "validationCount": 1192,
+      "metrics": {
+        "brier": 0.24582001043353474,
+        "logLoss": 0.6847117980141533,
+        "accuracy": 0.5411073825503355,
+        "ece": 0.029390387985547863,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 374,
+            "meanProbability": 0.4609347439390216,
+            "outcomeRate": 0.45187165775401067,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 405,
+            "meanProbability": 0.5253775161948318,
+            "outcomeRate": 0.4765432098765432,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 271,
+            "meanProbability": 0.5726908026298563,
+            "outcomeRate": 0.5977859778597786,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 116,
+            "meanProbability": 0.6211548466304453,
+            "outcomeRate": 0.5948275862068966,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 25,
+            "meanProbability": 0.6685282161784937,
+            "outcomeRate": 0.6,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 1,
+            "meanProbability": 0.7021059142308552,
+            "outcomeRate": 1,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      }
+    }
+  ],
+  "seasonDiagnostics": {
+    "2025": {
+      "brier": 0.24703246807516793,
+      "logLoss": 0.6874382383523808,
+      "accuracy": 0.540872511647607,
+      "ece": 0.025444315414265554,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.5,
+          "count": 850,
+          "meanProbability": 0.45074160017466586,
+          "outcomeRate": 0.5,
+          "warning": null
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.55,
+          "count": 727,
+          "meanProbability": 0.525294771413299,
+          "outcomeRate": 0.5295735900962861,
+          "warning": null
+        },
+        {
+          "lower": 0.55,
+          "upper": 0.6,
+          "count": 496,
+          "meanProbability": 0.5723198248364705,
+          "outcomeRate": 0.5866935483870968,
+          "warning": null
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.65,
+          "count": 217,
+          "meanProbability": 0.6202555368391076,
+          "outcomeRate": 0.6129032258064516,
+          "warning": null
+        },
+        {
+          "lower": 0.65,
+          "upper": 0.7,
+          "count": 49,
+          "meanProbability": 0.6734427746738032,
+          "outcomeRate": 0.5918367346938775,
+          "warning": null
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.75,
+          "count": 17,
+          "meanProbability": 0.7217293156139583,
+          "outcomeRate": 0.5882352941176471,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.75,
+          "upper": 1,
+          "count": 5,
+          "meanProbability": 0.8201549918729452,
+          "outcomeRate": 0.8,
+          "warning": "INSUFFICIENT_SAMPLE"
+        }
+      ]
+    }
+  },
+  "probabilityDistribution": {
+    "min": 0.13262387144925797,
+    "max": 0.8575145929720779,
+    "hash": "6522d1594f305ed54b22fd87f7caf94e9d0f0104c8670bd4e6acb82e135e6f06"
+  },
+  "calibrationBuckets": [
+    {
+      "lower": 0,
+      "upper": 0.5,
+      "count": 850,
+      "meanProbability": 0.45074160017466586,
+      "outcomeRate": 0.5,
+      "warning": null
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.55,
+      "count": 727,
+      "meanProbability": 0.525294771413299,
+      "outcomeRate": 0.5295735900962861,
+      "warning": null
+    },
+    {
+      "lower": 0.55,
+      "upper": 0.6,
+      "count": 496,
+      "meanProbability": 0.5723198248364705,
+      "outcomeRate": 0.5866935483870968,
+      "warning": null
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.65,
+      "count": 217,
+      "meanProbability": 0.6202555368391076,
+      "outcomeRate": 0.6129032258064516,
+      "warning": null
+    },
+    {
+      "lower": 0.65,
+      "upper": 0.7,
+      "count": 49,
+      "meanProbability": 0.6734427746738032,
+      "outcomeRate": 0.5918367346938775,
+      "warning": null
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.75,
+      "count": 17,
+      "meanProbability": 0.7217293156139583,
+      "outcomeRate": 0.5882352941176471,
+      "warning": "INSUFFICIENT_SAMPLE"
+    },
+    {
+      "lower": 0.75,
+      "upper": 1,
+      "count": 5,
+      "meanProbability": 0.8201549918729452,
+      "outcomeRate": 0.8,
+      "warning": "INSUFFICIENT_SAMPLE"
+    }
+  ],
+  "baselines": {
+    "naiveTrainingHomeWinPrior": {
+      "brier": 0.24861989224704767,
+      "logLoss": 0.690385303051932,
+      "accuracy": 0.540872511647607,
+      "ece": 0.017042724413571242,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.5,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.55,
+          "count": 2361,
+          "meanProbability": 0.5238297872340357,
+          "outcomeRate": 0.540872511647607,
+          "warning": null
+        },
+        {
+          "lower": 0.55,
+          "upper": 0.6,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.65,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.65,
+          "upper": 0.7,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.75,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.75,
+          "upper": 1,
+          "count": 0,
+          "meanProbability": 0,
+          "outcomeRate": 0,
+          "warning": "INSUFFICIENT_SAMPLE"
+        }
+      ],
+      "auc": 0.5
+    },
+    "simplePitSafeTeamStrength": {
+      "brier": 0.24779352275533686,
+      "logLoss": 0.6887428062089295,
+      "accuracy": 0.5429902583650995,
+      "ece": 0.023933240813671763,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.5,
+          "count": 749,
+          "meanProbability": 0.46480777819703567,
+          "outcomeRate": 0.49666221628838453,
+          "warning": null
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.55,
+          "count": 940,
+          "meanProbability": 0.5250091951585898,
+          "outcomeRate": 0.5478723404255319,
+          "warning": null
+        },
+        {
+          "lower": 0.55,
+          "upper": 0.6,
+          "count": 494,
+          "meanProbability": 0.5716666469686293,
+          "outcomeRate": 0.5688259109311741,
+          "warning": null
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.65,
+          "count": 145,
+          "meanProbability": 0.618764517924198,
+          "outcomeRate": 0.5793103448275863,
+          "warning": null
+        },
+        {
+          "lower": 0.65,
+          "upper": 0.7,
+          "count": 24,
+          "meanProbability": 0.6649396187589175,
+          "outcomeRate": 0.7916666666666666,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.75,
+          "count": 8,
+          "meanProbability": 0.7188111547648258,
+          "outcomeRate": 0.625,
+          "warning": "INSUFFICIENT_SAMPLE"
+        },
+        {
+          "lower": 0.75,
+          "upper": 1,
+          "count": 1,
+          "meanProbability": 0.7600662096830254,
+          "outcomeRate": 1,
+          "warning": "INSUFFICIENT_SAMPLE"
+        }
+      ],
+      "auc": 0.5381501269985292
+    },
+    "starterStrength": {
+      "status": "UNAVAILABLE",
+      "reason": "ZERO_PREGAME_STARTER_IDENTITY_COVERAGE"
+    },
+    "marketImpliedComparisonOnly": {
+      "status": "NOT_IN_SEALED_MODEL_INPUT",
+      "usedForTrainingOrSelection": false
+    }
+  },
+  "ablations": [
+    {
+      "name": "offense-only",
+      "validation": {
+        "brier": 0.24779352275533686,
+        "logLoss": 0.6887428062089295,
+        "accuracy": 0.5429902583650995,
+        "ece": 0.023933240813671763,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 749,
+            "meanProbability": 0.46480777819703567,
+            "outcomeRate": 0.49666221628838453,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 940,
+            "meanProbability": 0.5250091951585898,
+            "outcomeRate": 0.5478723404255319,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 494,
+            "meanProbability": 0.5716666469686293,
+            "outcomeRate": 0.5688259109311741,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 145,
+            "meanProbability": 0.618764517924198,
+            "outcomeRate": 0.5793103448275863,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 24,
+            "meanProbability": 0.6649396187589175,
+            "outcomeRate": 0.7916666666666666,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 8,
+            "meanProbability": 0.7188111547648258,
+            "outcomeRate": 0.625,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 1,
+            "meanProbability": 0.7600662096830254,
+            "outcomeRate": 1,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      },
+      "validationAuc": 0.5381501269985292
+    },
+    {
+      "name": "bullpen-only",
+      "validation": {
+        "brier": 0.24783274556407717,
+        "logLoss": 0.6890842263624551,
+        "accuracy": 0.5383312155866158,
+        "ece": 0.034393693239212667,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 800,
+            "meanProbability": 0.45336766962689623,
+            "outcomeRate": 0.50375,
+            "warning": null
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 820,
+            "meanProbability": 0.5254191780121608,
+            "outcomeRate": 0.5451219512195122,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 485,
+            "meanProbability": 0.5705705569725839,
+            "outcomeRate": 0.5402061855670103,
+            "warning": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 185,
+            "meanProbability": 0.6215949378616025,
+            "outcomeRate": 0.6432432432432432,
+            "warning": null
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 54,
+            "meanProbability": 0.6693417720909755,
+            "outcomeRate": 0.6111111111111112,
+            "warning": null
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 13,
+            "meanProbability": 0.7221444974406537,
+            "outcomeRate": 0.8461538461538461,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 4,
+            "meanProbability": 0.8132843889447383,
+            "outcomeRate": 0.5,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      },
+      "validationAuc": 0.5466463141530398
+    },
+    {
+      "name": "context-only",
+      "validation": {
+        "brier": 0.24861992629689242,
+        "logLoss": 0.6903853713066624,
+        "accuracy": 0.540872511647607,
+        "ece": 0.01704372333981463,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.5,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.55,
+            "count": 2361,
+            "meanProbability": 0.5238287883077923,
+            "outcomeRate": 0.540872511647607,
+            "warning": null
+          },
+          {
+            "lower": 0.55,
+            "upper": 0.6,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.65,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.65,
+            "upper": 0.7,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.75,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          },
+          {
+            "lower": 0.75,
+            "upper": 1,
+            "count": 0,
+            "meanProbability": 0,
+            "outcomeRate": 0,
+            "warning": "INSUFFICIENT_SAMPLE"
+          }
+        ]
+      },
+      "validationAuc": 0.5
+    }
+  ],
+  "leakageAndPit": {
+    "sealedCohortIdentity": true,
+    "starterIdentityExcluded": true,
+    "marketExcluded": true,
+    "resultFieldsExcludedFromFeatures": true,
+    "pitStatus": "SEALED_PREGAME_FEATURES"
+  }
+}
