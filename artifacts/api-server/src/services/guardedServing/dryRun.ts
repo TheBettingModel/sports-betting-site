@@ -14,8 +14,9 @@ import { MLB_CANDIDATE_ENGINE } from "./types";
 import { candidateExecutorRegistry } from "./executorRegistry";
 import {
   executeCurrentNcaafCandidateTwice, ncaafCandidateExecutor,
-  registerNcaafCandidateExecutor, toDryRunModelPredictionBridge,
+  registerNcaafCandidateExecutor,
 } from "./ncaafCandidateExecutor";
+import { resolveNcaafMoneylineBridge } from "./ncaafMoneylineBridge";
 
 function unavailableSignals(): EligibilitySignals {
   return {
@@ -35,6 +36,7 @@ async function persistAudit(input: {
   resolution: ReturnType<typeof resolveMlbProductionEngine> | ReturnType<typeof resolveNcaafProductionEngine>;
   disposition: "WOULD_SERVE" | "WOULD_FALLBACK" | "WOULD_PASS";
   snapshotId: string | null;
+  marketSnapshotId?: number | null;
   evidence: Record<string, unknown>;
   now: Date;
 }) {
@@ -57,7 +59,7 @@ async function persistAudit(input: {
     fallbackFrom: input.resolution.fallbackFrom,
     inputVersion: input.identity.inputContractVersion,
     inputSnapshotId: input.snapshotId,
-    marketSnapshotId: null,
+    marketSnapshotId: input.marketSnapshotId == null ? null : String(input.marketSnapshotId),
     runtimeHealth: input.resolution.candidateHealth,
     publicationDisposition: input.disposition,
     evidence: input.evidence,
@@ -143,24 +145,47 @@ export async function runNcaafRealSlateDryRun(now = new Date()) {
   }
   const { materialized, first, second, health } = await executeCurrentNcaafCandidateTwice(now);
   const candidate = first?.output;
-  const bridge = candidate && first && materialized
-    ? toDryRunModelPredictionBridge(candidate, materialized.snapshotId, first.executedAt) : null;
+  const bridge = candidate && materialized
+    ? await resolveNcaafMoneylineBridge(candidate, now, materialized.input.kickoffAt)
+    : null;
   const signals: EligibilitySignals = candidate && first ? {
     identityResolved: true, inputAvailable: true, inputFresh: first.evidence.fresh,
     starterOrQbComplete: candidate.dataQuality !== "INSUFFICIENT",
     teamStateComplete: candidate.dataQuality !== "INSUFFICIENT",
     contextComplete: first.evidence.complete, pitSafe: first.evidence.pitSafe,
-    leakageSafe: first.evidence.leakageSafe, marketFresh: false,
+      leakageSafe: first.evidence.leakageSafe, marketFresh: bridge?.marketFresh ?? false,
     runtimeHealth: health.status === "HEALTHY" ? "CANDIDATE_HEALTHY" : "CANDIDATE_RUNTIME_FAILURE",
-    publicationEligible: first.evidence.complete, incumbentEligible: true,
+    publicationEligible: first.evidence.complete
+      && Boolean(bridge?.publication.technicalReadiness.ready),
+    incumbentEligible: true,
   } : unavailableSignals();
   const resolution = resolveNcaafProductionEngine({ mode: evaluationMode, identity, approval, signals });
   const finalResolution: typeof resolution = materialized ? resolution : {
     ...resolution, kind: "PASS", reason: "NO_ELIGIBLE_UPCOMING_NCAAF_SLATE",
     selectedEngine: null, fallbackUsed: false, fallbackFrom: null,
   };
+  const verifiedMarketEvidence = bridge?.market && bridge.marketFresh
+    && bridge.impliedProbability != null && bridge.edge != null
+    ? Object.freeze({
+      snapshotId: bridge.market.snapshotId,
+      sportsbook: bridge.market.sportsbook,
+      source: bridge.market.source,
+      providerEventId: bridge.market.providerEventId,
+      selection: bridge.market.selection,
+      price: bridge.market.price,
+      capturedAt: bridge.market.capturedAt,
+      modelProbability: bridge.modelProbability,
+      impliedProbability: bridge.impliedProbability,
+      edge: bridge.edge,
+    })
+    : undefined;
   const evaluation = candidate
-    ? evaluateCandidateWithoutPublishing(candidate as unknown as Record<string, unknown>, identity, finalResolution)
+    ? evaluateCandidateWithoutPublishing(
+      candidate as unknown as Record<string, unknown>,
+      identity,
+      finalResolution,
+      verifiedMarketEvidence,
+    )
     : null;
   const disposition = finalResolution.fallbackUsed ? "WOULD_FALLBACK" as const : "WOULD_PASS" as const;
   if (first && second && candidate && materialized) {
@@ -187,14 +212,16 @@ export async function runNcaafRealSlateDryRun(now = new Date()) {
     sport: "NCAAF", gameId: candidate?.gameId ?? null, identity,
     mode: evaluationMode, resolution: finalResolution, disposition,
     snapshotId: materialized?.snapshotId ?? null,
+    marketSnapshotId: bridge?.market?.snapshotId ?? null,
     evidence: {
       source: "ncaaf-authoritative-2026-feature-bridge",
       actualConfiguredMode: guardedServingConfig.ncaafMode, candidateFound: Boolean(candidate),
       freshExecutorCompleted: Boolean(first), reproducible: Boolean(first && second && first.outputHash === second.outputHash),
       inputHash: first?.evidence.inputHash ?? null, outputHash: first?.outputHash ?? null,
-      modelPredictionBridgeCreated: Boolean(bridge), officialPersistence: false, boardOutputUsed: false,
-      adapterStage: evaluation?.stages.adapter ?? "NOT_ATTEMPTED",
-      universalStage: evaluation?.stages.universal ?? "NOT_ATTEMPTED",
+       modelPredictionBridgeCreated: Boolean(bridge), marketSnapshotId: bridge?.market?.snapshotId ?? null,
+       marketFresh: bridge?.marketFresh ?? false, officialPersistence: false, boardOutputUsed: false,
+       adapterStage: bridge?.risk.status ?? evaluation?.stages.adapter ?? "NOT_ATTEMPTED",
+       universalStage: bridge?.pod.status ?? evaluation?.stages.universal ?? "NOT_ATTEMPTED",
     },
     now,
   });

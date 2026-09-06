@@ -1,7 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { createHash, randomUUID } from "node:crypto";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db, modelArtifactApprovalLedgerTable } from "@workspace/db";
 import type { ApprovalState, ExactApproval, ExactArtifactIdentity } from "./types";
+
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const STATES = new Set<ApprovalState>([
   "UNVALIDATED", "SHADOW_APPROVED", "GUARDED_APPROVED",
@@ -18,23 +20,43 @@ export interface GovernedApprovalDecision {
   eventId?: string;
 }
 
+function approvalLockKeys(identity: ExactArtifactIdentity): readonly [number, number] {
+  const digest = createHash("sha256").update([
+    identity.sport, identity.market, identity.modelId,
+    identity.artifactId, identity.artifactHash,
+  ].join("\0")).digest();
+  return [digest.readInt32BE(0), digest.readInt32BE(4)] as const;
+}
+
+/** Approval decisions and official writes share this transaction-scoped lock. */
+export async function acquireExactApprovalDecisionLock(
+  tx: DbTransaction,
+  identity: ExactArtifactIdentity,
+): Promise<void> {
+  const [first, second] = approvalLockKeys(identity);
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(${first}, ${second})`);
+}
+
 export async function appendGovernedApprovalDecision(decision: GovernedApprovalDecision): Promise<string> {
   if (!STATES.has(decision.state)) throw new Error(`Invalid approval state: ${decision.state}`);
   if (!decision.governedActor.trim() || !decision.reason.trim() || !decision.evidenceReference.trim()) {
     throw new Error("Governed actor, reason, and evidence reference are required");
   }
   const eventId = decision.eventId ?? randomUUID();
-  await db.insert(modelArtifactApprovalLedgerTable).values({
-    eventId,
-    ...decision.identity,
-    inputHash: decision.identity.inputHash ?? null,
-    configurationHash: decision.identity.configurationHash ?? null,
-    parameterHash: decision.identity.parameterHash ?? null,
-    approvalState: decision.state,
-    governedActor: decision.governedActor,
-    reason: decision.reason,
-    evidenceReference: decision.evidenceReference,
-    decidedAt: decision.decidedAt ?? new Date(),
+  await db.transaction(async tx => {
+    await acquireExactApprovalDecisionLock(tx, decision.identity);
+    await tx.insert(modelArtifactApprovalLedgerTable).values({
+      eventId,
+      ...decision.identity,
+      inputHash: decision.identity.inputHash ?? null,
+      configurationHash: decision.identity.configurationHash ?? null,
+      parameterHash: decision.identity.parameterHash ?? null,
+      approvalState: decision.state,
+      governedActor: decision.governedActor,
+      reason: decision.reason,
+      evidenceReference: decision.evidenceReference,
+      decidedAt: decision.decidedAt ?? new Date(),
+    });
   });
   return eventId;
 }
@@ -43,6 +65,7 @@ export async function appendGovernedApprovalDecision(decision: GovernedApprovalD
 export async function resolveExactApproval(
   identity: ExactArtifactIdentity,
   required: "shadow" | "guarded" | "full",
+  tx?: DbTransaction,
 ): Promise<ExactApproval> {
   const conditions = [
     eq(modelArtifactApprovalLedgerTable.sport, identity.sport),
@@ -57,7 +80,8 @@ export async function resolveExactApproval(
   if (identity.inputHash != null) conditions.push(eq(modelArtifactApprovalLedgerTable.inputHash, identity.inputHash));
   if (identity.configurationHash != null) conditions.push(eq(modelArtifactApprovalLedgerTable.configurationHash, identity.configurationHash));
   if (identity.parameterHash != null) conditions.push(eq(modelArtifactApprovalLedgerTable.parameterHash, identity.parameterHash));
-  const [row] = await db.select().from(modelArtifactApprovalLedgerTable)
+  const executor = tx ?? db;
+  const [row] = await executor.select().from(modelArtifactApprovalLedgerTable)
     .where(and(...conditions))
     .orderBy(desc(modelArtifactApprovalLedgerTable.decidedAt), desc(modelArtifactApprovalLedgerTable.id))
     .limit(1);

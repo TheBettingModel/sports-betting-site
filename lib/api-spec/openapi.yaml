@@ -1501,7 +1501,7 @@ components:
     ModelRuntimeStatus:
       type: object
       additionalProperties: true
-      required: [generatedAt, automaticRetraining, automaticParameterChanges, automaticPromotion, sports]
+      required: [generatedAt, automaticRetraining, automaticParameterChanges, automaticPromotion, sports, technicalReadiness]
       properties:
         generatedAt: { type: string, format: date-time }
         automaticRetraining: { type: string }
@@ -1514,6 +1514,163 @@ components:
         latestOfficialPrediction:
           type: [object, "null"]
           additionalProperties: true
+        technicalReadiness:
+          $ref: "#/components/schemas/TechnicalReadiness"
+
+    TechnicalReadiness:
+      type: object
+      additionalProperties: true
+      required:
+        - TECHNICAL_CUTOVER_READY
+        - MODEL_EVIDENCE_READY
+        - GUARDED_APPROVED
+        - technicalBlockers
+        - modelEvidenceBlockers
+        - guardedApprovalBlockers
+        - guardedPersistence
+      properties:
+        TECHNICAL_CUTOVER_READY:
+          $ref: "#/components/schemas/TechnicalReadinessBoolean"
+        MODEL_EVIDENCE_READY:
+          $ref: "#/components/schemas/TechnicalReadinessBoolean"
+        GUARDED_APPROVED:
+          $ref: "#/components/schemas/TechnicalReadinessBoolean"
+        technicalBlockers:
+          $ref: "#/components/schemas/TechnicalReadinessBlockers"
+        modelEvidenceBlockers:
+          $ref: "#/components/schemas/TechnicalReadinessBlockers"
+        guardedApprovalBlockers:
+          $ref: "#/components/schemas/TechnicalReadinessBlockers"
+        guardedPersistence:
+          $ref: "#/components/schemas/GuardedPersistenceReadiness"
+
+    TechnicalReadinessBlockers:
+      type: array
+      items: { type: string }
+
+    TechnicalReadinessBoolean:
+      type: boolean
+
+    GuardedPersistenceReadiness:
+      type: object
+      additionalProperties: true
+      required:
+        - schema
+        - counts
+        - environment
+        - maxSafeExecutionAgeHours
+        - latestSafeMutationVerification
+        - appendOnlyMutationRejectionVerified
+        - latestDryRunResolutions
+        - latestSafeExecutions
+        - officialHistoryIntegrity
+      properties:
+        schema:
+          $ref: "#/components/schemas/GuardedPersistenceSchema"
+        counts:
+          $ref: "#/components/schemas/GuardedPersistenceCounts"
+        environment:
+          $ref: "#/components/schemas/GuardedPersistenceEnvironment"
+        maxSafeExecutionAgeHours: { type: number }
+        latestSafeMutationVerification:
+          $ref: "#/components/schemas/GuardedPersistenceMutationVerification"
+        appendOnlyMutationRejectionVerified: { type: boolean }
+        latestDryRunResolutions:
+          $ref: "#/components/schemas/PerSportDryRunResolutions"
+        latestSafeExecutions:
+          $ref: "#/components/schemas/PerSportSafeExecutions"
+        officialHistoryIntegrity:
+          $ref: "#/components/schemas/OfficialHistoryIntegrity"
+
+    GuardedPersistenceEnvironment:
+      type: string
+      enum: [PRODUCTION, NON_PRODUCTION]
+
+    GuardedPersistenceSchema:
+      type: object
+      additionalProperties: true
+      required: [tables, triggers, indexes, constraints]
+      properties:
+        tables: { type: integer }
+        triggers: { type: integer }
+        indexes:
+          type: array
+          items: { type: string }
+        constraints:
+          type: array
+          items: { type: string }
+
+    GuardedPersistenceCounts:
+      type: object
+      additionalProperties: true
+      required: [approvalLedger, officialIdentity, officialLifecycle]
+      properties:
+        approvalLedger: { type: integer }
+        officialIdentity: { type: integer }
+        officialLifecycle: { type: integer }
+
+    GuardedPersistenceMutationVerification:
+      type: "null"
+
+    PerSportDryRunResolutions:
+      type: object
+      additionalProperties: true
+      required: [mlb, ncaaf]
+      properties:
+        mlb:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedDryRunResolution"
+            - type: "null"
+        ncaaf:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedDryRunResolution"
+            - type: "null"
+
+    GuardedDryRunResolution:
+      type: object
+      additionalProperties: true
+      required: [resolvedAt, dryRun, resolution, fallbackUsed, publicationDisposition]
+      properties:
+        resolvedAt: { type: string, format: date-time }
+        dryRun: { type: boolean }
+        resolution: { type: string }
+        fallbackUsed: { type: boolean }
+        publicationDisposition: { type: string }
+
+    PerSportSafeExecutions:
+      type: object
+      additionalProperties: true
+      required: [mlb, ncaaf]
+      properties:
+        mlb:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedSafeExecution"
+            - type: "null"
+        ncaaf:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedSafeExecution"
+            - type: "null"
+
+    GuardedSafeExecution:
+      type: object
+      additionalProperties: true
+      required: [executedAt, reproducible, executorHealth, pitSafe, leakageSafe, safe]
+      properties:
+        executedAt: { type: string, format: date-time }
+        reproducible: { type: boolean }
+        executorHealth: { type: string }
+        pitSafe: { type: boolean }
+        leakageSafe: { type: boolean }
+        safe: { type: boolean }
+
+    OfficialHistoryIntegrity:
+      type: object
+      additionalProperties: true
+      required: [orphanedPredictionIdentities, orphanedLifecycleEvents, identitiesWithoutLifecycle]
+      properties:
+        orphanedPredictionIdentities: { type: integer }
+        orphanedLifecycleEvents: { type: integer }
+        identitiesWithoutLifecycle: { type: integer }
 
     ModelRuntimeSportStatus:
       type: object

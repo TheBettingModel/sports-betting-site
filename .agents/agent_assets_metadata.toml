@@ -568,3 +568,31 @@ mtime_ms = 1788661070363
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/57167436-b9c8-4f73-aaf9-8a0b54ec8cb2/cfcd9f0a-4b37-4d86-9e37-6f17dc98ea9a"
 storage_version_token = "1788661078447004"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "BbED_QegU5LUDh6_MoslJ"
+uri = "file://reports/task-236-final-technical-cutover-readiness.md"
+type = "text"
+title = "Task 236 Final Technical Cutover Readiness"
+description = "Final owner-readable readiness report. Classification C; no cutover or publish."
+logical_id = "5e8c9056-e807-4c01-afa2-11a80188d502"
+content_hash = "sha256:9540722520465d2c29f069ad867e0fc7762f00f4e6892cd666586fd190d47945"
+size = 19639
+mtime_ms = 1788665669474
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/5e8c9056-e807-4c01-afa2-11a80188d502/213a1a23-9c14-4ee2-a22f-c595f19fc7ad"
+storage_version_token = "1788665731367065"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "bOYnqAql8DMlzQ2pHpNyu"
+uri = "file://reports/task-236-verification.json"
+type = "unspecified"
+title = "Task 236 Verification Evidence"
+description = "Machine-readable verification evidence, blockers, counts, hashes, tests, security results, and readiness booleans."
+logical_id = "4be09e14-f450-41b3-af0a-dbf9fcb74c65"
+content_hash = "sha256:2a5c5f66ca67f791dbd23039ebed82d48bcab664bc1a03e298e00dcdf6f42853"
+size = 18795
+mtime_ms = 1788665707718
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/4be09e14-f450-41b3-af0a-dbf9fcb74c65/e87b7429-a30e-4850-94fd-38302a3e9a43"
+storage_version_token = "1788665732012850"
+content_type = "application/octet-stream"

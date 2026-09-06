@@ -279,6 +279,30 @@ export interface ModelRuntimeOfficialPrediction {
   predictionTimestamp: string;
 }
 
+export interface TechnicalReadiness {
+  TECHNICAL_CUTOVER_READY: boolean;
+  MODEL_EVIDENCE_READY: boolean;
+  GUARDED_APPROVED: boolean;
+  technicalBlockers: string[];
+  modelEvidenceBlockers: string[];
+  guardedApprovalBlockers: string[];
+  guardedPersistence: {
+    environment: string;
+    schema: { tables: number; triggers: number; indexes: string[]; constraints: string[] };
+    counts: { approvalLedger: number; officialIdentity: number; officialLifecycle: number };
+    maxSafeExecutionAgeHours: number;
+    appendOnlyMutationRejectionVerified: boolean;
+    latestSafeMutationVerification: string | null;
+    latestDryRunResolutions: Record<string, { resolvedAt: string; dryRun: boolean; resolution: string; fallbackUsed: boolean; publicationDisposition: string } | null>;
+    latestSafeExecutions: Record<string, { executedAt: string; reproducible: boolean; executorHealth: string; pitSafe: boolean; leakageSafe: boolean; safe: boolean } | null>;
+    officialHistoryIntegrity: {
+      orphanedPredictionIdentities: number;
+      orphanedLifecycleEvents: number;
+      identitiesWithoutLifecycle: number;
+    };
+  };
+}
+
 export interface ModelRuntimeStatus {
   generatedAt: string;
   automaticRetraining: string;
@@ -286,6 +310,7 @@ export interface ModelRuntimeStatus {
   automaticPromotion: string;
   sports: ModelRuntimeSportStatus[];
   latestOfficialPrediction: ModelRuntimeOfficialPrediction | null;
+  technicalReadiness: TechnicalReadiness;
 }
 
 export interface NcaafReasonCount {

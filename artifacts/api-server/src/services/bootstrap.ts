@@ -7,6 +7,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { isDeployableModelIdentity } from "./modelRegistry";
+import { registerExactNcaafCandidateModelVersion } from "./guardedServing/ncaafMoneylineBridge";
 
 const SPORTS = ["NFL", "NCAAF", "NBA", "NCAAB", "MLB", "NHL", "WNBA", "Soccer", "UFC"] as const;
 
@@ -72,6 +73,8 @@ async function runBootstrap(): Promise<BootstrapIds> {
       })
       .onConflictDoNothing();
   }
+  // Candidate identity reference data only. This has no approval or serving effect.
+  await registerExactNcaafCandidateModelVersion();
 
   // ── Fetch IDs ─────────────────────────────────────────────────────────────
   const [espnBook] = await db

@@ -1,0 +1,1950 @@
+# TASK #236 — MLB V4 EXECUTABLE + NCAAF FULL PIPELINE + PRODUCTION IMMUTABILITY
+
+## MISSION
+
+Close the exact remaining technical blockers identified by Task #235 so MLB V4 and NCAAF Next-Gen can proceed to a final governed production approval and controlled cutover task.
+
+Task #235 ended:
+
+C — AUTHENTIC CANDIDATE EXECUTION BLOCKED
+
+and:
+
+READY FOR TASK #236 CONTROLLED APPROVAL/CUTOVER: NO
+
+Task #235 established an important split:
+
+NCAAF has a real, healthy, reproducible next-generation executor.
+
+MLB does NOT yet have an authentic executable V4 artifact consuming `model-input-v4`.
+
+Production guarded persistence/append-only protections also remain unverified.
+
+Task #236 must therefore complete THREE workstreams:
+
+WORKSTREAM A — MLB V4 AUTHENTIC EXECUTABLE
+Make MLB V4 generate real pregame forecasts from authoritative `model-input-v4` before approval.
+
+WORKSTREAM B — NCAAF FULL PRODUCTION RATING PIPELINE
+Carry authentic NCAAF next-generation forecasts through legitimate market, edge, risk, rating, recommendation, and universal-pipeline logic without inventing values.
+
+WORKSTREAM C — PRODUCTION IMMUTABILITY
+Publish and verify the guarded production schema and prove official model history remains immutable after publishing.
+
+This is an IMPLEMENTATION task.
+
+Do not simply audit these gaps again.
+
+The desired result is that after #236 there are NO remaining serving-infrastructure prerequisites before a governed guarded-production decision.
+
+The next task after a successful #236 should be:
+
+TASK #237 — GUARDED APPROVAL + CONTROLLED LIVE CUTOVER
+
+
+======================================================================
+1. AUTHORITATIVE STARTING STATE
+======================================================================
+
+Treat the Task #235 final report as authoritative unless direct inspection proves a material change.
+
+Task #235 classification:
+
+C — AUTHENTIC CANDIDATE EXECUTION BLOCKED
+
+
+CURRENT PRODUCTION
+
+MLB incumbent:
+`tbm-mlb-moneyline-v1`
+
+NCAAF incumbent:
+`tbm-ncaaf-moneyline-v1`
+
+Safe modes:
+
+`MLB_MODEL_MODE=v1`
+
+`NCAAF_MODEL_MODE=legacy`
+
+No next-generation model is approved or publicly serving.
+
+
+MLB CANDIDATE
+
+Target:
+`tbm-mlb-moneyline-v4`
+
+Required authoritative input:
+`model-input-v4`
+
+Current state:
+
+- executor registered: NO
+- authentic executable artifact: unavailable
+- artifact/version/hash: unavailable
+- fresh V4 inference: BLOCKED
+- reproducibility: unavailable
+- supported markets cannot yet be claimed
+- guarded runtime cannot authentically serve candidate
+- candidate approval: UNVALIDATED
+- public candidate serving: OFF
+
+
+NCAAF CANDIDATE
+
+Candidate:
+`tbm-ncaaf-v4-expected-score`
+
+Exact version:
+`D-simple-expected-score-linear`
+
+Artifact:
+`tbm-ncaaf-v4-expected-score`
+
+Artifact hash:
+`59c00f4d5bb1219cf3ddab746311bdb96e6a19d4cc868fc33bd8176871be3226`
+
+Config hash:
+`212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86`
+
+Parameter hash:
+`792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81`
+
+Authoritative input:
+`ncaaf-chronological-team-game-v2`
+
+Current state:
+
+- executor registered: YES
+- executor healthy: YES
+- health: EXACT_FROZEN_ARTIFACT_READY
+- fresh authentic inference: VERIFIED
+- reproducibility: PASS
+- moneyline: EXECUTOR_SUPPORTED
+- spread/total: DERIVABLE_BUT_NOT_APPROVED
+- guarded fallback: VERIFIED
+- publication adapter nonpublishing traversal: VERIFIED
+- candidate approval: UNVALIDATED
+- public candidate serving: OFF
+
+
+PRODUCTION PUBLISH LAYER
+
+Task #235 found:
+
+- guarded development schema exists
+- 6 guarded development tables
+- 12 development mutation/truncate triggers
+- development UPDATE/DELETE rejection passed
+- production contains none of the six guarded tables
+- production guarded triggers: 0
+- no managed production migration script exists
+- official candidate prediction count: 0
+
+
+======================================================================
+2. NON-NEGOTIABLE SAFETY BOUNDARY
+======================================================================
+
+Task #236 is NOT the production approval task.
+
+Task #236 must NOT:
+
+- approve MLB V4
+- approve NCAAF Next-Gen
+- switch production MLB to V4
+- switch production NCAAF to Next-Gen
+- publish next-generation subscriber picks
+- modify model results after games
+- automatically retrain either model
+- automatically recalibrate either model
+- automatically promote either model
+- bypass guarded-serving approval
+- weaken PIT requirements
+- weaken leakage requirements
+- fabricate missing downstream values
+- mutate official historical predictions
+
+Production must remain:
+
+MLB = V1
+
+NCAAF = V1/LEGACY
+
+throughout Task #236 unless an existing external governed decision already changed that state before the task began.
+
+Do not create such a decision during #236.
+
+
+======================================================================
+3. DEFINITION OF THE TARGET STATE
+======================================================================
+
+The target technical state is:
+
+MLB:
+
+AUTHORITATIVE PREGAME DATA
+→ `model-input-v4`
+→ FROZEN AUTHENTIC MLB V4 EXECUTOR
+→ V4 FORECAST
+→ GUARDED RESOLVER
+→ PUBLICATION ADAPTER
+→ LEGITIMATE MARKET/RISK PIPELINE
+→ UNIVERSAL PIPELINE
+→ NONPUBLIC REAL-SLATE DRY RUN
+
+
+NCAAF:
+
+`ncaaf-chronological-team-game-v2`
+→ FROZEN EXPECTED-SCORE EXECUTOR
+→ AUTHENTIC FORECAST
+→ EXACT `model_prediction` BRIDGE
+→ REAL MARKET DATA
+→ IMPLIED PROBABILITY / EDGE
+→ RISK POLICY
+→ FINAL RATING
+→ UNIVERSAL POD / RECOMMENDATION
+→ GUARDED RESOLVER
+→ NONPUBLIC REAL-SLATE DRY RUN
+
+
+PRODUCTION PERSISTENCE:
+
+MANAGED MIGRATION
+→ GUARDED TABLES
+→ APPEND-ONLY PROTECTION
+→ OFFICIAL PREDICTION IDENTITY
+→ LIFECYCLE EVENTS
+→ MUTATION REJECTION
+→ RECONSTRUCTABLE MODEL HISTORY
+
+
+======================================================================
+4. WORKSTREAM A — MLB V4 EXECUTABLE
+======================================================================
+
+The largest blocker is MLB.
+
+Task #235 found that no authentic executable artifact exists for:
+
+`tbm-mlb-moneyline-v4`
+
+consuming:
+
+`model-input-v4`
+
+Do not work around this.
+
+Build the authentic executable.
+
+
+======================================================================
+5. MLB V4 MODEL PROVENANCE
+======================================================================
+
+Before implementing the executor, locate and inventory all authoritative MLB V4 research/model-definition material already present in the repository/database.
+
+Determine whether the intended V4 forecast definition already exists in any legitimate form, including:
+
+- frozen research specification
+- model coefficients
+- feature transformations
+- calibration definition
+- training artifact
+- model registry metadata
+- historical benchmark implementation
+- challenger scoring code
+- documented formula
+- serialized model
+- deterministic research implementation
+
+Do NOT infer missing coefficients or parameters.
+
+Do NOT reconstruct a model from desired outputs.
+
+Do NOT reverse-engineer old shadow predictions to create coefficients.
+
+The executor must be based on an authoritative existing V4 model definition.
+
+
+======================================================================
+6. MLB V4 EXECUTABLE RECONSTRUCTION RULE
+======================================================================
+
+If an authoritative V4 model definition exists but was never packaged as a production executable:
+
+package that exact frozen definition into a deterministic executable artifact.
+
+This is permitted.
+
+If no authoritative model definition exists at all:
+
+STOP MLB implementation and report:
+
+`BLOCKED — NO AUTHORITATIVE MLB V4 MODEL DEFINITION`
+
+Do NOT invent a new V4 model merely to satisfy Task #236.
+
+
+======================================================================
+7. NO MLB RETRAINING
+======================================================================
+
+Packaging an existing frozen V4 definition is NOT retraining.
+
+Task #236 may:
+
+- expose existing coefficients
+- load existing frozen parameters
+- implement existing feature transforms
+- serialize an existing frozen artifact
+- register the exact artifact
+- wrap research logic in a typed production executor
+
+Task #236 may NOT:
+
+- fit new coefficients
+- optimize weights against recent results
+- select features using post-launch evidence
+- tune thresholds for better ROI
+- recalibrate probabilities using new games
+- use Task #232–#235 prospective outcomes to change model parameters
+
+If actual model training is required because no valid V4 artifact exists, classify the MLB portion BLOCKED and identify the required future model-development task.
+
+
+======================================================================
+8. MLB V4 ARTIFACT IDENTITY
+======================================================================
+
+A valid MLB V4 executable must receive immutable identity.
+
+At minimum:
+
+model_family
+model_version
+artifact_id
+artifact_hash
+parameter_hash where applicable
+config_hash where applicable
+input_contract_version
+created_at
+provenance_reference
+supported_markets
+
+The identity must be exact and registry-compatible.
+
+
+======================================================================
+9. MLB V4 INPUT CONTRACT
+======================================================================
+
+The authentic executor must consume:
+
+`model-input-v4`
+
+Validate the exact schema.
+
+The executor must not accept superseded inputs as equivalent.
+
+Reject:
+
+model-input-v1
+model-input-v2
+model-input-v3
+
+unless an explicit versioned conversion exists and can prove semantic equivalence.
+
+Do not silently coerce old inputs into V4.
+
+
+======================================================================
+10. MLB V4 FEATURE VALIDATION
+======================================================================
+
+Map every feature consumed by the authentic V4 executable to an authoritative `model-input-v4` field.
+
+For every model feature report:
+
+- feature name
+- source
+- PIT availability
+- missingness behavior
+- transformation
+- expected type/range
+
+Any feature unavailable at prediction cutoff must not be populated using later information.
+
+
+======================================================================
+11. MLB V4 MISSINGNESS
+======================================================================
+
+Implement explicit missingness behavior.
+
+Do not silently replace unavailable inputs with:
+
+- postgame values
+- league averages not defined by the model
+- V1 values
+- zeros
+- stale snapshots
+
+unless that exact behavior is part of the frozen authoritative V4 specification.
+
+Otherwise:
+
+PASS
+
+or mark candidate ineligible.
+
+
+======================================================================
+12. MLB V4 EXECUTOR CONTRACT
+======================================================================
+
+Register the resulting artifact through the typed central candidate executor registry established by #234/#235.
+
+Exact identity:
+
+`tbm-mlb-moneyline-v4`
+
+The executor must expose equivalent:
+
+identity()
+supportedMarkets()
+inputContract()
+health()
+execute(input)
+reproducibility metadata
+
+Do not create a route-specific bypass.
+
+
+======================================================================
+13. MLB V4 EXECUTOR HEALTH
+======================================================================
+
+Executor health must distinguish:
+
+ARTIFACT_READY
+ARTIFACT_MISSING
+INPUT_CONTRACT_MISMATCH
+PARAMETERS_MISSING
+REGISTRY_MISSING
+RUNTIME_FAILURE
+UNHEALTHY
+
+Health must not imply approval.
+
+
+======================================================================
+14. MLB V4 REAL PREGAME FORECAST
+======================================================================
+
+When an eligible upcoming MLB game exists, generate a REAL pregame forecast.
+
+Required chain:
+
+starter evidence
+→ starter-state-v4
+→ team-state-v4
+→ context-v2
+→ model-input-v4
+→ authentic MLB V4 executor
+→ forecast
+
+The forecast must be generated before the relevant game starts.
+
+No completed-game replay may be presented as the required real pregame acceptance test.
+
+
+======================================================================
+15. MLB NO-SLATE HANDLING
+======================================================================
+
+If there is legitimately no eligible upcoming MLB game during the Task #236 execution window:
+
+DO NOT fabricate one.
+
+Still complete:
+
+- artifact reconstruction
+- registry
+- executor health
+- input validation
+- reproducibility using a valid immutable pregame snapshot if available
+- integration tests
+
+But final real-slate status must state:
+
+`PENDING — NO ELIGIBLE UPCOMING MLB SLATE`
+
+This alone should not force a false success claim.
+
+A classification A requires the real-pregame requirement unless independent evidence establishes an equivalent legitimate pregame execution after implementation.
+
+
+======================================================================
+16. MLB REPRODUCIBILITY
+======================================================================
+
+Run the same exact MLB V4 artifact twice against the same immutable input.
+
+Verify deterministic equality within documented numerical tolerance.
+
+Persist:
+
+artifact hash
+input hash
+output hash #1
+output hash #2
+reproducible=true/false
+
+Unexplained nondeterminism is a blocker.
+
+
+======================================================================
+17. MLB MARKET SUPPORT
+======================================================================
+
+Determine actual support.
+
+Classify:
+
+Moneyline
+Run Line
+Game Total
+First 5
+NRFI/YRFI
+
+as exactly one:
+
+EXECUTOR_SUPPORTED
+DERIVABLE_BUT_NOT_APPROVED
+LEGACY_ONLY
+UNSUPPORTED
+
+Do not infer market support from V1.
+
+
+======================================================================
+18. MLB GUARDED INTEGRATION
+======================================================================
+
+Once authentic V4 output exists, run it through the actual guarded-serving boundary.
+
+Required:
+
+V4 output
+→ approval check
+→ guarded resolver
+→ publication adapter
+→ compatible downstream market/risk components
+→ universal pipeline
+→ dry-run disposition
+
+Because approval remains OFF, expected behavior may be:
+
+`WOULD_FALLBACK — V4_NOT_APPROVED`
+
+That is correct.
+
+What matters is that the authentic V4 forecast existed before the approval gate.
+
+
+======================================================================
+19. MLB POSITIVE FIXTURE TEST
+======================================================================
+
+Using isolated test-only approval fixtures, prove:
+
+authentic executor available
++
+exact artifact guarded-approved
++
+market approved
++
+fresh eligible input
++
+runtime healthy
++
+publication policy passes
+=
+CANDIDATE SELECTED
+
+Do NOT modify the real approval ledger.
+
+
+======================================================================
+20. WORKSTREAM B — NCAAF FULL PRODUCTION PIPELINE
+======================================================================
+
+NCAAF does NOT need another executor rebuild.
+
+Task #235 verified:
+
+`predictFrozenNcaafV4`
+
+as authentic and reproducible.
+
+Preserve the exact frozen artifact.
+
+Do not retrain or alter it.
+
+The task is now to carry that authentic forecast through the legitimate production pipeline.
+
+
+======================================================================
+21. NCAAF MODEL VERSION REGISTRY
+======================================================================
+
+Task #235 found the exact `model_versions` FK missing for official persistence.
+
+Create or use the legitimate governed registry record for:
+
+`tbm-ncaaf-v4-expected-score`
+
+Version:
+
+`D-simple-expected-score-linear`
+
+with exact artifact/config/parameter hashes from #235.
+
+Creating registry identity is NOT model approval.
+
+The registry must preserve:
+
+approval = UNVALIDATED / current truthful state
+
+unless a legitimate governed approval already exists.
+
+
+======================================================================
+22. NCAAF MODEL_PREDICTION BRIDGE
+======================================================================
+
+Complete the exact production bridge:
+
+authoritative input
+→ `predictFrozenNcaafV4`
+→ authentic expected-score output
+→ `model_prediction` contract
+
+The bridge must not invent values.
+
+Preserve:
+
+model identity
+artifact identity
+input identity
+prediction timestamp
+expected score output
+derived probabilities only where mathematically/model-contract legitimate
+market identity
+approval status
+
+
+======================================================================
+23. NCAAF MARKET DATA
+======================================================================
+
+Task #235 specifically blocked official traversal because authentic market inputs were unavailable.
+
+Wire the bridge to the existing authoritative market source used by TBM.
+
+At prediction time preserve:
+
+sportsbook/source
+market type
+selection
+line where applicable
+American/decimal odds as appropriate
+market snapshot timestamp
+market snapshot identity
+
+Market information must satisfy freshness requirements.
+
+
+======================================================================
+24. NCAAF IMPLIED PROBABILITY
+======================================================================
+
+Calculate implied probability from authentic available market odds using the existing TBM market convention.
+
+Do not fabricate odds.
+
+Do not use a default -110 price unless -110 is actually the observed price or an explicitly valid market contract.
+
+If required market price is absent:
+
+candidate publication must PASS or remain ineligible.
+
+
+======================================================================
+25. NCAAF EDGE
+======================================================================
+
+Compute edge only when both exist:
+
+- legitimate model probability
+- legitimate contemporaneous market probability/price
+
+Do not manufacture an edge from expected score alone.
+
+Preserve the formula/version used.
+
+
+======================================================================
+26. NCAAF EXPECTED SCORE → MARKET PROBABILITY
+======================================================================
+
+Inspect the frozen NCAAF artifact's actual contract.
+
+If it legitimately produces:
+
+- win probability
+- spread probability
+- total probability
+
+use those values.
+
+If it only produces expected scores:
+
+do NOT invent a probability transformation.
+
+Use only an existing validated/frozen transformation if one already exists.
+
+If no legitimate probability mapping exists for a market, classify that market:
+
+DERIVABLE_BUT_NOT_VALIDATED
+
+or:
+
+UNSUPPORTED
+
+as appropriate.
+
+This is not a task to fit a new probability model.
+
+
+======================================================================
+27. NCAAF RISK POLICY
+======================================================================
+
+Connect the authentic NCAAF forecast/market comparison to the existing versioned TBM risk policy.
+
+Do not invent:
+
+units
+confidence
+tier
+recommendation
+
+inside the model executor.
+
+Those values belong to governed downstream policy.
+
+If the existing risk policy cannot consume the authentic NCAAF contract without invalid assumptions:
+
+implement a versioned adapter only where semantics remain valid.
+
+Otherwise mark the component unavailable.
+
+
+======================================================================
+28. NCAAF CONFIDENCE
+======================================================================
+
+Confidence must have a legitimate definition.
+
+Do not simply map:
+
+expected-score margin → confidence
+
+unless that mapping already exists as a validated/versioned policy.
+
+If legitimate confidence is unavailable:
+
+report confidence unavailable.
+
+Do not block raw authentic forecasting solely to create a cosmetic confidence score.
+
+
+======================================================================
+29. NCAAF FINAL RATING
+======================================================================
+
+Carry the prediction into Final Rating only using legitimate upstream values.
+
+Document the exact inputs.
+
+If Final Rating requires a field that cannot legitimately be produced:
+
+do not invent it.
+
+Either:
+
+- use a versioned next-gen-compatible rating adapter
+- exclude the incompatible component
+- PASS publication if the component is mandatory
+
+
+======================================================================
+30. NCAAF UNIVERSAL POD SCORE
+======================================================================
+
+Do NOT manufacture Universal POD Score compatibility.
+
+Determine whether the current universal POD engine can legitimately consume the next-gen prediction.
+
+If yes:
+
+prove traversal.
+
+If no:
+
+build a versioned semantic adapter only if the required values already legitimately exist.
+
+Do NOT fit new model parameters during this task.
+
+
+======================================================================
+31. NCAAF UNIVERSAL PIPELINE
+======================================================================
+
+Verify compatibility with:
+
+- Sportsbook Comparison
+- Sharp Book Analysis
+- Line Shopping
+- Market Intelligence Grade
+- Final Rating
+- Universal POD Score
+- Final Model Tier
+- Final Recommendation
+
+For each component classify:
+
+COMPATIBLE
+ADAPTED
+NOT_APPLICABLE
+BLOCKED
+
+No invented values.
+
+
+======================================================================
+32. NCAAF MONEYLINE ACCEPTANCE
+======================================================================
+
+Task #235 classified Moneyline:
+
+EXECUTOR_SUPPORTED
+
+Therefore prioritize completing the authentic Moneyline production bridge first.
+
+Do NOT make spread/total support a requirement for Moneyline launch readiness if those markets are not yet validated.
+
+A narrow legitimate next-gen Moneyline launch is preferable to pretending every market is supported.
+
+
+======================================================================
+33. NCAAF SPREAD/TOTAL BOUNDARY
+======================================================================
+
+Task #235 classified:
+
+Spread:
+DERIVABLE_BUT_NOT_APPROVED
+
+Total:
+DERIVABLE_BUT_NOT_APPROVED
+
+Preserve this boundary unless existing evidence legitimately establishes otherwise.
+
+Do not approve them during #236.
+
+
+======================================================================
+34. NCAAF REAL-SLATE FULL PIPELINE TEST
+======================================================================
+
+For at least one legitimate upcoming NCAAF game:
+
+1. establish pregame observation cutoff
+2. materialize authoritative input
+3. execute frozen NCAAF artifact
+4. verify reproducibility
+5. resolve legitimate current market data
+6. calculate only legitimate market metrics
+7. build model_prediction bridge
+8. run risk/publication policy
+9. traverse compatible universal components
+10. run guarded resolver
+11. generate final dry-run disposition
+12. verify candidate remains unpublished
+13. verify legacy production remains unchanged
+
+Expected final disposition may remain:
+
+`WOULD_FALLBACK — NEXTGEN_NOT_APPROVED`
+
+This is acceptable.
+
+
+======================================================================
+35. NCAAF NO INVENTED VALUES TEST
+======================================================================
+
+Add explicit tests proving the next-gen pipeline refuses to manufacture:
+
+- odds
+- implied probability
+- edge
+- confidence
+- units
+- rating
+- POD
+- sharp signal
+
+when legitimate inputs are absent.
+
+Fail closed or mark unavailable according to contract.
+
+
+======================================================================
+36. WORKSTREAM C — PRODUCTION IMMUTABILITY
+======================================================================
+
+Task #235 proved development immutability but NOT production immutability.
+
+Complete this work.
+
+
+======================================================================
+37. MANAGED PRODUCTION MIGRATION
+======================================================================
+
+Create the required managed migration for the guarded-serving persistence layer.
+
+Use the project's normal migration/deployment process.
+
+Do NOT manually create production tables outside the managed migration system.
+
+Include only structures actually required by the guarded-serving architecture.
+
+
+======================================================================
+38. REQUIRED GUARDED PRODUCTION STORAGE
+======================================================================
+
+Verify production-safe storage exists for the equivalents of:
+
+- model approval ledger
+- candidate execution audit
+- serving resolution audit
+- official prediction identity
+- official prediction lifecycle
+- model review policy/state where required
+
+Use the exact existing Task #234/#235 schema names rather than creating duplicates.
+
+
+======================================================================
+39. APPEND-ONLY DATABASE PROTECTION
+======================================================================
+
+Install the required append-only protections in production.
+
+For immutable guarded records, reject unauthorized:
+
+UPDATE
+DELETE
+
+and where applicable:
+
+TRUNCATE
+
+Use database-enforced protections, not application convention alone.
+
+
+======================================================================
+40. PUBLISH HISTORY IMMUTABILITY
+======================================================================
+
+Explicitly prove:
+
+once an official prediction is published, its original:
+
+model identity
+model version
+artifact identity
+input identity
+selection
+line
+odds
+prediction timestamp
+probability
+edge
+recommendation
+units
+
+cannot be silently rewritten.
+
+Later events must use lifecycle/history records.
+
+
+======================================================================
+41. LIFECYCLE EVENTS
+======================================================================
+
+Where changes legitimately occur after publication, preserve them as events such as:
+
+PUBLISHED
+WITHDRAWN
+INVALIDATED
+REPLACED
+GRADED
+
+with reason and timestamp.
+
+Examples:
+
+STARTER_CHANGE
+QB_CHANGE
+MARKET_MOVED
+DATA_INVALIDATED
+MODEL_HEALTH_FAILURE
+
+Do not overwrite the original prediction.
+
+
+======================================================================
+42. PRODUCTION MUTATION TEST
+======================================================================
+
+Using safe test records in the managed production-compatible environment, prove:
+
+UPDATE rejected
+DELETE rejected
+TRUNCATE rejected where protected
+
+Do NOT attempt destructive testing against unrelated real production history.
+
+Clean up only through the legitimate test-record lifecycle if cleanup is required and supported.
+
+
+======================================================================
+43. PRODUCTION SCHEMA INSPECTION
+======================================================================
+
+After managed migration, inspect the actual target database.
+
+Report exact counts of:
+
+guarded tables
+guarded triggers
+required indexes
+required constraints
+
+Do not infer migration success from deployment logs alone.
+
+
+======================================================================
+44. OFFICIAL PREDICTION RECONSTRUCTION
+======================================================================
+
+Prove an official prediction can later be reconstructed from immutable records with:
+
+which game
+which sport
+which market
+which selection
+which line/price
+which model
+which model version
+which artifact
+which input snapshot
+when generated
+when published
+what approval existed
+what serving mode existed
+whether fallback occurred
+what lifecycle events occurred
+
+This is required for future performance analysis.
+
+
+======================================================================
+45. DRY RUN MUST REMAIN NON-OFFICIAL
+======================================================================
+
+Task #236 dry runs must remain separate from official predictions.
+
+Verify they do NOT enter:
+
+subscriber picks
+saved picks
+POD
+Best Play by Sport
+official Results
+official Analytics
+notifications
+official model performance history
+
+unless deliberately published in a future governed cutover.
+
+
+======================================================================
+46. APPROVAL REGISTRY MUST REMAIN EMPTY/UNCHANGED
+======================================================================
+
+Task #235 reported approval-ledger count:
+
+0
+
+Do not create real approvals during #236.
+
+If registry identity records are required, distinguish:
+
+MODEL IDENTITY / REGISTRATION
+
+from:
+
+MODEL APPROVAL.
+
+At completion, report exact approval count and confirm whether it changed.
+
+
+======================================================================
+47. GUARDED FALLBACK RETEST
+======================================================================
+
+After completing all three workstreams, retest real guarded behavior.
+
+MLB:
+
+executor available
++
+approval absent
++
+mode=v4_guarded
+=
+V1 FALLBACK OR PASS
+
+NCAAF:
+
+executor available
++
+approval absent
++
+mode=nextgen_guarded
+=
+LEGACY FALLBACK OR PASS
+
+No candidate public serving.
+
+
+======================================================================
+48. KILL-SWITCH RETEST
+======================================================================
+
+Prove:
+
+`MLB_MODEL_MODE=v1`
+→ MLB V1 primary
+
+`MLB_MODEL_MODE=v4_guarded`
+→ guarded candidate evaluation
+
+`NCAAF_MODEL_MODE=legacy`
+→ NCAAF V1 primary
+
+`NCAAF_MODEL_MODE=nextgen_guarded`
+→ guarded candidate evaluation
+
+Restore safe production defaults after verification.
+
+
+======================================================================
+49. CENTRAL SERVING BOUNDARY
+======================================================================
+
+All execution must converge through the central serving boundary created in #234/#235.
+
+Verify:
+
+scheduler
+refresh
+API
+publication
+dry-run
+
+do not contain independent bypass logic that could serve a candidate outside approval governance.
+
+
+======================================================================
+50. OWNER RUNTIME STATUS
+======================================================================
+
+Update owner/admin status to truthfully expose:
+
+MLB:
+- incumbent
+- candidate
+- candidate artifact/version/hash
+- executor availability
+- executor health
+- input contract
+- latest authentic pregame execution
+- supported markets
+- approval
+- serving mode
+- fallback health
+- publication readiness
+
+NCAAF:
+same fields plus:
+- model_prediction bridge
+- market pipeline status
+- risk pipeline status
+- universal pipeline status
+
+Production:
+- guarded schema status
+- append-only protection
+- last mutation verification
+
+Do not hard-code readiness.
+
+
+======================================================================
+51. READY-FOR-CUTOVER EVALUATOR
+======================================================================
+
+Create or extend a deterministic readiness evaluator that answers:
+
+TECHNICAL_CUTOVER_READY = true/false
+
+This is NOT the model approval evaluator.
+
+Technical cutover readiness should require:
+
+- authentic executor exists
+- executor healthy
+- exact artifact identity
+- authoritative input contract
+- fresh authentic inference
+- reproducibility
+- guarded resolver
+- fallback
+- kill switch
+- publication adapter
+- required market bridge
+- required risk bridge
+- required universal pipeline compatibility
+- production schema
+- append-only protection
+- immutable official prediction contract
+- dry-run separation
+- runtime observability
+
+It must NOT automatically approve anything.
+
+
+======================================================================
+52. MODEL EVIDENCE READINESS REMAINS SEPARATE
+======================================================================
+
+Continue preserving:
+
+TECHNICAL_CUTOVER_READY
+
+separately from:
+
+MODEL_EVIDENCE_READY
+
+and separately from:
+
+GUARDED_APPROVED
+
+Example valid end state:
+
+TECHNICAL_CUTOVER_READY=true
+MODEL_EVIDENCE_READY=false
+GUARDED_APPROVED=false
+
+This would mean:
+
+the machinery is complete, but the model still requires a governed approval decision.
+
+That is acceptable and desirable.
+
+
+======================================================================
+53. CONTINUOUS EVIDENCE COLLECTION
+======================================================================
+
+Do not interrupt the existing MLB prospective evidence system.
+
+Continue:
+
+COLLECT
+→ SNAPSHOT
+→ PREDICT/SHADOW
+→ FREEZE
+→ OUTCOME
+→ PAIR
+→ ANALYZE
+
+Preserve all #232 authoritative version boundaries.
+
+Continue legitimate NCAAF prospective evidence accumulation as well.
+
+
+======================================================================
+54. NO AUTOMATIC LEARNING
+======================================================================
+
+Reconfirm:
+
+Automatic retraining = DISABLED
+Automatic recalibration = DISABLED
+Automatic parameter modification = DISABLED
+Automatic approval = DISABLED
+Automatic promotion = DISABLED
+
+Games may continue adding evidence.
+
+They must not directly alter the production model.
+
+
+======================================================================
+55. REAL-SLATE ACCEPTANCE — MLB
+======================================================================
+
+Classification A requires legitimate MLB evidence showing:
+
+REAL UPCOMING GAME
+→ PRESTART OBSERVATION
+→ AUTHORITATIVE V4 SNAPSHOT
+→ `model-input-v4`
+→ AUTHENTIC FROZEN V4 EXECUTOR
+→ REAL FORECAST
+→ REPRODUCIBILITY
+→ GUARDED RESOLVER
+→ PUBLICATION ADAPTER
+→ COMPATIBLE DOWNSTREAM PIPELINE
+→ WOULD_FALLBACK / WOULD_PASS BECAUSE APPROVAL IS OFF
+
+No old shadow output may substitute for this.
+
+
+======================================================================
+56. REAL-SLATE ACCEPTANCE — NCAAF
+======================================================================
+
+Classification A requires:
+
+REAL UPCOMING GAME
+→ AUTHORITATIVE PRESTART INPUT
+→ FROZEN EXPECTED-SCORE EXECUTOR
+→ REAL FORECAST
+→ REPRODUCIBILITY
+→ REAL MARKET INPUT
+→ LEGITIMATE MARKET METRICS
+→ MODEL_PREDICTION BRIDGE
+→ RISK POLICY
+→ COMPATIBLE UNIVERSAL PIPELINE
+→ GUARDED RESOLVER
+→ WOULD_FALLBACK / WOULD_PASS BECAUSE APPROVAL IS OFF
+
+No invented values.
+
+
+======================================================================
+57. SECURITY / REPOSITORY BOUNDARY
+======================================================================
+
+Use current sanitized main only.
+
+Do NOT recreate, checkout, restore, merge, materialize, push, or otherwise interact with:
+
+`refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8`
+
+Run credential/security scans after implementation.
+
+Do not weaken repository safeguards.
+
+
+======================================================================
+58. DEPENDENCY / SAST FINDINGS
+======================================================================
+
+Task #235 reported:
+
+Dependency scan:
+0 critical
+32 high
+23 moderate
+3 low
+
+SAST:
+0 critical
+2 high
+8 medium
+
+These were reported as broader/pre-existing findings rather than Task #235-specific release blockers.
+
+Do not ignore them.
+
+For #236:
+
+- confirm no new critical/high vulnerabilities are introduced by this task
+- identify whether any existing high findings directly affect guarded model execution/persistence
+- do not expand #236 into an unrelated dependency-upgrade campaign unless a finding materially affects this launch path
+
+A material launch-path security issue requires appropriate blocking classification.
+
+
+======================================================================
+59. TEST REQUIREMENTS
+======================================================================
+
+Add focused tests for at least:
+
+MLB:
+- artifact provenance
+- exact artifact registry
+- model-input-v4 validation
+- missingness behavior
+- authentic executor
+- deterministic execution
+- supported-market classification
+- guarded fallback
+- positive isolated approval fixture
+- no public candidate publication
+
+NCAAF:
+- exact model_versions identity
+- frozen artifact preservation
+- model_prediction bridge
+- authentic market data
+- implied probability
+- edge
+- missing-market rejection
+- no invented values
+- risk adapter
+- rating adapter
+- POD compatibility
+- universal pipeline
+- guarded fallback
+- no public candidate publication
+
+Persistence:
+- managed migration
+- append-only triggers
+- UPDATE rejection
+- DELETE rejection
+- TRUNCATE rejection where applicable
+- immutable official identity
+- lifecycle event behavior
+- prediction reconstruction
+- dry-run separation
+
+Governance:
+- approval unchanged
+- automatic retraining disabled
+- automatic promotion disabled
+- technical readiness separate from evidence readiness
+
+
+======================================================================
+60. FULL VERIFICATION
+======================================================================
+
+Before completion run:
+
+- Task #236 focused tests
+- full API tests
+- MLB V4 tests
+- MLB evidence tests
+- MLB executor tests
+- NCAAF frozen artifact tests
+- NCAAF pipeline tests
+- guarded resolver tests
+- publication adapter tests
+- universal pipeline tests
+- risk policy tests
+- approval tests
+- fallback tests
+- kill-switch tests
+- PIT audits
+- leakage audits
+- migration verification
+- append-only mutation tests
+- immutable prediction tests
+- reconstruction tests
+- scheduler tests
+- refresh tests
+- API contract tests
+- owner runtime status tests
+- backend typecheck
+- DB typecheck
+- frontend/admin/mobile typechecks
+- production builds
+- dependency/security scan
+- credential scan
+- repository diff review
+- MLB real-slate acceptance
+- NCAAF real-slate acceptance
+
+Report unrelated pre-existing failures separately.
+
+
+======================================================================
+61. PRODUCTION DEPLOYMENT BOUNDARY
+======================================================================
+
+Task #236 MAY deploy the completed infrastructure and managed schema if verification passes.
+
+However, production model modes must remain:
+
+`MLB_MODEL_MODE=v1`
+
+`NCAAF_MODEL_MODE=legacy`
+
+after deployment.
+
+Deploying the executable/pipeline/schema is NOT model approval.
+
+Deploying the executable/pipeline/schema is NOT next-gen cutover.
+
+Verify after deployment:
+
+MLB V1 still active
+NCAAF V1 still active
+candidate approval unchanged
+no candidate subscriber picks
+no candidate notifications
+no candidate official results
+candidate executors available
+production schema healthy
+append-only protections active
+
+
+======================================================================
+62. NO ADDITIONAL HIDDEN INFRASTRUCTURE PREREQUISITES
+======================================================================
+
+This is a critical Task #236 requirement.
+
+Before classification A, perform a complete end-to-end launch-path inspection and answer:
+
+"If an authorized operator granted GUARDED_APPROVED to the exact candidate and changed the appropriate serving mode, is there ANY missing technical infrastructure that would prevent the candidate from safely serving?"
+
+If YES:
+
+Task #236 is NOT classification A.
+
+List the exact missing prerequisite and implement it if it is within this task's safety boundary.
+
+Do not defer another known serving-infrastructure gap to #237.
+
+Task #237 must NOT become another infrastructure discovery task.
+
+
+======================================================================
+63. INDEPENDENT ARCHITECT REVIEW
+======================================================================
+
+Before final classification, perform an independent architecture review.
+
+The reviewer must answer:
+
+1. Does MLB now have a real frozen executable?
+2. Is that executable based on authoritative existing V4 provenance rather than newly invented parameters?
+3. Does it consume authoritative `model-input-v4`?
+4. Has a legitimate pregame MLB V4 forecast been produced?
+5. Is MLB reproducible?
+6. Does NCAAF use the exact frozen artifact from #235?
+7. Does NCAAF now use authentic market values?
+8. Are implied probability and edge legitimate?
+9. Are risk/rating/POD values non-fabricated?
+10. Does NCAAF traverse the full compatible production pipeline?
+11. Is the production guarded schema actually installed?
+12. Are immutable records database-protected?
+13. Can published model history be silently mutated?
+14. Can an unapproved candidate publish?
+15. Are kill switches functional?
+16. Are incumbents still safe?
+17. Is any technical infrastructure still missing before a guarded cutover?
+
+Do not override a legitimate blocker to achieve A.
+
+
+======================================================================
+64. REQUIRED FINAL CLASSIFICATION
+======================================================================
+
+End Task #236 with EXACTLY ONE classification.
+
+
+A — FINAL TECHNICAL CUTOVER READINESS COMPLETE
+
+Use ONLY if:
+
+MLB:
+- authoritative V4 provenance established
+- frozen authentic V4 artifact exists
+- exact registry identity exists
+- typed executor registered
+- executor healthy
+- `model-input-v4` validated
+- legitimate pregame V4 inference verified
+- reproducibility verified
+- supported markets truthfully classified
+- guarded integration verified
+- fallback verified
+- kill switch verified
+
+NCAAF:
+- exact frozen artifact preserved
+- exact model registry/FK exists
+- authentic input verified
+- authentic inference verified
+- reproducibility verified
+- official model_prediction bridge ready
+- authentic market data integrated
+- legitimate implied probability/edge available where required
+- risk pipeline compatible
+- rating pipeline compatible
+- universal pipeline compatibility established
+- real-slate full-pipeline dry run verified
+- fallback verified
+- kill switch verified
+
+Production:
+- managed publish migration exists
+- production schema verified
+- append-only triggers verified
+- mutation rejection verified
+- official prediction immutability verified
+- dry-run separation verified
+- runtime identity verified
+- observability verified
+
+Governance:
+- approval remains OFF
+- production remains V1/legacy
+- no automatic retraining
+- no automatic parameter changes
+- no automatic promotion
+- no hidden serving-infrastructure prerequisite remains
+
+AND:
+
+`TECHNICAL_CUTOVER_READY=true`
+
+for the intended guarded launch scope.
+
+
+B — FINAL TECHNICAL CUTOVER READINESS PARTIAL
+
+Use if substantial work succeeds but one or more finite technical prerequisites remain.
+
+List exact blockers.
+
+
+C — FINAL TECHNICAL CUTOVER READINESS BLOCKED
+
+Use if a required model artifact or production component cannot be safely completed without a separate material model-development or architecture task.
+
+Do not proceed to cutover.
+
+
+D — SAFETY / INTEGRITY STOP
+
+Use for critical:
+
+security
+credential
+PIT
+leakage
+repository
+destructive migration
+production-history integrity
+
+issues requiring immediate stop.
+
+
+======================================================================
+65. IMPORTANT CLASSIFICATION RULE
+======================================================================
+
+Do NOT classify A merely because NCAAF succeeds.
+
+Do NOT classify A merely because production schema succeeds.
+
+Do NOT classify A merely because an MLB executor wrapper exists.
+
+Do NOT classify A using a historical MLB shadow output.
+
+Do NOT classify A if NCAAF still requires invented market/risk/POD values.
+
+Do NOT classify A if production append-only protections are unverified.
+
+Do NOT classify A if another serving-infrastructure build is known to be required before cutover.
+
+
+======================================================================
+66. REQUIRED FINAL REPORT
+======================================================================
+
+Produce:
+
+`reports/task-236-final-technical-cutover-readiness.md`
+
+and:
+
+`reports/task-236-verification.json`
+
+Report at minimum:
+
+1. Final classification
+2. TECHNICAL_CUTOVER_READY
+3. MLB incumbent
+4. MLB candidate
+5. MLB authoritative provenance
+6. MLB artifact identity/version/hash
+7. MLB parameter/config hashes
+8. MLB registry status
+9. MLB executor registration
+10. MLB executor health
+11. MLB input contract
+12. MLB feature-contract validation
+13. MLB fresh pregame inference
+14. MLB reproducibility
+15. MLB supported markets
+16. MLB guarded resolver
+17. MLB fallback
+18. MLB kill switch
+19. MLB publication adapter
+20. MLB universal pipeline
+21. MLB real-slate acceptance
+22. MLB public candidate prediction count
+23. NCAAF incumbent
+24. NCAAF candidate
+25. NCAAF exact artifact/version/hash
+26. NCAAF registry/model_versions FK
+27. NCAAF authoritative input
+28. NCAAF authentic inference
+29. NCAAF reproducibility
+30. NCAAF model_prediction bridge
+31. NCAAF authentic market input
+32. NCAAF implied probability
+33. NCAAF edge
+34. NCAAF risk pipeline
+35. NCAAF Final Rating
+36. NCAAF Universal POD
+37. NCAAF universal pipeline component classifications
+38. NCAAF supported markets
+39. NCAAF guarded resolver
+40. NCAAF fallback
+41. NCAAF kill switch
+42. NCAAF real-slate acceptance
+43. NCAAF public candidate prediction count
+44. Managed migration status
+45. Production guarded table count
+46. Production guarded trigger count
+47. Append-only mutation result
+48. Official prediction immutability
+49. Lifecycle-event status
+50. Prediction reconstruction result
+51. Dry-run separation
+52. Approval ledger count before/after
+53. MLB approval
+54. NCAAF approval
+55. Production serving modes
+56. Owner runtime status
+57. Scheduler status
+58. Refresh status
+59. API status
+60. PIT result
+61. Leakage result
+62. Security result
+63. Dependency/SAST result
+64. Focused test result
+65. Full test result
+66. Typecheck result
+67. Build result
+68. Deployment status
+69. Production runtime verification
+70. Exact migrations
+71. Exact files changed
+72. Independent architect conclusion
+73. Remaining technical blockers
+74. Remaining evidence/approval blockers
+75. Hidden infrastructure prerequisite review
+76. READY FOR TASK #237 GUARDED APPROVAL/CUTOVER: YES / NO
+
+
+======================================================================
+67. REQUIRED OWNER SUMMARY
+======================================================================
+
+At completion provide:
+
+TBM FINAL TECHNICAL CUTOVER STATUS
+
+MLB
+Incumbent: [ACTUAL]
+Candidate: [ACTUAL]
+Authoritative V4 Definition: VERIFIED / BLOCKED
+Frozen Artifact: READY / BLOCKED
+Executor: READY / BLOCKED
+Input Contract: [ACTUAL]
+Fresh Pregame Forecast: VERIFIED / BLOCKED
+Reproducibility: PASS / FAIL
+Supported Markets: [ACTUAL]
+Guarded Runtime: READY / BLOCKED
+Fallback: READY / BLOCKED
+Kill Switch: READY / BLOCKED
+Technical Cutover Ready: YES / NO
+
+NCAAF
+Incumbent: [ACTUAL]
+Candidate: [ACTUAL]
+Frozen Artifact: VERIFIED / BLOCKED
+Executor: READY / BLOCKED
+Model Registry FK: READY / BLOCKED
+Fresh Forecast: VERIFIED / BLOCKED
+Reproducibility: PASS / FAIL
+Market Data: READY / BLOCKED
+Edge: READY / BLOCKED
+Risk Pipeline: READY / BLOCKED
+Final Rating: READY / BLOCKED
+Universal POD: READY / BLOCKED
+Full Pipeline: READY / BLOCKED
+Guarded Runtime: READY / BLOCKED
+Fallback: READY / BLOCKED
+Kill Switch: READY / BLOCKED
+Technical Cutover Ready: YES / NO
+
+PRODUCTION IMMUTABILITY
+Managed Schema: READY / BLOCKED
+Append-Only Protection: VERIFIED / BLOCKED
+UPDATE Rejection: PASS / FAIL
+DELETE Rejection: PASS / FAIL
+History Reconstruction: PASS / FAIL
+Dry-Run Separation: VERIFIED / BLOCKED
+
+GOVERNANCE
+MLB Approval: [ACTUAL]
+NCAAF Approval: [ACTUAL]
+Automatic Retraining: DISABLED
+Automatic Recalibration: DISABLED
+Automatic Parameter Changes: DISABLED
+Automatic Approval: DISABLED
+Automatic Promotion: DISABLED
+
+CURRENT PUBLIC PRODUCTION
+MLB: [ACTUAL]
+NCAAF: [ACTUAL]
+
+TECHNICAL_CUTOVER_READY:
+YES / NO
+
+READY FOR TASK #237 GUARDED APPROVAL + CONTROLLED LIVE CUTOVER:
+YES / NO
+
+
+======================================================================
+68. DEFINITION OF DONE
+======================================================================
+
+Task #236 is NOT complete because another audit exists.
+
+Task #236 is NOT complete because MLB V4 has an executor class.
+
+Task #236 is NOT complete because NCAAF already has an executor.
+
+Task #236 is NOT complete because a development migration works.
+
+Task #236 is NOT complete because a universal-pipeline adapter compiles.
+
+Task #236 is NOT complete because a test fixture produces a candidate.
+
+Task #236 is NOT complete because approval is still false.
+
+For classification A, the actual technical path must exist and be proven.
+
+The intended end state is:
+
+MLB V4:
+REAL DATA
+→ REAL V4 INPUT
+→ REAL FROZEN V4 MODEL
+→ REAL FORECAST
+→ GUARDED PRODUCTION PATH
+
+NCAAF:
+REAL DATA
+→ REAL FROZEN NEXT-GEN MODEL
+→ REAL FORECAST
+→ REAL MARKET
+→ REAL EDGE/RISK
+→ REAL RATING/POD PIPELINE
+→ GUARDED PRODUCTION PATH
+
+PERSISTENCE:
+REAL MANAGED SCHEMA
+→ DATABASE-ENFORCED IMMUTABILITY
+→ RECONSTRUCTABLE OFFICIAL HISTORY
+
+while:
+
+APPROVAL = OFF
+PUBLIC NEXT-GEN SERVING = OFF
+V1 INCUMBENTS = SAFE
+
+
+======================================================================
+69. FINAL DIRECTIVE
+======================================================================
+
+THIS TASK MUST CLOSE THE REMAINING TECHNICAL GAP.
+
+MAKE MLB V4 ACTUALLY EXECUTABLE FROM `model-input-v4`.
+
+DO NOT INVENT A NEW MLB MODEL IF NO AUTHORITATIVE V4 DEFINITION EXISTS.
+
+CARRY NCAAF THROUGH THE REAL PIPELINE WITHOUT INVENTING VALUES.
+
+INSTALL AND VERIFY THE GUARDED PRODUCTION PERSISTENCE LAYER.
+
+PROVE PUBLISHED MODEL HISTORY IS IMMUTABLE.
+
+KEEP ALL REAL NEXT-GENERATION APPROVALS OFF.
+
+KEEP MLB V1 AND NCAAF V1/LEGACY PUBLICLY ACTIVE.
+
+DO NOT RETRAIN.
+
+DO NOT RECALIBRATE.
+
+DO NOT AUTO-PROMOTE.
+
+DO NOT FORCE A LAUNCH TO OBTAIN A PASSING CLASSIFICATION.
+
+BEFORE DECLARING A, VERIFY THAT NO ADDITIONAL TECHNICAL SERVING INFRASTRUCTURE TASK IS REQUIRED.
+
+IF TASK #236 EARNS A, THE NEXT TASK IS NOT ANOTHER FOUNDATION BUILD.
+
+THE NEXT TASK IS:
+
+TASK #237 — GUARDED APPROVAL + CONTROLLED LIVE CUTOVER.

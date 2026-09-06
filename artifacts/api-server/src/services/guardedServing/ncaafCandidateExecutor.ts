@@ -233,28 +233,25 @@ export type NcaafOfficialDownstreamValues = Readonly<{
 }>;
 
 /** Pure bridge only. It has no DB handle and cannot persist. A caller must supply
- * every required official value; absence is expressed as unavailable, never zero/default. */
+ * no downstream values.  The old optional argument remains source-compatible
+ * but is deliberately ignored: caller-provided numbers are not evidence.
+ * Exact registry and market resolution live in ncaafMoneylineBridge. */
 export function buildNcaafModelPredictionBridge(
   output: NcaafCandidateOutput, snapshotId: string, executionTimestamp: string,
-  downstream?: NcaafOfficialDownstreamValues,
+  _downstream?: NcaafOfficialDownstreamValues,
 ) {
-  const ready = Boolean(downstream && Number.isInteger(downstream.modelVersionId)
-    && [downstream.odds, downstream.impliedProbability, downstream.edge, downstream.units,
-      downstream.podScore, downstream.finalRating].every(finite)
-    && downstream.confidence && downstream.recommendation);
-  const unavailableOfficial = !ready;
   return Object.freeze({
     persisted: false as const,
-    persistenceReady: ready,
-    blockers: Object.freeze(unavailableOfficial ? [
+    persistenceReady: false,
+    blockers: Object.freeze([
       "EXACT_MODEL_VERSION_FOREIGN_KEY_UNRESOLVED",
       "MARKET_ODDS_IMPLIED_EDGE_UNAVAILABLE",
       "RISK_CONFIDENCE_RECOMMENDATION_UNAVAILABLE",
       "UNIVERSAL_RATING_AND_POD_UNAVAILABLE",
-    ] : []),
+    ]),
     modelPrediction: Object.freeze({
       id: { status: "UNAVAILABLE" as const, value: null, reason: "DRY_RUN_NEVER_PERSISTS_MODEL_PREDICTIONS" },
-      modelVersionId: ready ? { status: "AVAILABLE" as const, value: downstream!.modelVersionId, reason: null } : { status: "UNAVAILABLE" as const, value: null, reason: "EXACT_MODEL_VERSION_FOREIGN_KEY_UNRESOLVED" },
+      modelVersionId: { status: "UNAVAILABLE" as const, value: null, reason: "EXACT_MODEL_VERSION_FOREIGN_KEY_UNRESOLVED" },
       featureSnapshotId: { status: "AVAILABLE" as const, value: snapshotId, reason: null },
       rawEvidence: { status: "AVAILABLE" as const, value: output, reason: null },
       marketOdds: { status: "UNAVAILABLE" as const, value: null, reason: "MARKET_NOT_PART_OF_MODEL_INPUT" },

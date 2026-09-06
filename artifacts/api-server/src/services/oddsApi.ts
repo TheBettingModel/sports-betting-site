@@ -68,6 +68,7 @@ export interface BookmakerLine {
   book: string;       // e.g. "pinnacle", "draftkings", "fanduel"
   homeOdds: number;   // American odds for home team
   awayOdds: number;   // American odds for away team
+  lastUpdate?: string;
 }
 
 export interface SpreadBookmakerLine {
@@ -79,6 +80,8 @@ export interface SpreadBookmakerLine {
 }
 
 export interface GameOdds {
+  /** The Odds API event id; absent only in legacy hand-built fixtures. */
+  providerEventId?: string;
   /** Average moneyline across US public books (consensus market price) */
   consensusHomeOdds: number;
   consensusAwayOdds: number;
@@ -126,6 +129,7 @@ export interface OddsApiMarket {
 export interface OddsApiBookmaker {
   key: string;       // e.g. "pinnacle", "draftkings", "fanduel"
   title: string;
+  last_update?: string;
   markets: OddsApiMarket[];
 }
 
@@ -507,11 +511,15 @@ async function fetchAndNormalise(
       const bHomeOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
       const bAwayOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
       if (isValidAmericanOdds(bHomeOdds) && isValidAmericanOdds(bAwayOdds)) {
-        bookmakerOdds.push({ book: book.key, homeOdds: bHomeOdds, awayOdds: bAwayOdds });
+        bookmakerOdds.push({
+          book: book.key, homeOdds: bHomeOdds, awayOdds: bAwayOdds,
+          lastUpdate: book.last_update,
+        });
       }
     }
 
     const entry: GameOdds = {
+      providerEventId: g.id,
       consensusHomeOdds,
       consensusAwayOdds,
       consensusDrawOdds,

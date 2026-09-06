@@ -12,6 +12,7 @@ import {
   type ModelRuntimeSportStatus,
   type ModelRuntimeStatus,
   type RecommendationPublicationAudit,
+  type TechnicalReadiness,
 } from "@/lib/api";
 import { pct, units, timeAgo, statusColor, statusDot } from "@/lib/utils";
 
@@ -194,6 +195,183 @@ function RuntimeSportCard({ sport }: { sport: ModelRuntimeSportStatus }) {
   );
 }
 
+function TechnicalReadinessPanel({ readiness }: { readiness?: TechnicalReadiness }) {
+  if (!readiness) return null;
+
+  const {
+    TECHNICAL_CUTOVER_READY,
+    MODEL_EVIDENCE_READY,
+    GUARDED_APPROVED,
+    technicalBlockers,
+    modelEvidenceBlockers,
+    guardedApprovalBlockers,
+    guardedPersistence: gp,
+  } = readiness;
+
+  return (
+    <section className="bg-card border border-border rounded-lg overflow-hidden flex flex-col">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-card">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Technical Readiness & Persistence</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Operational cockpit for guarding mechanisms, database schema integrity, and overall cutover state.
+          </p>
+        </div>
+        <div className={`px-2 py-1 rounded text-[10px] uppercase tracking-wider font-bold ${TECHNICAL_CUTOVER_READY && MODEL_EVIDENCE_READY && GUARDED_APPROVED ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+          {TECHNICAL_CUTOVER_READY && MODEL_EVIDENCE_READY && GUARDED_APPROVED ? "ALL GATES CLEAR" : "GATES BLOCKED"}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 border-b border-border bg-border gap-px">
+        <div className="bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Technical Cutover</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm ${TECHNICAL_CUTOVER_READY ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+              {TECHNICAL_CUTOVER_READY ? "READY" : "BLOCKED"}
+            </span>
+          </div>
+          {technicalBlockers.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {technicalBlockers.map((b, i) => (
+                <li key={i} className="text-[11px] text-amber-400 flex items-start gap-1.5 leading-snug">
+                  <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-400 shrink-0" />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-[10px] text-muted-foreground italic">No blockers.</p>
+          )}
+        </div>
+        <div className="bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Model Evidence</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm ${MODEL_EVIDENCE_READY ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+              {MODEL_EVIDENCE_READY ? "READY" : "BLOCKED"}
+            </span>
+          </div>
+          {modelEvidenceBlockers.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {modelEvidenceBlockers.map((b, i) => (
+                <li key={i} className="text-[11px] text-amber-400 flex items-start gap-1.5 leading-snug">
+                  <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-400 shrink-0" />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-[10px] text-muted-foreground italic">No blockers.</p>
+          )}
+        </div>
+        <div className="bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Guarded Approval</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm ${GUARDED_APPROVED ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+              {GUARDED_APPROVED ? "READY" : "BLOCKED"}
+            </span>
+          </div>
+          {guardedApprovalBlockers.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {guardedApprovalBlockers.map((b, i) => (
+                <li key={i} className="text-[11px] text-amber-400 flex items-start gap-1.5 leading-snug">
+                  <span className="mt-1.5 w-1 h-1 rounded-full bg-amber-400 shrink-0" />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-[10px] text-muted-foreground italic">No blockers.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px border-b border-border bg-border">
+        <div className="bg-card p-3">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">Environment</p>
+          <p className="text-sm font-semibold text-foreground font-mono">{gp.environment}</p>
+        </div>
+        <div className="bg-card p-3">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">Schema Elements</p>
+          <p className="text-sm font-semibold text-foreground tracking-tight">
+            {gp.schema.tables}T <span className="text-muted-foreground mx-0.5">·</span> {gp.schema.indexes.length}I <span className="text-muted-foreground mx-0.5">·</span> {gp.schema.triggers}TR <span className="text-muted-foreground mx-0.5">·</span> {gp.schema.constraints.length}C
+          </p>
+        </div>
+        <div className="bg-card p-3">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">History Orphans</p>
+          <p className={`text-sm font-semibold ${(gp.officialHistoryIntegrity.orphanedPredictionIdentities + gp.officialHistoryIntegrity.orphanedLifecycleEvents + gp.officialHistoryIntegrity.identitiesWithoutLifecycle) > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+            {gp.officialHistoryIntegrity.orphanedPredictionIdentities} / {gp.officialHistoryIntegrity.orphanedLifecycleEvents} / {gp.officialHistoryIntegrity.identitiesWithoutLifecycle}
+          </p>
+        </div>
+        <div className="bg-card p-3">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">Ledger / Identity</p>
+          <p className="text-sm font-semibold text-foreground tracking-tight">
+            {gp.counts.approvalLedger} <span className="text-muted-foreground mx-1">/</span> {gp.counts.officialIdentity}
+          </p>
+        </div>
+        <div className="bg-card p-3">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">Lifecycle Events</p>
+          <p className="text-sm font-semibold text-foreground">{gp.counts.officialLifecycle}</p>
+        </div>
+      </div>
+
+      <div className="p-4 bg-background/50 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          <div>
+            <h3 className="text-[10px] uppercase text-muted-foreground font-semibold mb-3 border-b border-border pb-1">Safety Verifications</h3>
+            <dl className="space-y-2">
+              <div className="flex justify-between items-center gap-4">
+                <dt className="text-muted-foreground">Max Safe Execution Age</dt>
+                <dd className="text-foreground font-medium text-right">{gp.maxSafeExecutionAgeHours} hours</dd>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <dt className="text-muted-foreground">Append-Only Mutations</dt>
+                <dd className={`font-medium text-right ${gp.appendOnlyMutationRejectionVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {gp.appendOnlyMutationRejectionVerified ? "VERIFIED" : "UNVERIFIED"}
+                </dd>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <dt className="text-muted-foreground">Latest Verification</dt>
+                <dd className="text-foreground font-mono text-[10px] text-right">{gp.latestSafeMutationVerification ? timeAgo(gp.latestSafeMutationVerification) : "Never"}</dd>
+              </div>
+            </dl>
+          </div>
+          <div>
+            <h3 className="text-[10px] uppercase text-muted-foreground font-semibold mb-3 border-b border-border pb-1">Latest Executions</h3>
+            <dl className="space-y-2">
+              {Object.keys(gp.latestSafeExecutions).length > 0 ? (
+                Object.entries(gp.latestSafeExecutions).map(([sport, exec]) => {
+                  if (!exec) return null;
+                  return (
+                    <div key={sport} className="flex justify-between items-center gap-4">
+                      <dt className="text-muted-foreground">{sport} Safe Execution</dt>
+                      <dd className="text-foreground font-mono text-[10px] text-right">{timeAgo(exec.executedAt)}</dd>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-muted-foreground text-[10px] italic">No safe executions recorded.</div>
+              )}
+              {Object.keys(gp.latestDryRunResolutions).length > 0 && (
+                Object.entries(gp.latestDryRunResolutions).map(([sport, res]) => {
+                  if (!res) return null;
+                  return (
+                    <div key={`dry-${sport}`} className="flex justify-between items-center gap-4">
+                      <dt className="text-muted-foreground">{sport} Dry-Run Resolution</dt>
+                      <dd className="text-foreground font-mono text-[10px] text-right">
+                        {timeAgo(res.resolvedAt)} <span className="text-muted-foreground mx-1">·</span> <span className={res.resolution === "DRY_RUN_PASSED" ? "text-emerald-400" : "text-amber-400"}>{res.resolution.replace(/_/g, " ")}</span>
+                      </dd>
+                    </div>
+                  );
+                })
+              )}
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function RuntimeStatusPanel({ status }: { status?: ModelRuntimeStatus }) {
   if (!status) {
     return <section className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">Runtime status is unavailable.</section>;
@@ -270,6 +448,8 @@ export function Overview() {
       {feedHealth && feedHealth.length > 0 && (
         <FeedHealthGrid entries={feedHealth} />
       )}
+
+      <TechnicalReadinessPanel readiness={runtimeStatus?.technicalReadiness} />
 
       <RuntimeStatusPanel status={runtimeStatus} />
 

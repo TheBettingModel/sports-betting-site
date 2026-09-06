@@ -30,6 +30,16 @@ export const modelVersionsTable = pgTable(
     evaluationMetrics: jsonb("evaluation_metrics"),
     artifactLocation: text("artifact_location"), // path or URL to serialized model
 
+    // Optional immutable candidate identity.  These fields make a challenger
+    // registry row an exact foreign-key target rather than treating a
+    // human-readable model_id as sufficient provenance.
+    candidateModelVersion: text("candidate_model_version"),
+    candidateArtifactId: text("candidate_artifact_id"),
+    candidateArtifactHash: text("candidate_artifact_hash"),
+    candidateConfigurationHash: text("candidate_configuration_hash"),
+    candidateParameterHash: text("candidate_parameter_hash"),
+    candidateInputContractVersion: text("candidate_input_contract_version"),
+
     // Immutable capture of the exact runtime configuration that occupied this
     // production slot when Phase 1 froze outcome-driven production learning.
     // Existing production rows are extended in place; no parallel registry is

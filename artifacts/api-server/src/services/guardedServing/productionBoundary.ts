@@ -14,6 +14,7 @@ import { MLB_CANDIDATE_ENGINE } from "./types";
 import { candidateExecutorRegistry } from "./executorRegistry";
 import { registerNcaafCandidateExecutor } from "./ncaafCandidateExecutor";
 import { executeCurrentNcaafCandidateTwice, ncaafCandidateExecutor } from "./ncaafCandidateExecutor";
+import { resolveNcaafMoneylineBridge, type NcaafMoneylineBridge } from "./ncaafMoneylineBridge";
 
 export type ProductionBoundaryResult =
   | { disposition: "INCUMBENT"; projection: ProjectionResult; resolution: null }
@@ -32,7 +33,7 @@ const unresolvedMlbIdentity = (): ExactArtifactIdentity => ({
   artifactHash: "REGISTRY_RECORD_MISSING", inputContractVersion: "model-input-v4",
 });
 
-async function audit(game: FetchedGame, identity: ExactArtifactIdentity, mode: string, resolution: MlbResolution | NcaafResolution, evidence: Record<string, unknown>) {
+async function audit(game: FetchedGame, identity: ExactArtifactIdentity, mode: string, resolution: MlbResolution | NcaafResolution, evidence: Record<string, unknown>, marketSnapshotId: number | null = null) {
   const auditId = randomUUID();
   await db.insert(guardedServingAuditsTable).values({
     auditId, dryRun: false, sport: game.sport, gameId: game.espnId, market: identity.market,
@@ -40,7 +41,8 @@ async function audit(game: FetchedGame, identity: ExactArtifactIdentity, mode: s
     candidateArtifactHash: identity.artifactHash, candidateApprovalState: resolution.candidateApproval,
     selectedEngine: resolution.selectedEngine, resolution: resolution.kind, reason: resolution.reason,
     fallbackUsed: resolution.fallbackUsed, fallbackFrom: resolution.fallbackFrom,
-    inputVersion: identity.inputContractVersion, inputSnapshotId: null, marketSnapshotId: null,
+    inputVersion: identity.inputContractVersion, inputSnapshotId: null,
+    marketSnapshotId: marketSnapshotId == null ? null : String(marketSnapshotId),
     runtimeHealth: resolution.candidateHealth,
     publicationDisposition: resolution.kind === "PASS" ? "SUPPRESSED_PASS" : resolution.fallbackUsed ? "INCUMBENT_FALLBACK" : "CANDIDATE",
     evidence, resolvedAt: new Date(),
@@ -94,17 +96,21 @@ export async function resolveProductionPredictionBoundary(
   let executionMaterialized: { snapshotId: string } | null = null;
   let executionHealth: "HEALTHY" | "UNHEALTHY" | null = null;
   let executionFailure: string | null = null;
+  let moneylineBridge: NcaafMoneylineBridge | null = null;
   // Guarded NCAAF evaluates fresh evidence before resolution. It is audit-only:
   // no model_predictions, official identity, picks, notifications, analytics, or results are written.
   if (!mlb && executor === ncaafCandidateExecutor) {
     try {
       const shared = await executeCurrentNcaafCandidateTwice(new Date(), game.espnId);
-      executionMaterialized = shared.materialized;
+        executionMaterialized = shared.materialized;
       executionHealth = shared.health.status;
       if (!shared.materialized) executionFailure = "NO_EXACT_ELIGIBLE_NCAAF_INPUT";
       else {
         execution = shared.first;
         executionSecond = shared.second;
+        moneylineBridge = await resolveNcaafMoneylineBridge(
+          shared.first.output, new Date(), shared.materialized.input.kickoffAt,
+        );
       }
     } catch (error) {
       executionFailure = error instanceof Error ? error.message : "NCAAF_EXECUTION_FAILURE";
@@ -118,6 +124,8 @@ export async function resolveProductionPredictionBoundary(
       pitSafe: execution.evidence.pitSafe, leakageSafe: execution.evidence.leakageSafe,
       starterOrQbComplete: execution.output.dataQuality !== "INSUFFICIENT",
       teamStateComplete: execution.output.dataQuality !== "INSUFFICIENT",
+      marketFresh: moneylineBridge?.marketFresh ?? false,
+      publicationEligible: Boolean(moneylineBridge?.publication.technicalReadiness.ready),
       runtimeHealth: executionHealth === "HEALTHY" ? "CANDIDATE_HEALTHY" as const : "CANDIDATE_RUNTIME_FAILURE" as const,
     } : executionFailure ? {
       inputAvailable: false, inputFresh: false, pitSafe: false, leakageSafe: false,
@@ -145,6 +153,7 @@ export async function resolveProductionPredictionBoundary(
         source: "central-boundary-fresh-ncaaf-executor", executionStatus: "COMPLETED",
         executionCount: 2, snapshotId: executionMaterialized?.snapshotId ?? execution.evidence.snapshotId,
         officialPersistence: false,
+         moneylineBridge,
       },
     });
   }
@@ -159,8 +168,9 @@ export async function resolveProductionPredictionBoundary(
       outputHash: execution?.outputHash ?? null, secondOutputHash: executionSecond?.outputHash ?? null,
       reproducible: Boolean(execution && executionSecond && execution.outputHash === executionSecond.outputHash),
       blocker: "EXACT_OFFICIAL_PUBLICATION_BRIDGE_UNAVAILABLE",
+       moneylineBridge,
       publicPickOrNotificationCreatedByBoundary: false,
-    });
+     }, moneylineBridge?.market?.snapshotId ?? null);
     return { disposition: "FALLBACK", projection: incumbentProjection, resolution };
   }
   await audit(game, identity, mode, resolution, {
@@ -171,8 +181,9 @@ export async function resolveProductionPredictionBoundary(
     outputHash: execution?.outputHash ?? null, secondOutputHash: executionSecond?.outputHash ?? null,
     reproducible: Boolean(execution && executionSecond && execution.outputHash === executionSecond.outputHash),
     executionFailure,
+    moneylineBridge,
     publicPickOrNotificationCreatedByBoundary: false,
-  });
+   }, moneylineBridge?.market?.snapshotId ?? null);
   return resolution.kind === "PASS"
     ? { disposition: "PASS", projection: null, resolution }
     : { disposition: "FALLBACK", projection: incumbentProjection, resolution };

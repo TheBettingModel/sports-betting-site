@@ -7,6 +7,7 @@
  */
 import type { ModelRuntimeSportStatus } from './modelRuntimeSportStatus';
 import type { ModelRuntimeStatusLatestOfficialPrediction } from './modelRuntimeStatusLatestOfficialPrediction';
+import type { TechnicalReadiness } from './technicalReadiness';
 
 export interface ModelRuntimeStatus {
   generatedAt: Date;
@@ -16,5 +17,6 @@ export interface ModelRuntimeStatus {
   sports: ModelRuntimeSportStatus[];
   /** @nullable */
   latestOfficialPrediction?: ModelRuntimeStatusLatestOfficialPrediction;
+  technicalReadiness: TechnicalReadiness;
   [key: string]: unknown;
  }

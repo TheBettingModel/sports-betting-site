@@ -340,7 +340,71 @@ export const GetAdminModelRuntimeStatusResponse = zod.object({
   "runtimeHealth": zod.string(),
   "publicationStatus": zod.enum(['APPROVED_NOT_ENABLED', 'ELIGIBLE_BY_APPROVAL', 'BLOCKED_BY_APPROVAL', 'BLOCKED_BY_RUNTIME', 'BLOCKED_BY_OFFICIAL_BRIDGE'])
 })),
-  "latestOfficialPrediction": zod.record(zod.string(), zod.unknown()).nullish()
+  "latestOfficialPrediction": zod.record(zod.string(), zod.unknown()).nullish(),
+  "technicalReadiness": zod.object({
+  "TECHNICAL_CUTOVER_READY": zod.boolean(),
+  "MODEL_EVIDENCE_READY": zod.boolean(),
+  "GUARDED_APPROVED": zod.boolean(),
+  "technicalBlockers": zod.array(zod.string()),
+  "modelEvidenceBlockers": zod.array(zod.string()),
+  "guardedApprovalBlockers": zod.array(zod.string()),
+  "guardedPersistence": zod.object({
+  "schema": zod.object({
+  "tables": zod.number(),
+  "triggers": zod.number(),
+  "indexes": zod.array(zod.string()),
+  "constraints": zod.array(zod.string())
+}),
+  "counts": zod.object({
+  "approvalLedger": zod.number(),
+  "officialIdentity": zod.number(),
+  "officialLifecycle": zod.number()
+}),
+  "environment": zod.enum(['PRODUCTION', 'NON_PRODUCTION']),
+  "maxSafeExecutionAgeHours": zod.number(),
+  "latestSafeMutationVerification": zod.null(),
+  "appendOnlyMutationRejectionVerified": zod.boolean(),
+  "latestDryRunResolutions": zod.object({
+  "mlb": zod.union([zod.object({
+  "resolvedAt": zod.coerce.date(),
+  "dryRun": zod.boolean(),
+  "resolution": zod.string(),
+  "fallbackUsed": zod.boolean(),
+  "publicationDisposition": zod.string()
+}),zod.null()]),
+  "ncaaf": zod.union([zod.object({
+  "resolvedAt": zod.coerce.date(),
+  "dryRun": zod.boolean(),
+  "resolution": zod.string(),
+  "fallbackUsed": zod.boolean(),
+  "publicationDisposition": zod.string()
+}),zod.null()])
+}),
+  "latestSafeExecutions": zod.object({
+  "mlb": zod.union([zod.object({
+  "executedAt": zod.coerce.date(),
+  "reproducible": zod.boolean(),
+  "executorHealth": zod.string(),
+  "pitSafe": zod.boolean(),
+  "leakageSafe": zod.boolean(),
+  "safe": zod.boolean()
+}),zod.null()]),
+  "ncaaf": zod.union([zod.object({
+  "executedAt": zod.coerce.date(),
+  "reproducible": zod.boolean(),
+  "executorHealth": zod.string(),
+  "pitSafe": zod.boolean(),
+  "leakageSafe": zod.boolean(),
+  "safe": zod.boolean()
+}),zod.null()])
+}),
+  "officialHistoryIntegrity": zod.object({
+  "orphanedPredictionIdentities": zod.number(),
+  "orphanedLifecycleEvents": zod.number(),
+  "identitiesWithoutLifecycle": zod.number()
+})
+})
+})
 })
 
 

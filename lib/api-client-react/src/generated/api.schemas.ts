@@ -813,6 +813,100 @@ export interface ModelRuntimeSportStatus {
   [key: string]: unknown;
  }
 
+export type TechnicalReadinessBoolean = boolean;
+
+export type TechnicalReadinessBlockers = string[];
+
+export interface GuardedPersistenceSchema {
+  tables: number;
+  triggers: number;
+  indexes: string[];
+  constraints: string[];
+  [key: string]: unknown;
+ }
+
+export interface GuardedPersistenceCounts {
+  approvalLedger: number;
+  officialIdentity: number;
+  officialLifecycle: number;
+  [key: string]: unknown;
+ }
+
+export type GuardedPersistenceEnvironment = typeof GuardedPersistenceEnvironment[keyof typeof GuardedPersistenceEnvironment];
+
+
+export const GuardedPersistenceEnvironment = {
+  PRODUCTION: 'PRODUCTION',
+  NON_PRODUCTION: 'NON_PRODUCTION',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GuardedPersistenceMutationVerification = null;
+
+export interface GuardedDryRunResolution {
+  resolvedAt: string;
+  dryRun: boolean;
+  resolution: string;
+  fallbackUsed: boolean;
+  publicationDisposition: string;
+  [key: string]: unknown;
+ }
+
+export interface PerSportDryRunResolutions {
+  mlb: GuardedDryRunResolution | null;
+  ncaaf: GuardedDryRunResolution | null;
+  [key: string]: unknown;
+ }
+
+export interface GuardedSafeExecution {
+  executedAt: string;
+  reproducible: boolean;
+  executorHealth: string;
+  pitSafe: boolean;
+  leakageSafe: boolean;
+  safe: boolean;
+  [key: string]: unknown;
+ }
+
+export interface PerSportSafeExecutions {
+  mlb: GuardedSafeExecution | null;
+  ncaaf: GuardedSafeExecution | null;
+  [key: string]: unknown;
+ }
+
+export interface OfficialHistoryIntegrity {
+  orphanedPredictionIdentities: number;
+  orphanedLifecycleEvents: number;
+  identitiesWithoutLifecycle: number;
+  [key: string]: unknown;
+ }
+
+export interface GuardedPersistenceReadiness {
+  schema: GuardedPersistenceSchema;
+  counts: GuardedPersistenceCounts;
+  environment: GuardedPersistenceEnvironment;
+  maxSafeExecutionAgeHours: number;
+  latestSafeMutationVerification: GuardedPersistenceMutationVerification;
+  appendOnlyMutationRejectionVerified: boolean;
+  latestDryRunResolutions: PerSportDryRunResolutions;
+  latestSafeExecutions: PerSportSafeExecutions;
+  officialHistoryIntegrity: OfficialHistoryIntegrity;
+  [key: string]: unknown;
+ }
+
+export interface TechnicalReadiness {
+  TECHNICAL_CUTOVER_READY: TechnicalReadinessBoolean;
+  MODEL_EVIDENCE_READY: TechnicalReadinessBoolean;
+  GUARDED_APPROVED: TechnicalReadinessBoolean;
+  technicalBlockers: TechnicalReadinessBlockers;
+  modelEvidenceBlockers: TechnicalReadinessBlockers;
+  guardedApprovalBlockers: TechnicalReadinessBlockers;
+  guardedPersistence: GuardedPersistenceReadiness;
+  [key: string]: unknown;
+ }
+
 export interface ModelRuntimeStatus {
   generatedAt: string;
   automaticRetraining: string;
@@ -821,6 +915,7 @@ export interface ModelRuntimeStatus {
   sports: ModelRuntimeSportStatus[];
   /** @nullable */
   latestOfficialPrediction?: ModelRuntimeStatusLatestOfficialPrediction;
+  technicalReadiness: TechnicalReadiness;
   [key: string]: unknown;
  }
 

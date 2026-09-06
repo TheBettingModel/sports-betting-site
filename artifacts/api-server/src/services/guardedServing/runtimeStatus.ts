@@ -13,6 +13,9 @@ import { evaluateCurrentCandidates } from "./currentReviews";
 import type { ExactApproval, ExactArtifactIdentity } from "./types";
 import { candidateExecutorRegistry } from "./executorRegistry";
 import { registerNcaafCandidateExecutor } from "./ncaafCandidateExecutor";
+import {
+  evaluateTechnicalCutoverReadiness, inspectGuardedPersistenceReadiness,
+} from "./technicalReadiness";
 
 async function latestPrediction(modelId: string): Promise<Date | null> {
   const [row] = await db.select({ at: modelPredictionsTable.predictionTimestamp })
@@ -34,7 +37,7 @@ export async function getGuardedServingRuntimeStatus() {
   ]);
   const [
     mlbApproval, ncaafApproval, mlbIncumbentPrediction, ncaafIncumbentPrediction,
-    mlbEvidence, ncaafEvidence, official, reviews,
+    mlbEvidence, ncaafEvidence, official, reviews, persistence,
   ] = await Promise.all([
     mlbIdentity ? resolveExactApproval(mlbIdentity, guardedServingConfig.mlbMode === "v4" ? "full" : "guarded") : null,
     resolveExactApproval(ncaafIdentity, guardedServingConfig.ncaafMode === "nextgen" ? "full" : "guarded"),
@@ -47,18 +50,64 @@ export async function getGuardedServingRuntimeStatus() {
     db.select().from(officialPredictionIdentityTable)
       .orderBy(desc(officialPredictionIdentityTable.predictionTimestamp)).limit(1),
     evaluateCurrentCandidates(),
+    inspectGuardedPersistenceReadiness(),
   ]);
   const sportStatus = resolveRuntimeSportStatus;
+  const mlbBridgeReady = false;
+  const ncaafBridgeReady = false;
+  const mlbDryRun = persistence.latestDryRunResolutions.mlb;
+  const ncaafDryRun = persistence.latestDryRunResolutions.ncaaf;
+  const resolverObserved = (audit: typeof mlbDryRun) => Boolean(audit?.dryRun && audit.resolution);
+  const safeDispositionObserved = (audit: typeof mlbDryRun) => Boolean(
+    audit && (audit.fallbackUsed || audit.resolution === "PASS"),
+  );
+  const readiness = evaluateTechnicalCutoverReadiness({
+    executors: { mlb: Boolean(mlbExecutor), ncaaf: Boolean(ncaafExecutor) },
+    executorHealth: { mlb: mlbExecutorHealth?.status === "HEALTHY", ncaaf: ncaafExecutorHealth?.status === "HEALTHY" },
+    reproducibility: {
+      mlb: Boolean(persistence.latestSafeExecutions.mlb?.safe),
+      ncaaf: Boolean(persistence.latestSafeExecutions.ncaaf?.safe),
+    },
+    freshInference: {
+      mlb: Boolean(persistence.latestSafeExecutions.mlb?.safe),
+      ncaaf: Boolean(persistence.latestSafeExecutions.ncaaf?.safe),
+    },
+    bridges: { mlb: mlbBridgeReady, ncaaf: ncaafBridgeReady },
+    guardedResolver: resolverObserved(mlbDryRun) && resolverObserved(ncaafDryRun),
+    fallback: safeDispositionObserved(mlbDryRun) && safeDispositionObserved(ncaafDryRun),
+    killSwitch: guardedServingConfig.mlbMode === "v1" && guardedServingConfig.ncaafMode === "legacy",
+    dryRunSeparation: Boolean(mlbDryRun?.dryRun && ncaafDryRun?.dryRun),
+    observability: {
+      mlbExecutorAudit: Boolean(persistence.latestSafeExecutions.mlb?.safe),
+      ncaafExecutorAudit: Boolean(persistence.latestSafeExecutions.ncaaf?.safe),
+      mlbResolverObserved: resolverObserved(mlbDryRun),
+      ncaafResolverObserved: resolverObserved(ncaafDryRun),
+      mlbSafeDispositionObserved: safeDispositionObserved(mlbDryRun),
+      ncaafSafeDispositionObserved: safeDispositionObserved(ncaafDryRun),
+      appendOnlyMutationRejectionVerified: persistence.appendOnlyMutationRejectionVerified,
+      officialHistoryIntegrity: persistence.officialHistoryIntegrity.orphanedPredictionIdentities === 0
+        && persistence.officialHistoryIntegrity.orphanedLifecycleEvents === 0
+        && persistence.officialHistoryIntegrity.identitiesWithoutLifecycle === 0,
+    },
+    schema: persistence.schema,
+    approval: { mlb: Boolean(mlbApproval?.approved), ncaaf: Boolean(ncaafApproval?.approved) },
+    officialIdentityCount: persistence.counts.officialIdentity,
+    officialLifecycleCount: persistence.counts.officialLifecycle,
+  });
   return {
     generatedAt: new Date().toISOString(),
     automaticRetraining: "DISABLED",
     automaticParameterChanges: "DISABLED",
     automaticPromotion: "DISABLED",
     sports: [
-      sportStatus("MLB", guardedServingConfig.mlbMode, MLB_INCUMBENT_ENGINE, mlbIdentity, mlbApproval, mlbIncumbentPrediction, mlbEvidence[0]?.at ?? null, Boolean(mlbExecutor), mlbExecutorHealth, mlbExecutor?.identity.supportedMarkets),
-      sportStatus("NCAAF", guardedServingConfig.ncaafMode, NCAAF_INCUMBENT_ENGINE, ncaafIdentity, ncaafApproval, ncaafIncumbentPrediction, ncaafEvidence[0]?.at ?? null, Boolean(ncaafExecutor), ncaafExecutorHealth, ncaafExecutor?.identity.supportedMarkets),
+      sportStatus("MLB", guardedServingConfig.mlbMode, MLB_INCUMBENT_ENGINE, mlbIdentity, mlbApproval, mlbIncumbentPrediction, mlbEvidence[0]?.at ?? null, Boolean(mlbExecutor), mlbExecutorHealth, mlbExecutor?.identity.supportedMarkets, mlbBridgeReady),
+      sportStatus("NCAAF", guardedServingConfig.ncaafMode, NCAAF_INCUMBENT_ENGINE, ncaafIdentity, ncaafApproval, ncaafIncumbentPrediction, ncaafEvidence[0]?.at ?? null, Boolean(ncaafExecutor), ncaafExecutorHealth, ncaafExecutor?.identity.supportedMarkets, ncaafBridgeReady),
     ],
     reviews,
+    technicalReadiness: {
+      ...readiness,
+      guardedPersistence: persistence,
+    },
     latestOfficialPrediction: official[0] ? {
       predictionId: official[0].predictionId,
       sport: official[0].sport,

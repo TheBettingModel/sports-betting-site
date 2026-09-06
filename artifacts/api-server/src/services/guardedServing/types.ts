@@ -65,6 +65,7 @@ export interface EngineIdentity {
   predictionTimestamp: string;
   artifactHash?: string | null;
   configurationHash?: string | null;
+  parameterHash?: string | null;
   snapshotId?: string | null;
   marketSnapshotId?: string | null;
 }

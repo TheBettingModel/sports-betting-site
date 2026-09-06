@@ -126,12 +126,12 @@ describe("Task235 authentic NCAAF executor", () => {
     }, now)).rejects.toThrow(/input rejected/);
   });
 
-  it("makes an official bridge ready only with all legitimate downstream fixture values", async () => {
+  it("does not treat caller-supplied downstream fixture values as authentic evidence", async () => {
     const output = (await ncaafCandidateExecutor.execute(input, now)).output;
     expect(buildNcaafModelPredictionBridge(output, "snapshot-1", now.toISOString()).persistenceReady).toBe(false);
     expect(buildNcaafModelPredictionBridge(output, "snapshot-1", now.toISOString(), {
       modelVersionId: 1, odds: -110, impliedProbability: .524, edge: .03,
       confidence: "Medium", recommendation: "Neutral", units: 1, podScore: 1, finalRating: 50,
-    })).toMatchObject({ persisted: false, persistenceReady: true, blockers: [] });
+    })).toMatchObject({ persisted: false, persistenceReady: false });
   });
 });
