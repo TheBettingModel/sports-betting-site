@@ -5,9 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ModelRuntimeSportStatusExecutorHealth } from './modelRuntimeSportStatusExecutorHealth';
+import type { ModelRuntimeSportStatusOfficialBridgeStatus } from './modelRuntimeSportStatusOfficialBridgeStatus';
 import type { ModelRuntimeSportStatusPublicationStatus } from './modelRuntimeSportStatusPublicationStatus';
 import type { ModelRuntimeSportStatusResolvedServingState } from './modelRuntimeSportStatusResolvedServingState';
 import type { ModelRuntimeSportStatusSport } from './modelRuntimeSportStatusSport';
+import type { ModelRuntimeSportStatusSupportedMarkets } from './modelRuntimeSportStatusSupportedMarkets';
 
 export interface ModelRuntimeSportStatus {
   sport: ModelRuntimeSportStatusSport;
@@ -19,8 +22,18 @@ export interface ModelRuntimeSportStatus {
   candidateVersion?: string | null;
   /** @nullable */
   candidateArtifactHash?: string | null;
+  /** @nullable */
+  candidateArtifactId?: string | null;
+  /** @nullable */
+  inputContract?: string | null;
   approvalStatus: string;
   executorAvailable: boolean;
+  executorHealth: ModelRuntimeSportStatusExecutorHealth;
+  executorHealthReason?: string;
+  reproducibilityReady: boolean;
+  officialBridgeReady: boolean;
+  officialBridgeStatus?: ModelRuntimeSportStatusOfficialBridgeStatus;
+  supportedMarkets?: ModelRuntimeSportStatusSupportedMarkets;
   resolvedServingState: ModelRuntimeSportStatusResolvedServingState;
   runtimeHealth: string;
   publicationStatus: ModelRuntimeSportStatusPublicationStatus;

@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ModelRuntimeDryRunResultDisposition } from './modelRuntimeDryRunResultDisposition';
+import type { ModelRuntimeDryRunResultExecution } from './modelRuntimeDryRunResultExecution';
+import type { ModelRuntimeDryRunResultExecutorHealth } from './modelRuntimeDryRunResultExecutorHealth';
 import type { ModelRuntimeDryRunResultResolution } from './modelRuntimeDryRunResultResolution';
 import type { ModelRuntimeDryRunResultSport } from './modelRuntimeDryRunResultSport';
 
@@ -16,4 +18,7 @@ export interface ModelRuntimeDryRunResult {
   gameId?: string | null;
   disposition: ModelRuntimeDryRunResultDisposition;
   resolution: ModelRuntimeDryRunResultResolution;
+  executorHealth?: ModelRuntimeDryRunResultExecutorHealth;
+  /** @nullable */
+  execution?: ModelRuntimeDryRunResultExecution;
 }

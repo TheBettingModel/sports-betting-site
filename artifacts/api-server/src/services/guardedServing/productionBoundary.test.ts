@@ -32,7 +32,7 @@ describe("central guarded production boundary", () => {
     expect(state.auditValues).toHaveBeenCalledWith(expect.objectContaining({ fallbackUsed: true, selectedEngine: "tbm-mlb-moneyline-v1" }));
   });
 
-  it("calls the typed executor, adapter, and immutable identity persistence only for an approved fixture", async () => {
+  it("does not permit a controller-supplied candidate executor to bypass the central registry", async () => {
     state.approval = { state: "GUARDED_APPROVED", approved: true, eventId: "fixture", reason: "EXACT_APPROVAL_CONFIRMED", decidedAt: new Date() };
     const executor = {
       modelId: state.identity.modelId, inputContractVersion: state.identity.inputContractVersion,
@@ -51,11 +51,10 @@ describe("central guarded production boundary", () => {
         },
       })),
     };
-    const result = await resolveProductionPredictionBoundary(game, projection, eligibleContext, executor as any);
-    expect(result).toMatchObject({ disposition: "CANDIDATE", projection: { candidate: true } });
-    expect(executor.execute).toHaveBeenCalledOnce();
-    expect(state.persist).toHaveBeenCalledWith(42, expect.objectContaining({ identity: expect.objectContaining({ artifactId: "artifact-fixture" }) }), "ELIGIBLE");
-    expect(shouldRunIncumbentSnapshot(result)).toBe(false);
+    const result = await (resolveProductionPredictionBoundary as Function)(game, projection, eligibleContext, executor);
+    expect(result).toMatchObject({ disposition: "FALLBACK", projection });
+    expect(executor.execute).not.toHaveBeenCalled();
+    expect(state.persist).not.toHaveBeenCalled();
   });
 
   it("allows only incumbent or explicit fallback into the incumbent snapshot writer", () => {

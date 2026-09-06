@@ -143,18 +143,22 @@ function FeedHealthGrid({ entries }: { entries: FeedHealthEntry[] }) {
 
 function RuntimeState({ value }: { value: string }) {
   const normalized = value.toLowerCase();
-  const color = normalized.includes("healthy") || normalized.includes("eligible")
+  const color = normalized.includes("degraded") || normalized.includes("unapproved") || normalized.includes("blocked") || normalized.includes("unhealthy") || normalized.includes("unavailable")
+    ? "text-amber-400"
+    : normalized.includes("healthy") || normalized.includes("eligible") || normalized === "ready" || normalized.includes("active")
     ? "text-emerald-400"
-    : normalized.includes("degraded") || normalized.includes("unapproved") || normalized.includes("blocked")
-      ? "text-amber-400"
-      : "text-muted-foreground";
+    : "text-muted-foreground";
   return <span className={`font-medium ${color}`}>{value.replaceAll("_", " ")}</span>;
 }
 
-function ExecutorAvailability({ available }: { available: boolean }) {
+function RuntimeBoolean({ value, trueLabel, falseLabel }: {
+  value: boolean;
+  trueLabel: string;
+  falseLabel: string;
+}) {
   return (
-    <span className={`font-medium ${available ? "text-emerald-400" : "text-amber-400"}`}>
-      {available ? "AVAILABLE" : "UNAVAILABLE"}
+    <span className={`font-medium ${value ? "text-emerald-400" : "text-amber-400"}`}>
+      {value ? trueLabel : falseLabel}
     </span>
   );
 }
@@ -163,8 +167,9 @@ function RuntimeSportCard({ sport }: { sport: ModelRuntimeSportStatus }) {
   const candidate = sport.candidateEngine
     ? `${sport.candidateEngine}${sport.candidateVersion ? ` · ${sport.candidateVersion}` : ""}`
     : "No candidate identity";
+  const supportedMarkets = Object.entries(sport.supportedMarkets);
   return (
-    <article className="rounded-md border border-border bg-background/40 p-3 text-xs">
+    <article className="rounded-md border border-border bg-background/40 p-3 text-xs" data-testid={`card-runtime-${sport.sport.toLowerCase()}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-semibold text-sm text-foreground">{sport.sport}</p>
         <span className="rounded bg-muted px-2 py-0.5 font-medium text-foreground">
@@ -174,14 +179,16 @@ function RuntimeSportCard({ sport }: { sport: ModelRuntimeSportStatus }) {
       <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
         <div><dt className="text-muted-foreground">Active engine</dt><dd className="mt-0.5 break-all text-foreground">{sport.activePrimaryEngine}</dd></div>
         <div><dt className="text-muted-foreground">Candidate</dt><dd className="mt-0.5 break-all text-foreground">{candidate}</dd></div>
-        <div><dt className="text-muted-foreground">Approval / markets</dt><dd className="mt-0.5"><RuntimeState value={sport.approvalStatus} /> <span className="text-muted-foreground">· {sport.approvedMarkets.join(", ") || "none"}</span></dd></div>
+        <div><dt className="text-muted-foreground">Approval</dt><dd className="mt-0.5"><RuntimeState value={sport.approvalStatus} /></dd></div>
+        <div><dt className="text-muted-foreground">Actual serving</dt><dd className="mt-0.5"><RuntimeState value={sport.resolvedServingState} /></dd></div>
         <div><dt className="text-muted-foreground">Publication</dt><dd className="mt-0.5"><RuntimeState value={sport.publicationStatus} /></dd></div>
-        <div><dt className="text-muted-foreground">Resolved serving</dt><dd className="mt-0.5"><RuntimeState value={sport.resolvedServingState} /></dd></div>
-        <div><dt className="text-muted-foreground">Candidate executor</dt><dd className="mt-0.5"><ExecutorAvailability available={sport.executorAvailable} /></dd></div>
-        <div><dt className="text-muted-foreground">Resolver / fallback</dt><dd className="mt-0.5 text-foreground break-all">{sport.fallbackEngine} <span className="text-muted-foreground">· </span><RuntimeState value={sport.fallbackHealth} /></dd></div>
+        <div><dt className="text-muted-foreground">Executor</dt><dd className="mt-0.5"><RuntimeBoolean value={sport.executorAvailable} trueLabel="AVAILABLE" falseLabel="UNAVAILABLE" /> <span className="text-muted-foreground">· </span><RuntimeState value={sport.executorHealth} /></dd></div>
+        <div className="sm:col-span-2"><dt className="text-muted-foreground">Executor reason</dt><dd className="mt-0.5 break-words text-foreground">{sport.executorHealthReason}</dd></div>
+        <div><dt className="text-muted-foreground">Reproducibility</dt><dd className="mt-0.5"><RuntimeBoolean value={sport.reproducibilityReady} trueLabel="READY" falseLabel="NOT READY" /></dd></div>
+        <div><dt className="text-muted-foreground">Official bridge</dt><dd className="mt-0.5"><RuntimeBoolean value={sport.officialBridgeReady} trueLabel="READY" falseLabel="NOT READY" /> <span className="text-muted-foreground">· </span><RuntimeState value={sport.officialBridgeStatus} /></dd></div>
         <div><dt className="text-muted-foreground">Runtime health</dt><dd className="mt-0.5"><RuntimeState value={sport.runtimeHealth} /></dd></div>
-        <div><dt className="text-muted-foreground">Last evidence</dt><dd className="mt-0.5 text-foreground">{sport.lastSuccessfulEvidenceCollection ? timeAgo(sport.lastSuccessfulEvidenceCollection) : "No successful collection"}</dd></div>
-        <div><dt className="text-muted-foreground">Last incumbent prediction</dt><dd className="mt-0.5 text-foreground">{sport.lastSuccessfulPrediction ? timeAgo(sport.lastSuccessfulPrediction) : "No successful prediction"}</dd></div>
+        <div><dt className="text-muted-foreground">Input contract</dt><dd className="mt-0.5 break-all text-foreground">{sport.inputContract ?? "Not reported"}</dd></div>
+        <div className="sm:col-span-2"><dt className="text-muted-foreground">Supported markets</dt><dd className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1">{supportedMarkets.length > 0 ? supportedMarkets.map(([market, classification]) => <span key={market} className="text-foreground">{market}: <RuntimeState value={classification} /></span>) : <span className="text-muted-foreground">None reported</span>}</dd></div>
       </dl>
     </article>
   );
@@ -196,7 +203,7 @@ function RuntimeStatusPanel({ status }: { status?: ModelRuntimeStatus }) {
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Guarded Serving Runtime</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Configured runtime and exact approval resolver state; refreshed {timeAgo(status.generatedAt)}.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Actual guarded-serving, executor, reproducibility, and official-bridge state; refreshed {timeAgo(status.generatedAt)}.</p>
         </div>
         {status.latestOfficialPrediction && (
           <p className="text-[11px] text-muted-foreground">

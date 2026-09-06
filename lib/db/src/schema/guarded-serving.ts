@@ -78,6 +78,50 @@ export const guardedServingAuditsTable = pgTable("guarded_serving_audits", {
 ]);
 
 /**
+ * Fresh raw candidate execution evidence. This is intentionally distinct from
+ * resolver audits and has no foreign key to model_predictions: a dry run can
+ * prove execution without acquiring official/public prediction identity.
+ */
+export const candidateExecutionAuditsTable = pgTable("candidate_execution_audits", {
+  id: serial("id").primaryKey(),
+  executionId: text("execution_id").notNull(),
+  dryRun: boolean("dry_run").notNull().default(true),
+  sport: text("sport").notNull(),
+  gameId: text("game_id").notNull(),
+  market: text("market").notNull(),
+  modelFamily: text("model_family").notNull(),
+  modelId: text("model_id").notNull(),
+  modelVersion: text("model_version").notNull(),
+  artifactId: text("artifact_id").notNull(),
+  artifactHash: text("artifact_hash").notNull(),
+  configurationHash: text("configuration_hash"),
+  parameterHash: text("parameter_hash"),
+  inputContractVersion: text("input_contract_version").notNull(),
+  inputSnapshotId: text("input_snapshot_id").notNull(),
+  inputHash: text("input_hash").notNull(),
+  featureCutoff: timestamp("feature_cutoff", { withTimezone: true }).notNull(),
+  materializedAt: timestamp("materialized_at", { withTimezone: true }).notNull(),
+  executedAt: timestamp("executed_at", { withTimezone: true }).notNull(),
+  rawOutput: jsonb("raw_output").notNull(),
+  outputHash: text("output_hash").notNull(),
+  secondOutputHash: text("second_output_hash").notNull(),
+  reproducible: boolean("reproducible").notNull(),
+  executorHealth: text("executor_health").notNull(),
+  pitSafe: boolean("pit_safe").notNull(),
+  leakageSafe: boolean("leakage_safe").notNull(),
+  resolverReason: text("resolver_reason").notNull(),
+  publicationDisposition: text("publication_disposition").notNull(),
+  evidence: jsonb("evidence").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("candidate_execution_audit_execution_idx").on(t.executionId),
+  index("candidate_execution_audit_lookup_idx").on(t.sport, t.gameId, t.executedAt),
+  index("candidate_execution_audit_exact_artifact_idx").on(
+    t.modelId, t.modelVersion, t.artifactHash, t.inputHash,
+  ),
+]);
+
+/**
  * Immutable official identity attached to an existing model_predictions row.
  * Keeping this separate avoids rewriting old prediction evidence.
  */
@@ -163,6 +207,7 @@ export const modelReviewPoliciesTable = pgTable("model_review_policies", {
 
 export const insertModelArtifactApprovalSchema = createInsertSchema(modelArtifactApprovalLedgerTable).omit({ id: true, createdAt: true });
 export const insertGuardedServingAuditSchema = createInsertSchema(guardedServingAuditsTable).omit({ id: true, createdAt: true });
+export const insertCandidateExecutionAuditSchema = createInsertSchema(candidateExecutionAuditsTable).omit({ id: true, createdAt: true });
 export const insertOfficialPredictionIdentitySchema = createInsertSchema(officialPredictionIdentityTable).omit({ id: true, createdAt: true });
 export const insertOfficialPredictionLifecycleSchema = createInsertSchema(officialPredictionLifecycleTable).omit({ id: true, createdAt: true });
 export const insertModelReviewPolicySchema = createInsertSchema(modelReviewPoliciesTable).omit({ id: true, createdAt: true });
@@ -170,6 +215,7 @@ export const insertModelReviewPolicySchema = createInsertSchema(modelReviewPolic
 export type ModelArtifactApproval = typeof modelArtifactApprovalLedgerTable.$inferSelect;
 export type InsertModelArtifactApproval = z.infer<typeof insertModelArtifactApprovalSchema>;
 export type GuardedServingAudit = typeof guardedServingAuditsTable.$inferSelect;
+export type CandidateExecutionAudit = typeof candidateExecutionAuditsTable.$inferSelect;
 export type OfficialPredictionIdentity = typeof officialPredictionIdentityTable.$inferSelect;
 export type OfficialPredictionLifecycle = typeof officialPredictionLifecycleTable.$inferSelect;
 export type ModelReviewPolicy = typeof modelReviewPoliciesTable.$inferSelect;

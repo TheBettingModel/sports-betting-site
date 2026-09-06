@@ -1,13 +1,8 @@
-import { createHash } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import { db, mlbV4ModelRegistryTable } from "@workspace/db";
 import { MLB_CANDIDATE_ENGINE } from "./types";
 import type { ExactArtifactIdentity } from "./types";
-import {
-  NCAAF_V4_EXPECTED_SCORE_ID,
-  NCAAF_V4_FEATURE_SCHEMA_VERSION,
-} from "../ncaafV4ExpectedScore";
-import { NCAAF_V4_CANONICAL_BASELINE_D } from "../ncaafV4DistinctChallenger";
+import { NCAAF_V4_EXECUTABLE_ARTIFACT_HASH, NCAAF_V4_EXECUTABLE_DESCRIPTOR } from "./ncaafArtifactDescriptor";
 
 export async function getCurrentMlbCandidateIdentity(): Promise<ExactArtifactIdentity | null> {
   const [row] = await db.select().from(mlbV4ModelRegistryTable)
@@ -29,18 +24,16 @@ export async function getCurrentMlbCandidateIdentity(): Promise<ExactArtifactIde
 }
 
 export function getCurrentNcaafCandidateIdentity(market = "moneyline"): ExactArtifactIdentity {
-  const configurationHash = NCAAF_V4_CANONICAL_BASELINE_D.configurationHash;
-  const parameterHash = NCAAF_V4_CANONICAL_BASELINE_D.parameterHash;
   return {
-    sport: "NCAAF",
+    sport: NCAAF_V4_EXECUTABLE_DESCRIPTOR.sport,
     market,
-    modelFamily: "expected-score-linear",
-    modelId: NCAAF_V4_EXPECTED_SCORE_ID,
-    modelVersion: "D-simple-expected-score-linear",
-    artifactId: NCAAF_V4_EXPECTED_SCORE_ID,
-    artifactHash: createHash("sha256").update(`${configurationHash}:${parameterHash}`).digest("hex"),
-    inputContractVersion: NCAAF_V4_FEATURE_SCHEMA_VERSION,
-    configurationHash,
-    parameterHash,
+    modelFamily: NCAAF_V4_EXECUTABLE_DESCRIPTOR.modelFamily,
+    modelId: NCAAF_V4_EXECUTABLE_DESCRIPTOR.modelId,
+    modelVersion: NCAAF_V4_EXECUTABLE_DESCRIPTOR.modelVersion,
+    artifactId: NCAAF_V4_EXECUTABLE_DESCRIPTOR.artifactId,
+    artifactHash: NCAAF_V4_EXECUTABLE_ARTIFACT_HASH,
+    inputContractVersion: NCAAF_V4_EXECUTABLE_DESCRIPTOR.inputContractVersion,
+    configurationHash: NCAAF_V4_EXECUTABLE_DESCRIPTOR.configurationHash,
+    parameterHash: NCAAF_V4_EXECUTABLE_DESCRIPTOR.parameterHash,
   };
 }

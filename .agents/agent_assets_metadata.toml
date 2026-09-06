@@ -540,3 +540,31 @@ mtime_ms = 1788658442622
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/78b675d0-d32a-4a51-ab4c-919ef1e503a0/7610a585-8381-440f-a5a2-febe11360182"
 storage_version_token = "1788658476237848"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "5nf5sk4uqJUfKbPmWn839"
+uri = "file://reports/task-235-authentic-candidate-execution.md"
+type = "text"
+title = "Task 235 Authentic Candidate Execution Report"
+description = "The required 66-item verification report covering authentic execution, fallback, schema, security, deployment, and remaining blockers."
+logical_id = "fa052382-261f-42bb-8d88-17e75100daad"
+content_hash = "sha256:f1b4c6830d4e71bf43cda3618d1015778593464b1bce993bce961f06ab0ee351"
+size = 11269
+mtime_ms = 1788660914398
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/fa052382-261f-42bb-8d88-17e75100daad/4acf1d7e-3aee-4a23-b0fc-db1e454167f5"
+storage_version_token = "1788661077762432"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "piQEzNvkshLzAbm0dedtg"
+uri = "file://reports/task-235-verification.json"
+type = "unspecified"
+title = "Task 235 Machine-Readable Verification"
+description = "Structured identities, hashes, dry-run evidence, schema status, test results, and Task 236 readiness state."
+logical_id = "57167436-b9c8-4f73-aaf9-8a0b54ec8cb2"
+content_hash = "sha256:6bd93a7766532a7638c9f79780d7cde065d48b893ab3b5bbffe99e240b7ae171"
+size = 9440
+mtime_ms = 1788661070363
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/57167436-b9c8-4f73-aaf9-8a0b54ec8cb2/cfcd9f0a-4b37-4d86-9e37-6f17dc98ea9a"
+storage_version_token = "1788661078447004"
+content_type = "application/octet-stream"

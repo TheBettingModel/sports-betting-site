@@ -3,8 +3,10 @@ name: Guarded serving cutover gates
 description: Safety rules for activating a next-generation model without mislabeling or overstating runtime readiness.
 ---
 
-Serving mode, exact artifact-and-market approval, and authentic executor availability are independent gates. A candidate is active only when all required gates pass; approval alone must never make runtime status report the candidate as serving.
+Serving mode, exact artifact-and-market approval, authentic executor availability, and a persistence-ready official bridge are independent gates. A candidate is active only when every required gate passes; approval alone must never make runtime status report the candidate as serving.
 
-**Why:** A future-approved candidate can still lack an executable, identity-safe production adapter. Treating approval as runtime readiness would mislead operators, while sending candidate output through an incumbent persistence path would record the wrong engine.
+Authentic execution requires a canonical frozen artifact descriptor, independent recomputation of the authoritative input checksum/provenance, and deterministic comparison of two runs. Evaluation adapters must preserve raw model semantics and explicitly mark market, risk, and universal fields unavailable instead of inventing compatibility values.
 
-**How to apply:** Fail closed when an executor or exact artifact identity is absent. Keep the incumbent as the reported active engine, expose the blocked state and reason, and never pass candidate output through an incumbent prediction writer. Dry runs remain nonpublishing.
+**Why:** A future-approved candidate can still lack an executable, identity-safe production adapter, or required downstream evidence. Treating approval as runtime readiness would mislead operators; placeholder edge/confidence/units/ratings would change model meaning; and sending candidate output through an incumbent writer would record the wrong engine.
+
+**How to apply:** Fail closed when an executor, exact artifact identity, validated input lineage, reproducibility proof, or official bridge is absent. Keep the incumbent active, expose each blocked stage and reason, and never pass candidate output through an incumbent prediction writer. Dry runs remain structurally nonpublishing.

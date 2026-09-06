@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { db, guardedServingAuditsTable } from "@workspace/db";
+import { candidateExecutionAuditsTable, db, guardedServingAuditsTable } from "@workspace/db";
 import type { FetchedGame } from "../espn";
 import type { ProjectionResult } from "../model";
 import type { PredictionDecisionContext } from "../snapshot";
@@ -8,23 +8,13 @@ import { guardedServingConfig } from "./config";
 import { getCurrentMlbCandidateIdentity, getCurrentNcaafCandidateIdentity } from "./candidateRegistry";
 import { resolveExactApproval } from "./approvalRegistry";
 import { resolveMlbProductionEngine, resolveNcaafProductionEngine } from "./resolvers";
-import { adaptApprovedNextGenOutput, type NextGenPublicationInput } from "./publicationAdapter";
-import { persistOfficialPredictionIdentity } from "./persistence";
 import { logger } from "../../lib/logger";
 import type { EligibilitySignals, ExactArtifactIdentity, MlbResolution, NcaafResolution } from "./types";
 import { MLB_CANDIDATE_ENGINE } from "./types";
+import { candidateExecutorRegistry } from "./executorRegistry";
+import { registerNcaafCandidateExecutor } from "./ncaafCandidateExecutor";
+import { executeCurrentNcaafCandidateTwice, ncaafCandidateExecutor } from "./ncaafCandidateExecutor";
 
-/** A candidate must write its own immutable prediction before this boundary can publish its identity. */
-export interface GuardedCandidateExecutor<TInput, TOutput> {
-  readonly modelId: string;
-  readonly inputContractVersion: string;
-  execute(input: TInput): Promise<TOutput>;
-}
-export interface CandidateExecution {
-  predictionId: number;
-  projection: ProjectionResult;
-  adapterInput: NextGenPublicationInput;
-}
 export type ProductionBoundaryResult =
   | { disposition: "INCUMBENT"; projection: ProjectionResult; resolution: null }
   | { disposition: "FALLBACK"; projection: ProjectionResult; resolution: MlbResolution | NcaafResolution }
@@ -69,7 +59,9 @@ function signals(game: FetchedGame, context: PredictionDecisionContext | undefin
   return {
     identityResolved: true, inputAvailable: eligible, inputFresh: ![...missing].some((x) => x.includes("stale")),
     starterOrQbComplete: game.sport === "NCAAF" ? !missing.has("independent_team_evidence") : !missing.has("probable_pitchers"),
-    teamStateComplete: eligible, contextComplete: Boolean(context), pitSafe: true, leakageSafe: true,
+    teamStateComplete: eligible, contextComplete: Boolean(context),
+    pitSafe: eligible && Boolean(context) && !missing.has("pit_failure"),
+    leakageSafe: eligible && Boolean(context) && !missing.has("leakage_failure"),
     marketFresh: !missing.has("market_odds") && !missing.has("market_started_or_invalid"),
     runtimeHealth: executor ? "CANDIDATE_HEALTHY" : "CANDIDATE_RUNTIME_FAILURE",
     publicationEligible: eligible, incumbentEligible: eligible,
@@ -84,8 +76,8 @@ function signals(game: FetchedGame, context: PredictionDecisionContext | undefin
  */
 export async function resolveProductionPredictionBoundary(
   game: FetchedGame, incumbentProjection: ProjectionResult, decisionContext?: PredictionDecisionContext,
-  executor?: GuardedCandidateExecutor<{ game: FetchedGame; decisionContext?: PredictionDecisionContext }, CandidateExecution>,
 ): Promise<ProductionBoundaryResult> {
+  registerNcaafCandidateExecutor();
   if ((game.sport === "MLB" && guardedServingConfig.mlbMode === "v1")
     || (game.sport === "NCAAF" && guardedServingConfig.ncaafMode === "legacy")
     || (game.sport !== "MLB" && game.sport !== "NCAAF")) {
@@ -94,22 +86,93 @@ export async function resolveProductionPredictionBoundary(
   const mlb = game.sport === "MLB";
   const registered = mlb ? await getCurrentMlbCandidateIdentity() : getCurrentNcaafCandidateIdentity();
   const identity = registered ?? unresolvedMlbIdentity();
+  const executor = registered ? candidateExecutorRegistry.resolve(identity) : null;
   const mode = mlb ? guardedServingConfig.mlbMode : guardedServingConfig.ncaafMode;
   const approval = await resolveExactApproval(identity, mode === "v4" || mode === "nextgen" ? "full" : "guarded");
-  const availability = { ...signals(game, decisionContext, executor), identityResolved: registered !== null };
+  let execution: Awaited<ReturnType<typeof ncaafCandidateExecutor.execute>> | null = null;
+  let executionSecond: Awaited<ReturnType<typeof ncaafCandidateExecutor.execute>> | null = null;
+  let executionMaterialized: { snapshotId: string } | null = null;
+  let executionHealth: "HEALTHY" | "UNHEALTHY" | null = null;
+  let executionFailure: string | null = null;
+  // Guarded NCAAF evaluates fresh evidence before resolution. It is audit-only:
+  // no model_predictions, official identity, picks, notifications, analytics, or results are written.
+  if (!mlb && executor === ncaafCandidateExecutor) {
+    try {
+      const shared = await executeCurrentNcaafCandidateTwice(new Date(), game.espnId);
+      executionMaterialized = shared.materialized;
+      executionHealth = shared.health.status;
+      if (!shared.materialized) executionFailure = "NO_EXACT_ELIGIBLE_NCAAF_INPUT";
+      else {
+        execution = shared.first;
+        executionSecond = shared.second;
+      }
+    } catch (error) {
+      executionFailure = error instanceof Error ? error.message : "NCAAF_EXECUTION_FAILURE";
+    }
+  }
+  const baseSignals = signals(game, decisionContext, executor);
+  const availability = {
+    ...baseSignals, identityResolved: registered !== null,
+    ...(execution ? {
+      inputAvailable: true, inputFresh: execution.evidence.fresh, contextComplete: execution.evidence.complete,
+      pitSafe: execution.evidence.pitSafe, leakageSafe: execution.evidence.leakageSafe,
+      starterOrQbComplete: execution.output.dataQuality !== "INSUFFICIENT",
+      teamStateComplete: execution.output.dataQuality !== "INSUFFICIENT",
+      runtimeHealth: executionHealth === "HEALTHY" ? "CANDIDATE_HEALTHY" as const : "CANDIDATE_RUNTIME_FAILURE" as const,
+    } : executionFailure ? {
+      inputAvailable: false, inputFresh: false, pitSafe: false, leakageSafe: false,
+      runtimeHealth: "CANDIDATE_INPUT_UNAVAILABLE" as const,
+    } : {}),
+  };
   const resolution = mlb
     ? resolveMlbProductionEngine({ mode: mode as "v4_guarded" | "v4", identity, approval, signals: availability })
     : resolveNcaafProductionEngine({ mode: mode as "nextgen_guarded" | "nextgen", identity, approval, signals: availability });
-  if ((resolution.kind === "V4_GUARDED" || resolution.kind === "V4_FULL" || resolution.kind === "NEXTGEN_GUARDED" || resolution.kind === "NEXTGEN_FULL") && executor) {
-    if (executor.modelId !== identity.modelId || executor.inputContractVersion !== identity.inputContractVersion) throw new Error("Authentic candidate executor identity/input contract does not match exact approved artifact");
-    const executed = await executor.execute({ game, decisionContext });
-    const publication = adaptApprovedNextGenOutput(executed.adapterInput, resolution);
-    if (!publication) throw new Error("Exact approved candidate executor returned output that cannot be adapted for publication");
-    await persistOfficialPredictionIdentity(executed.predictionId, publication, "ELIGIBLE");
-    await audit(game, identity, mode, resolution, { source: "central-production-prediction-boundary-v1", exactRegistryPresent: true, executorAvailable: true, candidateExecution: "AUTHENTIC_TYPED_EXECUTOR_COMPLETED", publicPickOrNotificationCreatedByBoundary: false });
-    return { disposition: "CANDIDATE", projection: executed.projection, resolution };
+  if (execution && executionSecond) {
+    await db.insert(candidateExecutionAuditsTable).values({
+      executionId: randomUUID(), dryRun: false, sport: "NCAAF", gameId: execution.output.gameId,
+      market: "moneyline", modelFamily: identity.modelFamily, modelId: identity.modelId,
+      modelVersion: identity.modelVersion, artifactId: identity.artifactId, artifactHash: identity.artifactHash,
+      configurationHash: identity.configurationHash, parameterHash: identity.parameterHash,
+      inputContractVersion: identity.inputContractVersion, inputSnapshotId: execution.evidence.snapshotId,
+      inputHash: execution.evidence.inputHash, featureCutoff: new Date(execution.evidence.featureCutoff),
+      materializedAt: new Date(execution.evidence.materializedAt), executedAt: new Date(execution.executedAt),
+      rawOutput: execution.output, outputHash: execution.outputHash, secondOutputHash: executionSecond.outputHash,
+      reproducible: execution.outputHash === executionSecond.outputHash, executorHealth: executionHealth ?? "UNHEALTHY",
+      pitSafe: execution.evidence.pitSafe, leakageSafe: execution.evidence.leakageSafe,
+      resolverReason: resolution.reason,
+      publicationDisposition: resolution.kind === "PASS" ? "SUPPRESSED_PASS" : resolution.fallbackUsed ? "INCUMBENT_FALLBACK" : "OFFICIAL_BRIDGE_BLOCKED",
+      evidence: {
+        source: "central-boundary-fresh-ncaaf-executor", executionStatus: "COMPLETED",
+        executionCount: 2, snapshotId: executionMaterialized?.snapshotId ?? execution.evidence.snapshotId,
+        officialPersistence: false,
+      },
+    });
   }
-  await audit(game, identity, mode, resolution, { source: "central-production-prediction-boundary-v1", exactRegistryPresent: registered !== null, executorAvailable: false, candidateExecution: "NOT_ATTEMPTED_WITHOUT_AUTHENTIC_TYPED_EXECUTOR", publicPickOrNotificationCreatedByBoundary: false });
+  if ((resolution.kind === "V4_GUARDED" || resolution.kind === "V4_FULL" || resolution.kind === "NEXTGEN_GUARDED" || resolution.kind === "NEXTGEN_FULL") && executor) {
+    // Executors return raw sports semantics, never an incumbent-writer object.
+    // Official candidate persistence remains approval- and adapter-gated and
+    // must be supplied by a versioned bridge rather than a route injection.
+    await audit(game, identity, mode, resolution, {
+      source: "central-production-prediction-boundary-v2", exactRegistryPresent: true,
+      executorAvailable: true, candidateExecution: execution ? "COMPLETED" : executionFailure ? "FAILED" : "NOT_ATTEMPTED",
+      inputSnapshotId: execution?.evidence.snapshotId ?? null,
+      outputHash: execution?.outputHash ?? null, secondOutputHash: executionSecond?.outputHash ?? null,
+      reproducible: Boolean(execution && executionSecond && execution.outputHash === executionSecond.outputHash),
+      blocker: "EXACT_OFFICIAL_PUBLICATION_BRIDGE_UNAVAILABLE",
+      publicPickOrNotificationCreatedByBoundary: false,
+    });
+    return { disposition: "FALLBACK", projection: incumbentProjection, resolution };
+  }
+  await audit(game, identity, mode, resolution, {
+    source: "central-production-prediction-boundary-v2",
+    exactRegistryPresent: registered !== null, executorAvailable: Boolean(executor),
+    candidateExecution: execution ? "COMPLETED" : executionFailure ? "FAILED" : executor ? "NOT_ATTEMPTED_EXACT_INPUT_UNAVAILABLE" : "NOT_ATTEMPTED_EXACT_EXECUTOR_UNAVAILABLE",
+    inputSnapshotId: execution?.evidence.snapshotId ?? null,
+    outputHash: execution?.outputHash ?? null, secondOutputHash: executionSecond?.outputHash ?? null,
+    reproducible: Boolean(execution && executionSecond && execution.outputHash === executionSecond.outputHash),
+    executionFailure,
+    publicPickOrNotificationCreatedByBoundary: false,
+  });
   return resolution.kind === "PASS"
     ? { disposition: "PASS", projection: null, resolution }
     : { disposition: "FALLBACK", projection: incumbentProjection, resolution };

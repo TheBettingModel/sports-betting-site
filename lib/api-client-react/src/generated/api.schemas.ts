@@ -745,6 +745,23 @@ export const ModelRuntimeSportStatusSport = {
   NCAAF: 'NCAAF',
 } as const;
 
+export type ModelRuntimeSportStatusExecutorHealth = typeof ModelRuntimeSportStatusExecutorHealth[keyof typeof ModelRuntimeSportStatusExecutorHealth];
+
+
+export const ModelRuntimeSportStatusExecutorHealth = {
+  HEALTHY: 'HEALTHY',
+  UNHEALTHY: 'UNHEALTHY',
+  UNAVAILABLE: 'UNAVAILABLE',
+} as const;
+
+export type ModelRuntimeSportStatusOfficialBridgeStatus = typeof ModelRuntimeSportStatusOfficialBridgeStatus[keyof typeof ModelRuntimeSportStatusOfficialBridgeStatus];
+
+
+export const ModelRuntimeSportStatusOfficialBridgeStatus = {
+  READY: 'READY',
+  BLOCKED: 'BLOCKED',
+} as const;
+
 export type ModelRuntimeSportStatusResolvedServingState = typeof ModelRuntimeSportStatusResolvedServingState[keyof typeof ModelRuntimeSportStatusResolvedServingState];
 
 
@@ -763,7 +780,10 @@ export const ModelRuntimeSportStatusPublicationStatus = {
   ELIGIBLE_BY_APPROVAL: 'ELIGIBLE_BY_APPROVAL',
   BLOCKED_BY_APPROVAL: 'BLOCKED_BY_APPROVAL',
   BLOCKED_BY_RUNTIME: 'BLOCKED_BY_RUNTIME',
+  BLOCKED_BY_OFFICIAL_BRIDGE: 'BLOCKED_BY_OFFICIAL_BRIDGE',
 } as const;
+
+export type ModelRuntimeSportStatusSupportedMarkets = {[key: string]: 'EXECUTOR_SUPPORTED' | 'DERIVABLE_BUT_NOT_APPROVED' | 'NOT_SUPPORTED' | 'LEGACY_ONLY'};
 
 export interface ModelRuntimeSportStatus {
   sport: ModelRuntimeSportStatusSport;
@@ -775,8 +795,18 @@ export interface ModelRuntimeSportStatus {
   candidateVersion?: string | null;
   /** @nullable */
   candidateArtifactHash?: string | null;
+  /** @nullable */
+  candidateArtifactId?: string | null;
+  /** @nullable */
+  inputContract?: string | null;
   approvalStatus: string;
   executorAvailable: boolean;
+  executorHealth: ModelRuntimeSportStatusExecutorHealth;
+  executorHealthReason?: string;
+  reproducibilityReady: boolean;
+  officialBridgeReady: boolean;
+  officialBridgeStatus?: ModelRuntimeSportStatusOfficialBridgeStatus;
+  supportedMarkets?: ModelRuntimeSportStatusSupportedMarkets;
   resolvedServingState: ModelRuntimeSportStatusResolvedServingState;
   runtimeHealth: string;
   publicationStatus: ModelRuntimeSportStatusPublicationStatus;
@@ -866,6 +896,28 @@ export const ModelRuntimeDryRunResultDisposition = {
 
 export type ModelRuntimeDryRunResultResolution = { [key: string]: unknown };
 
+export type ModelRuntimeDryRunResultExecutorHealth = { [key: string]: unknown };
+
+/**
+ * @nullable
+ */
+export type ModelRuntimeDryRunResultExecutionBridge = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type ModelRuntimeDryRunResultExecution = {
+  inputSnapshotId?: string;
+  inputHash?: string;
+  outputHash?: string;
+  /** @nullable */
+  secondOutputHash?: string | null;
+  reproducible?: boolean;
+  /** @nullable */
+  bridge?: ModelRuntimeDryRunResultExecutionBridge;
+  [key: string]: unknown;
+ } | null;
+
 export interface ModelRuntimeDryRunResult {
   auditId: string;
   sport: ModelRuntimeDryRunResultSport;
@@ -873,6 +925,9 @@ export interface ModelRuntimeDryRunResult {
   gameId?: string | null;
   disposition: ModelRuntimeDryRunResultDisposition;
   resolution: ModelRuntimeDryRunResultResolution;
+  executorHealth?: ModelRuntimeDryRunResultExecutorHealth;
+  /** @nullable */
+  execution?: ModelRuntimeDryRunResultExecution;
 }
 
 export type FreePickRecommendation = typeof FreePickRecommendation[keyof typeof FreePickRecommendation];

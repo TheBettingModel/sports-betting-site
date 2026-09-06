@@ -1,6 +1,7 @@
 export const GUARDED_SERVING_APPEND_ONLY_TABLES = [
   "model_artifact_approval_ledger",
   "guarded_serving_audits",
+  "candidate_execution_audits",
   "official_prediction_identity",
   "official_prediction_lifecycle",
   "model_review_policies",

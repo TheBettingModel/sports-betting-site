@@ -94,6 +94,9 @@ type Exclusion = { snapshotId: number; reason: string };
 const valid = (d: Date | null | undefined): d is Date => d instanceof Date && Number.isFinite(d.getTime());
 const key = (provider: string, event: string) => `${provider}:${event}`;
 const hash = (x: unknown) => createHash("sha256").update(JSON.stringify(x)).digest("hex");
+/** Canonical, deliberately tiny checksum contract for the immutable executable input. */
+export const ncaafV42026InputChecksum = (replayRowChecksum: string, featureCutoff: string) =>
+  hash({ row: replayRowChecksum, cutoff: featureCutoff });
 const fbs = (payload: unknown) => {
   const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
   const game = root.game && typeof root.game === "object" ? root.game as Record<string, unknown> : root;
@@ -257,8 +260,16 @@ export function buildNcaafV42026FeatureBridge(input: NcaafV42026BridgeInput) {
     const row = replay.rows.find(r => r.stableGameId === sentinel.stableGameId);
     if (!row) { reject("unable_to_construct_pregame_state"); continue; }
     audit.postKickoffEvidence += replay.audit.leakage.postKickoffPitExcluded + replay.audit.leakage.postKickoffAvailabilityExcluded;
-    const sourceAudit = Object.freeze({ featureFreeze: "replayNcaafChronologically_before_targets", targetResultUsed: false, completedGamesBeforeCutoff: prior.games.length, replayChecksum: replay.audit.checksum });
-    const bridgeInput = Object.freeze({ stableGameId: row.stableGameId, season: 2026 as const, week: snapshot.week, kickoffAt: row.kickoffAt, featureCutoff: snapshot.dataCutoffAt.toISOString(), features: row.features, checksum: hash({ row: row.checksum, cutoff: snapshot.dataCutoffAt.toISOString() }), sourceAudit });
+    const sourceAudit = Object.freeze({
+      featureFreeze: "replayNcaafChronologically_before_targets", targetResultUsed: false,
+      completedGamesBeforeCutoff: prior.games.length, replayChecksum: replay.audit.checksum,
+      replayRowChecksum: row.checksum, snapshotId: snapshot.id,
+      targetProvider: snapshot.targetProvider, targetEventId: snapshot.targetEventId,
+      snapshotKickoffAt: snapshot.kickoffAt.toISOString(), snapshotDataCutoffAt: snapshot.dataCutoffAt.toISOString(),
+      evidenceMaxCapturedAt: snapshot.evidenceMaxCapturedAt?.toISOString() ?? null,
+      evidenceMaxModeledAt: snapshot.evidenceMaxModeledAt?.toISOString() ?? null,
+    });
+    const bridgeInput = Object.freeze({ stableGameId: row.stableGameId, season: 2026 as const, week: snapshot.week, kickoffAt: row.kickoffAt, featureCutoff: snapshot.dataCutoffAt.toISOString(), features: row.features, checksum: ncaafV42026InputChecksum(row.checksum, snapshot.dataCutoffAt.toISOString()), sourceAudit });
     inputs.push(bridgeInput); audit.eligibleSnapshots++;
     if (input.predict) {
       const p = input.predict(bridgeInput);

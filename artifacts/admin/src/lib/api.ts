@@ -246,20 +246,28 @@ export interface ModelRuntimeSportStatus {
   candidateEngine: string | null;
   candidateVersion: string | null;
   candidateArtifactHash: string | null;
+  candidateArtifactId: string | null;
+  inputContract: string | null;
   approvalStatus: string;
   /** Whether the configured candidate has a registered serving executor. */
   executorAvailable: boolean;
+  /** Actual executor liveness reported by the runtime. */
+  executorHealth: "HEALTHY" | "UNHEALTHY" | "UNAVAILABLE";
+  executorHealthReason: string;
+  /** Exact runtime reproducibility gate result. */
+  reproducibilityReady: boolean;
+  /** Whether the official publication bridge is ready for this runtime. */
+  officialBridgeReady: boolean;
+  officialBridgeStatus: "READY" | "BLOCKED";
+  /** Per-market runtime support classifications from the guarded-serving resolver. */
+  supportedMarkets: Record<
+    string,
+    "EXECUTOR_SUPPORTED" | "DERIVABLE_BUT_NOT_APPROVED" | "NOT_SUPPORTED" | "LEGACY_ONLY"
+  >;
   /** Resolver result after mode, approval, and executor availability are applied. */
-  resolvedServingState: string;
-  approvedMarkets: string[];
-  inputContract: string | null;
-  lastSuccessfulPrediction: string | null;
-  lastSuccessfulEvidenceCollection: string | null;
-  fallbackEngine: string;
-  fallbackHealth: string;
+  resolvedServingState: "INCUMBENT_ACTIVE" | "INCUMBENT_FALLBACK" | "CANDIDATE_ACTIVE" | "STARTUP_BLOCKED";
   runtimeHealth: string;
-  healthStatuses: string[];
-  publicationStatus: string;
+  publicationStatus: "APPROVED_NOT_ENABLED" | "ELIGIBLE_BY_APPROVAL" | "BLOCKED_BY_APPROVAL" | "BLOCKED_BY_RUNTIME" | "BLOCKED_BY_OFFICIAL_BRIDGE";
 }
 
 export interface ModelRuntimeOfficialPrediction {

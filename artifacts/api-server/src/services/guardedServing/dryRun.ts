@@ -1,18 +1,21 @@
 import { randomUUID } from "node:crypto";
-import { desc, eq, gt } from "drizzle-orm";
+import { desc, gt } from "drizzle-orm";
 import {
-  db, guardedServingAuditsTable, mlbV4PregameFeaturesTable,
-  mlbV4ShadowForecastsTable,
+  candidateExecutionAuditsTable, db, guardedServingAuditsTable, mlbV4PregameFeaturesTable,
 } from "@workspace/db";
 import { guardedServingConfig } from "./config";
 import { getCurrentMlbCandidateIdentity, getCurrentNcaafCandidateIdentity } from "./candidateRegistry";
 import { resolveExactApproval } from "./approvalRegistry";
 import { resolveMlbProductionEngine, resolveNcaafProductionEngine } from "./resolvers";
-import { adaptApprovedNextGenOutput, dryRunDisposition } from "./publicationAdapter";
-import { getNcaafV4ProjectionBoard } from "../ncaafV4GameDay";
+import { evaluateCandidateWithoutPublishing } from "./nonPublishingCandidateAdapter";
 import { logger } from "../../lib/logger";
 import type { EligibilitySignals, ExactArtifactIdentity } from "./types";
 import { MLB_CANDIDATE_ENGINE } from "./types";
+import { candidateExecutorRegistry } from "./executorRegistry";
+import {
+  executeCurrentNcaafCandidateTwice, ncaafCandidateExecutor,
+  registerNcaafCandidateExecutor, toDryRunModelPredictionBridge,
+} from "./ncaafCandidateExecutor";
 
 function unavailableSignals(): EligibilitySignals {
   return {
@@ -80,19 +83,17 @@ export async function runMlbRealSlateDryRun(now = new Date()) {
   const [feature] = await db.select().from(mlbV4PregameFeaturesTable)
     .where(gt(mlbV4PregameFeaturesTable.scheduledFirstPitch, now))
     .orderBy(desc(mlbV4PregameFeaturesTable.featureCutoff)).limit(1);
-  const [forecast] = feature ? await db.select().from(mlbV4ShadowForecastsTable)
-    .where(eq(mlbV4ShadowForecastsTable.gameId, feature.gameId))
-    .orderBy(desc(mlbV4ShadowForecastsTable.forecastGeneratedAt)).limit(1) : [];
   const identity: ExactArtifactIdentity = registryIdentity ?? {
     sport: "MLB", market: "moneyline", modelFamily: "expected-runs",
-    modelId: MLB_CANDIDATE_ENGINE, modelVersion: forecast?.modelVersion ?? "UNRESOLVED",
-    artifactId: forecast?.forecastId ?? "REGISTRY_RECORD_MISSING",
-    artifactHash: forecast?.modelHash ?? "REGISTRY_RECORD_MISSING",
+    modelId: MLB_CANDIDATE_ENGINE, modelVersion: "UNRESOLVED",
+    artifactId: "REGISTRY_RECORD_MISSING",
+    artifactHash: "REGISTRY_RECORD_MISSING",
     inputContractVersion: feature?.schemaVersion ?? "model-input-v4",
   };
+  const executor = registryIdentity ? candidateExecutorRegistry.resolve(identity) : null;
   const evaluationMode = guardedServingConfig.mlbMode === "v1" ? "v4_guarded" : guardedServingConfig.mlbMode;
   const approval = await resolveExactApproval(identity, evaluationMode === "v4" ? "full" : "guarded");
-  const signals = feature && forecast ? {
+  const signals = feature && executor ? {
     identityResolved: registryIdentity !== null,
     inputAvailable: true,
     inputFresh: now.getTime() - feature.featureCutoff.getTime() <= 24 * 60 * 60_000,
@@ -100,78 +101,109 @@ export async function runMlbRealSlateDryRun(now = new Date()) {
     teamStateComplete: feature.baselineCoreEligible,
     contextComplete: feature.baselineCoreEligible,
     pitSafe: feature.pitSafe,
-    leakageSafe: true,
+    leakageSafe: false,
     marketFresh: false,
     runtimeHealth: "CANDIDATE_HEALTHY" as const,
     publicationEligible: true,
     incumbentEligible: true,
   } : unavailableSignals();
   const resolution = resolveMlbProductionEngine({ mode: evaluationMode, identity, approval, signals });
-  const adapted = forecast ? adaptApprovedNextGenOutput({
-    sport: "MLB", gameId: forecast.gameId, market: "moneyline",
-    selection: forecast.homeWinProbability >= .5 ? "home" : "away",
-    line: null, odds: null, sportsbook: null,
-    modelProbability: Math.max(forecast.homeWinProbability, forecast.awayWinProbability),
-    impliedProbability: null, edge: 0, confidence: "Unavailable",
-    recommendation: "Neutral", units: 0, rawEvidence: forecast as unknown as Record<string, unknown>,
-    identity: {
-      sport: "MLB", engine: identity.modelId, modelFamily: identity.modelFamily,
-      modelVersion: identity.modelVersion, artifactId: identity.artifactId, servingMode: evaluationMode,
-      inputVersion: identity.inputContractVersion, approvalStatus: approval.state,
-      fallbackUsed: false, fallbackFrom: null, fallbackReason: null,
-      predictionTimestamp: forecast.forecastGeneratedAt.toISOString(),
-      artifactHash: identity.artifactHash, snapshotId: feature?.snapshotId ?? null,
-    },
-  }, resolution) : null;
-  const disposition = dryRunDisposition(resolution, adapted);
+  const finalResolution: typeof resolution = !feature ? {
+    ...resolution, kind: "PASS", reason: "NO_ELIGIBLE_UPCOMING_MLB_SLATE",
+    selectedEngine: null, fallbackUsed: false, fallbackFrom: null,
+  } : !executor ? {
+    ...resolution, kind: "PASS", reason: "MLB_EXACT_EXECUTOR_UNREGISTERED",
+    selectedEngine: null, fallbackUsed: false, fallbackFrom: null,
+  } : resolution;
+  const adapted = null;
+  const disposition = finalResolution.fallbackUsed ? "WOULD_FALLBACK" as const : "WOULD_PASS" as const;
   const auditId = await persistAudit({
     sport: "MLB", gameId: feature?.gameId ?? null, identity,
-    mode: evaluationMode, resolution, disposition,
+    mode: evaluationMode, resolution: finalResolution, disposition,
     snapshotId: feature?.snapshotId ?? null,
-    evidence: { source: "model-input-v4", actualConfiguredMode: guardedServingConfig.mlbMode, registryRecordFound: Boolean(registryIdentity), featureFound: Boolean(feature), challengerForecastFound: Boolean(forecast), adapterTraversed: true, universalPipelineTraversed: true },
+    evidence: {
+      source: "model-input-v4", actualConfiguredMode: guardedServingConfig.mlbMode,
+      registryRecordFound: Boolean(registryIdentity), featureFound: Boolean(feature),
+      executorAvailable: Boolean(executor), candidateExecution: "BLOCKED_EXECUTABLE_ARTIFACT_NOT_PRESENT",
+      oldShadowOutputUsed: false, adapterTraversed: false, universalPipelineTraversed: false,
+    },
     now,
   });
-  return { auditId, sport: "MLB", gameId: feature?.gameId ?? null, disposition, resolution };
+  return { auditId, sport: "MLB", gameId: feature?.gameId ?? null, disposition, resolution: finalResolution };
 }
 
 export async function runNcaafRealSlateDryRun(now = new Date()) {
+  registerNcaafCandidateExecutor();
   const identity = getCurrentNcaafCandidateIdentity();
-  const board = await getNcaafV4ProjectionBoard(undefined, now) as unknown as { board?: Array<Record<string, any>> };
-  const candidate = board.board?.[0];
   const evaluationMode = guardedServingConfig.ncaafMode === "legacy" ? "nextgen_guarded" : guardedServingConfig.ncaafMode;
   const approval = await resolveExactApproval(identity, evaluationMode === "nextgen" ? "full" : "guarded");
-  const hasMarket = Boolean(candidate?.market?.moneyline);
-  const signals: EligibilitySignals = candidate ? {
-    identityResolved: true, inputAvailable: true, inputFresh: true,
-    starterOrQbComplete: candidate.model?.dataQuality !== "INSUFFICIENT",
-    teamStateComplete: candidate.model?.dataQuality !== "INSUFFICIENT",
-    contextComplete: true, pitSafe: true, leakageSafe: true, marketFresh: hasMarket,
-    runtimeHealth: "CANDIDATE_HEALTHY", publicationEligible: true, incumbentEligible: true,
+  const executor = candidateExecutorRegistry.resolve(identity);
+  if (!executor || executor !== ncaafCandidateExecutor) {
+    throw new Error("Exact NCAAF candidate executor is not registered");
+  }
+  const { materialized, first, second, health } = await executeCurrentNcaafCandidateTwice(now);
+  const candidate = first?.output;
+  const bridge = candidate && first && materialized
+    ? toDryRunModelPredictionBridge(candidate, materialized.snapshotId, first.executedAt) : null;
+  const signals: EligibilitySignals = candidate && first ? {
+    identityResolved: true, inputAvailable: true, inputFresh: first.evidence.fresh,
+    starterOrQbComplete: candidate.dataQuality !== "INSUFFICIENT",
+    teamStateComplete: candidate.dataQuality !== "INSUFFICIENT",
+    contextComplete: first.evidence.complete, pitSafe: first.evidence.pitSafe,
+    leakageSafe: first.evidence.leakageSafe, marketFresh: false,
+    runtimeHealth: health.status === "HEALTHY" ? "CANDIDATE_HEALTHY" : "CANDIDATE_RUNTIME_FAILURE",
+    publicationEligible: first.evidence.complete, incumbentEligible: true,
   } : unavailableSignals();
   const resolution = resolveNcaafProductionEngine({ mode: evaluationMode, identity, approval, signals });
-  const probability = Number(candidate?.model?.homeWinProbability ?? 0);
-  const adapted = candidate ? adaptApprovedNextGenOutput({
-    sport: "NCAAF", gameId: String(candidate.gameId), market: "moneyline",
-    selection: probability >= .5 ? "home" : "away", line: null,
-    odds: null, sportsbook: null, modelProbability: Math.max(probability, 1 - probability),
-    impliedProbability: null, edge: 0, confidence: String(candidate.model?.dataQuality ?? "Unavailable"),
-    recommendation: "Neutral", units: 0, rawEvidence: candidate,
-    identity: {
-      sport: "NCAAF", engine: identity.modelId, modelFamily: identity.modelFamily,
-      modelVersion: identity.modelVersion, artifactId: identity.artifactId, servingMode: evaluationMode,
-      inputVersion: identity.inputContractVersion, approvalStatus: approval.state,
-      fallbackUsed: false, fallbackFrom: null, fallbackReason: null,
-      predictionTimestamp: now.toISOString(), artifactHash: identity.artifactHash,
-      configurationHash: identity.configurationHash, snapshotId: String(candidate.model?.snapshotId ?? ""),
-    },
-  }, resolution) : null;
-  const disposition = dryRunDisposition(resolution, adapted);
+  const finalResolution: typeof resolution = materialized ? resolution : {
+    ...resolution, kind: "PASS", reason: "NO_ELIGIBLE_UPCOMING_NCAAF_SLATE",
+    selectedEngine: null, fallbackUsed: false, fallbackFrom: null,
+  };
+  const evaluation = candidate
+    ? evaluateCandidateWithoutPublishing(candidate as unknown as Record<string, unknown>, identity, finalResolution)
+    : null;
+  const disposition = finalResolution.fallbackUsed ? "WOULD_FALLBACK" as const : "WOULD_PASS" as const;
+  if (first && second && candidate && materialized) {
+    await db.insert(candidateExecutionAuditsTable).values({
+      executionId: randomUUID(), dryRun: true, sport: "NCAAF", gameId: candidate.gameId,
+      market: "moneyline", modelFamily: identity.modelFamily, modelId: identity.modelId,
+      modelVersion: identity.modelVersion, artifactId: identity.artifactId,
+      artifactHash: identity.artifactHash, configurationHash: identity.configurationHash,
+      parameterHash: identity.parameterHash, inputContractVersion: identity.inputContractVersion,
+      inputSnapshotId: materialized.snapshotId, inputHash: first.evidence.inputHash,
+      featureCutoff: new Date(first.evidence.featureCutoff),
+      materializedAt: new Date(first.evidence.materializedAt), executedAt: new Date(first.executedAt),
+      rawOutput: candidate, outputHash: first.outputHash, secondOutputHash: second.outputHash,
+      reproducible: first.outputHash === second.outputHash, executorHealth: health.status,
+      pitSafe: first.evidence.pitSafe, leakageSafe: first.evidence.leakageSafe,
+      resolverReason: finalResolution.reason, publicationDisposition: disposition,
+      evidence: {
+        executionCount: 2, comparison: ncaafCandidateExecutor.reproducibility.comparison,
+        modelPredictionBridge: bridge, evaluation, officialPersistence: false, boardOutputUsed: false,
+      },
+    });
+  }
   const auditId = await persistAudit({
-    sport: "NCAAF", gameId: candidate ? String(candidate.gameId) : null, identity,
-    mode: evaluationMode, resolution, disposition,
-    snapshotId: candidate ? String(candidate.model?.snapshotId ?? candidate.predictionId ?? "") : null,
-    evidence: { source: "ncaaf-current-game-day-nextgen", actualConfiguredMode: guardedServingConfig.ncaafMode, candidateFound: Boolean(candidate), adapterTraversed: true, universalPipelineTraversed: true },
+    sport: "NCAAF", gameId: candidate?.gameId ?? null, identity,
+    mode: evaluationMode, resolution: finalResolution, disposition,
+    snapshotId: materialized?.snapshotId ?? null,
+    evidence: {
+      source: "ncaaf-authoritative-2026-feature-bridge",
+      actualConfiguredMode: guardedServingConfig.ncaafMode, candidateFound: Boolean(candidate),
+      freshExecutorCompleted: Boolean(first), reproducible: Boolean(first && second && first.outputHash === second.outputHash),
+      inputHash: first?.evidence.inputHash ?? null, outputHash: first?.outputHash ?? null,
+      modelPredictionBridgeCreated: Boolean(bridge), officialPersistence: false, boardOutputUsed: false,
+      adapterStage: evaluation?.stages.adapter ?? "NOT_ATTEMPTED",
+      universalStage: evaluation?.stages.universal ?? "NOT_ATTEMPTED",
+    },
     now,
   });
-  return { auditId, sport: "NCAAF", gameId: candidate ? String(candidate.gameId) : null, disposition, resolution };
+  return {
+    auditId, sport: "NCAAF", gameId: candidate?.gameId ?? null, disposition, resolution: finalResolution,
+    executorHealth: health, execution: first ? {
+      inputSnapshotId: first.evidence.snapshotId, inputHash: first.evidence.inputHash,
+      outputHash: first.outputHash, secondOutputHash: second?.outputHash,
+      reproducible: first.outputHash === second?.outputHash, bridge, evaluation,
+    } : null,
+  };
 }

@@ -326,11 +326,19 @@ export const GetAdminModelRuntimeStatusResponse = zod.object({
   "candidateEngine": zod.string().nullish(),
   "candidateVersion": zod.string().nullish(),
   "candidateArtifactHash": zod.string().nullish(),
+  "candidateArtifactId": zod.string().nullish(),
+  "inputContract": zod.string().nullish(),
   "approvalStatus": zod.string(),
   "executorAvailable": zod.boolean(),
+  "executorHealth": zod.enum(['HEALTHY', 'UNHEALTHY', 'UNAVAILABLE']),
+  "executorHealthReason": zod.string().optional(),
+  "reproducibilityReady": zod.boolean(),
+  "officialBridgeReady": zod.boolean(),
+  "officialBridgeStatus": zod.enum(['READY', 'BLOCKED']).optional(),
+  "supportedMarkets": zod.record(zod.string(), zod.enum(['EXECUTOR_SUPPORTED', 'DERIVABLE_BUT_NOT_APPROVED', 'NOT_SUPPORTED', 'LEGACY_ONLY'])).optional(),
   "resolvedServingState": zod.enum(['INCUMBENT_ACTIVE', 'INCUMBENT_FALLBACK', 'CANDIDATE_ACTIVE', 'STARTUP_BLOCKED']),
   "runtimeHealth": zod.string(),
-  "publicationStatus": zod.enum(['APPROVED_NOT_ENABLED', 'ELIGIBLE_BY_APPROVAL', 'BLOCKED_BY_APPROVAL', 'BLOCKED_BY_RUNTIME'])
+  "publicationStatus": zod.enum(['APPROVED_NOT_ENABLED', 'ELIGIBLE_BY_APPROVAL', 'BLOCKED_BY_APPROVAL', 'BLOCKED_BY_RUNTIME', 'BLOCKED_BY_OFFICIAL_BRIDGE'])
 })),
   "latestOfficialPrediction": zod.record(zod.string(), zod.unknown()).nullish()
 })
@@ -348,7 +356,16 @@ export const RunAdminModelRuntimeDryRunResponse = zod.object({
   "sport": zod.enum(['MLB', 'NCAAF']),
   "gameId": zod.string().nullish(),
   "disposition": zod.enum(['WOULD_SERVE', 'WOULD_FALLBACK', 'WOULD_PASS']),
-  "resolution": zod.record(zod.string(), zod.unknown())
+  "resolution": zod.record(zod.string(), zod.unknown()),
+  "executorHealth": zod.record(zod.string(), zod.unknown()).optional(),
+  "execution": zod.object({
+  "inputSnapshotId": zod.string().optional(),
+  "inputHash": zod.string().optional(),
+  "outputHash": zod.string().optional(),
+  "secondOutputHash": zod.string().nullish(),
+  "reproducible": zod.boolean().optional(),
+  "bridge": zod.record(zod.string(), zod.unknown()).nullish()
+}).nullish()
 })
 
 

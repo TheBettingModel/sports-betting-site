@@ -1518,7 +1518,7 @@ components:
     ModelRuntimeSportStatus:
       type: object
       additionalProperties: true
-      required: [sport, configuredMode, activePrimaryEngine, approvalStatus, executorAvailable, resolvedServingState, runtimeHealth, publicationStatus]
+      required: [sport, configuredMode, activePrimaryEngine, approvalStatus, executorAvailable, executorHealth, reproducibilityReady, officialBridgeReady, resolvedServingState, runtimeHealth, publicationStatus]
       properties:
         sport: { type: string, enum: [MLB, NCAAF] }
         configuredMode: { type: string }
@@ -1526,15 +1526,27 @@ components:
         candidateEngine: { type: ["string", "null"] }
         candidateVersion: { type: ["string", "null"] }
         candidateArtifactHash: { type: ["string", "null"] }
+        candidateArtifactId: { type: ["string", "null"] }
+        inputContract: { type: ["string", "null"] }
         approvalStatus: { type: string }
         executorAvailable: { type: boolean }
+        executorHealth: { type: string, enum: [HEALTHY, UNHEALTHY, UNAVAILABLE] }
+        executorHealthReason: { type: string }
+        reproducibilityReady: { type: boolean }
+        officialBridgeReady: { type: boolean }
+        officialBridgeStatus: { type: string, enum: [READY, BLOCKED] }
+        supportedMarkets:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [EXECUTOR_SUPPORTED, DERIVABLE_BUT_NOT_APPROVED, NOT_SUPPORTED, LEGACY_ONLY]
         resolvedServingState:
           type: string
           enum: [INCUMBENT_ACTIVE, INCUMBENT_FALLBACK, CANDIDATE_ACTIVE, STARTUP_BLOCKED]
         runtimeHealth: { type: string }
         publicationStatus:
           type: string
-          enum: [APPROVED_NOT_ENABLED, ELIGIBLE_BY_APPROVAL, BLOCKED_BY_APPROVAL, BLOCKED_BY_RUNTIME]
+          enum: [APPROVED_NOT_ENABLED, ELIGIBLE_BY_APPROVAL, BLOCKED_BY_APPROVAL, BLOCKED_BY_RUNTIME, BLOCKED_BY_OFFICIAL_BRIDGE]
 
     ModelRuntimeDryRunInput:
       type: object
@@ -1578,6 +1590,21 @@ components:
         resolution:
           type: object
           additionalProperties: true
+        executorHealth:
+          type: object
+          additionalProperties: true
+        execution:
+          type: [object, "null"]
+          additionalProperties: true
+          properties:
+            inputSnapshotId: { type: string }
+            inputHash: { type: string }
+            outputHash: { type: string }
+            secondOutputHash: { type: ["string", "null"] }
+            reproducible: { type: boolean }
+            bridge:
+              type: [object, "null"]
+              additionalProperties: true
 
     GamesTodayResponse:
       type: object

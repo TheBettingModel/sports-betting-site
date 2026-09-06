@@ -11,6 +11,8 @@ import {
 } from "./types";
 import { evaluateCurrentCandidates } from "./currentReviews";
 import type { ExactApproval, ExactArtifactIdentity } from "./types";
+import { candidateExecutorRegistry } from "./executorRegistry";
+import { registerNcaafCandidateExecutor } from "./ncaafCandidateExecutor";
 
 async function latestPrediction(modelId: string): Promise<Date | null> {
   const [row] = await db.select({ at: modelPredictionsTable.predictionTimestamp })
@@ -22,8 +24,14 @@ async function latestPrediction(modelId: string): Promise<Date | null> {
 }
 
 export async function getGuardedServingRuntimeStatus() {
+  registerNcaafCandidateExecutor();
   const mlbIdentity = await getCurrentMlbCandidateIdentity();
   const ncaafIdentity = getCurrentNcaafCandidateIdentity();
+  const mlbExecutor = mlbIdentity ? candidateExecutorRegistry.resolve(mlbIdentity) : null;
+  const ncaafExecutor = candidateExecutorRegistry.resolve(ncaafIdentity);
+  const [mlbExecutorHealth, ncaafExecutorHealth] = await Promise.all([
+    mlbExecutor?.health() ?? null, ncaafExecutor?.health() ?? null,
+  ]);
   const [
     mlbApproval, ncaafApproval, mlbIncumbentPrediction, ncaafIncumbentPrediction,
     mlbEvidence, ncaafEvidence, official, reviews,
@@ -47,8 +55,8 @@ export async function getGuardedServingRuntimeStatus() {
     automaticParameterChanges: "DISABLED",
     automaticPromotion: "DISABLED",
     sports: [
-      sportStatus("MLB", guardedServingConfig.mlbMode, MLB_INCUMBENT_ENGINE, mlbIdentity, mlbApproval, mlbIncumbentPrediction, mlbEvidence[0]?.at ?? null),
-      sportStatus("NCAAF", guardedServingConfig.ncaafMode, NCAAF_INCUMBENT_ENGINE, ncaafIdentity, ncaafApproval, ncaafIncumbentPrediction, ncaafEvidence[0]?.at ?? null),
+      sportStatus("MLB", guardedServingConfig.mlbMode, MLB_INCUMBENT_ENGINE, mlbIdentity, mlbApproval, mlbIncumbentPrediction, mlbEvidence[0]?.at ?? null, Boolean(mlbExecutor), mlbExecutorHealth, mlbExecutor?.identity.supportedMarkets),
+      sportStatus("NCAAF", guardedServingConfig.ncaafMode, NCAAF_INCUMBENT_ENGINE, ncaafIdentity, ncaafApproval, ncaafIncumbentPrediction, ncaafEvidence[0]?.at ?? null, Boolean(ncaafExecutor), ncaafExecutorHealth, ncaafExecutor?.identity.supportedMarkets),
     ],
     reviews,
     latestOfficialPrediction: official[0] ? {
@@ -72,6 +80,9 @@ export function resolveRuntimeSportStatus(
     lastPrediction: Date | null,
     lastEvidence: Date | null,
     executorAvailable = false,
+    executorHealth: { status: "HEALTHY" | "UNHEALTHY"; reproducibilityReady: boolean; reason: string; checkedAt: string } | null = null,
+    supportedMarkets?: Readonly<Record<string, string>>,
+    officialBridgeReady = false,
   ) {
     const incumbentMode = mode === "v1" || mode === "legacy";
     const candidateHealth = !identity ? "CANDIDATE_INPUT_UNAVAILABLE"
@@ -81,7 +92,7 @@ export function resolveRuntimeSportStatus(
     const fallbackHealth = lastPrediction ? "FALLBACK_HEALTHY" : "SERVING_DEGRADED";
     const resolvedServingState = incumbentMode ? "INCUMBENT_ACTIVE"
       : !executorAvailable ? "STARTUP_BLOCKED"
-      : !approval?.approved ? "INCUMBENT_FALLBACK"
+      : !approval?.approved || !officialBridgeReady ? "INCUMBENT_FALLBACK"
       : "CANDIDATE_ACTIVE";
     return ({
     sport,
@@ -90,8 +101,15 @@ export function resolveRuntimeSportStatus(
     candidateEngine: identity?.modelId ?? null,
     candidateVersion: identity?.modelVersion ?? null,
     candidateArtifactHash: identity?.artifactHash ?? null,
+    candidateArtifactId: identity?.artifactId ?? null,
     approvalStatus: approval?.state ?? "UNVALIDATED",
     executorAvailable,
+    executorHealth: executorHealth?.status ?? "UNAVAILABLE",
+    executorHealthReason: executorHealth?.reason ?? "EXACT_EXECUTOR_NOT_REGISTERED",
+    reproducibilityReady: executorHealth?.reproducibilityReady ?? false,
+    officialBridgeReady,
+    officialBridgeStatus: officialBridgeReady ? "READY" : "BLOCKED",
+    supportedMarkets: supportedMarkets ?? {},
     resolvedServingState,
     approvedMarkets: approval?.approved && identity ? [identity.market] : [],
     inputContract: identity?.inputContractVersion ?? null,
@@ -106,7 +124,7 @@ export function resolveRuntimeSportStatus(
       fallbackHealth,
     ],
     publicationStatus: approval?.approved
-      ? incumbentMode ? "APPROVED_NOT_ENABLED" : !executorAvailable ? "BLOCKED_BY_RUNTIME" : "ELIGIBLE_BY_APPROVAL"
+      ? incumbentMode ? "APPROVED_NOT_ENABLED" : !executorAvailable ? "BLOCKED_BY_RUNTIME" : !officialBridgeReady ? "BLOCKED_BY_OFFICIAL_BRIDGE" : "ELIGIBLE_BY_APPROVAL"
       : "BLOCKED_BY_APPROVAL",
     });
 }
