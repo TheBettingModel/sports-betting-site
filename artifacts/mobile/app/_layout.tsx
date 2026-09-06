@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { ClerkProvider, ClerkLoaded, ClerkLoading, useAuth } from '@clerk/expo';
@@ -92,6 +92,16 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
+  // Never leave the native splash screen up forever if a bundled font or
+  // AsyncStorage read stalls on a device. Those are visual enhancements, not
+  // prerequisites for rendering the auth screen; React Native can fall back
+  // to system fonts and the disclaimer check can safely default to complete.
+  const [startupTimedOut, setStartupTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setStartupTimedOut(true), 8_000);
+    return () => clearTimeout(t);
+  }, []);
+
   // Expo web waits on FontFaceObserver and throws after six seconds when a
   // preview connection is slow. Native builds load these bundled assets
   // directly, while web safely falls back to the system sans-serif font.
@@ -125,14 +135,17 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if ((fontsLoaded || fontError) && disclaimerChecked) {
+    if ((fontsLoaded || fontError || startupTimedOut)
+      && (disclaimerChecked || startupTimedOut)) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError, disclaimerChecked]);
+  }, [fontsLoaded, fontError, disclaimerChecked, startupTimedOut]);
 
   // Hold rendering until both fonts and the disclaimer check are ready.
-  // This keeps the splash screen visible and prevents any layout flash.
-  if ((!fontsLoaded && !fontError) || !disclaimerChecked) return null;
+  // If either optional startup task stalls, fail open after the timeout so the
+  // user gets the auth screen instead of an infinite black screen.
+  if ((!fontsLoaded && !fontError && !startupTimedOut)
+    || (!disclaimerChecked && !startupTimedOut)) return null;
 
   // publishableKey is provided by the @clerk/expo native plugin from Info.plist
   // at runtime. The env var remains a JavaScript-bundle fallback for development.
@@ -164,7 +177,14 @@ export default function RootLayout() {
                   <Text style={{ color: '#000', fontFamily: 'Inter_700Bold', fontSize: 14 }}>Tap to Retry</Text>
                 </Pressable>
               </>
-            ) : null}
+            ) : (
+              <>
+                <ActivityIndicator color="#84CC16" size="small" />
+                <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 16 }}>
+                  Loading your account…
+                </Text>
+              </>
+            )}
           </View>
         </ClerkLoading>
         <ClerkLoaded>
