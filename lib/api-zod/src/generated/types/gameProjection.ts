@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MarketProjection } from './marketProjection';
+import type { PredictionModelIdentity } from './predictionModelIdentity';
 
 export interface GameProjection {
   id: string;
@@ -73,4 +74,5 @@ export interface GameProjection {
   selectedPick?: MarketProjection | null;
   moneylineMarket?: MarketProjection | null;
   spreadMarket?: MarketProjection | null;
+  modelIdentity?: PredictionModelIdentity;
 }

@@ -33,6 +33,7 @@ export * from "./spread-model-configs";
 export * from "./spread-predictions";
 export * from "./spread-prediction-results";
 export * from "./market-approval-decisions";
+export * from "./guarded-serving";
 
 // ── Feature store ─────────────────────────────────────────────────────────────
 export * from "./feature-definitions";

@@ -138,7 +138,19 @@ export const GetGamesTodayResponse = zod.object({
   "units": zod.number(),
   "eligible": zod.boolean(),
   "gateStatus": zod.string().nullish()
-}).nullish()
+}).nullish(),
+  "modelIdentity": zod.object({
+  "engine": zod.string(),
+  "modelFamily": zod.string().nullish(),
+  "modelVersion": zod.string(),
+  "artifactId": zod.string().nullish(),
+  "servingMode": zod.string().nullish(),
+  "inputVersion": zod.string().nullish(),
+  "approvalStatus": zod.string().nullish(),
+  "fallbackUsed": zod.boolean(),
+  "fallbackReason": zod.string().nullish(),
+  "predictionTimestamp": zod.coerce.date()
+}).optional().describe('Optional truthful identity from the latest persisted generating prediction.')
 })),
   "lastUpdated": zod.string(),
   "totalGames": zod.number(),
@@ -296,6 +308,72 @@ export const UpdateChatPreferencesBody = zod.object({
 
 export const UpdateChatPreferencesResponse = zod.object({
   "chatNotificationsEnabled": zod.boolean()
+})
+
+
+/**
+ * @summary Get actual guarded-serving configuration, identity, approval, and health
+ */
+export const GetAdminModelRuntimeStatusResponse = zod.object({
+  "generatedAt": zod.coerce.date(),
+  "automaticRetraining": zod.string(),
+  "automaticParameterChanges": zod.string(),
+  "automaticPromotion": zod.string(),
+  "sports": zod.array(zod.object({
+  "sport": zod.enum(['MLB', 'NCAAF']),
+  "configuredMode": zod.string(),
+  "activePrimaryEngine": zod.string(),
+  "candidateEngine": zod.string().nullish(),
+  "candidateVersion": zod.string().nullish(),
+  "candidateArtifactHash": zod.string().nullish(),
+  "approvalStatus": zod.string(),
+  "executorAvailable": zod.boolean(),
+  "resolvedServingState": zod.enum(['INCUMBENT_ACTIVE', 'INCUMBENT_FALLBACK', 'CANDIDATE_ACTIVE', 'STARTUP_BLOCKED']),
+  "runtimeHealth": zod.string(),
+  "publicationStatus": zod.enum(['APPROVED_NOT_ENABLED', 'ELIGIBLE_BY_APPROVAL', 'BLOCKED_BY_APPROVAL', 'BLOCKED_BY_RUNTIME'])
+})),
+  "latestOfficialPrediction": zod.record(zod.string(), zod.unknown()).nullish()
+})
+
+
+/**
+ * @summary Run an immutable real-slate guarded-serving dry run without publication
+ */
+export const RunAdminModelRuntimeDryRunBody = zod.object({
+  "sport": zod.enum(['MLB', 'NCAAF'])
+})
+
+export const RunAdminModelRuntimeDryRunResponse = zod.object({
+  "auditId": zod.string(),
+  "sport": zod.enum(['MLB', 'NCAAF']),
+  "gameId": zod.string().nullish(),
+  "disposition": zod.enum(['WOULD_SERVE', 'WOULD_FALLBACK', 'WOULD_PASS']),
+  "resolution": zod.record(zod.string(), zod.unknown())
+})
+
+
+/**
+ * @summary Append an explicit governed exact-artifact approval decision
+ */
+export const AppendAdminModelArtifactApprovalBody = zod.object({
+  "sport": zod.enum(['MLB', 'NCAAF', 'NFL']),
+  "market": zod.string(),
+  "modelFamily": zod.string(),
+  "modelId": zod.string(),
+  "modelVersion": zod.string(),
+  "artifactId": zod.string(),
+  "artifactHash": zod.string(),
+  "inputContractVersion": zod.string(),
+  "inputHash": zod.string().nullish(),
+  "configurationHash": zod.string().nullish(),
+  "parameterHash": zod.string().nullish(),
+  "state": zod.enum(['UNVALIDATED', 'SHADOW_APPROVED', 'GUARDED_APPROVED', 'FULL_APPROVED', 'PRODUCTION_APPROVED', 'REVOKED']),
+  "reason": zod.string(),
+  "evidenceReference": zod.string()
+})
+
+export const AppendAdminModelArtifactApprovalResponse = zod.object({
+  "eventId": zod.string()
 })
 
 

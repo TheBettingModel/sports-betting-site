@@ -119,6 +119,13 @@ import {
   parseNcaafV2CoreBackfillCursor,
   runNcaafV2CoreBackfill,
 } from "../services/ncaafV2CoreBackfill";
+import { getGuardedServingRuntimeStatus } from "../services/guardedServing/runtimeStatus";
+import {
+  runMlbRealSlateDryRun,
+  runNcaafRealSlateDryRun,
+} from "../services/guardedServing/dryRun";
+import { appendGovernedApprovalDecision } from "../services/guardedServing/approvalRegistry";
+import type { ApprovalState, ExactArtifactIdentity } from "../services/guardedServing/types";
 
 const router: IRouter = Router();
 
@@ -273,6 +280,76 @@ router.delete("/admin/session", (req, res): void => {
 });
 
 router.use("/admin", requireMasterKey);
+
+/** Actual config, exact approval ledger, evidence, prediction and fallback state. */
+router.get("/admin/model-runtime-status", async (req, res): Promise<void> => {
+  try {
+    res.json(await getGuardedServingRuntimeStatus());
+  } catch (error) {
+    req.log?.error({ error }, "Guarded model runtime status failed");
+    res.status(500).json({ error: "Unable to resolve guarded model runtime status" });
+  }
+});
+
+/** Auditable real-slate traversal. This endpoint never creates a public pick. */
+router.post("/admin/model-runtime-dry-run", async (req, res): Promise<void> => {
+  const sport = req.body?.sport;
+  if (sport !== "MLB" && sport !== "NCAAF") {
+    res.status(400).json({ error: "sport must be MLB or NCAAF" });
+    return;
+  }
+  try {
+    res.json(sport === "MLB"
+      ? await runMlbRealSlateDryRun()
+      : await runNcaafRealSlateDryRun());
+  } catch (error) {
+    req.log?.error({ error, sport }, "Guarded real-slate dry-run failed");
+    res.status(500).json({ error: error instanceof Error ? error.message : "Guarded dry-run failed" });
+  }
+});
+
+/**
+ * Explicit governed action only. Merely configuring a serving mode or meeting
+ * review thresholds never calls this endpoint and never changes approval.
+ */
+router.post("/admin/model-artifact-approvals", async (req, res): Promise<void> => {
+  const actor = getVerifiedAdminPrincipal(req);
+  const body = req.body as Partial<ExactArtifactIdentity> & {
+    state?: ApprovalState; reason?: string; evidenceReference?: string;
+  };
+  const required = [
+    "sport", "market", "modelFamily", "modelId", "modelVersion",
+    "artifactId", "artifactHash", "inputContractVersion",
+    "state", "reason", "evidenceReference",
+  ] as const;
+  if (!actor || required.some((key) => typeof body[key] !== "string" || !String(body[key]).trim())) {
+    res.status(400).json({ error: "Complete exact artifact identity, state, reason, and evidenceReference are required" });
+    return;
+  }
+  if (!["MLB", "NCAAF", "NFL"].includes(body.sport!)
+    || !["UNVALIDATED", "SHADOW_APPROVED", "GUARDED_APPROVED", "FULL_APPROVED", "PRODUCTION_APPROVED", "REVOKED"].includes(body.state!)) {
+    res.status(400).json({ error: "Invalid sport or approval state" });
+    return;
+  }
+  try {
+    const eventId = await appendGovernedApprovalDecision({
+      identity: {
+        sport: body.sport as ExactArtifactIdentity["sport"],
+        market: body.market!, modelFamily: body.modelFamily!, modelId: body.modelId!,
+        modelVersion: body.modelVersion!, artifactId: body.artifactId!,
+        artifactHash: body.artifactHash!, inputContractVersion: body.inputContractVersion!,
+        inputHash: body.inputHash ?? null, configurationHash: body.configurationHash ?? null,
+        parameterHash: body.parameterHash ?? null,
+      },
+      state: body.state!, governedActor: actor, reason: body.reason!,
+      evidenceReference: body.evidenceReference!,
+    });
+    res.status(201).json({ eventId });
+  } catch (error) {
+    req.log?.error({ error }, "Governed model artifact approval append failed");
+    res.status(500).json({ error: error instanceof Error ? error.message : "Approval append failed" });
+  }
+});
 
 /** Complete, master-protected current Eastern-day V4 preview. This route has no
  * date override by design and therefore cannot be used to prefetch tomorrow. */

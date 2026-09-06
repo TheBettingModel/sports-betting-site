@@ -20,6 +20,7 @@ import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
 import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
 import { assessMlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { writeMlbV4ShadowPrediction } from "./mlbV4Challenger";
+import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from "./guardedServing/productionBoundary";
 import { runGrading, recoverStaleGames, syncGameResults } from "./grading-runner";
 import { runForecastReviews } from "./forecastReviews";
 import { runAnalytics } from "./analytics";
@@ -824,13 +825,16 @@ async function runOddsIngestion(): Promise<void> {
               sufficientIndependentEvidence: ncaafFeature.snapshot.quality.sufficientIndependentEvidence,
             } : undefined,
           );
-          await processGameSnapshot(game, proj, decisionContext, {
-            odds: gameOdds,
-            homeTeamStats,
-            awayTeamStats,
-            homeDbStats,
-            awayDbStats,
-          });
+          const servingBoundary = await resolveProductionPredictionBoundary(game, proj, decisionContext);
+          if (shouldRunIncumbentSnapshot(servingBoundary)) {
+            await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
+              odds: gameOdds,
+              homeTeamStats,
+              awayTeamStats,
+              homeDbStats,
+              awayDbStats,
+            });
+          }
           if (game.sport === "MLB" && mlbEvidence) {
             try {
               await writeMlbV4ShadowPrediction(game, {
@@ -1164,13 +1168,16 @@ async function runResultGrading(): Promise<void> {
           mlbEvidence,
           projectionOptions.ncaafFeatureMetadata,
         );
-        await processGameSnapshot(game, proj, decisionContext, {
-          odds: gameOdds,
-          homeTeamStats,
-          awayTeamStats,
-          homeDbStats,
-          awayDbStats,
-        });
+        const servingBoundary = await resolveProductionPredictionBoundary(game, proj, decisionContext);
+        if (shouldRunIncumbentSnapshot(servingBoundary)) {
+          await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
+            odds: gameOdds,
+            homeTeamStats,
+            awayTeamStats,
+            homeDbStats,
+            awayDbStats,
+          });
+        }
         // Separate, append-only market research capture.  Reuses the odds
         // observation already fetched above; it has no sports-feature or model
         // consumer and makes no additional provider request.

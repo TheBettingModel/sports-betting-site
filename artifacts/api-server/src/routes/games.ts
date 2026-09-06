@@ -1,6 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
-import { db, gamesTable, modelWeightsTable, publishedPicksTable } from "@workspace/db";
+import {
+  db, gamesTable, modelPredictionsTable, modelVersionsTable, modelWeightsTable,
+  officialPredictionIdentityTable, publishedPicksTable,
+} from "@workspace/db";
 import { getDailyFreePick } from "../services/freePick";
 import { lockGame } from "../services/gameAccess";
 import { fetchAllSports } from "../services/espn";
@@ -25,6 +28,7 @@ import { getWnbaTeamStats, getNbaTeamStats, getSoccerTeamStats, getDbTeamStats }
 import { getWnbaGameContext } from "../services/wnbaContext";
 import { runLearning } from "../services/learning";
 import { createPredictionDecisionContext, processGameSnapshot } from "../services/snapshot";
+import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from "../services/guardedServing/productionBoundary";
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
 import { createMlbQualificationAudit } from "../services/mlbQualificationAudit";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
@@ -51,10 +55,45 @@ type AnyGame = Record<string, unknown>;
  */
 async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]> {
   const gameIds = games.map((game) => game["id"] as string);
-  const [spreadByGame, moneylinePermissions] = await Promise.all([
+  const [spreadByGame, moneylinePermissions, predictionIdentities] = await Promise.all([
     getLatestSpreadCandidates(gameIds),
     getMoneylinePublicationPermissionsForGames(gameIds),
+    gameIds.length ? db.select({
+      gameId: modelPredictionsTable.gameId,
+      predictionTimestamp: modelPredictionsTable.predictionTimestamp,
+      engine: modelVersionsTable.modelId,
+      modelVersion: modelVersionsTable.modelId,
+      officialEngine: officialPredictionIdentityTable.engine,
+      officialFamily: officialPredictionIdentityTable.modelFamily,
+      officialVersion: officialPredictionIdentityTable.modelVersion,
+      artifactId: officialPredictionIdentityTable.artifactId,
+      servingMode: officialPredictionIdentityTable.servingMode,
+      inputVersion: officialPredictionIdentityTable.inputVersion,
+      approvalStatus: officialPredictionIdentityTable.approvalStatusAtPrediction,
+      fallbackUsed: officialPredictionIdentityTable.fallbackUsed,
+      fallbackReason: officialPredictionIdentityTable.fallbackReason,
+    }).from(modelPredictionsTable)
+      .innerJoin(modelVersionsTable, eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id))
+      .leftJoin(officialPredictionIdentityTable, eq(officialPredictionIdentityTable.predictionId, modelPredictionsTable.id))
+      .where(inArray(modelPredictionsTable.gameId, gameIds))
+      .orderBy(desc(modelPredictionsTable.predictionTimestamp)) : Promise.resolve([]),
   ]);
+  const identityByGame = new Map<string, Record<string, unknown>>();
+  for (const row of predictionIdentities) {
+    if (identityByGame.has(row.gameId)) continue;
+    identityByGame.set(row.gameId, {
+      engine: row.officialEngine ?? row.engine,
+      modelFamily: row.officialFamily ?? null,
+      modelVersion: row.officialVersion ?? row.modelVersion,
+      artifactId: row.artifactId ?? null,
+      servingMode: row.servingMode ?? null,
+      inputVersion: row.inputVersion ?? null,
+      approvalStatus: row.approvalStatus ?? null,
+      fallbackUsed: row.fallbackUsed ?? false,
+      fallbackReason: row.fallbackReason ?? null,
+      predictionTimestamp: row.predictionTimestamp.toISOString(),
+    });
+  }
   return games.map((game) => {
     const researchRecommendation = String(game["valueRating"]);
     const researchUnits = Number(game["units"] ?? 0);
@@ -138,6 +177,9 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
       selectedPick,
       moneylineMarket,
       spreadMarket,
+      ...(identityByGame.has(game["id"] as string)
+        ? { modelIdentity: identityByGame.get(game["id"] as string) }
+        : {}),
     } as T;
   });
 }
@@ -714,13 +756,16 @@ export async function refreshAll(): Promise<{
       });
 
     // Snapshot pipeline: odds, predictions, results, closing lines
-    await processGameSnapshot(game, proj, decisionContext, {
-      odds: gameOdds,
-      homeTeamStats,
-      awayTeamStats,
-      homeDbStats,
-      awayDbStats,
-    });
+    const servingBoundary = await resolveProductionPredictionBoundary(game, proj, decisionContext);
+    if (shouldRunIncumbentSnapshot(servingBoundary)) {
+      await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
+        odds: gameOdds,
+        homeTeamStats,
+        awayTeamStats,
+        homeDbStats,
+        awayDbStats,
+      });
+    }
 
     upserted++;
     sports.add(game.sport);

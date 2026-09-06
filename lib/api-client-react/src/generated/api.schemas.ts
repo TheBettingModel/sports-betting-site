@@ -641,6 +641,28 @@ export interface MarketProjection {
   gateStatus?: string | null;
 }
 
+/**
+ * Optional truthful identity from the latest persisted generating prediction.
+ */
+export interface PredictionModelIdentity {
+  engine: string;
+  /** @nullable */
+  modelFamily?: string | null;
+  modelVersion: string;
+  /** @nullable */
+  artifactId?: string | null;
+  /** @nullable */
+  servingMode?: string | null;
+  /** @nullable */
+  inputVersion?: string | null;
+  /** @nullable */
+  approvalStatus?: string | null;
+  fallbackUsed: boolean;
+  /** @nullable */
+  fallbackReason?: string | null;
+  predictionTimestamp: string;
+}
+
 export interface GameProjection {
   id: string;
   sport: string;
@@ -707,6 +729,150 @@ export interface GameProjection {
   selectedPick?: MarketProjection | null;
   moneylineMarket?: MarketProjection | null;
   spreadMarket?: MarketProjection | null;
+  modelIdentity?: PredictionModelIdentity;
+}
+
+/**
+ * @nullable
+ */
+export type ModelRuntimeStatusLatestOfficialPrediction = { [key: string]: unknown } | null;
+
+export type ModelRuntimeSportStatusSport = typeof ModelRuntimeSportStatusSport[keyof typeof ModelRuntimeSportStatusSport];
+
+
+export const ModelRuntimeSportStatusSport = {
+  MLB: 'MLB',
+  NCAAF: 'NCAAF',
+} as const;
+
+export type ModelRuntimeSportStatusResolvedServingState = typeof ModelRuntimeSportStatusResolvedServingState[keyof typeof ModelRuntimeSportStatusResolvedServingState];
+
+
+export const ModelRuntimeSportStatusResolvedServingState = {
+  INCUMBENT_ACTIVE: 'INCUMBENT_ACTIVE',
+  INCUMBENT_FALLBACK: 'INCUMBENT_FALLBACK',
+  CANDIDATE_ACTIVE: 'CANDIDATE_ACTIVE',
+  STARTUP_BLOCKED: 'STARTUP_BLOCKED',
+} as const;
+
+export type ModelRuntimeSportStatusPublicationStatus = typeof ModelRuntimeSportStatusPublicationStatus[keyof typeof ModelRuntimeSportStatusPublicationStatus];
+
+
+export const ModelRuntimeSportStatusPublicationStatus = {
+  APPROVED_NOT_ENABLED: 'APPROVED_NOT_ENABLED',
+  ELIGIBLE_BY_APPROVAL: 'ELIGIBLE_BY_APPROVAL',
+  BLOCKED_BY_APPROVAL: 'BLOCKED_BY_APPROVAL',
+  BLOCKED_BY_RUNTIME: 'BLOCKED_BY_RUNTIME',
+} as const;
+
+export interface ModelRuntimeSportStatus {
+  sport: ModelRuntimeSportStatusSport;
+  configuredMode: string;
+  activePrimaryEngine: string;
+  /** @nullable */
+  candidateEngine?: string | null;
+  /** @nullable */
+  candidateVersion?: string | null;
+  /** @nullable */
+  candidateArtifactHash?: string | null;
+  approvalStatus: string;
+  executorAvailable: boolean;
+  resolvedServingState: ModelRuntimeSportStatusResolvedServingState;
+  runtimeHealth: string;
+  publicationStatus: ModelRuntimeSportStatusPublicationStatus;
+  [key: string]: unknown;
+ }
+
+export interface ModelRuntimeStatus {
+  generatedAt: string;
+  automaticRetraining: string;
+  automaticParameterChanges: string;
+  automaticPromotion: string;
+  sports: ModelRuntimeSportStatus[];
+  /** @nullable */
+  latestOfficialPrediction?: ModelRuntimeStatusLatestOfficialPrediction;
+  [key: string]: unknown;
+ }
+
+export type ModelRuntimeDryRunInputSport = typeof ModelRuntimeDryRunInputSport[keyof typeof ModelRuntimeDryRunInputSport];
+
+
+export const ModelRuntimeDryRunInputSport = {
+  MLB: 'MLB',
+  NCAAF: 'NCAAF',
+} as const;
+
+export interface ModelRuntimeDryRunInput {
+  sport: ModelRuntimeDryRunInputSport;
+}
+
+export type ModelArtifactApprovalInputSport = typeof ModelArtifactApprovalInputSport[keyof typeof ModelArtifactApprovalInputSport];
+
+
+export const ModelArtifactApprovalInputSport = {
+  MLB: 'MLB',
+  NCAAF: 'NCAAF',
+  NFL: 'NFL',
+} as const;
+
+export type ModelArtifactApprovalInputState = typeof ModelArtifactApprovalInputState[keyof typeof ModelArtifactApprovalInputState];
+
+
+export const ModelArtifactApprovalInputState = {
+  UNVALIDATED: 'UNVALIDATED',
+  SHADOW_APPROVED: 'SHADOW_APPROVED',
+  GUARDED_APPROVED: 'GUARDED_APPROVED',
+  FULL_APPROVED: 'FULL_APPROVED',
+  PRODUCTION_APPROVED: 'PRODUCTION_APPROVED',
+  REVOKED: 'REVOKED',
+} as const;
+
+export interface ModelArtifactApprovalInput {
+  sport: ModelArtifactApprovalInputSport;
+  market: string;
+  modelFamily: string;
+  modelId: string;
+  modelVersion: string;
+  artifactId: string;
+  artifactHash: string;
+  inputContractVersion: string;
+  /** @nullable */
+  inputHash?: string | null;
+  /** @nullable */
+  configurationHash?: string | null;
+  /** @nullable */
+  parameterHash?: string | null;
+  state: ModelArtifactApprovalInputState;
+  reason: string;
+  evidenceReference: string;
+}
+
+export type ModelRuntimeDryRunResultSport = typeof ModelRuntimeDryRunResultSport[keyof typeof ModelRuntimeDryRunResultSport];
+
+
+export const ModelRuntimeDryRunResultSport = {
+  MLB: 'MLB',
+  NCAAF: 'NCAAF',
+} as const;
+
+export type ModelRuntimeDryRunResultDisposition = typeof ModelRuntimeDryRunResultDisposition[keyof typeof ModelRuntimeDryRunResultDisposition];
+
+
+export const ModelRuntimeDryRunResultDisposition = {
+  WOULD_SERVE: 'WOULD_SERVE',
+  WOULD_FALLBACK: 'WOULD_FALLBACK',
+  WOULD_PASS: 'WOULD_PASS',
+} as const;
+
+export type ModelRuntimeDryRunResultResolution = { [key: string]: unknown };
+
+export interface ModelRuntimeDryRunResult {
+  auditId: string;
+  sport: ModelRuntimeDryRunResultSport;
+  /** @nullable */
+  gameId?: string | null;
+  disposition: ModelRuntimeDryRunResultDisposition;
+  resolution: ModelRuntimeDryRunResultResolution;
 }
 
 export type FreePickRecommendation = typeof FreePickRecommendation[keyof typeof FreePickRecommendation];
@@ -1027,6 +1193,10 @@ export type GetNcaafV4ProjectionsParams = {
  * @pattern ^\d{4}-\d{2}-\d{2}$
  */
 date?: string;
+};
+
+export type AppendAdminModelArtifactApproval201 = {
+  eventId: string;
 };
 
 export type GetAdminSpreadModels200 = { [key: string]: unknown };

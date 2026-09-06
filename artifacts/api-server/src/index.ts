@@ -10,6 +10,7 @@ import { ensureProductionChampionSnapshots } from "./services/productionChampion
 import { reconcileLegacyNcaafPerformanceEligibility } from "./services/legacyNcaafIntegrity";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { validateGuardedServingStartup } from "./services/guardedServing/startupValidation";
 
 const rawPort = process.env["PORT"];
 
@@ -170,6 +171,13 @@ async function startServer(): Promise<void> {
     await reconcileMlbProductionRegistry();
   } catch (err) {
     logger.error({ err }, "MLB production model registry reconciliation failed");
+    process.exit(1);
+  }
+  try {
+    const guardedServing = await validateGuardedServingStartup();
+    logger.info({ event: "guarded_serving_startup_validated", ...guardedServing }, "Guarded serving startup validation complete");
+  } catch (err) {
+    logger.error({ err }, "Guarded serving startup validation failed closed");
     process.exit(1);
   }
   try {

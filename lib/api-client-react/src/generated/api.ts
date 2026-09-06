@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AppendAdminModelArtifactApproval201,
   ChatAccess,
   ChatMessageResponse,
   ChatMessagesResponse,
@@ -48,6 +49,10 @@ import type {
   MlbPolicyRevisionApplyResult,
   MlbPolicyRevisionInput,
   MlbPolicyRevisionList,
+  ModelArtifactApprovalInput,
+  ModelRuntimeDryRunInput,
+  ModelRuntimeDryRunResult,
+  ModelRuntimeStatus,
   ModelStatsHistoryResponse,
   ModelStatsResponse,
   NcaafCoreBackfillRequest,
@@ -715,6 +720,225 @@ export const useUpdateChatPreferences = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateChatPreferencesMutationOptions(options));
+    }
+
+export const getGetAdminModelRuntimeStatusUrl = () => {
+
+
+
+
+  return `/api/admin/model-runtime-status`
+}
+
+/**
+ * @summary Get actual guarded-serving configuration, identity, approval, and health
+ */
+export const getAdminModelRuntimeStatus = async ( options?: RequestInit): Promise<ModelRuntimeStatus> => {
+
+  return customFetch<ModelRuntimeStatus>(getGetAdminModelRuntimeStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminModelRuntimeStatusQueryKey = () => {
+    return [
+    `/api/admin/model-runtime-status`
+    ] as const;
+    }
+
+
+export const getGetAdminModelRuntimeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminModelRuntimeStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>> = ({ signal }) => getAdminModelRuntimeStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminModelRuntimeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>>
+export type GetAdminModelRuntimeStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get actual guarded-serving configuration, identity, approval, and health
+ */
+
+export function useGetAdminModelRuntimeStatus<TData = Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminModelRuntimeStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminModelRuntimeStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRunAdminModelRuntimeDryRunUrl = () => {
+
+
+
+
+  return `/api/admin/model-runtime-dry-run`
+}
+
+/**
+ * @summary Run an immutable real-slate guarded-serving dry run without publication
+ */
+export const runAdminModelRuntimeDryRun = async (modelRuntimeDryRunInput: ModelRuntimeDryRunInput, options?: RequestInit): Promise<ModelRuntimeDryRunResult> => {
+
+  return customFetch<ModelRuntimeDryRunResult>(getRunAdminModelRuntimeDryRunUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(modelRuntimeDryRunInput)
+  }
+);}
+
+
+
+
+
+export const getRunAdminModelRuntimeDryRunMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAdminModelRuntimeDryRun>>, TError,{data: BodyType<ModelRuntimeDryRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runAdminModelRuntimeDryRun>>, TError,{data: BodyType<ModelRuntimeDryRunInput>}, TContext> => {
+
+const mutationKey = ['runAdminModelRuntimeDryRun'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runAdminModelRuntimeDryRun>>, {data: BodyType<ModelRuntimeDryRunInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runAdminModelRuntimeDryRun(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunAdminModelRuntimeDryRunMutationResult = NonNullable<Awaited<ReturnType<typeof runAdminModelRuntimeDryRun>>>
+    export type RunAdminModelRuntimeDryRunMutationBody = BodyType<ModelRuntimeDryRunInput>
+    export type RunAdminModelRuntimeDryRunMutationError = ErrorType<void>
+
+    /**
+ * @summary Run an immutable real-slate guarded-serving dry run without publication
+ */
+export const useRunAdminModelRuntimeDryRun = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAdminModelRuntimeDryRun>>, TError,{data: BodyType<ModelRuntimeDryRunInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runAdminModelRuntimeDryRun>>,
+        TError,
+        {data: BodyType<ModelRuntimeDryRunInput>},
+        TContext
+      > => {
+      return useMutation(getRunAdminModelRuntimeDryRunMutationOptions(options));
+    }
+
+export const getAppendAdminModelArtifactApprovalUrl = () => {
+
+
+
+
+  return `/api/admin/model-artifact-approvals`
+}
+
+/**
+ * @summary Append an explicit governed exact-artifact approval decision
+ */
+export const appendAdminModelArtifactApproval = async (modelArtifactApprovalInput: ModelArtifactApprovalInput, options?: RequestInit): Promise<AppendAdminModelArtifactApproval201> => {
+
+  return customFetch<AppendAdminModelArtifactApproval201>(getAppendAdminModelArtifactApprovalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(modelArtifactApprovalInput)
+  }
+);}
+
+
+
+
+
+export const getAppendAdminModelArtifactApprovalMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appendAdminModelArtifactApproval>>, TError,{data: BodyType<ModelArtifactApprovalInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appendAdminModelArtifactApproval>>, TError,{data: BodyType<ModelArtifactApprovalInput>}, TContext> => {
+
+const mutationKey = ['appendAdminModelArtifactApproval'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appendAdminModelArtifactApproval>>, {data: BodyType<ModelArtifactApprovalInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  appendAdminModelArtifactApproval(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppendAdminModelArtifactApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof appendAdminModelArtifactApproval>>>
+    export type AppendAdminModelArtifactApprovalMutationBody = BodyType<ModelArtifactApprovalInput>
+    export type AppendAdminModelArtifactApprovalMutationError = ErrorType<void>
+
+    /**
+ * @summary Append an explicit governed exact-artifact approval decision
+ */
+export const useAppendAdminModelArtifactApproval = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appendAdminModelArtifactApproval>>, TError,{data: BodyType<ModelArtifactApprovalInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof appendAdminModelArtifactApproval>>,
+        TError,
+        {data: BodyType<ModelArtifactApprovalInput>},
+        TContext
+      > => {
+      return useMutation(getAppendAdminModelArtifactApprovalMutationOptions(options));
     }
 
 export const getGetAdminSpreadModelsUrl = () => {

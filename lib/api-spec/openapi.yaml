@@ -160,6 +160,62 @@ paths:
         "401": { description: Unauthorized }
         "403": { description: Pro subscription required }
 
+  /admin/model-runtime-status:
+    get:
+      operationId: getAdminModelRuntimeStatus
+      tags: [admin]
+      summary: Get actual guarded-serving configuration, identity, approval, and health
+      responses:
+        "200":
+          description: Guarded model runtime status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelRuntimeStatus"
+
+  /admin/model-runtime-dry-run:
+    post:
+      operationId: runAdminModelRuntimeDryRun
+      tags: [admin]
+      summary: Run an immutable real-slate guarded-serving dry run without publication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelRuntimeDryRunInput"
+      responses:
+        "200":
+          description: Persisted dry-run disposition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelRuntimeDryRunResult"
+        "400": { description: Invalid sport }
+
+  /admin/model-artifact-approvals:
+    post:
+      operationId: appendAdminModelArtifactApproval
+      tags: [admin]
+      summary: Append an explicit governed exact-artifact approval decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelArtifactApprovalInput"
+      responses:
+        "201":
+          description: Approval decision appended
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [eventId]
+                properties:
+                  eventId: { type: string }
+        "400": { description: Invalid or incomplete exact identity }
+
   /admin/spread-models:
     get:
       operationId: getAdminSpreadModels
@@ -1400,6 +1456,8 @@ components:
           allOf:
             - $ref: "#/components/schemas/MarketProjection"
           nullable: true
+        modelIdentity:
+          $ref: "#/components/schemas/PredictionModelIdentity"
       required:
         - id
         - sport
@@ -1423,6 +1481,103 @@ components:
         - vegasTotal
         - vegasHomeOdds
         - vegasAwayOdds
+
+    PredictionModelIdentity:
+      type: object
+      description: Optional truthful identity from the latest persisted generating prediction.
+      properties:
+        engine: { type: string }
+        modelFamily: { type: ["string", "null"] }
+        modelVersion: { type: string }
+        artifactId: { type: ["string", "null"] }
+        servingMode: { type: ["string", "null"] }
+        inputVersion: { type: ["string", "null"] }
+        approvalStatus: { type: ["string", "null"] }
+        fallbackUsed: { type: boolean }
+        fallbackReason: { type: ["string", "null"] }
+        predictionTimestamp: { type: string, format: date-time }
+      required: [engine, modelVersion, fallbackUsed, predictionTimestamp]
+
+    ModelRuntimeStatus:
+      type: object
+      additionalProperties: true
+      required: [generatedAt, automaticRetraining, automaticParameterChanges, automaticPromotion, sports]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        automaticRetraining: { type: string }
+        automaticParameterChanges: { type: string }
+        automaticPromotion: { type: string }
+        sports:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelRuntimeSportStatus"
+        latestOfficialPrediction:
+          type: [object, "null"]
+          additionalProperties: true
+
+    ModelRuntimeSportStatus:
+      type: object
+      additionalProperties: true
+      required: [sport, configuredMode, activePrimaryEngine, approvalStatus, executorAvailable, resolvedServingState, runtimeHealth, publicationStatus]
+      properties:
+        sport: { type: string, enum: [MLB, NCAAF] }
+        configuredMode: { type: string }
+        activePrimaryEngine: { type: string }
+        candidateEngine: { type: ["string", "null"] }
+        candidateVersion: { type: ["string", "null"] }
+        candidateArtifactHash: { type: ["string", "null"] }
+        approvalStatus: { type: string }
+        executorAvailable: { type: boolean }
+        resolvedServingState:
+          type: string
+          enum: [INCUMBENT_ACTIVE, INCUMBENT_FALLBACK, CANDIDATE_ACTIVE, STARTUP_BLOCKED]
+        runtimeHealth: { type: string }
+        publicationStatus:
+          type: string
+          enum: [APPROVED_NOT_ENABLED, ELIGIBLE_BY_APPROVAL, BLOCKED_BY_APPROVAL, BLOCKED_BY_RUNTIME]
+
+    ModelRuntimeDryRunInput:
+      type: object
+      required: [sport]
+      properties:
+        sport:
+          type: string
+          enum: [MLB, NCAAF]
+
+    ModelArtifactApprovalInput:
+      type: object
+      required: [sport, market, modelFamily, modelId, modelVersion, artifactId, artifactHash, inputContractVersion, state, reason, evidenceReference]
+      properties:
+        sport: { type: string, enum: [MLB, NCAAF, NFL] }
+        market: { type: string }
+        modelFamily: { type: string }
+        modelId: { type: string }
+        modelVersion: { type: string }
+        artifactId: { type: string }
+        artifactHash: { type: string }
+        inputContractVersion: { type: string }
+        inputHash: { type: ["string", "null"] }
+        configurationHash: { type: ["string", "null"] }
+        parameterHash: { type: ["string", "null"] }
+        state:
+          type: string
+          enum: [UNVALIDATED, SHADOW_APPROVED, GUARDED_APPROVED, FULL_APPROVED, PRODUCTION_APPROVED, REVOKED]
+        reason: { type: string }
+        evidenceReference: { type: string }
+
+    ModelRuntimeDryRunResult:
+      type: object
+      required: [auditId, sport, disposition, resolution]
+      properties:
+        auditId: { type: string }
+        sport: { type: string, enum: [MLB, NCAAF] }
+        gameId: { type: ["string", "null"] }
+        disposition:
+          type: string
+          enum: [WOULD_SERVE, WOULD_FALLBACK, WOULD_PASS]
+        resolution:
+          type: object
+          additionalProperties: true
 
     GamesTodayResponse:
       type: object

@@ -512,3 +512,31 @@ mtime_ms = 1788655871677
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ac496cd8-decb-429b-a4e9-8d9882281647/7aee1c56-ddd5-440b-97b1-9ffc2b5e935f"
 storage_version_token = "1788655907249151"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "UYvZetkXKNmtN6yrdjvKU"
+uri = "file://reports/task-234-guarded-serving-runtime.md"
+type = "text"
+title = "Task 234 Guarded Serving Runtime Report"
+description = "Final 45-section implementation and verification report. Classification: B — Guarded Serving Runway Partial."
+logical_id = "6fa44b66-1ad5-45b2-a878-c0f24172d67e"
+content_hash = "sha256:59c0760c02aadda3017a65da9572f2a8190d81b36cad2f8b7f1a950314d1582b"
+size = 8142
+mtime_ms = 1788658430250
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/6fa44b66-1ad5-45b2-a878-c0f24172d67e/b28342af-9d4d-4930-8e47-a83f9275081a"
+storage_version_token = "1788658475530120"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "F4qwBp4p1dAFM3v9cRVIh"
+uri = "file://reports/task-234-verification.json"
+type = "unspecified"
+title = "Task 234 Verification Ledger"
+description = "Machine-readable verification evidence, dry-run results, checks, blockers, and report hash."
+logical_id = "78b675d0-d32a-4a51-ab4c-919ef1e503a0"
+content_hash = "sha256:b36be89d57a9d2a4fc78d42dfe2a540ace847f74ba7c3fb147afc239944181f7"
+size = 5379
+mtime_ms = 1788658442622
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/78b675d0-d32a-4a51-ab4c-919ef1e503a0/7610a585-8381-440f-a5a2-febe11360182"
+storage_version_token = "1788658476237848"
+content_type = "application/octet-stream"

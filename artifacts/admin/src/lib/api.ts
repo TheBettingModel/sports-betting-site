@@ -98,6 +98,7 @@ export const api = {
 
 export const adminApi = {
   overview: () => api.get<AdminOverview>("/admin/overview"),
+  modelRuntimeStatus: () => api.get<ModelRuntimeStatus>("/admin/model-runtime-status"),
   automation: (job?: string, limit = 50) =>
     api.get<AutomationResult>(`/admin/automation?limit=${limit}${job ? `&job=${job}` : ""}`),
   alerts: (resolved = false, sport?: string) =>
@@ -232,6 +233,51 @@ export interface AdminOverview {
   performance: { totalGradedPicks: number; avgROI: number | null; avgWinRate: number | null };
   automation: { health: string; lastRun: AutoRunSummary | null };
   feedHealth: FeedHealthEntry[];
+}
+
+/**
+ * Read-only guarded-serving state. Values are returned by the runtime resolver;
+ * the client must not infer serving or publication state from model registry rows.
+ */
+export interface ModelRuntimeSportStatus {
+  sport: "MLB" | "NCAAF";
+  configuredMode: string;
+  activePrimaryEngine: string;
+  candidateEngine: string | null;
+  candidateVersion: string | null;
+  candidateArtifactHash: string | null;
+  approvalStatus: string;
+  /** Whether the configured candidate has a registered serving executor. */
+  executorAvailable: boolean;
+  /** Resolver result after mode, approval, and executor availability are applied. */
+  resolvedServingState: string;
+  approvedMarkets: string[];
+  inputContract: string | null;
+  lastSuccessfulPrediction: string | null;
+  lastSuccessfulEvidenceCollection: string | null;
+  fallbackEngine: string;
+  fallbackHealth: string;
+  runtimeHealth: string;
+  healthStatuses: string[];
+  publicationStatus: string;
+}
+
+export interface ModelRuntimeOfficialPrediction {
+  predictionId: string;
+  sport: string;
+  engine: string;
+  modelVersion: string;
+  publicationStatus: string;
+  predictionTimestamp: string;
+}
+
+export interface ModelRuntimeStatus {
+  generatedAt: string;
+  automaticRetraining: string;
+  automaticParameterChanges: string;
+  automaticPromotion: string;
+  sports: ModelRuntimeSportStatus[];
+  latestOfficialPrediction: ModelRuntimeOfficialPrediction | null;
 }
 
 export interface NcaafReasonCount {
