@@ -484,3 +484,31 @@ mtime_ms = 1788649743810
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/be7c5c1e-d6bb-416b-b85e-c4a5d1fa4bca/cf72b3d7-0359-4753-a4a4-414995d1e27f"
 storage_version_token = "1788649825500959"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "x3YmqBOHVCdsuv_AkxkFy"
+uri = "file://reports/task-233-guarded-production-launch.md"
+type = "text"
+title = "Task 233 — Guarded Production Launch Report"
+description = "Final 35-section audit. Classification C: production launch blocked; MLB V1 and NCAAF legacy remain safely unchanged."
+logical_id = "7271f02b-e1f2-47c5-9d82-083ec1e40cf2"
+content_hash = "sha256:b58cae7af6ed5cc03b115888011b12a49eca5af16bdb3d69de16dd11a9e80c53"
+size = 8219
+mtime_ms = 1788655867217
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7271f02b-e1f2-47c5-9d82-083ec1e40cf2/fba9865d-b0a9-4df2-93dd-259c320897c2"
+storage_version_token = "1788655906494672"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "CYgwXIu4Ec3z6md7CndQu"
+uri = "file://reports/task-233-verification.json"
+type = "unspecified"
+title = "Task 233 — Verification Ledger"
+description = "Machine-readable production, database, evidence, security, build, test, and governance findings for the blocked launch."
+logical_id = "ac496cd8-decb-429b-a4e9-8d9882281647"
+content_hash = "sha256:a04787803b590d4e319185561472ab950fcc4724cc7120dc59b6aa60e967303d"
+size = 4363
+mtime_ms = 1788655871677
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ac496cd8-decb-429b-a4e9-8d9882281647/7aee1c56-ddd5-440b-97b1-9ffc2b5e935f"
+storage_version_token = "1788655907249151"
+content_type = "application/octet-stream"
