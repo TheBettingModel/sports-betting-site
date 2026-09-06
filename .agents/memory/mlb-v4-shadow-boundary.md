@@ -44,3 +44,9 @@ Prospective probable-starter identity capture alone does not make the next model
 **Why:** The first live-forward audit had complete PIT-safe identity for one slate but no trustworthy observation-period denominator, outcome pairs, repeat/change diversity, or persisted starter state; classifying that as ready would turn missing evidence into an implicit pass.
 
 **How to apply:** Keep the prospective pipeline classified partial and block any starter-aware challenger until the missing accumulation and pairing contracts are operational and independently reassessed. Report unavailable denominators as null, never as capture-derived 100% coverage.
+
+Persisted live input versions are immutable semantic evidence, including their defects; never repair an existing version in place. Historical/live parity means raw definitions, units, orientation, missingness, PIT rules, and the exact fitted transform all match.
+
+**Why:** A field-level audit found that name-similar live inputs can still disagree through season windows, side handling, duplicated source versions, null policy, or unbound context windows. A transform hash alone cannot reconstruct missing fitted constants.
+
+**How to apply:** Mint a new live input version for semantic repairs, preserve old snapshots as ineligible audit evidence, and deny model-vector eligibility until every required field and fitted normalization constant is exact and machine-bound.

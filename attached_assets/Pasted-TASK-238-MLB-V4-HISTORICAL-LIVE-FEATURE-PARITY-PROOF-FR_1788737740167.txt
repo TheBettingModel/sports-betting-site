@@ -1,0 +1,1374 @@
+TASK #238 — MLB V4 HISTORICAL/LIVE FEATURE-PARITY PROOF & FROZEN INPUT CONTRACT
+
+PROJECT: The Betting Model
+DATE: September 6, 2026
+
+MISSION
+
+Prove, with deterministic evidence, that the historical MLB V4 research representation and the live MLB V4 model-input pipeline mean the same thing.
+
+This task exists because Task #237 identified a hard methodological blocker:
+
+A research candidate exists and shows some signal, but the historical 38-feature research schema does not yet have proven semantic parity with the live nested `model-input-v4` contract.
+
+Until that parity is proven, a trained historical model cannot be trusted to execute correctly on live production inputs.
+
+This task must therefore establish one canonical frozen MLB V4 model input contract that can be reconstructed both:
+
+1. historically, using only legitimate point-in-time evidence, and
+2. prospectively/live, using only pregame evidence available before first pitch.
+
+THIS TASK DOES NOT TRAIN A NEW MODEL.
+
+THIS TASK DOES NOT RETUNE THE RESEARCH CANDIDATE.
+
+THIS TASK DOES NOT PROMOTE MLB V4.
+
+THIS TASK DOES NOT DEPLOY.
+
+The deliverable is a validated, versioned, deterministic, frozen MLB V4 input contract plus historical/live parity proof.
+
+==================================================
+CURRENT AUTHORITATIVE MLB V4 CONTEXT
+==================================================
+
+Production champion:
+
+tbm-mlb-moneyline-v1
+
+MLB V4 remains non-production.
+
+Relevant prior tasks:
+
+#224A
+MLB V4 discovery/root-cause work.
+
+#224B
+Historical PIT foundation.
+
+#224B-1
+Chronology proof.
+
+#224B-2
+Pitcher/bullpen reconstruction.
+
+#224C
+Initial expected-runs model training.
+
+#224C-1
+Starter evidence recovery/root-cause audit.
+
+#224C-1B
+Prospective starter evidence pipeline.
+
+#232
+MLB V4 live evidence and launch foundation.
+
+#237
+MLB V4 research candidate build.
+
+Task #237 classification:
+
+C — MLB V4 MODEL BUILD BLOCKED
+
+Research candidate:
+
+model ID:
+tbm-mlb-moneyline-v4-research-237
+
+regularization:
+L2 = 0.1
+
+validation:
+log loss = 0.687438
+Brier = 0.247032
+AUC = 0.555435
+ECE = 0.025444
+
+The research candidate must remain RESEARCH ONLY.
+
+It must not be frozen as a production artifact or served to subscribers during this task.
+
+==================================================
+CRITICAL HISTORICAL EVALUATION RULE
+==================================================
+
+The former 2,012-game historical MLB OOS cohort has already been opened once.
+
+It is permanently classified:
+
+HISTORICAL_BENCHMARK_ONLY
+
+It is NOT untouched OOS anymore.
+
+DO NOT:
+
+- reset it
+- relabel it
+- describe it as untouched
+- use it for feature selection
+- use it for model selection
+- use it for hyperparameter tuning
+- use it for threshold tuning
+- use it for ranking-weight tuning
+- use it for calibration tuning
+- use it for promotion
+
+It may be used only as a historical benchmark/reference if necessary.
+
+Future legitimate model selection must rely on a fresh evaluation protocol, preferably prospective shadow evidence.
+
+==================================================
+SECURITY / RELEASE BLOCKER
+==================================================
+
+The repository still has an unresolved Replit security gate.
+
+The contaminated commit remains reachable through:
+
+refs/remotes/gitsafe-backup/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Therefore:
+
+DO NOT PUSH.
+DO NOT DEPLOY.
+DO NOT PRODUCTION MIGRATE.
+DO NOT RELEASE.
+DO NOT BUILD EAS.
+DO NOT SUBMIT APP STORE.
+DO NOT MODIFY GIT HISTORY.
+DO NOT TOUCH THE PROTECTED REF.
+DO NOT TOUCH APPLE CREDENTIALS.
+DO NOT TOUCH EAS CREDENTIALS.
+
+Development and research work only.
+
+At completion:
+
+STOP and return the report.
+
+==================================================
+NON-NEGOTIABLE MODEL SAFETY
+==================================================
+
+DO NOT:
+
+- train a new MLB challenger
+- retrain #237 candidate
+- retune #237 candidate
+- change coefficients
+- change hyperparameters
+- optimize validation metrics
+- optimize against historical ROI
+- calibrate probabilities
+- promote any model
+- modify MLB V1 behavior
+- modify any other sport
+- use market data as forecast input
+- use closing lines as forecast input
+- use postgame evidence
+- use actual starter hindsight
+- use actual lineup hindsight
+- use result-derived features
+- use future information
+
+This task is about INPUT CONTRACT VALIDITY.
+
+Not prediction performance.
+
+==================================================
+CORE QUESTION
+==================================================
+
+Can the following two representations be proven semantically identical?
+
+HISTORICAL MLB V4 RESEARCH INPUT
+
+versus
+
+LIVE MLB V4 `model-input-v4`
+
+For every feature used by a future MLB V4 challenger, prove:
+
+- same feature meaning
+- same direction
+- same unit
+- same scale
+- same transform
+- same cutoff
+- same missingness behavior
+- same source role
+- same point-in-time semantics
+- same opponent orientation
+- same home/away orientation
+- same normalization
+- same categorical encoding
+- same version semantics
+
+If not, explicitly classify the mismatch.
+
+Do not silently adapt unknown semantics.
+
+==================================================
+WORKSTREAM 1 — INVENTORY ALL MLB V4 INPUT REPRESENTATIONS
+==================================================
+
+Find and document every MLB V4-related input representation currently in the repository.
+
+At minimum inspect:
+
+- historical research feature vector
+- #237 38-feature representation
+- live nested `model-input-v4`
+- #232 pregame feature snapshot
+- starter PIT-state structures
+- offense PIT-state structures
+- bullpen PIT-state structures
+- league context
+- home-field context
+- run-environment context
+- game identity
+- starting pitcher identity/state
+- any missingness flags
+- any evidence-tier fields
+- any schema adapters
+- any research materializers
+- any API model-input contracts
+
+Identify exact files/functions/types/tables.
+
+Do not infer from names alone.
+
+==================================================
+WORKSTREAM 2 — DEFINE CANONICAL MLB V4 FEATURE LIST
+==================================================
+
+Determine exactly which features constitute the research candidate's historical input.
+
+Task #237 reportedly used 38 features.
+
+Produce the exact ordered list:
+
+1.
+2.
+3.
+...
+38.
+
+For each feature, document:
+
+canonical_name
+research_name
+live_source_path
+data_type
+unit
+orientation
+transform
+allowed_range
+missingness
+point_in_time_cutoff
+source_evidence_type
+version
+
+If the true count is not 38 after source inspection, report the discrepancy and explain why.
+
+Do not force the number 38 if code proves otherwise.
+
+==================================================
+WORKSTREAM 3 — FEATURE CONTRACT SCHEMA
+==================================================
+
+Create one canonical frozen MLB V4 model input contract.
+
+Preferred concept:
+
+mlb-v4-model-input-contract-v1
+
+or equivalent project naming convention.
+
+The contract must include:
+
+contract_id
+contract_version
+feature_order
+feature_count
+feature definitions
+dtype
+unit
+semantics
+orientation
+transform
+missing policy
+PIT requirement
+evidence provenance class
+contract hash
+
+The contract must be deterministic and machine-readable.
+
+Avoid duplicating existing schema if a suitable one already exists.
+
+==================================================
+WORKSTREAM 4 — FEATURE ORDER MUST BE FROZEN
+==================================================
+
+A model cannot safely consume an unordered object.
+
+Define exact deterministic feature order.
+
+Example:
+
+[
+  "home_offense_x",
+  "away_offense_x",
+  ...
+]
+
+The serialized feature vector must always produce identical order.
+
+Add a feature-order hash.
+
+Any change to:
+
+name
+order
+meaning
+unit
+transform
+
+must require a new contract version/hash.
+
+==================================================
+WORKSTREAM 5 — HISTORICAL ADAPTER
+==================================================
+
+Implement or validate a deterministic adapter that converts historical PIT-safe MLB evidence into the canonical frozen contract.
+
+Conceptually:
+
+historical evidence
+→ canonical model input contract
+→ ordered numeric vector
+
+The adapter must not use:
+
+actual starter hindsight
+actual lineup hindsight
+postgame stats
+future rolling stats
+closing market data
+results
+
+Historical starter availability remains structurally limited.
+
+Do not manufacture historical starter state that was not legitimately known pregame.
+
+If the historical foundation only supports baseline-core features, represent that truth explicitly.
+
+==================================================
+WORKSTREAM 6 — LIVE ADAPTER
+==================================================
+
+Implement or validate a deterministic adapter that converts live nested:
+
+model-input-v4
+
+into the same canonical contract.
+
+Conceptually:
+
+live nested evidence
+→ canonical model input contract
+→ ordered numeric vector
+
+The live adapter must consume only evidence frozen before the relevant game-start cutoff.
+
+No market data may enter the sports forecast vector.
+
+==================================================
+WORKSTREAM 7 — EXACT SEMANTIC MAPPING
+==================================================
+
+For every canonical feature, prove the mapping from:
+
+historical field
+
+to
+
+live field.
+
+Do not accept a mapping merely because names look similar.
+
+Example distinctions that must be checked:
+
+ERA vs ERA-
+season ERA vs rolling ERA
+team wOBA vs opponent-adjusted wOBA
+last-14 vs last-30
+bullpen ERA vs bullpen run prevention state
+raw rate vs z-score
+home minus away vs away minus home
+absolute team feature vs differential
+per-game vs per-PA
+percentage vs decimal
+American probability vs decimal probability
+
+Any mismatch must be reported.
+
+==================================================
+WORKSTREAM 8 — UNIT PARITY
+==================================================
+
+Explicitly test unit parity.
+
+Examples:
+
+0.325 vs 32.5%
+4.10 ERA vs normalized ERA scale
+92.5 mph vs standardized velocity
+5.1 runs/game vs season-indexed run factor
+
+For each numeric feature, assert historical and live adapters emit the same unit.
+
+==================================================
+WORKSTREAM 9 — DIRECTION / ORIENTATION PARITY
+==================================================
+
+This is critical.
+
+For every differential feature, define exact orientation.
+
+Preferred convention if consistent with current model:
+
+HOME - AWAY
+
+or explicitly:
+
+TEAM - OPPONENT
+
+Do not mix conventions feature by feature.
+
+Examples:
+
+home offense - away offense
+away bullpen weakness - home bullpen weakness
+
+must not accidentally flip sign.
+
+Add tests using synthetic asymmetric fixtures so sign errors cannot hide.
+
+==================================================
+WORKSTREAM 10 — MISSINGNESS PARITY
+==================================================
+
+Historical and live missingness must mean the same thing.
+
+For each feature define:
+
+required
+optional
+default
+sentinel
+imputation rule
+missing indicator
+eligibility consequence
+
+DO NOT silently:
+
+convert missing to zero
+
+unless zero is explicitly the frozen semantic.
+
+If historical starter evidence is unavailable, do not pretend starter state is average unless that is a formally frozen model-input rule.
+
+==================================================
+WORKSTREAM 11 — TRANSFORM PARITY
+==================================================
+
+For every transformed feature prove identical transformation.
+
+Examples:
+
+log
+logit
+standardization
+winsorization
+clipping
+z-score
+rolling average
+difference
+ratio
+interaction
+categorical code
+
+Historical and live must use identical constants and transformations.
+
+If a transform depends on training-set statistics, freeze those values in the contract/artifact.
+
+Do not recompute them from live data.
+
+==================================================
+WORKSTREAM 12 — NORMALIZATION CONSTANTS
+==================================================
+
+If the research representation uses:
+
+means
+standard deviations
+league baselines
+scalers
+encoders
+
+locate the exact fitted values.
+
+Persist/version them as part of the frozen input contract.
+
+Hash them.
+
+Do not refit them in this task.
+
+==================================================
+WORKSTREAM 13 — POINT-IN-TIME PROVENANCE
+==================================================
+
+For each feature define the latest allowable evidence timestamp relative to game start.
+
+At minimum distinguish:
+
+team performance state
+bullpen state
+starter state
+league context
+park/home context
+schedule/rest context
+weather/context if included
+
+The materialized feature snapshot must prove:
+
+evidence_time <= data_cutoff <= prediction_time < game_start
+
+where applicable.
+
+No post-start evidence.
+
+==================================================
+WORKSTREAM 14 — STARTER EVIDENCE CONTRACT
+==================================================
+
+Starter evidence remains one of the most important MLB V4 issues.
+
+Define exact states such as:
+
+CONFIRMED_PREGAME
+PROBABLE_PREGAME
+PROJECTED_PREGAME
+UNKNOWN_PREGAME
+
+or current project equivalents.
+
+Do not allow:
+
+ACTUAL_POSTGAME_STARTER
+
+to satisfy a pregame feature requirement.
+
+For each starter-derived feature document:
+
+required starter identity state
+PIT statistic cutoff
+role/workload logic
+fallback behavior
+missingness behavior
+
+Historical actual starter identity cannot be backfilled as if known pregame.
+
+==================================================
+WORKSTREAM 15 — STARTER CORE VS BASELINE CORE
+==================================================
+
+The #232 evidence architecture distinguishes baseline and starter-enhanced evidence.
+
+Preserve this distinction.
+
+Canonical input eligibility should explicitly support tiers such as:
+
+BASELINE_CORE
+STARTER_CORE
+ENHANCED
+
+or existing project equivalents.
+
+Do not mix a starter-enhanced live row with a baseline-only historical row and call them equivalent.
+
+Report which #237 research features are:
+
+historically reconstructable
+live reconstructable
+both
+live-only
+historical-only
+structurally unavailable
+
+==================================================
+WORKSTREAM 16 — OFFENSE STATE PARITY
+==================================================
+
+Verify historical and live offense features use the same:
+
+lookback
+aggregation
+opponent adjustment
+park treatment
+handedness treatment
+home/away split logic
+season weighting
+minimum sample
+fallback
+
+Do not assume they match.
+
+Prove from source.
+
+==================================================
+WORKSTREAM 17 — BULLPEN STATE PARITY
+==================================================
+
+Verify historical/live bullpen features use the same:
+
+eligible relievers
+recent workload
+availability
+rolling performance
+usage cutoff
+aggregation
+minimum sample
+fallback
+orientation
+
+Postgame bullpen outcomes may be used only for evaluation, never as pregame inputs.
+
+==================================================
+WORKSTREAM 18 — RUN ENVIRONMENT / LEAGUE CONTEXT
+==================================================
+
+Verify identical treatment of:
+
+league run environment
+season baseline
+home-field run effect
+park effect
+schedule context
+
+If historical and live use different league baselines, classify as mismatch.
+
+==================================================
+WORKSTREAM 19 — WEATHER / CONTEXT
+==================================================
+
+If weather or contextual inputs are part of the 38 research features or intended live contract:
+
+prove parity.
+
+If historical PIT-safe weather is unavailable:
+
+do NOT include a live-only weather feature in the frozen parity-proven historical/live contract.
+
+Instead classify it separately as:
+
+FUTURE_PROSPECTIVE_ONLY
+
+unless a valid historical source exists.
+
+==================================================
+WORKSTREAM 20 — MARKET LEAKAGE FIREWALL
+==================================================
+
+Search the entire canonical feature assembly path for:
+
+odds
+moneyline
+spread
+total
+implied probability
+vig
+closing line
+opening line
+line movement
+CLV
+sportsbook
+market consensus
+
+None may enter the MLB V4 sports forecast vector.
+
+Market data belongs downstream:
+
+FORECAST
+→ FAIR PRICE
+→ MARKET COMPARISON
+→ EDGE
+
+not inside the forecast.
+
+Tests must fail if a market field is injected into canonical model input.
+
+==================================================
+WORKSTREAM 21 — OUTCOME LEAKAGE FIREWALL
+==================================================
+
+Search for:
+
+final score
+winner
+actual runs
+actual starter
+postgame ERA update
+postgame bullpen outcome
+result
+graded pick
+
+None may influence a pregame model-input vector.
+
+==================================================
+WORKSTREAM 22 — CROSS-SPORT ISOLATION
+==================================================
+
+Verify the MLB V4 input path imports no state from:
+
+NFL
+NCAAF
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+Shared utilities are fine.
+
+Forecast intelligence is not.
+
+==================================================
+WORKSTREAM 23 — CONTRACT HASH
+==================================================
+
+Produce a deterministic SHA-256 or existing project-standard hash over the complete frozen input contract.
+
+The hash must include:
+
+feature names
+order
+types
+units
+transforms
+normalization constants
+missingness rules
+orientation
+version
+
+Report it.
+
+==================================================
+WORKSTREAM 24 — ADAPTER HASH / REPLAY HASH
+==================================================
+
+Produce deterministic hashes for:
+
+historical adapter output
+live adapter output
+representative replay cohort
+
+Same input evidence must always generate identical vector/hash.
+
+==================================================
+WORKSTREAM 25 — HISTORICAL/LIVE PARITY TEST DATASET
+==================================================
+
+Create a controlled parity dataset where both historical-style and live-style source structures can represent the same semantic state.
+
+For each test case:
+
+historical representation
+live nested representation
+canonical vector
+
+Assert equality feature by feature.
+
+Use multiple scenarios:
+
+home stronger than away
+away stronger than home
+missing starter
+confirmed starters
+weak bullpen
+strong bullpen
+minimum-sample fallback
+park/home context
+boundary values
+
+==================================================
+WORKSTREAM 26 — FLOAT COMPARISON
+==================================================
+
+Use exact equality where appropriate.
+
+For floating transforms, define a strict deterministic tolerance such as:
+
+1e-12
+
+or the project's existing standard.
+
+Do not use loose tolerances that can hide semantic differences.
+
+==================================================
+WORKSTREAM 27 — REAL PROSPECTIVE SNAPSHOT PARITY
+==================================================
+
+Using development-only prospective MLB V4 snapshots already collected by #232:
+
+materialize the canonical vector.
+
+Report:
+
+games tested
+snapshots tested
+eligible evidence tiers
+missing features
+invalid vectors
+PIT violations
+market leakage violations
+determinism failures
+
+Do not publish forecasts.
+
+==================================================
+WORKSTREAM 28 — HISTORICAL COVERAGE
+==================================================
+
+Using the chronology-safe historical foundation:
+
+report how many rows can legitimately materialize the canonical contract.
+
+Separate:
+
+baseline-core eligible
+starter-core eligible
+enhanced eligible
+ineligible
+
+Do not expand eligibility with hindsight.
+
+==================================================
+WORKSTREAM 29 — FEATURE AVAILABILITY MATRIX
+==================================================
+
+Return a table:
+
+feature
+historical available
+live available
+semantic parity
+unit parity
+transform parity
+PIT parity
+status
+notes
+
+Statuses:
+
+PASS
+FAIL
+PARTIAL
+NOT_AVAILABLE
+PROSPECTIVE_ONLY
+
+Every model feature must appear exactly once.
+
+==================================================
+WORKSTREAM 30 — SCHEMA PARITY MATRIX
+==================================================
+
+At the object/contract level compare:
+
+historical research schema
+#232 pregame snapshot
+live model-input-v4
+canonical frozen contract
+
+Document:
+
+field paths
+renames
+derived fields
+dropped fields
+unsupported fields
+
+==================================================
+WORKSTREAM 31 — #237 RESEARCH CANDIDATE COMPATIBILITY
+==================================================
+
+Determine whether the frozen #237 research candidate can legally consume the new canonical input vector without any semantic change.
+
+Return one:
+
+COMPATIBLE
+COMPATIBLE_WITH_ADAPTER_ONLY
+INCOMPATIBLE
+UNKNOWN
+
+Do NOT retrain.
+
+If incompatible, state exactly why.
+
+Examples:
+
+feature meaning mismatch
+missing training scaler
+order mismatch
+live-only feature
+historical-only feature
+starter semantics mismatch
+
+==================================================
+WORKSTREAM 32 — DO NOT MODIFY #237 PARAMETERS
+==================================================
+
+If #237 candidate is compatible:
+
+do not change any parameter.
+
+If incompatible:
+
+do not "fix" the model by altering coefficients.
+
+The next task can build a new challenger after the contract is frozen.
+
+==================================================
+WORKSTREAM 33 — EXPECTED SCORE OUTPUT CONTRACT
+==================================================
+
+MLB V4 is intended to support expected runs / projected score.
+
+Confirm the future model output contract can preserve:
+
+expected_home_runs_unrounded
+expected_away_runs_unrounded
+
+and derive:
+
+projected_home_score_display
+projected_away_score_display
+
+for UI later.
+
+Do not fabricate projected scores in this task.
+
+Do not change subscriber UI.
+
+Do not add cover probability.
+
+==================================================
+WORKSTREAM 34 — PROBABILITY OUTPUT SEMANTICS
+==================================================
+
+Future MLB V4 probability must have explicit semantics:
+
+P(HOME WIN)
+P(AWAY WIN)
+
+or project-equivalent.
+
+Confirm the input contract does not conflate:
+
+score projection
+win probability
+market-implied probability
+confidence
+edge
+
+Do not alter downstream #238A safety logic.
+
+==================================================
+WORKSTREAM 35 — VERSIONING
+==================================================
+
+The frozen contract must be immutable once created.
+
+Any future feature semantic change requires:
+
+new contract version
+new hash
+new compatible model artifact
+
+Do not silently evolve v1.
+
+==================================================
+WORKSTREAM 36 — MODEL ARTIFACT PRECONDITION
+==================================================
+
+Do not create a production artifact in this task.
+
+But define exactly what the next challenger task will need to freeze:
+
+model ID
+model version
+input contract ID
+input contract hash
+parameter hash
+training foundation hash
+training code hash
+normalization hash
+feature-order hash
+
+==================================================
+WORKSTREAM 37 — NO PRODUCTION SCHEMA PUSH
+==================================================
+
+If additive schema work is needed in development:
+
+make only the smallest required change.
+
+Do not:
+
+push schema to production
+run broad Drizzle push
+copy all development tables to production
+
+Document future migration requirements only.
+
+==================================================
+WORKSTREAM 38 — TESTS
+==================================================
+
+Add focused tests for:
+
+exact 38-feature enumeration
+feature order
+contract hash stability
+historical adapter
+live adapter
+historical/live equality
+unit parity
+orientation parity
+missingness parity
+transform parity
+normalization constants
+starter state legality
+starter hindsight rejection
+market leakage rejection
+outcome leakage rejection
+PIT cutoff
+baseline-core eligibility
+starter-core eligibility
+prospective-only features
+cross-sport isolation
+determinism
+expected-score output contract
+probability semantics
+#237 compatibility classification
+
+==================================================
+WORKSTREAM 39 — REGRESSION
+==================================================
+
+Run appropriate existing validation.
+
+At minimum where available:
+
+API typecheck
+DB typecheck
+API build
+MLB V4 focused tests
+historical PIT tests
+starter evidence tests
+#232 snapshot tests
+#237 research tests
+scheduler regression where relevant
+publication regression where shared types touched
+security/signing guard
+
+Do not change unrelated code to make broad unrelated tests pass.
+
+Report unrelated failures separately.
+
+==================================================
+WORKSTREAM 40 — FORECAST IMMUTABILITY
+==================================================
+
+Prove:
+
+MLB V1 output unchanged.
+
+No other sports forecast output changed.
+
+No #237 candidate coefficients changed.
+
+No new model trained.
+
+No model promoted.
+
+==================================================
+WORKSTREAM 41 — PRODUCTION SAFETY
+==================================================
+
+Confirm:
+
+production DB unchanged
+production model registry unchanged
+production subscriber endpoints unchanged
+no deploy
+no push
+no model promotion
+no publication
+no grading
+no scheduler mutation
+
+==================================================
+WORKSTREAM 42 — ACCEPTANCE CRITERIA
+==================================================
+
+Task #238 passes only if all applicable conditions are true:
+
+1. Canonical MLB V4 input contract exists.
+2. Exact feature order is frozen.
+3. Every feature has explicit semantics.
+4. Every feature has explicit unit.
+5. Every feature has explicit orientation.
+6. Every feature has explicit missingness policy.
+7. Every transform is frozen.
+8. Normalization constants are frozen.
+9. Historical adapter is deterministic.
+10. Live adapter is deterministic.
+11. Historical/live parity is proven feature by feature where both are supported.
+12. Unsupported parity is explicitly classified.
+13. Starter hindsight is impossible.
+14. Market leakage is impossible.
+15. Outcome leakage is impossible.
+16. Cross-sport leakage is absent.
+17. PIT cutoff is enforced.
+18. Real prospective snapshots materialize deterministically.
+19. Historical coverage is quantified honestly.
+20. #237 compatibility is explicitly classified.
+21. No model was trained or retuned.
+22. No model was promoted.
+23. MLB V1 unchanged.
+24. Production unchanged.
+25. No push/deploy occurred.
+
+==================================================
+WORKSTREAM 43 — FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — PARITY PROVEN; FROZEN MLB V4 INPUT CONTRACT READY FOR CHALLENGER BUILD
+
+B — PARITY MOSTLY PROVEN; NARROW INPUT-CONTRACT BLOCKERS REMAIN
+
+C — PARITY NOT PROVEN; MLB V4 CHALLENGER BUILD REMAINS BLOCKED
+
+D — UNSAFE: PIT / MARKET / OUTCOME LEAKAGE OR SEMANTIC INCONSISTENCY DETECTED
+
+==================================================
+WORKSTREAM 44 — REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #238 — MLB V4 HISTORICAL/LIVE FEATURE-PARITY PROOF & FROZEN INPUT CONTRACT
+
+## 1. Executive Summary
+
+Classification:
+Parity proven:
+Frozen contract created:
+Feature count:
+Historical adapter:
+Live adapter:
+Real prospective materialization:
+#237 compatibility:
+Market leakage:
+Outcome leakage:
+PIT violations:
+New model trained:
+Model promoted:
+Production mutated:
+Push:
+Deploy:
+
+## 2. Files Inspected
+
+## 3. Files Changed
+
+## 4. Existing MLB V4 Input Representations
+
+## 5. Canonical Frozen Contract
+
+Contract ID:
+Contract version:
+Feature count:
+Contract hash:
+Feature-order hash:
+Normalization hash:
+
+## 6. Exact Ordered Feature List
+
+List all features in order.
+
+## 7. Feature Definition Matrix
+
+For every feature:
+
+name
+type
+unit
+orientation
+transform
+missingness
+PIT cutoff
+provenance
+
+## 8. Historical Adapter
+
+## 9. Live Adapter
+
+## 10. Historical/Live Feature-Parity Matrix
+
+## 11. Unit Parity
+
+## 12. Orientation Parity
+
+## 13. Missingness Parity
+
+## 14. Transform Parity
+
+## 15. Normalization Constants
+
+## 16. Starter Evidence Semantics
+
+## 17. Baseline-Core vs Starter-Core
+
+## 18. Offense State
+
+## 19. Bullpen State
+
+## 20. League / Home / Run Environment
+
+## 21. Weather / Context
+
+## 22. PIT Provenance
+
+## 23. Market Leakage Firewall
+
+## 24. Outcome Leakage Firewall
+
+## 25. Cross-Sport Isolation
+
+## 26. Historical Coverage
+
+Report:
+
+total chronology-safe
+baseline-core eligible
+starter-core eligible
+enhanced eligible
+ineligible
+
+## 27. Prospective Development Coverage
+
+Report:
+
+games
+snapshots
+baseline-core
+starter-core
+enhanced
+invalid
+missingness
+PIT violations
+leakage violations
+
+## 28. Determinism
+
+Report hashes.
+
+## 29. #237 Research Candidate Compatibility
+
+Return:
+
+COMPATIBLE
+COMPATIBLE_WITH_ADAPTER_ONLY
+INCOMPATIBLE
+UNKNOWN
+
+Explain exactly.
+
+## 30. Expected-Score Output Contract
+
+## 31. Probability Output Contract
+
+## 32. Versioning Rules
+
+## 33. Future Model Artifact Requirements
+
+## 34. Schema Changes
+
+## 35. Future Production Migration Required
+
+YES/NO
+
+DO NOT EXECUTE.
+
+## 36. Tests
+
+List exact commands/results.
+
+## 37. Regression Results
+
+## 38. Forecast Immutability
+
+## 39. Production Safety Verification
+
+## 40. Remaining Blockers
+
+## 41. Final Classification
+
+## 42. Exactly One Recommended Next Task
+
+==================================================
+EXPECTED NEXT TASK IF CLASSIFICATION A
+==================================================
+
+If and only if Task #238 returns:
+
+A — PARITY PROVEN; FROZEN MLB V4 INPUT CONTRACT READY FOR CHALLENGER BUILD
+
+recommend:
+
+TASK #241 — MLB V4 FROZEN-CONTRACT CHALLENGER BUILD & PROSPECTIVE SHADOW EVALUATION FOUNDATION
+
+That next task may train a challenger using only legitimate training/validation data and the frozen input contract.
+
+It must NOT use the consumed 2,012 historical cohort for model selection.
+
+Do not begin #241 automatically.
+
+==================================================
+HARD STOP
+==================================================
+
+After completing parity proof, contract freeze, tests, regressions, and report:
+
+STOP.
+
+DO NOT:
+
+TRAIN A NEW MODEL
+RETUNE #237
+PROMOTE MLB V4
+PUSH
+DEPLOY
+PRODUCTION MIGRATE
+PUBLISH
+BUILD EAS
+MODIFY GIT HISTORY
+TOUCH THE CONTAMINATED REF
+
+Return the complete report for owner review.
