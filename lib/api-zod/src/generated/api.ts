@@ -50,6 +50,15 @@ export const GetGamesTodayResponse = zod.object({
   "projectedSpread": zod.number(),
   "projectedTotal": zod.number(),
   "valueRating": zod.string(),
+  "modelRecommendation": zod.string().nullish().describe('Immutable model opinion before downstream publication gates.'),
+  "publicationStatus": zod.string().nullish(),
+  "publicationReason": zod.string().nullish(),
+  "isPublic": zod.boolean().nullish(),
+  "globalRank": zod.number().nullish(),
+  "selectedSideEdge": zod.number().nullish().describe('Selected-side model probability minus no-vig fair probability, in percentage points.'),
+  "requestedUnits": zod.number().nullish(),
+  "approvedUnits": zod.number().nullish(),
+  "stakePolicyVersion": zod.string().nullish(),
   "modelScore": zod.number(),
   "edge": zod.number(),
   "confidenceNum": zod.number().optional(),
@@ -1020,6 +1029,20 @@ export const GetAdminOutcomeReviewsResponse = zod.object({
 })),
   "dataAsOf": zod.string(),
   "resultFilter": zod.enum(['all', 'win', 'loss'])
+})
+
+
+/**
+ * @summary Inspect effective downstream publication decisions for one Eastern calendar date
+ */
+export const GetAdminPublicationDecisionsQueryParams = zod.object({
+  "date": zod.date().optional()
+})
+
+export const GetAdminPublicationDecisionsResponse = zod.object({
+  "easternDate": zod.coerce.date(),
+  "dataAsOf": zod.coerce.date(),
+  "decisions": zod.array(zod.record(zod.string(), zod.unknown()))
 })
 
 

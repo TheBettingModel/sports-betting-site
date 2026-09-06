@@ -35,6 +35,22 @@ export const publishedPicksTable = pgTable(
     isEffective: boolean("is_effective").notNull().default(false),
     supersededAt: timestamp("superseded_at", { withTimezone: true }),
 
+    // Publication-decision contract. These are nullable for legacy rows, whose
+    // historic publication state cannot be inferred safely during migration.
+    publicationStatus: text("publication_status"),
+    publicationReasonCode: text("publication_reason_code"),
+    exclusionReasonCode: text("exclusion_reason_code"),
+    selectedSideEdge: real("selected_side_edge"),
+    rankScore: real("rank_score"),
+    globalRank: integer("global_rank"),
+    requestedUnits: real("requested_units"),
+    approvedUnits: real("approved_units"),
+    stakePolicyVersion: text("stake_policy_version"),
+    stakeReason: text("stake_reason"),
+    decisionTimestamp: timestamp("decision_timestamp", { withTimezone: true }),
+    dataCutoff: timestamp("data_cutoff", { withTimezone: true }),
+    gameStart: timestamp("game_start", { withTimezone: true }),
+
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -46,6 +62,8 @@ export const publishedPicksTable = pgTable(
     index("published_picks_game_id_idx").on(t.gameId),
     index("published_picks_prediction_id_idx").on(t.predictionId),
     index("published_picks_policy_revision_idx").on(t.policyRevisionId),
+    // Supports ranked publication-queue reads without indexing audit details.
+    index("published_picks_publication_rank_idx").on(t.publicationStatus, t.globalRank),
     // The effective recommendation is a durable database invariant, not only
     // an application convention. Superseded rows remain queryable for audit.
     uniqueIndex("published_picks_one_effective_game_market_unique")

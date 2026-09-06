@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -21,7 +21,6 @@ import {
 } from "./publishedPickReconciliation";
 import { isActionablePublication } from "./publicationEligibility";
 
-const MAX_PUBLIC_PICKS_PER_DAY = 6;
 const MATERIAL_EDGE_DELTA = 3;
 const MATERIAL_PROBABILITY_DELTA = 0.025;
 const MATERIAL_ODDS_DELTA = 15;
@@ -161,6 +160,7 @@ function requiredMlbEvidenceWithdrawal(featureSnapshot: Record<string, unknown>)
 export function currentPregameDecision(proj: ProjectionResult): MaterialPregameDecision {
   const selection = proj.edge >= 0 ? "home" : "away";
   const odds = selection === "home" ? proj.vegasHomeOdds : proj.vegasAwayOdds;
+  const modelProbability = selection === "home" ? proj.homeWinPct / 100 : 1 - proj.homeWinPct / 100;
   let recommendation: MaterialRecommendation = (
     proj.valueRating === "Strong Buy" ||
     proj.valueRating === "Buy" ||
@@ -180,7 +180,9 @@ export function currentPregameDecision(proj: ProjectionResult): MaterialPregameD
   return {
     selection,
     odds,
-    modelProbability: selection === "home" ? proj.homeWinPct / 100 : 1 - proj.homeWinPct / 100,
+    modelProbability,
+    // Preserve the immutable forecast's original home-perspective edge. The
+    // selected-side normalization belongs only to the publication contract.
     edge: proj.edge,
     confidence: proj.confidence,
     recommendation,
@@ -319,7 +321,7 @@ export async function applyMaterialPregameRevision(
     ? materialMlbEvidenceFingerprint(featureSnapshot)
     : null;
   try {
-    return await db.transaction(async (tx) => {
+    const outcome = await db.transaction(async (tx) => {
     await tx.execute(publishedPickEffectivenessWriterLock());
     await tx.execute(publishedPickEffectivenessLock(game.espnId, "moneyline"));
 
@@ -331,7 +333,7 @@ export async function applyMaterialPregameRevision(
         eq(gamesTable.status, "upcoming"),
       ))
       .limit(1);
-    if (!stillEligible) return false;
+    if (!stillEligible) return { changed: false, predictionId: null, actionable: false };
 
     const [activePick] = await tx
       .select()
@@ -342,14 +344,14 @@ export async function applyMaterialPregameRevision(
         eq(publishedPicksTable.isEffective, true),
       ))
       .limit(1);
-    if (!activePick) return false;
+    if (!activePick) return { changed: false, predictionId: null, actionable: false };
 
     const [priorPrediction] = await tx
       .select()
       .from(modelPredictionsTable)
       .where(eq(modelPredictionsTable.id, activePick.predictionId))
       .limit(1);
-    if (!priorPrediction) return false;
+    if (!priorPrediction) return { changed: false, predictionId: null, actionable: false };
 
     const prior: PriorDecision = {
       selection: activePick.selection === "away" ? "away" : "home",
@@ -390,7 +392,9 @@ export async function applyMaterialPregameRevision(
         ...evidenceWithdrawal.qualityReasons.map((reason) => `pitcher_evidence:${reason}`),
       );
     }
-    if (change.reasons.length === 0) return false;
+    if (change.reasons.length === 0) {
+      return { changed: false, predictionId: null, actionable: false };
+    }
 
     const manifest = revisionManifest(
       game.sport,
@@ -445,7 +449,9 @@ export async function applyMaterialPregameRevision(
         eq(modelPredictionsTable.policyRevisionId, revision.id),
       ))
       .limit(1);
-    if (alreadyWritten) return false;
+    if (alreadyWritten) {
+      return { changed: false, predictionId: null, actionable: false };
+    }
 
     // Take a row lock and use PostgreSQL's wall-clock time immediately before
     // writing a replacement. `CURRENT_TIMESTAMP` is transaction-start time,
@@ -525,22 +531,15 @@ export async function applyMaterialPregameRevision(
         cohort: "official",
       })
       .returning({ id: modelPredictionsTable.id });
-    if (!insertedPrediction) return false;
-    // Preserve the immutable revision snapshot for audit, but a withdrawal or
-    // Neutral/Fade recalculation is not a wager and must not enter either
-    // published_picks or the grading queue.
-    if (!isActionablePublication(current.recommendation, current.units)) return false;
-
-    const [{ publicCount }] = await tx
-      .select({ publicCount: sql<number>`count(*)::int` })
-      .from(publishedPicksTable)
-      .where(and(
-        eq(publishedPicksTable.isPublic, true),
-        eq(publishedPicksTable.isEffective, true),
-        sql`DATE(${publishedPicksTable.publishedAt} AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
-      ));
-    const isPublic = (current.recommendation === "Buy" || current.recommendation === "Strong Buy")
-      && Number(publicCount) - (activePick.isPublic ? 1 : 0) < MAX_PUBLIC_PICKS_PER_DAY;
+    if (!insertedPrediction) {
+      return { changed: false, predictionId: null, actionable: false };
+    }
+    // Actionable revisions must compete in the canonical complete daily pool.
+    // Return the immutable prediction identity and publish only after this
+    // transaction commits; publishDownstreamCandidates owns its transaction.
+    if (isActionablePublication(current.recommendation, current.units)) {
+      return { changed: true, predictionId: insertedPrediction.id, actionable: true };
+    }
 
     // The reads above can wait on database work. Recheck at the last safe
     // point before the effective decision is replaced; throwing rolls back the
@@ -593,14 +592,29 @@ export async function applyMaterialPregameRevision(
         market: "moneyline",
         selection: current.selection,
         odds: current.odds,
-        units: current.units,
+        units: 0,
         recommendation: current.recommendation,
         confidence: current.confidence,
-        isPlayOfDay: current.marketIntelligenceGrade === "Elite" || current.podScore >= 50,
-        isPublic,
+        isPlayOfDay: false,
+        isPublic: false,
         isEffective: true,
+        publicationStatus: "SAFETY_BLOCKED",
+        publicationReasonCode: "MATERIAL_REVISION_WITHDRAWN",
+        exclusionReasonCode: "MATERIAL_REVISION_WITHDRAWN",
+        selectedSideEdge: (current.selection === "home"
+          ? current.modelProbability - fairMarket.home
+          : current.modelProbability - fairMarket.away) * 100,
+        rankScore: current.finalRating,
+        globalRank: (activePick as any).globalRank,
+        requestedUnits: current.units,
+        approvedUnits: 0,
+        stakePolicyVersion: "fail-closed-flat-v1",
+        stakeReason: "MATERIAL_REVISION_WITHDRAWN",
+        decisionTimestamp: now,
+        dataCutoff: now,
+        gameStart: new Date(game.commenceTimeISO),
         publishedAt: now,
-      })
+      } as any)
       .returning({ id: publishedPicksTable.id });
     if (!pick) throw new Error(`Failed to create effective ${game.sport} material revision pick.`);
 
@@ -608,15 +622,19 @@ export async function applyMaterialPregameRevision(
       .update(publishedPicksTable)
       .set({ supersededByPickId: pick.id })
       .where(eq(publishedPicksTable.id, activePick.id));
-    await tx.insert(pickResultsTable).values({
-      pickId: pick.id,
-      result: "pending",
-      unitsRisked: current.units,
-      unitsWonLost: 0,
-      gradeAudit: [],
+    return { changed: true, predictionId: insertedPrediction.id, actionable: false };
     });
-    return true;
-    });
+    if (outcome.actionable && outcome.predictionId != null) {
+      const { publishDownstreamCandidates } = await import("./snapshot");
+      try {
+        await publishDownstreamCandidates([outcome.predictionId]);
+      } catch (publicationError) {
+        const { failClosedRevisionPublication } = await import("./revisionPublicationSafety");
+        await failClosedRevisionPublication(outcome.predictionId);
+        throw publicationError;
+      }
+    }
+    return outcome.changed;
   } catch (error) {
     if (error instanceof PregameCutoffReachedError) return false;
     throw error;

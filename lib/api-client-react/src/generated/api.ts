@@ -38,6 +38,8 @@ import type {
   GetAdminMarketComparisons200,
   GetAdminMarketComparisonsParams,
   GetAdminOutcomeReviewsParams,
+  GetAdminPublicationDecisions200,
+  GetAdminPublicationDecisionsParams,
   GetAdminSpreadModels200,
   GetGamesTodayParams,
   GetNcaafV4ProjectionsParams,
@@ -2247,6 +2249,90 @@ export function useGetAdminOutcomeReviews<TData = Awaited<ReturnType<typeof getA
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminOutcomeReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminPublicationDecisionsUrl = (params?: GetAdminPublicationDecisionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/publication-decisions?${stringifiedParams}` : `/api/admin/publication-decisions`
+}
+
+/**
+ * @summary Inspect effective downstream publication decisions for one Eastern calendar date
+ */
+export const getAdminPublicationDecisions = async (params?: GetAdminPublicationDecisionsParams, options?: RequestInit): Promise<GetAdminPublicationDecisions200> => {
+
+  return customFetch<GetAdminPublicationDecisions200>(getGetAdminPublicationDecisionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPublicationDecisionsQueryKey = (params?: GetAdminPublicationDecisionsParams,) => {
+    return [
+    `/api/admin/publication-decisions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminPublicationDecisionsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPublicationDecisions>>, TError = ErrorType<unknown>>(params?: GetAdminPublicationDecisionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPublicationDecisions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPublicationDecisionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPublicationDecisions>>> = ({ signal }) => getAdminPublicationDecisions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPublicationDecisions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminPublicationDecisionsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPublicationDecisions>>>
+export type GetAdminPublicationDecisionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Inspect effective downstream publication decisions for one Eastern calendar date
+ */
+
+export function useGetAdminPublicationDecisions<TData = Awaited<ReturnType<typeof getAdminPublicationDecisions>>, TError = ErrorType<unknown>>(
+ params?: GetAdminPublicationDecisionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPublicationDecisions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminPublicationDecisionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

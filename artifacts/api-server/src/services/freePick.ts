@@ -1,5 +1,13 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { dailyFreePicksTable, db, gamesTable, publishedPicksTable } from "@workspace/db";
+import {
+  dailyFreePicksTable,
+  db,
+  gamesTable,
+  modelPredictionsTable,
+  modelVersionsTable,
+  publishedPicksTable,
+} from "@workspace/db";
+import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
 
 export type FreePickRow = {
   publishedPickId: number; gameId: string; sport: string; awayTeamName: string; awayTeamAbbr: string;
@@ -19,6 +27,12 @@ const eligiblePickWhere = (easternDate: string) =>
   and(
     eq(publishedPicksTable.isEffective, true),
     eq(publishedPicksTable.isPublic, true),
+    eq(publishedPicksTable.publicationStatus, "PUBLISHED"),
+    eq(publishedPicksTable.approvedUnits, 1),
+    eq(modelVersionsTable.status, "production"),
+    eq(modelPredictionsTable.cohort, "official"),
+    eq(modelPredictionsTable.isChallenger, false),
+    isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
     eq(publishedPicksTable.isPlayOfDay, false),
     sql`${publishedPicksTable.recommendation} IN ('Strong Buy', 'Buy')`,
     eq(gamesTable.gameDate, easternDate),
@@ -39,6 +53,8 @@ async function findEligiblePickById(easternDate: string, publishedPickId: number
     .select(freePickColumns)
     .from(publishedPicksTable)
     .innerJoin(gamesTable, eq(gamesTable.id, publishedPicksTable.gameId))
+    .innerJoin(modelPredictionsTable, eq(modelPredictionsTable.id, publishedPicksTable.predictionId))
+    .innerJoin(modelVersionsTable, eq(modelVersionsTable.id, modelPredictionsTable.modelVersionId))
     .where(and(eq(publishedPicksTable.id, publishedPickId), eligiblePickWhere(easternDate)))
     .limit(1);
   return row ?? null;
@@ -61,6 +77,8 @@ export async function getDailyFreePick(easternDate: string): Promise<FreePickRow
     .select(freePickColumns)
     .from(publishedPicksTable)
     .innerJoin(gamesTable, eq(gamesTable.id, publishedPicksTable.gameId))
+    .innerJoin(modelPredictionsTable, eq(modelPredictionsTable.id, publishedPicksTable.predictionId))
+    .innerJoin(modelVersionsTable, eq(modelVersionsTable.id, modelPredictionsTable.modelVersionId))
     .where(eligiblePickWhere(easternDate))
     .orderBy(desc(gamesTable.finalModelScore), desc(gamesTable.modelScore), asc(publishedPicksTable.id))
     .limit(1);

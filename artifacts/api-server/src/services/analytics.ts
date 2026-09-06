@@ -11,9 +11,10 @@
  *                        calibration error, accuracy.
  */
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   db,
+  gamesTable,
   modelPredictionsTable,
   modelVersionsTable,
   performanceMetricsTable,
@@ -22,7 +23,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { refreshMoneylineApprovalDecisions } from "./marketApproval";
-import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
+import { officialPublicRecordSqlConditions } from "./officialRecordPolicy";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -293,10 +294,14 @@ export async function runAnalytics(): Promise<number> {
       modelPredictionsTable,
       eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
     )
+    .innerJoin(
+      modelVersionsTable,
+      eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
+    )
+    .innerJoin(gamesTable, eq(publishedPicksTable.gameId, gamesTable.id))
     .where(
       and(
-        inArray(pickResultsTable.result, ["win", "loss", "push", "void"]),
-        isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
+        ...officialPublicRecordSqlConditions(`${new Date().getFullYear()}-09-11`),
       ),
     );
 

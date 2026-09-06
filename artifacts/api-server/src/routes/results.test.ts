@@ -21,6 +21,11 @@ type ResultRow = {
   gameDate: string;
   gameSport: string;
   isEffective: boolean;
+  isPublic: boolean;
+  cohort: string | null;
+  isChallenger: boolean;
+  modelStatus: string;
+  performanceEligible: boolean;
 };
 
 const { select } = vi.hoisted(() => ({ select: vi.fn() }));
@@ -40,7 +45,19 @@ vi.mock("@workspace/db", () => ({
   publishedPicksTable: {
     id: "pickId", sport: "sport", market: "market", selection: "selection",
     odds: "odds", units: "units", recommendation: "recommendation",
-    gameId: "gameId", isEffective: "isEffective",
+    gameId: "gameId", isEffective: "isEffective", isPublic: "isPublic",
+    predictionId: "predictionId",
+  },
+  modelPredictionsTable: {
+    id: "predictionId", modelVersionId: "modelVersionId", cohort: "cohort",
+    isChallenger: "isChallenger",
+  },
+  modelVersionsTable: {
+    id: "modelVersionId", status: "modelStatus",
+  },
+  publishedPickPerformanceClassificationsTable: {
+    id: "classificationId", publishedPickId: "classifiedPickId",
+    performanceEligible: "performanceEligible",
   },
   gamesTable: {
     id: "gameId", awayTeamAbbr: "awayTeamAbbr", homeTeamAbbr: "homeTeamAbbr",
@@ -53,8 +70,10 @@ vi.mock("drizzle-orm", () => ({
   ne: (column: string, value: unknown) => ({ op: "ne", column, value }),
   gte: (column: string, value: unknown) => ({ op: "gte", column, value }),
   inArray: (column: string, values: unknown[]) => ({ op: "in", column, values }),
+  isNull: (column: string) => ({ op: "isNull", column }),
   and: (...conditions: Condition[]) => ({ op: "and", conditions }),
   or: (...conditions: Condition[]) => ({ op: "or", conditions }),
+  notExists: () => ({ op: "notExists" }),
   desc: (column: string) => ({ op: "desc", column }),
 }));
 
@@ -63,7 +82,9 @@ import resultsRouter from "./results";
 type Condition =
   | { op: "eq" | "ne" | "gte"; column: keyof ResultRow; value: unknown }
   | { op: "in"; column: keyof ResultRow; values: unknown[] }
+  | { op: "isNull"; column: keyof ResultRow }
   | { op: "and" | "or"; conditions: Condition[] }
+  | { op: "notExists" }
   | { op: "desc"; column: keyof ResultRow };
 
 function matches(row: ResultRow, condition: Condition): boolean {
@@ -72,8 +93,10 @@ function matches(row: ResultRow, condition: Condition): boolean {
     case "ne": return row[condition.column] !== condition.value;
     case "gte": return String(row[condition.column]) >= String(condition.value);
     case "in": return condition.values.includes(row[condition.column]);
+    case "isNull": return row[condition.column] == null;
     case "and": return condition.conditions.every((item) => matches(row, item));
     case "or": return condition.conditions.some((item) => matches(row, item));
+    case "notExists": return row.performanceEligible !== false;
     case "desc": return true;
   }
 }
@@ -112,6 +135,11 @@ function row(overrides: Partial<ResultRow> = {}): ResultRow {
     gameDate: `${new Date().getFullYear()}-10-01`,
     gameSport: "MLB",
     isEffective: true,
+    isPublic: true,
+    cohort: "official",
+    isChallenger: false,
+    modelStatus: "production",
+    performanceEligible: true,
     ...overrides,
   };
 }
@@ -159,5 +187,32 @@ describe("results effective-pick ledger", () => {
 
     expect(summary.body.overall).toMatchObject({ wins: 1, losses: 0, totalPicks: 1 });
     expect(roi.body.byRating).toMatchObject([{ recommendation: "Buy", wins: 1, totalPicks: 1 }]);
+  });
+
+  it.each([
+    ["nonpublic", { isPublic: false }],
+    ["performance-ineligible", { performanceEligible: false }],
+    ["retired model", { modelStatus: "retired" }],
+    ["shadow prediction", { cohort: "shadow" }],
+    ["research prediction", { cohort: "research" }],
+    ["superseded pick", { isEffective: false }],
+    ["pending result", { result: "pending" }],
+  ] as const)("excludes a %s row from both ledgers", async (_name, overrides) => {
+    const { summary, roi } = await ledgers([row(overrides)]);
+
+    expect(summary.body.overall).toMatchObject({ totalPicks: 0, wins: 0, losses: 0 });
+    expect(roi.body.bySport).toEqual([]);
+  });
+
+  it("retains the NFL preseason exclusion while including regular-season results", async () => {
+    const year = new Date().getFullYear();
+    const preseason = row({ sport: "NFL", gameSport: "NFL", gameDate: `${year}-09-10` });
+    const regularSeason = row({
+      pickId: 2, sport: "NFL", gameSport: "NFL", gameDate: `${year}-09-11`,
+    });
+    const { summary, roi } = await ledgers([preseason, regularSeason]);
+
+    expect(summary.body.overall).toMatchObject({ wins: 1, totalPicks: 1 });
+    expect(roi.body.bySport).toMatchObject([{ sport: "NFL", wins: 1, totalPicks: 1 }]);
   });
 });

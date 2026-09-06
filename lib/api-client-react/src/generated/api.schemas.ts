@@ -688,6 +688,17 @@ export interface GameProjection {
   projectedSpread: number;
   projectedTotal: number;
   valueRating: string;
+  /** Immutable model opinion before downstream publication gates. */
+  modelRecommendation?: string | null;
+  publicationStatus?: string | null;
+  publicationReason?: string | null;
+  isPublic?: boolean | null;
+  globalRank?: number | null;
+  /** Selected-side model probability minus no-vig fair probability, in percentage points. */
+  selectedSideEdge?: number | null;
+  requestedUnits?: number | null;
+  approvedUnits?: number | null;
+  stakePolicyVersion?: string | null;
   modelScore: number;
   edge: number;
   confidenceNum?: number;
@@ -1402,6 +1413,18 @@ export const GetAdminOutcomeReviewsResult = {
   win: 'win',
   loss: 'loss',
 } as const;
+
+export type GetAdminPublicationDecisionsParams = {
+date?: string;
+};
+
+export type GetAdminPublicationDecisions200DecisionsItem = { [key: string]: unknown };
+
+export type GetAdminPublicationDecisions200 = {
+  easternDate: string;
+  dataAsOf: string;
+  decisions: GetAdminPublicationDecisions200DecisionsItem[];
+};
 
 export type GetAdminForecastReviewsParams = {
 sport?: string;

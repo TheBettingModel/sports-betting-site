@@ -27,7 +27,11 @@ import type { TeamInjuryImpact } from "../services/nflInjuries";
 import { getWnbaTeamStats, getNbaTeamStats, getSoccerTeamStats, getDbTeamStats } from "../services/teamStats";
 import { getWnbaGameContext } from "../services/wnbaContext";
 import { runLearning } from "../services/learning";
-import { createPredictionDecisionContext, processGameSnapshot } from "../services/snapshot";
+import {
+  createPredictionDecisionContext,
+  processGameSnapshot,
+  publishDownstreamCandidates,
+} from "../services/snapshot";
 import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from "../services/guardedServing/productionBoundary";
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
 import { createMlbQualificationAudit } from "../services/mlbQualificationAudit";
@@ -43,6 +47,7 @@ import {
   type MarketSelectionCandidate,
 } from "../services/spreadModel";
 import { getMoneylinePublicationPermissionsForGames } from "../services/marketApproval";
+import { isExactPublishedMarketActionable } from "../services/subscriberPublicationSafety";
 
 type AnyGame = Record<string, unknown>;
 
@@ -95,11 +100,16 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
     });
   }
   return games.map((game) => {
-    const researchRecommendation = String(game["valueRating"]);
-    const researchUnits = Number(game["units"] ?? 0);
+    const researchRecommendation = String(game["modelRecommendation"] ?? game["valueRating"]);
+    const researchUnits = Number(game["requestedUnits"] ?? game["units"] ?? 0);
+    const downstreamPublic = game["isPublic"] === true;
+    const downstreamApprovedUnits = Number(game["approvedUnits"] ?? 0);
     const moneylinePermission = moneylinePermissions.get(game["id"] as string);
     const moneylineApproved = moneylinePermission?.approved === true;
-    const moneylineQualified = moneylineApproved
+    const moneylineQualified = downstreamPublic
+      && game["publicationStatus"] === "PUBLISHED"
+      && downstreamApprovedUnits === 1
+      && moneylineApproved
       && (researchRecommendation === "Strong Buy" || researchRecommendation === "Buy");
     const pickIsHome = Number(game["edge"]) >= 0;
     const moneylineProbability = pickIsHome
@@ -136,8 +146,8 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
         : Math.round(((100 - moneylineProbability) / moneylineProbability) * 100),
       edge: Math.abs(Number(game["edge"])),
       expectedValue: Math.round(moneylineExpectedValue * 1000) / 10,
-      recommendation: moneylineApproved ? researchRecommendation : "Neutral",
-      units: moneylineApproved ? researchUnits : 0,
+      recommendation: moneylineQualified ? researchRecommendation : "Neutral",
+      units: moneylineQualified ? 1 : 0,
       eligible: moneylineQualified,
       approvalStatus: moneylinePermission?.status ?? "UNVALIDATED",
       approvalReasons: moneylinePermission?.reasons ?? ["exact_approval_record_missing"],
@@ -145,6 +155,17 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
       researchUnits,
     };
     const spread = spreadByGame.get(game["id"] as string);
+    const spreadResearchRecommendation = spread?.recommendation ?? "Neutral";
+    const spreadResearchUnits = spread?.units ?? 0;
+    const spreadQualified = spread != null
+      && isExactPublishedMarketActionable({
+        isPublic: game["spreadIsPublic"],
+        publicationStatus: game["spreadPublicationStatus"],
+        approvedUnits: game["spreadApprovedUnits"],
+        publishedSelection: game["spreadPublishedSelection"],
+        candidateSelection: spread.selection,
+      })
+      && spread.promotionEligible;
     const spreadMarket = spread ? {
       market: "spread",
       selection: spread.selection,
@@ -157,12 +178,17 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
       edge: Math.round(spread.edge * 1000) / 10,
       expectedValue: Math.round(spread.expectedValue * 1000) / 10,
       pushProbability: Math.round(spread.pushProbability * 1000) / 10,
-      recommendation: spread.recommendation,
-      units: spread.units,
-      eligible: spread.promotionEligible,
+      recommendation: spreadQualified ? spread.recommendation : "Neutral",
+      units: spreadQualified ? 1 : 0,
+      eligible: spreadQualified,
       gateStatus: spread.gateStatus,
+      researchRecommendation: spreadResearchRecommendation,
+      researchUnits: spreadResearchUnits,
     } : null;
-    const primaryMarket = choosePrimaryMarket(moneylineSelectionCandidate, spread ?? null);
+    const primaryMarket = choosePrimaryMarket(
+      moneylineSelectionCandidate,
+      spread ? { ...spread, promotionEligible: spreadQualified } : null,
+    );
     const selectedPick = primaryMarket === "moneyline"
       ? moneylineMarket
       : primaryMarket === "spread"
@@ -170,8 +196,8 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
         : null;
     return {
       ...game,
-      valueRating: moneylineApproved ? researchRecommendation : "Neutral",
-      units: moneylineApproved ? researchUnits : 0,
+      valueRating: moneylineQualified ? researchRecommendation : "Neutral",
+      units: moneylineQualified ? 1 : 0,
       publicationApprovalStatus: moneylinePermission?.status ?? "UNVALIDATED",
       selectedMarket: selectedPick?.market ?? null,
       selectedPick,
@@ -190,7 +216,14 @@ async function attachMarketSelection<T extends AnyGame>(games: T[]): Promise<T[]
  * subscriber/free game feed.
  */
 function stripInternalDiagnostics(game: AnyGame): AnyGame {
-  const { mlbDecisionAudit: _internalAudit, ...publicGame } = game;
+  const {
+    mlbDecisionAudit: _internalAudit,
+    spreadIsPublic: _spreadIsPublic,
+    spreadApprovedUnits: _spreadApprovedUnits,
+    spreadPublishedSelection: _spreadPublishedSelection,
+    spreadPublicationStatus: _spreadPublicationStatus,
+    ...publicGame
+  } = game;
   return publicGame;
 }
 
@@ -320,6 +353,7 @@ export async function refreshAll(): Promise<{
 
   let upserted = 0;
   const sports = new Set<string>();
+  const newlyProducedPredictionIds: number[] = [];
 
   for (const game of fetchedGames) {
     const w = weightsBySport[game.sport] ?? null;
@@ -758,17 +792,25 @@ export async function refreshAll(): Promise<{
     // Snapshot pipeline: odds, predictions, results, closing lines
     const servingBoundary = await resolveProductionPredictionBoundary(game, proj, decisionContext);
     if (shouldRunIncumbentSnapshot(servingBoundary)) {
-      await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
+      const predictionId = await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
         odds: gameOdds,
         homeTeamStats,
         awayTeamStats,
         homeDbStats,
         awayDbStats,
-      });
+      }, true);
+      if (predictionId != null) newlyProducedPredictionIds.push(predictionId);
     }
 
     upserted++;
     sports.add(game.sport);
+  }
+
+  // Manual refresh follows the identical slate boundary as scheduled
+  // ingestion; an operator/API-triggered refresh cannot publish in traversal
+  // order or evade the cross-sport daily cap.
+  if (newlyProducedPredictionIds.length > 0) {
+    await publishDownstreamCandidates(newlyProducedPredictionIds);
   }
 
   // Mark any games that are still "live" in the DB but were NOT returned by
@@ -871,12 +913,24 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
       .select({ id: gamesTable.id })
       .from(gamesTable)
       .where(and(eq(gamesTable.gameDate, today), inArray(gamesTable.status, ["live"]))),
-    // Resolve every effective decision, not only public bets. An authorized
-    // policy revision may supersede a formerly-public Buy with a Neutral; the
-    // feed must reflect that effective no-bet instead of resurrecting the
-    // mutable games-table rating.
+    // Resolve every effective downstream decision. Private/cap-excluded model
+    // opinions are forced to Neutral in subscriber payloads rather than
+    // resurrecting the mutable games-table recommendation.
     db
-      .select({ gameId: publishedPicksTable.gameId, recommendation: publishedPicksTable.recommendation })
+      .select({
+        gameId: publishedPicksTable.gameId,
+        market: publishedPicksTable.market,
+        selection: publishedPicksTable.selection,
+        recommendation: publishedPicksTable.recommendation,
+        isPublic: publishedPicksTable.isPublic,
+        publicationStatus: sql<string | null>`publication_status`,
+        publicationReason: sql<string | null>`publication_reason_code`,
+        globalRank: sql<number | null>`global_rank`,
+        selectedSideEdge: sql<number | null>`selected_side_edge`,
+        requestedUnits: sql<number | null>`requested_units`,
+        approvedUnits: sql<number | null>`approved_units`,
+        stakePolicyVersion: sql<string | null>`stake_policy_version`,
+      })
       .from(publishedPicksTable)
       .where(
         and(
@@ -887,19 +941,50 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
   ]);
   const liveGamesCount = liveGamesRows.length;
 
-  // Map gameId → locked-in rating from the time of publication.
-  const publishedRatingMap = new Map(todayPickRows.map((p) => [p.gameId, p.recommendation]));
+  const publicationDecisionMap = new Map(
+    todayPickRows.map((pick) => [`${pick.gameId}:${pick.market}`, pick]),
+  );
 
   /**
-   * Apply published rating override: keeps a game in its published section
-   * (e.g. "Buy") even if the model re-runs and downgrades it, while leaving
-   * games with no published pick showing their live rating.
-   * Units are intentionally NOT overridden — they remain dynamic.
+   * Apply the immutable downstream decision. The forecast recommendation is
+   * preserved separately, while only globally approved public picks retain an
+   * actionable subscriber recommendation and approved stake.
    */
   function applyPublishedRatings<T extends AnyGame>(games: T[]): T[] {
     return games.map((g) => {
-      const pinned = publishedRatingMap.get(g["id"] as string);
-      return pinned != null ? { ...g, valueRating: pinned } : g;
+      const gameId = g["id"] as string;
+      const decision = publicationDecisionMap.get(`${gameId}:moneyline`);
+      const spreadDecision = publicationDecisionMap.get(`${gameId}:spread`);
+      if (!decision) {
+        return {
+          ...g,
+          valueRating: "Neutral",
+          units: 0,
+          spreadIsPublic: spreadDecision?.isPublic === true,
+          spreadPublicationStatus: spreadDecision?.publicationStatus,
+          spreadApprovedUnits: spreadDecision?.approvedUnits,
+          spreadPublishedSelection: spreadDecision?.selection,
+        };
+      }
+      return {
+        ...g,
+        modelRecommendation: decision.recommendation,
+        valueRating: decision.isPublic && Number(decision.approvedUnits) === 1
+          ? decision.recommendation : "Neutral",
+        units: decision.isPublic && Number(decision.approvedUnits) === 1 ? 1 : 0,
+        publicationStatus: decision.publicationStatus,
+        publicationReason: decision.publicationReason,
+        isPublic: decision.isPublic,
+        globalRank: decision.globalRank,
+        selectedSideEdge: decision.selectedSideEdge,
+        requestedUnits: decision.requestedUnits,
+        approvedUnits: decision.approvedUnits,
+        stakePolicyVersion: decision.stakePolicyVersion,
+        spreadIsPublic: spreadDecision?.isPublic === true,
+        spreadPublicationStatus: spreadDecision?.publicationStatus,
+        spreadApprovedUnits: spreadDecision?.approvedUnits,
+        spreadPublishedSelection: spreadDecision?.selection,
+      };
     });
   }
 

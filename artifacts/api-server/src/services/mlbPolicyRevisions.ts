@@ -312,7 +312,12 @@ export async function applyMlbPolicyRevision(
       missingSignals: missingSignals(snapshot),
     }, policy);
 
-    let outcome: { created: boolean; effective: boolean };
+    let outcome: {
+      created: boolean;
+      effective: boolean;
+      predictionId: number | null;
+      actionable: boolean;
+    };
     try {
       outcome = await db.transaction(async (tx) => {
       // hashtext is scoped to this transaction and serializes only this
@@ -323,7 +328,7 @@ export async function applyMlbPolicyRevision(
       // candidate list may have waited behind another game; no decision may be
       // revised once its recorded first-pitch cutoff has passed.
       if (!await hasFutureMlbPolicyRevisionCutoff(tx, candidate.gameId)) {
-        return { created: false, effective: false };
+        return { created: false, effective: false, predictionId: null, actionable: false };
       }
       const [alreadyWritten] = await tx
         .select({ id: modelPredictionsTable.id })
@@ -335,7 +340,9 @@ export async function applyMlbPolicyRevision(
           eq(modelPredictionsTable.policyRevisionId, revision.id),
         ))
         .limit(1);
-      if (alreadyWritten) return { created: false, effective: false };
+      if (alreadyWritten) {
+        return { created: false, effective: false, predictionId: null, actionable: false };
+      }
 
       const [insertedPrediction] = await tx
         .insert(modelPredictionsTable)
@@ -368,11 +375,20 @@ export async function applyMlbPolicyRevision(
           cohort: "official",
         })
         .returning({ id: modelPredictionsTable.id });
-      if (!insertedPrediction) return { created: false, effective: false };
-      // Retain the immutable policy-revision prediction, but never normalize a
-      // non-actionable revision into a published one-unit wager.
-      if (!isActionablePublication(decision.recommendation, decision.units)) {
-        return { created: true, effective: false };
+      if (!insertedPrediction) {
+        return { created: false, effective: false, predictionId: null, actionable: false };
+      }
+      const actionable = isActionablePublication(decision.recommendation, decision.units);
+      // Actionable revisions must be ranked with the complete cross-sport
+      // daily slate. Commit the immutable prediction first, then invoke the
+      // canonical publisher outside this transaction.
+      if (actionable) {
+        return {
+          created: true,
+          effective: false,
+          predictionId: insertedPrediction.id,
+          actionable: true,
+        };
       }
 
       const active = await tx
@@ -383,16 +399,6 @@ export async function applyMlbPolicyRevision(
           eq(publishedPicksTable.market, "moneyline"),
           eq(publishedPicksTable.isEffective, true),
         ));
-      const [{ publicCount }] = await tx
-        .select({ publicCount: sql<number>`count(*)::int` })
-        .from(publishedPicksTable)
-        .where(and(
-          eq(publishedPicksTable.isPublic, true),
-          eq(publishedPicksTable.isEffective, true),
-          sql`DATE(${publishedPicksTable.publishedAt} AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
-        ));
-      const isPublic = (decision.recommendation === "Buy" || decision.recommendation === "Strong Buy")
-        && Number(publicCount) < 6;
       // The reads and immutable prediction insert above can take time. Recheck
       // at the last safe point so a pick can never be voided/replaced after its
       // recorded first pitch. Throwing rolls back the inserted prediction too.
@@ -446,14 +452,29 @@ export async function applyMlbPolicyRevision(
           market: "moneyline",
           selection: candidate.selection,
           odds: candidate.odds,
-          units: decision.units,
+          units: 0,
           recommendation: decision.recommendation,
           confidence: candidate.confidence,
           isPlayOfDay: false,
-          isPublic,
+          isPublic: false,
           isEffective: true,
+          publicationStatus: "SAFETY_BLOCKED",
+          publicationReasonCode: "POLICY_REVISION_WITHDRAWN",
+          exclusionReasonCode: "POLICY_REVISION_WITHDRAWN",
+          selectedSideEdge: candidate.fairProbability == null
+            ? null
+            : (candidate.modelProbability - candidate.fairProbability) * 100,
+          rankScore: candidate.finalRating,
+          globalRank: null,
+          requestedUnits: decision.units,
+          approvedUnits: 0,
+          stakePolicyVersion: "fail-closed-flat-v1",
+          stakeReason: "POLICY_REVISION_WITHDRAWN",
+          decisionTimestamp: now,
+          dataCutoff: now,
+          gameStart: sql`(SELECT starts_at FROM games WHERE id = ${candidate.gameId})`,
           publishedAt: now,
-        })
+        } as any)
         .returning({ id: publishedPicksTable.id });
       if (!pick) throw new Error("Failed to create the effective MLB policy-revision pick.");
 
@@ -465,14 +486,12 @@ export async function applyMlbPolicyRevision(
             inArray(publishedPicksTable.id, active.map((row) => row.id)),
           ));
       }
-      await tx.insert(pickResultsTable).values({
-        pickId: pick.id,
-        result: "pending",
-        unitsRisked: decision.units,
-        unitsWonLost: 0,
-        gradeAudit: [],
-      });
-      return { created: true, effective: true };
+      return {
+        created: true,
+        effective: true,
+        predictionId: insertedPrediction.id,
+        actionable: false,
+      };
       });
     } catch (error) {
       if (error instanceof PolicyRevisionPregameCutoffReachedError) {
@@ -480,6 +499,17 @@ export async function applyMlbPolicyRevision(
         continue;
       }
       throw error;
+    }
+    if (outcome.actionable && outcome.predictionId != null) {
+      const { publishDownstreamCandidates } = await import("./snapshot");
+      try {
+        await publishDownstreamCandidates([outcome.predictionId], now);
+      } catch (publicationError) {
+        const { failClosedRevisionPublication } = await import("./revisionPublicationSafety");
+        await failClosedRevisionPublication(outcome.predictionId, "MLB_POLICY_REVISION_PUBLICATION_FAILED", now);
+        throw publicationError;
+      }
+      outcome.effective = true;
     }
     if (outcome.created) createdPredictions++;
     if (outcome.effective) effectivePicks++;

@@ -6,6 +6,7 @@
  * GET  /api/admin/overview          — KPIs, alert counts, grading status
  * GET  /api/admin/automation        — recent automation run history
  * GET  /api/admin/alerts            — active drift + data-quality alerts
+ * GET  /api/admin/publication-decisions — downstream wager decision audit
  * POST /api/admin/alerts/:id/resolve  — resolve an alert
  * GET  /api/admin/backtests         — list backtest runs
  * POST /api/admin/backtests         — trigger a new backtest
@@ -671,6 +672,79 @@ router.get("/admin/ncaaf-readiness", async (_req, res): Promise<void> => {
     },
     dataAsOf: now.toISOString(),
   });
+});
+
+/**
+ * Read-only downstream publication audit. This is deliberately candidate-level:
+ * operators can inspect model opinion, exclusion reason, rank, approved stake,
+ * and POTD state without inferring them from subscriber payloads.
+ */
+router.get("/admin/publication-decisions", async (req, res): Promise<void> => {
+  const requestedDate = typeof req.query.date === "string" ? req.query.date : null;
+  if (requestedDate && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+    res.status(400).json({ error: "date must be YYYY-MM-DD" });
+    return;
+  }
+  const easternDate = requestedDate ?? new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  const decisions = await db
+    .select({
+      publishedPickId: publishedPicksTable.id,
+      predictionId: publishedPicksTable.predictionId,
+      gameId: publishedPicksTable.gameId,
+      sport: publishedPicksTable.sport,
+      market: publishedPicksTable.market,
+      selection: publishedPicksTable.selection,
+      recommendation: publishedPicksTable.recommendation,
+      publicationStatus: publishedPicksTable.publicationStatus,
+      publicationReason: publishedPicksTable.publicationReasonCode,
+      exclusionReason: publishedPicksTable.exclusionReasonCode,
+      isPublic: publishedPicksTable.isPublic,
+      isEffective: publishedPicksTable.isEffective,
+      isPlayOfDay: publishedPicksTable.isPlayOfDay,
+      selectedSideEdge: publishedPicksTable.selectedSideEdge,
+      rankScore: publishedPicksTable.rankScore,
+      podScore: modelPredictionsTable.podScore,
+      globalRank: publishedPicksTable.globalRank,
+      requestedUnits: publishedPicksTable.requestedUnits,
+      approvedUnits: publishedPicksTable.approvedUnits,
+      stakePolicyVersion: publishedPicksTable.stakePolicyVersion,
+      stakeReason: publishedPicksTable.stakeReason,
+      decisionTimestamp: publishedPicksTable.decisionTimestamp,
+      dataCutoff: publishedPicksTable.dataCutoff,
+      gameStart: publishedPicksTable.gameStart,
+      modelId: modelVersionsTable.modelId,
+      modelStatus: modelVersionsTable.status,
+      cohort: modelPredictionsTable.cohort,
+      isChallenger: modelPredictionsTable.isChallenger,
+    })
+    .from(publishedPicksTable)
+    .innerJoin(
+      modelPredictionsTable,
+      eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+    )
+    .innerJoin(
+      modelVersionsTable,
+      eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
+    )
+    .where(and(
+      eq(publishedPicksTable.isEffective, true),
+      sql`DATE(
+        COALESCE(${publishedPicksTable.decisionTimestamp}, ${publishedPicksTable.publishedAt})
+        AT TIME ZONE 'America/New_York'
+      ) = ${easternDate}::date`,
+    ))
+    .orderBy(
+      sql`${publishedPicksTable.globalRank} ASC NULLS LAST`,
+      publishedPicksTable.id,
+    );
+
+  res.json({ easternDate, dataAsOf: new Date().toISOString(), decisions });
 });
 
 /** Per-event read-only evidence audit for the isolated NCAAF challenger. */

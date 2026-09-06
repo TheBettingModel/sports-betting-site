@@ -8,16 +8,21 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, desc, gte, and, inArray, ne, or } from "drizzle-orm";
+import { eq, desc, gte, and } from "drizzle-orm";
 import {
   db,
   pickResultsTable,
   publishedPicksTable,
   gamesTable,
+  modelPredictionsTable,
+  modelVersionsTable,
 } from "@workspace/db";
 import { rejectInvalidToken } from "../middleware/requireSubscriber";
 import { logger } from "../lib/logger";
-import { OFFICIAL_RECORD_RECOMMENDATIONS } from "../services/officialRecordPolicy";
+import {
+  OFFICIAL_RECORD_RECOMMENDATIONS,
+  officialPublicRecordSqlConditions,
+} from "../services/officialRecordPolicy";
 
 // Recommendation display order for the official performance ledger.
 const RATING_ORDER: readonly string[] = OFFICIAL_RECORD_RECOMMENDATIONS;
@@ -109,15 +114,17 @@ router.get(
           gamesTable,
           eq(publishedPicksTable.gameId, gamesTable.id),
         )
+        .innerJoin(
+          modelPredictionsTable,
+          eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+        )
+        .innerJoin(
+          modelVersionsTable,
+          eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
+        )
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
-          ne(pickResultsTable.result, "pending"),
-          // Revision history is retained for audit, but only the current
-          // effective pick belongs in the public performance ledger.
-          eq(publishedPicksTable.isEffective, true),
-          inArray(publishedPicksTable.recommendation, OFFICIAL_RECORD_RECOMMENDATIONS),
-          // Exclude NFL preseason — regular season always starts Sep 11 or later
-          or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
+          ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
         ))
         .orderBy(desc(pickResultsTable.gradedAt));
 
@@ -265,15 +272,18 @@ router.get(
           gamesTable,
           eq(publishedPicksTable.gameId, gamesTable.id),
         )
+        .innerJoin(
+          modelPredictionsTable,
+          eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+        )
+        .innerJoin(
+          modelVersionsTable,
+          eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
+        )
         .where(
           and(
             gte(gamesTable.gameDate, cutoffDate),
-            ne(pickResultsTable.result, "pending"),
-            // Superseded revisions remain stored, but are not official ROI.
-            eq(publishedPicksTable.isEffective, true),
-            inArray(publishedPicksTable.recommendation, OFFICIAL_RECORD_RECOMMENDATIONS),
-            // Exclude NFL preseason — regular season always starts Sep 11 or later
-            or(ne(gamesTable.sport, "NFL"), gte(gamesTable.gameDate, `${now.getFullYear()}-09-11`)),
+            ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
           ),
         );
 

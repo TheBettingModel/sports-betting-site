@@ -13,11 +13,22 @@
  */
 
 import cron from "node-cron";
-import { eq, and, desc, ne, gte, gt, lt } from "drizzle-orm";
-import { db, automationRunsTable, dataQualityAlertsTable, modelWeightsTable, publishedPicksTable, sportSnoozesTable, pushTokensTable, gamesTable } from "@workspace/db";
+import { eq, and, desc, ne, gte, gt, lt, sql } from "drizzle-orm";
+import {
+  db,
+  automationRunsTable,
+  dataQualityAlertsTable,
+  modelPredictionsTable,
+  modelVersionsTable,
+  modelWeightsTable,
+  publishedPicksTable,
+  sportSnoozesTable,
+  pushTokensTable,
+  gamesTable,
+} from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
-import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
+import { createPredictionDecisionContext, processGameSnapshot, publishDownstreamCandidates } from "./snapshot";
 import { assessMlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { writeMlbV4ShadowPrediction } from "./mlbV4Challenger";
 import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from "./guardedServing/productionBoundary";
@@ -42,6 +53,7 @@ import { computeWnbaInjuryAdvantage } from "./wnbaInjuries";
 import { getWnbaGameContext } from "./wnbaContext";
 import { computeNflSituationalSignals } from "./nflTeamSignals";
 import { sendStrongBuyNotification } from "./pushNotifications";
+import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
 import { reconcileSubscriberStatus } from "./subscriberReconciliation";
 import {
   bootstrapMissingNcaafPerformanceEvidence,
@@ -409,10 +421,14 @@ async function checkAndRaiseFetchErrorAlerts(
  * notify promptly without re-notifying on unchanged ingestion runs.
  */
 async function maybeSendStrongBuyNotification(): Promise<void> {
-  const todayUtc = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const todayEastern = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
-  // Find all effective Strong Buy picks published today.
-  const startOfDay = new Date(`${todayUtc}T00:00:00.000Z`);
+  // Find all effective Strong Buy picks on today's Eastern slate.
   const strongBuys = await db
     .select({
       id: publishedPicksTable.id,
@@ -420,11 +436,24 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
       sport: publishedPicksTable.sport,
     })
     .from(publishedPicksTable)
+    .innerJoin(modelPredictionsTable, eq(modelPredictionsTable.id, publishedPicksTable.predictionId))
+    .innerJoin(modelVersionsTable, eq(modelVersionsTable.id, modelPredictionsTable.modelVersionId))
+    .innerJoin(gamesTable, eq(gamesTable.id, publishedPicksTable.gameId))
     .where(
       and(
         eq(publishedPicksTable.recommendation, "Strong Buy"),
-        gte(publishedPicksTable.publishedAt, startOfDay),
+        sql`COALESCE(
+          DATE(${gamesTable.startsAt} AT TIME ZONE 'America/New_York'),
+          ${gamesTable.gameDate}
+        ) = ${todayEastern}`,
         eq(publishedPicksTable.isEffective, true),
+        eq(publishedPicksTable.isPublic, true),
+        eq(publishedPicksTable.publicationStatus, "PUBLISHED"),
+        eq(publishedPicksTable.approvedUnits, 1),
+        eq(modelVersionsTable.status, "production"),
+        eq(modelPredictionsTable.cohort, "official"),
+        eq(modelPredictionsTable.isChallenger, false),
+        isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
       ),
     );
 
@@ -486,6 +515,7 @@ async function runOddsIngestion(): Promise<void> {
     //   "error" → ESPN fetch failed for that sport
     const sportCounts: Record<string, number | "error"> = {};
     let processed = 0;
+    const newlyProducedPredictionIds: number[] = [];
 
     for (const { sport, games, fetchStatus } of sportResults) {
       if (fetchStatus === "error") {
@@ -827,13 +857,14 @@ async function runOddsIngestion(): Promise<void> {
           );
           const servingBoundary = await resolveProductionPredictionBoundary(game, proj, decisionContext);
           if (shouldRunIncumbentSnapshot(servingBoundary)) {
-            await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
+            const predictionId = await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
               odds: gameOdds,
               homeTeamStats,
               awayTeamStats,
               homeDbStats,
               awayDbStats,
-            });
+            }, true);
+            if (predictionId != null) newlyProducedPredictionIds.push(predictionId);
           }
           if (game.sport === "MLB" && mlbEvidence) {
             try {
@@ -868,6 +899,13 @@ async function runOddsIngestion(): Promise<void> {
           logger.warn({ err, gameId: game.espnId }, "Scheduler: odds-ingestion game error");
         }
       }
+    }
+
+    // All sports have now contributed their incumbent candidates.  Apply the
+    // deterministic policy once, rather than allowing ESPN/provider order to
+    // consume the daily public capacity.
+    if (newlyProducedPredictionIds.length > 0) {
+      await publishDownstreamCandidates(newlyProducedPredictionIds);
     }
 
     const zeroSports = Object.entries(sportCounts)

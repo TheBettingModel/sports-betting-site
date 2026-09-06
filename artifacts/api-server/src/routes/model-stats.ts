@@ -1,12 +1,16 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray, isNotNull, and, gte, sql } from "drizzle-orm";
+import { eq, isNotNull, and, gte, sql } from "drizzle-orm";
 import {
   db,
+  gamesTable,
+  modelPredictionsTable,
+  modelVersionsTable,
   modelWeightsTable,
   pickResultsTable,
   publishedPicksTable,
 } from "@workspace/db";
 import { runLearning } from "../services/learning";
+import { officialPublicRecordSqlConditions } from "../services/officialRecordPolicy";
 
 const router: IRouter = Router();
 
@@ -35,8 +39,17 @@ router.get("/model/stats", async (_req, res): Promise<void> => {
       publishedPicksTable,
       eq(pickResultsTable.pickId, publishedPicksTable.id),
     )
+    .innerJoin(gamesTable, eq(publishedPicksTable.gameId, gamesTable.id))
+    .innerJoin(
+      modelPredictionsTable,
+      eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+    )
+    .innerJoin(
+      modelVersionsTable,
+      eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
+    )
     .where(
-      inArray(pickResultsTable.result, ["win", "loss", "push", "void"]),
+      and(...officialPublicRecordSqlConditions(`${new Date().getFullYear()}-09-11`)),
     );
 
   // ── Aggregate by sport ────────────────────────────────────────────────────
@@ -186,11 +199,20 @@ router.get("/model-stats/history", async (_req, res): Promise<void> => {
       publishedPicksTable,
       eq(pickResultsTable.pickId, publishedPicksTable.id),
     )
+    .innerJoin(gamesTable, eq(publishedPicksTable.gameId, gamesTable.id))
+    .innerJoin(
+      modelPredictionsTable,
+      eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+    )
+    .innerJoin(
+      modelVersionsTable,
+      eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
+    )
     .where(
       and(
         isNotNull(pickResultsTable.gradedAt),
         isNotNull(pickResultsTable.result),
-        inArray(pickResultsTable.result, ["win", "loss", "push"]),
+        ...officialPublicRecordSqlConditions(`${new Date().getFullYear()}-09-11`),
         gte(pickResultsTable.gradedAt, eightWeeksAgo),
       ),
     );

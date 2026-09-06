@@ -624,3 +624,31 @@ mtime_ms = 1788732994419
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/808af43d-f96e-4d41-a791-2bc58c3592e7/c9e7ac3b-6734-4616-b56f-9e644abdada9"
 storage_version_token = "1788733024810837"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Z1pI7wr0_JBi3n1A8ekd3"
+uri = "file://reports/task-238a-fail-closed-publication-remediation-2026-09-06.md"
+type = "text"
+title = "Task #238A Final Remediation Report"
+description = "Required 32-section implementation, replay, validation, schema, security-gate, and final-classification report."
+logical_id = "308ca54a-afcd-4751-bb9f-a069a6be99e8"
+content_hash = "sha256:2ecbafc549ec220d32fc51817622c37f3d9ea9e09745aa58f98a14cab75465f9"
+size = 19031
+mtime_ms = 1788736105680
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/308ca54a-afcd-4751-bb9f-a069a6be99e8/e2c20add-1ffe-4946-b073-029d47ee5b43"
+storage_version_token = "1788736167555610"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "8LBm7bugWaW4I_IDOP71U"
+uri = "file://reports/task-238a-downstream-policy-replay-2026-09-06.json"
+type = "unspecified"
+title = "Task #238A Deterministic Replay Evidence"
+description = "Diagnostic-only 14-day replay and current-day dry-run evidence with exact approval-ledger enforcement."
+logical_id = "b27edeb7-b1e7-493e-a827-55b4f82ece8b"
+content_hash = "sha256:1defce399a7700c73dc41e143cbbfa96c83b4b2cc79afc45842db9fdd97aea93"
+size = 27481
+mtime_ms = 1788736034576
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b27edeb7-b1e7-493e-a827-55b4f82ece8b/9c7f08a9-c94e-4e42-a5d0-14b661101315"
+storage_version_token = "1788736172903824"
+content_type = "application/octet-stream"

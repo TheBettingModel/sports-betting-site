@@ -9,7 +9,9 @@ const { select, insert, onConflictDoNothing } = vi.hoisted(() => ({
 vi.mock("@workspace/db", () => ({
   db: { select, insert },
   dailyFreePicksTable: { easternDate: "date", publishedPickId: "pickId" },
-  publishedPicksTable: { id: "id", gameId: "gameId", market: "market", selection: "selection", isEffective: "effective", isPublic: "public", isPlayOfDay: "pod", recommendation: "recommendation" },
+  publishedPicksTable: { id: "id", gameId: "gameId", predictionId: "predictionId", market: "market", selection: "selection", isEffective: "effective", isPublic: "public", isPlayOfDay: "pod", recommendation: "recommendation", publicationStatus: "publicationStatus", approvedUnits: "approvedUnits" },
+  modelPredictionsTable: { id: "predictionId", modelVersionId: "modelVersionId", cohort: "cohort", isChallenger: "isChallenger" },
+  modelVersionsTable: { id: "modelVersionId", status: "modelStatus" },
   gamesTable: { id: "gameId", gameDate: "gameDate", status: "status", finalModelScore: "final", modelScore: "model" },
 }));
 

@@ -554,6 +554,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/OutcomeReviewsResponse"
 
+  /admin/publication-decisions:
+    get:
+      operationId: getAdminPublicationDecisions
+      tags: [admin]
+      summary: Inspect effective downstream publication decisions for one Eastern calendar date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Candidate-level publication status, reason, rank, staking, POTD, and model identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [easternDate, dataAsOf, decisions]
+                properties:
+                  easternDate: { type: string, format: date }
+                  dataAsOf: { type: string, format: date-time }
+                  decisions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+
   /admin/forecast-reviews:
     get:
       operationId: getAdminForecastReviews
@@ -1345,6 +1374,35 @@ components:
           type: number
         valueRating:
           type: string
+        modelRecommendation:
+          type: string
+          nullable: true
+          description: Immutable model opinion before downstream publication gates.
+        publicationStatus:
+          type: string
+          nullable: true
+        publicationReason:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+          nullable: true
+        globalRank:
+          type: integer
+          nullable: true
+        selectedSideEdge:
+          type: number
+          nullable: true
+          description: Selected-side model probability minus no-vig fair probability, in percentage points.
+        requestedUnits:
+          type: number
+          nullable: true
+        approvedUnits:
+          type: number
+          nullable: true
+        stakePolicyVersion:
+          type: string
+          nullable: true
         modelScore:
           type: integer
         edge:

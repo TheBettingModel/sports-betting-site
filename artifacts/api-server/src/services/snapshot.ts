@@ -1,14 +1,19 @@
-import { and, desc, eq, lte, sql } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
   gameResultsTable,
   gamesTable,
+  marketApprovalDecisionsTable,
   modelPredictionsTable,
+  modelVersionsTable,
   mlbForecastEvidenceTable,
   oddsSnapshotsTable,
   publishedPicksTable,
   pickResultsTable,
+  publicationDecisionHistoryTable,
+  publishedPickPerformanceClassificationsTable,
 } from "@workspace/db";
 import type { ModelWeights } from "@workspace/db";
 import {
@@ -22,7 +27,6 @@ import type { FetchedGame } from "./espn";
 import { getBootstrapIds } from "./bootstrap";
 import { logger } from "../lib/logger";
 import {
-  publishedPickEffectivenessLock,
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
 import {
@@ -32,15 +36,22 @@ import {
 } from "./oddsApi";
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { applyMaterialPregameRevision } from "./materialPregameRevisions";
-import { isActionablePublication } from "./publicationEligibility";
 import type { WnbaGameContext } from "./wnbaContext";
 import {
   writeSpreadCandidateSnapshots,
   settleSpreadPredictions,
   type SpreadEvaluationInput,
 } from "./spreadModel";
-import { getMoneylinePublicationPermission } from "./marketApproval";
+import { getMoneylinePublicationPermission, marketApprovalDecisionHash } from "./marketApproval";
 import { captureCompletedMlbBoxscore, evaluateMlbForecastEvidence } from "./mlbPointInTime";
+import {
+  APPROVED_STAKE_UNITS,
+  decideDownstreamPublication,
+  MAX_PUBLIC_PICKS_PER_EASTERN_DAY,
+  PublicationDecisionReason,
+  PublicationDecisionStatus,
+  selectedSideEdgePercentagePoints,
+} from "./downstreamPublicationPolicy";
 
 export interface PredictionDecisionContext {
   factorWeights: Record<string, number>;
@@ -381,79 +392,411 @@ async function writePredictionSnapshot(
  * Create a published pick and a pending pick_results row for tracking.
  * Strong Buy + Buy are marked public; Neutral and Fade are private.
  */
-/** Maximum public picks surfaced to subscribers per calendar day (ET). */
-const MAX_PUBLIC_PICKS_PER_DAY = 6;
-
-async function publishPick(
-  predictionId: number,
-  game: FetchedGame,
-  proj: ProjectionResult,
-  publishedAt: Date,
-): Promise<void> {
-  // A display-only Neutral/Fade is never normalized into a wager. Do this
-  // before opening a transaction so neither publication nor pending result can
-  // be created for an ineligible recommendation.
-  if (!isActionablePublication(proj.valueRating, proj.units)) return;
+/**
+ * Applies the pure downstream policy at the persistence boundary. Input IDs
+ * only identify newly observed candidates; the transaction rehydrates and
+ * ranks the complete effective Eastern-day slate before it changes any pick.
+ */
+export async function publishDownstreamCandidates(predictionIds: readonly number[], now = new Date()): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.execute(publishedPickEffectivenessWriterLock());
-    await tx.execute(publishedPickEffectivenessLock(game.espnId, "moneyline"));
-    let isPublic =
-      proj.valueRating === "Strong Buy" || proj.valueRating === "Buy";
+    const currentEasternDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(now);
+    const incomingDates = predictionIds.length === 0 ? [] : await tx.selectDistinct({
+      slateDate: sql<string>`COALESCE(
+        DATE(${gamesTable.startsAt} AT TIME ZONE 'America/New_York'),
+        ${gamesTable.gameDate}
+      )`,
+    }).from(modelPredictionsTable)
+      .innerJoin(gamesTable, eq(gamesTable.id, modelPredictionsTable.gameId))
+      .where(inArray(modelPredictionsTable.id, [...predictionIds]));
+    const slateDates = (incomingDates.length
+      ? incomingDates.map((row) => String(row.slateDate))
+      : [currentEasternDate]).sort();
 
-    // Enforce the daily cap — if we've already reached MAX_PUBLIC_PICKS_PER_DAY
-    // for today, demote this pick to private so subscribers aren't overwhelmed.
-    // Picks are processed in ESPN order; the model thresholds are the primary
-    // quality gate and the cap is a safety ceiling.
-    if (isPublic) {
-      const [{ count }] = await tx
-        .select({ count: sql<number>`count(*)::int` })
-        .from(publishedPicksTable)
-        .where(
-          and(
-            sql`DATE(published_at AT TIME ZONE 'America/New_York') = CURRENT_DATE`,
-            eq(publishedPicksTable.isPublic, true),
-          ),
-        );
-      if (count >= MAX_PUBLIC_PICKS_PER_DAY) {
-        isPublic = false;
+    for (const easternDate of slateDates) {
+    // This is deliberately an exclusive *daily* lock.  A batch is not allowed
+    // to reserve capacity based on a stale view of another batch's slate.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`downstream-publication:${easternDate}`}))`);
+
+    // The input IDs are only a wake-up signal.  The actual slate is every
+    // effective decision already made for this Eastern day plus those IDs.
+    // Thus sport/provider traversal cannot make an earlier six permanent.
+    const slateDateWhere = sql`COALESCE(
+      DATE(${gamesTable.startsAt} AT TIME ZONE 'America/New_York'),
+      ${gamesTable.gameDate}
+    ) = ${easternDate}`;
+    const poolWhere = and(
+      slateDateWhere,
+      predictionIds.length > 0
+      ? or(
+        inArray(modelPredictionsTable.id, [...predictionIds]),
+        eq(publishedPicksTable.isEffective, true),
+      )
+      : eq(publishedPicksTable.isEffective, true),
+    );
+    const rows = await tx.select({
+      id: modelPredictionsTable.id,
+      gameId: modelPredictionsTable.gameId,
+      sport: modelPredictionsTable.sport,
+      market: modelPredictionsTable.market,
+      selection: modelPredictionsTable.selection,
+      odds: modelPredictionsTable.odds,
+      modelProbability: modelPredictionsTable.modelProbability,
+      fairProbability: modelPredictionsTable.fairProbability,
+      recommendation: modelPredictionsTable.recommendation,
+      units: modelPredictionsTable.units,
+      confidence: modelPredictionsTable.confidence,
+      podScore: modelPredictionsTable.podScore,
+      finalRating: modelPredictionsTable.finalRating,
+      isChallenger: modelPredictionsTable.isChallenger,
+      cohort: modelPredictionsTable.cohort,
+      modelStatus: modelVersionsTable.status,
+      modelId: modelVersionsTable.modelId,
+      modelSport: modelVersionsTable.sport,
+      modelMarket: modelVersionsTable.market,
+      trainingDatasetId: modelVersionsTable.trainingDatasetId,
+      featureVersions: modelVersionsTable.featureVersions,
+      dataCutoff: modelPredictionsTable.dataCutoffTimestamp,
+      gameStart: gamesTable.startsAt,
+      existingPickId: publishedPicksTable.id,
+      existingPredictionId: publishedPicksTable.predictionId,
+      existingPublic: publishedPicksTable.isPublic,
+      existingRank: publishedPicksTable.globalRank,
+      existingPlayOfDay: publishedPicksTable.isPlayOfDay,
+      performanceEligible: publishedPickPerformanceClassificationsTable.performanceEligible,
+    }).from(modelPredictionsTable)
+      .innerJoin(gamesTable, eq(gamesTable.id, modelPredictionsTable.gameId))
+      .innerJoin(modelVersionsTable, eq(modelVersionsTable.id, modelPredictionsTable.modelVersionId))
+      .leftJoin(publishedPicksTable, and(
+        eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+        eq(publishedPicksTable.isEffective, true),
+      ))
+      .leftJoin(publishedPickPerformanceClassificationsTable, eq(
+        publishedPickPerformanceClassificationsTable.publishedPickId, publishedPicksTable.id,
+      ))
+      .where(poolWhere);
+
+    // Multiple append-only performance classifications can join the same row.
+    // Also prefer a newly supplied revision for a game/market over its current
+    // effective source so the latter is explicitly superseded below.
+    const incoming = new Set(predictionIds);
+    const byGameMarket = new Map<string, typeof rows[number]>();
+    const activeByGameMarket = new Map<string, typeof rows[number]>();
+    for (const row of rows) {
+      const key = `${row.gameId}:${row.market}`;
+      if (row.existingPickId != null && !activeByGameMarket.has(key)) activeByGameMarket.set(key, row);
+      const prior = byGameMarket.get(key);
+      const rowIsIneligible = row.performanceEligible === false;
+      if (prior && prior.id === row.id) {
+        if (rowIsIneligible) (prior as { performanceEligible: boolean | null }).performanceEligible = false;
+        continue;
+      }
+      if (!prior
+        || (incoming.has(row.id) && !incoming.has(prior.id))
+        || (incoming.has(row.id) === incoming.has(prior.id) && row.id > prior.id)) {
+        byGameMarket.set(key, row);
       }
     }
-
-    const isPlayOfDay = proj.finalModelTier === "Elite" || proj.podScore >= 50;
-    const units = proj.units;
-    const pickIsHomePub = proj.edge >= 0;
-
-    const [pick] = await tx
-      .insert(publishedPicksTable)
-      .values({
-        predictionId,
-        gameId: game.espnId,
-        sport: game.sport,
-        market: "moneyline",
-        selection: pickIsHomePub ? "home" : "away",
-        odds: pickIsHomePub ? proj.vegasHomeOdds : proj.vegasAwayOdds,
-        units,
-        recommendation: proj.valueRating,
-        confidence: proj.confidence,
-        isPlayOfDay,
-        isPublic,
-        // The schema default is deliberately false for safe rollout of legacy
-        // data. Every newly published baseline decision is immediately current.
-        isEffective: true,
-        publishedAt,
-      })
-      .returning({ id: publishedPicksTable.id });
-
-    if (!pick) return;
-
-    // Seed a pending pick_results row so the grader can find it
-    await tx.insert(pickResultsTable).values({
-      pickId: pick.id,
-      result: "pending",
-      unitsRisked: units,
-      unitsWonLost: 0,
-      gradeAudit: [],
+    const predictions = [...byGameMarket.values()].map((prediction) => {
+      const active = activeByGameMarket.get(`${prediction.gameId}:${prediction.market}`);
+      // A started public decision is immutable at the publication layer too:
+      // an arriving revision cannot replace or silently alter a live pick.
+      return active?.existingPublic === true
+        && active.gameStart != null
+        && new Date(active.gameStart) <= now
+        ? active
+        : prediction;
     });
+    for (const prediction of predictions) {
+      const active = activeByGameMarket.get(`${prediction.gameId}:${prediction.market}`);
+      // A newly supplied policy revision has no direct published-pick join,
+      // but it still replaces the current effective game/market decision.
+      if (active && prediction.existingPickId == null) {
+        Object.assign(prediction, {
+          existingPickId: active.existingPickId,
+          existingPredictionId: active.existingPredictionId,
+          existingPublic: active.existingPublic,
+          existingRank: active.existingRank,
+          existingPlayOfDay: active.existingPlayOfDay,
+          performanceEligible: active.performanceEligible === false ? false : prediction.performanceEligible,
+        });
+      }
+    }
+    const approvalByPrediction = new Map<number, { approved: boolean; decisionId: number | null }>();
+    for (const prediction of predictions) {
+      const [approval] = await tx.select({
+        id: marketApprovalDecisionsTable.id,
+        status: marketApprovalDecisionsTable.status,
+      }).from(marketApprovalDecisionsTable)
+        .where(and(
+          eq(marketApprovalDecisionsTable.sport, prediction.modelSport),
+          eq(marketApprovalDecisionsTable.market, prediction.modelMarket),
+          eq(marketApprovalDecisionsTable.modelVersion, prediction.modelId),
+          eq(marketApprovalDecisionsTable.evaluationVersion, "model-registry-evaluation-v1"),
+          eq(marketApprovalDecisionsTable.datasetVersion, prediction.trainingDatasetId == null
+            ? "training-dataset:unassigned"
+            : `training-dataset:${prediction.trainingDatasetId}`),
+          eq(marketApprovalDecisionsTable.featureSchemaVersion,
+            marketApprovalDecisionHash(prediction.featureVersions ?? {})),
+          lte(marketApprovalDecisionsTable.evidenceCutoff, prediction.dataCutoff),
+        ))
+        .orderBy(
+          desc(marketApprovalDecisionsTable.evidenceCutoff),
+          desc(marketApprovalDecisionsTable.createdAt),
+        )
+        .limit(1);
+      approvalByPrediction.set(prediction.id, {
+        approved: approval?.status === "PRODUCTION_APPROVED",
+        decisionId: approval?.id ?? null,
+      });
+    }
+    const slate = decideDownstreamPublication(predictions.map((prediction) => ({
+      id: prediction.id,
+      recommendation: prediction.recommendation,
+      requestedUnits: prediction.units,
+      // Caller flags are never an approval authority.  The registry and
+      // immutable cohort are both required; legacy NULL cohort is allowed only
+      // where the prediction is explicitly non-challenger.
+      productionModelApproved: prediction.modelStatus === "production"
+        && prediction.isChallenger === false
+        && (prediction.cohort === "official" || prediction.cohort == null)
+        && approvalByPrediction.get(prediction.id)?.approved === true,
+      performanceEligible: prediction.performanceEligible !== false,
+      market: prediction.market,
+      selection: prediction.selection,
+      odds: prediction.odds,
+      modelProbability: prediction.modelProbability,
+      marketProbability: prediction.fairProbability,
+      // Rank the complete immutable slate. Elapsed start time is applied below
+      // as a publication-state gate, not allowed to destroy global ordering.
+      gameStart: new Date(8640000000000000),
+      // This is deliberately selected-side, rather than the signed home edge.
+      selectedSideEdge: selectedSideEdgePercentagePoints(
+        prediction.modelProbability,
+        prediction.fairProbability,
+      ),
+      finalRating: prediction.finalRating ?? Number.NaN,
+      podScore: prediction.podScore ?? Number.NaN,
+    })), now);
+    const byId = new Map(predictions.map((prediction) => [prediction.id, prediction]));
+    const lockedIds = new Set(predictions
+      .filter((prediction) => prediction.existingPickId != null
+        && prediction.existingPublic === true
+        && prediction.gameStart != null
+        && new Date(prediction.gameStart) <= now)
+      .map((prediction) => prediction.id));
+    const remaining = Math.max(0, MAX_PUBLIC_PICKS_PER_EASTERN_DAY - lockedIds.size);
+    const publicDecisions = slate.decisions
+      .filter((decision) => {
+        const prediction = byId.get(Number(decision.candidateId));
+        return decision.eligibleRank != null
+          && !lockedIds.has(Number(decision.candidateId))
+          && prediction?.gameStart != null
+          && new Date(prediction.gameStart) > now;
+      })
+      .sort((left, right) => left.eligibleRank! - right.eligibleRank!)
+      .slice(0, remaining);
+    const publicIds = new Set([
+      ...lockedIds,
+      ...publicDecisions.map((decision) => Number(decision.candidateId)),
+    ]);
+    // Once a public game has started, its already-visible POTD designation is
+    // locked too; do not rewrite a live customer-facing pick.  Otherwise POTD
+    // is selected from (and only from) the final public pool.
+    const lockedPotdId = predictions.find((prediction) =>
+      lockedIds.has(prediction.id) && prediction.existingPlayOfDay === true,
+    )?.id;
+    const potdId = lockedPotdId ?? predictions.filter((prediction) => publicIds.has(prediction.id))
+      .slice()
+      .sort((left, right) => {
+        const leftDecision = slate.decisions.find((decision) => Number(decision.candidateId) === left.id);
+        const rightDecision = slate.decisions.find((decision) => Number(decision.candidateId) === right.id);
+        return (right.podScore ?? -Infinity) - (left.podScore ?? -Infinity)
+          || (right.finalRating ?? -Infinity) - (left.finalRating ?? -Infinity)
+          || (leftDecision?.eligibleRank ?? Infinity) - (rightDecision?.eligibleRank ?? Infinity)
+          || left.id - right.id;
+      })[0]?.id;
+
+    await tx.update(publishedPicksTable).set({ isPlayOfDay: false }).where(and(
+      eq(publishedPicksTable.isEffective, true),
+      sql`${publishedPicksTable.gameId} IN (
+        SELECT id FROM games WHERE COALESCE(
+          DATE(starts_at AT TIME ZONE 'America/New_York'), game_date
+        ) = ${easternDate}
+      )`,
+    ));
+    for (const decision of slate.decisions) {
+      const prediction = byId.get(Number(decision.candidateId));
+      if (!prediction) continue;
+      const isLocked = lockedIds.has(prediction.id);
+      const isPublic = publicIds.has(prediction.id);
+      const hasStarted = prediction.gameStart == null || new Date(prediction.gameStart) <= now;
+      const startedPrivate = hasStarted && !isLocked;
+      const capacityExcluded = decision.eligibleRank != null && !isPublic && !startedPrivate;
+      const publicationStatus = isPublic
+        ? PublicationDecisionStatus.PUBLISHED
+        : startedPrivate
+          ? PublicationDecisionStatus.SAFETY_BLOCKED
+        : capacityExcluded
+          ? PublicationDecisionStatus.CAP_EXCLUDED
+          : decision.status;
+      const publicationReason = isPublic
+        ? PublicationDecisionReason.PUBLIC_TOP_RANKED
+        : startedPrivate
+          ? PublicationDecisionReason.GAME_STARTED
+        : capacityExcluded
+          ? PublicationDecisionReason.CAP_EXCLUDED
+          : decision.reason;
+      const selectedSideEdge = prediction.fairProbability == null
+        ? null : selectedSideEdgePercentagePoints(
+          prediction.modelProbability,
+          prediction.fairProbability,
+        );
+      // The API package can be deployed against a generated DB declaration
+      // which predates the additive audit columns; the physical schema's
+      // additive contract is intentionally used here without changing it.
+      // A revision for the same game/market replaces the effective source
+      // rather than colliding with it.  The old row remains an auditable,
+      // superseded decision.  Re-running the same prediction updates that one
+      // effective row in place and never creates another pending result.
+      const replacesPrior = prediction.existingPickId != null
+        && prediction.existingPredictionId !== prediction.id;
+      const demotesPrior = prediction.existingPickId != null
+        && prediction.existingPublic === true && !isPublic;
+      if (demotesPrior && !replacesPrior
+        && prediction.gameStart != null && new Date(prediction.gameStart) > now) {
+        await tx.update(pickResultsTable).set({
+          result: "void",
+          unitsWonLost: 0,
+          gradedAt: now,
+          gradingSource: replacesPrior ? "publication_superseded" : "publication_demoted",
+        }).where(and(
+          eq(pickResultsTable.pickId, prediction.existingPickId!),
+          eq(pickResultsTable.result, "pending"),
+        ));
+      }
+      if (prediction.existingPickId != null && prediction.existingPredictionId !== prediction.id) {
+        await tx.update(publishedPicksTable).set({
+          isEffective: false, isPlayOfDay: false, supersededAt: now,
+        }).where(eq(publishedPicksTable.id, prediction.existingPickId));
+        const supersessionAudit = JSON.stringify([{
+          timestamp: now.toISOString(),
+          previousResult: "pending",
+          newResult: "void",
+          performedBy: "downstream_publication_policy",
+          reason: `Superseded before start by canonical prediction ${prediction.id}`,
+        }]);
+        // A pregame revision replaces only this pick's still-pending grading
+        // row. Settled history and every unrelated pending pick are immutable.
+        await tx.update(pickResultsTable).set({
+          result: "void",
+          unitsWonLost: 0,
+          gradedAt: now,
+          gradingSource: "downstream_publication_revision",
+          gradeAudit: sql`COALESCE(${pickResultsTable.gradeAudit}, '[]'::jsonb) || ${supersessionAudit}::jsonb`,
+        }).where(and(
+          eq(pickResultsTable.pickId, prediction.existingPickId),
+          eq(pickResultsTable.result, "pending"),
+        ));
+      }
+      const pickValues = {
+        predictionId: prediction.id, gameId: prediction.gameId, sport: prediction.sport,
+        market: prediction.market, selection: prediction.selection, odds: prediction.odds,
+        units: isPublic ? APPROVED_STAKE_UNITS : 0,
+        recommendation: prediction.recommendation, confidence: prediction.confidence,
+        isPublic, isEffective: true,
+        isPlayOfDay: isPublic && String(decision.candidateId) === String(potdId),
+        publicationStatus,
+        publicationReasonCode: publicationReason,
+        exclusionReasonCode: isPublic ? null : publicationReason,
+        selectedSideEdge, rankScore: prediction.finalRating ?? null,
+        globalRank: decision.eligibleRank, requestedUnits: decision.requestedUnits,
+        approvedUnits: isPublic ? APPROVED_STAKE_UNITS : 0,
+        stakePolicyVersion: decision.stakePolicyVersion,
+        stakeReason: isPublic ? "STAKE_CAPPED_FAIL_CLOSED" : publicationReason,
+        dataCutoff: prediction.dataCutoff, gameStart: prediction.gameStart,
+        decisionTimestamp: now,
+      };
+      const [pick] = prediction.existingPickId != null && prediction.existingPredictionId === prediction.id
+        ? await (tx.update(publishedPicksTable) as any).set(pickValues)
+          .where(eq(publishedPicksTable.id, prediction.existingPickId))
+          .returning({ id: publishedPicksTable.id })
+        : await (tx.insert(publishedPicksTable) as any).values({
+          ...pickValues,
+          publishedAt: now,
+          supersedesPickId: prediction.existingPickId ?? null,
+        })
+          .returning({ id: publishedPicksTable.id });
+      if (pick && prediction.existingPickId != null && prediction.existingPredictionId !== prediction.id) {
+        await tx.update(publishedPicksTable).set({ supersededByPickId: pick.id })
+          .where(eq(publishedPicksTable.id, prediction.existingPickId));
+      }
+      if (pick) {
+        const historyState = {
+          predictionId: prediction.id,
+          publishedPickId: pick.id,
+          slateDate: easternDate,
+          publicationStatus,
+          publicationReasonCode: publicationReason,
+          globalRank: decision.eligibleRank,
+          isPublic,
+          isPlayOfDay: isPublic && String(decision.candidateId) === String(potdId),
+          requestedUnits: decision.requestedUnits,
+          approvedUnits: isPublic ? APPROVED_STAKE_UNITS : 0,
+          stakePolicyVersion: decision.stakePolicyVersion,
+          approvalDecisionId: approvalByPrediction.get(prediction.id)?.decisionId ?? null,
+        };
+        const [previousHistory] = await tx.select()
+          .from(publicationDecisionHistoryTable)
+          .where(eq(publicationDecisionHistoryTable.publishedPickId, pick.id))
+          .orderBy(desc(publicationDecisionHistoryTable.id))
+          .limit(1);
+        const unchanged = previousHistory != null
+          && previousHistory.predictionId === historyState.predictionId
+          && previousHistory.slateDate === historyState.slateDate
+          && previousHistory.publicationStatus === historyState.publicationStatus
+          && previousHistory.publicationReasonCode === historyState.publicationReasonCode
+          && previousHistory.globalRank === historyState.globalRank
+          && previousHistory.isPublic === historyState.isPublic
+          && previousHistory.isPlayOfDay === historyState.isPlayOfDay
+          && previousHistory.requestedUnits === historyState.requestedUnits
+          && previousHistory.approvedUnits === historyState.approvedUnits
+          && previousHistory.stakePolicyVersion === historyState.stakePolicyVersion
+          && previousHistory.approvalDecisionId === historyState.approvalDecisionId;
+        if (!unchanged) {
+          const previousDecisionHash = previousHistory?.decisionHash ?? null;
+          const decisionHash = createHash("sha256")
+            .update(JSON.stringify({ ...historyState, previousDecisionHash }))
+            .digest("hex");
+          await tx.insert(publicationDecisionHistoryTable).values({
+            ...historyState,
+            previousDecisionHash,
+            decisionHash,
+            decidedAt: now,
+          }).onConflictDoNothing();
+        }
+      }
+      if (pick && !isPublic) {
+        await tx.update(pickResultsTable).set({
+          result: "void",
+          unitsWonLost: 0,
+          gradedAt: now,
+          gradingSource: "downstream_publication_revision",
+        }).where(and(
+          eq(pickResultsTable.pickId, pick.id),
+          eq(pickResultsTable.result, "pending"),
+        ));
+      }
+      if (pick && isPublic) {
+        await tx.insert(pickResultsTable).values({
+          pickId: pick.id, result: "pending", unitsRisked: APPROVED_STAKE_UNITS,
+          unitsWonLost: 0, gradeAudit: [],
+        }).onConflictDoNothing();
+      }
+    }
+    }
   });
 }
 
@@ -616,7 +959,8 @@ export async function processGameSnapshot(
   proj: ProjectionResult,
   decisionContext?: PredictionDecisionContext,
   spreadInput?: Omit<SpreadEvaluationInput, "game">,
-): Promise<void> {
+  deferPublication = false,
+): Promise<number | null> {
   const { espnSportsbookId, marketIds, modelVersionIds } =
     await getBootstrapIds();
   const now = new Date();
@@ -627,10 +971,11 @@ export async function processGameSnapshot(
       { sport: game.sport },
       "No production model version for sport, skipping snapshot",
     );
-    return;
+    return null;
   }
 
   try {
+    let createdPredictionId: number | null = null;
     // 1. Capture and publish only while the game is genuinely upcoming.
     // Live/post-start provider prices must never become a new "pregame" model
     // decision or overwrite the market evidence used for later learning.
@@ -650,8 +995,13 @@ export async function processGameSnapshot(
         publicationPermission.approved,
       );
       if (predictionId !== null) {
+        // The scheduler audits every newly produced incumbent candidate,
+        // including one whose producing model is not approved.  Only the
+        // non-batched/manual path is permitted to consider immediate public
+        // publication, and it remains approval-gated.
+        if (deferPublication) createdPredictionId = predictionId;
         if (shouldPublishPrediction(game.sport) && publicationPermission.approved) {
-          await publishPick(predictionId, game, proj, now);
+          if (!deferPublication) await publishDownstreamCandidates([predictionId], now);
         }
       } else if (shouldPublishPrediction(game.sport) && publicationPermission.approved) {
         await applyMaterialPregameRevision(
@@ -687,7 +1037,9 @@ export async function processGameSnapshot(
         }
       }
     }
+    return createdPredictionId;
   } catch (err) {
     logger.error({ err, gameId: game.espnId }, "processGameSnapshot error");
+    return null;
   }
 }
