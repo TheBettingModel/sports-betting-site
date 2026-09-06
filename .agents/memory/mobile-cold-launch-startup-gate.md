@@ -8,3 +8,5 @@ The mobile root layout must never hold the native splash indefinitely on font lo
 **Why:** A stalled native font or AsyncStorage promise previously left the app returning `null` forever, making the phone appear black while the existing Clerk timeout UI remained unreachable.
 
 **How to apply:** Keep font/storage work out of the hard availability gate, use bounded startup timeouts, and ensure ClerkLoading renders visible progress plus a retry action. Verify both web and iOS bundle exports after changes.
+
+**Confirmed:** On 2026-09-06, the user confirmed the app worked on the phone after this fail-open startup behavior was added.
