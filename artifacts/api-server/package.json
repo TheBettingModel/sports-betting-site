@@ -25,6 +25,7 @@
     "report:mlb-pit": "tsx ./scripts/mlb-pit-research-report.ts",
     "report:mlb-advanced-data": "tsx ./scripts/mlb-advanced-data-report.ts",
     "train:mlb-v4-expected-runs": "tsx ./scripts/train-mlb-v4-expected-runs.ts",
+    "train:mlb-v4-moneyline-237": "tsx ./scripts/train-mlb-v4-moneyline-237.ts",
     "evaluate:mlb-v4-expected-runs:oos": "tsx ./scripts/evaluate-mlb-v4-expected-runs-oos.ts",
     "audit:mlb-v4-expected-runs": "tsx ./scripts/audit-mlb-v4-expected-runs.ts",
     "report:mlb-v4-expected-runs": "tsx ./scripts/report-mlb-v4-expected-runs.ts",

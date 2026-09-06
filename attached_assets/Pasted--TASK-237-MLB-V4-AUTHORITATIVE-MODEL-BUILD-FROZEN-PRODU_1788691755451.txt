@@ -1,0 +1,2445 @@
+# TASK #237 — MLB V4 AUTHORITATIVE MODEL BUILD + FROZEN PRODUCTION CANDIDATE
+
+## MISSION
+
+Build the missing authoritative MLB V4 forecasting model.
+
+Task #236 conclusively established that TBM currently has:
+
+- authoritative MLB V4 evidence infrastructure
+- PIT-safe V4 feature materialization
+- `model-input-v4`
+- prospective evidence collection
+- guarded-serving infrastructure
+- fallback
+- kill switch
+- runtime governance
+- shadow/challenger history
+
+but DOES NOT have:
+
+- an authoritative frozen MLB V4 forecasting definition
+- fitted V4 parameters
+- a serialized/frozen V4 model artifact
+- an authentic V4 executor consuming `model-input-v4`
+- a reproducible V4 pregame forecast
+
+Task #237 is therefore a CONTROLLED MODEL-DEVELOPMENT TASK.
+
+Unlike Tasks #232–#236, Task #237 IS AUTHORIZED to:
+
+- construct candidate MLB V4 models
+- train candidate models
+- fit parameters
+- fit calibration where legitimately required
+- compare model families
+- perform chronological out-of-sample validation
+- select a final candidate using predefined criteria
+- freeze the selected model
+- assign immutable artifact identity/hashes
+- build the authentic typed MLB V4 executor
+- register the frozen candidate
+- generate authentic pregame/shadow forecasts
+
+Task #237 is NOT authorized to:
+
+- approve MLB V4 for public production
+- replace MLB V1
+- publish V4 subscriber picks
+- auto-promote the selected model
+- continuously retrain production
+- change parameters after every game
+- optimize using future/postgame leakage
+- tune to the tiny current prospective V4 sample
+- alter official historical predictions
+
+The desired result is:
+
+PIT-SAFE HISTORICAL DATA
+→ FROZEN DEVELOPMENT COHORT
+→ AUTHORITATIVE V4 FEATURES
+→ CANDIDATE MODEL FAMILIES
+→ CHRONOLOGICAL VALIDATION
+→ CALIBRATION
+→ INDEPENDENT TEST
+→ MODEL SELECTION
+→ FROZEN V4 ARTIFACT
+→ IMMUTABLE IDENTITY/HASHES
+→ `model-input-v4` EXECUTOR
+→ REPRODUCIBLE FORECASTS
+→ SHADOW / GUARDED-RUNTIME COMPATIBILITY
+
+Production must remain:
+
+`MLB_MODEL_MODE=v1`
+
+throughout this task.
+
+The selected V4 candidate must remain:
+
+UNAPPROVED / SHADOW
+
+at completion.
+
+
+======================================================================
+1. AUTHORITATIVE STARTING STATE
+======================================================================
+
+Treat Task #236 as authoritative unless direct inspection proves a material change.
+
+Task #236 classification:
+
+C — FINAL TECHNICAL CUTOVER READINESS BLOCKED
+
+Current state:
+
+`TECHNICAL_CUTOVER_READY=false`
+
+`MODEL_EVIDENCE_READY=false`
+
+`GUARDED_APPROVED=false`
+
+MLB incumbent:
+
+`tbm-mlb-moneyline-v1`
+
+Declared MLB candidate identity:
+
+`tbm-mlb-moneyline-v4`
+
+Expected authoritative V4 input:
+
+`model-input-v4`
+
+Current MLB V4 state:
+
+- authoritative forecasting definition: ABSENT
+- frozen artifact: ABSENT
+- executor: ABSENT
+- fitted parameters: ABSENT
+- artifact hash: ABSENT
+- parameter hash: ABSENT
+- config hash: ABSENT
+- fresh authentic inference: ABSENT
+- reproducibility: UNVERIFIED
+- supported authentic markets: NONE ESTABLISHED
+- guarded fallback: READY
+- kill switch: READY
+- approval: UNVALIDATED
+- public candidate serving: OFF
+
+Task #236 explicitly found that creating the missing MLB model would require a separate material model-development task.
+
+Task #237 is that task.
+
+
+======================================================================
+2. PRIMARY MODELING PRINCIPLE
+======================================================================
+
+Build the strongest defensible MLB V4 model supported by TBM's legitimate PIT-safe data.
+
+Do NOT build a model merely to obtain a passing task classification.
+
+Do NOT choose an algorithm first and force the data into it.
+
+Do NOT assume the most complex model is the best model.
+
+Candidate selection must be based on legitimate chronological out-of-sample evidence.
+
+
+======================================================================
+3. TARGET MARKET — MONEYLINE FIRST
+======================================================================
+
+The primary Task #237 target is:
+
+MLB FULL-GAME MONEYLINE
+
+Do not attempt to solve every MLB market simultaneously.
+
+Run Line
+Game Total
+First 5
+NRFI/YRFI
+
+must remain separate unless an already legitimate model formulation naturally and independently supports them.
+
+At completion classify each market:
+
+V4_NATIVE
+DERIVABLE_BUT_NOT_VALIDATED
+LEGACY_ONLY
+UNSUPPORTED
+
+Do not call a derived market production-ready without validation.
+
+
+======================================================================
+4. PREDICTION TARGET
+======================================================================
+
+Define the primary target explicitly.
+
+For MLB Moneyline:
+
+`home_team_win = 1`
+if the home team wins the completed game.
+
+`home_team_win = 0`
+if the away team wins.
+
+Handle:
+
+- suspended games
+- cancelled games
+- postponed games
+- abandoned games
+- missing finals
+- duplicate canonical games
+
+using explicit deterministic exclusion/settlement rules.
+
+Do not silently treat unresolved outcomes as losses.
+
+
+======================================================================
+5. MODEL OUTPUT
+======================================================================
+
+The authoritative raw V4 output should be a probability:
+
+`P(home_team_win)`
+
+with:
+
+`P(away_team_win) = 1 - P(home_team_win)`
+
+The forecasting model should predict game outcome probability.
+
+Do NOT train directly to:
+
+- sportsbook recommendation
+- unit size
+- POD score
+- Final Rating
+- public pick
+- ROI
+- profit
+
+Those belong downstream.
+
+
+======================================================================
+6. NO MARKET LEAKAGE INTO BASE FORECAST
+======================================================================
+
+The base MLB V4 forecast should be evaluated as an independent baseball probability model.
+
+Do not use closing odds or future market movement as model features.
+
+Do not use:
+
+- closing line
+- closing price
+- post-prediction market movement
+- CLV
+- result-dependent market information
+
+as pregame model features.
+
+If legitimate pre-cutoff market information is evaluated in a separate candidate architecture, isolate and label that candidate explicitly.
+
+The preferred authoritative base V4 should remain interpretable independently of the sportsbook market.
+
+
+======================================================================
+7. HISTORICAL DATA INVENTORY
+======================================================================
+
+Before training, inventory all legitimate historical data available for model development.
+
+Report:
+
+- seasons available
+- games available
+- canonical games
+- completed outcomes
+- excluded games
+- duplicate handling
+- teams represented
+- pitchers represented
+- starter observations
+- team-state observations
+- bullpen observations
+- context observations
+- weather availability
+- park availability
+- umpire availability if legitimate
+- lineup availability if legitimate
+- injury availability if legitimate
+- missingness by feature family
+
+Do not assume every current V4 feature exists historically.
+
+
+======================================================================
+8. PIT-SAFE HISTORICAL RECONSTRUCTION
+======================================================================
+
+This is mandatory.
+
+Every training/validation/test row must represent information that would legitimately have been available at the prediction cutoff.
+
+For every source record require the appropriate equivalent of:
+
+source effective/completion time <= observation cutoff
+
+AND:
+
+record creation/availability time <= observation cutoff
+
+where applicable.
+
+A historical statistic that describes an earlier game but was inserted/backfilled after the target prediction cutoff must NOT automatically be treated as historically available.
+
+
+======================================================================
+9. HISTORICAL BACKFILL SAFETY
+======================================================================
+
+Explicitly audit historical backfills.
+
+Do not allow today's database knowledge to masquerade as information TBM would have possessed before the game.
+
+For each major source classify historical availability:
+
+PIT_PROVEN
+PIT_RECONSTRUCTABLE
+CURRENT_ONLY
+BACKFILL_UNSAFE
+UNAVAILABLE
+
+Exclude unsafe feature families from training unless legitimate PIT reconstruction exists.
+
+
+======================================================================
+10. CANONICAL GAME DEDUPLICATION
+======================================================================
+
+Training must operate on canonical games.
+
+Prevent:
+
+- duplicate provider games
+- duplicate schedule records
+- rescheduled duplicate identities
+- multiple copies of the same completed outcome
+- superseded snapshot inflation
+
+One target game must contribute at most one target observation to a given modeling cohort.
+
+
+======================================================================
+11. OBSERVATION CUTOFF
+======================================================================
+
+Define the intended production observation cutoff contract.
+
+The training rows must emulate that contract.
+
+Examples may include:
+
+- fixed time before first pitch
+- latest eligible snapshot before first pitch
+- starter-confirmed eligible snapshot
+
+Use the existing V4 evidence design where authoritative.
+
+Do not train using a richer information state than production will actually receive.
+
+
+======================================================================
+12. STARTER SAFETY
+======================================================================
+
+Starter features must use the expected/known starter identity available at prediction time.
+
+Do not leak actual postgame starter identity into historical prediction rows.
+
+If starter identity was unavailable or materially uncertain at cutoff:
+
+represent that uncertainty honestly.
+
+Do not silently substitute the eventual actual starter.
+
+
+======================================================================
+13. FEATURE FAMILIES
+======================================================================
+
+Evaluate the legitimate V4 feature families available from the PIT-safe architecture.
+
+Potential families include, where actually supported:
+
+A. STARTING PITCHER
+
+- recent performance
+- season performance
+- prior-season priors
+- workload
+- rest
+- handedness
+- strikeout/walk indicators
+- run prevention
+- quality/contact indicators
+- pitch-level/Statcast indicators where PIT-safe
+- opponent splits where legitimate
+
+B. OFFENSE
+
+- rolling offense
+- season offense
+- prior-season priors
+- handedness splits
+- home/away splits
+- recent form where stable
+- power/contact/discipline indicators where legitimate
+
+C. BULLPEN
+
+- recent workload
+- reliever availability
+- innings/pitches
+- rest
+- rolling bullpen performance
+- season performance
+- prior-season priors
+- missingness/availability state
+
+D. TEAM / GAME CONTEXT
+
+- home field
+- park
+- weather
+- rest
+- travel where legitimately available
+- schedule context
+- team strength priors
+
+E. OPTIONAL CONTEXT
+
+- lineup state
+- umpire state
+- injuries
+
+ONLY where historical PIT-safe coverage is sufficient.
+
+Do not include a feature merely because it sounds predictive.
+
+
+======================================================================
+14. FEATURE CONTRACT
+======================================================================
+
+Create an authoritative feature manifest.
+
+For every candidate feature record:
+
+- feature name
+- semantic definition
+- source
+- source version
+- observation cutoff rule
+- transformation
+- missingness policy
+- allowed range
+- historical coverage
+- PIT status
+- leakage status
+- production availability
+
+The final frozen artifact must reference the exact manifest version.
+
+
+======================================================================
+15. FEATURE MISSINGNESS
+======================================================================
+
+Missingness must be explicit.
+
+Candidate models may use legitimate approaches such as:
+
+- missing indicators
+- training-set-only median imputation
+- training-set-only mean imputation
+- model-native missing handling
+- documented priors
+
+But all imputation parameters must be fitted on TRAINING DATA ONLY.
+
+Validation/test information must not influence preprocessing.
+
+
+======================================================================
+16. PREPROCESSING PIPELINE
+======================================================================
+
+All fitted preprocessing must be frozen with the model.
+
+This includes where applicable:
+
+- scaling
+- normalization
+- clipping
+- imputation
+- categorical encoding
+- feature selection
+- interaction construction
+
+Do not fit preprocessing globally before splitting the data.
+
+
+======================================================================
+17. CHRONOLOGICAL SPLITTING — NO RANDOM PRIMARY SPLIT
+======================================================================
+
+Primary validation must be chronological.
+
+Do NOT use a random train/test split as the authoritative evaluation.
+
+Base split design on time.
+
+Prefer multiple temporal folds where sample size permits.
+
+Example conceptual structure:
+
+TRAIN
+earliest historical period
+
+VALIDATION
+later unseen period
+
+TEST
+latest fully held-out historical period
+
+The exact dates must be chosen based on actual available data and documented.
+
+
+======================================================================
+18. FINAL HOLDOUT
+======================================================================
+
+Reserve a final chronological holdout that is not used for:
+
+- feature selection
+- hyperparameter selection
+- model-family selection
+- calibration-model selection
+- threshold selection
+
+Do not repeatedly inspect the final holdout while tuning.
+
+The final holdout should answer:
+
+"How does the frozen candidate perform on genuinely unseen later games?"
+
+
+======================================================================
+19. CURRENT PROSPECTIVE EVIDENCE MUST NOT BECOME TRAINING DATA
+======================================================================
+
+The current prospective V4 evidence gathered under Tasks #232–#236 is valuable for future validation.
+
+Do NOT use that tiny prospective cohort to fit or tune V4.
+
+Preserve it as prospective/shadow evidence.
+
+Do not contaminate the evidence we intend to use after freeze.
+
+
+======================================================================
+20. CANDIDATE MODEL FAMILIES
+======================================================================
+
+Compare multiple defensible model families where supported by the available sample.
+
+At minimum evaluate a simple interpretable baseline and one or more nonlinear challengers if justified.
+
+Potential candidates include:
+
+- regularized logistic regression
+- generalized linear model variants
+- gradient-boosted decision trees
+- histogram gradient boosting
+- other established tabular probabilistic models already safely supported by the project
+
+Do not introduce unnecessary exotic dependencies merely for this task.
+
+Do not assume gradient boosting must win.
+
+
+======================================================================
+21. BASELINE MODELS
+======================================================================
+
+Establish legitimate baselines.
+
+At minimum consider:
+
+BASELINE A:
+naive historical home-win prior
+
+BASELINE B:
+simple team-strength / starter-strength probabilistic baseline where PIT-safe
+
+BASELINE C:
+current MLB V1 probability output where a fair chronological comparison can be reconstructed
+
+Do not compare V4 to V1 using mismatched games/cutoffs.
+
+
+======================================================================
+22. MODEL COMPLEXITY CONTROL
+======================================================================
+
+The selected model should earn its complexity.
+
+Evaluate:
+
+- overfitting
+- temporal stability
+- feature stability
+- fold-to-fold variance
+- calibration stability
+- performance under missingness
+- sensitivity to specific seasons
+
+A slightly weaker but substantially more stable model may be preferable to a brittle leaderboard winner.
+
+
+======================================================================
+23. HYPERPARAMETER SEARCH
+======================================================================
+
+Use bounded, reproducible hyperparameter search.
+
+Do not perform an unconstrained massive search.
+
+Persist:
+
+- search space
+- random seed
+- folds
+- candidate configurations
+- evaluation metrics
+- selected configuration
+
+Do not optimize directly against final holdout.
+
+
+======================================================================
+24. PRIMARY MODEL-SELECTION METRICS
+======================================================================
+
+Model selection must prioritize probabilistic forecast quality.
+
+Primary metrics should include:
+
+- Log Loss
+- Brier Score
+- calibration quality
+
+Secondary metrics may include:
+
+- ROC AUC
+- accuracy
+- balanced diagnostics
+- sharpness/discrimination
+
+Do not select the model primarily by raw win rate.
+
+
+======================================================================
+25. BETTING METRICS ARE DIAGNOSTIC, NOT PRIMARY TRAINING OBJECTIVE
+======================================================================
+
+Evaluate betting-related diagnostics where legitimate:
+
+- model edge vs available market
+- CLV where temporally valid
+- ROI
+- units
+- performance by price bucket
+- favorite/underdog performance
+
+But:
+
+DO NOT select V4 solely because one candidate happened to generate the highest historical ROI.
+
+ROI is noisy and market-dependent.
+
+
+======================================================================
+26. CALIBRATION
+======================================================================
+
+Evaluate raw probability calibration.
+
+Produce:
+
+- reliability/calibration curve data
+- calibration error metrics
+- probability bucket performance
+- overconfidence/underconfidence analysis
+
+If calibration is materially needed, compare legitimate calibration approaches using TRAIN/VALIDATION data only.
+
+Examples:
+
+- Platt/logistic calibration
+- isotonic calibration
+
+Do not fit calibration on the final holdout.
+
+
+======================================================================
+27. CALIBRATION FREEZE
+======================================================================
+
+If calibration is selected, it becomes part of the frozen artifact.
+
+Persist:
+
+- calibration method
+- calibration parameters/artifact
+- training window
+- calibration window
+- hash
+
+Production inference must apply the exact frozen calibration.
+
+
+======================================================================
+28. MARKET-INDEPENDENT CALIBRATION
+======================================================================
+
+Calibration should measure whether:
+
+70% predictions win approximately 70% of the time,
+
+etc.
+
+Do not "calibrate" probabilities merely to resemble sportsbook prices unless explicitly evaluating a separate market-informed model family.
+
+
+======================================================================
+29. FEATURE ABLATION
+======================================================================
+
+Perform feature-family ablation where sample size permits.
+
+At minimum evaluate meaningful groups such as:
+
+- starter
+- offense
+- bullpen
+- context
+
+Determine whether each family provides stable out-of-sample value.
+
+Do not retain a feature family solely because it improved training fit.
+
+
+======================================================================
+30. STARTER CONTRIBUTION ANALYSIS
+======================================================================
+
+Because starting pitcher state is central to MLB V4, explicitly evaluate:
+
+- performance with starter features
+- performance without starter features
+- behavior when starter state is incomplete
+- calibration across starter-quality ranges
+- sensitivity to starter changes
+
+Document whether starter information adds legitimate out-of-sample value.
+
+
+======================================================================
+31. BULLPEN CONTRIBUTION ANALYSIS
+======================================================================
+
+Evaluate bullpen features separately.
+
+Specifically test whether:
+
+- recent workload
+- rest
+- availability
+- rolling performance
+
+add stable chronological value.
+
+Avoid allowing noisy short-term bullpen features to dominate without evidence.
+
+
+======================================================================
+32. OFFENSE CONTRIBUTION ANALYSIS
+======================================================================
+
+Evaluate offense state for:
+
+- current season
+- rolling window
+- prior-season priors
+- handedness splits where legitimate
+- home/away effects
+
+Pay special attention to early-season sample instability.
+
+
+======================================================================
+33. EARLY-SEASON PRIORS
+======================================================================
+
+MLB V4 must behave sensibly in March/April when current-season samples are small.
+
+If the feature architecture uses prior-season information or shrinkage:
+
+make it explicit.
+
+Do not allow small current-season samples to produce uncontrolled extreme predictions.
+
+
+======================================================================
+34. SEASON-TO-SEASON GENERALIZATION
+======================================================================
+
+Evaluate candidate stability across seasons.
+
+Report metrics separately by season.
+
+A candidate that performs extremely well in one season and poorly elsewhere should be treated cautiously.
+
+
+======================================================================
+35. FAVORITE / UNDERDOG ANALYSIS
+======================================================================
+
+Without training to market outcome, evaluate forecast behavior for:
+
+- heavy favorites
+- moderate favorites
+- near pick'em games
+- moderate underdogs
+- large underdogs
+
+Check for probability extremity and calibration problems.
+
+
+======================================================================
+36. HOME / AWAY ANALYSIS
+======================================================================
+
+Evaluate:
+
+- home predictions
+- away predictions
+- home-favorite situations
+- away-favorite situations
+
+Confirm the model is not merely learning an unstable home-field prior.
+
+
+======================================================================
+37. PROBABILITY EXTREMES
+======================================================================
+
+Audit very high and very low probabilities.
+
+Examples:
+
+> 80%
+> 85%
+> 90%
+
+and inverse away probabilities.
+
+Extreme predictions must be supported by calibration evidence.
+
+If the model produces unjustified extremes, address through legitimate model/calibration design—not arbitrary cosmetic clipping unless clipping is validated and frozen.
+
+
+======================================================================
+38. DATA-QUALITY STRESS TESTS
+======================================================================
+
+Test the selected candidate under realistic missingness/degradation:
+
+- missing starter state
+- partial bullpen state
+- missing weather
+- missing context
+- stale source
+- malformed feature
+- unknown team/player identity
+
+The production executor must fail closed or use the frozen missingness contract.
+
+Never silently use postgame replacement data.
+
+
+======================================================================
+39. PIT AUDIT
+======================================================================
+
+Run a dedicated PIT audit on:
+
+TRAIN
+VALIDATION
+FINAL HOLDOUT
+
+Report:
+
+rows checked
+source records checked
+violations
+violation types
+
+Required:
+
+0 unresolved PIT violations
+
+for any cohort used to claim authoritative model performance.
+
+
+======================================================================
+40. TARGET LEAKAGE AUDIT
+======================================================================
+
+Audit for direct and indirect target leakage.
+
+Check for:
+
+- final score
+- game winner
+- postgame stats
+- actual starter where unavailable pregame
+- future team state
+- future pitcher state
+- postgame injury knowledge
+- postgame lineup state
+- closing information after cutoff
+- derived features containing future outcomes
+
+Required:
+
+0 unresolved target leakage violations.
+
+
+======================================================================
+41. FEATURE-TIME LEAKAGE AUDIT
+======================================================================
+
+For every final feature prove:
+
+feature effective time <= observation cutoff
+
+and required record availability/creation time <= cutoff.
+
+Do not rely solely on event date.
+
+
+======================================================================
+42. TRAINING REPRODUCIBILITY
+======================================================================
+
+The training pipeline must be reproducible.
+
+Freeze:
+
+- cohort definition
+- data query/version
+- feature manifest
+- seeds
+- preprocessing
+- candidate configurations
+- package/runtime versions
+- selection criteria
+
+Running the same frozen training specification against the same immutable dataset should reproduce the same selected artifact within documented tolerance.
+
+
+======================================================================
+43. PREDEFINE MODEL SELECTION RULE
+======================================================================
+
+Before inspecting the final holdout, define the selection rule.
+
+Example conceptual hierarchy:
+
+1. must pass PIT/leakage audits
+2. must beat naive baseline on probabilistic metrics
+3. must demonstrate acceptable calibration
+4. must be temporally stable
+5. must avoid material degradation vs V1 on fair comparison
+6. among qualifying candidates, select strongest validation performance with stability penalty/consideration
+7. confirm once on untouched final holdout
+
+Do not change the rule after seeing which model wins.
+
+
+======================================================================
+44. V1 COMPARISON
+======================================================================
+
+Compare the selected V4 candidate against:
+
+`tbm-mlb-moneyline-v1`
+
+where a fair comparison is possible.
+
+Use identical games and equivalent observation timing where possible.
+
+Report:
+
+Log Loss
+Brier Score
+AUC
+calibration
+accuracy
+market diagnostics
+coverage
+
+Do not claim V4 superiority from mismatched samples.
+
+
+======================================================================
+45. V4 DOES NOT HAVE TO BE DECLARED SUPERIOR
+======================================================================
+
+Important:
+
+Task #237 can successfully build a legitimate frozen V4 artifact even if it does NOT yet prove sufficient superiority for production promotion.
+
+Separate:
+
+ARTIFACT_BUILD_SUCCESS
+
+from:
+
+MODEL_PROMOTION_READY
+
+Possible valid result:
+
+FROZEN_V4_ARTIFACT_READY=true
+MODEL_PROMOTION_READY=false
+
+That means the model exists and can begin prospective shadow validation.
+
+
+======================================================================
+46. FINAL HOLDOUT EVALUATION
+======================================================================
+
+Once candidate selection is complete:
+
+freeze the candidate configuration.
+
+Then evaluate exactly once on the final holdout.
+
+Report full probabilistic and calibration metrics.
+
+Do not resume tuning after seeing final holdout results and still call that same cohort untouched.
+
+
+======================================================================
+47. FINAL MODEL FREEZE
+======================================================================
+
+If the candidate passes the minimum model-build criteria:
+
+freeze it.
+
+Assign exact immutable identity.
+
+Preferred identity:
+
+`tbm-mlb-moneyline-v4`
+
+If project versioning requires a more precise artifact version, use an explicit version such as:
+
+`tbm-mlb-moneyline-v4.0`
+
+while preserving the V4 family identity.
+
+Do not overwrite an existing different artifact identity.
+
+
+======================================================================
+48. FROZEN ARTIFACT CONTENTS
+======================================================================
+
+The frozen artifact must include or reference:
+
+- model family
+- model version
+- trained parameters/model object
+- preprocessing
+- feature manifest
+- calibration artifact if applicable
+- supported market
+- training cohort identity
+- validation cohort identity
+- final holdout identity
+- training configuration
+- random seed
+- runtime/library versions
+- artifact hash
+- parameter hash
+- config hash
+- feature-manifest hash
+- calibration hash if applicable
+
+
+======================================================================
+49. MODEL CARD
+======================================================================
+
+Create a formal MLB V4 model card.
+
+Include:
+
+- purpose
+- target
+- market
+- training data
+- observation cutoff
+- feature families
+- excluded features
+- model family
+- calibration
+- validation design
+- metrics
+- V1 comparison
+- known limitations
+- missingness behavior
+- supported markets
+- unsupported markets
+- intended production use
+- governance/review policy
+- evidence maturity
+- promotion status
+
+
+======================================================================
+50. AUTHENTIC MLB V4 EXECUTOR
+======================================================================
+
+After freeze, implement the authentic typed executor.
+
+Required chain:
+
+`model-input-v4`
+→ exact feature validation
+→ frozen preprocessing
+→ frozen model
+→ frozen calibration if applicable
+→ `P(home_win)`
+→ typed V4 output
+
+The executor must load the exact frozen artifact.
+
+Do not duplicate coefficients manually in multiple code paths.
+
+
+======================================================================
+51. EXECUTOR IDENTITY
+======================================================================
+
+The executor must expose:
+
+modelFamily
+modelVersion
+artifactId
+artifactHash
+parameterHash
+configHash
+featureManifestHash
+inputContractVersion
+calibrationIdentity where applicable
+supportedMarkets
+
+Runtime identity must match registry identity exactly.
+
+
+======================================================================
+52. EXECUTOR INPUT VALIDATION
+======================================================================
+
+Reject:
+
+- wrong input version
+- stale input
+- invalid game identity
+- malformed feature values
+- PIT-invalid snapshot
+- missing mandatory features
+- incompatible artifact/input versions
+
+Fail closed.
+
+Do not silently fall back inside the V4 executor itself.
+
+Fallback belongs to the guarded-serving boundary.
+
+
+======================================================================
+53. EXECUTOR OUTPUT VALIDATION
+======================================================================
+
+Require:
+
+0 <= home_win_probability <= 1
+
+0 <= away_win_probability <= 1
+
+home + away approximately = 1
+
+No NaN.
+
+No Infinity.
+
+No invalid output.
+
+Invalid candidate output must make the candidate ineligible.
+
+
+======================================================================
+54. EXECUTOR REPRODUCIBILITY
+======================================================================
+
+Run identical immutable `model-input-v4` through the frozen executor multiple times.
+
+Required:
+
+identical output within defined numerical tolerance.
+
+Persist:
+
+input hash
+artifact hash
+output hashes
+execution environment
+comparison result
+
+
+======================================================================
+55. REGISTER THE CANDIDATE
+======================================================================
+
+Register the exact frozen artifact through the existing guarded-serving candidate registry.
+
+Registration is NOT approval.
+
+Expected state:
+
+candidate = `tbm-mlb-moneyline-v4`
+executorAvailable = true
+executorHealthy = true
+approval = UNVALIDATED
+servingMode = v1
+publicCandidateServing = false
+
+
+======================================================================
+56. DO NOT CREATE GUARDED APPROVAL
+======================================================================
+
+Do not insert:
+
+GUARDED_APPROVED
+
+Do not change the real approval ledger merely because the model now exists.
+
+Approval remains a later governed decision.
+
+
+======================================================================
+57. REAL PREGAME EXECUTION
+======================================================================
+
+If an eligible upcoming MLB game exists after the frozen executor is implemented:
+
+run a legitimate pregame V4 inference.
+
+Required:
+
+game
+observation cutoff
+model-input-v4 ID
+input hash
+artifact identity
+artifact hash
+forecast
+execution timestamp
+PIT status
+leakage status
+
+The inference must occur before game start.
+
+
+======================================================================
+58. NO UPCOMING MLB GAME HANDLING
+======================================================================
+
+If no legitimate upcoming MLB game exists during execution:
+
+do not fabricate one.
+
+Use a valid immutable historical pregame snapshot for executor/reproducibility verification, but clearly distinguish it from prospective real-slate evidence.
+
+Report:
+
+REAL_PREGAME_EXECUTION_PENDING_NO_ELIGIBLE_SLATE
+
+This should not invalidate the artifact build itself.
+
+
+======================================================================
+59. SHADOW EXECUTION
+======================================================================
+
+After successful artifact registration, enable the candidate for SHADOW execution only where existing architecture safely supports it.
+
+Shadow means:
+
+- candidate executes
+- prediction is frozen
+- prediction is not public
+- prediction is not subscriber-visible
+- prediction does not replace V1
+- prediction is later paired with outcome
+- evidence accumulates prospectively
+
+Do not confuse SHADOW with GUARDED_APPROVED.
+
+
+======================================================================
+60. PROSPECTIVE EVIDENCE CONTINUITY
+======================================================================
+
+Connect new authentic V4 forecasts to the existing prospective evidence architecture without rewriting old evidence.
+
+Preserve:
+
+Tasks #232–#236 evidence
+existing 40 historical shadow/challenger rows
+version identity
+snapshot identity
+
+Do not relabel old unfitted challenger rows as predictions from the new frozen artifact.
+
+They belong to a different artifact state and must remain distinguishable.
+
+
+======================================================================
+61. NEW ARTIFACT EVIDENCE BOUNDARY
+======================================================================
+
+The moment the final V4 artifact is frozen becomes a new evidence boundary.
+
+Only forecasts generated by the exact frozen artifact after freeze may count toward:
+
+FROZEN_V4_PROSPECTIVE_EVIDENCE
+
+Do not combine prior placeholder/shadow rows with new frozen-artifact prospective validation.
+
+
+======================================================================
+62. MODEL GOVERNANCE AFTER FREEZE
+======================================================================
+
+After freeze:
+
+NO automatic parameter changes.
+
+NO per-game retraining.
+
+NO silent recalibration.
+
+NO automatic feature changes.
+
+NO automatic promotion.
+
+Future improvements must become a new candidate:
+
+V4.1
+V4.2
+V5
+
+etc.
+
+Production V4.0 remains immutable.
+
+
+======================================================================
+63. REVIEW CADENCE
+======================================================================
+
+Implement or document MLB-specific review triggers.
+
+Routine health review:
+approximately every 50 graded frozen-artifact predictions.
+
+Formal model review:
+approximately every 150–250 graded predictions, subject to sufficient diversity.
+
+Major review:
+end of MLB season/offseason.
+
+Emergency review only for structural triggers such as:
+
+- PIT violation
+- leakage
+- source failure
+- severe calibration drift
+- persistent negative CLV
+- material feature drift
+- executor/data-contract failure
+
+A review does not automatically change the model.
+
+
+======================================================================
+64. DIVERSITY REQUIREMENTS
+======================================================================
+
+Future promotion evidence should consider diversity across:
+
+- MLB teams
+- starting pitchers
+- repeat starters
+- home/away
+- favorite/underdog
+- price ranges
+- parks
+- opponent quality
+- bullpen states
+- season phases
+
+Do not treat 100 highly correlated observations as equivalent to broad evidence.
+
+
+======================================================================
+65. PROSPECTIVE PROMOTION GATE
+======================================================================
+
+Task #237 must NOT invent a guaranteed future promotion threshold.
+
+But define the evidence categories required before production approval.
+
+At minimum:
+
+- sufficient frozen-artifact prospective volume
+- repeat-starter evidence
+- team diversity
+- calibration stability
+- PIT/leakage clean
+- executor stability
+- market comparison
+- V1 comparison
+- edge realization
+- no material failure pattern
+
+Exact promotion remains governed later.
+
+
+======================================================================
+66. MARKET DIAGNOSTICS
+======================================================================
+
+After producing V4 probabilities, evaluate them against legitimate contemporaneous market prices separately from model training.
+
+Report:
+
+model probability
+market implied probability
+edge
+price bucket
+eventual CLV where legitimate
+eventual outcome
+
+Do not feed those future diagnostics back into the frozen V4 model automatically.
+
+
+======================================================================
+67. PRICE GUARDRAILS REMAIN DOWNSTREAM
+======================================================================
+
+Do not train V4 to decide whether -300 is "too expensive."
+
+The model estimates probability.
+
+The downstream market/risk layer decides whether:
+
+price
+edge
+confidence
+risk
+
+justify a wager.
+
+
+======================================================================
+68. NO UNIT-SIZING TRAINING
+======================================================================
+
+Do not fit unit size as part of MLB V4.
+
+Units remain a separate risk-management policy.
+
+The frozen model output is probability, not stake size.
+
+
+======================================================================
+69. NO POD TRAINING
+======================================================================
+
+Do not train V4 to maximize Universal POD Score.
+
+POD remains downstream ranking logic.
+
+This prevents model quality from becoming entangled with publication policy.
+
+
+======================================================================
+70. MODEL EXPLAINABILITY
+======================================================================
+
+Provide appropriate explainability for the selected model.
+
+For linear models:
+
+- standardized coefficients
+- directionality
+- magnitude
+
+For tree/boosting models:
+
+- global feature importance
+- stable explainability diagnostics
+- feature-family contribution
+
+Do not expose misleading causal claims.
+
+Feature importance is predictive, not necessarily causal.
+
+
+======================================================================
+71. SANITY CHECKS
+======================================================================
+
+Before freeze, run baseball-domain sanity checks.
+
+Examples:
+
+- stronger starting pitcher should not systematically worsen win probability without contextual reason
+- stronger offense should not systematically reduce expected win probability
+- extreme bullpen fatigue should behave plausibly
+- home field should not dominate all other information
+- missing weather should not create extreme probability
+- unknown starter should not create false certainty
+
+Investigate material anomalies.
+
+
+======================================================================
+72. PROBABILITY DISTRIBUTION
+======================================================================
+
+Report the final candidate probability distribution:
+
+min
+max
+mean
+median
+standard deviation
+percentiles
+share >60%
+share >70%
+share >80%
+share >90%
+
+Check for pathological compression or extremity.
+
+
+======================================================================
+73. CALIBRATION BUCKETS
+======================================================================
+
+Report observed outcome frequency for useful probability buckets.
+
+For example:
+
+50–55
+55–60
+60–65
+65–70
+70–75
+75–80
+80+
+
+Use sample-aware reporting.
+
+Do not overinterpret tiny buckets.
+
+
+======================================================================
+74. PERFORMANCE BY SEASON
+======================================================================
+
+For each historical season in validation/test:
+
+report:
+
+games
+Log Loss
+Brier
+AUC
+accuracy
+calibration diagnostics
+
+This is required to evaluate temporal stability.
+
+
+======================================================================
+75. PERFORMANCE BY MODEL CONFIDENCE
+======================================================================
+
+Use "probability strength" rather than inventing TBM downstream confidence.
+
+Evaluate:
+
+abs(P(home)-0.5)
+
+or equivalent probability buckets.
+
+Do not confuse model probability with TBM publication confidence.
+
+
+======================================================================
+76. FAIR MARKET COMPARISON
+======================================================================
+
+When comparing V4 with sportsbook probabilities:
+
+use market observations available at the intended evaluation timestamp.
+
+Do not compare an early V4 forecast against closing prices and then treat the closing line as information the model possessed.
+
+
+======================================================================
+77. TRAINING ARTIFACT STORAGE
+======================================================================
+
+Store the final frozen artifact in the project's approved durable artifact mechanism.
+
+Do not rely on:
+
+- temporary filesystem only
+- local notebook state
+- process memory
+- undocumented manual file
+
+The production executor must be able to load the exact artifact deterministically.
+
+
+======================================================================
+78. ARTIFACT HASH VERIFICATION
+======================================================================
+
+At executor startup:
+
+verify the artifact hash against registry metadata.
+
+Mismatch:
+
+STARTUP_BLOCKED_FOR_CANDIDATE
+
+Do not serve a model whose artifact identity cannot be verified.
+
+
+======================================================================
+79. TRAINING CODE VS INFERENCE CODE
+======================================================================
+
+Separate:
+
+training pipeline
+
+from:
+
+production inference.
+
+Production runtime must not train the model.
+
+Inference should only:
+
+load frozen artifact
+validate input
+transform using frozen preprocessing
+predict
+calibrate using frozen calibrator
+return output
+
+
+======================================================================
+80. TRAINING COMMAND
+======================================================================
+
+Provide an explicit reproducible training/evaluation command or workflow.
+
+It must:
+
+- build frozen cohort
+- run PIT/leakage audits
+- construct chronological splits
+- train candidate families
+- evaluate validation
+- select candidate
+- evaluate final holdout
+- produce artifact
+- produce model card
+- produce verification report
+
+Do not make training occur implicitly during API startup.
+
+
+======================================================================
+81. EXPERIMENT LEDGER
+======================================================================
+
+Persist an experiment ledger for all serious candidate models.
+
+At minimum:
+
+experiment_id
+timestamp
+dataset/cohort hash
+feature-manifest hash
+candidate family
+hyperparameters
+seed
+validation metrics
+holdout status
+selection status
+artifact identity if selected
+
+This prevents cherry-picking undocumented experiments.
+
+
+======================================================================
+82. SELECTION AUDITABILITY
+======================================================================
+
+The final report must make it possible to answer:
+
+Why was this model selected instead of every other candidate?
+
+Do not simply say:
+
+"best performance."
+
+Show the predefined criteria and comparative results.
+
+
+======================================================================
+83. MODEL FAILURE CONDITION
+======================================================================
+
+Task #237 must be allowed to conclude that no candidate is good enough.
+
+If every legitimate model:
+
+- fails calibration badly
+- fails to beat basic baselines
+- is temporally unstable
+- shows leakage
+- cannot operate on production V4 inputs
+- depends on unavailable features
+
+then do NOT freeze a production candidate merely to finish the task.
+
+Use the appropriate blocked classification.
+
+
+======================================================================
+84. MINIMUM FREEZE CRITERIA
+======================================================================
+
+Before freezing `tbm-mlb-moneyline-v4`, require at minimum:
+
+- 0 unresolved PIT violations
+- 0 unresolved target leakage violations
+- reproducible training
+- reproducible inference
+- valid probability output
+- final holdout completed
+- acceptable calibration
+- beats naive baseline on primary probabilistic metric(s)
+- no catastrophic temporal instability
+- production `model-input-v4` compatibility
+- durable artifact storage
+- immutable artifact identity
+
+Do not require historical ROI profitability as a mandatory freeze condition.
+
+
+======================================================================
+85. PROMOTION READINESS IS STRICTER THAN FREEZE READINESS
+======================================================================
+
+Distinguish:
+
+MODEL_BUILD_READY
+
+from:
+
+MODEL_PROMOTION_READY
+
+Task #237 primarily targets:
+
+MODEL_BUILD_READY=true
+
+Expected possible end state:
+
+MODEL_BUILD_READY=true
+MODEL_PROMOTION_READY=false
+GUARDED_APPROVED=false
+PUBLIC_SERVING=false
+
+This is valid.
+
+
+======================================================================
+86. GUARDED RUNTIME INTEGRATION
+======================================================================
+
+Once frozen, connect the executor to the existing guarded runtime.
+
+Test:
+
+`MLB_MODEL_MODE=v1`
+→ incumbent V1
+
+`MLB_MODEL_MODE=v4_guarded`
++
+executor healthy
++
+approval absent
+→ V1 FALLBACK / PASS
+
+Positive isolated fixture:
+
+executor healthy
++
+exact artifact approved
++
+eligible input
++
+supported market
+→ candidate selected
+
+Do NOT alter real approval.
+
+
+======================================================================
+87. OWNER RUNTIME STATUS
+======================================================================
+
+Update owner/admin status to show:
+
+MLB incumbent
+MLB candidate
+model version
+artifact hash
+parameter hash
+feature manifest
+calibration identity
+executor availability
+executor health
+latest V4 execution
+training cohort
+final holdout status
+supported markets
+prospective frozen-artifact sample
+model build readiness
+model evidence readiness
+approval
+serving mode
+
+Do not hard-code status.
+
+
+======================================================================
+88. EXISTING V1 MUST REMAIN UNCHANGED
+======================================================================
+
+Do not modify:
+
+`tbm-mlb-moneyline-v1`
+
+to make V4 comparisons easier.
+
+V1 remains the production incumbent and rollback target.
+
+
+======================================================================
+89. EXISTING V4 EVIDENCE MUST REMAIN IMMUTABLE
+======================================================================
+
+Do not rewrite Task #232–#236 evidence.
+
+Do not relabel old V4 shadow rows as output from the newly frozen artifact.
+
+Use explicit artifact/version boundaries.
+
+
+======================================================================
+90. NCAAF SCOPE
+======================================================================
+
+Do NOT expand Task #237 into NCAAF model development.
+
+NCAAF's remaining blocker is downstream validated risk/rating/POD policy.
+
+That belongs to Task #238.
+
+Only make shared infrastructure changes if absolutely required for MLB V4 artifact registration/execution and backward-compatible with NCAAF.
+
+
+======================================================================
+91. PRODUCTION SCHEMA SCOPE
+======================================================================
+
+Do NOT make production guarded-schema publishing the primary Task #237 objective.
+
+Production immutability publishing remains a later task.
+
+Task #237 may add development/model artifact metadata required for MLB V4.
+
+Do not perform ad hoc production DDL.
+
+
+======================================================================
+92. SECURITY / REPOSITORY BOUNDARY
+======================================================================
+
+Use current sanitized main only.
+
+Do NOT recreate, checkout, restore, merge, materialize, push, or otherwise interact with:
+
+`refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8`
+
+Run credential/security scans after implementation.
+
+Do not weaken repository safeguards.
+
+
+======================================================================
+93. DEPENDENCY BOUNDARY
+======================================================================
+
+Prefer already-approved/stable project dependencies.
+
+If a new ML library is genuinely required:
+
+- justify it
+- pin its version
+- security-scan it
+- record it in artifact metadata
+- verify production inference compatibility
+
+Do not add a large ML stack unnecessarily.
+
+
+======================================================================
+94. REQUIRED TESTS
+======================================================================
+
+Add focused tests for:
+
+DATA:
+- canonical game dedupe
+- outcome validity
+- chronological split
+- PIT safety
+- record-availability safety
+- target leakage
+- starter leakage
+- historical backfill safety
+- feature missingness
+
+TRAINING:
+- deterministic cohort
+- deterministic preprocessing
+- candidate training reproducibility
+- calibration isolation
+- final holdout isolation
+- selection-rule enforcement
+- experiment ledger
+
+ARTIFACT:
+- serialization
+- artifact hash
+- parameter hash
+- config hash
+- feature-manifest hash
+- load verification
+
+EXECUTOR:
+- exact registry matching
+- `model-input-v4` validation
+- missing-feature handling
+- stale-input rejection
+- probability bounds
+- deterministic inference
+- artifact hash mismatch rejection
+
+GUARDED SERVING:
+- V1 default
+- unapproved V4 fallback
+- PASS behavior
+- positive isolated approval fixture
+- kill switch
+- truthful runtime identity
+
+EVIDENCE:
+- new frozen-artifact boundary
+- old shadow evidence exclusion
+- immutable prospective prediction logging
+
+
+======================================================================
+95. FULL VERIFICATION
+======================================================================
+
+Before completion run:
+
+- Task #237 focused tests
+- full API tests
+- MLB V4 evidence tests
+- MLB historical cohort tests
+- PIT audit
+- target leakage audit
+- starter leakage audit
+- feature-time leakage audit
+- chronological split verification
+- candidate-model training
+- validation evaluation
+- final holdout evaluation
+- calibration evaluation
+- V1 comparison
+- feature ablation
+- season stability analysis
+- probability distribution analysis
+- artifact serialization test
+- artifact hash verification
+- executor tests
+- inference reproducibility
+- guarded fallback tests
+- kill-switch tests
+- owner status tests
+- backend typecheck
+- DB typecheck
+- admin/frontend/mobile typechecks where affected
+- production builds where affected
+- dependency/security scan
+- credential scan
+- repository diff review
+
+Report pre-existing unrelated failures separately.
+
+
+======================================================================
+96. INDEPENDENT MODEL REVIEW
+======================================================================
+
+Before freezing the final artifact, perform an independent model-science review.
+
+The reviewer must answer:
+
+1. Is the historical cohort genuinely PIT-safe?
+2. Is the final holdout truly untouched?
+3. Is there target leakage?
+4. Is there starter leakage?
+5. Is there market leakage in the base forecast?
+6. Were preprocessing and calibration fitted only on permitted data?
+7. Were model families compared fairly?
+8. Was the selection rule defined before final holdout inspection?
+9. Does the selected candidate beat legitimate baselines?
+10. Is calibration acceptable?
+11. Is performance temporally stable?
+12. Does the model rely excessively on one season?
+13. Are extreme probabilities defensible?
+14. Do feature ablations support the final feature set?
+15. Can production reproduce the exact preprocessing and inference?
+16. Is the artifact immutable and hash-verifiable?
+17. Does the executor consume actual `model-input-v4`?
+18. Is any model-science blocker being ignored merely to call the artifact V4?
+
+A legitimate blocker must not be overridden.
+
+
+======================================================================
+97. INDEPENDENT ARCHITECTURE REVIEW
+======================================================================
+
+After executor integration, perform an independent architecture review.
+
+Answer:
+
+1. Does the registered executor load the exact selected artifact?
+2. Does runtime identity match artifact identity?
+3. Can V4 execute without training at runtime?
+4. Does wrong/stale input fail closed?
+5. Can an unapproved V4 candidate publish?
+6. Does V1 fallback remain truthful?
+7. Does the kill switch work?
+8. Are old shadow predictions distinguishable from new frozen V4 predictions?
+9. Is prospective evidence tied to exact artifact identity?
+10. Is any additional MLB model-definition infrastructure still missing?
+
+
+======================================================================
+98. REQUIRED CLASSIFICATION
+======================================================================
+
+End Task #237 with EXACTLY ONE classification.
+
+
+A — MLB V4 AUTHORITATIVE FROZEN CANDIDATE COMPLETE
+
+Use ONLY if:
+
+- authoritative PIT-safe historical cohort exists
+- historical availability is validated
+- target/starter/feature-time leakage audits pass
+- chronological training/validation/test structure is valid
+- multiple legitimate candidates were evaluated
+- predefined selection criteria were used
+- final holdout remained untouched until selection
+- selected model passes minimum freeze criteria
+- calibration is acceptable
+- frozen artifact exists
+- artifact/config/parameter/feature hashes exist
+- durable artifact storage exists
+- authentic executor exists
+- executor consumes `model-input-v4`
+- inference is reproducible
+- guarded runtime integration works
+- unapproved V4 cannot publish
+- V1 remains production
+- prospective frozen-artifact evidence boundary exists
+
+Classification A DOES NOT mean V4 is approved for public serving.
+
+
+B — MLB V4 MODEL BUILD PARTIAL
+
+Use if legitimate model development succeeds materially but one or more finite requirements remain before the artifact can be frozen.
+
+List exact blockers.
+
+
+C — MLB V4 MODEL BUILD BLOCKED
+
+Use if:
+
+- PIT-safe historical cohort cannot be established
+- required features cannot be reconstructed
+- leakage cannot be resolved
+- no candidate passes minimum freeze criteria
+- production `model-input-v4` is incompatible with the trainable feature contract
+- another material model-science build is required
+
+
+D — SAFETY / INTEGRITY STOP
+
+Use for critical:
+
+- PIT contamination
+- target leakage
+- credential/security issue
+- destructive data mutation
+- repository integrity issue
+- corrupted evidence/history
+
+requiring immediate stop.
+
+
+======================================================================
+99. REQUIRED FINAL REPORT
+======================================================================
+
+Produce:
+
+`reports/task-237-mlb-v4-authoritative-model-build.md`
+
+and:
+
+`reports/task-237-verification.json`
+
+Report at minimum:
+
+1. Final classification
+2. MODEL_BUILD_READY
+3. MODEL_PROMOTION_READY
+4. GUARDED_APPROVED
+5. Public serving status
+6. MLB incumbent identity
+7. MLB V4 candidate identity
+8. Historical seasons available
+9. Raw historical games
+10. Canonical eligible games
+11. Excluded games
+12. Historical PIT status
+13. Historical backfill status
+14. Observation cutoff
+15. Target definition
+16. Feature manifest version/hash
+17. Final feature count
+18. Feature-family coverage
+19. Missingness policy
+20. Train period/count
+21. Validation period/count
+22. Final holdout period/count
+23. Candidate model families
+24. Hyperparameter search summary
+25. Predefined selection rule
+26. Candidate comparison table
+27. Selected model family
+28. Selected hyperparameters
+29. Validation Log Loss
+30. Validation Brier Score
+31. Validation AUC
+32. Validation calibration result
+33. Final holdout Log Loss
+34. Final holdout Brier Score
+35. Final holdout AUC
+36. Final holdout calibration result
+37. Naive baseline comparison
+38. V1 comparison
+39. Per-season results
+40. Favorite/underdog diagnostics
+41. Home/away diagnostics
+42. Probability distribution
+43. Calibration buckets
+44. Starter ablation
+45. Bullpen ablation
+46. Offense ablation
+47. Context ablation
+48. PIT violations
+49. Target leakage violations
+50. Starter leakage violations
+51. Feature-time leakage violations
+52. Training reproducibility
+53. Inference reproducibility
+54. Selected artifact ID
+55. Model version
+56. Artifact hash
+57. Parameter hash
+58. Config hash
+59. Calibration hash
+60. Feature-manifest hash
+61. Durable artifact location/reference
+62. Runtime/library versions
+63. Executor registration
+64. Executor health
+65. Input contract
+66. Supported markets
+67. Guarded fallback result
+68. Kill-switch result
+69. Positive isolated approval-fixture result
+70. Real pregame execution result if available
+71. Frozen-artifact prospective evidence count
+72. Old shadow rows excluded from new evidence count
+73. Approval ledger before/after
+74. Owner runtime status
+75. Full test results
+76. Typecheck/build results
+77. Security results
+78. Dependency results
+79. Exact files changed
+80. Independent model-science conclusion
+81. Independent architecture conclusion
+82. Remaining model blockers
+83. Remaining promotion blockers
+84. READY FOR TASK #238: YES / NO
+
+
+======================================================================
+100. REQUIRED MODEL COMPARISON TABLE
+======================================================================
+
+Include a table equivalent to:
+
+| Candidate | Validation LogLoss | Validation Brier | Validation AUC | Calibration | Temporal Stability | Selected |
+|---|---:|---:|---:|---|---|---|
+| Baseline | ... | ... | ... | ... | ... | NO |
+| Logistic | ... | ... | ... | ... | ... | YES/NO |
+| Candidate 2 | ... | ... | ... | ... | ... | YES/NO |
+| Candidate 3 | ... | ... | ... | ... | ... | YES/NO |
+
+Then report the untouched final holdout separately.
+
+Do not use the final holdout as another model-selection column.
+
+
+======================================================================
+101. REQUIRED OWNER SUMMARY
+======================================================================
+
+At completion provide:
+
+TBM MLB V4 MODEL BUILD STATUS
+
+Incumbent:
+[ACTUAL]
+
+V4 Candidate:
+[ACTUAL]
+
+MODEL BUILD
+Historical PIT-Safe Cohort: READY / BLOCKED
+Training Rows: [ACTUAL]
+Validation Rows: [ACTUAL]
+Final Holdout Rows: [ACTUAL]
+Candidate Families Tested: [ACTUAL]
+Selected Model: [ACTUAL]
+Calibration: [ACTUAL]
+Final Holdout: PASS / FAIL
+V1 Comparison: [ACTUAL]
+
+SAFETY
+PIT Violations: [ACTUAL]
+Target Leakage: [ACTUAL]
+Starter Leakage: [ACTUAL]
+Feature-Time Leakage: [ACTUAL]
+
+FROZEN ARTIFACT
+Artifact ID: [ACTUAL]
+Model Version: [ACTUAL]
+Artifact Hash: [ACTUAL]
+Parameter Hash: [ACTUAL]
+Config Hash: [ACTUAL]
+Feature Manifest Hash: [ACTUAL]
+Durable Storage: READY / BLOCKED
+
+EXECUTION
+Executor Registered: YES / NO
+Executor Healthy: YES / NO
+Input Contract: [ACTUAL]
+Inference Reproducibility: PASS / FAIL
+Real Pregame Forecast: VERIFIED / PENDING / BLOCKED
+Supported Markets: [ACTUAL]
+
+GOVERNANCE
+MODEL_BUILD_READY: TRUE / FALSE
+MODEL_PROMOTION_READY: TRUE / FALSE
+GUARDED_APPROVED: FALSE
+Automatic Retraining: DISABLED
+Automatic Recalibration: DISABLED
+Automatic Parameter Changes: DISABLED
+Automatic Promotion: DISABLED
+
+CURRENT PUBLIC MLB:
+V1
+
+V4 PUBLIC SERVING:
+OFF
+
+READY FOR NEXT GOVERNED BUILD:
+YES / NO
+
+
+======================================================================
+102. IMPORTANT INTERPRETATION OF SUCCESS
+======================================================================
+
+A successful Task #237 does NOT mean:
+
+"MLB V4 is now live."
+
+A successful Task #237 means:
+
+"TBM finally has a legitimate, frozen, reproducible MLB V4 forecasting model that can be prospectively evaluated and eventually considered for guarded production."
+
+That distinction is mandatory.
+
+
+======================================================================
+103. NEXT TASK BOUNDARY
+======================================================================
+
+Task #238 remains:
+
+NCAAF VALIDATED RISK + RATING + POD POLICY
+
+Do not turn #238 into another MLB model-building task.
+
+After #237 and #238, the intended sequence remains:
+
+#239
+PRODUCTION PUBLISH + FINAL TECHNICAL VERIFICATION
+
+#240
+GUARDED APPROVAL + CONTROLLED LIVE CUTOVER
+
+
+======================================================================
+104. FINAL DIRECTIVE
+======================================================================
+
+BUILD THE ACTUAL MLB V4 FORECASTING MODEL.
+
+USE ONLY LEGITIMATE PIT-SAFE HISTORICAL INFORMATION.
+
+DO NOT INVENT AN "AUTHORITATIVE" MODEL THAT WAS NEVER TRAINED OR VALIDATED.
+
+DO NOT TRAIN TO ROI.
+
+DO NOT TRAIN TO POD.
+
+DO NOT TRAIN TO UNIT SIZE.
+
+DO NOT CONTAMINATE THE BASE FORECAST WITH FUTURE MARKET INFORMATION.
+
+COMPARE MULTIPLE DEFENSIBLE MODEL FAMILIES.
+
+SELECT USING CHRONOLOGICAL OUT-OF-SAMPLE PROBABILITY QUALITY AND CALIBRATION.
+
+KEEP THE FINAL HOLDOUT UNTOUCHED UNTIL MODEL SELECTION IS COMPLETE.
+
+FREEZE THE WINNER ONCE.
+
+HASH EVERYTHING REQUIRED TO REPRODUCE IT.
+
+BUILD THE REAL `model-input-v4` EXECUTOR.
+
+KEEP V1 PUBLICLY ACTIVE.
+
+KEEP V4 UNAPPROVED.
+
+START A CLEAN NEW PROSPECTIVE EVIDENCE BOUNDARY FOR THE FROZEN ARTIFACT.
+
+AFTER FREEZE, THE MODEL DOES NOT CHANGE AFTER EVERY GAME.
+
+FUTURE IMPROVEMENTS BECOME NEW VERSIONED CANDIDATES.
+
+THE GOAL OF TASK #237 IS NOT TO FORCE MLB V4 LIVE.
+
+THE GOAL IS TO FINALLY CREATE THE LEGITIMATE FORECASTING ENGINE THAT ALL OF THE V4 INFRASTRUCTURE WAS BUILT TO SUPPORT.
