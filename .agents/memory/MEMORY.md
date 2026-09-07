@@ -53,3 +53,4 @@
 - [NCAAF 2026 bridge denominator](ncaaf-2026-bridge-denominator.md) — compatibility covers FBS-vs-FBS only; prove the complete season FBS identity set before classifying other targets out-of-domain.
 - [MLB live PIT materialization](mlb-live-pit-materialization.md) — freeze derived evidence by source availability, canonical dedupe, and exact-version readiness joins.
 - [Guarded serving cutover gates](guarded-serving-cutover-gates.md) — mode, exact approval, and authentic executor availability are independent; all must pass before a candidate is active.
+- [V4 platform cutover boundary](v4-platform-cutover-boundary.md) — final sport routing is exact V4 or no forecast; legacy may run only on the old parallel platform before cutover.

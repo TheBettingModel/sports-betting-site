@@ -237,7 +237,8 @@ async function startServer(): Promise<void> {
   initJwks().catch((err) => logger.warn({ err }, "JWKS init failed"));
 
   // Start automation scheduler only after startup reconciliation succeeds.
-  if (process.env["NODE_ENV"] !== "test") {
+  if (process.env["NODE_ENV"] !== "test"
+    && process.env["SCHEDULER_ENABLED"] !== "false") {
     startScheduler();
 
     // On startup, immediately recover any games that finished while the server

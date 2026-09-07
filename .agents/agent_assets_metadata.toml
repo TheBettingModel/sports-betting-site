@@ -652,3 +652,17 @@ mtime_ms = 1788736034576
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b27edeb7-b1e7-493e-a827-55b4f82ece8b/9c7f08a9-c94e-4e42-a5d0-14b661101315"
 storage_version_token = "1788736172903824"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "lpkdsiDVINaF04-mAKLQU"
+uri = "file://reports/task-240-tbm-v4-platform-rebuild-cloud-migration.md"
+type = "text"
+title = "Task 240 — TBM V4 Platform Rebuild Report"
+description = "Complete 75-section implementation, migration, verification, release-gate, and classification report."
+logical_id = "ba62b720-f05e-40b1-a512-6b95cf51185c"
+content_hash = "sha256:6c567d5dcec553a3bae86e5c402b3ecb4b9e28a649ba8e2a2b936c2d38c02a4c"
+size = 16281
+mtime_ms = 1788743484683
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ba62b720-f05e-40b1-a512-6b95cf51185c/acc6c590-dd35-4573-bcb0-d8c125018f4e"
+storage_version_token = "1788743542199108"
+content_type = "text/markdown"

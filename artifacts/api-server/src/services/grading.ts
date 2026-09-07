@@ -96,6 +96,7 @@ export function gradeSoccer3Way(
   homeScore: number,
   awayScore: number,
 ): GradeResult {
+  if (!["home", "draw", "away"].includes(selection)) return "void";
   const outcome =
     homeScore > awayScore ? "home" : homeScore < awayScore ? "away" : "draw";
   return selection === outcome ? "win" : "loss";
@@ -154,10 +155,12 @@ export function calculateUnits(
 export function calculateClv(
   predictionOdds: number,
   closingOdds: number,
-): number {
+): number | null {
+  if (!Number.isFinite(predictionOdds) || !Number.isFinite(closingOdds)
+    || predictionOdds === 0 || closingOdds === 0) return null;
   const predImplied = americanToImplied(predictionOdds);
   const closeImplied = americanToImplied(closingOdds);
-  if (closeImplied === 0 || predImplied === 0) return 0;
+  if (closeImplied === 0 || predImplied === 0) return null;
   const clv = (closeImplied - predImplied) * 100;
   // Clamp to a sensible range — values outside ±50pp signal a data error
   // (e.g. a corrupted closing price), not a real edge gain/loss.

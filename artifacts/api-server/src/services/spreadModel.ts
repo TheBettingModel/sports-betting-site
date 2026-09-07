@@ -754,7 +754,9 @@ export function calculateSpreadClv(
     return prediction.selection === "home" ? homeCover : 1 - homeCover;
   };
   const lineValue = (selectedProbability(prediction.line) - selectedProbability(closingLine)) * 100;
-  return Math.round((lineValue + calculateClv(prediction.odds, closingPrice)) * 100) / 100;
+  const priceClv = calculateClv(prediction.odds, closingPrice);
+  if (priceClv == null) throw new Error("CLOSING_PRICE_UNAVAILABLE");
+  return Math.round((lineValue + priceClv) * 100) / 100;
 }
 
 export interface SpreadSettlement {
@@ -1129,7 +1131,9 @@ export async function computeSpreadValidationMetrics(
     brierScore,
     logLoss,
     roi: netUnits / Math.max(1, settled.length),
-    clv: mean(settled.map(({ result }) => result.clv ?? 0)),
+    clv: mean(settled
+      .map(({ result }) => result.clv)
+      .filter((value): value is number => value != null)),
     maxDrawdown,
     coverage: settled.length / Math.max(1, validationRows.length),
     dataQualityRate: validationRows.filter(({ prediction }) => prediction.featureSnapshot != null).length / Math.max(1, validationRows.length),

@@ -6,50 +6,16 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
-        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
-        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx,user_3GyCCHwnYB9sIByophLiunxGtMf",
-        "EXPO_PUBLIC_ADMIN_EMAILS": "jacqueskaune@gmail.com",
-        "EXPO_PUBLIC_DOMAIN": "thebettingmodel.replit.app"
-      }
+      "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
-        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
-        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx,user_3GyCCHwnYB9sIByophLiunxGtMf",
-        "EXPO_PUBLIC_ADMIN_EMAILS": "jacqueskaune@gmail.com",
-        "EXPO_PUBLIC_DOMAIN": "thebettingmodel.replit.app"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "credentialsSource": "remote",
-      "env": {
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudGhlYmV0dGluZ21vZGVsLnJlcGxpdC5hcHAk",
-        "EXPO_PUBLIC_CLERK_PROXY_URL": "https://thebettingmodel.replit.app/api/__clerk",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_NbLuELjoUSqhaTbFpGZnfwZagwS",
-        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_NezigGAOnPwyJoHJEkVYMsLbpmu",
-        "EXPO_PUBLIC_ADMIN_USER_IDS": "user_3GmXMcCGzqs1c5aD1snP08e7Frx,user_3GyCCHwnYB9sIByophLiunxGtMf",
-        "EXPO_PUBLIC_ADMIN_EMAILS": "jacqueskaune@gmail.com",
-        "EXPO_PUBLIC_DOMAIN": "thebettingmodel.replit.app"
-      }
+      "credentialsSource": "remote"
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "appleId": "Jacqueskaune@gmail.com",
-        "ascAppId": "6792899000",
-        "appleTeamId": "FYF2J895MA"
-      }
-    }
+    "production": {}
   }
 }

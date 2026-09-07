@@ -12,6 +12,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { resolveStaticPath } = require('./safe-path');
 
 const STATIC_ROOT = path.resolve(__dirname, '..', 'static-build');
 const TEMPLATE_PATH = path.resolve(__dirname, 'templates', 'landing-page.html');
@@ -84,14 +85,13 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
 }
 
 function serveStaticFile(urlPath, res) {
-  const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const filePath = path.join(STATIC_ROOT, safePath);
-
-  if (!filePath.startsWith(STATIC_ROOT)) {
-    res.writeHead(403);
-    res.end('Forbidden');
+  const resolved = resolveStaticPath(STATIC_ROOT, urlPath);
+  if (!resolved.ok) {
+    res.writeHead(resolved.status);
+    res.end(resolved.status === 403 ? 'Forbidden' : 'Bad Request');
     return;
   }
+  const filePath = resolved.filePath;
 
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     res.writeHead(404);
