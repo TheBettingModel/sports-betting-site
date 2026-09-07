@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: tbm-api
+    runtime: node
+    plan: starter
+    rootDir: .
+    buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm --filter @workspace/api-server run build
+    startCommand: corepack pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      - key: PUBLICATION_ENABLED
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: MASTER_API_KEY
+        sync: false
+      - key: ODDS_API_KEY
+        sync: false
+      - key: CFBD_API_KEY
+        sync: false
+      - key: SLACK_LIVE_API_KEY
+        sync: false
+      - key: REVENUECAT_WEBHOOK_SECRET
+        sync: false
+
+  - type: cron
+    name: tbm-scheduler
+    runtime: node
+    rootDir: .
+    schedule: "*/15 * * * *"
+    buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm --filter @workspace/api-server run build
+    startCommand: corepack pnpm --filter @workspace/api-server run pipeline:once
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUBLICATION_ENABLED
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: ODDS_API_KEY
+        sync: false
+      - key: CFBD_API_KEY
+        sync: false
+      - key: MASTER_API_KEY
+        sync: false
