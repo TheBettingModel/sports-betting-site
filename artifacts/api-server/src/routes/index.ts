@@ -1,0 +1,44 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import gamesRouter from "./games";
+import modelStatsRouter from "./model-stats";
+import analyticsRouter from "./analytics";
+import modelRegistryRouter from "./model-registry";
+import featuresRouter from "./features";
+import adminRouter from "./admin";
+import webhooksRouter from "./webhooks";
+import pushTokensRouter from "./push-tokens";
+import notificationPreferencesRouter from "./notification-preferences";
+import preferencesRouter from "./preferences";
+import clerkProxyRouter from "./clerk-proxy";
+import legalRouter from "./legal";
+import resultsRouter from "./results";
+import subscriptionsRouter from "./subscriptions";
+import chatRouter from "./chat";
+import ncaafV4Router from "./ncaaf-v4";
+import mlbV4ReadinessRouter from "./mlb-v4-readiness";
+import v4ProjectionsRouter from "./v4-projections";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(gamesRouter);
+router.use(modelStatsRouter);
+router.use(analyticsRouter);
+router.use(modelRegistryRouter);
+router.use(featuresRouter);
+router.use(adminRouter);
+router.use(webhooksRouter);
+router.use(pushTokensRouter);
+router.use(notificationPreferencesRouter);
+router.use(preferencesRouter);
+router.use(clerkProxyRouter);
+router.use(legalRouter);
+router.use(resultsRouter);
+router.use(subscriptionsRouter);
+router.use(chatRouter);
+router.use(ncaafV4Router);
+router.use(mlbV4ReadinessRouter);
+router.use(v4ProjectionsRouter);
+
+export default router;
