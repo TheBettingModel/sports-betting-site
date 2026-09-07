@@ -1,0 +1,1604 @@
+TASK #243B — NFL V4.0 CORE RAPID COMPLETION & 2026 LIVE EVIDENCE LAUNCH
+
+PROJECT: The Betting Model (TBM)
+DATE: September 2026
+
+EXECUTION MODE:
+FOCUSED PRO-AGENT NFL MODEL BUILD
+
+PRIORITY:
+URGENT — 2026 NFL REGULAR SEASON IS BEGINNING.
+
+==================================================
+0. MISSION
+==================================================
+
+Task #243B is a focused NFL-only continuation of Task #243.
+
+Task #243 successfully produced new operational SHADOW V4 cores for:
+
+- MLB
+- NBA
+- WNBA
+- NHL
+- NCAAMB
+
+Soccer remains operational and unchanged.
+
+NCAAF retains its legitimate frozen dedicated V4 but still requires its shared full-slate adapter.
+
+NFL was NOT promoted because its candidate failed the legitimate quality gate:
+
+NFL candidate Brier:
+0.25688
+
+Historical-rate baseline Brier:
+0.25304
+
+The NFL candidate was therefore correctly rejected.
+
+DO NOT reverse that decision merely because the NFL season is starting.
+
+The mission of #243B is:
+
+BUILD A BETTER LEGITIMATE NFL V4.0 CORE.
+
+The desired pipeline is:
+
+NFL HISTORICAL DATA
+        ↓
+PIT-SAFE CHRONOLOGICAL STATE
+        ↓
+FOOTBALL-SPECIFIC FEATURE ENGINEERING
+        ↓
+SMALL CONTROLLED CANDIDATE FAMILY
+        ↓
+CHRONOLOGICAL VALIDATION
+        ↓
+CALIBRATION / BIAS TESTING
+        ↓
+QUALITY GATE
+        ↓
+IF PASS:
+FROZEN NFL V4.0 ARTIFACT
+        ↓
+EXACT LIVE EXECUTOR
+        ↓
+STRICT V4 ROUTER
+        ↓
+FULL-SLATE NFL FORECASTING
+        ↓
+SHADOW / V4 VALIDATING
+        ↓
+2026 PROSPECTIVE EVIDENCE COLLECTION
+
+This is NOT a request to make NFL an official betting model immediately.
+
+The immediate target is:
+
+NFL V4.0 CORE
+TECHNICALLY LIVE
+SHADOW
+PUBLIC-PROJECTION CAPABLE
+NOT PUBLICATION APPROVED
+
+If the improved model still legitimately fails:
+
+DO NOT FREEZE A BAD MODEL.
+
+Instead leave NFL fail-closed and complete as much prospective 2026 evidence infrastructure as legitimately possible so the next challenger can improve rapidly.
+
+==================================================
+1. THIS IS AN NFL MODEL TASK
+==================================================
+
+DO NOT spend this task rebuilding:
+
+- shared V4 architecture
+- generic warehouse architecture
+- shared forecast DTOs
+- shared public projection architecture
+- generic model registry
+- #238A
+- frontend
+- mobile
+- cloud deployment
+- Soccer
+- MLB
+- NBA
+- WNBA
+- NHL
+- NCAAMB
+- UFC
+
+unless a tiny compatibility change is strictly required by the NFL engine.
+
+The shared platform already exists.
+
+SPEND THE TASK ON NFL DATA AND NFL MODEL QUALITY.
+
+==================================================
+2. AUTHORITATIVE CURRENT NFL STATE
+==================================================
+
+Task #241 originally found only:
+
+12 eligible NFL training vectors.
+
+Task #243 materially improved NFL data/model work enough to train a candidate.
+
+However:
+
+candidate Brier = 0.25688
+baseline Brier = 0.25304
+
+Therefore:
+
+candidate LOST to baseline.
+
+Correct current state:
+
+NFL V4 = NO_FORECAST
+
+Do not register the rejected candidate as operational.
+
+Do not relabel a legacy NFL model.
+
+Do not lower the gate.
+
+==================================================
+3. PRIMARY SUCCESS CONDITION
+==================================================
+
+The ideal #243B result is:
+
+NFL = B
+
+Meaning:
+
+V4 BUILT
+FROZEN
+ARTIFACT VERIFIED
+LIVE EXECUTOR READY
+STRICT V4 ROUTER REGISTERED
+FULL-SLATE READY
+SHADOW READY
+2026 PROSPECTIVE EVIDENCE READY
+PUBLIC MODEL PROJECTION READY
+PUBLICATION DISABLED
+
+Publication approval is NOT required.
+
+==================================================
+4. SECONDARY SUCCESS CONDITION
+==================================================
+
+If no candidate legitimately clears the quality gate:
+
+NFL must remain:
+
+NO_FORECAST
+
+BUT #243B should still leave:
+
+- improved NFL historical cohort
+- documented candidate comparison
+- exact failure diagnosis
+- prospective 2026 evidence capture ready
+- scheduled-event discovery ready
+- pregame evidence capture ready
+- immutable outcome pairing ready
+- clear V4.1 challenger path
+
+Do not fabricate success.
+
+==================================================
+5. START WITH THE FAILED CANDIDATE
+==================================================
+
+Perform a focused diagnosis of why:
+
+0.25688
+
+failed against:
+
+0.25304.
+
+Determine whether the failure primarily came from:
+
+- weak features
+- excessive feature noise
+- poor regularization
+- incorrect feature orientation
+- poor opponent adjustment
+- insufficient recency weighting
+- season transition effects
+- early-season instability
+- score-model-to-win-probability conversion
+- calibration
+- home-field assumptions
+- rest assumptions
+- small/biased cohort
+- normalization
+- target construction
+- distributional assumptions
+- overfitting
+- underfitting
+
+Do not assume the model family itself is the only problem.
+
+==================================================
+6. VERIFY THE NFL HISTORICAL COHORT
+==================================================
+
+Before fitting another model, report exact:
+
+historical source(s)
+seasons
+date range
+raw games
+canonical games
+duplicates
+quarantined games
+PIT-eligible games
+train rows
+validation rows
+OOS rows if available
+feature count
+missingness
+
+If #243 produced a much larger cohort than #241, use it.
+
+Do not regress to the 12-row cohort.
+
+==================================================
+7. ACQUIRE MORE NFL HISTORY IF NEEDED
+==================================================
+
+If the #243 NFL cohort is still materially limited, actively expand it.
+
+Inspect:
+
+- TBM DB
+- legacy NFL tables
+- results
+- schedules
+- raw ingestion
+- archived provider payloads
+- existing NFL APIs
+- repository datasets
+- historical model inputs
+- legitimate accessible historical sources
+
+Prefer multiple recent completed NFL seasons.
+
+Do not stop at:
+
+"current canonical V4 table is sparse."
+
+==================================================
+8. NFL PIT RULE
+==================================================
+
+For game G:
+
+features may use only games completed before G's prediction cutoff.
+
+No future games.
+
+No G outcome.
+
+No final-season aggregate containing G.
+
+No hindsight injury state.
+
+No hindsight starting QB state unless genuine pregame evidence exists.
+
+==================================================
+9. MARKET LEAKAGE PROHIBITION
+==================================================
+
+NFL SPORT MODEL FEATURES MAY NOT INCLUDE:
+
+spread
+moneyline
+total
+sportsbook odds
+implied probability
+closing line
+opening line
+line movement
+betting percentages
+sharp data
+CLV
+edge
+EV
+recommendation
+
+Market data remains downstream.
+
+==================================================
+10. V4.0 CORE MUST NOT WAIT FOR PERFECT QB DATA
+==================================================
+
+QB information is important in football.
+
+However:
+
+if historical PIT-safe QB evidence is not sufficiently trustworthy, do NOT make it mandatory for V4.0 CORE.
+
+Build the strongest legitimate team-level NFL model first.
+
+Classify QB/injury enhancements as:
+
+PROSPECTIVE_ONLY
+
+for future NFL V4.1 if necessary.
+
+==================================================
+11. BUILD FOOTBALL-SPECIFIC STATE
+==================================================
+
+Use the strongest legitimately supported NFL features available.
+
+Potential CORE families include:
+
+OFFENSE
+- points per game
+- points per drive if available
+- yards/play
+- passing efficiency
+- rushing efficiency
+- explosive-play proxy
+- turnover rate
+- sack rate allowed
+- third-down efficiency if available
+- red-zone efficiency if available
+
+DEFENSE
+- points allowed
+- yards/play allowed
+- pass defense efficiency
+- rush defense efficiency
+- takeaway rate
+- sack/pressure proxy
+- third-down defense if available
+- red-zone defense if available
+
+GAME STATE / CONTEXT
+- home field
+- rest
+- bye week
+- travel where legitimately available
+- opponent strength
+- prior schedule strength
+- season phase
+- rolling form
+
+Do not invent unavailable fields.
+
+==================================================
+12. OPPONENT ADJUSTMENT
+==================================================
+
+Raw NFL averages can be misleading because schedules differ substantially.
+
+Explicitly test legitimate opponent adjustment.
+
+Possible methods:
+
+- iterative team ratings
+- offense/defense residual adjustment
+- Elo-like team strength
+- schedule-adjusted rolling efficiency
+
+Any opponent-adjusted state must remain chronological.
+
+Do not use end-of-season strength when forecasting earlier games.
+
+==================================================
+13. SEASON TRANSITION
+==================================================
+
+NFL has relatively few games per team.
+
+Handle season transitions deliberately.
+
+Test reasonable approaches such as:
+
+- partial carryover from previous season
+- regression toward league average
+- season-specific intercept
+- decaying historical state
+
+Do not simply treat Week 1 as though last year's final rating is perfectly current.
+
+==================================================
+14. EARLY-SEASON MODELING
+==================================================
+
+The 2026 season is beginning now.
+
+NFL V4 must handle games with little or no current-season evidence.
+
+Create explicit legitimate early-season behavior.
+
+Potential strategy:
+
+prior-season state
++
+regression toward league mean
++
+current-season evidence increasing in weight as games accumulate
+
+The exact approach must be validated historically.
+
+==================================================
+15. RECENCY
+==================================================
+
+Test a small controlled set of recency formulations.
+
+Examples:
+
+season-to-date
+rolling N games
+exponential decay
+blended prior/current season
+
+Do not run an unlimited search.
+
+==================================================
+16. EXPECTED SCORE MODEL
+==================================================
+
+Strongly evaluate an NFL expected-score formulation if the evidence supports it.
+
+Desired outputs:
+
+expected_home_points
+expected_away_points
+expected_margin
+expected_total
+
+Preserve unrounded values internally.
+
+UI later may round appropriately.
+
+==================================================
+17. WIN PROBABILITY
+==================================================
+
+NFL V4 must produce a legitimate:
+
+home_win_probability
+away_win_probability
+
+Probabilities must:
+
+be finite
+be bounded
+sum to approximately 1
+be calibrated as well as legitimately possible
+
+Do not fabricate spread-cover probabilities.
+
+==================================================
+18. MODEL FAMILY
+==================================================
+
+Use a SMALL PREDECLARED candidate family.
+
+Recommended candidates may include:
+
+A. Regularized expected-score linear model
+
+B. Offense/defense rating + expected-score model
+
+C. Regularized logistic win model
+
+D. Elo/opponent-adjusted probability model
+
+E. One additional simple nonlinear candidate only if justified by data volume
+
+Do not conduct uncontrolled model fishing.
+
+==================================================
+19. BASELINE COMPARISONS
+==================================================
+
+Compare against legitimate NFL forecasting baselines.
+
+At minimum include:
+
+historical-rate/home-field probability baseline
+
+and preferably:
+
+simple rating/Elo baseline
+
+if legitimately constructed.
+
+Do not use sportsbook prices as the sport-model baseline.
+
+==================================================
+20. PRIMARY SELECTION METRICS
+==================================================
+
+For win probability:
+
+Brier
+log loss
+ECE
+calibration
+AUC secondary
+accuracy secondary
+
+For scores:
+
+home score MAE
+away score MAE
+margin MAE
+total MAE
+RMSE
+home score bias
+away score bias
+margin bias
+total bias
+
+Do not select primarily on betting ROI.
+
+==================================================
+21. BRIER GATE
+==================================================
+
+The rejected candidate:
+
+0.25688
+
+must remain rejected unless a new legitimate evaluation changes its identity/evidence.
+
+The selected NFL V4 must demonstrate legitimate improvement against the defined baseline.
+
+Do not manipulate the baseline to make the model pass.
+
+==================================================
+22. CALIBRATION
+==================================================
+
+Inspect calibration buckets.
+
+NFL has small seasonal sample sizes, so avoid overly complex calibration.
+
+Any calibration layer must be trained without validation leakage.
+
+If calibration does not improve legitimate held-out performance:
+
+do not use it.
+
+==================================================
+23. CONFIDENCE EXTREMES
+==================================================
+
+Given TBM's prior platform-wide overconfidence problem, inspect high-probability NFL forecasts carefully.
+
+Report performance for probability bands where sample size permits.
+
+Do not allow unjustified 70%/80%+ probabilities simply because the raw model emits them.
+
+==================================================
+24. SCORE SANITY
+==================================================
+
+Inspect projected score distribution.
+
+Report:
+
+mean projected home score
+mean actual home score
+mean projected away score
+mean actual away score
+mean projected total
+mean actual total
+mean projected margin
+mean actual margin
+
+Reject severe systematic compression or inflation.
+
+==================================================
+25. CHRONOLOGICAL VALIDATION
+==================================================
+
+No random split.
+
+Use chronological:
+
+TRAIN
+VALIDATION
+OOS
+
+where data permits.
+
+If multiple seasons exist, prefer meaningful season/time separation.
+
+==================================================
+26. WALK-FORWARD CHECK
+==================================================
+
+Where computationally practical, perform a chronological walk-forward or season-forward stability check.
+
+The purpose is to determine whether the model improvement survives different NFL periods.
+
+Do not tune repeatedly against the final OOS period.
+
+==================================================
+27. STABILITY
+==================================================
+
+Report whether performance is concentrated in one season.
+
+A model that wins overall only because of one anomalous year should not automatically be frozen.
+
+==================================================
+28. FEATURE ABLATION
+==================================================
+
+Perform a SMALL targeted ablation study on the selected candidate.
+
+Identify whether major feature groups actually help:
+
+offense
+defense
+opponent adjustment
+recency
+home/rest
+season carryover
+
+Do not conduct hundreds of combinations.
+
+==================================================
+29. FINAL FEATURE CONTRACT
+==================================================
+
+If a candidate passes:
+
+freeze an exact NFL V4.0 CORE feature contract.
+
+Every feature must have:
+
+name
+meaning
+orientation
+unit
+missingness
+normalization
+PIT rule
+live source
+training source
+
+==================================================
+30. TRAIN/LIVE PARITY
+==================================================
+
+This is mandatory.
+
+The live NFL executor must construct exactly the same feature semantics as training.
+
+Same:
+
+feature order
+orientation
+units
+rolling windows
+opponent adjustment
+season transition
+normalization
+missingness
+
+No handwritten approximation.
+
+==================================================
+31. HISTORICAL STATE SEED
+==================================================
+
+If the selected artifact requires historical rolling state for live inference:
+
+package/freeze a compact legitimate historical state seed as done for the successful #243 cores where appropriate.
+
+The state seed must be versioned and hash-addressed.
+
+==================================================
+32. ARTIFACT
+==================================================
+
+If the model passes:
+
+freeze an immutable artifact containing at minimum:
+
+model_id
+version
+training cohort hash
+validation cohort identity
+feature contract hash
+parameters
+normalization
+historical seed if required
+metrics
+approval
+maturity
+creation metadata
+
+==================================================
+33. EXACT HASHES
+==================================================
+
+Generate and verify exact:
+
+cohort hash
+contract hash
+parameter/artifact hash
+
+No ambiguous "latest NFL model."
+
+==================================================
+34. TARGET MODEL IDENTITY
+==================================================
+
+Use a clear canonical identity such as:
+
+tbm-nfl-v4-core
+
+with an exact version derived from the selected legitimate implementation.
+
+Do not overwrite or relabel legacy NFL identities.
+
+==================================================
+35. APPROVAL STATE
+==================================================
+
+If selected:
+
+approval = SHADOW
+
+publication permission = FALSE
+
+maturity should reflect actual evidence.
+
+Do not mark PRODUCTION_APPROVED merely because it beat a baseline.
+
+==================================================
+36. STRICT V4 ROUTER
+==================================================
+
+If and only if NFL passes:
+
+register its exact executor in the strict V4 router.
+
+NFL route becomes:
+
+eligible NFL event
+→ NFL V4 executor
+→ FORECAST
+
+If it does not pass:
+
+NFL
+→ NO_FORECAST
+
+Never legacy fallback.
+
+==================================================
+37. FULL-SLATE NFL FORECASTING
+==================================================
+
+Once operational:
+
+discover EVERY supported NFL game for the current Eastern NFL day.
+
+Attempt a forecast for every eligible game.
+
+Do not filter based on odds or edge before forecasting.
+
+==================================================
+38. FULL-SLATE COVERAGE
+==================================================
+
+Report:
+
+scheduled_games
+supported_games
+eligible_games
+forecasted_games
+failed_games
+coverage_pct
+failure reasons
+
+Target close to 100% of legitimately eligible NFL games.
+
+==================================================
+39. PUBLIC MODEL PROJECTION READINESS
+==================================================
+
+An operational SHADOW NFL V4 should be capable of future public display.
+
+Example future UI:
+
+PATRIOTS vs SEAHAWKS
+
+MODEL PROJECTED SCORE
+NE 23 — SEA 26
+
+NFL V4
+VALIDATING
+
+Not an Official TBM Pick
+
+Do not implement a major frontend redesign here.
+
+Prepare/verify the API data.
+
+==================================================
+40. SHADOW DOES NOT MEAN HIDDEN
+==================================================
+
+This is an important TBM product principle.
+
+If NFL V4 passes and becomes operational SHADOW:
+
+its legitimate projections should be technically available for public Model Board display.
+
+SHADOW means:
+
+NOT AN OFFICIAL TBM PICK
+
+It does NOT mean:
+
+hidden
+disabled
+fake
+unavailable
+excluded from model analytics
+
+==================================================
+41. PUBLICATION SAFETY
+==================================================
+
+SHADOW NFL projections must NOT:
+
+enter official record
+receive official units
+enter official ROI
+become POTD
+enter Top Picks
+be counted as official plays
+be presented as wagering recommendations
+
+until separately publication-approved and passed through #238A.
+
+==================================================
+42. MODEL ANALYTICS
+==================================================
+
+NFL SHADOW forecasts SHOULD contribute to:
+
+forecast count
+Brier
+log loss
+calibration
+winner accuracy
+projected-score MAE
+margin MAE
+total MAE
+bias
+coverage
+
+This is model analytics, not betting performance.
+
+==================================================
+43. 2026 PROSPECTIVE EVIDENCE
+==================================================
+
+This is critical because the NFL season is beginning.
+
+Prepare/start the legitimate NFL prospective evidence process.
+
+For each supported 2026 game:
+
+discover event
+resolve identities
+capture pregame evidence
+freeze cutoff
+generate forecast if operational
+persist immutable forecast
+record model/artifact identity
+wait for completion
+pair final result
+grade forecast
+update model analytics
+
+No hindsight.
+
+==================================================
+44. IF NFL MODEL STILL FAILS
+==================================================
+
+If no candidate clears the quality gate:
+
+do NOT generate fake public NFL projections.
+
+Instead:
+
+discover all NFL games
+capture legitimate pregame evidence snapshots
+persist the evidence
+pair outcomes after completion
+build the prospective NFL V4 dataset
+
+The site can later show:
+
+NFL V4
+IN DEVELOPMENT
+
+until a legitimate engine exists.
+
+==================================================
+45. PROSPECTIVE EVIDENCE MUST BE USEFUL
+==================================================
+
+If NFL remains NO_FORECAST, the 2026 collection pipeline should still capture enough legitimate sport evidence to train a future challenger.
+
+Do not collect only sportsbook data.
+
+Capture actual football-performance evidence available pregame.
+
+==================================================
+46. PREGAME CUTOFF
+==================================================
+
+Every prospective snapshot must satisfy:
+
+evidence_time <= cutoff < kickoff
+
+No snapshot may be created or revised after kickoff and presented as pregame evidence.
+
+==================================================
+47. FORECAST IMMUTABILITY
+==================================================
+
+Preserve #242:
+
+append-only forecasts
+idempotent IDs
+pre-event versioning
+supersession
+post-start write rejection
+
+==================================================
+48. FORECAST REVISIONS
+==================================================
+
+If legitimate new pregame information causes a new forecast before kickoff:
+
+create a new forecast version.
+
+Do not overwrite.
+
+Define latest legitimate pre-kickoff forecast for display/evaluation.
+
+==================================================
+49. NO SELF-MUTATING NFL MODEL
+==================================================
+
+Do not retrain coefficients automatically after every NFL game.
+
+NFL V4.0 remains frozen.
+
+2026 evidence accumulates.
+
+Later:
+
+NFL V4.1 challenger
+→ validation
+→ explicit promotion
+
+==================================================
+50. FUTURE QB / INJURY ENHANCEMENT
+==================================================
+
+If QB/injury evidence is not in V4.0:
+
+designate it as a future enhancement, not a failure.
+
+The likely path may be:
+
+NFL V4.0 CORE
+→ prospective QB/injury evidence
+→ NFL V4.1 CONTEXT ENHANCED
+
+Do not block today's legitimate core on tomorrow's enhancement.
+
+==================================================
+51. CURRENT NFL GAMES
+==================================================
+
+Because the 2026 regular season is beginning, verify that the NFL event-discovery system recognizes the current upcoming regular-season slate.
+
+Do not hardcode game identities.
+
+Use existing legitimate schedule/event discovery.
+
+Do not fabricate schedule data.
+
+==================================================
+52. NCAAF / OTHER SPORTS
+==================================================
+
+Do NOT modify other models unless required for shared tests.
+
+Task #243B is NFL focused.
+
+Preserve all successful #243 artifacts exactly.
+
+==================================================
+53. #238A PRESERVATION
+==================================================
+
+Do not weaken #238A.
+
+Preserve:
+
+exact approval
+fail-closed publication
+global ranking
+six-pick cap after ranking
+flat approved 1U staking
+POTD protection
+official-record protection
+append-only audit
+process-order invariance
+
+==================================================
+54. NO LEGACY NFL FALLBACK
+==================================================
+
+Absolute requirement:
+
+NFL V4 PASS
+→ NFL V4 FORECAST
+
+NFL V4 FAIL
+→ NO_FORECAST
+
+NEVER:
+
+NFL V4 FAIL
+→ NFL V1/V2/V3
+
+==================================================
+55. LEGACY NFL RETIREMENT MAP
+==================================================
+
+Identify the existing legacy NFL engine and all production consumers.
+
+Prepare exact retirement mapping for #244.
+
+Do not necessarily perform production cutover here.
+
+==================================================
+56. NO CLOUD CUTOVER
+==================================================
+
+Do not turn #243B into:
+
+Render migration
+Vercel migration
+Neon production cutover
+DNS
+GitHub production release
+
+#244 handles production integration/cutover.
+
+==================================================
+57. NO UI REDESIGN
+==================================================
+
+Do not spend the task redesigning NFL cards.
+
+Only minimal API compatibility changes if required.
+
+==================================================
+58. TESTS — DATA
+==================================================
+
+Test:
+
+NFL identity resolution
+duplicate events
+chronological ordering
+completion ordering
+rolling feature state
+season transition
+early-season state
+opponent adjustment
+PIT
+future leakage
+target leakage
+market leakage
+cohort determinism
+
+==================================================
+59. TESTS — MODEL
+==================================================
+
+Test:
+
+training reproducibility
+normalization
+feature contract
+artifact serialization
+artifact hash
+probability bounds
+probability sum
+score sanity
+calibration
+bias
+baseline comparison
+determinism
+
+==================================================
+60. TESTS — LIVE EXECUTOR
+==================================================
+
+If selected:
+
+run identical event/evidence multiple times.
+
+Require identical forecast.
+
+Verify exact train/live parity.
+
+==================================================
+61. TESTS — FULL SLATE
+==================================================
+
+If operational:
+
+verify all eligible NFL events are attempted.
+
+Verify no odds/edge filter occurs before forecast.
+
+Verify explicit failures.
+
+Verify immutable persistence.
+
+==================================================
+62. TESTS — PUBLIC SAFETY
+==================================================
+
+If SHADOW:
+
+projection API may return NFL model projection.
+
+But verify it:
+
+does not count as official pick
+does not receive official units
+does not enter official record
+does not become POTD
+does not enter Top Picks
+
+==================================================
+63. FULL REGRESSION
+==================================================
+
+Run:
+
+API tests
+NFL-specific tests
+DB/model tests
+API typecheck
+API build
+Admin typecheck/build
+Mobile typecheck
+OpenAPI generation
+route coverage
+credential scan
+Apple signing scan
+clean-source export verification
+
+Report exact results.
+
+==================================================
+64. DO NOT STOP EARLY
+==================================================
+
+Do not stop after diagnosing the 0.25688 candidate.
+
+Actually train the controlled challenger family.
+
+Actually validate them.
+
+Actually freeze/register the winner if one legitimately passes.
+
+==================================================
+65. NO FAKE IMPROVEMENT
+==================================================
+
+Do not manipulate:
+
+cohort
+baseline
+split
+calibration
+feature set
+metrics
+
+merely to get NFL below 0.25304.
+
+The improvement must be legitimate and reproducible.
+
+==================================================
+66. REQUIRED NFL DATA TABLE
+==================================================
+
+Report:
+
+Historical sources:
+Seasons:
+Date coverage:
+Raw games:
+Canonical games:
+PIT eligible:
+Quarantined:
+Features:
+Train:
+Validation:
+OOS:
+Cohort hash:
+
+==================================================
+67. REQUIRED CANDIDATE TABLE
+==================================================
+
+Report for every serious candidate:
+
+MODEL
+FEATURE SET
+TRAIN BRIER
+VALIDATION BRIER
+LOG LOSS
+ECE
+AUC
+SCORE MAE
+MARGIN MAE
+TOTAL MAE
+BIAS
+BASELINE DELTA
+SELECTED?
+REASON
+
+Use N/A where a metric is genuinely unsupported.
+
+==================================================
+68. REQUIRED BASELINE TABLE
+==================================================
+
+Report:
+
+baseline name
+definition
+Brier
+log loss if available
+calibration
+date range
+sample size
+
+==================================================
+69. REQUIRED SCORE TABLE
+==================================================
+
+For score-producing candidates report:
+
+actual average home score
+projected average home score
+home bias
+
+actual average away score
+projected average away score
+away bias
+
+actual average total
+projected average total
+total bias
+
+actual average margin
+projected average margin
+margin bias
+
+==================================================
+70. REQUIRED CALIBRATION TABLE
+==================================================
+
+Where sample permits:
+
+probability bucket
+forecast count
+average predicted probability
+actual win rate
+difference
+
+==================================================
+71. REQUIRED SEASON STABILITY
+==================================================
+
+Report model performance by season or chronological period where sample permits.
+
+==================================================
+72. REQUIRED ABLATION TABLE
+==================================================
+
+For selected candidate, report small targeted ablations:
+
+feature group removed
+metric change
+conclusion
+
+==================================================
+73. REQUIRED LIVE DRY RUN
+==================================================
+
+If NFL V4 passes:
+
+run current/upcoming legitimate NFL slate through the development full-slate pipeline.
+
+Report:
+
+date
+scheduled
+eligible
+forecasted
+failed
+coverage
+failure reasons
+
+For each successful forecast report enough safe diagnostics to verify:
+
+teams
+event start
+model ID
+model version
+projected score
+win probabilities
+status
+
+Do not expose secret/internal evidence payloads.
+
+==================================================
+74. REQUIRED PROSPECTIVE COLLECTION STATUS
+==================================================
+
+Report:
+
+2026 event discovery ready?
+pregame evidence capture ready?
+immutable snapshot ready?
+forecast persistence ready?
+outcome pairing ready?
+grading ready?
+model analytics ready?
+
+==================================================
+75. REQUIRED ARTIFACT IDENTITY
+==================================================
+
+If selected:
+
+MODEL ID:
+VERSION:
+CONTRACT HASH:
+COHORT HASH:
+ARTIFACT/PARAMETER HASH:
+APPROVAL:
+MATURITY:
+EXECUTOR:
+ROUTER STATUS:
+
+==================================================
+76. REQUIRED FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — NFL V4.0 CORE BUILT, FROZEN, SHADOW-READY, FULL-SLATE READY, AND EVIDENCE IS STRONG ENOUGH FOR A FUTURE PRODUCTION-APPROVAL REVIEW
+
+B — NFL V4.0 CORE BUILT, FROZEN, SHADOW-READY AND FULL-SLATE READY; PROSPECTIVE VALIDATION REQUIRED BEFORE PUBLICATION
+
+C — NFL HISTORICAL/PROSPECTIVE FOUNDATION MATERIALLY IMPROVED BUT NO CANDIDATE LEGITIMATELY CLEARED THE QUALITY GATE
+
+D — NFL DATA/MODEL BUILD FAILED OR REMAINS METHODOLOGICALLY UNSAFE
+
+==================================================
+77. REQUIRED FINAL REPORT
+==================================================
+
+Create:
+
+reports/task-243b-nfl-v4-core-rapid-completion-2026-live-evidence-launch.md
+
+Required sections:
+
+# TASK #243B — NFL V4.0 CORE RAPID COMPLETION & 2026 LIVE EVIDENCE LAUNCH
+
+## 1. Executive Summary
+## 2. Final Classification
+## 3. Starting NFL State
+## 4. Failed #243 Candidate Diagnosis
+## 5. Historical Sources Inspected
+## 6. Historical Data Acquired
+## 7. Source Provenance
+## 8. Identity Resolution
+## 9. PIT Methodology
+## 10. Leakage Validation
+## 11. NFL Historical Cohort
+## 12. Chronological Split
+## 13. Season Transition Design
+## 14. Early-Season Design
+## 15. Recency Design
+## 16. Opponent Adjustment
+## 17. Feature Contract Candidates
+## 18. Candidate Model Family
+## 19. Baselines
+## 20. Candidate Results
+## 21. Calibration
+## 22. Score Accuracy
+## 23. Score Bias
+## 24. Season Stability
+## 25. Feature Ablation
+## 26. Selected Model
+## 27. Why It Was Selected / Rejected
+## 28. Frozen Feature Contract
+## 29. Training Normalization
+## 30. Historical State Seed
+## 31. Artifact Identity
+## 32. Artifact Verification
+## 33. Live Executor
+## 34. Train/Live Parity
+## 35. Determinism
+## 36. Strict V4 Router
+## 37. No Legacy Fallback
+## 38. Full-Slate NFL Discovery
+## 39. Full-Slate Forecast Coverage
+## 40. Current/Upcoming NFL Dry Run
+## 41. Immutable Forecast Persistence
+## 42. Forecast Versioning
+## 43. Public Projection Readiness
+## 44. V4_VALIDATING Semantics
+## 45. Official Pick Separation
+## 46. #238A Preservation
+## 47. Official Record Protection
+## 48. POTD Protection
+## 49. Units Protection
+## 50. NFL Model Analytics
+## 51. 2026 Prospective Evidence Collection
+## 52. Outcome Pairing
+## 53. Future NFL V4.1 Path
+## 54. QB / Injury Enhancement Status
+## 55. Legacy NFL Retirement Map
+## 56. Tests
+## 57. Full Regression
+## 58. Security
+## 59. Clean Source Integration
+## 60. Files Changed
+## 61. Genuine Remaining Blockers
+## 62. What Is Actually Operational Now
+## 63. Final Classification
+## 64. EXACTLY ONE RECOMMENDED NEXT TASK
+
+==================================================
+78. WHAT IS ACTUALLY OPERATIONAL NOW
+==================================================
+
+Answer plainly:
+
+Can NFL generate a legitimate V4 forecast?
+
+Can NFL forecast the full eligible slate?
+
+Does it produce projected scores?
+
+Does it produce win probabilities?
+
+Is the artifact frozen?
+
+Is it SHADOW?
+
+Can forecasts be publicly displayed as V4 VALIDATING?
+
+Are they excluded from official picks?
+
+Are they excluded from official record/units/ROI?
+
+Is 2026 prospective evidence being collected?
+
+Does NFL fall back to any legacy model?
+
+Did production change?
+
+==================================================
+79. EXACTLY ONE NEXT TASK
+==================================================
+
+If result is A or B:
+
+Recommend exactly:
+
+TASK #244 — TBM V4 PRODUCTION INTEGRATION, PUBLIC FULL-SLATE MODEL BOARDS & CONTROLLED CLOUD CUTOVER
+
+If result is C:
+
+Do NOT automatically recommend another giant historical rebuild.
+
+Recommend #244 if the rest of the platform remains ready, with NFL fail-closed / IN DEVELOPMENT while 2026 evidence accumulates.
+
+Only recommend another NFL task instead if a very specific, immediately resolvable defect would likely clear the quality gate before the current NFL slate.
+
+==================================================
+80. FINAL EXECUTION DIRECTIVE
+==================================================
+
+NFL SEASON IS BEGINNING.
+
+USE THIS TASK TO WORK ON THE ACTUAL NFL MODEL.
+
+DO NOT BUILD ANOTHER GENERAL PLATFORM.
+
+DIAGNOSE WHY 0.25688 LOST TO THE 0.25304 BASELINE.
+
+IMPROVE THE FOOTBALL INTELLIGENCE.
+
+USE REAL NFL HISTORY.
+
+USE CHRONOLOGICAL OPPONENT-ADJUSTED STATE.
+
+HANDLE SEASON TRANSITIONS.
+
+HANDLE WEEK 1 / EARLY-SEASON CONDITIONS.
+
+TEST A SMALL CONTROLLED MODEL FAMILY.
+
+VALIDATE PROBABILITIES.
+
+VALIDATE PROJECTED SCORES.
+
+CHECK CALIBRATION.
+
+CHECK SCORE BIAS.
+
+DO NOT USE SPORTSBOOK PRICES AS MODEL FEATURES.
+
+DO NOT USE HINDSIGHT.
+
+DO NOT LOWER THE QUALITY GATE.
+
+IF A LEGITIMATE NFL V4 PASSES:
+
+FREEZE IT.
+HASH IT.
+REGISTER IT.
+CONNECT ITS EXACT EXECUTOR.
+RUN THE FULL SLATE.
+MARK IT SHADOW / V4 VALIDATING.
+KEEP PUBLICATION DISABLED.
+MAKE ITS PROJECTIONS READY FOR PUBLIC DISPLAY.
+START COLLECTING 2026 PROSPECTIVE EVIDENCE.
+
+IF IT DOES NOT PASS:
+
+LEAVE NFL NO_FORECAST.
+DO NOT FALL BACK TO LEGACY.
+CAPTURE CLEAN 2026 PREGAME EVIDENCE.
+CONTINUE BUILDING THE PROSPECTIVE DATASET.
+
+THE GOAL IS NOT TO FORCE AN NFL PICK.
+
+THE GOAL IS TO HAVE THE BEST LEGITIMATE NFL V4 MODEL TBM CAN BUILD READY TO ANALYZE THE 2026 SEASON.
