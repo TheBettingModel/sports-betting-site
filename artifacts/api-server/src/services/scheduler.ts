@@ -71,6 +71,7 @@ import {
   SingleFlightGroup,
 } from "./schedulerRuntime";
 import { runScheduledMlbV4EvidenceCollection } from "./mlbV4LiveRuntime";
+import { runNflV4ProspectiveCollection } from "./nflV4Prospective";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -83,6 +84,7 @@ const heavyJobs = new SingleFlightGroup();
 // MLB V4 evidence is isolated from all-sport heavy work so game-relative
 // windows are not skipped behind unrelated jobs.
 const mlbV4EvidenceJobs = new SingleFlightGroup();
+const nflV4EvidenceJobs = new SingleFlightGroup();
 
 function claimHeavyJob(jobName: string): number | null {
   const claim = heavyJobs.acquire(jobName);
@@ -1479,6 +1481,16 @@ async function runMlbAdvancedResearchCapture(): Promise<void> {
  * Start all scheduled jobs. Call once at server startup.
  */
 export function startScheduler(): void {
+  // NFL V4 prospective forecasts are append-only, shadow-only, and isolated
+  // from official pick generation and the shared heavy-job lock.
+  cron.schedule("7,37 * * * *", () => {
+    const jobName = "nfl-v4-evidence-tick";
+    const claim = nflV4EvidenceJobs.acquire(jobName);
+    if (!claim.acquired) return;
+    void runNflV4ProspectiveCollection().catch((err) =>
+      logger.warn({ err }, "Scheduler: NFL V4 evidence tick failed — non-fatal"))
+      .finally(() => nflV4EvidenceJobs.release(jobName));
+  }, { timezone: "America/New_York" });
   // One MLB-only schedule request per 30-minute tick. The runtime captures only
   // 720/360/180/60/30-minute due windows; discovery/final pairing still runs.
   cron.schedule("*/30 * * * *", () => {
@@ -1540,6 +1552,8 @@ export function startScheduler(): void {
   // repair can issue many date captures, so it must never hold the critical
   // FINAL_PREGAME capture/assignment path behind its completion.
   void runNcaafProductionEvidenceCycle();
+  void runNflV4ProspectiveCollection()
+    .catch((err) => logger.warn({ err }, "Scheduler: NFL V4 startup evidence capture failed — non-fatal"));
   // One bounded, non-blocking catch-up after registration repairs missing
   // completed-game performance evidence. It is intentionally independent of
   // the prospective cycle above.
@@ -1568,6 +1582,7 @@ export const schedulerJobs = {
   ncaafProductionEvidenceCycle: runNcaafProductionEvidenceCycle,
   ncaafPerformanceBootstrap: bootstrapMissingNcaafPerformanceEvidence,
   ncaafHistoricalTrainingMaterialization: materializeNcaafHistoricalTrainingRows,
+  nflV4ProspectiveCollection: runNflV4ProspectiveCollection,
 };
 
 /**

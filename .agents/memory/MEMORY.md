@@ -55,3 +55,4 @@
 - [Guarded serving cutover gates](guarded-serving-cutover-gates.md) — mode, exact approval, and authentic executor availability are independent; all must pass before a candidate is active.
 - [V4 platform cutover boundary](v4-platform-cutover-boundary.md) — final sport routing is exact V4 or no forecast; legacy may run only on the old parallel platform before cutover.
 - [V4 core model quality gates](v4-core-model-quality-gates.md) — simpler cores still must beat baseline and avoid severe bias; fitted-but-failed candidates remain unbuilt.
+- [NFL V4 shadow boundary](nfl-v4-shadow-boundary.md) — July 1 seasons, Pro Bowl quarantine, exact artifact execution, and append-only shadow evidence are mandatory.

@@ -4,6 +4,8 @@ import nbaArtifactJson from "../../../../model-artifacts/v4/nba-v4-core-score.js
 import wnbaArtifactJson from "../../../../model-artifacts/v4/wnba-v4-core-score.json";
 import nhlArtifactJson from "../../../../model-artifacts/v4/nhl-v4-core-score.json";
 import ncaambArtifactJson from "../../../../model-artifacts/v4/ncaamb-v4-core-score.json";
+import nflArtifactJson from "../../../../model-artifacts/v4/nfl-v4-core.json";
+import { createNflV4Engine, type NflV4Artifact } from "./nflV4";
 import { createRollingScoreV4Engine, type RollingScoreV4Artifact } from "./rollingScoreV4";
 import { canonicalV4EngineRegistry } from "./v4Platform";
 
@@ -20,5 +22,8 @@ export function bootstrapTask241V4Engines(): void {
       createRollingScoreV4Engine(artifact as unknown as RollingScoreV4Artifact),
     );
   }
+  canonicalV4EngineRegistry.register(
+    createNflV4Engine(nflArtifactJson as unknown as NflV4Artifact),
+  );
   bootstrapped = true;
 }

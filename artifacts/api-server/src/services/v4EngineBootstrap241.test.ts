@@ -28,7 +28,12 @@ describe("Task 241 V4 engine bootstrap", () => {
       .toBe("4cb7e2ca32c0931c7f20861baeed8c8ea417158171726b516e41e2b6d9d74c0d");
   });
 
-  it("leaves the NFL quality-gate failure absent", () => {
-    expect(canonicalV4EngineRegistry.get("NFL")).toBeNull();
+  it("registers the exact quality-gated NFL Task 243B artifact as shadow", () => {
+    expect(canonicalV4EngineRegistry.get("NFL")?.identity).toMatchObject({
+      modelId: "tbm-nfl-v4-core",
+      modelVersion: "4.0.0-elo-score",
+      artifactHash: "0da3f4e62a88da4c8d486b6433ca83c907e2cbd2fc072834817cbdb919233c5e",
+    });
+    expect(canonicalV4EngineRegistry.get("NFL")?.approvalState).toBe("SHADOW");
   });
 });

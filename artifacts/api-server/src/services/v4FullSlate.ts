@@ -13,6 +13,7 @@ import {
   type TbmV4Sport,
   type V4EngineRegistry,
 } from "./v4Platform";
+import { fetchSportGamesByDate } from "./espn";
 
 export type FullSlateMode = "DRY_RUN" | "SHADOW" | "PRODUCTION";
 export type ForecastFailureReason =
@@ -105,8 +106,22 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
     eq(gamesTable.sport, dbSport),
     eq(gamesTable.gameDate, sportDate),
   )).orderBy(asc(gamesTable.startsAt), asc(gamesTable.id));
+  const incompleteNflRows = sport === "NFL" && rows.some((row) =>
+    !row.eventStart || !row.homeParticipantId || !row.awayParticipantId);
+  const nflSchedule = incompleteNflRows
+    ? await fetchSportGamesByDate("NFL", sportDate.replaceAll("-", ""))
+    : [];
+  const nflById = new Map(nflSchedule.map((game) => [game.espnId, game]));
   return rows.flatMap((row) => {
-    const event = classifyDiscoveredEvent(row);
+    const provider = nflById.get(row.gameId);
+    const event = classifyDiscoveredEvent({
+      ...row,
+      eventStart: row.eventStart ?? (provider ? new Date(provider.commenceTimeISO) : null),
+      homeParticipantId: row.homeParticipantId ?? provider?.homeTeamId ?? null,
+      awayParticipantId: row.awayParticipantId ?? provider?.awayTeamId ?? null,
+      homeParticipantName: row.homeParticipantName || provider?.homeTeamName || "",
+      awayParticipantName: row.awayParticipantName || provider?.awayTeamName || "",
+    });
     return event ? [event] : [];
   });
 }
