@@ -1,0 +1,72 @@
+{
+  "sport": "WNBA",
+  "modelId": "tbm-wnba-v4-core-score",
+  "modelVersion": "4.0.0-core",
+  "modelFamily": "independent-ridge-score",
+  "featureContractId": "rolling-score-v4-core-1",
+  "featureContractHash": "4171705ce64dbf2cb32b006bd9ec7d1483972500dcede7c8d3858ec9d48618cf",
+  "featureNames": [
+    "home_scored_avg",
+    "home_allowed_avg",
+    "away_scored_avg",
+    "away_allowed_avg",
+    "home_games_log1p",
+    "away_games_log1p",
+    "home_rest_days",
+    "away_rest_days",
+    "home_indicator"
+  ],
+  "trainingCohortHash": "60cb8a41d777a1e757031577d3fbbfc6789347ae92cca48ea3a9eca394f6e20a",
+  "validationCohortHash": "2d092ce6f3a6f51a74984c84d6f1645c3014dcb3afedebb3a87902c80ae508a2",
+  "trainedAt": "2026-09-07T00:00:00.000Z",
+  "trainingRows": 52,
+  "validationRows": 13,
+  "dateRange": {
+    "start": "2026-07-30T12:00:00.000Z",
+    "end": "2026-08-31T00:30:00.000Z"
+  },
+  "ridgeLambda": 1,
+  "homeModel": {
+    "intercept": 78.63413683699788,
+    "coefficients": [
+      0.30594552282656606,
+      -0.5200280436465418,
+      -1.7061896000796666,
+      1.7827087691752328,
+      -16.959146933850214,
+      -9.096304983851134,
+      -3.8731760022925545,
+      1.9035120770389626,
+      6.7626333938582755e-15
+    ]
+  },
+  "awayModel": {
+    "intercept": 78.51687758435726,
+    "coefficients": [
+      -0.114033915347234,
+      -0.13132240873109485,
+      -1.0571457869935708,
+      1.117564995454594,
+      -16.170372004335697,
+      -9.342031383248838,
+      -3.9035493140870043,
+      1.874645173088179,
+      6.660077549327706e-15
+    ]
+  },
+  "metrics": {
+    "validationHomeMae": 39.693808255105594,
+    "validationAwayMae": 40.082286330521654,
+    "validationMarginMae": 8.34251921748172,
+    "validationTotalMae": 79.77609458562723,
+    "validationBrier": 0.26095615369459046,
+    "baselineBrier": 0.18084319526627216,
+    "actualAverageTotal": 78.92307692307692,
+    "predictedAverageTotal": 10.005735049996948,
+    "totalBias": -68.91734187307996
+  },
+  "approvalState": "SHADOW",
+  "maturity": "DEVELOPING",
+  "parameterHash": "b051615c10c563e0d6552e4053c081fe8bbc3e824a8c48ec6002f78620d989a1",
+  "artifactHash": "491731265fc1a34f7b9b406c6678c1bf3163d84110b5be5093ec7e8fa972275b"
+}

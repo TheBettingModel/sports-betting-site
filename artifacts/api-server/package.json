@@ -8,6 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "pipeline:once": "tsx ./scripts/run-cloud-pipeline-once.ts",
+    "model:train:v4-core-241": "tsx ./scripts/train-rolling-score-v4-241.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "audit:mlb-pitchers": "node ./scripts/audit-mlb-pitchers.mjs",

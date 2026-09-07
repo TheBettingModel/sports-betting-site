@@ -4,9 +4,11 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { generalLimiter } from "./middleware/rateLimiter";
+import { bootstrapTask241V4Engines } from "./services/v4EngineBootstrap241";
 
 const app: Express = express();
 let startupReady = false;
+bootstrapTask241V4Engines();
 
 function configuredOrigins(env: NodeJS.ProcessEnv = process.env): Set<string> {
   return new Set((env["CORS_ALLOWED_ORIGINS"] ?? "")
