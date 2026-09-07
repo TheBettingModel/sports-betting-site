@@ -129,7 +129,9 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
 function routeFailureReason(reason: string): ForecastFailureReason {
   if (reason === "NO_REGISTERED_V4_ENGINE") return "NO_ELIGIBLE_V4_ARTIFACT";
   if (/IDENTITY/.test(reason)) return "UNRESOLVED_IDENTITY";
-  if (/HISTORY|EVIDENCE/.test(reason)) return "INSUFFICIENT_PREGAME_EVIDENCE";
+  if (/HISTORY|EVIDENCE|PREGAME_INPUT|NO_ELIGIBLE_PIT_INPUT/.test(reason)) {
+    return "INSUFFICIENT_PREGAME_EVIDENCE";
+  }
   if (/START|CUTOFF|CHRONOLOGY/.test(reason)) return "INVALID_CUTOFF";
   return "CONTRACT_FAILURE";
 }

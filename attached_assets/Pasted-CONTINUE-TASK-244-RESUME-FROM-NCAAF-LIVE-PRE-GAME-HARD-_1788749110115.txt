@@ -1,0 +1,133 @@
+CONTINUE TASK #244 — RESUME FROM NCAAF LIVE PRE-GAME HARD GATE
+
+Continue Task #244 from the exact current state. Do NOT start a new task and do NOT redo completed work.
+
+CURRENT STATUS:
+- NCAAF shared V4 adapter implementation is COMPLETE.
+- Frozen Baseline D executor is connected to the canonical shared V4 registry.
+- Identity bridge, PIT safety, determinism, date isolation, immutable ledger integration, and publication protections are implemented.
+- 21 focused tests passed.
+- API typecheck/build/restart passed.
+- NCAAF remains UNVALIDATED / V4_VALIDATING / NOT_PUBLICATION_ELIGIBLE.
+- Previous September 6 live verification could not produce forecasts only because all discovered games had already kicked off and no legitimate pregame snapshots existed.
+- Correctly, no retrospective forecasts were fabricated.
+
+NEXT OBJECTIVE:
+
+Clear the NCAAF live pregame hard gate on the next legitimate current-day NCAAF slate and then CONTINUE THE REMAINDER OF TASK #244 THROUGH PRODUCTION CUTOVER.
+
+IMPORTANT:
+Do not wait for completed game results. The hard gate only requires legitimate PRE-KICKOFF proof that the production pipeline works.
+
+When at least one current America/New_York calendar-day NCAAF event is still pregame:
+
+1. Discover the complete current-day NCAAF slate.
+2. Materialize legitimate PIT-safe pregame intelligence before kickoff.
+3. Route every eligible event through the existing frozen NCAAF V4 adapter.
+4. Generate the real frozen V4 projections.
+5. Persist them immutably before kickoff.
+6. Verify exact artifact/config/parameter identity.
+7. Verify deterministic execution.
+8. Verify:
+   evidence_time <= cutoff <= prediction_time < event_start
+9. Verify no market/outcome leakage.
+10. Verify forecast versioning/idempotency.
+11. Verify post-start writes are rejected.
+12. Verify forecasts expose:
+    V4_VALIDATING
+    NOT AN OFFICIAL TBM PICK
+    NOT_PUBLICATION_ELIGIBLE
+13. Report:
+    - scheduled
+    - supported
+    - eligible
+    - forecasted
+    - failed
+    - coverage %
+    - exact failure reasons
+
+DO NOT:
+- generate retrospective forecasts;
+- use post-kickoff information;
+- weaken PIT rules;
+- retrain or alter the frozen NCAAF model unnecessarily;
+- substitute legacy NCAAF;
+- enable publication;
+- fabricate evidence;
+- process tomorrow's NCAAF slate during normal production.
+
+Permanent NCAAF rule remains:
+NORMAL PRODUCTION PROCESSES ONLY THE CURRENT AMERICA/NEW_YORK CALENDAR DATE.
+
+==================================================
+AFTER THE NCAAF HARD GATE PASSES
+==================================================
+
+DO NOT STOP AND RETURN ANOTHER READINESS REPORT.
+
+Immediately resume and complete the remaining Task #244 work, including:
+
+- verify all operational V4 engines in the shared registry;
+- MLB V4;
+- NFL V4;
+- NBA V4;
+- WNBA V4;
+- NHL V4;
+- NCAAF V4;
+- NCAAMB V4;
+- Soccer V4;
+- UFC remains NO_FORECAST / V4 IN DEVELOPMENT;
+- verify NFL uses exact #243B artifact:
+  0da3f4e62a88da4c8d486b6433ca83c907e2cbd2fc072834817cbdb919233c5e
+- retire replaced legacy current forecasting;
+- verify absolutely no V1/V2/V3 fallback masquerades as V4;
+- finish public full-slate Model Board integration;
+- expose every legitimate V4 forecast even when SHADOW;
+- preserve V4_VALIDATING / Not an Official TBM Pick;
+- finish Model Analytics;
+- preserve separate Betting Analytics;
+- preserve Top Picks;
+- preserve Play of the Day;
+- preserve Units / Record / ROI;
+- preserve #238A;
+- ensure SHADOW forecasts never contaminate official betting performance;
+- refresh and verify clean source trust boundary;
+- create/push clean GitHub production source if authorized;
+- verify Neon recovery path;
+- apply safe pending production migrations;
+- deploy cloud API/model server;
+- establish ONE authoritative external scheduler;
+- eliminate duplicate Replit/in-process scheduler ownership;
+- deploy/cut over Vercel frontend to new API;
+- verify CORS/auth/security;
+- preserve mobile API compatibility and black-screen startup fix;
+- remove Replit as active production runtime dependency;
+- run complete production smoke tests;
+- verify forecast persistence across restart/redeploy;
+- verify grading;
+- verify zero-official-picks state;
+- verify public Model Boards;
+- verify official-pick isolation;
+- verify production URLs;
+- complete the full Task #244 final report and A/B/C/D classification.
+
+If an implementation problem is resolvable:
+FIX IT AND CONTINUE.
+
+Only stop for a genuine external authorization/provider blocker or a material safety defect that cannot legitimately be resolved.
+
+Do not classify Task #244 as complete merely because the NCAAF gate passes.
+
+The desired end state remains:
+
+TBM V4 OPERATING IN PRODUCTION
+
+with:
+
+FULL-SLATE V4 MODEL PROJECTIONS
++
+MODEL ANALYTICS
++
+SEPARATE #238A-PROTECTED OFFICIAL BETTING LAYER
+
+If there is currently no legitimate pregame NCAAF event available, preserve all completed work and leave Task #244 pending at this exact gate. Do not fabricate evidence and do not issue a false production-success classification.
