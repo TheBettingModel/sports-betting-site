@@ -1,0 +1,2006 @@
+TASK #243 — TBM V4 DATA ACQUISITION & SPORT ENGINE COMPLETION
+
+PROJECT: The Betting Model (TBM)
+DATE: September 2026
+
+EXECUTION MODE:
+MAJOR CONSOLIDATED PRO-AGENT DATA + MODEL BUILD
+
+==================================================
+0. MISSION
+==================================================
+
+Task #243 exists to finish the actual sport forecasting engines that Tasks #241 and #242 could not complete.
+
+THIS IS NOT AN ARCHITECTURE TASK.
+THIS IS NOT AN AUDIT-ONLY TASK.
+THIS IS NOT A CLOUD DEPLOYMENT TASK.
+THIS IS NOT A UI REDESIGN TASK.
+THIS IS NOT ANOTHER SHARED-INFRASTRUCTURE BUILD.
+
+Tasks #240-#242 already established the shared V4 architecture.
+
+The primary remaining problem is:
+
+ACTUAL HISTORICAL SPORT DATA
+        ↓
+PIT-SAFE CANONICAL TRAINING ROWS
+        ↓
+SPORT-SPECIFIC TRAINING
+        ↓
+VALIDATION
+        ↓
+FROZEN V4 ARTIFACT
+        ↓
+EXACT LIVE EXECUTOR
+        ↓
+FULL-SLATE V4 FORECASTING
+
+Task #243 must concentrate engineering effort on acquiring, reconstructing, materializing, validating, and using real historical observations.
+
+The supported sports remain:
+
+- MLB
+- NCAAF
+- NFL
+- NBA
+- WNBA
+- NHL
+- Soccer
+- UFC
+- NCAAMB
+
+The target remains:
+
+EVERY ELIGIBLE GAME GETS A LEGITIMATE V4 MODEL FORECAST.
+
+OFFICIAL TBM PICKS ARE A SEPARATE SUBSET SELECTED DOWNSTREAM.
+
+Do not sacrifice methodological integrity merely to make every sport green.
+
+But do not treat sparse existing canonical tables as proof that historical evidence does not exist.
+
+ACTIVELY FIND, ACQUIRE, RECONSTRUCT, MATERIALIZE, AND USE THE DATA.
+
+==================================================
+1. AUTHORITATIVE CURRENT STATE
+==================================================
+
+Task #242 completed with:
+
+OVERALL CLASSIFICATION C.
+
+Task #242 successfully built:
+
+- typed additive V4 historical warehouse
+- source provenance
+- canonical identities and aliases
+- historical events
+- completion-time semantics
+- quarantine reasons
+- immutable cohort hashes
+- full-slate event discovery
+- Eastern-date semantics
+- every-event V4 routing before betting filters
+- explicit forecast failure reasons
+- daily coverage metrics
+- append-only forecast persistence
+- pre-event forecast versioning
+- supersession links
+- idempotent prediction IDs
+- post-start write rejection
+- safe public projection API
+- OpenAPI/client/schema support
+- full verification
+
+Current projection API includes:
+
+GET /api/model/v4/projections?sport=SOCCER&date=YYYY-MM-DD
+
+The projection architecture keeps validating projections separate from official picks.
+
+Task #242 verification:
+
+- 102 API test files
+- 662 tests passed
+- API typecheck passed
+- API build passed
+- Admin typecheck/build passed
+- Mobile typecheck passed
+- OpenAPI generation passed
+- route coverage passed
+- credential scan passed
+- Apple signing scan passed
+- clean-source export passed
+- API healthy
+- DB ready
+- mobile bundling normally
+
+Preserve all of this.
+
+==================================================
+2. CURRENT SPORT STATUS
+==================================================
+
+SOCCER
+- legitimate V4.0 Core operational
+- genuine HOME/DRAW/AWAY model
+- frozen artifact
+- strict V4 router executor
+- shadow ready
+- publication disabled
+- do not retrain unnecessarily
+
+NCAAF
+- legitimate frozen dedicated V4 foundation
+- existing game-day executor
+- shadow/provisional capable
+- shared full-slate adapter still pending
+- do not unnecessarily retrain
+
+MLB
+- incomplete
+- historical evidence exists in prior work
+- live/train parity remains primary blocker
+
+NFL
+- incomplete
+- only 12 eligible training vectors were available to #241
+
+NBA
+- incomplete
+- only one completed canonical game was available to #241
+
+WNBA
+- candidate trained in #241
+- candidate failed legitimate baseline quality gate
+
+NHL
+- incomplete
+- no completed canonical games were available to #241
+
+UFC
+- incomplete
+- canonical fighter chronology / target cohort missing
+
+NCAAMB
+- incomplete
+- only one completed canonical game was available to #241
+
+==================================================
+3. NON-NEGOTIABLE BUILD RULE
+==================================================
+
+TASK #243 MAY NOT CLAIM MEANINGFUL SPORT COMPLETION MERELY BECAUSE IT CREATED:
+
+- another schema
+- another generic warehouse abstraction
+- another DTO
+- another registry
+- another router
+- another API endpoint
+- another audit
+- another source interface
+- another generalized ingestion framework
+- another report
+- another migration
+
+Those may be changed only where directly necessary to get actual sport observations into an actual training cohort and actual model.
+
+THE PRIMARY DELIVERABLE IS DATA ROWS AND MODELS.
+
+For every incomplete sport, the report must show:
+
+SOURCE DATA
+→ CANONICAL EVENTS
+→ PIT-ELIGIBLE TRAINING ROWS
+→ CHRONOLOGICAL SPLIT
+→ TRAINED CANDIDATES
+→ SELECTED/REJECTED MODEL
+→ VALIDATION METRICS
+→ ARTIFACT
+→ LIVE EXECUTOR
+→ FULL-SLATE STATUS
+
+==================================================
+4. NO "CURRENT TABLE IS SPARSE" EXIT
+==================================================
+
+The following is NOT an acceptable final blocker by itself:
+
+"Only 1 canonical NBA game exists."
+
+"Only 12 NFL rows exist."
+
+"No completed NHL canonical games exist."
+
+The purpose of #243 is to solve those conditions.
+
+Search beyond the current canonical V4 table.
+
+Inspect:
+
+- PostgreSQL/Neon
+- legacy tables
+- raw ingestion tables
+- historical result tables
+- schedules
+- cached responses
+- archived source payloads
+- previous model datasets
+- analytics tables
+- result grading data
+- team-game tables
+- player/fighter tables
+- source-provider integrations
+- repository data files
+- generated artifacts
+- development snapshots
+- historical API integrations
+- legitimate accessible external historical sources
+
+If legitimate historical data exists in a different shape:
+
+TRANSFORM IT.
+
+==================================================
+5. EXTERNAL DATA ACQUISITION
+==================================================
+
+If TBM's existing stored data is insufficient, actively acquire legitimate historical data where technically accessible and legally appropriate.
+
+Priority:
+
+1. existing TBM raw/source evidence
+2. official league/provider historical sources
+3. established public sports datasets
+4. deterministic historical reconstruction from trustworthy records
+
+Do not stop simply because one existing provider does not expose enough history.
+
+Search for another legitimate source.
+
+Document every source.
+
+==================================================
+6. DATA PROVENANCE
+==================================================
+
+For every acquired dataset record:
+
+- source
+- source identifier
+- retrieval mechanism
+- season/date coverage
+- event identity
+- participant identities
+- source timestamp where available
+- reconstruction assumptions
+- PIT confidence
+- known limitations
+
+Do not claim timestamp precision that cannot be proven.
+
+==================================================
+7. PIT STANDARD
+==================================================
+
+For event G:
+
+every feature used to forecast G must be constructible using information available before G's prediction cutoff.
+
+Rolling historical statistics may use:
+
+events completed before G.
+
+They may not use:
+
+G's outcome
+future games
+end-of-season aggregates containing G/future games
+postgame state
+retrospective lineup/starter knowledge not known pregame
+
+==================================================
+8. SAFE HISTORICAL RECONSTRUCTION
+==================================================
+
+It is legitimate to reconstruct pregame rolling statistics from historical completed games when the calculation is strictly chronological.
+
+Example:
+
+Before NBA game 50:
+
+team rolling offensive state may be calculated from completed games 1-49.
+
+It may NOT use:
+
+game 50 outcome
+games 51+
+final season average
+
+This distinction should allow much richer historical training without requiring literal archived snapshots for every basic rolling statistic.
+
+==================================================
+9. MARKET LEAKAGE PROHIBITION
+==================================================
+
+SPORT FORECASTING FEATURES MAY NOT INCLUDE:
+
+- moneyline
+- spread
+- total
+- sportsbook odds
+- implied probability
+- closing line
+- opening line
+- consensus
+- betting percentages
+- sharp signals
+- line movement
+- CLV
+- edge
+- EV
+- sportsbook recommendation
+
+Market data remains downstream.
+
+==================================================
+10. HINDSIGHT-SENSITIVE FEATURES
+==================================================
+
+Features such as:
+
+- starting pitcher
+- starting goalie
+- starting lineup
+- injuries
+- QB designation
+- late scratches
+
+require genuine pre-event evidence if used.
+
+If historical PIT evidence is unavailable:
+
+DO NOT BLOCK THE CORE MODEL.
+
+Exclude the feature from V4.0 CORE and classify it as:
+
+PROSPECTIVE_ONLY
+
+for future V4.x enhancement.
+
+==================================================
+11. V4.0 CORE PHILOSOPHY
+==================================================
+
+V4 means:
+
+- legitimate evidence
+- PIT correctness
+- independent sport intelligence
+- reproducibility
+- calibration
+- artifact identity
+- exact execution
+- controlled validation
+
+V4 does NOT mean:
+
+"must contain every sophisticated feature imaginable."
+
+Build the strongest legitimate CORE model possible now.
+
+==================================================
+12. PRIORITY ORDER
+==================================================
+
+Allocate effort approximately in this order:
+
+TIER 1:
+1. MLB
+2. NFL
+3. NBA
+4. NCAAMB
+5. NHL
+
+TIER 2:
+6. WNBA
+
+TIER 3:
+7. UFC
+
+PRESERVE/INTEGRATE:
+8. NCAAF
+9. Soccer
+
+Do not spend most of the task modifying Soccer when seven sports remain incomplete.
+
+==================================================
+13. PARALLELISM
+==================================================
+
+Where possible, work the sport data-acquisition tracks independently.
+
+Do not let one blocked sport stop all others.
+
+If MLB hits an irreducible parity issue:
+
+continue NFL/NBA/NCAAMB/NHL/WNBA/UFC.
+
+==================================================
+14. REQUIRED SPORT DATA LEDGER
+==================================================
+
+For EACH sport produce actual counts:
+
+raw_source_events
+resolved_events
+duplicate_events
+quarantined_events
+canonical_events
+PIT_eligible_events
+training_rows
+validation_rows
+OOS/prospective rows where applicable
+
+No qualitative-only description.
+
+==================================================
+15. TEMPORAL SPLITS
+==================================================
+
+Use chronological splits.
+
+No random train/test mixing.
+
+Prefer:
+
+TRAIN
+VALIDATION
+OOS / PROSPECTIVE
+
+where evidence permits.
+
+If only train/validation is legitimate:
+
+state that explicitly.
+
+==================================================
+16. NORMALIZATION
+==================================================
+
+Fit normalization on TRAIN only.
+
+Persist exact normalization parameters with artifact/contract identity.
+
+==================================================
+17. BASELINES
+==================================================
+
+Each sport must have an appropriate simple baseline.
+
+Examples:
+
+league-average probability
+home-field baseline
+simple historical rating
+simple rolling scoring baseline
+
+The V4 candidate must demonstrate legitimate value versus the relevant baseline.
+
+Do not use sportsbook odds as the sport-model training baseline.
+
+Market comparison may be reported separately.
+
+==================================================
+18. CANDIDATE DISCIPLINE
+==================================================
+
+Use a small, predeclared family.
+
+Do not perform unlimited model fishing.
+
+Possible families:
+
+- regularized logistic
+- regularized linear score model
+- Poisson
+- negative binomial
+- Elo/rating model
+- shallow gradient/tree model if justified
+
+Select based primarily on forecast quality/calibration, not historical betting ROI.
+
+==================================================
+19. QUALITY GATES
+==================================================
+
+DO NOT LOWER EXISTING QUALITY GATES.
+
+A selected model must be:
+
+- PIT safe
+- leakage free
+- deterministic
+- reproducible
+- finite
+- reasonably calibrated
+- free from severe systematic score bias
+- competitive with its legitimate baseline
+- live/train compatible
+
+If all candidates fail:
+
+reject them.
+
+But report exactly why.
+
+==================================================
+20. MLB — KNOWN FOUNDATION
+==================================================
+
+Prior MLB work established approximately:
+
+- 9,393 historical games
+- 9,390 chronology-safe
+- 9,073 offense/bullpen core eligible
+
+Also:
+
+- 80,298 pitcher appearances
+- 18,780 bullpen outcomes
+
+Historical starter identity is hindsight-sensitive unless genuine pregame evidence exists.
+
+Do not require starter identity for MLB V4.0 CORE.
+
+==================================================
+21. MLB — PERMANENT BENCHMARK QUARANTINE
+==================================================
+
+The 2,012-game MLB cohort previously opened in #224C is permanently:
+
+HISTORICAL_BENCHMARK_ONLY
+
+It may be used only as historical benchmark evidence.
+
+NEVER use it for:
+
+- feature selection
+- candidate selection
+- hyperparameter tuning
+- calibration tuning
+- threshold tuning
+- promotion tuning
+
+Never call it untouched.
+
+==================================================
+22. MLB — PARITY SOLUTION
+==================================================
+
+Previous tasks were blocked by prospective v5 parity evidence.
+
+#243 must explicitly determine whether the blocker belongs only to the enhanced v5 contract.
+
+Attempt to construct:
+
+MLB V4.0 BASELINE CORE
+
+using only historically reproducible features that also have exact live equivalents.
+
+Do NOT make future starter-enhanced features mandatory.
+
+==================================================
+23. MLB — FEATURE DISPOSITION
+==================================================
+
+For every proposed MLB feature assign:
+
+PARITY_PROVEN
+CORE_SAFE
+PROSPECTIVE_ONLY
+STRUCTURALLY_UNAVAILABLE
+DROP
+
+Use only PARITY_PROVEN / CORE_SAFE in V4.0.
+
+==================================================
+24. MLB — MODEL OBJECTIVE
+==================================================
+
+Build a legitimate MLB V4.0 model.
+
+Potential approaches include:
+
+- expected runs
+- direct win probability
+- combined score + win model
+
+Do not force expected runs if another legitimate formulation validates better.
+
+==================================================
+25. MLB — RUN COMPRESSION
+==================================================
+
+Prior MLB challengers suffered severe run compression.
+
+Known failed examples projected average totals around 6.95 when actual totals were around 8.97.
+
+Explicitly test:
+
+home run bias
+away run bias
+total bias
+margin bias
+MAE
+RMSE
+
+Reject severe systematic compression.
+
+==================================================
+26. MLB — REQUIRED DELIVERABLE
+==================================================
+
+Attempt to finish:
+
+MLB = B
+
+with:
+
+- exact cohort
+- frozen contract
+- selected model
+- artifact hash
+- validation metrics
+- calibration
+- live executor
+- deterministic parity
+- strict V4 router registration
+- full-slate capability
+- SHADOW status
+
+If impossible, provide the precise remaining irreducible blocker.
+
+==================================================
+27. NFL — DATA ACQUISITION
+==================================================
+
+#241 had only 12 eligible NFL training vectors.
+
+Find actual multi-season NFL history.
+
+At minimum attempt several recent completed seasons.
+
+Build canonical chronological team-game history.
+
+Potential safe CORE inputs:
+
+- prior points scored/allowed
+- opponent-adjusted scoring
+- offensive efficiency
+- defensive efficiency
+- passing efficiency
+- rushing efficiency
+- turnovers
+- sacks
+- play volume
+- home field
+- rest
+- prior opponent strength
+
+Use only fields actually supported by evidence.
+
+==================================================
+28. NFL — QB / INJURY RULE
+==================================================
+
+Do not let historical QB/injury evidence block NFL V4.0 CORE.
+
+If unavailable PIT-safe:
+
+exclude from V4.0.
+
+Future version may add it prospectively.
+
+==================================================
+29. NFL — MODEL
+==================================================
+
+Attempt score forecasting:
+
+expected_home_points
+expected_away_points
+expected_margin
+expected_total
+
+and derive/fit:
+
+home_win_probability
+
+if legitimate.
+
+Compare with simple baselines.
+
+==================================================
+30. NFL — REQUIRED DELIVERABLE
+==================================================
+
+Target:
+
+NFL = B
+
+Report actual:
+
+seasons
+games
+train
+validation
+OOS if available
+features
+metrics
+baseline
+artifact
+executor
+full-slate dry run
+
+==================================================
+31. NBA — DATA ACQUISITION
+==================================================
+
+#241 saw only one completed canonical NBA game.
+
+TBM historically had substantial NBA functionality.
+
+Search all prior NBA storage and integrations.
+
+Do not assume history is absent because the new V4 table is sparse.
+
+Acquire/reconstruct multi-season NBA history.
+
+==================================================
+32. NBA — CORE FEATURES
+==================================================
+
+Potential safe chronological CORE:
+
+- points scored/allowed
+- offensive rating
+- defensive rating
+- net rating
+- pace
+- effective shooting
+- turnover rate
+- rebounding
+- free throws
+- home court
+- rest
+- opponent strength
+
+Use only evidence actually available.
+
+==================================================
+33. NBA — LINEUPS / INJURIES
+==================================================
+
+If historical lineup/injury PIT evidence cannot be proven:
+
+exclude it.
+
+Do not block V4.0 CORE.
+
+==================================================
+34. NBA — MODEL
+==================================================
+
+Target outputs:
+
+expected_home_points
+expected_away_points
+expected_margin
+expected_total
+home_win_probability
+
+Validate score bias carefully because basketball score distributions differ materially by era/season.
+
+==================================================
+35. NBA — REQUIRED DELIVERABLE
+==================================================
+
+Target:
+
+NBA = B
+
+with actual multi-season training counts and frozen independent NBA parameters.
+
+==================================================
+36. NCAAMB — DATA ACQUISITION
+==================================================
+
+#241 saw one completed NCAAMB game.
+
+Build multi-season college-basketball chronology.
+
+Do not reuse NBA coefficients.
+
+Handle team identity changes/aliases carefully.
+
+==================================================
+37. NCAAMB — CORE FEATURES
+==================================================
+
+Potential:
+
+- points
+- offensive efficiency
+- defensive efficiency
+- pace
+- shooting efficiency
+- turnover rate
+- rebounding
+- free throws
+- home court
+- schedule strength
+- opponent-adjusted rolling state
+
+Use only PIT-safe historical values.
+
+==================================================
+38. NCAAMB — MODEL
+==================================================
+
+Target:
+
+expected_home_points
+expected_away_points
+expected_margin
+expected_total
+home_win_probability
+
+Independent college-basketball artifact.
+
+==================================================
+39. NCAAMB — REQUIRED DELIVERABLE
+==================================================
+
+Target:
+
+NCAAMB = B
+
+with actual historical rows, validation, frozen artifact, executor, and full-slate support.
+
+==================================================
+40. NHL — DATA ACQUISITION
+==================================================
+
+#241 saw zero completed canonical NHL games.
+
+Build actual multi-season NHL chronology.
+
+Potential sources may include existing TBM data, league/provider history, or legitimate public historical datasets.
+
+==================================================
+41. NHL — CORE FEATURES
+==================================================
+
+Potential safe CORE:
+
+- goals for
+- goals against
+- shots for
+- shots against
+- team rating
+- power play
+- penalty kill
+- home ice
+- rest
+- opponent strength
+
+Do not use retrospective actual starting goalie unless pregame evidence exists.
+
+==================================================
+42. NHL — MODEL
+==================================================
+
+Evaluate appropriate low-count models.
+
+Possible:
+
+Poisson
+negative binomial
+regularized score model
+direct win model
+
+Do not assume independent Poisson is correct merely because hockey is low scoring.
+
+Validate dispersion.
+
+==================================================
+43. NHL — REQUIRED DELIVERABLE
+==================================================
+
+Target:
+
+NHL = B
+
+with:
+
+expected_home_goals
+expected_away_goals
+expected_total
+expected_margin
+home_win_probability
+
+where legitimately supported.
+
+==================================================
+44. WNBA — EXISTING FAILURE
+==================================================
+
+#241 produced a candidate but it failed baseline quality.
+
+Preserve that rejection.
+
+Diagnose the failure rather than lowering the gate.
+
+==================================================
+45. WNBA — DATA EXPANSION
+==================================================
+
+Acquire/reconstruct more WNBA history where possible.
+
+Check:
+
+- orientation
+- season regime
+- normalization
+- feature quality
+- sample size
+- score scaling
+- candidate family
+
+==================================================
+46. WNBA — INDEPENDENCE
+==================================================
+
+WNBA must have independently trained parameters.
+
+Do not copy NBA coefficients.
+
+Shared training CODE is allowed.
+
+Shared fitted coefficients are not.
+
+==================================================
+47. WNBA — REQUIRED DELIVERABLE
+==================================================
+
+Target:
+
+WNBA = B
+
+only if a candidate legitimately clears quality gates.
+
+Otherwise retain fail-closed status and document the actual comparison.
+
+==================================================
+48. UFC — DATA ACQUISITION
+==================================================
+
+Build canonical fighter/bout history.
+
+This is structurally different from team sports.
+
+Do not force UFC into team-game abstractions where inappropriate.
+
+==================================================
+49. UFC — IDENTITY
+==================================================
+
+Build deterministic fighter identities using strongest available identifiers.
+
+Support aliases only when safely proven.
+
+Reject ambiguous merges.
+
+==================================================
+50. UFC — CHRONOLOGY
+==================================================
+
+For fighter F before bout N:
+
+only bouts completed before N may contribute.
+
+No current-bout result.
+
+No future fighter record.
+
+Career record must be calculated as of the bout cutoff, not from current career totals.
+
+==================================================
+51. UFC — CORE FEATURES
+==================================================
+
+Potential historical features where supported:
+
+- age at bout
+- height
+- reach
+- stance
+- pre-bout wins/losses
+- recent form
+- strike rate
+- strikes absorbed
+- striking differential
+- takedown rate
+- takedown defense
+- submission rate
+- finish rate
+- layoff
+- opponent-quality rating
+
+Do not fabricate missing metrics.
+
+==================================================
+52. UFC — MODEL
+==================================================
+
+Output:
+
+fighter_A_win_probability
+fighter_B_win_probability
+
+Sum approximately 1.
+
+Test participant swap/orientation invariance.
+
+==================================================
+53. UFC — REQUIRED DELIVERABLE
+==================================================
+
+Target:
+
+UFC = B
+
+if a legitimate fighter chronology and sufficiently large target cohort can be built.
+
+Otherwise return exact blocker and counts.
+
+==================================================
+54. NCAAF — DO NOT RETRAIN
+==================================================
+
+Preserve existing frozen NCAAF V4 unless a genuine correctness defect is found.
+
+Known identity:
+
+tbm-ncaaf-v4-expected-score
+D-simple-expected-score-linear
+
+Preserve frozen hashes/identity.
+
+==================================================
+55. NCAAF — COMPLETE FULL-SLATE ADAPTER
+==================================================
+
+Task #242 says shared full-slate adapter remains pending.
+
+Finish this integration.
+
+The existing legitimate NCAAF V4 should be callable through the shared full-slate V4 path.
+
+Do not substitute a generic model.
+
+==================================================
+56. NCAAF — CURRENT-DAY RULE
+==================================================
+
+Normal production semantics remain:
+
+CURRENT EASTERN DATE ONLY
+America/New_York
+
+No normal tomorrow forecast/prefetch/persistence.
+
+Explicit date override may exist only for isolated diagnostics/testing.
+
+==================================================
+57. SOCCER — PRESERVE
+==================================================
+
+Preserve Soccer V4.0 Core.
+
+Known #241 validation:
+
+103 chronological rows
+82 train
+21 validation
+multiclass Brier 0.24485
+baseline 0.29583
+total-score bias -0.2446
+
+Do not refit merely to generate activity.
+
+==================================================
+58. SOCCER — FULL-SLATE VERIFICATION
+==================================================
+
+Verify real shared full-slate discovery/routing/persistence.
+
+Ensure:
+
+HOME/DRAW/AWAY probabilities
+immutable pregame forecast
+shadow status
+public projection DTO
+outcome grading
+
+all remain correct.
+
+==================================================
+59. THREE-WAY SOCCER GRADING
+==================================================
+
+Preserve:
+
+team selection loses on draw under three-way wager semantics unless the wager contract explicitly says otherwise.
+
+==================================================
+60. FULL-SLATE RULE
+==================================================
+
+For every sport with an operational V4:
+
+DISCOVER ALL ELIGIBLE EVENTS
+        ↓
+FORECAST ALL ELIGIBLE EVENTS
+        ↓
+PERSIST FORECASTS
+        ↓
+ONLY THEN RUN MARKET/BET FILTERS
+
+Do not forecast only attractive wagers.
+
+==================================================
+61. FORECAST COVERAGE
+==================================================
+
+For each operational sport calculate:
+
+scheduled
+supported
+eligible
+forecasted
+failed
+coverage_pct
+
+Every failed event needs an explicit reason.
+
+==================================================
+62. FORECAST FAILURE REASONS
+==================================================
+
+Use explicit reasons such as:
+
+NO_V4_ARTIFACT
+UNRESOLVED_IDENTITY
+INSUFFICIENT_PREGAME_EVIDENCE
+UNSUPPORTED_EVENT_TYPE
+INVALID_CUTOFF
+CONTRACT_FAILURE
+EXECUTOR_FAILURE
+
+No silent omissions.
+
+==================================================
+63. IMMUTABLE FORECASTS
+==================================================
+
+Preserve #242:
+
+- append-only persistence
+- pre-event versioning
+- supersession
+- idempotent prediction IDs
+- post-start write rejection
+
+==================================================
+64. PUBLIC PROJECTION PRINCIPLE
+==================================================
+
+Every legitimate V4 forecast should be technically capable of public display even while validating.
+
+A validating forecast is NOT an official pick.
+
+Prepare data for the #244 UI.
+
+Do not redesign the UI here.
+
+==================================================
+65. PUBLIC STATUS SEMANTICS
+==================================================
+
+Preserve/complete support for:
+
+V4_VALIDATING
+NO_OFFICIAL_PLAY
+OFFICIAL_TBM_PLAY
+
+These mean:
+
+V4_VALIDATING:
+legitimate forecast exists; model not publication-approved.
+
+NO_OFFICIAL_PLAY:
+approved model produced forecast but no wager passed publication criteria.
+
+OFFICIAL_TBM_PLAY:
+approved model + qualifying market opportunity + #238A publication.
+
+==================================================
+66. EVERY GAME SHOULD BE BROWSABLE LATER
+==================================================
+
+The intended #244 user experience is:
+
+User opens a sport.
+
+They can browse every supported game/event.
+
+For a score-based sport:
+
+TEAM A vs TEAM B
+
+MODEL PROJECTED SCORE
+TEAM A 27 — TEAM B 24
+
+V4 VALIDATING
+Not an Official TBM Pick
+
+or:
+
+MODEL PROJECTED SCORE
+TEAM A 27 — TEAM B 24
+
+NO OFFICIAL PLAY
+
+or:
+
+MODEL PROJECTED SCORE
+TEAM A 27 — TEAM B 24
+
+OFFICIAL TBM PLAY
+TEAM A -2.5
+1 UNIT
+
+For Soccer:
+show appropriate three-way probabilities/projection.
+
+For UFC:
+show fighter probabilities, not a fake score.
+
+==================================================
+67. OFFICIAL RECORD SEPARATION
+==================================================
+
+Validating forecasts must NOT enter:
+
+- official wins/losses
+- units
+- ROI
+- official pick count
+- POTD record
+- official subscriber performance
+
+unless they were actually publication-eligible and published.
+
+==================================================
+68. FORECAST ANALYTICS
+==================================================
+
+Evaluate the full forecast population separately.
+
+Forecast metrics:
+
+- count
+- coverage
+- Brier
+- log loss
+- calibration
+- ECE
+- score MAE
+- margin MAE
+- total MAE
+- bias
+
+as appropriate.
+
+==================================================
+69. BET ANALYTICS
+==================================================
+
+Bet metrics remain separate:
+
+- published plays
+- wins
+- losses
+- units
+- ROI
+- CLV
+- drawdown
+
+Do not use betting ROI as the primary sport-model selection objective.
+
+==================================================
+70. SHADOW MODE
+==================================================
+
+A SHADOW model is operational.
+
+It should:
+
+- run on real games
+- persist forecasts
+- get graded
+- accumulate prospective evidence
+- calculate forecast metrics
+
+It simply cannot automatically become an official pick.
+
+==================================================
+71. NO NIGHTLY SELF-MUTATION
+==================================================
+
+Do not implement continuous coefficient mutation.
+
+The model evolution path remains:
+
+V4.0 frozen
+→ prospective evidence
+→ V4.1 challenger
+→ validation
+→ explicit promotion
+→ frozen V4.1
+
+==================================================
+72. #238A MUST REMAIN INTACT
+==================================================
+
+Preserve:
+
+- exact model approval
+- fail-closed publication
+- global cross-sport ranking
+- six-pick cap after ranking
+- flat approved 1.0u staking
+- requested-unit audit
+- POTD safety
+- official-record filtering
+- append-only audit
+- process-order invariance
+
+==================================================
+73. NO LEGACY FALLBACK
+==================================================
+
+The strict V4 path must remain:
+
+LEGITIMATE V4 AVAILABLE
+→ FORECAST
+
+NO LEGITIMATE V4
+→ NO_FORECAST
+
+NEVER:
+
+NO V4
+→ V1/V2/V3/generic fallback
+
+==================================================
+74. LEGACY RETIREMENT
+==================================================
+
+Prepare exact mapping for #244:
+
+sport
+legacy current engine
+V4 replacement
+V4 readiness
+safe-to-retire legacy?
+
+Do not necessarily perform production retirement here.
+
+==================================================
+75. NO PRODUCTION CUTOVER
+==================================================
+
+Task #243 does NOT perform final cloud production cutover.
+
+Do not redirect the task into:
+
+Render
+Vercel
+Neon production migration
+DNS
+production routing
+
+except where absolutely required for development validation.
+
+#244 handles cutover.
+
+==================================================
+76. NO UI REDESIGN
+==================================================
+
+Do not spend significant effort changing the frontend.
+
+Only minimal API compatibility work is allowed.
+
+#244 will build the public model boards.
+
+==================================================
+77. DATABASE SAFETY
+==================================================
+
+Development-safe additive migrations only where truly necessary.
+
+Do not destructively modify production history.
+
+==================================================
+78. CLEAN SOURCE
+==================================================
+
+Integrate #243 work into the clean-source candidate established by #240-#242.
+
+Do not reintroduce contaminated Replit Git history.
+
+Do not copy legacy `.git`.
+
+==================================================
+79. SECURITY
+==================================================
+
+Preserve:
+
+- credential scan
+- Apple signing scan
+- trusted CORS
+- environment secret handling
+- path containment
+- clean source boundary
+
+Do not expose credentials.
+
+==================================================
+80. TEST — DATA
+==================================================
+
+Per sport test:
+
+- identity resolution
+- aliases
+- duplicate detection
+- chronological ordering
+- completion ordering
+- PIT
+- target leakage
+- market leakage
+- future leakage
+- rolling feature correctness
+- cohort determinism
+- cohort hash
+
+==================================================
+81. TEST — MODELS
+==================================================
+
+Per selected model test:
+
+- feature contract
+- feature order
+- normalization
+- serialization
+- artifact hash
+- deterministic inference
+- valid probabilities
+- score output sanity
+- baseline comparison
+- bias
+- live/train parity
+
+==================================================
+82. TEST — FULL SLATE
+==================================================
+
+For operational sports test:
+
+- complete event discovery
+- routing before market filtering
+- every eligible event attempted
+- explicit failure reasons
+- forecast persistence
+- forecast versioning
+- post-start rejection
+- coverage metric
+
+==================================================
+83. TEST — PUBLIC SAFETY
+==================================================
+
+Verify:
+
+- validating projection may be returned by projection API
+- validating projection is labeled correctly
+- validating projection is not official pick
+- no units assigned as official stake
+- no official record contamination
+- no POTD contamination
+- #238A remains required for official publication
+
+==================================================
+84. FULL REGRESSION
+==================================================
+
+Run:
+
+- API test suite
+- DB/model tests
+- API typecheck
+- API build
+- Admin typecheck
+- Admin build
+- Mobile typecheck
+- OpenAPI generation
+- route coverage
+- source credential scan
+- Apple signing scan
+- clean-source export verification
+
+Report exact results.
+
+==================================================
+85. HARD BLOCKER STANDARD
+==================================================
+
+A sport may remain blocked only after substantial real data-acquisition/reconstruction effort.
+
+Acceptable blocker:
+
+- no trustworthy historical source accessible
+- identity cannot be safely reconstructed
+- PIT chronology cannot be established
+- training population remains inadequate after acquisition
+- every legitimate candidate fails quality gates
+- live/train parity genuinely cannot be established
+
+Not acceptable alone:
+
+- current V4 table sparse
+- advanced feature missing
+- starter missing
+- injury data missing
+- lineup missing
+- goalie missing
+- another warehouse would be helpful
+
+==================================================
+86. AGGRESSIVE CONTINUATION RULE
+==================================================
+
+Do not stop #243 when one sport fails.
+
+Continue until every sport workstream has either:
+
+A. produced a legitimate frozen V4 artifact/executor,
+
+or
+
+B. reached a genuine documented hard blocker after data-acquisition attempts.
+
+==================================================
+87. NO FAKE SUCCESS
+==================================================
+
+Do not:
+
+- lower gates
+- invent rows
+- invent timestamps
+- fabricate features
+- relabel legacy models
+- fit on market prices
+- use hindsight
+- tune on quarantined benchmark data
+- call an unfrozen candidate operational
+- claim full-slate readiness without an executor
+- claim shadow readiness without immutable forecasts
+
+==================================================
+88. TARGET STATE
+==================================================
+
+Desired end state:
+
+MLB       B or A
+NCAAF     B or A
+NFL       B or A
+NBA       B or A
+WNBA      B or A
+NHL       B or A
+Soccer    B or A
+UFC       B or A
+NCAAMB    B or A
+
+The practical minimum for proceeding to #244 is:
+
+MOST sports have legitimate operational V4 engines,
+remaining blocked sports fail closed,
+NCAAF shared adapter is complete,
+Soccer remains operational,
+full-slate infrastructure works,
+no legacy fallback exists.
+
+==================================================
+89. SPORT CLASSIFICATIONS
+==================================================
+
+Return exactly one classification for each sport:
+
+A — V4 PRODUCTION-APPROVAL READY
+
+B — V4 BUILT, FROZEN, EXECUTOR READY, FULL-SLATE/SHADOW READY
+
+C — HISTORICAL FOUNDATION SUBSTANTIALLY COMPLETE BUT MODEL/EXECUTOR STILL BLOCKED
+
+D — MATERIAL DATA/MODEL FOUNDATION BLOCKER REMAINS
+
+==================================================
+90. OVERALL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — ALL NINE SPORTS HAVE LEGITIMATE OPERATIONAL V4 ENGINES; READY FOR #244
+
+B — MOST SPORTS HAVE LEGITIMATE OPERATIONAL V4 ENGINES; LIMITED SPORTS FAIL CLOSED; READY FOR CONTROLLED #244
+
+C — MATERIAL MODEL GAPS STILL PREVENT THE INTENDED MULTI-SPORT V4 EXPERIENCE
+
+D — DATA/MODEL COMPLETION FAILED OR METHODOLOGY IS UNSAFE
+
+==================================================
+91. REQUIRED NUMERIC PROOF
+==================================================
+
+For EVERY sport, include this table:
+
+SPORT:
+Historical sources:
+Date/season coverage:
+Raw events:
+Canonical events:
+PIT eligible:
+Quarantined:
+Features:
+Train:
+Validation:
+OOS/prospective:
+Candidate models:
+Selected model:
+Baseline:
+Primary metrics:
+Calibration:
+Score bias if applicable:
+Contract hash:
+Cohort hash:
+Artifact hash:
+Executor:
+Router registered:
+Full-slate ready:
+Shadow ready:
+Publication approved:
+Classification:
+
+NO SPORT MAY BE DESCRIBED ONLY QUALITATIVELY.
+
+==================================================
+92. REQUIRED MODEL COMPARISON
+==================================================
+
+For each sport where candidates were trained, report:
+
+candidate
+train metrics
+validation metrics
+baseline delta
+calibration
+bias
+selected/rejected
+reason
+
+This includes failed WNBA candidates.
+
+==================================================
+93. REQUIRED DATA-ACQUISITION LOG
+==================================================
+
+For each incomplete sport report:
+
+1. existing project sources inspected
+2. DB tables inspected
+3. files/artifacts inspected
+4. provider integrations inspected
+5. external historical sources attempted
+6. data successfully acquired
+7. data rejected
+8. exact rejection reasons
+
+This prevents "data unavailable" from becoming an unsupported conclusion.
+
+==================================================
+94. REQUIRED FULL-SLATE DRY RUN
+==================================================
+
+For each operational sport, run a real or closest legitimate current-date dry run.
+
+Report:
+
+sport
+date
+scheduled events
+supported events
+eligible events
+forecasted
+failed
+coverage %
+failure reasons
+
+Do not manufacture events if a sport is out of season.
+
+If out of season:
+
+use the closest legitimate historical/test fixture through an explicitly non-production diagnostic path and clearly label it.
+
+Do not violate NCAAF's production current-day rule.
+
+==================================================
+95. REQUIRED ARTIFACT REGISTRY
+==================================================
+
+Report:
+
+SPORT | MODEL ID | VERSION | CONTRACT HASH | ARTIFACT HASH | APPROVAL | MATURITY | EXECUTOR
+
+There must be no ambiguous "latest" identity.
+
+==================================================
+96. REQUIRED LEGACY REPLACEMENT MAP
+==================================================
+
+Report:
+
+SPORT | LEGACY ENGINE | V4 ENGINE | V4 OPERATIONAL? | RETIRE AT #244?
+
+No legacy fallback may be introduced.
+
+==================================================
+97. REQUIRED REPORT
+==================================================
+
+Create:
+
+reports/task-243-tbm-v4-data-acquisition-sport-engine-completion.md
+
+The report must contain at minimum:
+
+# TASK #243 — TBM V4 DATA ACQUISITION & SPORT ENGINE COMPLETION
+
+## 1. Executive Summary
+## 2. Overall Classification
+## 3. Starting State
+## 4. What #243 Actually Built
+## 5. What #243 Did Not Build
+## 6. Shared Infrastructure Freeze Confirmation
+## 7. Historical Data Acquisition Strategy
+## 8. Existing Project Data Sources Inspected
+## 9. Database Sources Inspected
+## 10. External Sources Inspected
+## 11. Provenance
+## 12. PIT Methodology
+## 13. Leakage Firewall
+## 14. Chronological Reconstruction
+## 15. Identity Resolution
+## 16. MLB Data Acquisition
+## 17. MLB Cohort
+## 18. MLB Candidate Models
+## 19. MLB Selected/Rejected Model
+## 20. MLB Live Executor
+## 21. MLB Full-Slate Status
+## 22. NFL Data Acquisition
+## 23. NFL Cohort
+## 24. NFL Candidate Models
+## 25. NFL Selected/Rejected Model
+## 26. NFL Live Executor
+## 27. NFL Full-Slate Status
+## 28. NBA Data Acquisition
+## 29. NBA Cohort
+## 30. NBA Candidate Models
+## 31. NBA Selected/Rejected Model
+## 32. NBA Live Executor
+## 33. NBA Full-Slate Status
+## 34. NCAAMB Data Acquisition
+## 35. NCAAMB Cohort
+## 36. NCAAMB Candidate Models
+## 37. NCAAMB Selected/Rejected Model
+## 38. NCAAMB Live Executor
+## 39. NCAAMB Full-Slate Status
+## 40. NHL Data Acquisition
+## 41. NHL Cohort
+## 42. NHL Candidate Models
+## 43. NHL Selected/Rejected Model
+## 44. NHL Live Executor
+## 45. NHL Full-Slate Status
+## 46. WNBA Data Acquisition
+## 47. WNBA Failure Diagnosis
+## 48. WNBA Candidate Models
+## 49. WNBA Selected/Rejected Model
+## 50. WNBA Live Executor
+## 51. WNBA Full-Slate Status
+## 52. UFC Data Acquisition
+## 53. UFC Fighter Identity
+## 54. UFC Chronology
+## 55. UFC Candidate Models
+## 56. UFC Selected/Rejected Model
+## 57. UFC Live Executor
+## 58. UFC Full-Slate Status
+## 59. NCAAF Adapter Completion
+## 60. NCAAF Full-Slate Verification
+## 61. Soccer Preservation
+## 62. Soccer Full-Slate Verification
+## 63. Per-Sport Numeric Proof
+## 64. Candidate Comparison Tables
+## 65. Artifact Registry
+## 66. Full-Slate Coverage
+## 67. Immutable Forecast Verification
+## 68. Public Projection Readiness
+## 69. Forecast vs Pick Separation
+## 70. #238A Preservation
+## 71. Official Record Protection
+## 72. POTD Protection
+## 73. Staking Protection
+## 74. Forecast Analytics
+## 75. Betting Analytics Separation
+## 76. Shadow Evidence Collection
+## 77. Controlled Model Evolution
+## 78. No Legacy Fallback Verification
+## 79. Legacy Replacement Map
+## 80. Remaining Genuine Blockers
+## 81. Future V4.x Enhancements
+## 82. Tests
+## 83. Full Regression
+## 84. Security
+## 85. Clean Source Integration
+## 86. Files Changed
+## 87. Per-Sport Classifications
+## 88. Final Overall Classification
+## 89. What Is Actually Operational Now
+## 90. EXACTLY ONE RECOMMENDED NEXT TASK
+
+==================================================
+98. "WHAT IS ACTUALLY OPERATIONAL NOW"
+==================================================
+
+This section must answer plainly:
+
+- Which sports can generate V4 forecasts today?
+- Which can forecast every eligible game?
+- Which have projected scores?
+- Which have probabilities only?
+- Which are SHADOW?
+- Which are PROVISIONAL?
+- Which are publication-approved?
+- Which still return NO_FORECAST?
+- Which legacy engines remain in production?
+- Does any V4 route fall back to legacy?
+- Did production change?
+- Are validating forecasts ready for future public display?
+- Are validating forecasts excluded from official records?
+
+==================================================
+99. EXACTLY ONE NEXT TASK
+==================================================
+
+If overall result is A or B, recommend exactly:
+
+TASK #244 — TBM V4 CLOUD STAGING, PUBLIC FULL-SLATE MODEL BOARDS & PRODUCTION CUTOVER
+
+That task will:
+
+- provision/use clean GitHub source of truth
+- stage API/model server
+- stage frontend
+- verify Neon migration/recovery
+- configure external scheduler
+- make operational V4 engines technically live
+- disable legacy current forecasting where V4 replacement exists
+- preserve NO_FORECAST where no V4 exists
+- expose public full-slate model boards
+- display V4_VALIDATING projections
+- display NO_OFFICIAL_PLAY
+- display OFFICIAL_TBM_PLAY
+- preserve #238A
+- validate mobile compatibility
+- execute controlled production cutover
+
+If #243 ends C:
+
+recommend exactly ONE consolidated remaining data/model task, not another architecture audit.
+
+==================================================
+100. FINAL EXECUTION DIRECTIVE
+==================================================
+
+STOP BUILDING GENERALIZED INFRASTRUCTURE.
+
+THE GENERAL V4 PLATFORM ALREADY EXISTS.
+
+GET THE DATA.
+
+SEARCH THE DATABASE.
+
+SEARCH LEGACY TABLES.
+
+SEARCH RAW INGESTION.
+
+SEARCH EXISTING ARTIFACTS.
+
+SEARCH HISTORICAL RESULTS.
+
+SEARCH PROVIDER INTEGRATIONS.
+
+WHERE INTERNAL HISTORY IS INSUFFICIENT, USE LEGITIMATE ACCESSIBLE HISTORICAL SOURCES.
+
+TURN REAL HISTORICAL EVENTS INTO PIT-SAFE CHRONOLOGICAL TRAINING ROWS.
+
+TRAIN ACTUAL SPORT-SPECIFIC MODELS.
+
+COMPARE THEM TO LEGITIMATE BASELINES.
+
+REJECT BAD MODELS.
+
+FREEZE GOOD MODELS.
+
+CREATE EXACT ARTIFACT IDENTITIES.
+
+CONNECT EXACT LIVE EXECUTORS.
+
+FORECAST THE FULL ELIGIBLE SLATE.
+
+DO NOT FILTER TO BETS BEFORE FORECASTING.
+
+DO NOT USE MARKET DATA AS SPORT INTELLIGENCE.
+
+DO NOT USE HINDSIGHT.
+
+DO NOT LOWER QUALITY GATES.
+
+DO NOT RELABEL LEGACY MODELS.
+
+DO NOT CREATE A NEW SHARED ARCHITECTURE AS A SUBSTITUTE FOR MODEL COMPLETION.
+
+DO NOT STOP THE ENTIRE TASK BECAUSE ONE SPORT FAILS.
+
+PRESERVE NCAAF.
+
+PRESERVE SOCCER.
+
+FINISH THE NCAAF FULL-SLATE ADAPTER.
+
+GET AS MANY OF MLB, NFL, NBA, NCAAMB, NHL, WNBA, AND UFC TO LEGITIMATE V4 CLASSIFICATION B AS THE EVIDENCE SUPPORTS.
+
+THE GOAL IS NOT TO MAKE THE REPORT LOOK SUCCESSFUL.
+
+THE GOAL IS TO LEAVE TBM WITH REAL, FROZEN, TESTED, SPORT-SPECIFIC V4 FORECASTING ENGINES THAT CAN BE MADE LIVE IN TASK #244.
+
+THEN RETURN THE COMPLETE REPORT.
