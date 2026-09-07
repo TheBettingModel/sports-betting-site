@@ -1,0 +1,69 @@
+diff --git a/scripts/cocoapods/spm.rb b/scripts/cocoapods/spm.rb
+index 0b132076169b5d1c9757523439fad46edf7f59e0..965650713134fc484530ddee72aa60d9bca1b379 100644
+--- a/scripts/cocoapods/spm.rb
++++ b/scripts/cocoapods/spm.rb
+@@ -16,6 +16,14 @@ class SPMManager
+   def apply_on_post_install(installer)
+     project = installer.pods_project
+ 
++    # Get the user project (e.g. TheBettingModel.xcodeproj) so we can add
++    # package references there. xcodebuild -resolvePackageDependencies uses
++    # the main scheme (in the user project), so SPM packages must be
++    # registered there to be resolved and compiled.
++    user_project = installer.aggregate_targets
++      .map { |t| t.respond_to?(:user_project) ? t.user_project : nil }
++      .compact.uniq.first
++
+     log 'Cleaning old SPM dependencies from Pods project'
+     clean_spm_dependencies_from_target(project, @dependencies_by_pod)
+     log 'Adding SPM dependencies to Pods project'
+@@ -29,13 +37,22 @@ class SPMManager
+           spm_spec[:requirement],
+           spm_spec[:products]
+         )
+-        log " Adding workaround for Swift package not found issue"
++        # Also register the package reference in the user project so that
++        # xcodebuild -resolvePackageDependencies (which resolves via the main
++        # scheme) finds and compiles the SPM products.
++        if user_project
++          ensure_package_reference_in_project(user_project, spm_spec[:url], spm_spec[:requirement])
++          user_project.save
++        end
+         target = project.targets.find { |t| t.name == pod_name}
+-        target.build_configurations.each do |config|
+-          target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'] ||= ['$(inherited)']
+-          search_path = '${SYMROOT}/${CONFIGURATION}${EFFECTIVE_PLATFORM_NAME}/'
+-          unless target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].include?(search_path)
+-            target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].push(search_path)
++        unless target.nil?
++          log " Adding workaround for Swift package not found issue"
++          target.build_configurations.each do |config|
++            target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'] ||= ['$(inherited)']
++            search_path = '${SYMROOT}/${CONFIGURATION}${EFFECTIVE_PLATFORM_NAME}/'
++            unless target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].include?(search_path)
++              target.build_settings(config.name)['SWIFT_INCLUDE_PATHS'].push(search_path)
++            end
+           end
+         end
+       end
+@@ -65,7 +82,20 @@ class SPMManager
+     project.root_object.package_references.delete_if { |pkg| (pkg.class == Xcodeproj::Project::Object::XCRemoteSwiftPackageReference) }
+   end
+ 
++  def ensure_package_reference_in_project(project, url, requirement)
++    pkg_class = Xcodeproj::Project::Object::XCRemoteSwiftPackageReference
++    return if project.root_object.package_references.any? { |p|
++      p.class == pkg_class && p.repositoryURL == url
++    }
++    pkg = project.new(pkg_class)
++    pkg.repositoryURL = url
++    pkg.requirement = requirement
++    project.root_object.package_references << pkg
++    log " Also registered package reference in user project: #{url}"
++  end
++
+   def add_spm_to_target(project, target, url, requirement, products)
++    return if target.nil? # Guard: pod target not found in Pods project (e.g. @clerk/expo ClerkGoogleSignIn)
+     pkg_class = Xcodeproj::Project::Object::XCRemoteSwiftPackageReference
+     ref_class = Xcodeproj::Project::Object::XCSwiftPackageProductDependency
+     pkg = project.root_object.package_references.find { |p| p.class == pkg_class && p.repositoryURL == url }
