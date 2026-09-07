@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import {
   db, mlbPregameStarterEvidenceSnapshotsTable, mlbV4CollectionRunsTable, mlbV4CollectionRunEventsTable,
   mlbV4GameDiscoveriesTable, mlbV4StarterStatesTable, mlbV4TeamStatesTable,
@@ -13,7 +13,7 @@ import {
   materializeStarterPitState, materializeTeamOffensePitState, materializeBullpenPitState, MLB_V4_INPUT_SCHEMA,
   MLB_V4_COLLECTOR_VERSION, MLB_V4_CONTEXT_VERSION, MLB_V4_LIVE_VERSION,
   MLB_V4_STARTER_STATE_VERSION, MLB_V4_TEAM_STATE_VERSION,
-  pairFeatureOutcome, runBoundedMlbV4Collection,
+  normalizeMlbTeamSide, pairFeatureOutcome, runBoundedMlbV4Collection, selectLatestBullpenPitVersions,
   type CollectionRunResult, type Discovery, type LiveCollectionRepository,
   type ReadinessCounts,
 } from "./mlbV4LiveFoundation";
@@ -148,6 +148,8 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
   type RuntimeComponent = { id: string; hash: string; features: unknown; sampleSizes: unknown; missingness: unknown; sourceCutoff: Date | null };
   const componentByGameSide = new Map<string, { starter?: RuntimeComponent; offense?: RuntimeComponent; bullpen?: RuntimeComponent }>();
   for (const snapshot of latest.values()) {
+    const normalizedSnapshotSide = normalizeMlbTeamSide(snapshot.teamSide);
+    if (!normalizedSnapshotSide) continue;
     const appearances = await db.select().from(mlbHistoricalPitcherAppearancesTable)
       .where(and(eq(mlbHistoricalPitcherAppearancesTable.providerPitcherId, snapshot.officialPlayerId!),
         lt(mlbHistoricalPitcherAppearancesTable.appearanceCompletionTime, snapshot.observedAt),
@@ -185,22 +187,45 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
       .where(and(eq(mlbHistoricalBullpenOutcomesTable.canonicalTeamId, `mlb-team:${snapshot.officialTeamId}`),
         lt(mlbHistoricalBullpenOutcomesTable.gameCompletionTime, snapshot.observedAt),
         lt(mlbHistoricalBullpenOutcomesTable.createdAt, snapshot.observedAt)));
-    const dedupedTeamRows = [...new Map(teamRows.map((row) => [row.canonicalGameId, row])).values()];
+    const orderedTeamRows = [...teamRows].sort((a, b) =>
+      a.completedAt!.getTime() - b.completedAt!.getTime()
+      || a.teamRecordedAt.getTime() - b.teamRecordedAt.getTime()
+      || a.outcomeRecordedAt.getTime() - b.outcomeRecordedAt.getTime());
+    const dedupedTeamRows = [...new Map(orderedTeamRows.map((row) => [row.canonicalGameId, row])).values()];
     const offenseAggregate = materializeTeamOffensePitState({ cutoff: snapshot.observedAt, rows: dedupedTeamRows.filter((r) => r.completedAt)
-      .map((r) => ({ completedAt: r.completedAt!,
+      .flatMap((r) => {
+        const side = normalizeMlbTeamSide(r.teamSide);
+        return side ? [{ completedAt: r.completedAt!,
         recordedAt: r.teamRecordedAt > r.outcomeRecordedAt ? r.teamRecordedAt : r.outcomeRecordedAt,
-        runs: r.teamSide === "HOME" ? r.homeRuns : r.awayRuns, home: r.teamSide === "HOME" })) });
-    const bullpenAggregate = materializeBullpenPitState({ cutoff: snapshot.observedAt, rows: bullpenRows.map((r) => ({
+        runs: side === "HOME" ? r.homeRuns : r.awayRuns, home: side === "HOME" }] : [];
+      }) });
+    const bullpenSelection = selectLatestBullpenPitVersions(snapshot.observedAt, bullpenRows.map((row) => ({
+      canonicalGameId: row.canonicalGameId,
+      canonicalTeamId: row.canonicalTeamId,
+      completedAt: row.gameCompletionTime,
+      recordedAt: row.createdAt,
+      sourceHash: row.outcomeChecksum,
+      value: row,
+    })));
+    const dedupedBullpenRows = bullpenSelection.rows.map((row) => row.value);
+    const bullpenAggregate = materializeBullpenPitState({ cutoff: snapshot.observedAt, rows: dedupedBullpenRows.map((r) => ({
       completedAt: r.gameCompletionTime, recordedAt: r.createdAt, innings: r.bullpenInnings,
       pitches: r.bullpenPitchCount, relievers: r.relieversUsed, earnedRuns: r.bullpenEarnedRuns,
     })) });
     const makeTeamState = (kind: "OFFENSE" | "BULLPEN") => {
       const aggregate = kind === "OFFENSE" ? offenseAggregate : bullpenAggregate;
+      const missingness: Record<string, unknown> = {
+        ...aggregate.missingness,
+        ...(kind === "BULLPEN" && bullpenSelection.conflicts.length ? {
+          sourceConflict: true,
+          conflictingCanonicalGameTeams: bullpenSelection.conflicts,
+        } : {}),
+      };
       const base = {
-        gameId: snapshot.officialGameId, teamId: snapshot.officialTeamId, stateKind: kind, teamSide: snapshot.teamSide,
+        gameId: snapshot.officialGameId, teamId: snapshot.officialTeamId, stateKind: kind, teamSide: normalizedSnapshotSide,
         appliesToOffenseTeamId: snapshot.officialOpponentTeamId ?? "",
         featureCutoff: snapshot.observedAt, sourceCutoff: aggregate.sourceCutoff, stateSchemaVersion: MLB_V4_TEAM_STATE_VERSION,
-        features: aggregate.features, sampleSizes: aggregate.sampleSizes, missingness: aggregate.missingness,
+        features: aggregate.features, sampleSizes: aggregate.sampleSizes, missingness,
       };
       const artifactHash = deterministicHash(base);
       return { stateId: deterministicHash({ ...base, artifactHash }), ...base, artifactHash };
@@ -214,17 +239,27 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
     }
     const component = (row: { stateId: string; artifactHash: string; features: unknown; sampleSizes: unknown; missingness: unknown; sourceCutoff: Date | null }): RuntimeComponent =>
       ({ id: row.stateId, hash: row.artifactHash, features: row.features, sampleSizes: row.sampleSizes, missingness: row.missingness, sourceCutoff: row.sourceCutoff });
-    componentByGameSide.set(`${snapshot.officialGameId}:${snapshot.teamSide}`, {
+    componentByGameSide.set(`${snapshot.officialGameId}:${normalizedSnapshotSide}`, {
       starter: component(state), offense: component(offense), bullpen: component(bullpen),
     });
   }
   const games = new Map<string, { home?: typeof latest extends Map<string, infer V> ? V : never; away?: typeof latest extends Map<string, infer V> ? V : never }>();
+  const sideConflicts = new Set<string>();
   for (const snapshot of latest.values()) {
     const entry = games.get(snapshot.officialGameId) ?? {};
-    if (snapshot.teamSide === "HOME") entry.home = snapshot; else entry.away = snapshot;
+    const side = normalizeMlbTeamSide(snapshot.teamSide);
+    if (!side) continue;
+    if (side === "HOME") {
+      if (entry.home && entry.home.officialTeamId !== snapshot.officialTeamId) sideConflicts.add(snapshot.officialGameId);
+      entry.home = snapshot;
+    } else {
+      if (entry.away && entry.away.officialTeamId !== snapshot.officialTeamId) sideConflicts.add(snapshot.officialGameId);
+      entry.away = snapshot;
+    }
     games.set(snapshot.officialGameId, entry);
   }
   for (const [gameId, sides] of games) {
+    if (sideConflicts.has(gameId)) continue;
     if (!sides.home || !sides.away) continue;
     const home = componentByGameSide.get(`${gameId}:HOME`)!;
     const away = componentByGameSide.get(`${gameId}:AWAY`)!;
@@ -234,15 +269,27 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
       : sides.away.scheduledFirstPitch;
     if (!(cutoff < scheduledFirstPitch)) continue;
     const [leagueRow] = await db.select().from(mlbLeagueRunEnvironmentTable)
-      .where(and(lt(mlbLeagueRunEnvironmentTable.cutoffAt, cutoff),
+      .where(and(eq(mlbLeagueRunEnvironmentTable.season, cutoff.getUTCFullYear()),
+        eq(mlbLeagueRunEnvironmentTable.window, "season_to_date"),
+        isNull(mlbLeagueRunEnvironmentTable.targetGameId),
+        lt(mlbLeagueRunEnvironmentTable.cutoffAt, cutoff),
         lt(mlbLeagueRunEnvironmentTable.createdAt, cutoff)))
       .orderBy(desc(mlbLeagueRunEnvironmentTable.cutoffAt)).limit(1);
+    const leagueEligible = Boolean(leagueRow
+      && leagueRow.sampleGames > 0
+      && leagueRow.runsPerTeamGame != null && Number.isFinite(leagueRow.runsPerTeamGame)
+      && leagueRow.homeRunsPerGame != null && Number.isFinite(leagueRow.homeRunsPerGame)
+      && leagueRow.awayRunsPerGame != null && Number.isFinite(leagueRow.awayRunsPerGame));
     const contextBase = {
-      gameId, featureCutoff: cutoff, sourceCutoff: leagueRow?.cutoffAt ?? null, schemaVersion: MLB_V4_CONTEXT_VERSION,
-      league: leagueRow ? { runsPerTeamGame: leagueRow.runsPerTeamGame, homeRunsPerGame: leagueRow.homeRunsPerGame,
-        awayRunsPerGame: leagueRow.awayRunsPerGame, qualityState: leagueRow.qualityState } : { availability: "UNAVAILABLE_NO_LIVE_LEAGUE_AGGREGATE" },
+      gameId, featureCutoff: cutoff, sourceCutoff: leagueEligible ? leagueRow!.cutoffAt : null, schemaVersion: MLB_V4_CONTEXT_VERSION,
+       league: leagueEligible ? { season: leagueRow!.season, window: leagueRow!.window, sampleGames: leagueRow!.sampleGames,
+         runsPerTeamGame: leagueRow!.runsPerTeamGame, homeRunsPerGame: leagueRow!.homeRunsPerGame,
+         awayRunsPerGame: leagueRow!.awayRunsPerGame, qualityState: leagueRow!.qualityState }
+         : { availability: leagueRow ? "UNAVAILABLE_INCOMPLETE_TARGET_SEASON_SEASON_TO_DATE_AGGREGATE"
+           : "UNAVAILABLE_NO_TARGET_SEASON_SEASON_TO_DATE_AGGREGATE",
+           season: cutoff.getUTCFullYear(), window: "season_to_date" },
       home: { homeTeamId: sides.home.officialTeamId, awayTeamId: sides.away.officialTeamId },
-      park: { availability: "UNAVAILABLE" }, sampleSizes: {}, missingness: { league: true, park: true },
+      park: { availability: "UNAVAILABLE" }, sampleSizes: {}, missingness: { league: !leagueEligible, park: true },
     };
     const artifactHash = deterministicHash(contextBase);
     const context = { stateId: deterministicHash({ gameId, artifactHash }), ...contextBase, artifactHash };
@@ -251,7 +298,8 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
     // but never labels absent team mapping as eligible.
     const validTeamState = (c: typeof home) => c.offense!.features
       && !(c.offense!.missingness as { noEligibleCompletedGames?: boolean }).noEligibleCompletedGames
-      && !(c.bullpen!.missingness as { noEligibleBullpenGames?: boolean }).noEligibleBullpenGames;
+      && !(c.bullpen!.missingness as { noEligibleBullpenGames?: boolean }).noEligibleBullpenGames
+      && !(c.bullpen!.missingness as { sourceConflict?: boolean }).sourceConflict;
     const feature = freezePregameFeatureSnapshot({
       gameId, scheduledFirstPitch, featureCutoff: cutoff,
       homeOffense: validTeamState(home) ? home.offense : undefined, awayOffense: validTeamState(away) ? away.offense : undefined,
@@ -259,7 +307,7 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
       awayBullpen: validTeamState(away) ? away.bullpen : undefined,
       // Explicitly unavailable league means no baseline claim until an actual
       // PIT aggregate adapter is available.
-      league: leagueRow ? { id: context.stateId, hash: context.artifactHash, features: context.league, sampleSizes: context.sampleSizes, missingness: {}, sourceCutoff: context.sourceCutoff } : undefined,
+      league: leagueEligible ? { id: context.stateId, hash: context.artifactHash, features: context.league, sampleSizes: context.sampleSizes, missingness: {}, sourceCutoff: context.sourceCutoff } : undefined,
       homeContext: { id: context.stateId, hash: context.artifactHash, features: context.home, sampleSizes: {}, missingness: {}, sourceCutoff: null },
     });
     const insertedFeature = await db.insert(mlbV4PregameFeaturesTable).values(feature).onConflictDoNothing()
@@ -345,7 +393,10 @@ async function ingestOfficialFinalsAndPair(): Promise<{ outcomes: number; pairs:
       }
     }
     const teamIdsBySide = Object.fromEntries(
-      latestStarterSnapshots.map((snapshot) => [snapshot.teamSide.toLowerCase(), snapshot.officialTeamId]),
+      latestStarterSnapshots.flatMap((snapshot) => {
+        const side = normalizeMlbTeamSide(snapshot.teamSide);
+        return side ? [[side.toLowerCase(), snapshot.officialTeamId]] : [];
+      }),
     );
     const performance = officialPitchingOutcomes(feature.gameId, payload.liveData?.boxscore, payload, teamIdsBySide);
     for (const row of performance.starters) {
@@ -414,7 +465,10 @@ function officialPitchingOutcomes(
     }
     const relievers = pitcherRows.filter(({ player }) => player.person?.id !== starter?.player.person?.id);
     if (relievers.length) {
-      const total = (key: string) => relievers.reduce((n, r) => n + (asNumber(r.stats[key]) ?? 0), 0);
+      const total = (key: string) => {
+        const values = relievers.map((r) => asNumber(r.stats[key]));
+        return values.some((value) => value == null) ? null : values.reduce<number>((n, value) => n + value!, 0);
+      };
       const teamId = teamIdsBySide[side];
       if (!teamId) continue;
       const base = {

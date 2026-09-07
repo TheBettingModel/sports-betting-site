@@ -3,7 +3,9 @@ import {
   assertSportsForecastFirewall, buildDiscovery, buildGameOutcome, buildReadiness,
   classifyStarterAgreement, freezePregameFeatureSnapshot, marketLeakagePathsV4,
   materializeStarterPitState, materializeTeamOffensePitState, materializeBullpenPitState, MLB_V4_CADENCE, MLB_V4_CURRENT_CHAMPION,
-  MLB_V4_INPUT_SCHEMA, MLB_V4_OLD_OOS_STATUS, MLB_V4_OUTPUT_SCHEMA,
+  MLB_V4_INPUT_SCHEMA, MLB_V4_LEGACY_INPUT_SCHEMA, MLB_V4_OLD_OOS_STATUS, MLB_V4_OUTPUT_SCHEMA,
+  MLB_V4_STARTER_STATE_VERSION, MLB_V4_TEAM_STATE_VERSION, normalizeMlbTeamSide,
+  selectLatestBullpenPitVersions,
   pairFeatureOutcome, pureForecastMetrics, runBoundedMlbV4Collection, runMlbV4CollectionAttempt, shouldCollectAt,
   targetLeakagePathsV4, type ComponentState,
 } from "./mlbV4LiveFoundation";
@@ -41,10 +43,54 @@ describe("Task #232 MLB V4 live foundation", () => {
       { completedAt: new Date("2026-09-04T12:00:00Z"), recordedAt: cutoff, innings: 8, pitches: 88, relievers: 8, earnedRuns: 8 },
       { completedAt: cutoff, innings: 9, pitches: 99, relievers: 9, earnedRuns: 9 },
     ] });
-    expect((offense.features.rolling.games5 as { runs: number }).runs).toBe(16);
+    expect((offense.features.rolling.games5 as { runs: number }).runs).toBe(12);
     expect(offense.features.currentSeason.games).toBe(2);
     expect(offense.features.priorSeason.games).toBe(1);
     expect((bullpen.features.workload.days1 as { pitches: number }).pitches).toBe(44);
+  });
+
+  it("keeps offense rolling windows in the target season", () => {
+    const offense = materializeTeamOffensePitState({ cutoff, rows: [
+      { completedAt: new Date("2025-09-01T00:00:00Z"), runs: 40, home: true },
+      { completedAt: new Date("2026-09-01T00:00:00Z"), runs: 4, home: false },
+    ] });
+    expect(offense.features.rolling.games5).toEqual({ games: 1, runs: 4, runsPerGame: 4 });
+    expect(offense.features.priorSeason.runs).toBe(40);
+  });
+
+  it("normalizes supported side case variants and fails closed on unknown labels", () => {
+    expect(normalizeMlbTeamSide("home")).toBe("HOME");
+    expect(normalizeMlbTeamSide(" Away ")).toBe("AWAY");
+    expect(normalizeMlbTeamSide("neutral")).toBeNull();
+    expect(normalizeMlbTeamSide(null)).toBeNull();
+  });
+
+  it("propagates missing bullpen values instead of converting them to zero", () => {
+    const bullpen = materializeBullpenPitState({ cutoff, rows: [
+      { completedAt: new Date("2026-09-05T00:00:00Z"), innings: 3, pitches: null, relievers: 2, earnedRuns: 1 },
+      { completedAt: new Date("2026-09-06T00:00:00Z"), innings: null, pitches: 40, relievers: 2, earnedRuns: 0 },
+    ] });
+    expect(bullpen.features.rolling.games5).toMatchObject({ innings: null, pitches: null, era: null });
+  });
+
+  it("selects one latest PIT bullpen version and fails closed on source conflicts", () => {
+    const versions = [
+      { canonicalGameId: "g1", canonicalTeamId: "t", completedAt: new Date("2026-09-01T00:00:00Z"),
+        recordedAt: new Date("2026-09-01T01:00:00Z"), sourceHash: "old", value: 1 },
+      { canonicalGameId: "g1", canonicalTeamId: "t", completedAt: new Date("2026-09-01T00:00:00Z"),
+        recordedAt: new Date("2026-09-01T02:00:00Z"), sourceHash: "new", value: 2 },
+      { canonicalGameId: "g2", canonicalTeamId: "t", completedAt: new Date("2026-09-02T00:00:00Z"),
+        recordedAt: new Date("2026-09-02T01:00:00Z"), sourceHash: "a", value: 3 },
+      { canonicalGameId: "g2", canonicalTeamId: "t", completedAt: new Date("2026-09-02T00:00:00Z"),
+        recordedAt: new Date("2026-09-02T01:00:00Z"), sourceHash: "b", value: 4 },
+      { canonicalGameId: "future", canonicalTeamId: "t", completedAt: cutoff,
+        recordedAt: cutoff, sourceHash: "future", value: 5 },
+    ];
+    const first = selectLatestBullpenPitVersions(cutoff, versions);
+    const second = selectLatestBullpenPitVersions(cutoff, [...versions].reverse());
+    expect(first).toEqual(second);
+    expect(first.rows.map((row) => row.value)).toEqual([2]);
+    expect(first.conflicts).toEqual(["g2:t"]);
   });
   it("builds immutable run/game discovery identities and doubleheader-safe IDs", () => {
     const one = buildDiscovery("run", game(1), cutoff)!;
@@ -257,6 +303,10 @@ describe("Task #232 MLB V4 live foundation", () => {
   });
 
   it("locks contracts, champion, old OOS, and MLB-only isolation", () => {
+    expect(MLB_V4_LEGACY_INPUT_SCHEMA).toBe("mlb-v4-model-input-v4");
+    expect(MLB_V4_INPUT_SCHEMA).toBe("mlb-v4-model-input-v5");
+    expect(MLB_V4_STARTER_STATE_VERSION).toMatch(/-v5$/);
+    expect(MLB_V4_TEAM_STATE_VERSION).toMatch(/-v5$/);
     expect(MLB_V4_OUTPUT_SCHEMA).toBe("mlb-v4-model-output-v1");
     expect(MLB_V4_CURRENT_CHAMPION).toBe("tbm-mlb-moneyline-v1");
     expect(MLB_V4_OLD_OOS_STATUS).toBe("HISTORICAL_BENCHMARK_ONLY");

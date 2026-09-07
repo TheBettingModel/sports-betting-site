@@ -1,12 +1,14 @@
 import { deterministicChecksum, type OfficialMlbScheduleGame, buildStarterEvidence } from "./mlbStarterEvidence224C";
 
-export const MLB_V4_INPUT_SCHEMA = "mlb-v4-model-input-v4";
+/** Task 239 is append-only: v4 rows remain historical and are never reclassified. */
+export const MLB_V4_LEGACY_INPUT_SCHEMA = "mlb-v4-model-input-v4";
+export const MLB_V4_INPUT_SCHEMA = "mlb-v4-model-input-v5";
 export const MLB_V4_OUTPUT_SCHEMA = "mlb-v4-model-output-v1";
 export const MLB_V4_LIVE_VERSION = "mlb-v4-live-foundation-v1";
 export const MLB_V4_COLLECTOR_VERSION = "mlb-v4-live-collector-v2";
-export const MLB_V4_STARTER_STATE_VERSION = "mlb-v4-starter-pit-v4";
-export const MLB_V4_TEAM_STATE_VERSION = "mlb-v4-team-pit-v4";
-export const MLB_V4_CONTEXT_VERSION = "mlb-v4-context-v2";
+export const MLB_V4_STARTER_STATE_VERSION = "mlb-v4-starter-pit-v5";
+export const MLB_V4_TEAM_STATE_VERSION = "mlb-v4-team-pit-v5";
+export const MLB_V4_CONTEXT_VERSION = "mlb-v4-context-v5";
 export const MLB_V4_OLD_OOS_STATUS = "HISTORICAL_BENCHMARK_ONLY";
 export const MLB_V4_CURRENT_CHAMPION = "tbm-mlb-moneyline-v1";
 export const MLB_V4_CADENCE = {
@@ -103,7 +105,58 @@ export interface PriorPitcherAppearance {
   strikeouts: number | null; homeRuns: number | null;
 }
 const sum = (values: Array<number | null>) => values.reduce<number>((n, v) => n + (v ?? 0), 0);
+const strictSum = (values: Array<number | null>): number | null =>
+  values.some((value) => value == null) ? null : values.reduce<number>((total, value) => total + value!, 0);
 const rate = (n: number, d: number) => d > 0 ? n / d : null;
+export type NormalizedTeamSide = "HOME" | "AWAY";
+export function normalizeMlbTeamSide(value: unknown): NormalizedTeamSide | null {
+  if (typeof value !== "string") return null;
+  const normalizedSide = value.trim().toUpperCase();
+  return normalizedSide === "HOME" || normalizedSide === "AWAY" ? normalizedSide : null;
+}
+
+export type BullpenPitVersion<T = unknown> = {
+  canonicalGameId: string;
+  canonicalTeamId: string;
+  completedAt: Date;
+  recordedAt: Date;
+  sourceHash: string;
+  value: T;
+};
+
+/**
+ * Chooses exactly one latest version for each canonical game/team. A tie with
+ * disagreeing source hashes is not resolvable PIT evidence and is excluded.
+ */
+export function selectLatestBullpenPitVersions<T>(
+  cutoff: Date,
+  versions: BullpenPitVersion<T>[],
+): { rows: BullpenPitVersion<T>[]; conflicts: string[] } {
+  const groups = new Map<string, BullpenPitVersion<T>[]>();
+  for (const row of versions) {
+    if (!(row.completedAt < cutoff) || !(row.recordedAt < cutoff)) continue;
+    const key = `${row.canonicalGameId}:${row.canonicalTeamId}`;
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  const rows: BullpenPitVersion<T>[] = [];
+  const conflicts: string[] = [];
+  for (const [key, candidates] of [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    candidates.sort((a, b) => a.recordedAt.getTime() - b.recordedAt.getTime()
+      || a.sourceHash.localeCompare(b.sourceHash));
+    const latestTime = candidates.at(-1)!.recordedAt.getTime();
+    const latest = candidates.filter((candidate) => candidate.recordedAt.getTime() === latestTime);
+    if (new Set(latest.map((candidate) => candidate.sourceHash)).size !== 1) {
+      conflicts.push(key);
+      continue;
+    }
+    rows.push(latest.at(-1)!);
+  }
+  rows.sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime()
+    || a.canonicalGameId.localeCompare(b.canonicalGameId)
+    || a.canonicalTeamId.localeCompare(b.canonicalTeamId));
+  return { rows, conflicts };
+}
+
 export function materializeTeamOffensePitState(input: { cutoff: Date; rows: Array<{ completedAt: Date; recordedAt?: Date; runs: number; home: boolean }> }) {
   const rows = input.rows.filter((r) => r.completedAt < input.cutoff && (!r.recordedAt || r.recordedAt < input.cutoff))
     .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
@@ -111,7 +164,7 @@ export function materializeTeamOffensePitState(input: { cutoff: Date; rows: Arra
   const currentYear = input.cutoff.getUTCFullYear();
   const current = rows.filter((r) => r.completedAt.getUTCFullYear() === currentYear);
   const prior = rows.filter((r) => r.completedAt.getUTCFullYear() === currentYear - 1);
-  return { features: { rolling: Object.fromEntries([5, 10, 20, 30].map((n) => [`games${n}`, aggregate(rows.slice(-n))])),
+  return { features: { rolling: Object.fromEntries([5, 10, 20, 30].map((n) => [`games${n}`, aggregate(current.slice(-n))])),
     currentSeason: aggregate(current), priorSeason: aggregate(prior),
     currentSeasonHome: aggregate(current.filter((r) => r.home)), currentSeasonAway: aggregate(current.filter((r) => !r.home)) },
     sampleSizes: { eligibleCompletedGames: rows.length, currentSeasonGames: current.length, priorSeasonGames: prior.length },
@@ -122,7 +175,17 @@ export function materializeBullpenPitState(input: { cutoff: Date; rows: Array<{ 
   const rows = input.rows.filter((r) => r.completedAt < input.cutoff && (!r.recordedAt || r.recordedAt < input.cutoff))
     .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
   const days = (n: number) => rows.filter((r) => input.cutoff.getTime() - r.completedAt.getTime() <= n * 86_400_000);
-  const aggregate = (values: typeof rows) => ({ games: values.length, innings: sum(values.map((r) => r.innings)), pitches: sum(values.map((r) => r.pitches)), relievers: sum(values.map((r) => r.relievers)), era: rate(9 * sum(values.map((r) => r.earnedRuns)), sum(values.map((r) => r.innings))) });
+  const aggregate = (values: typeof rows) => {
+    const innings = strictSum(values.map((r) => r.innings));
+    const earnedRuns = strictSum(values.map((r) => r.earnedRuns));
+    return {
+      games: values.length,
+      innings,
+      pitches: strictSum(values.map((r) => r.pitches)),
+      relievers: strictSum(values.map((r) => r.relievers)),
+      era: innings == null || earnedRuns == null ? null : rate(9 * earnedRuns, innings),
+    };
+  };
   return { features: { workload: { days1: aggregate(days(1)), days3: aggregate(days(3)), days7: aggregate(days(7)) }, rolling: Object.fromEntries([5, 10, 20, 30].map((n) => [`games${n}`, aggregate(rows.slice(-n))])), restDays: rows.length ? Math.floor((input.cutoff.getTime() - rows.at(-1)!.completedAt.getTime()) / 86_400_000) : null },
     sampleSizes: { eligibleBullpenGames: rows.length }, missingness: { noEligibleBullpenGames: rows.length === 0 }, sourceCutoff: rows.at(-1)?.completedAt ?? null };
 }
@@ -134,10 +197,12 @@ export function materializeStarterPitState(input: {
       && (!a.recordedAt || a.recordedAt < input.featureCutoff))
     .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime()
       || (a.recordedAt?.getTime() ?? 0) - (b.recordedAt?.getTime() ?? 0));
-  const appearances = [...new Map(eligibleAppearances.map((appearance, index) => [
-    appearance.canonicalGameId ?? `unkeyed:${index}`,
-    appearance,
-  ])).values()].sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
+  const appearancesByGame = new Map<string, PriorPitcherAppearance>();
+  eligibleAppearances.forEach((appearance, index) => {
+    appearancesByGame.set(appearance.canonicalGameId ?? `unkeyed:${index}`, appearance);
+  });
+  const appearances = [...appearancesByGame.values()]
+    .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
   const starts = appearances.filter((a) => a.starter);
   const season = starts.filter((a) => a.gameDate.slice(0, 4) === input.featureCutoff.getUTCFullYear().toString());
   const last = starts.at(-1) ?? null;
