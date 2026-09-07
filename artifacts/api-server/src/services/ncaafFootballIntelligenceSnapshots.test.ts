@@ -17,7 +17,9 @@ import {
   assertNoNcaafMarketShapedKeys,
   buildNcaafFootballIntelligenceSnapshot,
   createNcaafFootballIntelligenceSnapshot,
+  loadPriorNcaafTeamPerformance,
   NCAAF_FOOTBALL_INTELLIGENCE_SNAPSHOT_SCHEMA_VERSION,
+  ncaafPerformanceHistoryScope,
   ncaafFootballIntelligenceInputHash,
   type NcaafIntelligenceTarget,
   type NcaafPerformanceEvidenceRow,
@@ -61,6 +63,28 @@ describe("NCAAF football intelligence snapshots", () => {
     expect(snapshot.teams.home.venue.state).toBe("VALID");
     expect(snapshot.readiness).toMatchObject({ state: "PARTIAL", blockedReasons: [] });
     expect(JSON.stringify(snapshot)).not.toMatch(/odds|probability|recommendation/i);
+  });
+
+  it("scopes SQL history to the target teams and current/prior seasons, failing closed without identity", async () => {
+    expect(ncaafPerformanceHistoryScope(target)).toEqual({
+      seasons: [2025, 2024],
+      teamIds: ["home", "away"],
+    });
+    expect(ncaafPerformanceHistoryScope({
+      ...target,
+      homeTeamId: null,
+      awayTeamId: null,
+    })).toEqual({
+      seasons: [2025, 2024],
+      teamIds: [],
+    });
+
+    await expect(loadPriorNcaafTeamPerformance({
+      ...target,
+      homeTeamId: null,
+      awayTeamId: null,
+    }, cutoff)).resolves.toEqual([]);
+    expect(dbMocks.select).not.toHaveBeenCalled();
   });
 
   it("excludes evidence captured at or after the cutoff and keeps its input hash canonical", () => {
