@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import {
   db, ncaafCfbdTeamMappingsTable, ncaafFootballIntelligenceSnapshotsTable,
   ncaafGameEvidenceTable,
@@ -193,22 +193,69 @@ export function registerNcaafCandidateExecutor(registry: CandidateExecutorRegist
 export async function materializeCurrentNcaafCandidateInput(
   now = new Date(), requestedGameId?: string,
 ): Promise<MaterializedNcaafCandidateInput | null> {
-  const snapshots = await db.select().from(ncaafFootballIntelligenceSnapshotsTable).where(and(
+  const snapshotFilters = [
     eq(ncaafFootballIntelligenceSnapshotsTable.season, 2026),
     gt(ncaafFootballIntelligenceSnapshotsTable.kickoffAt, now),
     lte(ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt, now),
     lt(ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt, ncaafFootballIntelligenceSnapshotsTable.kickoffAt),
-  ));
-  const eventIds = [...new Set(snapshots.map(row => row.targetEventId))];
+  ];
+  if (requestedGameId) {
+    snapshotFilters.push(
+      eq(ncaafFootballIntelligenceSnapshotsTable.targetProvider, "espn"),
+      eq(ncaafFootballIntelligenceSnapshotsTable.targetEventId, requestedGameId),
+    );
+  }
+  const queriedSnapshots = await db.select().from(ncaafFootballIntelligenceSnapshotsTable)
+    .where(and(...snapshotFilters))
+    .orderBy(desc(ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt), desc(ncaafFootballIntelligenceSnapshotsTable.id));
+  const snapshots = requestedGameId ? queriedSnapshots.slice(0, 1) : queriedSnapshots;
+  if (!snapshots.length) return null;
+  const latestCutoff = snapshots.reduce(
+    (latest, row) => row.dataCutoffAt > latest ? row.dataCutoffAt : latest,
+    snapshots[0]!.dataCutoffAt,
+  );
   const [history, mappings] = await Promise.all([
-    db.select().from(ncaafGameEvidenceTable).where(and(
+    db.select({
+      provider: ncaafGameEvidenceTable.provider,
+      providerEventId: ncaafGameEvidenceTable.providerEventId,
+      season: ncaafGameEvidenceTable.season,
+      kickoffAt: ncaafGameEvidenceTable.kickoffAt,
+      gameStatus: ncaafGameEvidenceTable.gameStatus,
+      homeScore: ncaafGameEvidenceTable.homeScore,
+      awayScore: ncaafGameEvidenceTable.awayScore,
+      homeProviderTeamId: ncaafGameEvidenceTable.homeProviderTeamId,
+      awayProviderTeamId: ncaafGameEvidenceTable.awayProviderTeamId,
+      neutralSite: ncaafGameEvidenceTable.neutralSite,
+      providerObservedAt: ncaafGameEvidenceTable.providerObservedAt,
+      capturedAt: ncaafGameEvidenceTable.capturedAt,
+      modeledAsOf: ncaafGameEvidenceTable.modeledAsOf,
+      // The bridge needs only immutable FBS classifications from the provider
+      // payload. Never hydrate the large raw evidence document on live reads.
+      payload: sql<unknown>`jsonb_build_object(
+        'game', jsonb_build_object(
+          'homeClassification', coalesce(
+            ${ncaafGameEvidenceTable.payload} -> 'game' ->> 'homeClassification',
+            ${ncaafGameEvidenceTable.payload} ->> 'homeClassification'
+          ),
+          'awayClassification', coalesce(
+            ${ncaafGameEvidenceTable.payload} -> 'game' ->> 'awayClassification',
+            ${ncaafGameEvidenceTable.payload} ->> 'awayClassification'
+          )
+        )
+      )`,
+    }).from(ncaafGameEvidenceTable).where(and(
       inArray(ncaafGameEvidenceTable.season, [2025, 2026]),
       eq(ncaafGameEvidenceTable.gameStatus, "final"),
-      lt(ncaafGameEvidenceTable.kickoffAt, now),
+      lt(ncaafGameEvidenceTable.kickoffAt, latestCutoff),
+      lt(ncaafGameEvidenceTable.capturedAt, latestCutoff),
+      lt(ncaafGameEvidenceTable.modeledAsOf, latestCutoff),
+      or(
+        isNull(ncaafGameEvidenceTable.providerObservedAt),
+        lt(ncaafGameEvidenceTable.providerObservedAt, latestCutoff),
+      ),
     )),
     db.select().from(ncaafCfbdTeamMappingsTable).where(eq(ncaafCfbdTeamMappingsTable.season, 2026)),
   ]);
-  if (!eventIds.length) return null;
   const bridge = buildNcaafV42026FeatureBridge({
     snapshots, evidence: history,
     mappings: mappings.map(row => ({ ...row, ...(row.evidence as object) })) as NcaafSafeTeamMapping[],

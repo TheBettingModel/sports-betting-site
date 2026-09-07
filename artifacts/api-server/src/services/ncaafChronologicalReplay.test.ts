@@ -65,4 +65,19 @@ describe("NCAAF chronological replay", () => {
     expect(valid.kickoffAt.toISOString()).toBe("2024-09-01T18:00:00.000Z");
     expect(first.audit.excluded).toMatchObject({ duplicate_stable_game_id: 1, invalid_atomic_completed_game: 1 });
   });
+
+  it("can retain only a target row without changing replay state, row checksum, or audit checksum", () => {
+    const input = [
+      game("a", "2024-09-01T18:00:00Z", "A", "B", 20, 14),
+      game("b", "2024-09-08T18:00:00Z", "B", "C", 17, 10),
+      game("target", "2024-09-15T18:00:00Z", "A", "C", 0, 0),
+    ];
+    const full = replayNcaafChronologically(input);
+    const retained = replayNcaafChronologically(input, { retainGameIds: new Set(["target"]) });
+
+    expect(retained.rows).toEqual([full.rows.find((row) => row.stableGameId === "target")]);
+    expect(retained.audit.includedGames).toBe(full.audit.includedGames);
+    expect(retained.audit.checksum).toBe(full.audit.checksum);
+    expect(retained.audit.leakage).toEqual(full.audit.leakage);
+  });
 });

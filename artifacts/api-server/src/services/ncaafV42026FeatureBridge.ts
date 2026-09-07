@@ -256,7 +256,10 @@ export function buildNcaafV42026FeatureBridge(input: NcaafV42026BridgeInput) {
     for (const [reason, count] of Object.entries(prior.excluded)) audit.excludedCompletedEvidence[reason] = (audit.excludedCompletedEvidence[reason] ?? 0) + count;
     // A result-free sentinel is never exposed or retained as a target.
     const sentinel: NcaafCompletedAtomicGame = { stableGameId: key(snapshot.targetProvider, snapshot.targetEventId), season: 2026, kickoffAt: snapshot.kickoffAt, homeTeamId: home.cfbdTeamId, awayTeamId: away.cfbdTeamId, homeScore: 0, awayScore: 0, neutralSite, completed: true, homeClassification: "FBS", awayClassification: "FBS" };
-    const replay = replayNcaafChronologically([...prior.games, sentinel]);
+    const replay = replayNcaafChronologically(
+      [...prior.games, sentinel],
+      { retainGameIds: new Set([sentinel.stableGameId]) },
+    );
     const row = replay.rows.find(r => r.stableGameId === sentinel.stableGameId);
     if (!row) { reject("unable_to_construct_pregame_state"); continue; }
     audit.postKickoffEvidence += replay.audit.leakage.postKickoffPitExcluded + replay.audit.leakage.postKickoffAvailabilityExcluded;
