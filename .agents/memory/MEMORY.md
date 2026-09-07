@@ -58,3 +58,4 @@
 - [NFL V4 shadow boundary](nfl-v4-shadow-boundary.md) — July 1 seasons, Pro Bowl quarantine, exact artifact execution, and append-only shadow evidence are mandatory.
 - [Render cutover boundary](render-cutover-boundary.md) — Render is the chosen replacement API runtime; never partially cut Vercel/mobile/scheduler away from Replit before full verification.
 - [Production database export boundary](production-database-export-boundary.md) — Validate exports by expected tables; the legacy Neon database is not the live Replit production dataset.
+- [Vercel cutover previews](vercel-cutover-previews.md) — branch previews need complete workspace source; protected previews require an approved automation bypass.

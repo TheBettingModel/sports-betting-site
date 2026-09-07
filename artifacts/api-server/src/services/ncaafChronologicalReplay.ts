@@ -76,6 +76,15 @@ export interface NcaafReplayAudit {
   checksum: string;
 }
 
+export interface NcaafChronologicalReplayOptions {
+  /**
+   * Replay and checksum every eligible game, but retain output rows only for
+   * these IDs. State evolution and the canonical audit checksum stay identical
+   * to an unfiltered replay.
+   */
+  retainGameIds?: ReadonlySet<string>;
+}
+
 type Result = { scored: number; allowed: number; opponentDefenseAtKickoff: number | null; opponentOffenseAtKickoff: number | null };
 type TeamState = { results: Result[]; adjustedScored: number[]; adjustedAllowed: number[]; elo: number };
 
@@ -134,13 +143,17 @@ function availabilityFor(item: NcaafAvailabilityEvidence | undefined, kickoff: D
   return deepFreeze({ status: item.status, impact: item.impact ?? null, lineage: { ...item, values: item.values ? { ...item.values } : undefined } });
 }
 
-export function replayNcaafChronologically(input: readonly NcaafCompletedAtomicGame[]) {
+export function replayNcaafChronologically(
+  input: readonly NcaafCompletedAtomicGame[],
+  options: NcaafChronologicalReplayOptions = {},
+) {
   const audit: NcaafReplayAudit = { inputGames: input.length, includedGames: 0, excluded: {}, leakage: {
     featuresFrozenBeforeTargets: 0, stateUpdatedAfterTargets: 0, postKickoffPitExcluded: 0, postKickoffAvailabilityExcluded: 0, invalidPitExcluded: 0,
   }, checksum: "" };
   const states = new Map<string, TeamState>();
   const priorSeason = new Map<string, NcaafTeamSummary>();
   const rows: NcaafChronologicalReplayRow[] = [];
+  const rowChecksums: string[] = [];
   const seen = new Set<string>();
   const games = [...input].sort((a, b) => (isDate(a.kickoffAt) ? a.kickoffAt.getTime() : Number.MAX_SAFE_INTEGER) - (isDate(b.kickoffAt) ? b.kickoffAt.getTime() : Number.MAX_SAFE_INTEGER)
     || a.stableGameId.localeCompare(b.stableGameId));
@@ -175,7 +188,10 @@ export function replayNcaafChronologically(input: readonly NcaafCompletedAtomicG
     audit.leakage.featuresFrozenBeforeTargets++;
     const targets = deepFreeze({ homeWin: (game.homeScore > game.awayScore ? 1 : 0) as 0 | 1, homeMargin: game.homeScore - game.awayScore, totalPoints: game.homeScore + game.awayScore });
     const base = { stableGameId: game.stableGameId, season: game.season, kickoffAt: game.kickoffAt.toISOString(), features, targets };
-    rows.push(deepFreeze({ ...base, checksum: checksum(base) }));
+    const row = deepFreeze({ ...base, checksum: checksum(base) });
+    rowChecksums.push(row.checksum);
+    if (!options.retainGameIds || options.retainGameIds.has(row.stableGameId)) rows.push(row);
+    audit.includedGames++;
     const expectedHome = 1 / (1 + 10 ** ((away.elo - home.elo) / 400));
     const actualHome = game.homeScore === game.awayScore ? .5 : game.homeScore > game.awayScore ? 1 : 0;
     const homeDefense = summary(home.results).defensePointsAllowedPerGame;
@@ -190,7 +206,6 @@ export function replayNcaafChronologically(input: readonly NcaafCompletedAtomicG
     away.elo = round(away.elo - 20 * (actualHome - expectedHome))!;
     audit.leakage.stateUpdatedAfterTargets++;
   }
-  audit.includedGames = rows.length;
-  audit.checksum = checksum(rows.map((row) => row.checksum));
+  audit.checksum = checksum(rowChecksums);
   return deepFreeze({ rows, audit });
 }

@@ -18,6 +18,7 @@ async function buildAll() {
     entryPoints: {
       index: path.resolve(artifactDir, "src/index.ts"),
       "mlb-v4-replay": path.resolve(artifactDir, "src/mlb-v4-replay.ts"),
+      "run-cloud-pipeline-once": path.resolve(artifactDir, "scripts/run-cloud-pipeline-once.ts"),
     },
     platform: "node",
     bundle: true,

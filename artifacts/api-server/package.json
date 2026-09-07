@@ -7,7 +7,7 @@
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
-    "pipeline:once": "tsx ./scripts/run-cloud-pipeline-once.ts",
+    "pipeline:once": "node --enable-source-maps ./dist/run-cloud-pipeline-once.mjs",
     "model:train:v4-core-241": "tsx ./scripts/train-rolling-score-v4-241.ts",
     "model:acquire-train:v4-core-243": "tsx ./scripts/acquire-train-v4-243.ts",
     "model:train:nfl-v4-243b": "tsx ./scripts/train-nfl-v4-243b.ts",

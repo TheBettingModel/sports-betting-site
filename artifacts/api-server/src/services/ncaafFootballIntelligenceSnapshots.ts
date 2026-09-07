@@ -342,12 +342,28 @@ export function ncaafFootballIntelligenceInputHash(
 }
 
 /** Loads only immutable performance evidence that was available before cutoff and kickoff. */
+export function ncaafPerformanceHistoryScope(target: NcaafIntelligenceTarget): {
+  seasons: number[];
+  teamIds: string[];
+} {
+  return {
+    seasons: [target.season, target.season - 1],
+    teamIds: [...new Set(
+      [target.homeTeamId, target.awayTeamId].filter((id): id is string => Boolean(id)),
+    )],
+  };
+}
+
 export async function loadPriorNcaafTeamPerformance(
   target: NcaafIntelligenceTarget, dataCutoffAt: Date,
 ): Promise<NcaafPerformanceEvidenceRow[]> {
+  const scope = ncaafPerformanceHistoryScope(target);
+  if (!scope.teamIds.length) return [];
   return db.select().from(ncaafTeamGamePerformanceTable).where(and(
     eq(ncaafTeamGamePerformanceTable.provider, target.provider),
     ne(ncaafTeamGamePerformanceTable.providerEventId, target.eventId),
+    inArray(ncaafTeamGamePerformanceTable.season, scope.seasons),
+    inArray(ncaafTeamGamePerformanceTable.providerTeamId, scope.teamIds),
     lt(ncaafTeamGamePerformanceTable.kickoffAt, dataCutoffAt),
     lt(ncaafTeamGamePerformanceTable.capturedAt, dataCutoffAt),
   )) as Promise<NcaafPerformanceEvidenceRow[]>;
