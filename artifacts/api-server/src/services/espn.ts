@@ -100,6 +100,7 @@ interface EspnTeam {
 }
 
 interface EspnAthlete {
+  id?: string;
   displayName?: string;
   shortName?: string;
 }
@@ -426,8 +427,8 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
           sport,
           league,
 
-          homeTeamId: home.team?.id,
-          awayTeamId: away.team?.id,
+          homeTeamId: home.team?.id ?? home.athlete?.id,
+          awayTeamId: away.team?.id ?? away.athlete?.id,
           homeTeamLogo: espnLogoUrl(sportKey, home.team),
           awayTeamLogo: espnLogoUrl(sportKey, away.team),
           homeTeamAbbr: homeAbbr,
@@ -541,8 +542,8 @@ export async function fetchSportGamesByDate(
           espnId,
           sport,
           league,
-          homeTeamId:       home.team?.id,
-          awayTeamId:       away.team?.id,
+          homeTeamId:       home.team?.id ?? home.athlete?.id,
+          awayTeamId:       away.team?.id ?? away.athlete?.id,
           homeTeamLogo:     espnLogoUrl(sportKey, home.team),
           awayTeamLogo:     espnLogoUrl(sportKey, away.team),
           homeTeamAbbr:     homeAbbr,

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq, isNotNull, lt } from "drizzle-orm";
+import { and, asc, eq, gt, isNotNull, lt } from "drizzle-orm";
 import { db, gamesTable } from "@workspace/db";
 import {
   stableHash,
@@ -53,6 +53,17 @@ export type LinearScoreModel = Readonly<{
   intercept: number;
   coefficients: readonly number[];
 }>;
+export type RollingScoreHistorySeed = Readonly<{
+  asOf: string;
+  sourceHash: string;
+  teams: Readonly<Record<string, Readonly<{
+    games: number;
+    scored: number;
+    allowed: number;
+    lastPlayedAt: number;
+    evidenceTimes: readonly string[];
+  }>>>;
+}>;
 export type RollingScoreV4Artifact = Readonly<{
   sport: TbmV4Sport;
   modelId: string;
@@ -76,6 +87,7 @@ export type RollingScoreV4Artifact = Readonly<{
   };
   homeModel: LinearScoreModel;
   awayModel: LinearScoreModel;
+  historySeed?: RollingScoreHistorySeed;
   metrics: {
     validationHomeMae: number;
     validationAwayMae: number;
@@ -113,6 +125,33 @@ const contractHash = stableHash({
 
 function state(): TeamState {
   return { games: 0, scored: 0, allowed: 0, lastPlayedAt: null, evidenceTimes: [] };
+}
+
+export function buildRollingScoreHistorySeed(games: readonly CompletedScoreGame[]): RollingScoreHistorySeed {
+  const teams = new Map<string, TeamState>();
+  const ordered = [...games].sort((a, b) =>
+    Date.parse(a.completedAt) - Date.parse(b.completedAt) || a.gameId.localeCompare(b.gameId));
+  for (const game of ordered) {
+    const eventStart = Date.parse(game.eventStart);
+    const completedAt = Date.parse(game.completedAt);
+    if (!Number.isFinite(eventStart) || !Number.isFinite(completedAt) || completedAt <= eventStart) continue;
+    const home = teams.get(game.homeTeamId) ?? state();
+    const away = teams.get(game.awayTeamId) ?? state();
+    home.games++; home.scored += game.homeScore; home.allowed += game.awayScore;
+    home.lastPlayedAt = eventStart; home.evidenceTimes = [...home.evidenceTimes, game.completedAt].slice(-20);
+    away.games++; away.scored += game.awayScore; away.allowed += game.homeScore;
+    away.lastPlayedAt = eventStart; away.evidenceTimes = [...away.evidenceTimes, game.completedAt].slice(-20);
+    teams.set(game.homeTeamId, home); teams.set(game.awayTeamId, away);
+  }
+  const asOf = ordered.map((game) => game.completedAt).sort().at(-1) ?? new Date(0).toISOString();
+  const body = {
+    asOf,
+    teams: Object.fromEntries([...teams.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([id, team]) => [id, {
+      games: team.games, scored: team.scored, allowed: team.allowed,
+      lastPlayedAt: team.lastPlayedAt!, evidenceTimes: team.evidenceTimes,
+    }])),
+  };
+  return { ...body, sourceHash: stableHash(body) };
 }
 
 function daysBetween(earlier: number, later: number): number {
@@ -304,6 +343,7 @@ export function trainRollingScoreV4(
   sport: TbmV4Sport,
   vectors: readonly RollingScoreVector[],
   trainedAt: string,
+  historySeed?: RollingScoreHistorySeed,
 ): RollingScoreV4Artifact {
   if (vectors.length < 40) throw new Error("INSUFFICIENT_TRAINING_ROWS");
   const split = Math.floor(vectors.length * .8);
@@ -387,13 +427,14 @@ export function trainRollingScoreV4(
     normalization,
     homeModel: selected.homeModel,
     awayModel: selected.awayModel,
+    ...(historySeed ? { historySeed } : {}),
     metrics,
     approvalState: "SHADOW" as const,
     maturity: "DEVELOPING" as const,
   } as const;
   const parameterHash = stableHash({ homeModel: body.homeModel, awayModel: body.awayModel });
   if (Math.abs(metrics.totalBias) > Math.max(2, metrics.actualAverageTotal * .2)
-    || metrics.validationBrier > metrics.baselineBrier + .02) {
+    || metrics.validationBrier >= metrics.baselineBrier) {
     throw new Error("MODEL_QUALITY_GATE_FAILED");
   }
   return { ...body, parameterHash, artifactHash: stableHash({ ...body, parameterHash }) };
@@ -449,6 +490,7 @@ export function createRollingScoreV4Engine(
         isNotNull(gamesTable.homeScore),
         isNotNull(gamesTable.awayScore),
         lt(gamesTable.startsAt, event.startsAt),
+        ...(artifact.historySeed ? [gt(gamesTable.startsAt, new Date(artifact.historySeed.asOf))] : []),
       )).orderBy(asc(gamesTable.startsAt));
       return { event, history };
     },
@@ -466,6 +508,34 @@ export function createRollingScoreV4Engine(
             completedAt: new Date(game.startsAt.getTime() + 12 * 60 * 60 * 1000).toISOString(),
             homeScore: game.homeScore, awayScore: game.awayScore,
           }] : []);
+      if (artifact.historySeed) {
+        const teams = new Map<string, TeamState>(Object.entries(artifact.historySeed.teams).map(([id, value]) => [id, {
+          games: value.games, scored: value.scored, allowed: value.allowed,
+          lastPlayedAt: value.lastPlayedAt, evidenceTimes: [...value.evidenceTimes],
+        }]));
+        for (const game of completed.sort((a, b) => Date.parse(a.completedAt) - Date.parse(b.completedAt))) {
+          if (Date.parse(game.completedAt) >= event.startsAt.getTime()) continue;
+          const home = teams.get(game.homeTeamId) ?? state();
+          const away = teams.get(game.awayTeamId) ?? state();
+          home.games++; home.scored += game.homeScore; home.allowed += game.awayScore;
+          home.lastPlayedAt = Date.parse(game.eventStart); home.evidenceTimes = [...home.evidenceTimes, game.completedAt].slice(-20);
+          away.games++; away.scored += game.awayScore; away.allowed += game.homeScore;
+          away.lastPlayedAt = Date.parse(game.eventStart); away.evidenceTimes = [...away.evidenceTimes, game.completedAt].slice(-20);
+          teams.set(game.homeTeamId, home); teams.set(game.awayTeamId, away);
+        }
+        const home = teams.get(event.homeTeamId) ?? state();
+        const away = teams.get(event.awayTeamId) ?? state();
+        const sourceEvidenceTimes = [...home.evidenceTimes, ...away.evidenceTimes].sort();
+        const dataCutoff = sourceEvidenceTimes.at(-1);
+        if (!dataCutoff || Date.parse(dataCutoff) >= event.startsAt.getTime()) throw new Error("LIVE_INPUT_MATERIALIZATION_FAILED");
+        const input = features(home, away, event.startsAt.getTime());
+        return {
+          gameId: event.id, eventStart: event.startsAt.toISOString(), dataCutoff,
+          predictionTimestamp: now.toISOString(), sourceEvidenceTimes,
+          featureSnapshotId: `${artifact.sport}:${event.id}:${dataCutoff}`,
+          featureHash: stableHash(input), input,
+        };
+      }
       const synthetic: CompletedScoreGame = {
         gameId: event.id, sport: artifact.sport, homeTeamId: event.homeTeamId, awayTeamId: event.awayTeamId,
         eventStart: event.startsAt.toISOString(),
