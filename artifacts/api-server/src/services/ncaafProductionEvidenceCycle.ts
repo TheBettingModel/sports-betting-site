@@ -27,7 +27,7 @@ import { captureCollegeFootballDataEvidence, type CfbdCaptureResult } from "./nc
 import { captureScheduledCfbdAdvancedEvidence, type AdvancedCaptureResult } from "./ncaafCfbdAdvancedEvidence";
 import { materializeCurrentCfbdMappings } from "./ncaafCfbdMappingMaterializer";
 import { CollegeFootballDataError } from "./collegeFootballData";
-import { getNcaafV4ProjectionBoard } from "./ncaafV4GameDay";
+import { DbV4ForecastLedger, discoverV4Slate, runFullSlateV4 } from "./v4FullSlate";
 
 export const NCAAF_FINAL_PREGAME_WINDOW_MINUTES = 45;
 export const MAX_NCAAF_BOOTSTRAP_DAYS = 14;
@@ -136,7 +136,16 @@ export function isNcaafCurrentGameDayKickoff(kickoffAt: Date, now: Date): boolea
 /** Normal scheduler-only initializer. It deliberately has no date argument, so
  * the board resolves only the exact current America/New_York day from cycleNow. */
 export async function initializeCurrentNcaafV4Forecasts(cycleNow: Date): Promise<unknown> {
-  return getNcaafV4ProjectionBoard(undefined, cycleNow);
+  const sportDate = ncaafCurrentEasternDate(cycleNow);
+  const events = await discoverV4Slate("NCAAF", sportDate);
+  return runFullSlateV4({
+    sport: "NCAAF",
+    sportDate,
+    now: cycleNow,
+    mode: "SHADOW",
+    events,
+    ledger: new DbV4ForecastLedger(),
+  });
 }
 async function listCanonicalUpcomingGames(now: Date): Promise<NcaafProductionEvidenceGame[]> {
   const { start, end } = ncaafCurrentEasternDayBounds(now);

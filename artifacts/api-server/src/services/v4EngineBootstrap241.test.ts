@@ -36,4 +36,16 @@ describe("Task 241 V4 engine bootstrap", () => {
     });
     expect(canonicalV4EngineRegistry.get("NFL")?.approvalState).toBe("SHADOW");
   });
+
+  it("registers the frozen NCAAF executor as unvalidated and publication-disabled", () => {
+    expect(canonicalV4EngineRegistry.get("NCAAF")?.identity).toMatchObject({
+      modelId: "tbm-ncaaf-v4-expected-score",
+      modelVersion: "D-simple-expected-score-linear",
+      artifactHash: "59c00f4d5bb1219cf3ddab746311bdb96e6a19d4cc868fc33bd8176871be3226",
+      contractId: "ncaaf-chronological-team-game-v2",
+    });
+    expect(canonicalV4EngineRegistry.get("NCAAF")?.approvalState).toBe("UNVALIDATED");
+    expect(canonicalV4EngineRegistry.status().find((row) => row.sport === "NCAAF"))
+      .toMatchObject({ technicallyReady: true, publicationPermitted: false });
+  });
 });
