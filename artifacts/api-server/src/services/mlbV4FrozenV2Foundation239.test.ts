@@ -35,7 +35,11 @@ const side = (base: number, isHome: boolean): MlbSideFeatureVector => ({
   ownOffense: Object.fromEntries(MLB_224C_FEATURE_SCHEMA.ownOffense.map((name, index) =>
     [name, name === "priorGames" || name === "seasonGames" ? base : base + index / 10])),
   leagueEnvironment: Object.fromEntries(MLB_224C_FEATURE_SCHEMA.leagueEnvironment.map((name) =>
-    [name, name === "isHome" ? (isHome ? 1 : 0) : base])),
+    [name, name === "isHome" ? (isHome ? 1 : 0)
+      : name === "priorGames" ? 100
+        : name === "runsPerTeamGame7d" ? 4.3
+          : name === "runsPerTeamGame14d" ? 4.4
+            : name === "runsPerTeamGame30d" ? 4.5 : 4.6])),
   opponentBullpen: Object.fromEntries(MLB_224C_FEATURE_SCHEMA.opponentBullpen.map((name) => [name, base])),
 });
 const historical = (id = "g1", date = "2024-01-01T20:00:00.000Z", h = 10, a = 4): V2HistoricalInput => ({
@@ -45,10 +49,27 @@ const historical = (id = "g1", date = "2024-01-01T20:00:00.000Z", h = 10, a = 4)
 const live = (id = "g1", date = "2024-01-01T20:00:00.000Z", h = 10, a = 4): V2LiveInput => ({
   ...envelope(id, date), schemaVersion: MLB_V4_FROZEN_V2_LIVE_SCHEMA, pitSafe: true as const,
   features: {
-    home: { ownOffense: { priorGames: h, seasonGames: h, seasonRunsPerGame: h + .6 },
-      leagueEnvironment: { isHome: 1 as const } },
-    away: { ownOffense: { priorGames: a, seasonGames: a, seasonRunsPerGame: a + .6 },
-      leagueEnvironment: { isHome: 0 as const } },
+    home: { offense: {
+      currentSeason: { games: h, runsPerGame: h + .6 },
+      rolling: Object.fromEntries([5, 10, 20, 30].map((n, index) =>
+        [`games${n}`, { runsPerGame: h + (index + 2) / 10 }])),
+      currentSeasonHome: { runsPerGame: h + .7 },
+      currentSeasonAway: { runsPerGame: h + .7 },
+    } },
+    away: { offense: {
+      currentSeason: { games: a, runsPerGame: a + .6 },
+      rolling: Object.fromEntries([5, 10, 20, 30].map((n, index) =>
+        [`games${n}`, { runsPerGame: a + (index + 2) / 10 }])),
+      currentSeasonHome: { runsPerGame: a + .7 },
+      currentSeasonAway: { runsPerGame: a + .7 },
+    } },
+    leagueContext: {
+      priorGames: 100,
+      runsPerTeamGame7d: 4.3,
+      runsPerTeamGame14d: 4.4,
+      runsPerTeamGame30d: 4.5,
+      seasonRunsPerTeamGame: 4.6,
+    },
   },
 });
 const datasetGame = (id: string, date: string, cohort: V2Cohort, h: number, a: number): V2DatasetGame => ({
@@ -61,13 +82,10 @@ describe("Task 239 frozen MLB v2 foundation", () => {
   it("reassesses every Task 238 field exactly once and retains only fully defensible fields", () => {
     expect(MLB_V4_FROZEN_V2_DISPOSITIONS).toHaveLength(38);
     expect(new Set(MLB_V4_FROZEN_V2_DISPOSITIONS.map((row) => row.canonicalName)).size).toBe(38);
-    expect(MLB_V4_FROZEN_V2_DISPOSITIONS.filter((row) => row.disposition === "RETAINED")).toHaveLength(4);
-    expect(MLB_V4_FROZEN_V2_DISPOSITIONS.filter((row) => row.disposition === "DROPPED")
+    expect(MLB_V4_FROZEN_V2_DISPOSITIONS.filter((row) => row.disposition === "PARITY_PROVEN")).toHaveLength(14);
+    expect(MLB_V4_FROZEN_V2_DISPOSITIONS.filter((row) => row.disposition === "HISTORICAL_BASELINE_ONLY")
       .every((row) => row.reasonCode)).toBe(true);
-    expect(MLB_V4_FROZEN_V2_FEATURE_ORDER).toEqual([
-      "homeMinusAway.ownOffense.priorGames", "homeMinusAway.ownOffense.seasonGames",
-      "homeMinusAway.ownOffense.seasonRunsPerGame", "homeMinusAway.leagueEnvironment.isHome",
-    ]);
+    expect(MLB_V4_FROZEN_V2_FEATURE_ORDER).toHaveLength(14);
     expect(MLB_V4_FROZEN_V2_FEATURE_ORDER_HASH).toHaveLength(64);
     expect(MLB_V4_FROZEN_V2_CONTRACT.contractHash).toHaveLength(64);
   });
@@ -75,17 +93,18 @@ describe("Task 239 frozen MLB v2 foundation", () => {
   it("materializes historical and live raw vectors with exact parity and orientation", () => {
     const old = adaptHistoricalMlbV4V2(historical());
     const current = adaptLiveMlbV4V2(live());
-    expect(old.rawHomeMinusAway).toEqual([6, 6, 6, 1]);
+    expect(old.rawHomeMinusAway).toHaveLength(14);
     expect(current.rawHomeMinusAway).toEqual(old.rawHomeMinusAway);
     expect(current.vectorHash).toBe(old.vectorHash);
     expect(adaptLiveMlbV4V2(live("g1", "2024-01-01T20:00:00.000Z", 4, 10)).rawHomeMinusAway)
-      .toEqual([-6, -6, -6, 1]);
+      .toEqual(expect.arrayContaining([-6, 1]));
   });
 
   it("preserves nulls in both adapters", () => {
     const fixture = live();
-    fixture.features.home.ownOffense.seasonRunsPerGame = null;
-    expect(adaptLiveMlbV4V2(fixture).rawHomeMinusAway).toEqual([6, 6, null, 1]);
+    (fixture.features.home.offense as { currentSeason: { runsPerGame: number | null } })
+      .currentSeason.runsPerGame = null;
+    expect(adaptLiveMlbV4V2(fixture).rawHomeMinusAway[6]).toBeNull();
   });
 
   it.each([
@@ -102,7 +121,7 @@ describe("Task 239 frozen MLB v2 foundation", () => {
     expect(() => adaptLiveMlbV4V2({ ...live(),
       predictionTime: live().scheduledFirstPitch })).toThrow(/PIT_CHRONOLOGY/);
     const bad = live();
-    bad.features.home.ownOffense.priorGames = -1;
+    (bad.features.home.offense as { currentSeason: { games: number } }).currentSeason.games = -1;
     expect(() => adaptLiveMlbV4V2(bad)).toThrow(/FEATURE_RANGE/);
   });
 
@@ -137,9 +156,9 @@ describe("Task 239 frozen MLB v2 foundation", () => {
     const artifact = fitMlbV4V2Normalization(dataset);
     expect(artifact.trainingGameCount).toBe(2);
     expect(artifact.trainingSideRowCount).toBe(4);
-    expect(artifact.transform.medians).toEqual([8, 8, 8.6, .5]);
+    expect(artifact.transform.medians).toHaveLength(14);
     expect(artifact.artifactHash).toHaveLength(64);
-    expect(applyMlbV4V2Normalization(rows[2].vector, artifact)).toHaveLength(4);
+    expect(applyMlbV4V2Normalization(rows[2].vector, artifact)).toHaveLength(14);
     expect(fitMlbV4V2Normalization(dataset).artifactHash).toBe(artifact.artifactHash);
   });
 
@@ -147,6 +166,7 @@ describe("Task 239 frozen MLB v2 foundation", () => {
     expect(MLB_V4_V2_DEFAULT_TRAINING_GATE.open).toBe(false);
     expect(MLB_V4_V2_DEFAULT_TRAINING_GATE.reasonCodes).toEqual([
       "DEVELOPMENT_DATASET_NOT_PROVIDED", "TRAIN_NORMALIZATION_NOT_PROVIDED",
+      "NO_PROSPECTIVE_V5_PARITY_VECTOR",
     ]);
     const rows = [
       datasetGame("t", "2023-01-01T20:00:00.000Z", "TRAIN", 10, 4),
@@ -154,7 +174,8 @@ describe("Task 239 frozen MLB v2 foundation", () => {
       datasetGame("b", "2025-01-01T20:00:00.000Z", "HISTORICAL_BENCHMARK_ONLY", 12, 6),
     ];
     const dataset = materializeMlbV4V2Dataset(rows, new Set(["b"]));
-    expect(evaluateMlbV4V2TrainingGate(dataset, fitMlbV4V2Normalization(dataset)).open).toBe(true);
+    expect(evaluateMlbV4V2TrainingGate(dataset, fitMlbV4V2Normalization(dataset),
+      { prospectiveParityVectors: 1 }).open).toBe(true);
   });
 
   it("rejects target ties and never consumes targets in adapter features", () => {

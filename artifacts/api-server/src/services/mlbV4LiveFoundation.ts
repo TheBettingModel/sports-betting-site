@@ -171,6 +171,55 @@ export function materializeTeamOffensePitState(input: { cutoff: Date; rows: Arra
     missingness: { noEligibleCompletedGames: rows.length === 0, noCurrentSeasonGames: current.length === 0, noPriorSeasonGames: prior.length === 0 },
     sourceCutoff: rows.at(-1)?.completedAt ?? null };
 }
+
+export function materializeLeagueEnvironmentPitState(input: {
+  cutoff: Date;
+  rows: Array<{
+    canonicalGameId: string;
+    completedAt: Date;
+    recordedAt?: Date;
+    homeRuns: number;
+    awayRuns: number;
+  }>;
+}) {
+  const season = input.cutoff.getUTCFullYear();
+  const ordered = input.rows
+    .filter((row) => row.completedAt < input.cutoff
+      && (!row.recordedAt || row.recordedAt < input.cutoff)
+      && row.completedAt.getUTCFullYear() === season)
+    .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime()
+      || (a.recordedAt?.getTime() ?? 0) - (b.recordedAt?.getTime() ?? 0)
+      || a.canonicalGameId.localeCompare(b.canonicalGameId));
+  const rows = [...new Map(ordered.map((row) => [row.canonicalGameId, row])).values()];
+  const rateFor = (values: typeof rows): number | null =>
+    values.length
+      ? values.reduce((total, row) => total + row.homeRuns + row.awayRuns, 0) / (2 * values.length)
+      : null;
+  const inDays = (days: number) => rows.filter((row) =>
+    input.cutoff.getTime() - row.completedAt.getTime() <= days * 86_400_000);
+  return {
+    features: {
+      priorGames: rows.length,
+      runsPerTeamGame7d: rateFor(inDays(7)),
+      runsPerTeamGame14d: rateFor(inDays(14)),
+      runsPerTeamGame30d: rateFor(inDays(30)),
+      seasonRunsPerTeamGame: rateFor(rows),
+    },
+    sampleSizes: {
+      seasonGames: rows.length,
+      games7d: inDays(7).length,
+      games14d: inDays(14).length,
+      games30d: inDays(30).length,
+    },
+    missingness: {
+      noSeasonGames: rows.length === 0,
+      noGames7d: inDays(7).length === 0,
+      noGames14d: inDays(14).length === 0,
+      noGames30d: inDays(30).length === 0,
+    },
+    sourceCutoff: rows.at(-1)?.completedAt ?? null,
+  };
+}
 export function materializeBullpenPitState(input: { cutoff: Date; rows: Array<{ completedAt: Date; recordedAt?: Date; innings: number | null; pitches: number | null; relievers: number | null; earnedRuns: number | null }> }) {
   const rows = input.rows.filter((r) => r.completedAt < input.cutoff && (!r.recordedAt || r.recordedAt < input.cutoff))
     .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());

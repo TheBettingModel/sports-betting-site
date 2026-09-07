@@ -63,7 +63,7 @@ export interface GateApprovedDataset {
 export interface FrozenCohortBinding {
   readonly training: Readonly<{ start: string; end: string }>;
   readonly validation: Readonly<{ start: string; end: string }>;
-  readonly test: Readonly<{ start: string; end: string }>;
+  readonly historicalBenchmarkOnly: Readonly<{ start: string; end: string }>;
   readonly gameIdsHash: string;
 }
 
@@ -96,15 +96,19 @@ export function createDeterministicTrainingConfiguration(input: {
     || !input.dataset.approvalId) {
     throw new Error("Dataset approval identity is incomplete");
   }
-  const windows = [input.cohort.training, input.cohort.validation, input.cohort.test];
+  const windows = [
+    input.cohort.training,
+    input.cohort.validation,
+    input.cohort.historicalBenchmarkOnly,
+  ];
   windows.forEach((window, index) => {
     assertIso(window.start, `cohort[${index}].start`);
     assertIso(window.end, `cohort[${index}].end`);
     if (window.start >= window.end) throw new Error("Cohort windows must be nonempty");
   });
   if (!(input.cohort.training.end <= input.cohort.validation.start
-    && input.cohort.validation.end <= input.cohort.test.start)) {
-    throw new Error("Training, validation, and test cohorts must be chronological and disjoint");
+    && input.cohort.validation.end <= input.cohort.historicalBenchmarkOnly.start)) {
+    throw new Error("Training, validation, and benchmark-only cohorts must be chronological and disjoint");
   }
   if (!input.orderedGameIds.length
     || input.orderedGameIds.some((id, index) => !id

@@ -13,61 +13,49 @@ import {
   MLB_V4_FEATURE_ORDER,
   type AdapterEnvelope,
 } from "./mlbV4InputContract238";
+import { MLB_V4_INPUT_SCHEMA } from "./mlbV4LiveFoundation";
 
 export const MLB_V4_FROZEN_V2_CONTRACT_ID = "mlb-v4-frozen-parity-baseline-v2";
 export const MLB_V4_FROZEN_V2_CONTRACT_VERSION = 2;
-export const MLB_V4_FROZEN_V2_LIVE_SCHEMA = "mlb-v4-parity-baseline-input-v2";
+export const MLB_V4_FROZEN_V2_LIVE_SCHEMA = MLB_V4_INPUT_SCHEMA;
 export const MLB_V4_FROZEN_V2_HISTORICAL_SCHEMA = "mlb-v4-moneyline-237-flat-38-v1";
 
 export const MLB_V4_FROZEN_V2_SCHEMA: MlbSideFeatureSchema = Object.freeze({
-  ownOffense: Object.freeze(["priorGames", "seasonGames", "seasonRunsPerGame"]),
-  leagueEnvironment: Object.freeze(["isHome"]),
+  ownOffense: MLB_224C_FEATURE_SCHEMA.ownOffense,
+  leagueEnvironment: MLB_224C_FEATURE_SCHEMA.leagueEnvironment,
   opponentBullpen: Object.freeze([]),
 });
 
-export const MLB_V4_FROZEN_V2_FEATURE_ORDER = Object.freeze([
-  "homeMinusAway.ownOffense.priorGames",
-  "homeMinusAway.ownOffense.seasonGames",
-  "homeMinusAway.ownOffense.seasonRunsPerGame",
-  "homeMinusAway.leagueEnvironment.isHome",
-] as const);
+export const MLB_V4_FROZEN_V2_FEATURE_ORDER = Object.freeze(
+  MLB_V4_FEATURE_ORDER.filter((name) =>
+    name.startsWith("homeMinusAway.ownOffense.")
+    || name.startsWith("homeMinusAway.leagueEnvironment.")),
+);
 export const MLB_V4_FROZEN_V2_FEATURE_ORDER_HASH =
   stableLocalHash(MLB_V4_FROZEN_V2_FEATURE_ORDER);
 
-export type V2Disposition = "RETAINED" | "DROPPED";
-export type V2DropReason =
-  | "LIVE_WINDOW_CROSSES_SEASONS"
-  | "LIVE_HOME_AWAY_SPLIT_DEFECT"
-  | "LIVE_LEAGUE_BINDING_NOT_EXACT"
-  | "LIVE_FIELD_NOT_AVAILABLE"
-  | "LIVE_BULLPEN_DUPLICATION_AND_NULL_COERCION";
+export type V2Disposition =
+  | "PARITY_PROVEN"
+  | "HISTORICAL_BASELINE_ONLY"
+  | "PROSPECTIVE_ONLY"
+  | "STRUCTURALLY_UNAVAILABLE"
+  | "DROPPED_FROM_NEXT_CONTRACT";
+export type V2DropReason = "LIVE_EXACT_BULLPEN_FEATURE_SET_NOT_MATERIALIZED";
 
 const retained = new Set<string>(MLB_V4_FROZEN_V2_FEATURE_ORDER);
 export const MLB_V4_FROZEN_V2_DISPOSITIONS = Object.freeze(
   MLB_V4_FEATURE_DEFINITIONS.map((definition) => {
     const keep = retained.has(definition.canonicalName);
-    let reasonCode: V2DropReason | null = null;
-    if (!keep) {
-      if (/runsPerGame(5|10|20|30)$/.test(definition.researchName)) {
-        reasonCode = "LIVE_WINDOW_CROSSES_SEASONS";
-      } else if (definition.researchName === "ownOffense.homeAwayRunsPerGame") {
-        reasonCode = "LIVE_HOME_AWAY_SPLIT_DEFECT";
-      } else if (definition.researchName === "leagueEnvironment.seasonRunsPerTeamGame") {
-        reasonCode = "LIVE_LEAGUE_BINDING_NOT_EXACT";
-      } else if (definition.provenanceClass === "HISTORICAL_PIT_AND_DEFECTIVE_LIVE_ANALOG") {
-        reasonCode = "LIVE_BULLPEN_DUPLICATION_AND_NULL_COERCION";
-      } else {
-        reasonCode = "LIVE_FIELD_NOT_AVAILABLE";
-      }
-    }
+    const reasonCode: V2DropReason | null =
+      keep ? null : "LIVE_EXACT_BULLPEN_FEATURE_SET_NOT_MATERIALIZED";
     return Object.freeze({
       canonicalName: definition.canonicalName,
       source238Status: definition.status,
-      disposition: keep ? "RETAINED" as const : "DROPPED" as const,
+      disposition: keep ? "PARITY_PROVEN" as const : "HISTORICAL_BASELINE_ONLY" as const,
       reasonCode,
       reassessment: keep
-        ? "V2 binds both adapters to the same raw definition and fits a new TRAIN-only transform."
-        : definition.mappingNote,
+        ? "Repaired v5 live materialization now uses the historical same-season offense, side, and league-window semantics; V2 fits a new TRAIN-only transform."
+        : "Historical PIT evidence exists, but the repaired live state does not yet materialize all 24 exact historical bullpen definitions.",
     });
   }),
 );
@@ -194,12 +182,10 @@ function chronology(input: AdapterEnvelope): void {
 
 function subset(source: MlbSideFeatureVector, side: "home" | "away"): MlbSideFeatureVector {
   const values: MlbSideFeatureVector = {
-    ownOffense: {
-      priorGames: source.ownOffense.priorGames,
-      seasonGames: source.ownOffense.seasonGames,
-      seasonRunsPerGame: source.ownOffense.seasonRunsPerGame,
-    },
-    leagueEnvironment: { isHome: source.leagueEnvironment.isHome },
+    ownOffense: Object.fromEntries(MLB_V4_FROZEN_V2_SCHEMA.ownOffense.map((name) =>
+      [name, source.ownOffense[name]])),
+    leagueEnvironment: Object.fromEntries(MLB_V4_FROZEN_V2_SCHEMA.leagueEnvironment.map((name) =>
+      [name, source.leagueEnvironment[name]])),
     opponentBullpen: {},
   };
   const flat = flattenMlbSideFeatures(values, MLB_V4_FROZEN_V2_SCHEMA);
@@ -207,7 +193,8 @@ function subset(source: MlbSideFeatureVector, side: "home" | "away"): MlbSideFea
     if (value !== null && value !== undefined && (!Number.isFinite(value) || value < 0)) {
       fail("FEATURE_RANGE_INVALID", `${side}.${MLB_V4_FROZEN_V2_FEATURE_ORDER[index]}`);
     }
-    if (index === 3 && value !== 0 && value !== 1) {
+    if (MLB_V4_FROZEN_V2_FEATURE_ORDER[index]?.endsWith(".isHome")
+      && value !== 0 && value !== 1) {
       fail("FEATURE_RANGE_INVALID", `${side}.leagueEnvironment.isHome`);
     }
   });
@@ -229,18 +216,16 @@ export interface V2HistoricalInput extends AdapterEnvelope {
   home: MlbSideFeatureVector;
   away: MlbSideFeatureVector;
 }
-export interface V2LiveSide {
-  ownOffense: {
-    priorGames: number | null;
-    seasonGames: number | null;
-    seasonRunsPerGame: number | null;
-  };
-  leagueEnvironment: { isHome: 0 | 1 };
-}
 export interface V2LiveInput extends AdapterEnvelope {
   schemaVersion: typeof MLB_V4_FROZEN_V2_LIVE_SCHEMA;
   pitSafe: true;
-  features: { home: V2LiveSide; away: V2LiveSide };
+  features: {
+    home: { offense: unknown; starter?: unknown; opponentBullpen?: unknown };
+    away: { offense: unknown; starter?: unknown; opponentBullpen?: unknown };
+    leagueContext: unknown;
+    homeContext?: unknown;
+    parkContext?: unknown;
+  };
 }
 export interface V2CanonicalVector {
   contractHash: string;
@@ -303,20 +288,53 @@ export function adaptLiveMlbV4V2(input: V2LiveInput): V2CanonicalVector {
   if (input.schemaVersion !== MLB_V4_FROZEN_V2_LIVE_SCHEMA || input.pitSafe !== true) {
     fail("SCHEMA_MISMATCH", "live v2 schema/PIT binding");
   }
-  exactKeys(input.features, ["home", "away"], "features");
-  for (const sideName of ["home", "away"] as const) {
-    exactKeys(input.features[sideName], ["ownOffense", "leagueEnvironment"], `features.${sideName}`);
-    exactKeys(input.features[sideName].ownOffense,
-      ["priorGames", "seasonGames", "seasonRunsPerGame"], `features.${sideName}.ownOffense`);
-    exactKeys(input.features[sideName].leagueEnvironment, ["isHome"],
-      `features.${sideName}.leagueEnvironment`);
-  }
-  const side = (value: V2LiveSide): MlbSideFeatureVector => ({
-    ownOffense: value.ownOffense,
-    leagueEnvironment: value.leagueEnvironment,
-    opponentBullpen: {},
-  });
-  return adapt("LIVE", input, side(input.features.home), side(input.features.away));
+  const record = (value: unknown, path: string): Json => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      fail("FEATURE_SHAPE_INVALID", `${path} must be an object`);
+    }
+    return value as Json;
+  };
+  const finiteOrNull = (value: unknown, path: string): number | null => {
+    if (value == null) return null;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      fail("FEATURE_VALUE_INVALID", path);
+    }
+    return value;
+  };
+  const league = record(input.features.leagueContext, "features.leagueContext");
+  const liveSide = (sideName: "home" | "away"): MlbSideFeatureVector => {
+    const offense = record(input.features[sideName].offense, `features.${sideName}.offense`);
+    const current = record(offense.currentSeason, `${sideName}.offense.currentSeason`);
+    const rolling = record(offense.rolling, `${sideName}.offense.rolling`);
+    const split = record(
+      offense[sideName === "home" ? "currentSeasonHome" : "currentSeasonAway"],
+      `${sideName}.offense.currentSeasonSplit`,
+    );
+    const ownOffense = Object.fromEntries(MLB_224C_FEATURE_SCHEMA.ownOffense.map((name) => {
+      const windowMatch = /^runsPerGame(5|10|20|30)$/.exec(name);
+      let value: unknown;
+      if (name === "priorGames" || name === "seasonGames") value = current.games;
+      else if (windowMatch) {
+        value = record(rolling[`games${windowMatch[1]}`], `${sideName}.offense.${name}`).runsPerGame;
+      } else if (name === "seasonRunsPerGame") value = current.runsPerGame;
+      else value = split.runsPerGame;
+      return [name, finiteOrNull(value, `${sideName}.ownOffense.${name}`)];
+    }));
+    const leagueEnvironment = Object.fromEntries(MLB_224C_FEATURE_SCHEMA.leagueEnvironment.map((name) => {
+      const value = name === "isHome" ? (sideName === "home" ? 1 : 0) : league[name];
+      return [name, finiteOrNull(value, `${sideName}.leagueEnvironment.${name}`)];
+    }));
+    return { ownOffense, leagueEnvironment, opponentBullpen: {} };
+  };
+  const retainedPayload = {
+    homeOffense: input.features.home.offense,
+    awayOffense: input.features.away.offense,
+    leagueContext: input.features.leagueContext,
+  };
+  const { features: _features, ...metadata } = input;
+  firewall(metadata);
+  firewall(retainedPayload);
+  return adapt("LIVE", input, liveSide("home"), liveSide("away"));
 }
 
 export type V2Cohort = "TRAIN" | "VALIDATION" | "HISTORICAL_BENCHMARK_ONLY";
@@ -456,14 +474,20 @@ export const MLB_V4_V2_TRAINING_GATE_REQUIREMENTS = Object.freeze([
   "TRAIN_FITTED_NORMALIZATION_HASH_VERIFIED",
   "ZERO_MISSING_NORMALIZED_VALUES",
   "ZERO_PIT_MARKET_OUTCOME_CROSS_SPORT_VIOLATIONS",
+  "AT_LEAST_ONE_REAL_PROSPECTIVE_V5_PARITY_VECTOR",
 ] as const);
 export function evaluateMlbV4V2TrainingGate(
   dataset: V2Dataset | null,
   artifact: V2NormalizationArtifact | null,
+  evidence: Readonly<{ prospectiveParityVectors: number }> = { prospectiveParityVectors: 0 },
 ): Readonly<{ open: boolean; reasonCodes: readonly string[]; proofHash: string }> {
   const reasons: string[] = [];
   if (!dataset) reasons.push("DEVELOPMENT_DATASET_NOT_PROVIDED");
   if (!artifact) reasons.push("TRAIN_NORMALIZATION_NOT_PROVIDED");
+  if (!Number.isInteger(evidence.prospectiveParityVectors)
+    || evidence.prospectiveParityVectors < 1) {
+    reasons.push("NO_PROSPECTIVE_V5_PARITY_VECTOR");
+  }
   if (dataset && artifact) {
     if (dataset.contractHash !== MLB_V4_FROZEN_V2_CONTRACT.contractHash) reasons.push("CONTRACT_HASH_MISMATCH");
     if (artifact.datasetHash !== dataset.datasetHash
@@ -483,7 +507,8 @@ export function evaluateMlbV4V2TrainingGate(
   return Object.freeze({ ...result, proofHash: stableLocalHash({
     requirements: MLB_V4_V2_TRAINING_GATE_REQUIREMENTS,
     contractHash: MLB_V4_FROZEN_V2_CONTRACT.contractHash,
-    datasetHash: dataset?.datasetHash ?? null, artifactHash: artifact?.artifactHash ?? null, ...result,
+    datasetHash: dataset?.datasetHash ?? null, artifactHash: artifact?.artifactHash ?? null,
+    prospectiveParityVectors: evidence.prospectiveParityVectors, ...result,
   }) });
 }
 
@@ -498,6 +523,7 @@ export const MLB_V4_V2_EVIDENCE_TIERS = Object.freeze({
 // Compile-time guard: Task 238 remains the immutable 38-field source inventory.
 if (MLB_V4_FEATURE_ORDER.length !== 38
   || MLB_V4_FROZEN_V2_DISPOSITIONS.length !== MLB_V4_FEATURE_ORDER.length
+  || MLB_V4_FROZEN_V2_FEATURE_ORDER.length !== 14
   || MLB_224C_FEATURE_SCHEMA.ownOffense.length !== 8) {
   throw new Error("Task 238 source inventory changed; create a new contract version");
 }

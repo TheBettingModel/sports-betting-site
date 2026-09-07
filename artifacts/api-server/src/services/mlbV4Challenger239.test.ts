@@ -42,7 +42,10 @@ function fixture() {
     cohort: {
       training: { start: "2023-01-01T00:00:00Z", end: "2024-01-01T00:00:00Z" },
       validation: { start: "2024-01-01T00:00:00Z", end: "2025-01-01T00:00:00Z" },
-      test: { start: "2025-01-01T00:00:00Z", end: "2026-01-01T00:00:00Z" },
+      historicalBenchmarkOnly: {
+        start: "2025-01-01T00:00:00Z",
+        end: "2026-01-01T00:00:00Z",
+      },
     },
     orderedGameIds: ["1", "2"],
   });
@@ -77,7 +80,7 @@ describe("Task 239 deterministic non-production challenger framework", () => {
       cohort: {
         training: { start: "2023-01-01", end: "2024-01-01" },
         validation: { start: "2024-01-01", end: "2025-01-01" },
-        test: { start: "2025-01-01", end: "2026-01-01" },
+        historicalBenchmarkOnly: { start: "2025-01-01", end: "2026-01-01" },
       },
       orderedGameIds: ["1"],
     })).toThrow(/gate-approved/);

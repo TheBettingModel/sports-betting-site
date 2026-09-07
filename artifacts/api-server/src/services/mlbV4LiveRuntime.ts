@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, lte, sql } from "drizzle-orm";
 import {
   db, mlbPregameStarterEvidenceSnapshotsTable, mlbV4CollectionRunsTable, mlbV4CollectionRunEventsTable,
   mlbV4GameDiscoveriesTable, mlbV4StarterStatesTable, mlbV4TeamStatesTable,
@@ -10,7 +10,8 @@ import {
 import { logger } from "../lib/logger";
 import {
   buildGameOutcome, buildReadiness, classifyStarterAgreement, freezePregameFeatureSnapshot,
-  materializeStarterPitState, materializeTeamOffensePitState, materializeBullpenPitState, MLB_V4_INPUT_SCHEMA,
+  materializeStarterPitState, materializeTeamOffensePitState, materializeBullpenPitState,
+  materializeLeagueEnvironmentPitState, MLB_V4_INPUT_SCHEMA,
   MLB_V4_COLLECTOR_VERSION, MLB_V4_CONTEXT_VERSION, MLB_V4_LIVE_VERSION,
   MLB_V4_STARTER_STATE_VERSION, MLB_V4_TEAM_STATE_VERSION,
   normalizeMlbTeamSide, pairFeatureOutcome, runBoundedMlbV4Collection, selectLatestBullpenPitVersions,
@@ -268,28 +269,33 @@ export async function materializeAndPairMlbV4Evidence(): Promise<Record<string, 
       ? sides.home.scheduledFirstPitch
       : sides.away.scheduledFirstPitch;
     if (!(cutoff < scheduledFirstPitch)) continue;
-    const [leagueRow] = await db.select().from(mlbLeagueRunEnvironmentTable)
-      .where(and(eq(mlbLeagueRunEnvironmentTable.season, cutoff.getUTCFullYear()),
-        eq(mlbLeagueRunEnvironmentTable.window, "season_to_date"),
-        isNull(mlbLeagueRunEnvironmentTable.targetGameId),
-        lt(mlbLeagueRunEnvironmentTable.cutoffAt, cutoff),
-        lt(mlbLeagueRunEnvironmentTable.createdAt, cutoff)))
-      .orderBy(desc(mlbLeagueRunEnvironmentTable.cutoffAt)).limit(1);
-    const leagueEligible = Boolean(leagueRow
-      && leagueRow.sampleGames > 0
-      && leagueRow.runsPerTeamGame != null && Number.isFinite(leagueRow.runsPerTeamGame)
-      && leagueRow.homeRunsPerGame != null && Number.isFinite(leagueRow.homeRunsPerGame)
-      && leagueRow.awayRunsPerGame != null && Number.isFinite(leagueRow.awayRunsPerGame));
+    const leagueRows = await db.select({
+      canonicalGameId: mlbHistoricalOutcomesTable.canonicalGameId,
+      completedAt: mlbHistoricalOutcomesTable.completionTime,
+      recordedAt: mlbHistoricalOutcomesTable.createdAt,
+      homeRuns: mlbHistoricalOutcomesTable.homeRuns,
+      awayRuns: mlbHistoricalOutcomesTable.awayRuns,
+    }).from(mlbHistoricalOutcomesTable)
+      .where(and(
+        lt(mlbHistoricalOutcomesTable.completionTime, cutoff),
+        lt(mlbHistoricalOutcomesTable.createdAt, cutoff),
+      ));
+    const leagueAggregate = materializeLeagueEnvironmentPitState({
+      cutoff,
+      rows: leagueRows.filter((row) => row.completedAt != null).map((row) => ({
+        ...row,
+        completedAt: row.completedAt!,
+      })),
+    });
+    const leagueEligible = leagueAggregate.features.seasonRunsPerTeamGame != null;
     const contextBase = {
-      gameId, featureCutoff: cutoff, sourceCutoff: leagueEligible ? leagueRow!.cutoffAt : null, schemaVersion: MLB_V4_CONTEXT_VERSION,
-       league: leagueEligible ? { season: leagueRow!.season, window: leagueRow!.window, sampleGames: leagueRow!.sampleGames,
-         runsPerTeamGame: leagueRow!.runsPerTeamGame, homeRunsPerGame: leagueRow!.homeRunsPerGame,
-         awayRunsPerGame: leagueRow!.awayRunsPerGame, qualityState: leagueRow!.qualityState }
-         : { availability: leagueRow ? "UNAVAILABLE_INCOMPLETE_TARGET_SEASON_SEASON_TO_DATE_AGGREGATE"
-           : "UNAVAILABLE_NO_TARGET_SEASON_SEASON_TO_DATE_AGGREGATE",
-           season: cutoff.getUTCFullYear(), window: "season_to_date" },
+      gameId, featureCutoff: cutoff, sourceCutoff: leagueAggregate.sourceCutoff, schemaVersion: MLB_V4_CONTEXT_VERSION,
+       league: leagueEligible ? { season: cutoff.getUTCFullYear(), ...leagueAggregate.features }
+          : { availability: "UNAVAILABLE_NO_TARGET_SEASON_COMPLETED_GAMES",
+            season: cutoff.getUTCFullYear() },
       home: { homeTeamId: sides.home.officialTeamId, awayTeamId: sides.away.officialTeamId },
-      park: { availability: "UNAVAILABLE" }, sampleSizes: {}, missingness: { league: !leagueEligible, park: true },
+      park: { availability: "UNAVAILABLE" }, sampleSizes: leagueAggregate.sampleSizes,
+      missingness: { ...leagueAggregate.missingness, league: !leagueEligible, park: true },
     };
     const artifactHash = deterministicHash(contextBase);
     const context = { stateId: deterministicHash({ gameId, artifactHash }), ...contextBase, artifactHash };
