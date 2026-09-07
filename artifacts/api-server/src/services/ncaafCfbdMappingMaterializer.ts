@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { db, ncaafCfbdDomainEvidenceTable, ncaafCfbdGameMappingsTable, ncaafCfbdTeamMappingsTable, ncaafGameEvidenceTable } from "@workspace/db";
 import { cfbdPayloadHash } from "./collegeFootballData";
 import { decideCfbdGameMapping, decideCfbdTeamMapping } from "./ncaafCfbdIdentity";
@@ -6,8 +6,35 @@ import { decideCfbdGameMapping, decideCfbdTeamMapping } from "./ncaafCfbdIdentit
 /** Reconciles only mechanically-normalized exact identities; never fuzzy names. */
 export async function materializeCurrentCfbdMappings(season: number, capturedAt = new Date()): Promise<{ teams: number; games: number }> {
   const [rows, teamLedger] = await Promise.all([
-    db.select().from(ncaafGameEvidenceTable).where(eq(ncaafGameEvidenceTable.season, season)),
-    db.select().from(ncaafCfbdDomainEvidenceTable).where(eq(ncaafCfbdDomainEvidenceTable.season, season)),
+    db.select({
+      id: ncaafGameEvidenceTable.id,
+      provider: ncaafGameEvidenceTable.provider,
+      providerEventId: ncaafGameEvidenceTable.providerEventId,
+      capturedAt: ncaafGameEvidenceTable.capturedAt,
+      kickoffAt: ncaafGameEvidenceTable.kickoffAt,
+      homeProviderTeamId: ncaafGameEvidenceTable.homeProviderTeamId,
+      awayProviderTeamId: ncaafGameEvidenceTable.awayProviderTeamId,
+      homeTeamName: ncaafGameEvidenceTable.homeTeamName,
+      awayTeamName: ncaafGameEvidenceTable.awayTeamName,
+      neutralSite: ncaafGameEvidenceTable.neutralSite,
+    }).from(ncaafGameEvidenceTable).where(eq(ncaafGameEvidenceTable.season, season)),
+    db.selectDistinctOn([ncaafCfbdDomainEvidenceTable.cfbdTeamId], {
+      id: ncaafCfbdDomainEvidenceTable.id,
+      endpoint: ncaafCfbdDomainEvidenceTable.endpoint,
+      cfbdTeamId: ncaafCfbdDomainEvidenceTable.cfbdTeamId,
+      providerEffectiveAt: ncaafCfbdDomainEvidenceTable.providerEffectiveAt,
+      capturedAt: ncaafCfbdDomainEvidenceTable.capturedAt,
+      payload: ncaafCfbdDomainEvidenceTable.payload,
+    }).from(ncaafCfbdDomainEvidenceTable).where(and(
+      eq(ncaafCfbdDomainEvidenceTable.season, season),
+      eq(ncaafCfbdDomainEvidenceTable.endpoint, "teams"),
+      isNotNull(ncaafCfbdDomainEvidenceTable.cfbdTeamId),
+    )).orderBy(
+      ncaafCfbdDomainEvidenceTable.cfbdTeamId,
+      sql`${ncaafCfbdDomainEvidenceTable.providerEffectiveAt} DESC NULLS LAST`,
+      desc(ncaafCfbdDomainEvidenceTable.capturedAt),
+      desc(ncaafCfbdDomainEvidenceTable.id),
+    ),
   ]);
   // Evidence is append-only: choose the most recent observation for every
   // provider identity, never whichever database row happened to arrive first.
