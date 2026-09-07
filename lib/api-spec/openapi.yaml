@@ -37,6 +37,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /readyz:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Check database, scheduler, guarded serving, and V4 readiness
+      responses:
+        "200": { description: Service is ready }
+        "503": { description: Service is not ready }
+
+  /support:
+    get:
+      operationId: getSupportInformation
+      tags: [health]
+      summary: Get application support information
+      responses:
+        "200": { description: Support information }
+
   /games/today:
     get:
       operationId: getGamesToday
@@ -93,6 +110,42 @@ paths:
         "400": { description: Invalid requested date }
         "401": { description: Authentication required }
         "403": { description: Active subscription or owner access required }
+
+  /model/v4/projections:
+    get:
+      operationId: getV4FullSlateProjections
+      tags: [model]
+      summary: Get safe full-slate V4 model projections
+      description: >-
+        Returns every legitimate V4 forecast for one sport/day plus explicit
+        coverage failures. Validating projections are not official TBM picks.
+      parameters:
+        - name: sport
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [MLB, NCAAF, NFL, NBA, WNBA, NHL, SOCCER, UFC, NCAAMB]
+        - name: date
+          in: query
+          required: false
+          description: YYYY-MM-DD in America/New_York; omitted selects today.
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Safe model projections and full-slate coverage
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/V4FullSlateProjectionResponse" }
+        "400": { description: Invalid sport or date }
+
+  /internal/mlb-v4/readiness:
+    get:
+      operationId: getInternalMlbV4Readiness
+      tags: [admin]
+      summary: Get internal MLB V4 evidence and executor readiness
+      responses:
+        "200": { description: MLB V4 readiness status }
 
   /chat/access:
     get:
@@ -845,6 +898,58 @@ components:
       name: X-Master-Key
       description: Internal master key. An authenticated admin session token is also accepted by the server.
   schemas:
+    V4FullSlateProjectionResponse:
+      type: object
+      required: [sport, date, lifecycleDisclaimer, coverage, projections]
+      properties:
+        sport: { type: string }
+        date: { type: string }
+        lifecycleDisclaimer: { type: string }
+        coverage:
+          type: object
+          required: [scheduledEvents, eligibleEvents, forecastedEvents, failedEvents, forecastCoveragePct, failures]
+          properties:
+            scheduledEvents: { type: integer }
+            eligibleEvents: { type: integer }
+            forecastedEvents: { type: integer }
+            failedEvents: { type: integer }
+            forecastCoveragePct: { type: number }
+            failures:
+              type: array
+              items:
+                type: object
+                required: [gameId, reason]
+                properties:
+                  gameId: { type: string }
+                  reason: { type: string }
+        projections:
+          type: array
+          items: { $ref: "#/components/schemas/V4PublicProjection" }
+    V4PublicProjection:
+      type: object
+      required: [eventId, sport, modelVersion, lifecycleStatus, forecastTimestamp, officialPickStatus]
+      properties:
+        eventId: { type: string }
+        sport: { type: string }
+        eventStart: { type: [string, "null"] }
+        homeParticipant: { type: [string, "null"] }
+        awayParticipant: { type: [string, "null"] }
+        modelVersion: { type: string }
+        lifecycleStatus:
+          type: string
+          enum: [V4_VALIDATING, V4_PROVISIONAL, V4_APPROVED]
+        expectedHomeScore: { type: [number, "null"] }
+        expectedAwayScore: { type: [number, "null"] }
+        expectedMargin: { type: [number, "null"] }
+        expectedTotal: { type: [number, "null"] }
+        homeWinProbability: { type: [number, "null"] }
+        drawProbability: { type: [number, "null"] }
+        awayWinProbability: { type: [number, "null"] }
+        projectedWinner: { type: [string, "null"], enum: [HOME, DRAW, AWAY, null] }
+        forecastTimestamp: { type: string }
+        officialPickStatus:
+          type: string
+          enum: [NOT_PUBLICATION_ELIGIBLE, NO_OFFICIAL_PLAY, OFFICIAL_TBM_PLAY]
     NcaafV4SubscriberProjectionBoard:
       type: object
       required: [date, modelStatus, approvalStatus, publicationStatus, disclaimer, board]

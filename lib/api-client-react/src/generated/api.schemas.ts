@@ -5,6 +5,89 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type V4FullSlateProjectionResponseCoverageFailuresItem = {
+  gameId: string;
+  reason: string;
+};
+
+export type V4FullSlateProjectionResponseCoverage = {
+  scheduledEvents: number;
+  eligibleEvents: number;
+  forecastedEvents: number;
+  failedEvents: number;
+  forecastCoveragePct: number;
+  failures: V4FullSlateProjectionResponseCoverageFailuresItem[];
+};
+
+export type V4PublicProjectionLifecycleStatus = typeof V4PublicProjectionLifecycleStatus[keyof typeof V4PublicProjectionLifecycleStatus];
+
+
+export const V4PublicProjectionLifecycleStatus = {
+  V4_VALIDATING: 'V4_VALIDATING',
+  V4_PROVISIONAL: 'V4_PROVISIONAL',
+  V4_APPROVED: 'V4_APPROVED',
+} as const;
+
+/**
+ * @nullable
+ */
+export type V4PublicProjectionProjectedWinner = typeof V4PublicProjectionProjectedWinner[keyof typeof V4PublicProjectionProjectedWinner] | null;
+
+
+export const V4PublicProjectionProjectedWinner = {
+  HOME: 'HOME',
+  DRAW: 'DRAW',
+  AWAY: 'AWAY',
+} as const;
+
+export type V4PublicProjectionOfficialPickStatus = typeof V4PublicProjectionOfficialPickStatus[keyof typeof V4PublicProjectionOfficialPickStatus];
+
+
+export const V4PublicProjectionOfficialPickStatus = {
+  NOT_PUBLICATION_ELIGIBLE: 'NOT_PUBLICATION_ELIGIBLE',
+  NO_OFFICIAL_PLAY: 'NO_OFFICIAL_PLAY',
+  OFFICIAL_TBM_PLAY: 'OFFICIAL_TBM_PLAY',
+} as const;
+
+export interface V4PublicProjection {
+  eventId: string;
+  sport: string;
+  /** @nullable */
+  eventStart?: string | null;
+  /** @nullable */
+  homeParticipant?: string | null;
+  /** @nullable */
+  awayParticipant?: string | null;
+  modelVersion: string;
+  lifecycleStatus: V4PublicProjectionLifecycleStatus;
+  /** @nullable */
+  expectedHomeScore?: number | null;
+  /** @nullable */
+  expectedAwayScore?: number | null;
+  /** @nullable */
+  expectedMargin?: number | null;
+  /** @nullable */
+  expectedTotal?: number | null;
+  /** @nullable */
+  homeWinProbability?: number | null;
+  /** @nullable */
+  drawProbability?: number | null;
+  /** @nullable */
+  awayWinProbability?: number | null;
+  /** @nullable */
+  projectedWinner?: V4PublicProjectionProjectedWinner;
+  forecastTimestamp: string;
+  officialPickStatus: V4PublicProjectionOfficialPickStatus;
+}
+
+export interface V4FullSlateProjectionResponse {
+  sport: string;
+  date: string;
+  lifecycleDisclaimer: string;
+  coverage: V4FullSlateProjectionResponseCoverage;
+  projections: V4PublicProjection[];
+}
+
 export type NcaafV4SubscriberProjectionBoardModelStatus = typeof NcaafV4SubscriberProjectionBoardModelStatus[keyof typeof NcaafV4SubscriberProjectionBoardModelStatus];
 
 
@@ -1355,6 +1438,30 @@ export type GetNcaafV4ProjectionsParams = {
  */
 date?: string;
 };
+
+export type GetV4FullSlateProjectionsParams = {
+sport: GetV4FullSlateProjectionsSport;
+/**
+ * YYYY-MM-DD in America/New_York; omitted selects today.
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date?: string;
+};
+
+export type GetV4FullSlateProjectionsSport = typeof GetV4FullSlateProjectionsSport[keyof typeof GetV4FullSlateProjectionsSport];
+
+
+export const GetV4FullSlateProjectionsSport = {
+  MLB: 'MLB',
+  NCAAF: 'NCAAF',
+  NFL: 'NFL',
+  NBA: 'NBA',
+  WNBA: 'WNBA',
+  NHL: 'NHL',
+  SOCCER: 'SOCCER',
+  UFC: 'UFC',
+  NCAAMB: 'NCAAMB',
+} as const;
 
 export type AppendAdminModelArtifactApproval201 = {
   eventId: string;

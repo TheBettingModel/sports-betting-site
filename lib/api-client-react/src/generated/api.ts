@@ -45,6 +45,7 @@ import type {
   GetNcaafV4ProjectionsParams,
   GetResultsRoiParams,
   GetResultsSummaryParams,
+  GetV4FullSlateProjectionsParams,
   HealthStatus,
   LossReviewsResponse,
   MarketApprovalDecisionInput,
@@ -80,7 +81,8 @@ import type {
   UpdateChatPreferencesRequest,
   UpdateNotificationPreferencesRequest,
   UpdateUserPreferencesRequest,
-  UserPreferences
+  UserPreferences,
+  V4FullSlateProjectionResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -176,6 +178,160 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReadinessCheckUrl = () => {
+
+
+
+
+  return `/api/readyz`
+}
+
+/**
+ * @summary Check database, scheduler, guarded serving, and V4 readiness
+ */
+export const readinessCheck = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getReadinessCheckUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getReadinessCheckQueryKey = () => {
+    return [
+    `/api/readyz`
+    ] as const;
+    }
+
+
+export const getReadinessCheckQueryOptions = <TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getReadinessCheckQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readinessCheck>>> = ({ signal }) => readinessCheck({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadinessCheckQueryResult = NonNullable<Awaited<ReturnType<typeof readinessCheck>>>
+export type ReadinessCheckQueryError = ErrorType<void>
+
+
+/**
+ * @summary Check database, scheduler, guarded serving, and V4 readiness
+ */
+
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getReadinessCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetSupportInformationUrl = () => {
+
+
+
+
+  return `/api/support`
+}
+
+/**
+ * @summary Get application support information
+ */
+export const getSupportInformation = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getGetSupportInformationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSupportInformationQueryKey = () => {
+    return [
+    `/api/support`
+    ] as const;
+    }
+
+
+export const getGetSupportInformationQueryOptions = <TData = Awaited<ReturnType<typeof getSupportInformation>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportInformation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSupportInformationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSupportInformation>>> = ({ signal }) => getSupportInformation({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSupportInformation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSupportInformationQueryResult = NonNullable<Awaited<ReturnType<typeof getSupportInformation>>>
+export type GetSupportInformationQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get application support information
+ */
+
+export function useGetSupportInformation<TData = Awaited<ReturnType<typeof getSupportInformation>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportInformation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSupportInformationQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -416,6 +572,168 @@ export function useGetNcaafV4Projections<TData = Awaited<ReturnType<typeof getNc
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetNcaafV4ProjectionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetV4FullSlateProjectionsUrl = (params: GetV4FullSlateProjectionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/model/v4/projections?${stringifiedParams}` : `/api/model/v4/projections`
+}
+
+/**
+ * Returns every legitimate V4 forecast for one sport/day plus explicit coverage failures. Validating projections are not official TBM picks.
+ * @summary Get safe full-slate V4 model projections
+ */
+export const getV4FullSlateProjections = async (params: GetV4FullSlateProjectionsParams, options?: RequestInit): Promise<V4FullSlateProjectionResponse> => {
+
+  return customFetch<V4FullSlateProjectionResponse>(getGetV4FullSlateProjectionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetV4FullSlateProjectionsQueryKey = (params?: GetV4FullSlateProjectionsParams,) => {
+    return [
+    `/api/model/v4/projections`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetV4FullSlateProjectionsQueryOptions = <TData = Awaited<ReturnType<typeof getV4FullSlateProjections>>, TError = ErrorType<void>>(params: GetV4FullSlateProjectionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getV4FullSlateProjections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetV4FullSlateProjectionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getV4FullSlateProjections>>> = ({ signal }) => getV4FullSlateProjections(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getV4FullSlateProjections>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetV4FullSlateProjectionsQueryResult = NonNullable<Awaited<ReturnType<typeof getV4FullSlateProjections>>>
+export type GetV4FullSlateProjectionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get safe full-slate V4 model projections
+ */
+
+export function useGetV4FullSlateProjections<TData = Awaited<ReturnType<typeof getV4FullSlateProjections>>, TError = ErrorType<void>>(
+ params: GetV4FullSlateProjectionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getV4FullSlateProjections>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetV4FullSlateProjectionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetInternalMlbV4ReadinessUrl = () => {
+
+
+
+
+  return `/api/internal/mlb-v4/readiness`
+}
+
+/**
+ * @summary Get internal MLB V4 evidence and executor readiness
+ */
+export const getInternalMlbV4Readiness = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getGetInternalMlbV4ReadinessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInternalMlbV4ReadinessQueryKey = () => {
+    return [
+    `/api/internal/mlb-v4/readiness`
+    ] as const;
+    }
+
+
+export const getGetInternalMlbV4ReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getInternalMlbV4Readiness>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInternalMlbV4Readiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInternalMlbV4ReadinessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInternalMlbV4Readiness>>> = ({ signal }) => getInternalMlbV4Readiness({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInternalMlbV4Readiness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInternalMlbV4ReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getInternalMlbV4Readiness>>>
+export type GetInternalMlbV4ReadinessQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get internal MLB V4 evidence and executor readiness
+ */
+
+export function useGetInternalMlbV4Readiness<TData = Awaited<ReturnType<typeof getInternalMlbV4Readiness>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInternalMlbV4Readiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInternalMlbV4ReadinessQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

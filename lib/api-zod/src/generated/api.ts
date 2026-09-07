@@ -18,6 +18,18 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Check database, scheduler, guarded serving, and V4 readiness
+ */
+export const ReadinessCheckResponse = zod.unknown()
+
+
+/**
+ * @summary Get application support information
+ */
+export const GetSupportInformationResponse = zod.unknown()
+
+
+/**
  * @summary Get today's games with model projections
  */
 export const GetGamesTodayQueryParams = zod.object({
@@ -251,6 +263,61 @@ export const GetNcaafV4ProjectionsResponse = zod.object({
 })
 }))
 })
+
+
+/**
+ * Returns every legitimate V4 forecast for one sport/day plus explicit coverage failures. Validating projections are not official TBM picks.
+ * @summary Get safe full-slate V4 model projections
+ */
+export const getV4FullSlateProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetV4FullSlateProjectionsQueryParams = zod.object({
+  "sport": zod.enum(['MLB', 'NCAAF', 'NFL', 'NBA', 'WNBA', 'NHL', 'SOCCER', 'UFC', 'NCAAMB']),
+  "date": zod.coerce.string().regex(getV4FullSlateProjectionsQueryDateRegExp).optional().describe('YYYY-MM-DD in America\/New_York; omitted selects today.')
+})
+
+export const GetV4FullSlateProjectionsResponse = zod.object({
+  "sport": zod.string(),
+  "date": zod.string(),
+  "lifecycleDisclaimer": zod.string(),
+  "coverage": zod.object({
+  "scheduledEvents": zod.number(),
+  "eligibleEvents": zod.number(),
+  "forecastedEvents": zod.number(),
+  "failedEvents": zod.number(),
+  "forecastCoveragePct": zod.number(),
+  "failures": zod.array(zod.object({
+  "gameId": zod.string(),
+  "reason": zod.string()
+}))
+}),
+  "projections": zod.array(zod.object({
+  "eventId": zod.string(),
+  "sport": zod.string(),
+  "eventStart": zod.string().nullish(),
+  "homeParticipant": zod.string().nullish(),
+  "awayParticipant": zod.string().nullish(),
+  "modelVersion": zod.string(),
+  "lifecycleStatus": zod.enum(['V4_VALIDATING', 'V4_PROVISIONAL', 'V4_APPROVED']),
+  "expectedHomeScore": zod.number().nullish(),
+  "expectedAwayScore": zod.number().nullish(),
+  "expectedMargin": zod.number().nullish(),
+  "expectedTotal": zod.number().nullish(),
+  "homeWinProbability": zod.number().nullish(),
+  "drawProbability": zod.number().nullish(),
+  "awayWinProbability": zod.number().nullish(),
+  "projectedWinner": zod.union([zod.literal('HOME'),zod.literal('DRAW'),zod.literal('AWAY'),zod.literal(null)]).nullish(),
+  "forecastTimestamp": zod.string(),
+  "officialPickStatus": zod.enum(['NOT_PUBLICATION_ELIGIBLE', 'NO_OFFICIAL_PLAY', 'OFFICIAL_TBM_PLAY'])
+}))
+})
+
+
+/**
+ * @summary Get internal MLB V4 evidence and executor readiness
+ */
+export const GetInternalMlbV4ReadinessResponse = zod.unknown()
 
 
 /**

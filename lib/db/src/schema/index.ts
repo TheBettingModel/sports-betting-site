@@ -53,6 +53,7 @@ export * from "./mlb-point-in-time";
 export * from "./mlb-historical-pit";
 export * from "./mlb-starter-evidence-224c";
 export * from "./mlb-v4-live-foundation";
+export * from "./v4-platform";
 
 // ── Training & evaluation ─────────────────────────────────────────────────────
 export * from "./training-datasets";
