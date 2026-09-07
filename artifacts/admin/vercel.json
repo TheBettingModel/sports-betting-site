@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && corepack enable && pnpm install --frozen-lockfile && pnpm --filter @workspace/admin run build",
+  "buildCommand": "corepack enable && pnpm install --frozen-lockfile && pnpm run build",
   "outputDirectory": "dist/public",
   "framework": "vite",
   "cleanUrls": true,
