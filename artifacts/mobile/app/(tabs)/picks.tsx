@@ -12,7 +12,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useSports } from '@/context/SportsContext';
-import { useGetGamesToday, useGetNcaafV4Projections, getGetNcaafV4ProjectionsQueryKey, type FreePick, type NcaafV4SubscriberProjection } from '@workspace/api-client-react';
+import {
+  getV4FullSlateProjections,
+  useGetGamesToday,
+  type FreePick,
+  type GetV4FullSlateProjectionsSport,
+  type V4FullSlateProjectionResponse,
+  type V4PublicProjection,
+} from '@workspace/api-client-react';
+import { useQueries } from '@tanstack/react-query';
 import { mapApiGame } from '@/utils/gameAdapter';
 import { GameCard } from '@/components/GameCard';
 import { GameCardSkeleton } from '@/components/GameCardSkeleton';
@@ -20,7 +28,7 @@ import { LockedPickCard } from '@/components/LockedPickCard';
 import { FeaturedPick } from '@/components/FeaturedPick';
 import { TeamLogo } from '@/components/TeamLogo';
 import { FreePickCard } from '@/components/FreePickCard';
-import { NcaafV4PreviewCard } from '@/components/NcaafV4PreviewCard';
+import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import type { Game } from '@/data/mockGames';
@@ -35,6 +43,15 @@ const RATING_ORDER = ['Strong Buy', 'Buy', 'Neutral', 'Fade'] as const;
 type Rating = typeof RATING_ORDER[number];
 const ACTIONABLE_RATINGS: Rating[] = ['Strong Buy', 'Buy'];
 const ALL_PLAYS_LIMIT = 6;
+const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'UFC', 'WNBA'] as const;
+
+function toV4Sport(sport: string): GetV4FullSlateProjectionsSport | null {
+  if (sport === 'NCAAB') return 'NCAAMB';
+  if (sport === 'Soccer') return 'SOCCER';
+  return V4_SPORTS.includes(sport as typeof V4_SPORTS[number])
+    ? sport as GetV4FullSlateProjectionsSport
+    : null;
+}
 
 const RATING_COLORS: Record<Rating, string> = {
   'Strong Buy': '#84CC16',
@@ -200,8 +217,8 @@ type ListItem =
   | { type: 'projection-header'; count: number }
   | { type: 'projection'; forecast: Forecast }
   | { type: 'v4-header'; count: number; empty: boolean }
-  | { type: 'v4-projection'; projection: NcaafV4SubscriberProjection; locked: boolean }
-  | { type: 'v4-empty' };
+  | { type: 'v4-projection'; projection: V4PublicProjection }
+  | { type: 'v4-empty'; sport: string; reason: string };
 
 export default function PicksScreen() {
   const colors = useColors();
@@ -219,12 +236,25 @@ export default function PicksScreen() {
     },
   });
 
-  const { data: v4Data, isRefetching: isV4Refetching, refetch: refetchV4 } = useGetNcaafV4Projections(undefined, {
-    query: {
-      queryKey: getGetNcaafV4ProjectionsQueryKey(),
+  const requestedV4Sports = selectedSport === 'All'
+    ? [...V4_SPORTS]
+    : [toV4Sport(selectedSport)].filter((sport): sport is GetV4FullSlateProjectionsSport => sport !== null);
+  const v4Queries = useQueries({
+    queries: requestedV4Sports.map(sport => ({
+      queryKey: ['/api/model/v4/projections', { sport }],
+      queryFn: () => getV4FullSlateProjections({ sport }),
       enabled: Boolean(userId) && hasServerEntitlement,
-    },
+      staleTime: 2 * 60 * 1000,
+    })),
   });
+  const v4Boards = v4Queries
+    .map(query => query.data)
+    .filter((board): board is V4FullSlateProjectionResponse => Boolean(board));
+  const isV4Refetching = v4Queries.some(query => query.isRefetching);
+  const refetchV4 = React.useCallback(
+    () => Promise.all(v4Queries.map(query => query.refetch())),
+    [v4Queries],
+  );
 
   useEffect(() => {
     // Keep an open Picks screen current without relying on a manual
@@ -319,16 +349,16 @@ export default function PicksScreen() {
   const sportGameCounts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const g of allGames) c[g.sport] = (c[g.sport] ?? 0) + 1;
-    if (v4Data && v4Data.board.length > 0) {
-      c['NCAAF'] = (c['NCAAF'] ?? 0) + v4Data.board.length;
+    for (const board of v4Boards) {
+      const displaySport = board.sport === 'NCAAMB' ? 'NCAAB' : board.sport === 'SOCCER' ? 'Soccer' : board.sport;
+      c[displaySport] = Math.max(c[displaySport] ?? 0, board.coverage.scheduledEvents);
     }
     return c;
-  }, [allGames, v4Data]);
+  }, [allGames, v4Boards]);
 
   const v4Projections = useMemo(() => {
-    if (!v4Data) return [];
-    return v4Data.board.filter(p => p.v4ModelOpinion === 'BUY');
-  }, [v4Data]);
+    return v4Boards.flatMap(board => board.projections);
+  }, [v4Boards]);
   const liveGamesCount = data?.liveGamesCount ?? 0;
   const hasFeedError = isError && !data;
   const allTabHasNoQualifiedPlays =
@@ -380,21 +410,25 @@ export default function PicksScreen() {
       }
     }
 
-    if (hasServerEntitlement && v4Data && (selectedSport === 'All' || selectedSport === 'NCAAF')) {
-      if (v4Data.board.length > 0) {
-        items.push({ type: 'v4-header', count: v4Projections.length, empty: v4Projections.length === 0 });
-        if (v4Projections.length === 0) {
-          items.push({ type: 'v4-empty' });
-        } else {
-          for (const p of v4Projections) {
-            items.push({ type: 'v4-projection', projection: p, locked: false });
-          }
+    if (hasServerEntitlement && v4Boards.length > 0) {
+      items.push({ type: 'v4-header', count: v4Projections.length, empty: v4Projections.length === 0 });
+      for (const board of v4Boards) {
+        if (board.projections.length === 0 && selectedSport !== 'All') {
+          const reason = board.sport === 'UFC'
+            ? 'V4 is in development.'
+            : board.coverage.failures.some(failure => failure.reason === 'INSUFFICIENT_PREGAME_EVIDENCE')
+              ? 'Insufficient pregame evidence.'
+              : 'No legitimate model projection is available right now.';
+          items.push({ type: 'v4-empty', sport: board.sport, reason });
+        }
+        for (const projection of board.projections) {
+          items.push({ type: 'v4-projection', projection });
         }
       }
     }
 
     return items;
-  }, [displayedGames, forecasts, hasServerEntitlement, selectedSport, data?.freePick, v4Data, v4Projections]);
+  }, [displayedGames, forecasts, hasServerEntitlement, selectedSport, data?.freePick, v4Boards, v4Projections]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
@@ -675,13 +709,13 @@ export default function PicksScreen() {
         <View style={[styles.forecastHeader, { borderTopColor: colors.border, marginTop: 16 }]}>
           <View>
             <Text style={[styles.forecastTitle, { color: colors.foreground }]}>
-              NCAAF V4 PREVIEW
+              V4 MODEL BOARD
             </Text>
             <Text style={[styles.forecastSubtitle, { color: colors.mutedForeground }]}>
-              {item.empty ? '0 qualified opportunities' : `${item.count} actionable ${item.count === 1 ? 'play' : 'plays'}`}
+              {item.empty ? 'No projections available' : `${item.count} full-slate model ${item.count === 1 ? 'projection' : 'projections'}`}
             </Text>
             <Text style={[styles.forecastOrderNote, { color: colors.primary }]}>
-              SUBSCRIBER EXCLUSIVE · UNVALIDATED MODEL
+              MODEL ANALYTICS · SEPARATE FROM OFFICIAL PICKS
             </Text>
           </View>
           <View style={[styles.forecastBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
@@ -696,19 +730,16 @@ export default function PicksScreen() {
       return (
         <View style={[styles.forecastNotice, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.forecastNoticeTitle, { color: colors.foreground }]}>
-            NO QUALIFYING PLAYS
+            {item.sport} V4 · VALIDATING
           </Text>
           <Text style={[styles.forecastNoticeText, { color: colors.mutedForeground }]}>
-            No qualifying NCAAF V4 projected plays right now.
+            Model projection unavailable. {item.reason}
           </Text>
         </View>
       );
     }
     if (item.type === 'v4-projection') {
-      if (item.locked) {
-        return <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />;
-      }
-      return <NcaafV4PreviewCard projection={item.projection} />;
+      return <V4ModelProjectionCard projection={item.projection} />;
     }
     if (item.locked) {
       return <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={lockedCount} />;
@@ -742,8 +773,8 @@ export default function PicksScreen() {
           if (item.type === 'projection-header') return `hdr-${selectedSport}-projections`;
           if (item.type === 'projection') return `forecast-${item.forecast.game.id}`;
           if (item.type === 'v4-header') return `v4-header`;
-          if (item.type === 'v4-empty') return `v4-empty`;
-          if (item.type === 'v4-projection') return `v4-forecast-${item.projection.kickoffAt}-${item.projection.awayTeam}-${item.projection.homeTeam}`;
+          if (item.type === 'v4-empty') return `v4-empty-${item.sport}`;
+          if (item.type === 'v4-projection') return `v4-forecast-${item.projection.eventId}`;
           return item.game.id;
         }}
         renderItem={renderItem}
