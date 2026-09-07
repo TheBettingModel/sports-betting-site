@@ -56,6 +56,5 @@
 - [V4 platform cutover boundary](v4-platform-cutover-boundary.md) — final sport routing is exact V4 or no forecast; legacy may run only on the old parallel platform before cutover.
 - [V4 core model quality gates](v4-core-model-quality-gates.md) — simpler cores still must beat baseline and avoid severe bias; fitted-but-failed candidates remain unbuilt.
 - [NFL V4 shadow boundary](nfl-v4-shadow-boundary.md) — July 1 seasons, Pro Bowl quarantine, exact artifact execution, and append-only shadow evidence are mandatory.
-- [Render cutover boundary](render-cutover-boundary.md) — Render is the chosen replacement API runtime; never partially cut Vercel/mobile/scheduler away from Replit before full verification.
+- [Render cutover boundary](render-cutover-boundary.md) — production is app-only Expo → Render → Neon; never partially move mobile or scheduler ownership.
 - [Production database export boundary](production-database-export-boundary.md) — Validate exports by expected tables; the legacy Neon database is not the live Replit production dataset.
-- [Vercel cutover previews](vercel-cutover-previews.md) — branch previews need complete workspace source; protected previews require an approved automation bypass.

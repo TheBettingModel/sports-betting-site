@@ -1,0 +1,391 @@
+TASK #244 — FINAL MOBILE PRODUCTION CUTOVER
+
+PRIORITY: GET THE TBM MOBILE APP LIVE NOW
+
+We are no longer doing additional architecture work, website work, Vercel work, broad audits, optional refactoring, UI redesign, or new model research before launch.
+
+TBM IS APP-ONLY.
+
+The target production architecture is:
+
+Expo/EAS Mobile App
+        ↓
+Render Node/V4 API
+        ↓
+Neon PostgreSQL
+
+Vercel is NOT part of the production architecture and must NOT be a cutover requirement.
+
+Do not request another Vercel bypass secret.
+Do not disable Vercel protection.
+Do not promote a Vercel deployment.
+Do not perform additional Vercel testing.
+Do not allow Vercel to block this task.
+
+==================================================
+STEP 1 — CONFIRM NEON PRODUCTION MIGRATION
+==================================================
+
+Immediately determine whether the COMPLETE live Replit production database has been restored into the upgraded Neon Launch production environment.
+
+Report:
+
+1. Destination Neon project and branch name. Do not expose credentials.
+2. Total restored table count.
+3. Critical production row counts, including:
+   - games
+   - model predictions
+   - published picks
+   - pick results
+   - NCAAF market observations
+   - V4 forecast/prediction tables
+   - V4 evidence tables
+   - publication/audit tables
+4. Confirm whether the complete prior Replit production dataset is represented.
+5. Confirm the large NCAAF historical/market-observation dataset survived migration.
+6. Report any missing tables, failed objects, restore errors, or material row-count discrepancies.
+7. Confirm whether the current Render V4 candidate is connected to THIS restored Neon production database.
+
+If the production restore is NOT complete:
+
+Finish the restore and critical validation now.
+
+Do not begin another broad database audit.
+
+If the restore IS complete:
+
+Proceed immediately to Step 2.
+
+==================================================
+STEP 2 — VERIFY RENDER AGAINST PRODUCTION NEON
+==================================================
+
+The new Render Node/V4 API is the target production API.
+
+Do NOT modify or overwrite the legacy Python Render service.
+
+Verify the new Render candidate directly against the restored Neon production database.
+
+Required checks:
+
+- /api/healthz = healthy
+- /api/readyz = ready
+- database connection = correct Neon production database
+- authentication works
+- invalid JWT correctly fails
+- membership/entitlement behavior works
+- V4 full-slate projection endpoints work
+- Model Board data works
+- official picks endpoints work
+- results endpoints work
+- analytics data required by the mobile app works
+- #238A publication safeguards remain active
+- unapproved models cannot publish official wagers
+- no duplicate predictions
+- no duplicate publication
+- no unexpected database writes
+
+NCAAF may remain:
+
+V4 VALIDATING / INSUFFICIENT_PREGAME_EVIDENCE
+
+UFC may remain:
+
+V4 IN DEVELOPMENT / technically unavailable
+
+These states MUST NOT block the platform launch.
+
+Do not substitute legacy V1/V2/V3 models when legitimate V4 publication is unavailable.
+
+==================================================
+STEP 3 — ONE CONTROLLED PRODUCTION/SHADOW RUN
+==================================================
+
+Perform ONE controlled production-scale shadow pipeline execution against Render + Neon.
+
+Confirm:
+
+- scheduler pipeline executes successfully
+- database writes go to the intended Neon production database
+- forecasts are isolated correctly by sport
+- no duplicate forecasts are created
+- no unauthorized official picks are created
+- #238A remains fail-closed
+- NCAAF failure/insufficient evidence does not crash other sports
+- UFC unavailable state does not crash other sports
+
+Do NOT transfer scheduler ownership yet.
+
+Replit remains scheduler owner until the final coordinated cutover.
+
+==================================================
+STEP 4 — CHECK THE CURRENT LIVE IOS APP FOR OTA
+==================================================
+
+THIS IS NOW A CRITICAL PRIORITY.
+
+Determine whether the CURRENT APP STORE VERSION of TBM can receive the completed #244 mobile changes through EAS Update WITHOUT submitting another binary to Apple.
+
+Inspect the actual currently released production binary configuration.
+
+Explicitly determine:
+
+1. Current runtimeVersion.
+2. Current production EAS Update channel/branch.
+3. Whether Expo Updates is enabled in the installed production binary.
+4. Whether the current binary can receive a production OTA update.
+5. How the mobile API base URL is currently configured.
+6. Whether the API target can be changed through the OTA JavaScript bundle/configuration available to the existing runtime.
+7. Whether the #244 Model Board/full-slate mobile changes are compatible with the installed runtime.
+8. Whether ANY #244 change requires:
+   - native code
+   - new native dependency
+   - changed native permissions
+   - Expo SDK/runtime change
+   - native app configuration
+   - another binary-level modification
+
+Do NOT assume another App Store release is necessary simply because React Native/JavaScript/UI code changed.
+
+==================================================
+STEP 5A — IF CURRENT APP IS OTA COMPATIBLE
+==================================================
+
+If the currently released App Store binary is compatible with the #244 changes:
+
+DO NOT CREATE A NEW APP STORE BUILD.
+
+Prepare the production EAS Update for the CURRENT RELEASED TBM APP.
+
+The OTA candidate must use:
+
+Mobile App
+   ↓
+New Render V4 API
+   ↓
+Restored Neon Production Database
+
+Before publishing broadly, validate that the OTA bundle:
+
+- starts correctly
+- does not recreate the prior black-screen issue
+- login works
+- membership works
+- subscriber locks work
+- Model Board loads
+- full-slate V4 projections load
+- sport pages load
+- official picks remain separate from projections
+- Top Picks work
+- Play of the Day works
+- Units work
+- Results work
+- Record/ROI work
+- analytics required by the existing UI work
+- NCAAF displays the correct validating/unavailable state
+- UFC displays the correct development/unavailable state
+- Render API is being used
+- Neon production data is being used
+
+If validation passes, publish the production EAS Update to the existing production channel.
+
+The goal is for users of the CURRENT distributed TBM app to receive the upgrade without waiting for another Apple review, provided this is supported by the current binary and EAS configuration.
+
+==================================================
+STEP 5B — IF CURRENT APP IS NOT OTA COMPATIBLE
+==================================================
+
+If a new App Store binary is genuinely required:
+
+STOP BEFORE CREATING OR SUBMITTING IT.
+
+Report EXACTLY:
+
+- what specific change is incompatible with the installed binary;
+- why EAS Update cannot deliver it;
+- whether that incompatible change is actually required for #244;
+- whether there is a safe way to make the production cutover using the existing binary first.
+
+Do not automatically begin another App Store submission.
+
+We will make that decision separately.
+
+==================================================
+STEP 6 — FINAL PRODUCTION CUTOVER
+==================================================
+
+Once the CURRENT mobile app candidate has been verified successfully against Render + Neon:
+
+Perform ONE coordinated production cutover.
+
+There must be exactly ONE scheduler owner.
+
+Required order:
+
+1. Confirm Render production API is healthy.
+2. Confirm Neon production database is healthy.
+3. Confirm mobile production configuration/update is ready.
+4. Confirm Render scheduler/cron candidate is ready but suspended.
+5. Disable the Replit production scheduler.
+6. Confirm Replit scheduler is no longer running.
+7. Enable the Render production scheduler.
+8. Confirm exactly one scheduler owner exists.
+9. Activate/publish the validated mobile production target/update.
+10. Verify the actual live TBM app against Render + Neon.
+
+Do NOT allow overlapping Replit and Render schedulers.
+
+==================================================
+STEP 7 — VERIFY THE ACTUAL LIVE APP
+==================================================
+
+After cutover, verify production behavior.
+
+Check:
+
+- app startup
+- authentication
+- membership
+- Model Board
+- full-slate projections
+- MLB
+- NBA
+- NFL
+- NHL
+- WNBA
+- NCAAF
+- NCAAMB
+- Soccer
+- UFC state
+- Top Picks
+- Play of the Day
+- official picks
+- results
+- analytics
+- subscriber locks
+- API traffic reaching Render
+- database reads/writes reaching Neon
+- scheduler executions
+- no duplicate runs
+- no duplicate predictions
+- no unauthorized publications
+- no black-screen regression
+
+Do not require NCAAF model validation completion or UFC model completion for platform launch.
+
+==================================================
+STEP 8 — REPLIT RETIREMENT
+==================================================
+
+ONLY AFTER the live mobile app is verified:
+
+- Replit must stop serving production API/runtime traffic.
+- Replit scheduler must remain disabled.
+- Render becomes the production API/model runtime.
+- Neon becomes the production PostgreSQL database.
+- External/Render scheduler becomes the only scheduler owner.
+
+DO NOT immediately delete:
+
+- Replit project
+- old database
+- recovery snapshots
+- backups
+- rollback resources
+
+Keep them temporarily for rollback.
+
+==================================================
+NO MORE PRE-LAUNCH EXPANSION
+==================================================
+
+Do NOT begin:
+
+- V4.1 model research
+- new model features
+- additional sport engines
+- UFC completion
+- NCAAF validation research
+- UI redesign
+- website work
+- Vercel work
+- optional refactoring
+- architecture redesign
+- giant audit reports
+- additional migration projects
+
+until the production mobile cutover is completed.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Do NOT produce the previously requested 102-heading report.
+
+Provide a concise final report containing:
+
+1. NEON
+   - migration status
+   - production database status
+   - critical counts/integrity
+
+2. RENDER
+   - production API status
+   - deployed commit
+   - health/readiness
+
+3. MOBILE
+   - current App Store binary compatibility
+   - EAS Update status
+   - production API target
+   - whether the update is LIVE in the currently distributed app
+
+4. SCHEDULER
+   - active scheduler owner
+   - Replit scheduler status
+   - Render scheduler status
+
+5. V4 SPORTS
+   - MLB status
+   - NBA status
+   - NFL status
+   - NHL status
+   - WNBA status
+   - NCAAF status
+   - NCAAMB status
+   - Soccer status
+   - UFC status
+
+6. #238A
+   - confirm publication safeguards remain active
+
+7. REPLIT
+   - production runtime status
+   - rollback status
+
+8. REMAINING BLOCKERS
+   - only genuine blockers remaining after cutover
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+Task #244 is NOT complete merely because Render, Neon, or a preview deployment works.
+
+Task #244 is complete when:
+
+THE CURRENTLY DISTRIBUTED TBM MOBILE APP IS SUCCESSFULLY OPERATING AGAINST THE NEW RENDER + NEON PRODUCTION ARCHITECTURE.
+
+The live app must be verified.
+
+V4 full-slate functionality must be available wherever legitimate.
+
+Official wagering publication must remain protected by #238A.
+
+Exactly one scheduler must own production automation.
+
+Replit must no longer be the active production runtime/scheduler.
+
+Prioritize completing this production cutover over all additional development.
+
+Proceed now.
