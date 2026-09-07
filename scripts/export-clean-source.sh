@@ -17,12 +17,17 @@ tar \
   --exclude='.config' --exclude='*/.config' \
   --exclude='.local' --exclude='*/.local' \
   --exclude='.agents' --exclude='*/.agents' \
+  --exclude='.canvas' --exclude='*/.canvas' \
+  --exclude='.replit' --exclude='*/.replit' \
+  --exclude='.replitignore' --exclude='*/.replitignore' \
+  --exclude='.upm' --exclude='*/.upm' \
   --exclude='.pythonlibs' --exclude='*/.pythonlibs' \
   --exclude='.expo' --exclude='*/.expo' \
   --exclude='attached_assets' --exclude='*/attached_assets' \
   --exclude='screenshots' --exclude='*/screenshots' \
   --exclude='*/dist' \
   --exclude='*/static-build' \
+  --exclude='*.tsbuildinfo' \
   --exclude='*.p8' --exclude='*.p12' --exclude='*.cer' --exclude='*.mobileprovision' \
   --exclude='.env' --exclude='.env.*' --exclude='!.env.example' \
   -cf - . | tar -xf - -C "$destination"
