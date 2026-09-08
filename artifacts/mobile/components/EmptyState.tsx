@@ -10,7 +10,6 @@ const SPORT_MESSAGES: Record<string, { icon: string; title: string; sub: string 
   NCAAB: { icon: 'activity',  title: 'No NCAAB games today',  sub: 'College hoops runs November through March.' },
   NHL:   { icon: 'thermometer', title: 'No NHL games today',  sub: 'The season runs October through June.' },
   Soccer:{ icon: 'globe',     title: 'No soccer matches today', sub: 'International leagues follow their own calendars.' },
-  UFC:   { icon: 'zap',       title: 'No UFC events today',   sub: 'Events are typically held on Saturdays.' },
   WNBA:  { icon: 'activity',  title: 'No WNBA games today',   sub: 'The season runs May through September.' },
   MLB:   { icon: 'sun',       title: 'No MLB games today',    sub: 'The season runs April through October.' },
 };

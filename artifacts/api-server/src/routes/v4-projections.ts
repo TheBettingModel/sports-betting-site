@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import { TBM_V4_SPORTS, type TbmV4Sport } from "../services/v4Platform";
+import { TBM_V4_PUBLIC_SPORTS, type TbmV4Sport } from "../services/v4Platform";
 import { discoverV4Slate, runFullSlateV4 } from "../services/v4FullSlate";
 import { rankOfficialV4Candidates } from "../services/v4OfficialPublication";
 import { db, gamesTable, modelPredictionsTable, publishedPicksTable } from "@workspace/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 
 const router: IRouter = Router();
@@ -21,7 +21,7 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     return;
   }
   const sportValue = String(req.query["sport"] ?? "").toUpperCase();
-  if (!TBM_V4_SPORTS.includes(sportValue as TbmV4Sport)) {
+  if (!(TBM_V4_PUBLIC_SPORTS as readonly string[]).includes(sportValue)) {
     res.status(400).json({ error: "sport must be one of the supported V4 sports" });
     return;
   }
@@ -51,7 +51,10 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   }).from(modelPredictionsTable).leftJoin(publishedPicksTable, and(
     eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
     eq(publishedPicksTable.isEffective, true),
-  )).where(sql`${modelPredictionsTable.featureSnapshot}->>'v4PredictionId' = ANY(${coverage.forecasts.map((f) => f.predictionId)})`) : [];
+  )).where(inArray(
+    sql<string>`${modelPredictionsTable.featureSnapshot}->>'v4PredictionId'`,
+    coverage.forecasts.map((forecast) => forecast.predictionId),
+  )) : [];
   const persistedByForecast = new Map(persisted.map(row => [row.v4PredictionId, row]));
   const officialPicks = await db.select({
     eventId: publishedPicksTable.gameId, role: publishedPicksTable.isPlayOfDay,

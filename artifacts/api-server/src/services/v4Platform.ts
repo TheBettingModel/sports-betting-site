@@ -4,9 +4,16 @@ export const TBM_V4_SPORTS = Object.freeze([
   "MLB", "NCAAF", "NFL", "NBA", "WNBA", "NHL", "SOCCER", "UFC", "NCAAMB",
 ] as const);
 export type TbmV4Sport = typeof TBM_V4_SPORTS[number];
-/** Explicit release scope. UFC remains visible in platform status only. */
-export const TBM_V4_OFFICIAL_RELEASE_SPORTS = Object.freeze(
+/**
+ * Sports exposed by the current subscriber V4 board. Keep the broader engine
+ * type above so historical UFC forecasts and recovery tooling remain readable.
+ */
+export const TBM_V4_PUBLIC_SPORTS = Object.freeze(
   TBM_V4_SPORTS.filter((sport): sport is Exclude<TbmV4Sport, "UFC"> => sport !== "UFC"),
+);
+/** Explicit official-publication release scope. */
+export const TBM_V4_OFFICIAL_RELEASE_SPORTS = Object.freeze(
+  TBM_V4_PUBLIC_SPORTS,
 );
 export type V4ApprovalState =
   | "UNVALIDATED" | "SHADOW" | "PROVISIONAL" | "PRODUCTION_APPROVED" | "SUSPENDED";

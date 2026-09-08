@@ -75,6 +75,7 @@ import { runNflV4ProspectiveCollection } from "./nflV4Prospective";
 import { captureV4MoneylineEvidenceFromSnapshot } from "./v4OfficialPersistence";
 import { canonicalV4EngineRegistry } from "./v4Platform";
 import { runRegisteredOfficialV4 } from "./v4FullSlate";
+import { isActiveProductSport } from "./sportScope";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -434,7 +435,7 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
   }).format(new Date());
 
   // Find all effective Strong Buy picks on today's Eastern slate.
-  const strongBuys = await db
+  let strongBuys = await db
     .select({
       id: publishedPicksTable.id,
       gameId: publishedPicksTable.gameId,
@@ -461,6 +462,7 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
         isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
       ),
     );
+  strongBuys = strongBuys.filter((pick) => isActiveProductSport(pick.sport));
 
   if (strongBuys.length === 0) {
     lastStrongBuyNotificationSignature = null;
@@ -522,6 +524,7 @@ async function runOddsIngestion(): Promise<void> {
     let processed = 0;
 
     for (const { sport, games, fetchStatus } of sportResults) {
+      if (!isActiveProductSport(sport)) continue;
       if (fetchStatus === "error") {
         sportCounts[sport] = "error";
         continue;
@@ -535,6 +538,7 @@ async function runOddsIngestion(): Promise<void> {
       const DB_SPORTS = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
 
       for (const game of games) {
+        if (!isActiveProductSport(game.sport)) continue;
         try {
           const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
             ? await getWnbaGameContext({
@@ -986,6 +990,7 @@ async function runResultGrading(): Promise<void> {
     const DB_SPORTS_GRADING = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
     let snapshots = 0;
     for (const game of games) {
+      if (!isActiveProductSport(game.sport)) continue;
       try {
         const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
           ? await getWnbaGameContext({

@@ -273,7 +273,7 @@ export const getV4FullSlateProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{
 
 
 export const GetV4FullSlateProjectionsQueryParams = zod.object({
-  "sport": zod.enum(['MLB', 'NCAAF', 'NFL', 'NBA', 'WNBA', 'NHL', 'SOCCER', 'UFC', 'NCAAMB']),
+  "sport": zod.enum(['MLB', 'NCAAF', 'NFL', 'NBA', 'WNBA', 'NHL', 'SOCCER', 'NCAAMB']),
   "date": zod.coerce.string().regex(getV4FullSlateProjectionsQueryDateRegExp).optional().describe('YYYY-MM-DD in America\/New_York; omitted selects today.')
 })
 

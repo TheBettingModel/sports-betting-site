@@ -21,7 +21,7 @@ import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4OfficialPickCard } from '@/components/V4OfficialPickCard';
 import { splitV4Picks } from '@/utils/v4PicksHierarchy';
 
-const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'UFC', 'WNBA'] as const;
+const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
 
 function toV4Sport(sport: string): GetV4FullSlateProjectionsSport | null {
   if (sport === 'NCAAB') return 'NCAAMB';
@@ -97,7 +97,10 @@ export default function PicksScreen() {
       remainingProjections.forEach((projection) => items.push({ type: 'projection', projection }));
     }
     for (const board of boards) {
-      if (board.projections.length === 0 && board.officialPicks.length === 0) {
+      // A dormant sport is not an unavailable board. Surface this state only
+      // when scheduled events existed and every forecast genuinely failed.
+      if (board.coverage.scheduledEvents > 0 && board.coverage.failedEvents > 0
+        && board.projections.length === 0 && board.officialPicks.length === 0) {
         const failure = board.coverage.failures[0]?.reason ?? 'No legitimate V4 projection is available right now.';
         items.push({ type: 'unavailable', sport: board.sport, reason: failure.replaceAll('_', ' ') });
       }

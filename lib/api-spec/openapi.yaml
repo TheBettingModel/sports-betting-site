@@ -126,7 +126,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [MLB, NCAAF, NFL, NBA, WNBA, NHL, SOCCER, UFC, NCAAMB]
+            enum: [MLB, NCAAF, NFL, NBA, WNBA, NHL, SOCCER, NCAAMB]
         - name: date
           in: query
           required: false

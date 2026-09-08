@@ -8,7 +8,6 @@ export const SPORT_COLORS: Record<string, string> = {
   MLB:    '#3B82F6', // blue
   NHL:    '#A78BFA', // purple
   Soccer: '#34D399', // emerald
-  UFC:    '#F87171', // red
   WNBA:   '#FB923C', // amber-orange
   NCAAF:  '#6366F1',
   NCAAB:  '#F97316',

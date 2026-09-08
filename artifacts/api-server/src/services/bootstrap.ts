@@ -8,8 +8,9 @@ import {
 import { logger } from "../lib/logger";
 import { isDeployableModelIdentity } from "./modelRegistry";
 import { registerExactNcaafCandidateModelVersion } from "./guardedServing/ncaafMoneylineBridge";
+import { ACTIVE_PRODUCT_SPORTS } from "./sportScope";
 
-const SPORTS = ["NFL", "NCAAF", "NBA", "NCAAB", "MLB", "NHL", "WNBA", "Soccer", "UFC"] as const;
+const SPORTS = ACTIVE_PRODUCT_SPORTS;
 
 const SEED_MARKETS = [
   { slug: "moneyline", name: "Moneyline" },

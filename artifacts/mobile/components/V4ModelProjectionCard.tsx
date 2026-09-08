@@ -47,7 +47,7 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
       </View>
       {projection.expectedAwayScore != null && projection.expectedHomeScore != null && (
         <Text style={[styles.score, { color: colors.mutedForeground }]}>
-          Projected score: {away} {projection.expectedAwayScore.toFixed(1)} · {home} {projection.expectedHomeScore.toFixed(1)}
+          Projected score: {away} {projection.expectedAwayScore.toFixed(1)} – {home} {projection.expectedHomeScore.toFixed(1)}
         </Text>
       )}
       <View style={[styles.boundary, { borderTopColor: colors.border }]}>

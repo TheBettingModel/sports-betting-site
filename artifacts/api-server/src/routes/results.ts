@@ -8,7 +8,7 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, desc, gte, and } from "drizzle-orm";
+import { eq, desc, gte, and, inArray } from "drizzle-orm";
 import {
   db,
   pickResultsTable,
@@ -24,6 +24,7 @@ import {
   OFFICIAL_RECORD_RECOMMENDATIONS,
   officialPublicRecordSqlConditions,
 } from "../services/officialRecordPolicy";
+import { ACTIVE_PRODUCT_SPORTS } from "../services/sportScope";
 
 // Recommendation display order for the official performance ledger.
 const RATING_ORDER: readonly string[] = OFFICIAL_RECORD_RECOMMENDATIONS;
@@ -194,6 +195,7 @@ router.get(
         )
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
+          inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
           ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
         ))
         .orderBy(desc(pickResultsTable.gradedAt));
@@ -358,6 +360,7 @@ router.get(
         .where(
           and(
             gte(gamesTable.gameDate, cutoffDate),
+            inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
             ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
           ),
         );

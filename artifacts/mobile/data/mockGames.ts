@@ -1,4 +1,4 @@
-export type Sport = 'NFL' | 'NCAAF' | 'NBA' | 'NCAAB' | 'MLB' | 'NHL' | 'Soccer' | 'UFC' | 'WNBA';
+export type Sport = 'NFL' | 'NCAAF' | 'NBA' | 'NCAAB' | 'MLB' | 'NHL' | 'Soccer' | 'WNBA';
 export type ValueRating = 'Strong Buy' | 'Buy' | 'Neutral' | 'Fade';
 export type ConfidenceLevel = 'High' | 'Medium' | 'Low';
 
@@ -254,37 +254,6 @@ export const MOCK_GAMES: Game[] = [
     status: 'upcoming',
     projection: { homeWinPct: 46, confidence: 'Medium', projectedSpread: 2.0, projectedTotal: 166.0, valueRating: 'Fade', modelScore: 48, edge: -4.8 },
     vegasLine: { spread: -2.5, total: 164.5, homeOdds: 120, awayOdds: -140 },
-  },
-  // ─── UFC ───────────────────────────────────────────────────
-  {
-    id: 'ufc1',
-    sport: 'UFC',
-    homeTeam: { name: 'Jon Jones', abbr: 'JON', record: '28-1-0', city: 'Rochester, NY' },
-    awayTeam: { name: 'Stipe Miocic', abbr: 'STI', record: '20-4-0', city: 'Cleveland, OH' },
-    gameTime: '10:00 PM ET',
-    status: 'upcoming',
-    projection: { homeWinPct: 71, confidence: 'High', projectedSpread: -1.5, projectedTotal: 3.5, valueRating: 'Strong Buy', modelScore: 90, edge: 13.5 },
-    vegasLine: { spread: -1.5, total: 3.0, homeOdds: -240, awayOdds: 195 },
-  },
-  {
-    id: 'ufc2',
-    sport: 'UFC',
-    homeTeam: { name: 'Islam Makhachev', abbr: 'ISL', record: '26-1-0', city: 'Dagestan, RU' },
-    awayTeam: { name: 'Dustin Poirier', abbr: 'DUS', record: '30-8-0', city: 'Lafayette, LA' },
-    gameTime: '8:30 PM ET',
-    status: 'upcoming',
-    projection: { homeWinPct: 76, confidence: 'High', projectedSpread: -2.5, projectedTotal: 3.0, valueRating: 'Buy', modelScore: 83, edge: 9.2 },
-    vegasLine: { spread: -1.5, total: 2.5, homeOdds: -310, awayOdds: 250 },
-  },
-  {
-    id: 'ufc3',
-    sport: 'UFC',
-    homeTeam: { name: 'Alex Pereira', abbr: 'ALE', record: '12-2-0', city: 'São Paulo, BR' },
-    awayTeam: { name: 'Magomed Ankalaev', abbr: 'MAG', record: '20-1-1', city: 'Makhachkala, RU' },
-    gameTime: '7:00 PM ET',
-    status: 'upcoming',
-    projection: { homeWinPct: 58, confidence: 'Medium', projectedSpread: -0.5, projectedTotal: 3.5, valueRating: 'Neutral', modelScore: 64, edge: 3.1 },
-    vegasLine: { spread: -0.5, total: 3.0, homeOdds: -155, awayOdds: 130 },
   },
   // ─── Soccer ────────────────────────────────────────────────
   {

@@ -30,7 +30,6 @@ const SPORT_ACCENT: Record<string, string> = {
   NCAAF: '#CC5500',
   NCAAB: '#1D3557',
   Soccer:'#2E8B57',
-  UFC:   '#C8102E',
 };
 
 const DEFAULT_ACCENT = '#4B5563';

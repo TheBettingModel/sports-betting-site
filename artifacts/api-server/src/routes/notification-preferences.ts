@@ -13,10 +13,11 @@ import { eq } from "drizzle-orm";
 import { resolveSubscriberStatus } from "../middleware/requireSubscriber";
 import { db, notificationPreferencesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { ACTIVE_PRODUCT_SPORTS } from "../services/sportScope";
 
 const router: IRouter = Router();
 
-const ALL_SPORTS = ["MLB", "NFL", "NHL", "NBA", "WNBA", "NCAAB", "NCAAF", "Soccer", "UFC"];
+const ALL_SPORTS: string[] = [...ACTIVE_PRODUCT_SPORTS];
 
 router.use("/notification-preferences", resolveSubscriberStatus);
 

@@ -19,11 +19,18 @@ async function getApiBaseUrl(): Promise<string> {
   return 'http://localhost:3000';
 }
 
-export const ALL_SPORTS = ['MLB', 'NFL', 'NHL', 'NBA', 'WNBA', 'NCAAB', 'NCAAF', 'Soccer', 'UFC'];
+export const ALL_SPORTS = ['MLB', 'NFL', 'NHL', 'NBA', 'WNBA', 'NCAAB', 'NCAAF', 'Soccer'];
 
 export interface NotificationPrefs {
   enabledSports: string[] | null; // null = all enabled
   allSports: string[];
+}
+
+function mobilePrefs(data: NotificationPrefs): NotificationPrefs {
+  return {
+    enabledSports: data.enabledSports?.filter((sport) => ALL_SPORTS.includes(sport)) ?? null,
+    allSports: ALL_SPORTS,
+  };
 }
 
 export function useNotificationPreferences() {
@@ -47,7 +54,7 @@ export function useNotificationPreferences() {
       });
       if (res.ok) {
         const data = await res.json() as NotificationPrefs;
-        setPrefs(data);
+        setPrefs(mobilePrefs(data));
       }
     } catch {
       // Non-fatal — keep defaults
@@ -59,6 +66,7 @@ export function useNotificationPreferences() {
   useEffect(() => { void fetchPrefs(); }, [fetchPrefs]);
 
   const updatePrefs = useCallback(async (enabledSports: string[] | null) => {
+    const mobileEnabledSports = enabledSports?.filter((sport) => ALL_SPORTS.includes(sport)) ?? null;
     if (Platform.OS === 'web') return;
     setSaving(true);
     try {
@@ -70,11 +78,11 @@ export function useNotificationPreferences() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ enabledSports }),
+        body: JSON.stringify({ enabledSports: mobileEnabledSports }),
       });
       if (res.ok) {
         const data = await res.json() as NotificationPrefs;
-        setPrefs(data);
+        setPrefs(mobilePrefs(data));
       }
     } catch {
       // Non-fatal

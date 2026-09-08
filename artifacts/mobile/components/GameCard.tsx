@@ -54,9 +54,8 @@ export function GameCard({ game }: GameCardProps) {
   const pickLine = selectedPick?.line
     ?? (selectedMarket === 'spread' ? (pickIsHome ? vegasLine.spread : -vegasLine.spread) : null);
   const showStarters = sport === 'MLB' && (projection.homeStarterName || projection.awayStarterName);
-  const isUFC = sport === 'UFC';
-  const homeDisplay = isUFC ? homeTeam.name : homeTeam.abbr;
-  const awayDisplay = isUFC ? awayTeam.name : awayTeam.abbr;
+  const homeDisplay = homeTeam.abbr;
+  const awayDisplay = awayTeam.abbr;
   const tier = selectedPick?.recommendation ?? projection.valueRating;
   const selectedUnits = selectedPick?.units ?? projection.units;
   const showUnits = hasEdge && selectedUnits != null && selectedUnits > 0;

@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useGetResultsSummary } from '@workspace/api-client-react';
 import { EmptyState } from '@/components/EmptyState';
+import { SPORTS } from '@/context/SportsContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,11 @@ export default function ResultsScreen() {
 
   const overall = data?.overall;
   const recordSegments = data?.recordSegments;
-  const bySport = data?.bySport ?? [];
+  // The mobile release scope is authoritative even if historical records
+  // contain a sport that is not currently presented to subscribers.
+  const bySport = (data?.bySport ?? []).filter((stat) =>
+    SPORTS.includes(stat.sport as typeof SPORTS[number]),
+  );
 
   // ── Build flat list items ─────────────────────────────────────────────────
 

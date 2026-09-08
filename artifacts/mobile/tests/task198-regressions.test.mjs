@@ -203,11 +203,14 @@ const picksSource = fs.readFileSync(new URL('../app/(tabs)/picks.tsx', import.me
 assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGame|getForecast/);
 assert.match(picksSource, /hasServerEntitlement/);
 assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
+assert.doesNotMatch(picksSource, /UFC/);
+assert.match(picksSource, /board\.coverage\.scheduledEvents > 0 && board\.coverage\.failedEvents > 0/);
 
 const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
 assert.match(v4CardSource, /value == null \? '—'/);
 assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);
 assert.match(v4CardSource, /expectedHomeScore\.toFixed\(1\)/);
+assert.match(v4CardSource, /Projected score: \{away\} \{projection\.expectedAwayScore\.toFixed\(1\)\} – \{home\} \{projection\.expectedHomeScore\.toFixed\(1\)\}/);
 assert.match(v4CardSource, /PROJECTION ONLY · NOT AN OFFICIAL TBM PICK/);
 assert.doesNotMatch(v4CardSource, /TBM OFFICIAL TOP PLAY/);
 
@@ -226,5 +229,12 @@ assert.match(resultsSource, /V4 OFFICIAL RECORD/);
 assert.match(resultsSource, /HISTORICAL OFFICIAL RECORD/);
 assert.match(resultsSource, /No official picks graded yet/);
 assert.doesNotMatch(resultsSource, /cutoverDate|new Date\([^)]*\).*v4/i);
+assert.match(resultsSource, /SPORTS\.includes/);
+assert.doesNotMatch(resultsSource, /UFC/);
+
+const sportsContextSource = fs.readFileSync(new URL('../context/SportsContext.tsx', import.meta.url), 'utf8');
+const notificationsSource = fs.readFileSync(new URL('../hooks/useNotificationPreferences.ts', import.meta.url), 'utf8');
+assert.doesNotMatch(sportsContextSource, /UFC/);
+assert.doesNotMatch(notificationsSource, /UFC/);
 
 console.log('Task 198 regression tests passed');

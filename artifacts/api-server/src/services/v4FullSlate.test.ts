@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { classifyDiscoveredEvent, runFullSlateV4 } from "./v4FullSlate";
-import { V4EngineRegistry, stableHash, type SportEngineV4 } from "./v4Platform";
+import {
+  TBM_V4_PUBLIC_SPORTS,
+  TBM_V4_SPORTS,
+  V4EngineRegistry,
+  stableHash,
+  type SportEngineV4,
+} from "./v4Platform";
 
 function engine(): SportEngineV4<{ rating: number }> {
   const identity = {
@@ -28,6 +34,7 @@ function engine(): SportEngineV4<{ rating: number }> {
         dataCutoff: input.dataCutoff, predictionTimestamp: input.predictionTimestamp,
         approvalState: "SHADOW", maturity: "DEVELOPING",
         homeWinProbability: .55, awayWinProbability: .45,
+        expectedHomeScore: 24.4, expectedAwayScore: 21.3,
         evidenceTier: "TEST", qualityFlags: [],
       };
     },
@@ -59,6 +66,19 @@ describe("V4 full slate", () => {
       mode: "DRY_RUN", events, registry,
     });
     expect(result).toMatchObject({ scheduledEvents: 2, eligibleEvents: 2, forecastedEvents: 2, failedEvents: 0, forecastCoveragePct: 100 });
+    expect(result.forecasts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        approvalState: "SHADOW",
+        maturity: "DEVELOPING",
+        expectedHomeScore: 24.4,
+        expectedAwayScore: 21.3,
+      }),
+    ]));
+  });
+
+  it("keeps UFC out of the public V4 board while retaining historical engine compatibility", () => {
+    expect(TBM_V4_PUBLIC_SPORTS).not.toContain("UFC");
+    expect(TBM_V4_SPORTS).toContain("UFC");
   });
 
   it("returns explicit no-artifact failures for all eligible events", async () => {

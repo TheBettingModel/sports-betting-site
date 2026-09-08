@@ -15,9 +15,8 @@ export function FreePickCard({ freePick }: FreePickCardProps) {
   const { homeTeamName, homeTeamAbbr, homeTeamLogo, awayTeamName, awayTeamAbbr, awayTeamLogo, startTime, sport, status, market, selection, recommendation } = freePick;
   
   const isFinal = status === 'final' || status === 'completed';
-  const isUFC = sport === 'UFC';
-  const homeDisplay = isUFC ? homeTeamName : homeTeamAbbr;
-  const awayDisplay = isUFC ? awayTeamName : awayTeamAbbr;
+  const homeDisplay = homeTeamAbbr;
+  const awayDisplay = awayTeamAbbr;
   
   const pickTeamName = selection === 'home' ? homeTeamName : awayTeamName;
   const selectedMarketText = market === 'spread' ? 'Spread' : 'ML';
