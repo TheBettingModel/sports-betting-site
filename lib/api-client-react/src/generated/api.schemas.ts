@@ -48,6 +48,14 @@ export interface V4OfficialPick {
   homeParticipant?: string | null;
   /** @nullable */
   awayParticipant?: string | null;
+  /** @nullable */
+  homeParticipantAbbr?: string | null;
+  /** @nullable */
+  awayParticipantAbbr?: string | null;
+  /** @nullable */
+  homeParticipantLogo?: string | null;
+  /** @nullable */
+  awayParticipantLogo?: string | null;
   market: string;
   selection: string;
   /** @nullable */
@@ -137,6 +145,26 @@ export interface V4PublicProjection {
   homeParticipant?: string | null;
   /** @nullable */
   awayParticipant?: string | null;
+  /** @nullable */
+  homeParticipantAbbr?: string | null;
+  /** @nullable */
+  awayParticipantAbbr?: string | null;
+  /** @nullable */
+  homeParticipantLogo?: string | null;
+  /** @nullable */
+  awayParticipantLogo?: string | null;
+  /** @nullable */
+  homeStarterName?: string | null;
+  /** @nullable */
+  homeStarterEra?: number | null;
+  /** @nullable */
+  homeStarterWhip?: number | null;
+  /** @nullable */
+  awayStarterName?: string | null;
+  /** @nullable */
+  awayStarterEra?: number | null;
+  /** @nullable */
+  awayStarterWhip?: number | null;
   modelVersion: string;
   lifecycleStatus: V4PublicProjectionLifecycleStatus;
   /** @nullable */

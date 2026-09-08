@@ -37,6 +37,23 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     sport, sportDate: date, now: new Date(), mode: "DRY_RUN", events,
   });
   const eventById = new Map(events.map((event) => [event.gameId, event]));
+  const gameMetadata = coverage.forecasts.length ? await db.select({
+    eventId: gamesTable.id,
+    homeParticipantAbbr: gamesTable.homeTeamAbbr,
+    awayParticipantAbbr: gamesTable.awayTeamAbbr,
+    homeParticipantLogo: gamesTable.homeTeamLogo,
+    awayParticipantLogo: gamesTable.awayTeamLogo,
+    homeStarterName: gamesTable.homeStarterName,
+    homeStarterEra: gamesTable.homeStarterEra,
+    homeStarterWhip: gamesTable.homeStarterWhip,
+    awayStarterName: gamesTable.awayStarterName,
+    awayStarterEra: gamesTable.awayStarterEra,
+    awayStarterWhip: gamesTable.awayStarterWhip,
+  }).from(gamesTable).where(inArray(
+    gamesTable.id,
+    coverage.forecasts.map((forecast) => forecast.gameId),
+  )) : [];
+  const gameMetadataById = new Map(gameMetadata.map((game) => [game.eventId, game]));
   // Official fields are read only from the persisted publication decision. A
   // live re-computation may show a projection, but can never invent a pick.
   const persisted = coverage.forecasts.length ? await db.select({
@@ -70,6 +87,8 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     inputHash: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'inputHash'`,
     marketEvidenceId: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'marketEvidenceId'`,
     homeParticipant: gamesTable.homeTeamName, awayParticipant: gamesTable.awayTeamName,
+    homeParticipantAbbr: gamesTable.homeTeamAbbr, awayParticipantAbbr: gamesTable.awayTeamAbbr,
+    homeParticipantLogo: gamesTable.homeTeamLogo, awayParticipantLogo: gamesTable.awayTeamLogo,
   }).from(publishedPicksTable).innerJoin(modelPredictionsTable,
     eq(modelPredictionsTable.id, publishedPicksTable.predictionId))
     .innerJoin(gamesTable, eq(gamesTable.id, publishedPicksTable.gameId))
@@ -105,6 +124,7 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     })),
     projections: coverage.forecasts.map((forecast) => {
       const event = eventById.get(forecast.gameId);
+      const metadata = gameMetadataById.get(forecast.gameId);
        const official = officialByPredictionId.get(forecast.predictionId)!;
        const stored = persistedByForecast.get(forecast.predictionId);
        const role = stored?.isPublic && stored.status === "PUBLISHED"
@@ -115,6 +135,16 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
         eventStart: event?.eventStart ?? null,
         homeParticipant: event?.homeParticipantName ?? null,
         awayParticipant: event?.awayParticipantName ?? null,
+        homeParticipantAbbr: metadata?.homeParticipantAbbr ?? null,
+        awayParticipantAbbr: metadata?.awayParticipantAbbr ?? null,
+        homeParticipantLogo: metadata?.homeParticipantLogo ?? null,
+        awayParticipantLogo: metadata?.awayParticipantLogo ?? null,
+        homeStarterName: metadata?.homeStarterName ?? null,
+        homeStarterEra: metadata?.homeStarterEra ?? null,
+        homeStarterWhip: metadata?.homeStarterWhip ?? null,
+        awayStarterName: metadata?.awayStarterName ?? null,
+        awayStarterEra: metadata?.awayStarterEra ?? null,
+        awayStarterWhip: metadata?.awayStarterWhip ?? null,
         modelVersion: forecast.modelVersion,
         lifecycleStatus: forecast.approvalState === "PRODUCTION_APPROVED"
           ? "V4_APPROVED" : forecast.approvalState === "PROVISIONAL" ? "V4_PROVISIONAL" : "V4_VALIDATING",

@@ -943,6 +943,16 @@ components:
         eventStart: { type: [string, "null"] }
         homeParticipant: { type: [string, "null"] }
         awayParticipant: { type: [string, "null"] }
+        homeParticipantAbbr: { type: [string, "null"] }
+        awayParticipantAbbr: { type: [string, "null"] }
+        homeParticipantLogo: { type: [string, "null"] }
+        awayParticipantLogo: { type: [string, "null"] }
+        homeStarterName: { type: [string, "null"] }
+        homeStarterEra: { type: [number, "null"] }
+        homeStarterWhip: { type: [number, "null"] }
+        awayStarterName: { type: [string, "null"] }
+        awayStarterEra: { type: [number, "null"] }
+        awayStarterWhip: { type: [number, "null"] }
         modelVersion: { type: string }
         lifecycleStatus:
           type: string
@@ -982,6 +992,10 @@ components:
         sport: { type: string }
         homeParticipant: { type: [string, "null"] }
         awayParticipant: { type: [string, "null"] }
+        homeParticipantAbbr: { type: [string, "null"] }
+        awayParticipantAbbr: { type: [string, "null"] }
+        homeParticipantLogo: { type: [string, "null"] }
+        awayParticipantLogo: { type: [string, "null"] }
         market: { type: string }
         selection: { type: string }
         odds: { type: [integer, "null"] }

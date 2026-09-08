@@ -114,8 +114,6 @@ export default function PicksScreen() {
   }, [boards, hasExactlyOneTopPlay, qualifiedPlays, remainingProjections, topPlays]);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-  const officialUnavailable = hierarchy.topCandidateCount === 0 && qualifiedPlays.length === 0;
-
   if (!hasServerEntitlement) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
@@ -148,12 +146,6 @@ export default function PicksScreen() {
             </View>
             <SportFilter gameCounts={sportGameCounts} />
             {!isLoading && hasError && <EmptyState message="V4 Picks are unavailable right now. No legacy picks are shown." />}
-            {!isLoading && !hasError && officialUnavailable && (
-              <View style={[styles.notice, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.noticeTitle, { color: colors.foreground }]}>NO OFFICIAL V4 PLAY TODAY</Text>
-                <Text style={[styles.noticeCopy, { color: colors.mutedForeground }]}>No production-approved V4 play has been persisted. Available rows below are projections only and do not count as official picks.</Text>
-              </View>
-            )}
             {!isLoading && !hasError && hierarchy.topCandidateCount > 1 && (
               <View style={[styles.notice, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={[styles.noticeTitle, { color: colors.foreground }]}>TOP PLAY UNAVAILABLE</Text>
@@ -194,7 +186,7 @@ const styles = StyleSheet.create({
   sub: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 2, marginTop: 2 },
   section: { marginHorizontal: 16, marginTop: 18, marginBottom: 8 },
   sectionText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.3 },
-  notice: { marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderWidth: 1, borderRadius: 12 },
+  notice: { marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderWidth: 1, borderRadius: 8 },
   noticeTitle: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: .8 },
   noticeCopy: { marginTop: 5, fontSize: 12, lineHeight: 18, fontFamily: 'Inter_400Regular' },
   entitlementCopy: { marginHorizontal: 20, marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', fontFamily: 'Inter_400Regular' },

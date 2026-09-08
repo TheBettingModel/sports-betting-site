@@ -16,6 +16,14 @@ export interface V4OfficialPick {
   homeParticipant?: string | null;
   /** @nullable */
   awayParticipant?: string | null;
+  /** @nullable */
+  homeParticipantAbbr?: string | null;
+  /** @nullable */
+  awayParticipantAbbr?: string | null;
+  /** @nullable */
+  homeParticipantLogo?: string | null;
+  /** @nullable */
+  awayParticipantLogo?: string | null;
   market: string;
   selection: string;
   /** @nullable */

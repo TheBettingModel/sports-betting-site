@@ -210,13 +210,20 @@ const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCar
 assert.match(v4CardSource, /value == null \? '—'/);
 assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);
 assert.match(v4CardSource, /expectedHomeScore\.toFixed\(1\)/);
-assert.match(v4CardSource, /Projected score: \{away\} \{projection\.expectedAwayScore\.toFixed\(1\)\} – \{home\} \{projection\.expectedHomeScore\.toFixed\(1\)\}/);
-assert.match(v4CardSource, /PROJECTION ONLY · NOT AN OFFICIAL TBM PICK/);
+assert.match(v4CardSource, /MODEL PROJECTION/);
+assert.match(v4CardSource, /Not an Official TBM Play/);
+assert.match(v4CardSource, /Pressable/);
+assert.match(v4CardSource, /TeamLogo/);
+assert.match(v4CardSource, /Pitcher Matchup/);
+assert.doesNotMatch(v4CardSource, /failureReason/);
 assert.doesNotMatch(v4CardSource, /TBM OFFICIAL TOP PLAY/);
 
 const officialCardSource = fs.readFileSync(new URL('../components/V4OfficialPickCard.tsx', import.meta.url), 'utf8');
-assert.match(officialCardSource, /TBM OFFICIAL TOP PLAY/);
-assert.match(officialCardSource, /PERSISTED/);
+assert.match(officialCardSource, /OFFICIAL TBM PLAY/);
+assert.match(officialCardSource, /TeamLogo/);
+assert.match(officialCardSource, /View Analysis/);
+assert.match(officialCardSource, /artifactId/);
+assert.doesNotMatch(officialCardSource, /expectedAwayScore|expectedHomeScore/);
 assert.match(picksSource, /board\.officialPicks/);
 assert.match(picksSource, /V4OfficialPickCard/);
 

@@ -1,113 +1,200 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
+import { TeamLogo } from '@/components/TeamLogo';
 import type { V4PublicProjection } from '@workspace/api-client-react';
 
 function percent(value: number | null | undefined): string {
   return value == null ? '—' : `${(value * 100).toFixed(1)}%`;
 }
 
+function selection(projection: V4PublicProjection, away: string, home: string): string {
+  if (projection.projectedWinner === 'HOME') return `${home} ML`;
+  if (projection.projectedWinner === 'AWAY') return `${away} ML`;
+  if (projection.projectedWinner === 'DRAW') return 'Draw';
+  return 'Unavailable';
+}
+
 export function V4ModelProjectionCard({ projection }: { projection: V4PublicProjection }) {
   const colors = useColors();
+  const [expanded, setExpanded] = useState(false);
   const away = projection.awayParticipant ?? 'Away';
   const home = projection.homeParticipant ?? 'Home';
-  const winner = projection.projectedWinner === 'HOME'
-    ? home
-    : projection.projectedWinner === 'AWAY'
-      ? away
-      : projection.projectedWinner === 'DRAW'
-        ? 'Draw'
-        : 'Unavailable';
+  const awayAbbr = projection.awayParticipantAbbr;
+  const homeAbbr = projection.homeParticipantAbbr;
+  const expectedAwayScore = projection.expectedAwayScore;
+  const expectedHomeScore = projection.expectedHomeScore;
+  const status = projection.lifecycleStatus.replace('V4_', '').replaceAll('_', ' ');
   const startsAt = projection.eventStart ? new Date(projection.eventStart) : null;
-  const failureReason = projection.officialFailureReason?.replaceAll('_', ' ');
-  const status = projection.lifecycleStatus.replace('V4_', '').replace('_', ' ');
+  const time = startsAt && !Number.isNaN(startsAt.getTime())
+    ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : 'TBD';
+  const modelSelection = selection(projection, away, home);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={styles.metaRow}>
-        <View style={styles.statusBadge}>
-          <View style={[styles.statusDot, { backgroundColor: status === 'APPROVED' ? colors.primary : colors.mutedForeground }]} />
-          <Text style={[styles.status, { color: colors.mutedForeground }]}>
-            {projection.sport} · {status}
-          </Text>
+      <View style={[styles.meta, { borderBottomColor: colors.border }]}>
+        <View style={styles.metaLeft}>
+          <Text style={[styles.sport, { color: colors.foreground }]}>{projection.sport}</Text>
+          <View style={[styles.dot, { backgroundColor: status === 'APPROVED' ? colors.primary : colors.mutedForeground }]} />
+          <Text style={[styles.metaText, { color: colors.mutedForeground }]}>{status}</Text>
         </View>
-        <Text style={[styles.time, { color: colors.mutedForeground }]}>
-          {startsAt && !Number.isNaN(startsAt.getTime())
-            ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-            : 'TBD'}
-        </Text>
+        <Text style={[styles.metaText, { color: colors.mutedForeground }]}>{time}</Text>
       </View>
 
-      {projection.expectedAwayScore != null && projection.expectedHomeScore != null ? (
-        <View style={[styles.scoreBlock, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.projectionLabel, { color: colors.primary }]}>V4 MODEL PROJECTION</Text>
-          <Text style={[styles.scoreText, { color: colors.foreground }]}>
-            Projected score: {away} {projection.expectedAwayScore.toFixed(1)} – {home} {projection.expectedHomeScore.toFixed(1)}
+      <View style={styles.content}>
+        <View style={styles.matchupRow}>
+          {awayAbbr && (
+            <TeamLogo sport={projection.sport} abbr={awayAbbr} logoUrl={projection.awayParticipantLogo ?? undefined} size={30} />
+          )}
+          <Text style={[styles.matchup, { color: colors.foreground }]} numberOfLines={1}>
+            {away} vs. {home}
           </Text>
+          {homeAbbr && (
+            <TeamLogo sport={projection.sport} abbr={homeAbbr} logoUrl={projection.homeParticipantLogo ?? undefined} size={30} />
+          )}
         </View>
-      ) : (
-        <View style={styles.matchupBlock}>
-          <Text style={[styles.matchup, { color: colors.foreground }]}>{away} at {home}</Text>
-          <Text style={[styles.projectionLabel, { color: colors.mutedForeground, marginTop: 14 }]}>
-            V4 MODEL PROJECTION
-          </Text>
-          <Text style={[styles.winner, { color: colors.foreground }]}>{winner}</Text>
-        </View>
-      )}
 
-      <View style={styles.probabilityRow}>
-        <View style={[styles.probCol, { borderRightWidth: 1, borderRightColor: colors.border }]}>
-          <Text style={[styles.metricLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{away}</Text>
-          <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(projection.awayWinProbability)}</Text>
+        <View style={styles.selectionRow}>
+          <View style={styles.selectionBlock}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>PICK</Text>
+            <Text style={[styles.selectionText, { color: colors.foreground }]} numberOfLines={1}>{modelSelection}</Text>
+          </View>
+          <View style={styles.scoreBlock}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>PROJECTED SCORE</Text>
+            <Text style={[styles.scoreText, { color: colors.foreground }]} numberOfLines={1}>
+              {away} {expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – {home} {expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}
+            </Text>
+          </View>
         </View>
-        {projection.drawProbability != null && (
-          <View style={[styles.probCol, { borderRightWidth: 1, borderRightColor: colors.border }]}>
-            <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>Draw</Text>
-            <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(projection.drawProbability)}</Text>
+
+        <View style={[styles.probabilityRow, { borderTopColor: colors.border }]}>
+          <Text style={[styles.probability, { color: colors.foreground }]}>{away} {percent(projection.awayWinProbability)}</Text>
+          <Text style={[styles.probabilityDivider, { color: colors.mutedForeground }]}>·</Text>
+          <Text style={[styles.probability, { color: colors.foreground }]}>{home} {percent(projection.homeWinProbability)}</Text>
+        </View>
+
+        <View style={styles.stateRow}>
+          <View style={[styles.stateDot, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.stateText, { color: colors.primary }]}>MODEL PROJECTION</Text>
+          <Text style={[styles.stateSecondary, { color: colors.mutedForeground }]}>Not an Official TBM Play</Text>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          accessibilityLabel={expanded ? 'Hide analysis' : 'View analysis'}
+          onPress={() => setExpanded(value => !value)}
+          style={({ pressed }) => [styles.analysisButton, { borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}
+        >
+          <Text style={[styles.analysisText, { color: colors.foreground }]}>{expanded ? 'Hide Analysis' : 'View Analysis'}</Text>
+          <Text style={[styles.chevron, { color: colors.primary }]}>{expanded ? '−' : '+'}</Text>
+        </Pressable>
+
+        {expanded && (
+          <View style={[styles.analysis, { borderTopColor: colors.border }]}>
+            <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Model Projection</Text>
+            <View style={styles.detailGrid}>
+              <Detail label="Projected winner" value={projection.projectedWinner ?? 'Unavailable'} colors={colors} />
+              <Detail label="Expected margin" value={projection.expectedMargin == null ? '—' : projection.expectedMargin.toFixed(1)} colors={colors} />
+              <Detail label="Expected total" value={projection.expectedTotal == null ? '—' : projection.expectedTotal.toFixed(1)} colors={colors} />
+              <Detail label="Model version" value={projection.modelVersion} colors={colors} />
+            </View>
+            {(projection.awayStarterName || projection.homeStarterName) && (
+              <View style={styles.pitchers}>
+                <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Pitcher Matchup</Text>
+                <View style={styles.pitcherRow}>
+                  <Pitcher
+                    side={away}
+                    name={projection.awayStarterName}
+                    era={projection.awayStarterEra}
+                    whip={projection.awayStarterWhip}
+                    colors={colors}
+                  />
+                  <Pitcher
+                    side={home}
+                    name={projection.homeStarterName}
+                    era={projection.homeStarterEra}
+                    whip={projection.homeStarterWhip}
+                    colors={colors}
+                  />
+                </View>
+              </View>
+            )}
           </View>
         )}
-        <View style={styles.probCol}>
-          <Text style={[styles.metricLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{home}</Text>
-          <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(projection.homeWinProbability)}</Text>
-        </View>
-      </View>
-
-      <View style={[styles.boundary, { borderTopColor: colors.border }]}>
-        <Text style={[styles.boundaryTitle, { color: colors.foreground }]}>
-          PROJECTION ONLY · NOT AN OFFICIAL TBM PICK
-        </Text>
-        <Text style={[styles.boundaryCopy, { color: colors.mutedForeground }]}>
-          {failureReason
-            ? `No official V4 play: ${failureReason}. This projection does not count toward official picks, units, record, or ROI.`
-            : 'This projection does not count toward Top Plays, units, record, or ROI.'}
-        </Text>
       </View>
     </View>
   );
 }
 
+function Pitcher({
+  side,
+  name,
+  era,
+  whip,
+  colors,
+}: {
+  side: string;
+  name?: string | null;
+  era?: number | null;
+  whip?: number | null;
+  colors: ReturnType<typeof useColors>;
+}) {
+  if (!name) return null;
+  return (
+    <View style={styles.pitcher}>
+      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{side}</Text>
+      <Text style={[styles.detailValue, { color: colors.foreground }]} numberOfLines={1}>{name}</Text>
+      {era != null && <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>ERA <Text style={{ color: colors.foreground }}>{era.toFixed(2)}</Text></Text>}
+      {whip != null && <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>WHIP <Text style={{ color: colors.foreground }}>{whip.toFixed(2)}</Text></Text>}
+    </View>
+  );
+}
+
+function Detail({ label, value, colors }: { label: string; value: string; colors: ReturnType<typeof useColors> }) {
+  return (
+    <View style={styles.detail}>
+      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: colors.foreground }]} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 14, padding: 16, overflow: 'hidden' },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  status: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
-  time: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-
-  scoreBlock: { marginTop: 14, padding: 14, borderRadius: 10 },
-  scoreText: { marginTop: 8, fontSize: 17, fontFamily: 'Inter_700Bold', letterSpacing: -0.3, lineHeight: 22 },
-
-  matchupBlock: { marginTop: 10 },
-  matchup: { fontSize: 14, fontFamily: 'Inter_700Bold' },
-  projectionLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
-  winner: { marginTop: 3, fontSize: 24, fontFamily: 'Inter_700Bold', letterSpacing: -0.7 },
-
-  probabilityRow: { flexDirection: 'row', marginTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#1E1E1E', paddingTop: 12 },
-  probCol: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-  metricLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
-  metricValue: { fontSize: 13, fontFamily: 'Inter_700Bold' },
-
-  boundary: { marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
-  boundaryTitle: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
-  boundaryCopy: { marginTop: 6, fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium' },
+  card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 10, overflow: 'hidden' },
+  meta: { paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth },
+  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sport: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  dot: { width: 5, height: 5, borderRadius: 3 },
+  metaText: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
+  content: { padding: 14 },
+  matchupRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  matchup: { flex: 1, fontSize: 18, fontFamily: 'Inter_700Bold', letterSpacing: -0.4 },
+  selectionRow: { flexDirection: 'row', marginTop: 16, gap: 12 },
+  selectionBlock: { flex: 0.75 },
+  scoreBlock: { flex: 1.25 },
+  label: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  selectionText: { fontSize: 19, fontFamily: 'Inter_700Bold', marginTop: 3 },
+  scoreText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', marginTop: 5 },
+  probabilityRow: { marginTop: 14, paddingTop: 11, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  probability: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  probabilityDivider: { fontSize: 15 },
+  stateRow: { marginTop: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stateDot: { width: 5, height: 5, borderRadius: 3 },
+  stateText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
+  stateSecondary: { fontSize: 10, fontFamily: 'Inter_500Medium', marginLeft: 2 },
+  analysisButton: { marginTop: 14, minHeight: 38, borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  analysisText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.4 },
+  chevron: { fontSize: 19, fontFamily: 'Inter_400Regular', lineHeight: 20 },
+  analysis: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  analysisHeading: { fontSize: 14, fontFamily: 'Inter_700Bold', marginBottom: 11 },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  detail: { width: '46%' },
+  detailLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
+  detailValue: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 3 },
+  pitchers: { marginTop: 18 },
+  pitcherRow: { flexDirection: 'row', gap: 12 },
+  pitcher: { flex: 1 },
+  pitcherStat: { fontSize: 10, fontFamily: 'Inter_600SemiBold', marginTop: 4 },
 });
