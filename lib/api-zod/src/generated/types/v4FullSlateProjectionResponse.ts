@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { V4FullSlateProjectionResponseCoverage } from './v4FullSlateProjectionResponseCoverage';
+import type { V4OfficialPick } from './v4OfficialPick';
 import type { V4PublicProjection } from './v4PublicProjection';
 
 export interface V4FullSlateProjectionResponse {
@@ -13,5 +14,7 @@ export interface V4FullSlateProjectionResponse {
   date: string;
   lifecycleDisclaimer: string;
   coverage: V4FullSlateProjectionResponseCoverage;
+  /** Persisted server-authoritative official V4 decisions; independent of current projection IDs. */
+  officialPicks: V4OfficialPick[];
   projections: V4PublicProjection[];
 }

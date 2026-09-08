@@ -26,6 +26,12 @@ type ResultRow = {
   isChallenger: boolean;
   modelStatus: string;
   performanceEligible: boolean;
+  predictionId: number;
+  modelVersionId: number;
+  modelId: string;
+  publicationReasonCode: string | null;
+  featureSnapshot: Record<string, unknown> | null;
+  v4MappedModelVersionId: number | null;
 };
 
 const { select } = vi.hoisted(() => ({ select: vi.fn() }));
@@ -46,14 +52,17 @@ vi.mock("@workspace/db", () => ({
     id: "pickId", sport: "sport", market: "market", selection: "selection",
     odds: "odds", units: "units", recommendation: "recommendation",
     gameId: "gameId", isEffective: "isEffective", isPublic: "isPublic",
-    predictionId: "predictionId",
+    predictionId: "predictionId", publicationReasonCode: "publicationReasonCode",
   },
   modelPredictionsTable: {
     id: "predictionId", modelVersionId: "modelVersionId", cohort: "cohort",
-    isChallenger: "isChallenger",
+    isChallenger: "isChallenger", featureSnapshot: "featureSnapshot",
   },
   modelVersionsTable: {
-    id: "modelVersionId", status: "modelStatus",
+    id: "modelVersionId", modelId: "modelId", status: "modelStatus",
+  },
+  v4ArtifactModelVersionMappingsTable: {
+    modelVersionId: "v4MappedModelVersionId",
   },
   publishedPickPerformanceClassificationsTable: {
     id: "classificationId", publishedPickId: "classifiedPickId",
@@ -105,6 +114,7 @@ function query(rows: ResultRow[]) {
   const chain: any = {
     from: vi.fn(() => chain),
     innerJoin: vi.fn(() => chain),
+    leftJoin: vi.fn(() => chain),
     orderBy: vi.fn(() => chain),
     where: vi.fn((condition: Condition) => {
       chain.then = (resolve: (value: ResultRow[]) => unknown, reject: (reason: unknown) => unknown) =>
@@ -140,6 +150,12 @@ function row(overrides: Partial<ResultRow> = {}): ResultRow {
     isChallenger: false,
     modelStatus: "production",
     performanceEligible: true,
+    predictionId: 101,
+    modelVersionId: 201,
+    modelId: "legacy-model",
+    publicationReasonCode: null,
+    featureSnapshot: null,
+    v4MappedModelVersionId: null,
     ...overrides,
   };
 }
@@ -214,5 +230,48 @@ describe("results effective-pick ledger", () => {
 
     expect(summary.body.overall).toMatchObject({ wins: 1, totalPicks: 1 });
     expect(roi.body.bySport).toMatchObject([{ sport: "NFL", wins: 1, totalPicks: 1 }]);
+  });
+
+  it("segments exact persisted V4 official provenance while preserving historical official rows", async () => {
+    const legacy = row({ pickId: 1, result: "loss", unitsWonLost: -1 });
+    const v4 = row({
+      pickId: 2, predictionId: 102, modelVersionId: 202, modelId: "tbm-v4-mlb",
+      publicationReasonCode: "V4_EXACT_APPROVED",
+      featureSnapshot: { v4PredictionId: "v4-forecast-102" },
+      v4MappedModelVersionId: 202,
+    });
+    const { summary } = await ledgers([legacy, v4]);
+
+    expect(summary.body.recordSegments.v4Official).toMatchObject({
+      wins: 1, losses: 0, totalPicks: 1, unitsWonLost: 0.91, unitsRisked: 1,
+    });
+    expect(summary.body.recordSegments.preCutoverOfficial).toMatchObject({
+      wins: 0, losses: 1, totalPicks: 1, unitsWonLost: -1, unitsRisked: 1,
+    });
+    expect(summary.body.recentResults).toEqual(expect.arrayContaining([
+      expect.objectContaining({ pickId: 2, modelId: "tbm-v4-mlb", modelVersionId: 202, provenance: "v4Official" }),
+      expect.objectContaining({ pickId: 1, provenance: "preCutoverOfficial" }),
+    ]));
+  });
+
+  it("does not classify raw V4 projections or unpublished forecasts as official results", async () => {
+    const rawProjection = row({
+      pickId: 2, predictionId: 102, modelVersionId: 202,
+      featureSnapshot: { v4PredictionId: "raw-v4-projection" },
+      v4MappedModelVersionId: 202,
+      publicationReasonCode: null,
+    });
+    const unpublished = row({
+      pickId: 3, predictionId: 103, modelVersionId: 203,
+      featureSnapshot: { v4PredictionId: "never-published" },
+      v4MappedModelVersionId: 203,
+      publicationReasonCode: "V4_EXACT_APPROVED",
+      isPublic: false,
+    });
+    const { summary } = await ledgers([rawProjection, unpublished]);
+
+    expect(summary.body.overall.totalPicks).toBe(0);
+    expect(summary.body.recordSegments.v4Official.totalPicks).toBe(0);
+    expect(summary.body.recordSegments.preCutoverOfficial.totalPicks).toBe(0);
   });
 });

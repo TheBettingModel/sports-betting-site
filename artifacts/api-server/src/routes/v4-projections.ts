@@ -1,6 +1,10 @@
 import { Router, type IRouter } from "express";
 import { TBM_V4_SPORTS, type TbmV4Sport } from "../services/v4Platform";
 import { discoverV4Slate, runFullSlateV4 } from "../services/v4FullSlate";
+import { rankOfficialV4Candidates } from "../services/v4OfficialPublication";
+import { db, gamesTable, modelPredictionsTable, publishedPicksTable } from "@workspace/db";
+import { and, eq, sql } from "drizzle-orm";
+import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 
 const router: IRouter = Router();
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -11,7 +15,11 @@ function easternDate(now: Date): string {
   }).format(now);
 }
 
-router.get("/model/v4/projections", async (req, res) => {
+router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken, async (req, res) => {
+  if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
+    res.status(403).json({ error: "Active subscription required" });
+    return;
+  }
   const sportValue = String(req.query["sport"] ?? "").toUpperCase();
   if (!TBM_V4_SPORTS.includes(sportValue as TbmV4Sport)) {
     res.status(400).json({ error: "sport must be one of the supported V4 sports" });
@@ -23,11 +31,60 @@ router.get("/model/v4/projections", async (req, res) => {
     return;
   }
   const sport = sportValue as TbmV4Sport;
+  const persistedSport = sport === "SOCCER" ? "Soccer" : sport;
   const events = await discoverV4Slate(sport, date);
   const coverage = await runFullSlateV4({
     sport, sportDate: date, now: new Date(), mode: "DRY_RUN", events,
   });
   const eventById = new Map(events.map((event) => [event.gameId, event]));
+  // Official fields are read only from the persisted publication decision. A
+  // live re-computation may show a projection, but can never invent a pick.
+  const persisted = coverage.forecasts.length ? await db.select({
+    v4PredictionId: sql<string>`${modelPredictionsTable.featureSnapshot}->>'v4PredictionId'`,
+    pickId: publishedPicksTable.id,
+    isPublic: publishedPicksTable.isPublic,
+    status: publishedPicksTable.publicationStatus,
+    rank: publishedPicksTable.globalRank,
+    units: publishedPicksTable.approvedUnits,
+    isPotd: publishedPicksTable.isPlayOfDay,
+    reason: publishedPicksTable.exclusionReasonCode,
+  }).from(modelPredictionsTable).leftJoin(publishedPicksTable, and(
+    eq(publishedPicksTable.predictionId, modelPredictionsTable.id),
+    eq(publishedPicksTable.isEffective, true),
+  )).where(sql`${modelPredictionsTable.featureSnapshot}->>'v4PredictionId' = ANY(${coverage.forecasts.map((f) => f.predictionId)})`) : [];
+  const persistedByForecast = new Map(persisted.map(row => [row.v4PredictionId, row]));
+  const officialPicks = await db.select({
+    eventId: publishedPicksTable.gameId, role: publishedPicksTable.isPlayOfDay,
+    rank: publishedPicksTable.globalRank, units: publishedPicksTable.approvedUnits,
+    status: publishedPicksTable.publicationStatus, selection: publishedPicksTable.selection,
+    market: publishedPicksTable.market, odds: publishedPicksTable.odds,
+    modelProbability: modelPredictionsTable.modelProbability,
+    fairProbability: modelPredictionsTable.fairProbability,
+    modelId: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'modelId'`,
+    modelVersion: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'modelVersion'`,
+    artifactId: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'artifactId'`,
+    artifactHash: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'artifactHash'`,
+    inputHash: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'inputHash'`,
+    marketEvidenceId: sql<string | null>`${modelPredictionsTable.featureSnapshot}->>'marketEvidenceId'`,
+    homeParticipant: gamesTable.homeTeamName, awayParticipant: gamesTable.awayTeamName,
+  }).from(publishedPicksTable).innerJoin(modelPredictionsTable,
+    eq(modelPredictionsTable.id, publishedPicksTable.predictionId))
+    .innerJoin(gamesTable, eq(gamesTable.id, publishedPicksTable.gameId))
+    .where(and(eq(modelPredictionsTable.cohort, "official"), eq(publishedPicksTable.isEffective, true),
+      eq(publishedPicksTable.isPublic, true), eq(publishedPicksTable.publicationStatus, "PUBLISHED"),
+      sql`${modelPredictionsTable.featureSnapshot} ? 'v4PredictionId'`,
+      sql`DATE(${gamesTable.startsAt} AT TIME ZONE 'America/New_York') = ${date}`,
+      eq(modelPredictionsTable.sport, persistedSport)));
+  // This read-only board has no locked market/slot transaction or exact
+  // approval-ledger record. It consequently emits projections only. Keeping
+  // that fact explicit is safer than treating engine approval as publication
+  // approval, and makes client POTD computation impossible.
+  const officialByPredictionId = new Map(rankOfficialV4Candidates(coverage.forecasts.map((forecast) => ({
+    forecast,
+    exactApproval: false,
+    publicationEligible: false,
+    rankScore: Number.NaN,
+  }))).map((decision) => [decision.predictionId, decision]));
   res.json({
     sport,
     date,
@@ -40,8 +97,15 @@ router.get("/model/v4/projections", async (req, res) => {
       forecastCoveragePct: coverage.forecastCoveragePct,
       failures: coverage.failures,
     },
+    officialPicks: officialPicks.map((pick) => ({
+      ...pick, role: pick.role ? "TOP_PLAY" : "QUALIFIED_PLAY",
+    })),
     projections: coverage.forecasts.map((forecast) => {
       const event = eventById.get(forecast.gameId);
+       const official = officialByPredictionId.get(forecast.predictionId)!;
+       const stored = persistedByForecast.get(forecast.predictionId);
+       const role = stored?.isPublic && stored.status === "PUBLISHED"
+         ? stored.isPotd ? "TOP_PLAY" : "QUALIFIED_PLAY" : "PROJECTION";
       return {
         eventId: forecast.gameId,
         sport: forecast.sport,
@@ -66,8 +130,14 @@ router.get("/model/v4/projections", async (req, res) => {
             ? "DRAW"
             : forecast.homeWinProbability >= forecast.awayWinProbability ? "HOME" : "AWAY",
         forecastTimestamp: forecast.predictionTimestamp,
-        officialPickStatus: forecast.approvalState === "PRODUCTION_APPROVED"
-          ? "NO_OFFICIAL_PLAY" : "NOT_PUBLICATION_ELIGIBLE",
+         officialRole: role,
+         officialRank: stored?.isPublic ? stored.rank : null,
+         units: stored?.isPublic ? stored.units ?? 0 : 0,
+         officialPickStatus: role === "PROJECTION"
+          ? "NO_OFFICIAL_PLAY" : "OFFICIAL_TBM_PLAY",
+         officialFailureReason: role === "PROJECTION"
+           ? stored?.reason ?? official.failureReason
+           : null,
       };
     }),
   });

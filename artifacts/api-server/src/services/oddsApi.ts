@@ -68,6 +68,7 @@ export interface BookmakerLine {
   book: string;       // e.g. "pinnacle", "draftkings", "fanduel"
   homeOdds: number;   // American odds for home team
   awayOdds: number;   // American odds for away team
+  drawOdds?: number;  // Soccer three-way market, from this exact same book
   lastUpdate?: string;
 }
 
@@ -510,9 +511,11 @@ async function fetchAndNormalise(
       if (!h2h) continue;
       const bHomeOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
       const bAwayOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
+      const bDrawOdds = h2h.outcomes.find((o) => normalizeName(o.name) === "draw")?.price;
       if (isValidAmericanOdds(bHomeOdds) && isValidAmericanOdds(bAwayOdds)) {
         bookmakerOdds.push({
           book: book.key, homeOdds: bHomeOdds, awayOdds: bAwayOdds,
+          ...(isValidAmericanOdds(bDrawOdds) ? { drawOdds: bDrawOdds } : {}),
           lastUpdate: book.last_update,
         });
       }

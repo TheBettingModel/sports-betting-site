@@ -14,7 +14,7 @@ export type CandidateRuntimeHealth =
   | "CANDIDATE_RUNTIME_FAILURE";
 
 export interface ExactArtifactIdentity {
-  sport: "MLB" | "NCAAF" | "NFL";
+  sport: string;
   market: string;
   modelFamily: string;
   modelId: string;

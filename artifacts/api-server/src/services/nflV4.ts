@@ -515,8 +515,14 @@ export function createNflV4Engine(artifact: NflV4Artifact): SportEngineV4<Record
   const { artifactHash, ...body } = artifact;
   if (stableHash(body) !== artifactHash) throw new Error("ARTIFACT_HASH_MISMATCH");
   const identity = {
-    sport: "NFL" as const, modelId: artifact.modelId, modelVersion: artifact.modelVersion,
+    sport: "NFL" as const, modelFamily: artifact.modelFamily, modelId: artifact.modelId, modelVersion: artifact.modelVersion,
+    // This artifact format predates a separately governed artifact identifier.
+    // Keep the absence explicit so it can never resolve an official approval.
+    artifactId: "UNAVAILABLE_ARTIFACT_ID",
     artifactHash, contractId: artifact.featureContractId, contractHash: artifact.featureContractHash,
+    inputContractVersion: artifact.featureContractId,
+    configurationHash: stableHash({ featureContractHash: artifact.featureContractHash, normalization: artifact.normalization }),
+    parameterHash: artifact.parameterHash,
   };
   return {
     identity, approvalState: artifact.approvalState, maturity: artifact.maturity,
@@ -603,6 +609,7 @@ export function createNflV4Engine(artifact: NflV4Artifact): SportEngineV4<Record
       return {
         predictionId, ...identity, gameId: input.gameId,
         featureSnapshotId: input.featureSnapshotId, featureHash: input.featureHash,
+        inputHash: input.featureHash,
         dataCutoff: input.dataCutoff, predictionTimestamp: input.predictionTimestamp,
         approvalState: artifact.approvalState, maturity: artifact.maturity,
         homeWinProbability, awayWinProbability: 1 - homeWinProbability,

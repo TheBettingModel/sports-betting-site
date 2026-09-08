@@ -20,15 +20,21 @@ const input = (): V4EvidenceEnvelope<{ offense: number }> => ({
 });
 const identity = {
   sport: "MLB" as const,
+  modelFamily: "test",
   modelId: "tbm-mlb-v4",
   modelVersion: "v4.0.0",
+  artifactId: "test-artifact",
   artifactHash: "a".repeat(64),
+  inputContractVersion: "mlb-v4-input",
+  configurationHash: "b".repeat(64),
+  parameterHash: "d".repeat(64),
   contractId: "mlb-v4",
   contractHash: "c".repeat(64),
 };
 const output = (): CanonicalV4Forecast => ({
   predictionId: "p1", gameId: "g1", ...identity,
   featureSnapshotId: "s1", featureHash: "f".repeat(64),
+  inputHash: "f".repeat(64),
   dataCutoff: "2026-09-07T19:00:00.000Z",
   predictionTimestamp: "2026-09-07T19:01:00.000Z",
   approvalState: "SHADOW", maturity: "DEVELOPING",

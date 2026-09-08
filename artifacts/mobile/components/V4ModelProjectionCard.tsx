@@ -19,6 +19,7 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
         ? 'Draw'
         : 'Unavailable';
   const startsAt = projection.eventStart ? new Date(projection.eventStart) : null;
+  const failureReason = projection.officialFailureReason?.replaceAll('_', ' ');
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -33,7 +34,9 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
         </Text>
       </View>
       <Text style={[styles.matchup, { color: colors.foreground }]}>{away} at {home}</Text>
-      <Text style={[styles.projectionLabel, { color: colors.mutedForeground }]}>MODEL PROJECTION</Text>
+      <Text style={[styles.projectionLabel, { color: colors.mutedForeground }]}>
+        V4 MODEL PROJECTION
+      </Text>
       <Text style={[styles.winner, { color: colors.foreground }]}>{winner}</Text>
       <View style={styles.probabilityRow}>
         <Text style={[styles.metric, { color: colors.mutedForeground }]}>{away} {percent(projection.awayWinProbability)}</Text>
@@ -48,9 +51,13 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
         </Text>
       )}
       <View style={[styles.boundary, { borderTopColor: colors.border }]}>
-        <Text style={[styles.boundaryTitle, { color: colors.foreground }]}>NOT AN OFFICIAL TBM PICK</Text>
+        <Text style={[styles.boundaryTitle, { color: colors.foreground }]}>
+          PROJECTION ONLY · NOT AN OFFICIAL TBM PICK
+        </Text>
         <Text style={[styles.boundaryCopy, { color: colors.mutedForeground }]}>
-          Model projections do not count toward Top Picks, Play of the Day, units, record, or ROI.
+          {failureReason
+            ? `No official V4 play: ${failureReason}. This projection does not count toward official picks, units, record, or ROI.`
+            : 'This projection does not count toward Top Plays, units, record, or ROI.'}
         </Text>
       </View>
     </View>

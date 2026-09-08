@@ -7,11 +7,14 @@ import {
   integer,
   jsonb,
   pgTable,
+  real,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { modelVersionsTable } from "./model-versions";
+import { modelPredictionsTable } from "./model-predictions";
 
 export const v4HistoricalSourcesTable = pgTable("v4_historical_sources", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
@@ -147,9 +150,15 @@ export const v4ForecastVersionsTable = pgTable("v4_forecast_versions", {
   gameId: text("game_id").notNull(),
   version: integer("version").notNull(),
   supersedesPredictionId: text("supersedes_prediction_id"),
+  modelFamily: text("model_family"),
   modelId: text("model_id").notNull(),
   modelVersion: text("model_version").notNull(),
+  artifactId: text("artifact_id"),
   artifactHash: text("artifact_hash").notNull(),
+  inputContractVersion: text("input_contract_version"),
+  inputHash: text("input_hash"),
+  configurationHash: text("configuration_hash"),
+  parameterHash: text("parameter_hash"),
   contractId: text("contract_id").notNull(),
   contractHash: text("contract_hash").notNull(),
   featureSnapshotId: text("feature_snapshot_id").notNull(),
@@ -174,6 +183,76 @@ export const v4ForecastVersionsTable = pgTable("v4_forecast_versions", {
   check("v4_official_pick_status_check", sql`${table.officialPickStatus} IN ('NOT_PUBLICATION_ELIGIBLE','NO_OFFICIAL_PLAY','OFFICIAL_TBM_PLAY')`),
 ]);
 
+/** Immutable actionable price captured before the event; never inferred later. */
+export const v4MarketEvidenceTable = pgTable("v4_market_evidence", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  evidenceId: text("evidence_id").notNull().unique(),
+  sport: text("sport").notNull(),
+  gameId: text("game_id").notNull(),
+  market: text("market").notNull(),
+  selection: text("selection").notNull(),
+  line: real("line"),
+  odds: integer("odds").notNull(),
+  fairProbability: real("fair_probability").notNull(),
+  sportsbook: text("sportsbook").notNull(),
+  source: text("source").notNull(),
+  capturedAt: timestamp("captured_at", { withTimezone: true }).notNull(),
+  snapshotId: text("snapshot_id").notNull(),
+  providerIdentity: text("provider_identity").notNull(),
+  eventStart: timestamp("event_start", { withTimezone: true }).notNull(),
+  payloadHash: text("payload_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("v4_market_evidence_snapshot_unique").on(t.snapshotId, t.selection),
+  index("v4_market_evidence_game_idx").on(t.sport, t.gameId, t.capturedAt),
+  check("v4_market_evidence_probability_check", sql`${t.fairProbability} >= 0 AND ${t.fairProbability} <= 1`),
+  check("v4_market_evidence_pre_event_check", sql`${t.capturedAt} < ${t.eventStart}`),
+]);
+
+/** Explicit governed artifact-to-registry mapping. No model-id fallback is valid. */
+export const v4ArtifactModelVersionMappingsTable = pgTable("v4_artifact_model_version_mappings", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  sport: text("sport").notNull(),
+  market: text("market").notNull(),
+  modelFamily: text("model_family").notNull(),
+  modelId: text("model_id").notNull(),
+  modelVersion: text("model_version").notNull(),
+  artifactId: text("artifact_id").notNull(),
+  artifactHash: text("artifact_hash").notNull(),
+  inputContractVersion: text("input_contract_version").notNull(),
+  configurationHash: text("configuration_hash").notNull(),
+  parameterHash: text("parameter_hash").notNull(),
+  modelVersionId: integer("model_version_id").notNull().references(() => modelVersionsTable.id),
+  governedBy: text("governed_by").notNull(),
+  evidenceReference: text("evidence_reference").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("v4_artifact_model_version_exact_unique").on(
+    t.sport, t.market, t.modelFamily, t.modelId, t.modelVersion, t.artifactId,
+    t.artifactHash, t.inputContractVersion, t.configurationHash, t.parameterHash,
+  ),
+  uniqueIndex("v4_artifact_model_version_registry_unique").on(t.modelVersionId),
+]);
+
+/** Immutable V4 decision revision; this, not legacy prediction uniqueness, is the idempotency key. */
+export const v4OfficialDecisionRevisionsTable = pgTable("v4_official_decision_revisions", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  forecastPredictionId: text("forecast_prediction_id").notNull(),
+  forecastVersion: integer("forecast_version").notNull(),
+  marketEvidenceId: text("market_evidence_id").notNull(),
+  marketEvidenceHash: text("market_evidence_hash").notNull(),
+  modelPredictionId: integer("model_prediction_id").notNull().references(() => modelPredictionsTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("v4_official_decision_exact_unique").on(
+    t.forecastPredictionId, t.forecastVersion, t.marketEvidenceId, t.marketEvidenceHash,
+  ),
+  uniqueIndex("v4_official_decision_prediction_unique").on(t.modelPredictionId),
+]);
+
 export type V4HistoricalEvent = typeof v4HistoricalEventsTable.$inferSelect;
 export type InsertV4HistoricalEvent = typeof v4HistoricalEventsTable.$inferInsert;
 export type V4ForecastVersion = typeof v4ForecastVersionsTable.$inferSelect;
+export type V4MarketEvidence = typeof v4MarketEvidenceTable.$inferSelect;
+export type V4ArtifactModelVersionMapping = typeof v4ArtifactModelVersionMappingsTable.$inferSelect;
+export type V4OfficialDecisionRevision = typeof v4OfficialDecisionRevisionsTable.$inferSelect;

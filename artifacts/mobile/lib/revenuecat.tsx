@@ -9,10 +9,7 @@ import {
   syncSubscription,
 } from "@workspace/api-client-react";
 import { completeSubscriptionReconciliation } from "@/utils/subscriptionReconciliation";
-import {
-  gamesTodayQueryKey,
-  subscriptionStatusQueryKey,
-} from "@/utils/viewerQueryKeys";
+import { subscriptionStatusQueryKey } from "@/utils/viewerQueryKeys";
 import { createRevenueCatIdentityCoordinator } from "@/utils/revenueCatIdentity";
 
 const REVENUECAT_TEST_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
@@ -151,8 +148,6 @@ function useSubscriptionContext() {
 
   const isSubscribed = rcSubscribed || hasServerEntitlement;
 
-  const gamesQueryKey = useMemo(() => gamesTodayQueryKey(userId, hasServerEntitlement), [userId, hasServerEntitlement]);
-
   const reconcileEntitlement = useCallback(async (
     customerInfo: Awaited<ReturnType<typeof Purchases.getCustomerInfo>>,
     expectedUserId = userId,
@@ -177,11 +172,7 @@ function useSubscriptionContext() {
             isActive: true,
           }, { headers }),
         getStatus: () => getSubscriptionStatus({ headers }),
-        refreshGames: () => queryClient.invalidateQueries({
-          queryKey: gamesQueryKey,
-          exact: true,
-          refetchType: "all",
-        }),
+        refreshGames: async () => undefined,
       });
       identityCoordinator.assertCurrent(expectedUserId);
       return result;
@@ -191,7 +182,7 @@ function useSubscriptionContext() {
     queryClient.setQueryData(statusQueryKey, status);
     queryClient.setQueryData(["revenuecat", "customer-info", expectedUserId], customerInfo);
     return status;
-  }, [gamesQueryKey, identifyRevenueCatUser, identityCoordinator, queryClient, statusQueryKey, userId, withAuthenticatedRequest]);
+  }, [identifyRevenueCatUser, identityCoordinator, queryClient, statusQueryKey, userId, withAuthenticatedRequest]);
 
   const reconcileCurrentEntitlement = useCallback(async () => {
     const expectedUserId = await identifyRevenueCatUser();
@@ -260,21 +251,14 @@ function useSubscriptionContext() {
   }, [reconcileCurrentEntitlement, userId]);
 
   useEffect(() => {
-    if (!hasServerEntitlement) {
-      // Immediately evict stale premium payloads when server entitlement drops
-      queryClient.removeQueries({ queryKey: ["/api/games/today"] });
-    }
+    if (!hasServerEntitlement) queryClient.removeQueries({ queryKey: ["/api/model/v4/projections"] });
   }, [hasServerEntitlement, queryClient]);
 
   useEffect(() => {
     if (serverStatusQuery.data?.isSubscribed === true) {
-      void queryClient.invalidateQueries({
-        queryKey: gamesQueryKey,
-        exact: true,
-        refetchType: "all",
-      });
+      void queryClient.invalidateQueries({ queryKey: ["/api/model/v4/projections"] });
     }
-  }, [gamesQueryKey, queryClient, serverStatusQuery.data?.isSubscribed]);
+  }, [queryClient, serverStatusQuery.data?.isSubscribed]);
 
   return {
     customerInfo: customerInfoQuery.data,

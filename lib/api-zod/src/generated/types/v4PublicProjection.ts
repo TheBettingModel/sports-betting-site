@@ -7,7 +7,9 @@
  */
 import type { V4PublicProjectionLifecycleStatus } from './v4PublicProjectionLifecycleStatus';
 import type { V4PublicProjectionOfficialPickStatus } from './v4PublicProjectionOfficialPickStatus';
+import type { V4PublicProjectionOfficialRole } from './v4PublicProjectionOfficialRole';
 import type { V4PublicProjectionProjectedWinner } from './v4PublicProjectionProjectedWinner';
+import type { V4PublicProjectionUnits } from './v4PublicProjectionUnits';
 
 export interface V4PublicProjection {
   eventId: string;
@@ -38,4 +40,19 @@ export interface V4PublicProjection {
   projectedWinner?: V4PublicProjectionProjectedWinner;
   forecastTimestamp: string;
   officialPickStatus: V4PublicProjectionOfficialPickStatus;
+  /** Server-authoritative public role. Clients must not recompute rank or POTD. */
+  officialRole: V4PublicProjectionOfficialRole;
+  /**
+     * Server-authoritative rank among qualified V4 plays; null for projections.
+     * @minimum 1
+     * @nullable
+     */
+  officialRank: number | null;
+  /** Official qualified plays are always flat 1U. */
+  units: V4PublicProjectionUnits;
+  /**
+     * Explicit fail-closed reason when no official V4 play exists.
+     * @nullable
+     */
+  officialFailureReason: string | null;
 }

@@ -119,6 +119,7 @@ paths:
       description: >-
         Returns every legitimate V4 forecast for one sport/day plus explicit
         coverage failures. Validating projections are not official TBM picks.
+      security: [{ bearerAuth: [] }]
       parameters:
         - name: sport
           in: query
@@ -892,6 +893,10 @@ paths:
 
 components:
   securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
     masterApiKey:
       type: apiKey
       in: header
@@ -900,7 +905,7 @@ components:
   schemas:
     V4FullSlateProjectionResponse:
       type: object
-      required: [sport, date, lifecycleDisclaimer, coverage, projections]
+      required: [sport, date, lifecycleDisclaimer, coverage, officialPicks, projections]
       properties:
         sport: { type: string }
         date: { type: string }
@@ -922,12 +927,16 @@ components:
                 properties:
                   gameId: { type: string }
                   reason: { type: string }
+        officialPicks:
+          type: array
+          description: Persisted server-authoritative official V4 decisions; independent of current projection IDs.
+          items: { $ref: "#/components/schemas/V4OfficialPick" }
         projections:
           type: array
           items: { $ref: "#/components/schemas/V4PublicProjection" }
     V4PublicProjection:
       type: object
-      required: [eventId, sport, modelVersion, lifecycleStatus, forecastTimestamp, officialPickStatus]
+      required: [eventId, sport, modelVersion, lifecycleStatus, forecastTimestamp, officialPickStatus, officialRole, officialRank, units, officialFailureReason]
       properties:
         eventId: { type: string }
         sport: { type: string }
@@ -950,6 +959,44 @@ components:
         officialPickStatus:
           type: string
           enum: [NOT_PUBLICATION_ELIGIBLE, NO_OFFICIAL_PLAY, OFFICIAL_TBM_PLAY]
+        officialRole:
+          type: string
+          description: Server-authoritative public role. Clients must not recompute rank or POTD.
+          enum: [TOP_PLAY, QUALIFIED_PLAY, PROJECTION]
+        officialRank:
+          type: [integer, "null"]
+          minimum: 1
+          description: Server-authoritative rank among qualified V4 plays; null for projections.
+        units:
+          type: integer
+          enum: [0, 1]
+          description: Official qualified plays are always flat 1U.
+        officialFailureReason:
+          type: [string, "null"]
+          description: Explicit fail-closed reason when no official V4 play exists.
+    V4OfficialPick:
+      type: object
+      required: [eventId, sport, market, selection, role, rank, units, status]
+      properties:
+        eventId: { type: string }
+        sport: { type: string }
+        homeParticipant: { type: [string, "null"] }
+        awayParticipant: { type: [string, "null"] }
+        market: { type: string }
+        selection: { type: string }
+        odds: { type: [integer, "null"] }
+        modelProbability: { type: [number, "null"] }
+        fairProbability: { type: [number, "null"] }
+        role: { type: string, enum: [TOP_PLAY, QUALIFIED_PLAY] }
+        rank: { type: integer, minimum: 1 }
+        units: { type: integer, enum: [1] }
+        status: { type: string, enum: [PUBLISHED] }
+        modelId: { type: [string, "null"] }
+        modelVersion: { type: [string, "null"] }
+        artifactId: { type: [string, "null"] }
+        artifactHash: { type: [string, "null"] }
+        inputHash: { type: [string, "null"] }
+        marketEvidenceId: { type: [string, "null"] }
     NcaafV4SubscriberProjectionBoard:
       type: object
       required: [date, modelStatus, approvalStatus, publicationStatus, disclaimer, board]
@@ -2109,7 +2156,36 @@ components:
         gradedAt:
           type: string
           nullable: true
-      required: [pickId, sport, awayTeamAbbr, homeTeamAbbr, pick, unitsWonLost, result, gameDate]
+        modelId:
+          type: string
+        modelVersionId:
+          type: integer
+        provenance:
+          type: string
+          enum: [preCutoverOfficial, v4Official]
+      required: [pickId, sport, awayTeamAbbr, homeTeamAbbr, pick, unitsWonLost, result, gameDate, modelId, modelVersionId, provenance]
+
+    RecordSegment:
+      type: object
+      description: Official wager results grouped by immutable persisted publication and model provenance.
+      properties:
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        unitsRisked:
+          type: number
+        roi:
+          type: number
+      required: [wins, losses, pushes, totalPicks, winRate, unitsWonLost, unitsRisked, roi]
 
     ResultsSummaryResponse:
       type: object
@@ -2118,6 +2194,14 @@ components:
           type: string
         overall:
           $ref: "#/components/schemas/OverallStat"
+        recordSegments:
+          type: object
+          properties:
+            preCutoverOfficial:
+              $ref: "#/components/schemas/RecordSegment"
+            v4Official:
+              $ref: "#/components/schemas/RecordSegment"
+          required: [preCutoverOfficial, v4Official]
         bySport:
           type: array
           items:
@@ -2128,7 +2212,7 @@ components:
             $ref: "#/components/schemas/RecentResult"
         dataAsOf:
           type: string
-      required: [overall, bySport]
+      required: [overall, recordSegments, bySport]
 
     RoiEntry:
       type: object

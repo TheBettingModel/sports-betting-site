@@ -28,6 +28,17 @@ type SportStat = {
   currentStreakDir: string;
 };
 
+type RecordSegment = {
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
+};
+
 type ListItem =
   | { type: 'header-summary' }
   | { type: 'header-sport' }
@@ -45,6 +56,56 @@ function WinRateBar({ winRate, color }: { winRate: number; color: string }) {
   );
 }
 
+function RecordCard({
+  label,
+  record,
+  colors,
+  prominent = false,
+}: {
+  label: string;
+  record: RecordSegment;
+  colors: ReturnType<typeof useColors>;
+  prominent?: boolean;
+}) {
+  const unitsPos = record.unitsWonLost >= 0;
+  const empty = record.totalPicks === 0;
+  return (
+    <View style={[
+      styles.summaryCard,
+      prominent && styles.v4SummaryCard,
+      { backgroundColor: colors.card, borderColor: prominent ? colors.primary : colors.border },
+    ]}>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryLeft}>
+          <Text style={[styles.summaryLabel, { color: prominent ? colors.primary : colors.mutedForeground }]}>
+            {label}
+          </Text>
+          <Text style={[styles.recordText, { color: colors.foreground }]}>
+            {record.wins}–{record.losses}{record.pushes > 0 ? `–${record.pushes}` : ''}
+          </Text>
+          <View style={[styles.winRatePill, { backgroundColor: colors.primary + '20' }]}>
+            <Text style={[styles.winRatePillText, { color: colors.primary }]}>
+              {record.winRate}% WIN RATE
+            </Text>
+          </View>
+        </View>
+        <View style={styles.summaryRight}>
+          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>UNITS</Text>
+          <Text style={[styles.unitsText, { color: unitsPos ? colors.primary : '#EF4444' }]}>
+            {unitsPos ? '+' : ''}{record.unitsWonLost.toFixed(1)}
+          </Text>
+          <Text style={[styles.roiText, { color: colors.mutedForeground }]}>
+            {empty ? '— ROI' : `${record.roi >= 0 ? '+' : ''}${record.roi.toFixed(1)}% ROI`}
+          </Text>
+          <Text style={[styles.picksGradedText, { color: colors.mutedForeground }]}>
+            {empty ? 'No official picks graded yet' : `${record.totalPicks} picks graded`}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function ResultsScreen() {
@@ -55,6 +116,7 @@ export default function ResultsScreen() {
   const { data, isLoading, refetch, isRefetching } = useGetResultsSummary({ period });
 
   const overall = data?.overall;
+  const recordSegments = data?.recordSegments;
   const bySport = data?.bySport ?? [];
 
   // ── Build flat list items ─────────────────────────────────────────────────
@@ -63,7 +125,7 @@ export default function ResultsScreen() {
 
   // Always show the summary card once data has loaded (even 0-0).
   // Only add the per-sport breakdown when there are actually graded picks.
-  if (overall) {
+  if (overall && recordSegments) {
     listItems.push({ type: 'header-summary' });
 
     if (overall.totalPicks > 0) {
@@ -84,35 +146,11 @@ export default function ResultsScreen() {
   const renderItem = ({ item }: { item: ListItem }) => {
     switch (item.type) {
       case 'header-summary': {
-        if (!overall) return null;
-        const unitsPos = overall.unitsWonLost >= 0;
+        if (!recordSegments) return null;
         return (
-          <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.summaryRow}>
-              {/* Record */}
-              <View style={styles.summaryLeft}>
-                <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>OVERALL RECORD</Text>
-                <Text style={[styles.recordText, { color: colors.foreground }]}>
-                  {overall.wins}–{overall.losses}{overall.pushes > 0 ? `–${overall.pushes}` : ''}
-                </Text>
-                <View style={[styles.winRatePill, { backgroundColor: colors.primary + '20' }]}>
-                  <Text style={[styles.winRatePillText, { color: colors.primary }]}>
-                    {overall.winRate}% WIN RATE
-                  </Text>
-                </View>
-              </View>
-
-              {/* Units */}
-              <View style={styles.summaryRight}>
-                <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>UNITS</Text>
-                <Text style={[styles.unitsText, { color: unitsPos ? colors.primary : '#EF4444' }]}>
-                  {unitsPos ? '+' : ''}{overall.unitsWonLost.toFixed(1)}
-                </Text>
-                <Text style={[styles.picksGradedText, { color: colors.mutedForeground }]}>
-                  {overall.totalPicks} picks graded
-                </Text>
-              </View>
-            </View>
+          <View>
+            <RecordCard label="V4 OFFICIAL RECORD" record={recordSegments.v4Official} colors={colors} prominent />
+            <RecordCard label="HISTORICAL OFFICIAL RECORD" record={recordSegments.preCutoverOfficial} colors={colors} />
           </View>
         );
       }
@@ -303,6 +341,7 @@ const styles = StyleSheet.create({
       ? { shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }
       : { elevation: 6 }),
   },
+  v4SummaryCard: { borderWidth: 2 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   summaryLeft: { flex: 1 },
   summaryRight: { alignItems: 'flex-end' },
@@ -317,6 +356,7 @@ const styles = StyleSheet.create({
   },
   winRatePillText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
   unitsText: { fontSize: 32, fontFamily: 'Inter_700Bold', letterSpacing: -1 },
+  roiText: { fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 2 },
   picksGradedText: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 4 },
 
   // Sport rows

@@ -4,8 +4,9 @@ import { V4EngineRegistry, stableHash, type SportEngineV4 } from "./v4Platform";
 
 function engine(): SportEngineV4<{ rating: number }> {
   const identity = {
-    sport: "NFL" as const, modelId: "tbm-nfl-v4-test", modelVersion: "4.0.0",
-    artifactHash: "a".repeat(64), contractId: "nfl-core", contractHash: "b".repeat(64),
+    sport: "NFL" as const, modelFamily: "test", modelId: "tbm-nfl-v4-test", modelVersion: "4.0.0",
+    artifactId: "test-artifact", artifactHash: "a".repeat(64), inputContractVersion: "nfl-core",
+    configurationHash: "c".repeat(64), parameterHash: "d".repeat(64), contractId: "nfl-core", contractHash: "b".repeat(64),
   };
   return {
     identity, approvalState: "SHADOW", maturity: "DEVELOPING",
@@ -23,7 +24,7 @@ function engine(): SportEngineV4<{ rating: number }> {
     async predict(input) {
       return {
         predictionId: stableHash(input), ...identity, gameId: input.gameId,
-        featureSnapshotId: input.featureSnapshotId, featureHash: input.featureHash,
+        featureSnapshotId: input.featureSnapshotId, featureHash: input.featureHash, inputHash: input.featureHash,
         dataCutoff: input.dataCutoff, predictionTimestamp: input.predictionTimestamp,
         approvalState: "SHADOW", maturity: "DEVELOPING",
         homeWinProbability: .55, awayWinProbability: .45,

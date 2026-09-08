@@ -6,6 +6,8 @@ import {
   subscriptionStatusQueryKey,
 } from '../utils/viewerQueryKeys.ts';
 import { createRevenueCatIdentityCoordinator } from '../utils/revenueCatIdentity.ts';
+import { splitV4Picks } from '../utils/v4PicksHierarchy.ts';
+import fs from 'node:fs';
 
 const awayProjection = getForecastMoneylineIdentity({
   projection: { homeWinPct: 20 },
@@ -160,5 +162,69 @@ const hasServerEntitlementError =
   mockServerStatusQueryError.isSuccess &&
   mockServerStatusQueryError.data?.isSubscribed === true;
 assert.equal(hasServerEntitlementError, false);
+
+// Persisted official picks are independent of current forecast identity and
+// remain visible when their original projection is absent.
+const officialPicks = [
+  { eventId: 'persisted-event', market: 'moneyline', role: 'TOP_PLAY', rank: 1, status: 'PUBLISHED' },
+  { eventId: 'qualified-2', market: 'moneyline', role: 'QUALIFIED_PLAY', rank: 2, status: 'PUBLISHED' },
+  { eventId: 'qualified-1', market: 'spread', role: 'QUALIFIED_PLAY', rank: 1, status: 'PUBLISHED' },
+];
+const currentProjections = [
+  { eventId: 'new-forecast-event-id' },
+  { eventId: 'persisted-event' },
+  { eventId: 'qualified-1' },
+  { eventId: 'shadow' },
+];
+const hierarchy = splitV4Picks(officialPicks, currentProjections);
+assert.equal(hierarchy.topPlayIsAvailable, true);
+assert.deepEqual(hierarchy.topPlays.map((pick) => pick.eventId), ['persisted-event']);
+assert.deepEqual(hierarchy.qualifiedPlays.map((pick) => pick.eventId), ['qualified-1', 'qualified-2']);
+assert.deepEqual(hierarchy.projectionsOnly.map((pick) => pick.eventId), [
+  'new-forecast-event-id',
+  'qualified-1',
+  'shadow',
+]);
+
+const noOfficial = splitV4Picks([], currentProjections);
+assert.equal(noOfficial.topPlayIsAvailable, false);
+assert.equal(noOfficial.qualifiedPlays.length, 0);
+assert.equal(noOfficial.projectionsOnly.length, currentProjections.length);
+
+const malformedTop = splitV4Picks([
+  officialPicks[0],
+  { ...officialPicks[0], eventId: 'duplicate-top' },
+], []);
+assert.equal(malformedTop.topPlayIsAvailable, false);
+assert.equal(malformedTop.topPlays.length, 0);
+assert.equal(malformedTop.topCandidateCount, 2);
+
+const picksSource = fs.readFileSync(new URL('../app/(tabs)/picks.tsx', import.meta.url), 'utf8');
+assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGame|getForecast/);
+assert.match(picksSource, /hasServerEntitlement/);
+assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
+
+const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
+assert.match(v4CardSource, /value == null \? '—'/);
+assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);
+assert.match(v4CardSource, /expectedHomeScore\.toFixed\(1\)/);
+assert.match(v4CardSource, /PROJECTION ONLY · NOT AN OFFICIAL TBM PICK/);
+assert.doesNotMatch(v4CardSource, /TBM OFFICIAL TOP PLAY/);
+
+const officialCardSource = fs.readFileSync(new URL('../components/V4OfficialPickCard.tsx', import.meta.url), 'utf8');
+assert.match(officialCardSource, /TBM OFFICIAL TOP PLAY/);
+assert.match(officialCardSource, /PERSISTED/);
+assert.match(picksSource, /board\.officialPicks/);
+assert.match(picksSource, /V4OfficialPickCard/);
+
+// Results must render server-provided V4 and historical ledgers independently;
+// it must not infer cutover status from dates or raw projections on-device.
+const resultsSource = fs.readFileSync(new URL('../app/(tabs)/results.tsx', import.meta.url), 'utf8');
+assert.match(resultsSource, /recordSegments\.v4Official/);
+assert.match(resultsSource, /recordSegments\.preCutoverOfficial/);
+assert.match(resultsSource, /V4 OFFICIAL RECORD/);
+assert.match(resultsSource, /HISTORICAL OFFICIAL RECORD/);
+assert.match(resultsSource, /No official picks graded yet/);
+assert.doesNotMatch(resultsSource, /cutoverDate|new Date\([^)]*\).*v4/i);
 
 console.log('Task 198 regression tests passed');

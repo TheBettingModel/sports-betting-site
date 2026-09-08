@@ -111,7 +111,9 @@ export async function runGrading(): Promise<number> {
     const snapshot = predictionMap.get(pick.predictionId)?.featureSnapshot as Record<string, unknown> | undefined;
 
     if (pick.market === "moneyline") {
-      grade = pick.sport === "Soccer"
+      const isThreeWay = pick.sport.toUpperCase() === "SOCCER"
+        || snapshot?.marketOutcomeCount === 3;
+      grade = isThreeWay
         ? gradeSoccer3Way(pick.selection, gameResult.homeScore, gameResult.awayScore)
         : gradeMoneyline(pick.selection, gameResult.homeScore, gameResult.awayScore);
     } else if (pick.market === "spread") {

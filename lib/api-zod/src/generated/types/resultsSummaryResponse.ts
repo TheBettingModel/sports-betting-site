@@ -7,11 +7,13 @@
  */
 import type { OverallStat } from './overallStat';
 import type { RecentResult } from './recentResult';
+import type { ResultsSummaryResponseRecordSegments } from './resultsSummaryResponseRecordSegments';
 import type { SportStat } from './sportStat';
 
 export interface ResultsSummaryResponse {
   period?: string;
   overall: OverallStat;
+  recordSegments: ResultsSummaryResponseRecordSegments;
   bySport: SportStat[];
   recentResults?: RecentResult[];
   dataAsOf?: string;

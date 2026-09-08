@@ -462,11 +462,22 @@ export function createRollingScoreV4Engine(
   if (stableHash(artifactBody) !== artifactHash) throw new Error("ARTIFACT_HASH_MISMATCH");
   const identity = {
     sport: artifact.sport,
+    modelFamily: artifact.modelFamily,
     modelId: artifact.modelId,
     modelVersion: artifact.modelVersion,
+    // Old artifacts do not provide a distinct approval artifact id. It is
+    // intentionally unsatisfiable at the official adapter rather than aliased.
+    artifactId: "UNAVAILABLE_ARTIFACT_ID",
     artifactHash: artifact.artifactHash,
     contractId: artifact.featureContractId,
     contractHash: artifact.featureContractHash,
+    inputContractVersion: artifact.featureContractId,
+    configurationHash: stableHash({
+      featureContractHash: artifact.featureContractHash,
+      normalization: artifact.normalization,
+      ridgeLambda: artifact.ridgeLambda,
+    }),
+    parameterHash: artifact.parameterHash,
   };
   return {
     identity,
@@ -573,6 +584,7 @@ export function createRollingScoreV4Engine(
       return {
         predictionId, ...identity, gameId: input.gameId,
         featureSnapshotId: input.featureSnapshotId, featureHash: input.featureHash,
+        inputHash: input.featureHash,
         dataCutoff: input.dataCutoff, predictionTimestamp: input.predictionTimestamp,
         approvalState: artifact.approvalState, maturity: artifact.maturity,
         homeWinProbability: predicted.homeProbability,
