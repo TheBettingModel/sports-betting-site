@@ -4,13 +4,38 @@ import { useColors } from '@/hooks/useColors';
 import { TeamLogo } from '@/components/TeamLogo';
 import type { V4PublicProjection } from '@workspace/api-client-react';
 
+const TWO_WORD_NICKNAMES = [
+  'Red Sox', 'White Sox', 'Blue Jays', 'Maple Leafs', 'Golden Knights',
+  'Blue Jackets', 'Red Wings', 'Trail Blazers', 'Fighting Irish',
+  'Nittany Lions', 'Demon Deacons', 'Horned Frogs', 'Yellow Jackets',
+  'Sun Devils', 'Ragin\' Cajuns', 'Scarlet Knights', 'Mean Green',
+  'Green Wave', 'Golden Hurricane', 'Golden Eagles', 'Golden Flashes',
+  'Golden Panthers', 'Golden Bears', 'Bald Eagles', 'Salukis',
+  'Raging Bulls', 'Thundering Herd', 'Red Wolves', 'Red Raiders',
+  'Black Knights', 'Black Bears', 'Blackbirds', 'Blue Raiders',
+  'Blue Demons', 'Blue Hens', 'Blue Devils', 'Blue Hose',
+  'Great Danes', 'Minutemen', 'Tar Heels', 'Golden Gophers'
+];
+
+function nickname(fullName: string): string {
+  if (!fullName) return '';
+  const lower = fullName.toLowerCase();
+  for (const nick of TWO_WORD_NICKNAMES) {
+    if (lower.endsWith(nick.toLowerCase())) {
+      return nick;
+    }
+  }
+  const parts = fullName.trim().split(' ');
+  return parts[parts.length - 1] ?? fullName;
+}
+
 function percent(value: number | null | undefined): string {
   return value == null ? '—' : `${(value * 100).toFixed(1)}%`;
 }
 
 function selection(projection: V4PublicProjection, away: string, home: string): string {
-  if (projection.projectedWinner === 'HOME') return `${home} ML`;
-  if (projection.projectedWinner === 'AWAY') return `${away} ML`;
+  if (projection.projectedWinner === 'HOME') return `${nickname(home)} ML`;
+  if (projection.projectedWinner === 'AWAY') return `${nickname(away)} ML`;
   if (projection.projectedWinner === 'DRAW') return 'Draw';
   return 'Unavailable';
 }
@@ -44,40 +69,22 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
 
       <View style={styles.content}>
         <View style={styles.matchupRow}>
-          {awayAbbr && (
-            <TeamLogo sport={projection.sport} abbr={awayAbbr} logoUrl={projection.awayParticipantLogo ?? undefined} size={30} />
-          )}
-          <Text style={[styles.matchup, { color: colors.foreground }]} numberOfLines={1}>
-            {away} vs. {home}
-          </Text>
-          {homeAbbr && (
-            <TeamLogo sport={projection.sport} abbr={homeAbbr} logoUrl={projection.homeParticipantLogo ?? undefined} size={30} />
-          )}
+          {awayAbbr && <TeamLogo sport={projection.sport} abbr={awayAbbr} logoUrl={projection.awayParticipantLogo ?? undefined} size={24} />}
+          <Text style={[styles.matchup, { color: colors.foreground }]} numberOfLines={1}>{nickname(away)}</Text>
+          <Text style={[styles.vs, { color: colors.mutedForeground }]}>vs.</Text>
+          {homeAbbr && <TeamLogo sport={projection.sport} abbr={homeAbbr} logoUrl={projection.homeParticipantLogo ?? undefined} size={24} />}
+          <Text style={[styles.matchup, { color: colors.foreground }]} numberOfLines={1}>{nickname(home)}</Text>
         </View>
 
-        <View style={styles.selectionRow}>
-          <View style={styles.selectionBlock}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>PICK</Text>
-            <Text style={[styles.selectionText, { color: colors.foreground }]} numberOfLines={1}>{modelSelection}</Text>
-          </View>
-          <View style={styles.scoreBlock}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>PROJECTED SCORE</Text>
-            <Text style={[styles.scoreText, { color: colors.foreground }]} numberOfLines={1}>
-              {away} {expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – {home} {expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.probabilityRow, { borderTopColor: colors.border }]}>
-          <Text style={[styles.probability, { color: colors.foreground }]}>{away} {percent(projection.awayWinProbability)}</Text>
-          <Text style={[styles.probabilityDivider, { color: colors.mutedForeground }]}>·</Text>
-          <Text style={[styles.probability, { color: colors.foreground }]}>{home} {percent(projection.homeWinProbability)}</Text>
+        <View style={styles.pickBlock}>
+          <Text style={[styles.label, { color: colors.mutedForeground }]}>PICK</Text>
+          <Text style={[styles.selectionText, { color: colors.foreground }]}>{modelSelection}</Text>
         </View>
 
         <View style={styles.stateRow}>
           <View style={[styles.stateDot, { backgroundColor: colors.primary }]} />
           <Text style={[styles.stateText, { color: colors.primary }]}>MODEL PROJECTION</Text>
-          <Text style={[styles.stateSecondary, { color: colors.mutedForeground }]}>Not an Official TBM Play</Text>
+          <Text style={[styles.stateSecondary, { color: colors.mutedForeground }]}>Not an Official Play</Text>
         </View>
 
         <Pressable
@@ -95,6 +102,11 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
           <View style={[styles.analysis, { borderTopColor: colors.border }]}>
             <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Model Projection</Text>
             <View style={styles.detailGrid}>
+              <Detail label="Projected score" value={`${nickname(away)} ${expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – ${nickname(home)} ${expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}`} colors={colors} />
+              <Detail label="Win probability" value={`${nickname(away)} ${percent(projection.awayWinProbability)} · ${nickname(home)} ${percent(projection.homeWinProbability)}`} colors={colors} />
+              {projection.drawProbability != null && (
+                <Detail label="Draw probability" value={percent(projection.drawProbability)} colors={colors} />
+              )}
               <Detail label="Projected winner" value={projection.projectedWinner ?? 'Unavailable'} colors={colors} />
               <Detail label="Expected margin" value={projection.expectedMargin == null ? '—' : projection.expectedMargin.toFixed(1)} colors={colors} />
               <Detail label="Expected total" value={projection.expectedTotal == null ? '—' : projection.expectedTotal.toFixed(1)} colors={colors} />
@@ -170,16 +182,11 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
   content: { padding: 14 },
   matchupRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  matchup: { flex: 1, fontSize: 18, fontFamily: 'Inter_700Bold', letterSpacing: -0.4 },
-  selectionRow: { flexDirection: 'row', marginTop: 16, gap: 12 },
-  selectionBlock: { flex: 0.75 },
-  scoreBlock: { flex: 1.25 },
+  matchup: { fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: -0.4, flexShrink: 1 },
+  vs: { fontSize: 12, fontFamily: 'Inter_500Medium' },
+  pickBlock: { marginTop: 17 },
   label: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
-  selectionText: { fontSize: 19, fontFamily: 'Inter_700Bold', marginTop: 3 },
-  scoreText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', marginTop: 5 },
-  probabilityRow: { marginTop: 14, paddingTop: 11, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  probability: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  probabilityDivider: { fontSize: 15 },
+  selectionText: { fontSize: 24, fontFamily: 'Inter_700Bold', marginTop: 3, lineHeight: 28 },
   stateRow: { marginTop: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
   stateDot: { width: 5, height: 5, borderRadius: 3 },
   stateText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },

@@ -211,7 +211,7 @@ assert.match(v4CardSource, /value == null \? '—'/);
 assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);
 assert.match(v4CardSource, /expectedHomeScore\.toFixed\(1\)/);
 assert.match(v4CardSource, /MODEL PROJECTION/);
-assert.match(v4CardSource, /Not an Official TBM Play/);
+assert.match(v4CardSource, /Not an Official Play/);
 assert.match(v4CardSource, /Pressable/);
 assert.match(v4CardSource, /TeamLogo/);
 assert.match(v4CardSource, /Pitcher Matchup/);
