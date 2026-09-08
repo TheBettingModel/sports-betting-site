@@ -14,10 +14,11 @@ import { eq } from "drizzle-orm";
 import { resolveSubscriberStatus } from "../middleware/requireSubscriber";
 import { db, userPreferencesTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { ACTIVE_PRODUCT_SPORTS } from "../services/sportScope";
 
 const router: IRouter = Router();
 
-export const VALID_SPORTS = ["MLB", "NFL", "NBA", "WNBA", "NHL", "Soccer", "NCAAB", "NCAAF", "UFC"];
+export const VALID_SPORTS: string[] = [...ACTIVE_PRODUCT_SPORTS];
 export const VALID_TIERS = ["Playable", "Strong Buy", "Elite"];
 
 router.use("/preferences", resolveSubscriberStatus);

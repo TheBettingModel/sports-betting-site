@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { RecentResultProvenance } from './recentResultProvenance';
 
 export interface RecentResult {
   pickId: number;
@@ -20,4 +21,7 @@ export interface RecentResult {
   result: string;
   gameDate: string;
   gradedAt?: string | null;
+  modelId: string;
+  modelVersionId: number;
+  provenance: RecentResultProvenance;
 }

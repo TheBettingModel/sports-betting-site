@@ -26,6 +26,7 @@ import {
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
 import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
+import { ACTIVE_PRODUCT_SPORTS, isActiveProductSport } from "./sportScope";
 
 /**
  * Process all effective pending pick_results rows that have a completed game_result.
@@ -50,6 +51,7 @@ export async function runGrading(): Promise<number> {
     .where(and(
       eq(pickResultsTable.result, "pending"),
       eq(publishedPicksTable.isEffective, true),
+      inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
       isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
     ));
 
@@ -111,7 +113,9 @@ export async function runGrading(): Promise<number> {
     const snapshot = predictionMap.get(pick.predictionId)?.featureSnapshot as Record<string, unknown> | undefined;
 
     if (pick.market === "moneyline") {
-      grade = pick.sport === "Soccer"
+      const isThreeWay = pick.sport.toUpperCase() === "SOCCER"
+        || snapshot?.marketOutcomeCount === 3;
+      grade = isThreeWay
         ? gradeSoccer3Way(pick.selection, gameResult.homeScore, gameResult.awayScore)
         : gradeMoneyline(pick.selection, gameResult.homeScore, gameResult.awayScore);
     } else if (pick.market === "spread") {
@@ -245,6 +249,7 @@ export async function syncGameResults(): Promise<number> {
   const finalGames = await db
     .select({
       id:        gamesTable.id,
+      sport:     gamesTable.sport,
       homeScore: gamesTable.homeScore,
       awayScore: gamesTable.awayScore,
     })
@@ -267,7 +272,9 @@ export async function syncGameResults(): Promise<number> {
     .where(inArray(gameResultsTable.gameId, finalIds));
 
   const existingIds = new Set(existing.map((r) => r.gameId));
-  const missing = finalGames.filter((g) => !existingIds.has(g.id));
+  const missing = finalGames.filter(
+    (g) => isActiveProductSport(g.sport) && !existingIds.has(g.id),
+  );
 
   if (missing.length === 0) return 0;
 
@@ -306,7 +313,7 @@ export async function recoverStaleGames(): Promise<number> {
   const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
 
   // Find games stuck in non-final status from past dates
-  const staleGames = await db
+  const staleGames = (await db
     .select({
       id:      gamesTable.id,
       sport:   gamesTable.sport,
@@ -319,7 +326,7 @@ export async function recoverStaleGames(): Promise<number> {
         ne(gamesTable.status, "final"),
         lt(gamesTable.gameDate, todayStr),
       ),
-    );
+    )).filter((game) => isActiveProductSport(game.sport));
 
   if (staleGames.length === 0) return 0;
 

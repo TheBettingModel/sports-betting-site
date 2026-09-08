@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -6,6 +6,7 @@ import {
   v4FullSlateRunsTable,
 } from "@workspace/db";
 import {
+  TBM_V4_OFFICIAL_RELEASE_SPORTS,
   canonicalV4EngineRegistry,
   routeV4Forecast,
   stableHash,
@@ -14,6 +15,7 @@ import {
   type V4EngineRegistry,
 } from "./v4Platform";
 import { fetchSportGamesByDate } from "./espn";
+import { persistOfficialV4Forecasts, reconcileOfficialV4Day } from "./v4OfficialPersistence";
 
 export type FullSlateMode = "DRY_RUN" | "SHADOW" | "PRODUCTION";
 export type ForecastFailureReason =
@@ -152,6 +154,12 @@ export async function runFullSlateV4(input: {
   const eligible = input.events.filter((event) => event.eligibility === "ELIGIBLE");
   const forecasts: CanonicalV4Forecast[] = [];
   for (const event of eligible) {
+    // Forecast engines may materialize live inputs before rejecting them. Do
+    // not call one at all once the immutable pregame cutoff has passed.
+    if (!event.eventStart || new Date(event.eventStart) <= input.now) {
+      failures.push({ gameId: event.gameId, reason: "EVENT_ALREADY_STARTED" });
+      continue;
+    }
     const routed = await routeV4Forecast(
       input.registry ?? canonicalV4EngineRegistry,
       input.sport,
@@ -185,6 +193,11 @@ export async function runFullSlateV4(input: {
   };
   if (input.mode !== "DRY_RUN" && input.ledger) {
     await input.ledger.persistRun(coverage, input.mode, startedAt, new Date().toISOString());
+    // Only the concrete persisted V4 ledger may cross the official boundary.
+    // Test/custom ledgers and shadow runs remain incapable of publication.
+    if (input.mode === "PRODUCTION" && input.ledger instanceof DbV4ForecastLedger) {
+      await persistOfficialV4Forecasts(forecasts.map((forecast) => forecast.predictionId), input.now);
+    }
   }
   return coverage;
 }
@@ -195,6 +208,8 @@ export class DbV4ForecastLedger implements V4ForecastLedger {
     const start = new Date(eventStart);
     if (predictedAt >= start) throw new Error("POST_START_FORECAST_REJECTED");
     return db.transaction(async (transaction) => {
+      // Serializes version allocation for this immutable sport/game history.
+      await transaction.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`v4-forecast:${forecast.sport}:${forecast.gameId}`}))`);
       const [same] = await transaction.select({
         predictionId: v4ForecastVersionsTable.predictionId,
         version: v4ForecastVersionsTable.version,
@@ -215,9 +230,15 @@ export class DbV4ForecastLedger implements V4ForecastLedger {
         gameId: forecast.gameId,
         version,
         supersedesPredictionId: latest?.predictionId ?? null,
+        modelFamily: forecast.modelFamily,
         modelId: forecast.modelId,
         modelVersion: forecast.modelVersion,
+        artifactId: forecast.artifactId,
         artifactHash: forecast.artifactHash,
+        inputContractVersion: forecast.inputContractVersion,
+        inputHash: forecast.inputHash,
+        configurationHash: forecast.configurationHash,
+        parameterHash: forecast.parameterHash,
         contractId: forecast.contractId,
         contractHash: forecast.contractHash,
         featureSnapshotId: forecast.featureSnapshotId,
@@ -254,4 +275,33 @@ export class DbV4ForecastLedger implements V4ForecastLedger {
       completedAt: new Date(completedAt),
     }).onConflictDoNothing();
   }
+}
+
+/**
+ * Single scheduler-owned official orchestrator. It is inert unless explicitly
+ * cut over; every later mapping/approval/evidence gate is rechecked inside the
+ * publication transaction.
+ */
+export async function runRegisteredOfficialV4(now = new Date()): Promise<FullSlateCoverage[]> {
+  if (process.env["V4_OFFICIAL_CUTOVER"] !== "true") return [];
+  // Independent withdrawal pass: it must run even when every engine has been
+  // removed/demoted or today's discovery returns no forecasts.
+  await reconcileOfficialV4Day(now);
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(now);
+  const results: FullSlateCoverage[] = [];
+  for (const sport of TBM_V4_OFFICIAL_RELEASE_SPORTS) {
+    const engine = canonicalV4EngineRegistry.get(sport);
+    if (!engine || engine.approvalState !== "PRODUCTION_APPROVED"
+      || !engine.identity.artifactId || engine.identity.artifactId.startsWith("UNAVAILABLE_")
+    ) continue;
+    const events = await discoverV4Slate(sport, date);
+    if (!events.length) continue;
+    results.push(await runFullSlateV4({
+      sport, sportDate: date, now, mode: "PRODUCTION", events,
+      registry: canonicalV4EngineRegistry, ledger: new DbV4ForecastLedger(),
+    }));
+  }
+  return results;
 }

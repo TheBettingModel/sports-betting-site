@@ -86,7 +86,7 @@ export const modelPredictionsTable = pgTable(
       t.gameId,
       t.modelVersionId,
       t.market,
-    ).where(sql`${t.policyRevisionId} IS NULL`),
+    ).where(sql`${t.policyRevisionId} IS NULL AND ${t.cohort} IS DISTINCT FROM 'official'`),
     uniqueIndex("model_predictions_revision_identity_unique").on(
       t.gameId,
       t.modelVersionId,

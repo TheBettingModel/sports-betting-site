@@ -7,6 +7,7 @@
  */
 
 import { logger } from "../lib/logger";
+import { isActiveProductSport } from "./sportScope";
 
 // ── Sport paths ───────────────────────────────────────────────────────────────
 
@@ -600,8 +601,11 @@ export const SOCCER_SPORT_KEYS = Object.keys(ESPN_SPORT_PATHS).filter(
 );
 
 export async function fetchAllSports(): Promise<FetchedGame[]> {
+  const activeSportKeys = Object.keys(ESPN_SPORT_PATHS).filter(
+    (sportKey) => isActiveProductSport(SPORT_FOR_KEY[sportKey] ?? sportKey),
+  );
   const results = await Promise.allSettled(
-    Object.keys(ESPN_SPORT_PATHS).map(fetchSportGames),
+    activeSportKeys.map(fetchSportGames),
   );
   const all: FetchedGame[] = [];
   for (const r of results) {
@@ -623,7 +627,9 @@ export interface SportFetchResult {
  * can distinguish "no games today" from "ESPN fetch failed".
  */
 export async function fetchAllSportsDetailed(): Promise<SportFetchResult[]> {
-  const sportKeys = Object.keys(ESPN_SPORT_PATHS);
+  const sportKeys = Object.keys(ESPN_SPORT_PATHS).filter(
+    (sportKey) => isActiveProductSport(SPORT_FOR_KEY[sportKey] ?? sportKey),
+  );
 
   return Promise.all(
     sportKeys.map(async (sportKey): Promise<SportFetchResult> => {

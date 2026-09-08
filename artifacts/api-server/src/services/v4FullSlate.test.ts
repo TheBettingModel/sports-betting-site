@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { classifyDiscoveredEvent, runFullSlateV4 } from "./v4FullSlate";
-import { V4EngineRegistry, stableHash, type SportEngineV4 } from "./v4Platform";
+import {
+  TBM_V4_PUBLIC_SPORTS,
+  TBM_V4_SPORTS,
+  V4EngineRegistry,
+  stableHash,
+  type SportEngineV4,
+} from "./v4Platform";
 
 function engine(): SportEngineV4<{ rating: number }> {
   const identity = {
-    sport: "NFL" as const, modelId: "tbm-nfl-v4-test", modelVersion: "4.0.0",
-    artifactHash: "a".repeat(64), contractId: "nfl-core", contractHash: "b".repeat(64),
+    sport: "NFL" as const, modelFamily: "test", modelId: "tbm-nfl-v4-test", modelVersion: "4.0.0",
+    artifactId: "test-artifact", artifactHash: "a".repeat(64), inputContractVersion: "nfl-core",
+    configurationHash: "c".repeat(64), parameterHash: "d".repeat(64), contractId: "nfl-core", contractHash: "b".repeat(64),
   };
   return {
     identity, approvalState: "SHADOW", maturity: "DEVELOPING",
@@ -23,10 +30,11 @@ function engine(): SportEngineV4<{ rating: number }> {
     async predict(input) {
       return {
         predictionId: stableHash(input), ...identity, gameId: input.gameId,
-        featureSnapshotId: input.featureSnapshotId, featureHash: input.featureHash,
+        featureSnapshotId: input.featureSnapshotId, featureHash: input.featureHash, inputHash: input.featureHash,
         dataCutoff: input.dataCutoff, predictionTimestamp: input.predictionTimestamp,
         approvalState: "SHADOW", maturity: "DEVELOPING",
         homeWinProbability: .55, awayWinProbability: .45,
+        expectedHomeScore: 24.4, expectedAwayScore: 21.3,
         evidenceTier: "TEST", qualityFlags: [],
       };
     },
@@ -58,6 +66,19 @@ describe("V4 full slate", () => {
       mode: "DRY_RUN", events, registry,
     });
     expect(result).toMatchObject({ scheduledEvents: 2, eligibleEvents: 2, forecastedEvents: 2, failedEvents: 0, forecastCoveragePct: 100 });
+    expect(result.forecasts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        approvalState: "SHADOW",
+        maturity: "DEVELOPING",
+        expectedHomeScore: 24.4,
+        expectedAwayScore: 21.3,
+      }),
+    ]));
+  });
+
+  it("keeps UFC out of the public V4 board while retaining historical engine compatibility", () => {
+    expect(TBM_V4_PUBLIC_SPORTS).not.toContain("UFC");
+    expect(TBM_V4_SPORTS).toContain("UFC");
   });
 
   it("returns explicit no-artifact failures for all eligible events", async () => {
@@ -72,5 +93,25 @@ describe("V4 full slate", () => {
     });
     expect(result.failures).toEqual([{ gameId: "1", reason: "NO_ELIGIBLE_V4_ARTIFACT" }]);
     expect(result.forecastCoveragePct).toBe(0);
+  });
+
+  it("does not invoke a forecast engine after an event has started", async () => {
+    const registry = new V4EngineRegistry();
+    const startedEngine = engine();
+    startedEngine.collectEvidence = async () => {
+      throw new Error("LIVE_ENGINE_MUST_NOT_RUN");
+    };
+    registry.register(startedEngine);
+    const result = await runFullSlateV4({
+      sport: "NFL", sportDate: "2026-09-08", now: new Date("2026-09-08T20:00:00Z"),
+      mode: "DRY_RUN", registry, events: [{
+        gameId: "started", sport: "NFL", eventStart: "2026-09-08T20:00:00.000Z",
+        homeParticipantId: "h", awayParticipantId: "a",
+        homeParticipantName: "H", awayParticipantName: "A",
+        eligibility: "ELIGIBLE", failureReason: null,
+      }],
+    });
+    expect(result.forecasts).toEqual([]);
+    expect(result.failures).toEqual([{ gameId: "started", reason: "EVENT_ALREADY_STARTED" }]);
   });
 });

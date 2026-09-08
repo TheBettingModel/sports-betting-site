@@ -28,7 +28,7 @@ import {
 } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { fetchAllSports, fetchAllSportsDetailed } from "./espn";
-import { createPredictionDecisionContext, processGameSnapshot, publishDownstreamCandidates } from "./snapshot";
+import { createPredictionDecisionContext, processGameSnapshot } from "./snapshot";
 import { assessMlbDecisionEvidence } from "./mlbDecisionEvidence";
 import { writeMlbV4ShadowPrediction } from "./mlbV4Challenger";
 import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from "./guardedServing/productionBoundary";
@@ -72,6 +72,10 @@ import {
 } from "./schedulerRuntime";
 import { runScheduledMlbV4EvidenceCollection } from "./mlbV4LiveRuntime";
 import { runNflV4ProspectiveCollection } from "./nflV4Prospective";
+import { captureV4MoneylineEvidenceFromSnapshot } from "./v4OfficialPersistence";
+import { canonicalV4EngineRegistry } from "./v4Platform";
+import { runRegisteredOfficialV4 } from "./v4FullSlate";
+import { isActiveProductSport } from "./sportScope";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
 // does not re-notify, while a newly effective revision can alert immediately.
@@ -431,7 +435,7 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
   }).format(new Date());
 
   // Find all effective Strong Buy picks on today's Eastern slate.
-  const strongBuys = await db
+  let strongBuys = await db
     .select({
       id: publishedPicksTable.id,
       gameId: publishedPicksTable.gameId,
@@ -458,6 +462,7 @@ async function maybeSendStrongBuyNotification(): Promise<void> {
         isPerformanceEligiblePublishedPickSql(publishedPicksTable.id),
       ),
     );
+  strongBuys = strongBuys.filter((pick) => isActiveProductSport(pick.sport));
 
   if (strongBuys.length === 0) {
     lastStrongBuyNotificationSignature = null;
@@ -517,9 +522,9 @@ async function runOddsIngestion(): Promise<void> {
     //   "error" → ESPN fetch failed for that sport
     const sportCounts: Record<string, number | "error"> = {};
     let processed = 0;
-    const newlyProducedPredictionIds: number[] = [];
 
     for (const { sport, games, fetchStatus } of sportResults) {
+      if (!isActiveProductSport(sport)) continue;
       if (fetchStatus === "error") {
         sportCounts[sport] = "error";
         continue;
@@ -533,6 +538,7 @@ async function runOddsIngestion(): Promise<void> {
       const DB_SPORTS = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
 
       for (const game of games) {
+        if (!isActiveProductSport(game.sport)) continue;
         try {
           const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
             ? await getWnbaGameContext({
@@ -600,6 +606,29 @@ async function runOddsIngestion(): Promise<void> {
           const currentHomeOdds = currentMarket?.homeOdds;
           const currentAwayOdds = currentMarket?.awayOdds;
           const currentDrawOdds = currentMarket?.drawOdds ?? undefined;
+          // Capture only a complete named-book Odds API quote. Consensus/ESPN
+          // values have no actionable book/snapshot identity and are therefore
+          // deliberately not converted into official V4 market evidence.
+          const v4Sport = game.sport === "Soccer" ? "SOCCER" : game.sport === "NCAAB" ? "NCAAMB" : game.sport;
+          const namedBook = oddsLookup.odds?.bookmakerOdds.find((book) =>
+            Number.isFinite(book.homeOdds) && Number.isFinite(book.awayOdds)
+            && (v4Sport !== "SOCCER" || Number.isFinite(book.drawOdds)));
+          if (canonicalV4EngineRegistry.get(v4Sport as import("./v4Platform").TbmV4Sport)
+            && namedBook && oddsLookup.odds?.providerEventId) {
+            await captureV4MoneylineEvidenceFromSnapshot({
+              sport: v4Sport, gameId: game.espnId, eventStart: game.commenceTimeISO,
+              source: "odds-api", providerIdentity: oddsLookup.odds.providerEventId,
+              snapshotId: `${oddsLookup.odds.providerEventId}:${namedBook.book}:${namedBook.lastUpdate ?? "no-update"}`,
+              providerUpdatedAt: namedBook.lastUpdate ? new Date(namedBook.lastUpdate) : undefined,
+              sportsbook: namedBook.book,
+              prices: [
+                { selection: "home", odds: namedBook.homeOdds },
+                ...(v4Sport === "SOCCER" && namedBook.drawOdds != null
+                  ? [{ selection: "draw", odds: namedBook.drawOdds }] : []),
+                { selection: "away", odds: namedBook.awayOdds },
+              ],
+            });
+          }
           const lineMovedTowardHome: boolean | undefined =
             existingRow?.openingHomeOdds != null && currentHomeOdds != null
               ? impliedProb(currentHomeOdds) > impliedProb(existingRow.openingHomeOdds)
@@ -865,8 +894,7 @@ async function runOddsIngestion(): Promise<void> {
               awayTeamStats,
               homeDbStats,
               awayDbStats,
-            }, true);
-            if (predictionId != null) newlyProducedPredictionIds.push(predictionId);
+            }, false);
           }
           if (game.sport === "MLB" && mlbEvidence) {
             try {
@@ -903,12 +931,8 @@ async function runOddsIngestion(): Promise<void> {
       }
     }
 
-    // All sports have now contributed their incumbent candidates.  Apply the
-    // deterministic policy once, rather than allowing ESPN/provider order to
-    // consume the daily public capacity.
-    if (newlyProducedPredictionIds.length > 0) {
-      await publishDownstreamCandidates(newlyProducedPredictionIds);
-    }
+    // Incumbent snapshots are retained as historical/research evidence only.
+    // Official public decisions are V4-only and are never derived here.
 
     const zeroSports = Object.entries(sportCounts)
       .filter(([, v]) => v === 0)
@@ -924,6 +948,8 @@ async function runOddsIngestion(): Promise<void> {
       logger.warn({ errorSports }, "Scheduler: sports with ESPN fetch errors");
     }
 
+    // Evidence capture above completes before the one official V4 orchestrator.
+    await runRegisteredOfficialV4(new Date());
     await finishRun(runId, "completed", processed, undefined, sportCounts);
 
     // Auto-resolve any stale alerts for sports that returned games.
@@ -964,6 +990,7 @@ async function runResultGrading(): Promise<void> {
     const DB_SPORTS_GRADING = new Set(["MLB", "NFL", "NHL", "NCAAF", "NCAAB"]);
     let snapshots = 0;
     for (const game of games) {
+      if (!isActiveProductSport(game.sport)) continue;
       try {
         const wnbaContext = game.sport === "WNBA" && game.homeTeamId && game.awayTeamId
           ? await getWnbaGameContext({

@@ -17,6 +17,5 @@ export const GetV4FullSlateProjectionsSport = {
   WNBA: 'WNBA',
   NHL: 'NHL',
   SOCCER: 'SOCCER',
-  UFC: 'UFC',
   NCAAMB: 'NCAAMB',
 } as const;

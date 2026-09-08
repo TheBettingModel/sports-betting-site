@@ -35,14 +35,13 @@ import {
   isPregameCommenceTime,
 } from "./oddsApi";
 import { assessMlbDecisionEvidence, type MlbDecisionEvidence } from "./mlbDecisionEvidence";
-import { applyMaterialPregameRevision } from "./materialPregameRevisions";
 import type { WnbaGameContext } from "./wnbaContext";
 import {
   writeSpreadCandidateSnapshots,
   settleSpreadPredictions,
   type SpreadEvaluationInput,
 } from "./spreadModel";
-import { getMoneylinePublicationPermission, marketApprovalDecisionHash } from "./marketApproval";
+import { marketApprovalDecisionHash } from "./marketApproval";
 import { captureCompletedMlbBoxscore, evaluateMlbForecastEvidence } from "./mlbPointInTime";
 import {
   APPROVED_STAKE_UNITS,
@@ -398,6 +397,16 @@ async function writePredictionSnapshot(
  * ranks the complete effective Eastern-day slate before it changes any pick.
  */
 export async function publishDownstreamCandidates(predictionIds: readonly number[], now = new Date()): Promise<void> {
+  // This legacy model_predictions publisher is retained solely for historical
+  // reconciliation.  It must not turn an incumbent revision into an official
+  // pick after cutover.  A V4 publisher must additionally supply its exact
+  // artifact ledger identity at its own persistence boundary.
+  if (predictionIds.length === 0) return;
+  const incoming = await db.select({ modelId: modelVersionsTable.modelId })
+    .from(modelPredictionsTable)
+    .innerJoin(modelVersionsTable, eq(modelVersionsTable.id, modelPredictionsTable.modelVersionId))
+    .where(inArray(modelPredictionsTable.id, [...predictionIds]));
+  if (!incoming.some((row) => /^.*v4(?:[-_]|$)/i.test(row.modelId))) return;
   await db.transaction(async (tx) => {
     await tx.execute(publishedPickEffectivenessWriterLock());
     const currentEasternDate = new Intl.DateTimeFormat("en-CA", {
@@ -499,7 +508,9 @@ export async function publishDownstreamCandidates(predictionIds: readonly number
         byGameMarket.set(key, row);
       }
     }
-    const predictions = [...byGameMarket.values()].map((prediction) => {
+    const predictions = [...byGameMarket.values()].filter((prediction) =>
+      /^.*v4(?:[-_]|$)/i.test(prediction.modelId),
+    ).map((prediction) => {
       const active = activeByGameMarket.get(`${prediction.gameId}:${prediction.market}`);
       // A started public decision is immutable at the publication layer too:
       // an arriving revision cannot replace or silently alter a live pick.
@@ -621,6 +632,11 @@ export async function publishDownstreamCandidates(predictionIds: readonly number
 
     await tx.update(publishedPicksTable).set({ isPlayOfDay: false }).where(and(
       eq(publishedPicksTable.isEffective, true),
+      sql`${publishedPicksTable.predictionId} IN (
+        SELECT mp.id FROM model_predictions mp
+        JOIN model_versions mv ON mv.id = mp.model_version_id
+        WHERE mv.model_id ~* 'v4([_-]|$)'
+      )`,
       sql`${publishedPicksTable.gameId} IN (
         SELECT id FROM games WHERE COALESCE(
           DATE(starts_at AT TIME ZONE 'America/New_York'), game_date
@@ -984,7 +1000,11 @@ export async function processGameSnapshot(
       const featureSnapshot = buildImmutablePredictionFeatureSnapshot(
         game, proj, modelVersionId, decisionContext,
       );
-      const publicationPermission = await getMoneylinePublicationPermission(modelVersionId, now);
+      // This writer is the incumbent ProjectionResult path.  It remains useful
+      // for immutable PIT evidence and later grading, but it is permanently a
+      // shadow path after the V4 official-publication cutover.  In particular,
+      // an approval on a legacy model must not become an implicit V4 fallback.
+      const publicationPermission = { approved: false } as const;
       const predictionId = await writePredictionSnapshot(
         game,
         proj,
@@ -994,24 +1014,7 @@ export async function processGameSnapshot(
         featureSnapshot,
         publicationPermission.approved,
       );
-      if (predictionId !== null) {
-        // The scheduler audits every newly produced incumbent candidate,
-        // including one whose producing model is not approved.  Only the
-        // non-batched/manual path is permitted to consider immediate public
-        // publication, and it remains approval-gated.
-        if (deferPublication) createdPredictionId = predictionId;
-        if (shouldPublishPrediction(game.sport) && publicationPermission.approved) {
-          if (!deferPublication) await publishDownstreamCandidates([predictionId], now);
-        }
-      } else if (shouldPublishPrediction(game.sport) && publicationPermission.approved) {
-        await applyMaterialPregameRevision(
-          game,
-          proj,
-          modelVersionId,
-          featureSnapshot,
-          isPredictionDecisionEligible(game, decisionContext),
-        );
-      }
+      if (predictionId !== null && deferPublication) createdPredictionId = predictionId;
       if (spreadInput) {
         await writeSpreadCandidateSnapshots({ game, ...spreadInput });
       }

@@ -4,15 +4,33 @@ export const TBM_V4_SPORTS = Object.freeze([
   "MLB", "NCAAF", "NFL", "NBA", "WNBA", "NHL", "SOCCER", "UFC", "NCAAMB",
 ] as const);
 export type TbmV4Sport = typeof TBM_V4_SPORTS[number];
+/**
+ * Sports exposed by the current subscriber V4 board. Keep the broader engine
+ * type above so historical UFC forecasts and recovery tooling remain readable.
+ */
+export const TBM_V4_PUBLIC_SPORTS = Object.freeze(
+  TBM_V4_SPORTS.filter((sport): sport is Exclude<TbmV4Sport, "UFC"> => sport !== "UFC"),
+);
+/** Explicit official-publication release scope. */
+export const TBM_V4_OFFICIAL_RELEASE_SPORTS = Object.freeze(
+  TBM_V4_PUBLIC_SPORTS,
+);
 export type V4ApprovalState =
   | "UNVALIDATED" | "SHADOW" | "PROVISIONAL" | "PRODUCTION_APPROVED" | "SUSPENDED";
 export type V4Maturity = "EXPERIMENTAL" | "DEVELOPING" | "VALIDATED" | "MATURE";
 
 export interface V4ArtifactIdentity {
   sport: TbmV4Sport;
+  /** Approval-ledger identity. These are not display aliases. */
+  modelFamily: string;
   modelId: string;
   modelVersion: string;
+  artifactId: string;
   artifactHash: string;
+  inputContractVersion: string;
+  configurationHash: string;
+  parameterHash: string;
+  /** Human-readable contract metadata, retained separately from the ledger key. */
   contractId: string;
   contractHash: string;
 }
@@ -32,13 +50,20 @@ export interface CanonicalV4Forecast {
   predictionId: string;
   sport: TbmV4Sport;
   gameId: string;
+  modelFamily: string;
   modelId: string;
   modelVersion: string;
+  artifactId: string;
   artifactHash: string;
+  inputContractVersion: string;
+  configurationHash: string;
+  parameterHash: string;
   contractId: string;
   contractHash: string;
   featureSnapshotId: string;
   featureHash: string;
+  /** Hash of the exact materialized input, never a model or artifact identifier. */
+  inputHash: string;
   dataCutoff: string;
   predictionTimestamp: string;
   approvalState: V4ApprovalState;
@@ -111,12 +136,18 @@ export function validateCanonicalV4Forecast(
   const exact = output.sport === identity.sport
     && output.modelId === identity.modelId
     && output.modelVersion === identity.modelVersion
+    && output.modelFamily === identity.modelFamily
+    && output.artifactId === identity.artifactId
     && output.artifactHash === identity.artifactHash
+    && output.inputContractVersion === identity.inputContractVersion
+    && output.configurationHash === identity.configurationHash
+    && output.parameterHash === identity.parameterHash
     && output.contractId === identity.contractId
     && output.contractHash === identity.contractHash
     && output.gameId === input.gameId
     && output.featureSnapshotId === input.featureSnapshotId
     && output.featureHash === input.featureHash
+    && output.inputHash === input.featureHash
     && output.dataCutoff === input.dataCutoff;
   if (!exact) throw new Error("FORECAST_IDENTITY_MISMATCH");
   const probabilities = [

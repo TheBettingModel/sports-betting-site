@@ -30,7 +30,6 @@ import { runLearning } from "../services/learning";
 import {
   createPredictionDecisionContext,
   processGameSnapshot,
-  publishDownstreamCandidates,
 } from "../services/snapshot";
 import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from "../services/guardedServing/productionBoundary";
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
@@ -353,7 +352,6 @@ export async function refreshAll(): Promise<{
 
   let upserted = 0;
   const sports = new Set<string>();
-  const newlyProducedPredictionIds: number[] = [];
 
   for (const game of fetchedGames) {
     const w = weightsBySport[game.sport] ?? null;
@@ -789,7 +787,9 @@ export async function refreshAll(): Promise<{
         },
       });
 
-    // Snapshot pipeline: odds, predictions, results, closing lines
+    // Legacy projections remain research/gradeable evidence only after the V4
+    // cutover.  They must never be promoted into the official publication
+    // pipeline; V4 has its own immutable forecast ledger and publication seam.
     const servingBoundary = await resolveProductionPredictionBoundary(game, proj, decisionContext);
     if (shouldRunIncumbentSnapshot(servingBoundary)) {
       const predictionId = await processGameSnapshot(game, servingBoundary.projection, decisionContext, {
@@ -798,20 +798,15 @@ export async function refreshAll(): Promise<{
         awayTeamStats,
         homeDbStats,
         awayDbStats,
-      }, true);
-      if (predictionId != null) newlyProducedPredictionIds.push(predictionId);
+      }, false);
     }
 
     upserted++;
     sports.add(game.sport);
   }
 
-  // Manual refresh follows the identical slate boundary as scheduled
-  // ingestion; an operator/API-triggered refresh cannot publish in traversal
-  // order or evade the cross-sport daily cap.
-  if (newlyProducedPredictionIds.length > 0) {
-    await publishDownstreamCandidates(newlyProducedPredictionIds);
-  }
+  // Do not feed incumbent/legacy snapshots into official publication.  This is
+  // an intentional V4-only cutover boundary, not a fallback condition.
 
   // Mark any games that are still "live" in the DB but were NOT returned by
   // ESPN this cycle as "completed" — ESPN drops finished events from its feed,

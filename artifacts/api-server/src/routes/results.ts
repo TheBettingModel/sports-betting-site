@@ -8,7 +8,7 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, desc, gte, and } from "drizzle-orm";
+import { eq, desc, gte, and, inArray } from "drizzle-orm";
 import {
   db,
   pickResultsTable,
@@ -16,6 +16,7 @@ import {
   gamesTable,
   modelPredictionsTable,
   modelVersionsTable,
+  v4ArtifactModelVersionMappingsTable,
 } from "@workspace/db";
 import { rejectInvalidToken } from "../middleware/requireSubscriber";
 import { logger } from "../lib/logger";
@@ -23,11 +24,72 @@ import {
   OFFICIAL_RECORD_RECOMMENDATIONS,
   officialPublicRecordSqlConditions,
 } from "../services/officialRecordPolicy";
+import { ACTIVE_PRODUCT_SPORTS } from "../services/sportScope";
 
 // Recommendation display order for the official performance ledger.
 const RATING_ORDER: readonly string[] = OFFICIAL_RECORD_RECOMMENDATIONS;
 
 const router: IRouter = Router();
+
+type LedgerRow = {
+  result: string;
+  unitsWonLost: number | null;
+  unitsRisked: number | null;
+};
+
+type RecordSegment = {
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
+};
+
+/**
+ * V4 is a persisted provenance classification, never a date-based inference.
+ * A row is V4 only when its published-pick decision is the exact V4 approval,
+ * the immutable prediction records the V4 forecast identity, and its registry
+ * model version is linked to the governed V4 artifact identity.
+ */
+function isV4OfficialRecord(row: {
+  publicationReasonCode: string | null;
+  v4PredictionId: unknown;
+  v4MappedModelVersionId: number | null;
+}): boolean {
+  return row.publicationReasonCode === "V4_EXACT_APPROVED"
+    && hasV4ForecastIdentity(row.v4PredictionId)
+    && row.v4MappedModelVersionId != null;
+}
+
+function hasV4ForecastIdentity(value: unknown): boolean {
+  return typeof value === "string" && value.length > 0;
+}
+
+function summarizeRecordSegment(rows: LedgerRow[]): RecordSegment {
+  let wins = 0;
+  let losses = 0;
+  let pushes = 0;
+  let unitsWonLost = 0;
+  let unitsRisked = 0;
+  for (const row of rows) {
+    if (row.result === "win") wins++;
+    else if (row.result === "loss") losses++;
+    else if (row.result === "push") pushes++;
+    unitsWonLost += row.unitsWonLost ?? 0;
+    unitsRisked += row.unitsRisked ?? 0;
+  }
+  const decisive = wins + losses;
+  return {
+    wins, losses, pushes, totalPicks: wins + losses + pushes,
+    winRate: decisive > 0 ? Math.round((wins / decisive) * 1000) / 10 : 0,
+    unitsWonLost: Math.round(unitsWonLost * 100) / 100,
+    unitsRisked: Math.round(unitsRisked * 100) / 100,
+    roi: unitsRisked > 0 ? Math.round((unitsWonLost / unitsRisked) * 10000) / 100 : 0,
+  };
+}
 
 /** Build a human-readable pick label from stored fields. */
 function pickLabel(
@@ -87,7 +149,7 @@ router.get(
       // Fetch graded official plays in the period. Neutral/Fade projections are
       // still retained and reviewed for calibration, but do not represent a
       // subscriber-facing wager and must not affect the public record.
-      const rows = await db
+      const ledgerRows = await db
         .select({
           pickId: publishedPicksTable.id,
           sport: publishedPicksTable.sport,
@@ -95,6 +157,7 @@ router.get(
           selection: publishedPicksTable.selection,
           odds: publishedPicksTable.odds,
           units: publishedPicksTable.units,
+          publicationReasonCode: publishedPicksTable.publicationReasonCode,
           result: pickResultsTable.result,
           unitsWonLost: pickResultsTable.unitsWonLost,
           unitsRisked: pickResultsTable.unitsRisked,
@@ -104,6 +167,10 @@ router.get(
           awayScore: gamesTable.awayScore,
           homeScore: gamesTable.homeScore,
           gameDate: gamesTable.gameDate,
+          modelId: modelVersionsTable.modelId,
+          modelVersionId: modelVersionsTable.id,
+          featureSnapshot: modelPredictionsTable.featureSnapshot,
+          v4MappedModelVersionId: v4ArtifactModelVersionMappingsTable.modelVersionId,
         })
         .from(pickResultsTable)
         .innerJoin(
@@ -122,30 +189,39 @@ router.get(
           modelVersionsTable,
           eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
         )
+        .leftJoin(
+          v4ArtifactModelVersionMappingsTable,
+          eq(modelVersionsTable.id, v4ArtifactModelVersionMappingsTable.modelVersionId),
+        )
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
+          inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
           ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
         ))
         .orderBy(desc(pickResultsTable.gradedAt));
 
-      // ── Overall ───────────────────────────────────────────────────────────
-      let totalWins = 0;
-      let totalLosses = 0;
-      let totalPushes = 0;
-      let totalUnits = 0;
-
-      for (const r of rows) {
-        if (r.result === "win") totalWins++;
-        else if (r.result === "loss") totalLosses++;
-        else if (r.result === "push") totalPushes++;
-        totalUnits += r.unitsWonLost ?? 0;
-      }
-
-      const totalDecisive = totalWins + totalLosses;
-      const overallWinRate =
-        totalDecisive > 0
-          ? Math.round((totalWins / totalDecisive) * 1000) / 10
-          : 0;
+      // A persisted V4 forecast identity is not itself a wager. It contributes
+      // only after the exact V4 publication decision also exists; this excludes
+      // raw projections even if a malformed/legacy publication row is present.
+      const rows = ledgerRows.filter((row) => {
+        const v4PredictionId = (row.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId;
+        return !hasV4ForecastIdentity(v4PredictionId) || isV4OfficialRecord({
+          publicationReasonCode: row.publicationReasonCode,
+          v4PredictionId,
+          v4MappedModelVersionId: row.v4MappedModelVersionId,
+        });
+      });
+      const v4OfficialRows = rows.filter((row) => isV4OfficialRecord({
+        publicationReasonCode: row.publicationReasonCode,
+        v4PredictionId: (row.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId,
+        v4MappedModelVersionId: row.v4MappedModelVersionId,
+      }));
+      const preCutoverOfficialRows = rows.filter((row) => !v4OfficialRows.includes(row));
+      const overall = summarizeRecordSegment(rows);
+      const recordSegments = {
+        preCutoverOfficial: summarizeRecordSegment(preCutoverOfficialRows),
+        v4Official: summarizeRecordSegment(v4OfficialRows),
+      };
 
       // ── By sport ──────────────────────────────────────────────────────────
       const sportMap: Record<
@@ -201,18 +277,19 @@ router.get(
         result: r.result,
         gameDate: r.gameDate,
         gradedAt: r.gradedAt?.toISOString() ?? null,
+        modelId: r.modelId,
+        modelVersionId: r.modelVersionId,
+        provenance: isV4OfficialRecord({
+          publicationReasonCode: r.publicationReasonCode,
+          v4PredictionId: (r.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId,
+          v4MappedModelVersionId: r.v4MappedModelVersionId,
+        }) ? "v4Official" : "preCutoverOfficial",
       }));
 
       res.json({
         period,
-        overall: {
-          wins: totalWins,
-          losses: totalLosses,
-          pushes: totalPushes,
-          totalPicks: rows.length,
-          winRate: overallWinRate,
-          unitsWonLost: Math.round(totalUnits * 100) / 100,
-        },
+        overall,
+        recordSegments,
         bySport,
         recentResults,
         dataAsOf: new Date().toISOString(),
@@ -283,6 +360,7 @@ router.get(
         .where(
           and(
             gte(gamesTable.gameDate, cutoffDate),
+            inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
             ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
           ),
         );

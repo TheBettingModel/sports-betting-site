@@ -32,19 +32,23 @@ export async function runNflV4ProspectiveCollection(input: {
   ledger?: V4ForecastLedger;
   discover?: typeof discoverV4Slate;
   run?: typeof runFullSlateV4;
+  mode?: "SHADOW" | "PRODUCTION";
 } = {}): Promise<NflProspectiveCollectionResult> {
   const now = input.now ?? new Date();
   const days = input.days ?? 8;
   const ledger = input.ledger ?? new DbV4ForecastLedger();
   const discover = input.discover ?? discoverV4Slate;
   const run = input.run ?? runFullSlateV4;
+  // Production is an explicit operational cutover, never inferred from an
+  // engine's lifecycle label. Absent the flag this remains the old shadow job.
+  const mode = input.mode ?? (process.env["V4_OFFICIAL_CUTOVER"] === "true" ? "PRODUCTION" : "SHADOW");
   const runs: FullSlateCoverage[] = [];
   for (let offset = 0; offset < days; offset++) {
     const date = easternDate(new Date(now.getTime() + offset * 86_400_000));
     const events = await discover("NFL", date);
     if (!events.length) continue;
     runs.push(await run({
-      sport: "NFL", sportDate: date, now, mode: "SHADOW", events,
+      sport: "NFL", sportDate: date, now, mode, events,
       registry: input.registry ?? canonicalV4EngineRegistry,
       ledger,
     }));

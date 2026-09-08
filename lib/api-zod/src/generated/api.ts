@@ -273,9 +273,13 @@ export const getV4FullSlateProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{
 
 
 export const GetV4FullSlateProjectionsQueryParams = zod.object({
-  "sport": zod.enum(['MLB', 'NCAAF', 'NFL', 'NBA', 'WNBA', 'NHL', 'SOCCER', 'UFC', 'NCAAMB']),
+  "sport": zod.enum(['MLB', 'NCAAF', 'NFL', 'NBA', 'WNBA', 'NHL', 'SOCCER', 'NCAAMB']),
   "date": zod.coerce.string().regex(getV4FullSlateProjectionsQueryDateRegExp).optional().describe('YYYY-MM-DD in America\/New_York; omitted selects today.')
 })
+
+
+
+
 
 export const GetV4FullSlateProjectionsResponse = zod.object({
   "sport": zod.string(),
@@ -292,12 +296,66 @@ export const GetV4FullSlateProjectionsResponse = zod.object({
   "reason": zod.string()
 }))
 }),
+  "fixtures": zod.array(zod.object({
+  "gameId": zod.string(),
+  "sport": zod.string(),
+  "eventStart": zod.string().nullable(),
+  "homeParticipant": zod.object({
+  "id": zod.string().nullable(),
+  "name": zod.string(),
+  "abbreviation": zod.string().nullable(),
+  "logo": zod.string().nullable()
+}),
+  "awayParticipant": zod.object({
+  "id": zod.string().nullable(),
+  "name": zod.string(),
+  "abbreviation": zod.string().nullable(),
+  "logo": zod.string().nullable()
+}),
+  "availability": zod.enum(['AVAILABLE', 'UNAVAILABLE']),
+  "unavailableReason": zod.string().nullable()
+})).describe('Every event discovered for this sport\/date. Join AVAILABLE entries to projections by gameId.'),
+  "officialPicks": zod.array(zod.object({
+  "eventId": zod.string(),
+  "sport": zod.string(),
+  "homeParticipant": zod.string().nullish(),
+  "awayParticipant": zod.string().nullish(),
+  "homeParticipantAbbr": zod.string().nullish(),
+  "awayParticipantAbbr": zod.string().nullish(),
+  "homeParticipantLogo": zod.string().nullish(),
+  "awayParticipantLogo": zod.string().nullish(),
+  "market": zod.string(),
+  "selection": zod.string(),
+  "odds": zod.number().nullish(),
+  "modelProbability": zod.number().nullish(),
+  "fairProbability": zod.number().nullish(),
+  "role": zod.enum(['TOP_PLAY', 'QUALIFIED_PLAY']),
+  "rank": zod.number().min(1),
+  "units": zod.literal(1),
+  "status": zod.enum(['PUBLISHED']),
+  "modelId": zod.string().nullish(),
+  "modelVersion": zod.string().nullish(),
+  "artifactId": zod.string().nullish(),
+  "artifactHash": zod.string().nullish(),
+  "inputHash": zod.string().nullish(),
+  "marketEvidenceId": zod.string().nullish()
+})).describe('Persisted server-authoritative official V4 decisions; independent of current projection IDs.'),
   "projections": zod.array(zod.object({
   "eventId": zod.string(),
   "sport": zod.string(),
   "eventStart": zod.string().nullish(),
   "homeParticipant": zod.string().nullish(),
   "awayParticipant": zod.string().nullish(),
+  "homeParticipantAbbr": zod.string().nullish(),
+  "awayParticipantAbbr": zod.string().nullish(),
+  "homeParticipantLogo": zod.string().nullish(),
+  "awayParticipantLogo": zod.string().nullish(),
+  "homeStarterName": zod.string().nullish(),
+  "homeStarterEra": zod.number().nullish(),
+  "homeStarterWhip": zod.number().nullish(),
+  "awayStarterName": zod.string().nullish(),
+  "awayStarterEra": zod.number().nullish(),
+  "awayStarterWhip": zod.number().nullish(),
   "modelVersion": zod.string(),
   "lifecycleStatus": zod.enum(['V4_VALIDATING', 'V4_PROVISIONAL', 'V4_APPROVED']),
   "expectedHomeScore": zod.number().nullish(),
@@ -309,7 +367,11 @@ export const GetV4FullSlateProjectionsResponse = zod.object({
   "awayWinProbability": zod.number().nullish(),
   "projectedWinner": zod.union([zod.literal('HOME'),zod.literal('DRAW'),zod.literal('AWAY'),zod.literal(null)]).nullish(),
   "forecastTimestamp": zod.string(),
-  "officialPickStatus": zod.enum(['NOT_PUBLICATION_ELIGIBLE', 'NO_OFFICIAL_PLAY', 'OFFICIAL_TBM_PLAY'])
+  "officialPickStatus": zod.enum(['NOT_PUBLICATION_ELIGIBLE', 'NO_OFFICIAL_PLAY', 'OFFICIAL_TBM_PLAY']),
+  "officialRole": zod.enum(['TOP_PLAY', 'QUALIFIED_PLAY', 'PROJECTION']).describe('Server-authoritative public role. Clients must not recompute rank or POTD.'),
+  "officialRank": zod.number().min(1).nullable().describe('Server-authoritative rank among qualified V4 plays; null for projections.'),
+  "units": zod.union([zod.literal(0),zod.literal(1)]).describe('Official qualified plays are always flat 1U.'),
+  "officialFailureReason": zod.string().nullable().describe('Explicit fail-closed reason when no official V4 play exists.')
 }))
 })
 
@@ -902,6 +964,28 @@ export const GetResultsSummaryResponse = zod.object({
   "winRate": zod.number(),
   "unitsWonLost": zod.number()
 }),
+  "recordSegments": zod.object({
+  "preCutoverOfficial": zod.object({
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number(),
+  "unitsRisked": zod.number(),
+  "roi": zod.number()
+}).describe('Official wager results grouped by immutable persisted publication and model provenance.'),
+  "v4Official": zod.object({
+  "wins": zod.number(),
+  "losses": zod.number(),
+  "pushes": zod.number(),
+  "totalPicks": zod.number(),
+  "winRate": zod.number(),
+  "unitsWonLost": zod.number(),
+  "unitsRisked": zod.number(),
+  "roi": zod.number()
+}).describe('Official wager results grouped by immutable persisted publication and model provenance.')
+}),
   "bySport": zod.array(zod.object({
   "sport": zod.string(),
   "wins": zod.number(),
@@ -926,7 +1010,10 @@ export const GetResultsSummaryResponse = zod.object({
   "unitsWonLost": zod.number(),
   "result": zod.string(),
   "gameDate": zod.string(),
-  "gradedAt": zod.string().nullish()
+  "gradedAt": zod.string().nullish(),
+  "modelId": zod.string(),
+  "modelVersionId": zod.number(),
+  "provenance": zod.enum(['preCutoverOfficial', 'v4Official'])
 })).optional(),
   "dataAsOf": zod.string().optional()
 })

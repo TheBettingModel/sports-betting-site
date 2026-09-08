@@ -17,6 +17,7 @@ async function buildAll() {
   await esbuild({
     entryPoints: {
       index: path.resolve(artifactDir, "src/index.ts"),
+      "compatibility-bridge": path.resolve(artifactDir, "src/compatibility-bridge.ts"),
       "mlb-v4-replay": path.resolve(artifactDir, "src/mlb-v4-replay.ts"),
       "run-cloud-pipeline-once": path.resolve(artifactDir, "scripts/run-cloud-pipeline-once.ts"),
     },

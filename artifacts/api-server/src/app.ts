@@ -56,7 +56,7 @@ app.use(cors({
     if (!origin || allowedOrigins.has(origin)
       || (process.env["NODE_ENV"] !== "production"
         && (/^https?:\/\/localhost(?::\d+)?$/.test(origin)
-          || /^https:\/\/[a-z0-9-]+\.replit\.dev$/i.test(origin)))) {
+          || /^https:\/\/(?:[a-z0-9-]+\.)+replit\.dev$/i.test(origin)))) {
       callback(null, true);
       return;
     }
