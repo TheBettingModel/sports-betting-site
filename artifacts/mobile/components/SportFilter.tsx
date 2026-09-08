@@ -5,7 +5,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSports, SPORTS } from '@/context/SportsContext';
 
 interface SportFilterProps {
-  /** Total game count per sport key. Used to show a count badge and hide sports with 0 games. */
+  /** Total game count per sport key. Positive counts are shown as badges. */
   gameCounts?: Record<string, number>;
 }
 
@@ -13,12 +13,9 @@ export function SportFilter({ gameCounts }: SportFilterProps) {
   const colors = useColors();
   const { selectedSport, setSelectedSport } = useSports();
 
-  // Only show active sports that have games today; always show "All".
+  // Sport tabs are permanent navigation, not a reflection of today's slate.
   // UFC is absent from the typed SPORTS release scope.
-  const availableSports = gameCounts
-    ? SPORTS.filter(s => (gameCounts[s] ?? 0) > 0)
-    : SPORTS;
-  const allSports = ['All', ...availableSports];
+  const allSports = ['All', ...SPORTS];
 
   return (
     <ScrollView
@@ -28,7 +25,8 @@ export function SportFilter({ gameCounts }: SportFilterProps) {
     >
       {allSports.map(sport => {
         const active = selectedSport === sport;
-        const count = sport !== 'All' && gameCounts ? gameCounts[sport] : undefined;
+        const sportCount = sport !== 'All' && gameCounts ? gameCounts[sport] : undefined;
+        const count = sportCount != null && sportCount > 0 ? sportCount : undefined;
         return (
           <Pressable
             key={sport}

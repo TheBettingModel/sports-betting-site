@@ -173,7 +173,11 @@ export default function PicksScreen() {
           if (item.type === 'official-pick') return <V4OfficialPickCard pick={item.pick} />;
           return <V4ModelProjectionCard projection={item.projection} />;
         }}
-        ListEmptyComponent={!isLoading && !hasError ? <EmptyState message="No V4 games or legitimate projections are available today." /> : null}
+        ListEmptyComponent={!isLoading && !hasError
+          ? <EmptyState message={selectedSport === 'All'
+            ? 'No V4 games or legitimate projections are available today.'
+            : `No ${selectedSport} games, projections, or official plays today.`} />
+          : null}
       />
     </View>
   );
