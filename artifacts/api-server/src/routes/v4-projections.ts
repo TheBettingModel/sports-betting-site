@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
 import { TBM_V4_PUBLIC_SPORTS, type TbmV4Sport } from "../services/v4Platform";
-import { discoverV4Slate, runFullSlateV4 } from "../services/v4FullSlate";
+import { DbV4ForecastLedger, discoverV4Slate, runFullSlateV4 } from "../services/v4FullSlate";
 import { rankOfficialV4Candidates } from "../services/v4OfficialPublication";
-import { db, gamesTable, modelPredictionsTable, publishedPicksTable } from "@workspace/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { db, gamesTable, modelPredictionsTable, publishedPicksTable, v4ForecastVersionsTable } from "@workspace/db";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 
 const router: IRouter = Router();
@@ -13,6 +13,32 @@ function easternDate(now: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(now);
+}
+
+function publicUnavailableReason(reason: string): string {
+  if (reason === "EVENT_ALREADY_STARTED") return "Game has started and no valid pregame projection was saved.";
+  if (reason === "INSUFFICIENT_PREGAME_EVIDENCE") return "Insufficient pregame evidence for a legitimate projection.";
+  if (reason === "LIVE_INPUT_MATERIALIZATION_FAILED") return "Required pregame inputs could not be validated.";
+  if (reason === "INVALID_CUTOFF") return "The event start time could not be validated.";
+  if (reason === "UNRESOLVED_IDENTITY") return "The event participants could not be resolved.";
+  if (reason === "NO_ELIGIBLE_V4_ARTIFACT") return "No eligible V4 model is available for this event.";
+  return "A legitimate pregame projection is unavailable.";
+}
+
+function isValidPregameSnapshot(
+  payload: Record<string, unknown>,
+  event: { gameId: string; sport: string; eventStart: string | null },
+): payload is Record<string, unknown> {
+  const predictedAt = payload["predictionTimestamp"];
+  return payload["gameId"] === event.gameId
+    && payload["sport"] === event.sport
+    && typeof payload["predictionId"] === "string"
+    && typeof payload["modelVersion"] === "string"
+    && typeof payload["approvalState"] === "string"
+    && typeof predictedAt === "string"
+    && Number.isFinite(Date.parse(predictedAt))
+    && event.eventStart !== null
+    && Date.parse(predictedAt) < Date.parse(event.eventStart);
 }
 
 router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken, async (req, res) => {
@@ -33,11 +59,20 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   const sport = sportValue as TbmV4Sport;
   const persistedSport = sport === "SOCCER" ? "Soccer" : sport;
   const events = await discoverV4Slate(sport, date);
+  const snapshotLedger = new DbV4ForecastLedger();
   const coverage = await runFullSlateV4({
-    sport, sportDate: date, now: new Date(), mode: "DRY_RUN", events,
+    // Persist immutable validating/developing forecasts so a legitimate
+    // pregame projection remains visible after kickoff. SHADOW cannot cross
+    // the official publication boundary. Request refreshes intentionally do
+    // not create scheduler-run rows.
+    sport, sportDate: date, now: new Date(), mode: "SHADOW", events,
+    ledger: {
+      persist: (forecast, eventStart) => snapshotLedger.persist(forecast, eventStart),
+      persistRun: async () => undefined,
+    },
   });
   const eventById = new Map(events.map((event) => [event.gameId, event]));
-  const gameMetadata = coverage.forecasts.length ? await db.select({
+  const gameMetadata = events.length ? await db.select({
     eventId: gamesTable.id,
     homeParticipantAbbr: gamesTable.homeTeamAbbr,
     awayParticipantAbbr: gamesTable.awayTeamAbbr,
@@ -51,12 +86,42 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     awayStarterWhip: gamesTable.awayStarterWhip,
   }).from(gamesTable).where(inArray(
     gamesTable.id,
-    coverage.forecasts.map((forecast) => forecast.gameId),
+    events.map((event) => event.gameId),
   )) : [];
   const gameMetadataById = new Map(gameMetadata.map((game) => [game.eventId, game]));
+  // A completed event must never trigger live generation. It can only be
+  // displayed when an exact immutable pregame forecast survives validation.
+  const startedEvents = events.filter((event) => event.eventStart !== null && new Date(event.eventStart) <= new Date());
+  const snapshotRows = startedEvents.length ? await db.select({
+    sport: v4ForecastVersionsTable.sport,
+    gameId: v4ForecastVersionsTable.gameId,
+    eventStart: v4ForecastVersionsTable.eventStart,
+    predictedAt: v4ForecastVersionsTable.predictedAt,
+    forecastPayload: v4ForecastVersionsTable.forecastPayload,
+  }).from(v4ForecastVersionsTable).where(and(
+    eq(v4ForecastVersionsTable.sport, sport),
+    inArray(v4ForecastVersionsTable.gameId, startedEvents.map((event) => event.gameId)),
+    lt(v4ForecastVersionsTable.predictedAt, v4ForecastVersionsTable.eventStart),
+  )).orderBy(desc(v4ForecastVersionsTable.predictedAt)) : [];
+  const snapshotByGameId = new Map<string, typeof coverage.forecasts[number]>();
+  for (const snapshot of snapshotRows) {
+    const event = eventById.get(snapshot.gameId);
+    if (!event || snapshotByGameId.has(snapshot.gameId)
+      || snapshot.eventStart.toISOString() !== event.eventStart
+      || !isValidPregameSnapshot(snapshot.forecastPayload, event)) continue;
+    snapshotByGameId.set(snapshot.gameId, snapshot.forecastPayload as unknown as typeof coverage.forecasts[number]);
+  }
+  const forecasts = [
+    ...coverage.forecasts,
+    ...[...snapshotByGameId.entries()]
+      .filter(([gameId]) => !coverage.forecasts.some((forecast) => forecast.gameId === gameId))
+      .map(([, forecast]) => forecast),
+  ];
+  const failureByGameId = new Map(coverage.failures.map((failure) => [failure.gameId, failure.reason]));
+  const unresolvedFailures = coverage.failures.filter((failure) => !snapshotByGameId.has(failure.gameId));
   // Official fields are read only from the persisted publication decision. A
   // live re-computation may show a projection, but can never invent a pick.
-  const persisted = coverage.forecasts.length ? await db.select({
+  const persisted = forecasts.length ? await db.select({
     v4PredictionId: sql<string>`${modelPredictionsTable.featureSnapshot}->>'v4PredictionId'`,
     pickId: publishedPicksTable.id,
     isPublic: publishedPicksTable.isPublic,
@@ -70,7 +135,7 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     eq(publishedPicksTable.isEffective, true),
   )).where(inArray(
     sql<string>`${modelPredictionsTable.featureSnapshot}->>'v4PredictionId'`,
-    coverage.forecasts.map((forecast) => forecast.predictionId),
+    forecasts.map((forecast) => forecast.predictionId),
   )) : [];
   const persistedByForecast = new Map(persisted.map(row => [row.v4PredictionId, row]));
   const officialPicks = await db.select({
@@ -101,7 +166,7 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   // approval-ledger record. It consequently emits projections only. Keeping
   // that fact explicit is safer than treating engine approval as publication
   // approval, and makes client POTD computation impossible.
-  const officialByPredictionId = new Map(rankOfficialV4Candidates(coverage.forecasts.map((forecast) => ({
+  const officialByPredictionId = new Map(rankOfficialV4Candidates(forecasts.map((forecast) => ({
     forecast,
     exactApproval: false,
     publicationEligible: false,
@@ -114,15 +179,40 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     coverage: {
       scheduledEvents: coverage.scheduledEvents,
       eligibleEvents: coverage.eligibleEvents,
-      forecastedEvents: coverage.forecastedEvents,
-      failedEvents: coverage.failedEvents,
-      forecastCoveragePct: coverage.forecastCoveragePct,
-      failures: coverage.failures,
+      forecastedEvents: forecasts.length,
+      failedEvents: Math.max(0, coverage.eligibleEvents - forecasts.length),
+      forecastCoveragePct: coverage.eligibleEvents ? forecasts.length / coverage.eligibleEvents * 100 : 100,
+      failures: unresolvedFailures,
     },
+    fixtures: events.map((event) => {
+      const metadata = gameMetadataById.get(event.gameId);
+      const available = forecasts.some((forecast) => forecast.gameId === event.gameId);
+      return {
+        gameId: event.gameId,
+        sport: event.sport,
+        eventStart: event.eventStart,
+        homeParticipant: {
+          id: event.homeParticipantId,
+          name: event.homeParticipantName,
+          abbreviation: metadata?.homeParticipantAbbr ?? null,
+          logo: metadata?.homeParticipantLogo ?? null,
+        },
+        awayParticipant: {
+          id: event.awayParticipantId,
+          name: event.awayParticipantName,
+          abbreviation: metadata?.awayParticipantAbbr ?? null,
+          logo: metadata?.awayParticipantLogo ?? null,
+        },
+        availability: available ? "AVAILABLE" : "UNAVAILABLE",
+        unavailableReason: available ? null : publicUnavailableReason(
+          failureByGameId.get(event.gameId) ?? event.failureReason ?? "CONTRACT_FAILURE",
+        ),
+      };
+    }),
     officialPicks: officialPicks.map((pick) => ({
       ...pick, role: pick.role ? "TOP_PLAY" : "QUALIFIED_PLAY",
     })),
-    projections: coverage.forecasts.map((forecast) => {
+    projections: forecasts.map((forecast) => {
       const event = eventById.get(forecast.gameId);
       const metadata = gameMetadataById.get(forecast.gameId);
        const official = officialByPredictionId.get(forecast.predictionId)!;

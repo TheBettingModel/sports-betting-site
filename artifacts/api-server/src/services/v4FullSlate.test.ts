@@ -94,4 +94,24 @@ describe("V4 full slate", () => {
     expect(result.failures).toEqual([{ gameId: "1", reason: "NO_ELIGIBLE_V4_ARTIFACT" }]);
     expect(result.forecastCoveragePct).toBe(0);
   });
+
+  it("does not invoke a forecast engine after an event has started", async () => {
+    const registry = new V4EngineRegistry();
+    const startedEngine = engine();
+    startedEngine.collectEvidence = async () => {
+      throw new Error("LIVE_ENGINE_MUST_NOT_RUN");
+    };
+    registry.register(startedEngine);
+    const result = await runFullSlateV4({
+      sport: "NFL", sportDate: "2026-09-08", now: new Date("2026-09-08T20:00:00Z"),
+      mode: "DRY_RUN", registry, events: [{
+        gameId: "started", sport: "NFL", eventStart: "2026-09-08T20:00:00.000Z",
+        homeParticipantId: "h", awayParticipantId: "a",
+        homeParticipantName: "H", awayParticipantName: "A",
+        eligibility: "ELIGIBLE", failureReason: null,
+      }],
+    });
+    expect(result.forecasts).toEqual([]);
+    expect(result.failures).toEqual([{ gameId: "started", reason: "EVENT_ALREADY_STARTED" }]);
+  });
 });

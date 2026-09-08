@@ -296,6 +296,25 @@ export const GetV4FullSlateProjectionsResponse = zod.object({
   "reason": zod.string()
 }))
 }),
+  "fixtures": zod.array(zod.object({
+  "gameId": zod.string(),
+  "sport": zod.string(),
+  "eventStart": zod.string().nullable(),
+  "homeParticipant": zod.object({
+  "id": zod.string().nullable(),
+  "name": zod.string(),
+  "abbreviation": zod.string().nullable(),
+  "logo": zod.string().nullable()
+}),
+  "awayParticipant": zod.object({
+  "id": zod.string().nullable(),
+  "name": zod.string(),
+  "abbreviation": zod.string().nullable(),
+  "logo": zod.string().nullable()
+}),
+  "availability": zod.enum(['AVAILABLE', 'UNAVAILABLE']),
+  "unavailableReason": zod.string().nullable()
+})).describe('Every event discovered for this sport\/date. Join AVAILABLE entries to projections by gameId.'),
   "officialPicks": zod.array(zod.object({
   "eventId": zod.string(),
   "sport": zod.string(),

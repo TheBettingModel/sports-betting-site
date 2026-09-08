@@ -204,7 +204,10 @@ assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGam
 assert.match(picksSource, /hasServerEntitlement/);
 assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
 assert.doesNotMatch(picksSource, /UFC/);
-assert.match(picksSource, /board\.coverage\.scheduledEvents > 0 && board\.coverage\.failedEvents > 0/);
+assert.match(picksSource, /board\.fixtures\.length/);
+assert.match(picksSource, /fixture\.availability === 'AVAILABLE'/);
+assert.match(picksSource, /V4UnavailableProjectionCard/);
+assert.match(picksSource, /V4 SLATE/);
 
 const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
 assert.match(v4CardSource, /value == null \? '—'/);

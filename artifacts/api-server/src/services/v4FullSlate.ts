@@ -154,6 +154,12 @@ export async function runFullSlateV4(input: {
   const eligible = input.events.filter((event) => event.eligibility === "ELIGIBLE");
   const forecasts: CanonicalV4Forecast[] = [];
   for (const event of eligible) {
+    // Forecast engines may materialize live inputs before rejecting them. Do
+    // not call one at all once the immutable pregame cutoff has passed.
+    if (!event.eventStart || new Date(event.eventStart) <= input.now) {
+      failures.push({ gameId: event.gameId, reason: "EVENT_ALREADY_STARTED" });
+      continue;
+    }
     const routed = await routeV4Forecast(
       input.registry ?? canonicalV4EngineRegistry,
       input.sport,

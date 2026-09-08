@@ -19,6 +19,36 @@ export type V4FullSlateProjectionResponseCoverage = {
   failures: V4FullSlateProjectionResponseCoverageFailuresItem[];
 };
 
+export type V4FullSlateProjectionResponseFixturesItemAvailability = typeof V4FullSlateProjectionResponseFixturesItemAvailability[keyof typeof V4FullSlateProjectionResponseFixturesItemAvailability];
+
+
+export const V4FullSlateProjectionResponseFixturesItemAvailability = {
+  AVAILABLE: 'AVAILABLE',
+  UNAVAILABLE: 'UNAVAILABLE',
+} as const;
+
+export interface V4SlateParticipant {
+  /** @nullable */
+  id: string | null;
+  name: string;
+  /** @nullable */
+  abbreviation: string | null;
+  /** @nullable */
+  logo: string | null;
+}
+
+export type V4FullSlateProjectionResponseFixturesItem = {
+  gameId: string;
+  sport: string;
+  /** @nullable */
+  eventStart: string | null;
+  homeParticipant: V4SlateParticipant;
+  awayParticipant: V4SlateParticipant;
+  availability: V4FullSlateProjectionResponseFixturesItemAvailability;
+  /** @nullable */
+  unavailableReason: string | null;
+};
+
 export type V4OfficialPickRole = typeof V4OfficialPickRole[keyof typeof V4OfficialPickRole];
 
 
@@ -207,6 +237,8 @@ export interface V4FullSlateProjectionResponse {
   date: string;
   lifecycleDisclaimer: string;
   coverage: V4FullSlateProjectionResponseCoverage;
+  /** Every event discovered for this sport/date. Join AVAILABLE entries to projections by gameId. */
+  fixtures: V4FullSlateProjectionResponseFixturesItem[];
   /** Persisted server-authoritative official V4 decisions; independent of current projection IDs. */
   officialPicks: V4OfficialPick[];
   projections: V4PublicProjection[];

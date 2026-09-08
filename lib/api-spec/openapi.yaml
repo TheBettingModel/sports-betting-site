@@ -905,7 +905,7 @@ components:
   schemas:
     V4FullSlateProjectionResponse:
       type: object
-      required: [sport, date, lifecycleDisclaimer, coverage, officialPicks, projections]
+      required: [sport, date, lifecycleDisclaimer, coverage, fixtures, officialPicks, projections]
       properties:
         sport: { type: string }
         date: { type: string }
@@ -927,6 +927,25 @@ components:
                 properties:
                   gameId: { type: string }
                   reason: { type: string }
+        fixtures:
+          type: array
+          description: Every event discovered for this sport/date. Join AVAILABLE entries to projections by gameId.
+          items:
+            type: object
+            required: [gameId, sport, eventStart, homeParticipant, awayParticipant, availability, unavailableReason]
+            properties:
+              gameId: { type: string }
+              sport: { type: string }
+              eventStart: { type: [string, "null"] }
+              homeParticipant:
+                $ref: "#/components/schemas/V4SlateParticipant"
+              awayParticipant:
+                $ref: "#/components/schemas/V4SlateParticipant"
+              availability:
+                type: string
+                enum: [AVAILABLE, UNAVAILABLE]
+              unavailableReason:
+                type: [string, "null"]
         officialPicks:
           type: array
           description: Persisted server-authoritative official V4 decisions; independent of current projection IDs.
@@ -934,6 +953,14 @@ components:
         projections:
           type: array
           items: { $ref: "#/components/schemas/V4PublicProjection" }
+    V4SlateParticipant:
+      type: object
+      required: [id, name, abbreviation, logo]
+      properties:
+        id: { type: [string, "null"] }
+        name: { type: string }
+        abbreviation: { type: [string, "null"] }
+        logo: { type: [string, "null"] }
     V4PublicProjection:
       type: object
       required: [eventId, sport, modelVersion, lifecycleStatus, forecastTimestamp, officialPickStatus, officialRole, officialRank, units, officialFailureReason]
