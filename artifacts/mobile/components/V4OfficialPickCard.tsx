@@ -27,22 +27,41 @@ export function V4OfficialPickCard({ pick }: { pick: V4OfficialPick }) {
   const colors = useColors();
   const away = pick.awayParticipant ?? 'Away';
   const home = pick.homeParticipant ?? 'Home';
-  const role = pick.role === 'TOP_PLAY' ? 'TBM OFFICIAL TOP PLAY' : 'TBM OFFICIAL PLAY';
+  const isTopPlay = pick.role === 'TOP_PLAY';
+  const role = isTopPlay ? 'TBM OFFICIAL TOP PLAY' : 'TBM OFFICIAL PLAY';
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: isTopPlay ? colors.primary + '80' : colors.border }]}>
       <View style={styles.metaRow}>
-        <Text style={[styles.status, { color: colors.primary }]}>{pick.sport} · {role}</Text>
+        <View style={styles.badgeRow}>
+          {isTopPlay && (
+            <View style={[styles.topPlayBadge, { backgroundColor: colors.primary }]}>
+              <Text style={styles.topPlayText}>TOP PLAY</Text>
+            </View>
+          )}
+          <Text style={[styles.status, { color: isTopPlay ? colors.foreground : colors.primary }]}>{pick.sport} · {role}</Text>
+        </View>
         <Text style={[styles.rank, { color: colors.mutedForeground }]}>#{pick.rank}</Text>
       </View>
       <Text style={[styles.matchup, { color: colors.foreground }]}>{away} at {home}</Text>
-      <Text style={[styles.market, { color: colors.mutedForeground }]}>{pick.market.toUpperCase()}</Text>
-      <Text style={[styles.selection, { color: colors.foreground }]}>{selectionLabel(pick)}</Text>
-      <Text style={[styles.price, { color: colors.primary }]}>{odds(pick.odds)} · {pick.units}U</Text>
-      <View style={styles.metrics}>
-        <Text style={[styles.metric, { color: colors.mutedForeground }]}>Model {percent(pick.modelProbability)}</Text>
-        <Text style={[styles.metric, { color: colors.mutedForeground }]}>Fair {percent(pick.fairProbability)}</Text>
+
+      <View style={[styles.selectionBlock, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.market, { color: colors.mutedForeground }]}>{pick.market.toUpperCase()}</Text>
+        <Text style={[styles.selection, { color: colors.foreground }]} numberOfLines={1}>{selectionLabel(pick)}</Text>
+        <Text style={[styles.price, { color: colors.primary }]}>{odds(pick.odds)} · {pick.units}U</Text>
       </View>
+
+      <View style={styles.metrics}>
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>Model Edge</Text>
+          <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(pick.modelProbability)}</Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>Fair Prob</Text>
+          <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(pick.fairProbability)}</Text>
+        </View>
+      </View>
+
       <View style={[styles.boundary, { borderTopColor: colors.border }]}>
         <Text style={[styles.official, { color: colors.foreground }]}>{role} · PERSISTED · {pick.units}U</Text>
       </View>
@@ -52,15 +71,24 @@ export function V4OfficialPickCard({ pick }: { pick: V4OfficialPick }) {
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 14, padding: 16 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topPlayBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  topPlayText: { fontSize: 9, fontFamily: 'Inter_700Bold', color: '#000', letterSpacing: 0.5 },
   status: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: .8 },
   rank: { fontSize: 10, fontFamily: 'Inter_700Bold' },
-  matchup: { marginTop: 10, fontSize: 14, fontFamily: 'Inter_700Bold' },
-  market: { marginTop: 14, fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
-  selection: { marginTop: 3, fontSize: 24, fontFamily: 'Inter_700Bold', letterSpacing: -.7 },
-  price: { marginTop: 5, fontSize: 14, fontFamily: 'Inter_700Bold' },
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
-  metric: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  boundary: { marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  matchup: { marginTop: 12, fontSize: 14, fontFamily: 'Inter_700Bold' },
+
+  selectionBlock: { marginTop: 12, padding: 12, borderRadius: 10 },
+  market: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+  selection: { marginTop: 4, fontSize: 24, fontFamily: 'Inter_700Bold', letterSpacing: -.7 },
+  price: { marginTop: 4, fontSize: 14, fontFamily: 'Inter_700Bold' },
+
+  metrics: { flexDirection: 'row', gap: 24, marginTop: 14, paddingHorizontal: 4 },
+  metricItem: { gap: 2 },
+  metricLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
+  metricValue: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+
+  boundary: { marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
   official: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: .7 },
 });

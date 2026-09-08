@@ -39,7 +39,7 @@ type ListItem =
   | { type: 'section'; title: string; count: number }
   | { type: 'official-pick'; pick: V4OfficialPick }
   | { type: 'projection'; projection: V4PublicProjection }
-  | { type: 'unavailable'; sport: string; reason: string };
+  | { type: 'unavailable-group'; sports: { sport: string; reason: string }[] };
 
 export default function PicksScreen() {
   const colors = useColors();
@@ -96,14 +96,19 @@ export default function PicksScreen() {
       items.push({ type: 'section', title: 'V4 PROJECTIONS', count: remainingProjections.length });
       remainingProjections.forEach((projection) => items.push({ type: 'projection', projection }));
     }
+
+    const unavailableList: { sport: string; reason: string }[] = [];
     for (const board of boards) {
       // A dormant sport is not an unavailable board. Surface this state only
       // when scheduled events existed and every forecast genuinely failed.
       if (board.coverage.scheduledEvents > 0 && board.coverage.failedEvents > 0
         && board.projections.length === 0 && board.officialPicks.length === 0) {
         const failure = board.coverage.failures[0]?.reason ?? 'No legitimate V4 projection is available right now.';
-        items.push({ type: 'unavailable', sport: board.sport, reason: failure.replaceAll('_', ' ') });
+        unavailableList.push({ sport: board.sport, reason: failure.replaceAll('_', ' ') });
       }
+    }
+    if (unavailableList.length > 0) {
+      items.push({ type: 'unavailable-group', sports: unavailableList });
     }
     return items;
   }, [boards, hasExactlyOneTopPlay, qualifiedPlays, remainingProjections, topPlays]);
@@ -161,8 +166,17 @@ export default function PicksScreen() {
           if (item.type === 'section') {
             return <View style={styles.section}><Text style={[styles.sectionText, { color: colors.mutedForeground }]}>{item.title} · {item.count}</Text></View>;
           }
-          if (item.type === 'unavailable') {
-            return <View style={[styles.notice, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.noticeTitle, { color: colors.foreground }]}>{displaySport(item.sport)} V4 UNAVAILABLE</Text><Text style={[styles.noticeCopy, { color: colors.mutedForeground }]}>{item.reason}</Text></View>;
+          if (item.type === 'unavailable-group') {
+            return (
+              <View style={styles.unavailableGroup}>
+                {item.sports.map(u => (
+                  <View key={u.sport} style={[styles.unavailableRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Text style={[styles.unavailableTitle, { color: colors.mutedForeground }]}>{displaySport(u.sport)} V4 UNAVAILABLE</Text>
+                    <Text style={[styles.unavailableCopy, { color: colors.mutedForeground }]} numberOfLines={1}>{u.reason}</Text>
+                  </View>
+                ))}
+              </View>
+            );
           }
           if (item.type === 'official-pick') return <V4OfficialPickCard pick={item.pick} />;
           return <V4ModelProjectionCard projection={item.projection} />;
@@ -184,4 +198,9 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: .8 },
   noticeCopy: { marginTop: 5, fontSize: 12, lineHeight: 18, fontFamily: 'Inter_400Regular' },
   entitlementCopy: { marginHorizontal: 20, marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', fontFamily: 'Inter_400Regular' },
+
+  unavailableGroup: { marginHorizontal: 16, marginTop: 12, marginBottom: 8, gap: 8 },
+  unavailableRow: { padding: 12, borderWidth: 1, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  unavailableTitle: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: .5 },
+  unavailableCopy: { fontSize: 11, fontFamily: 'Inter_500Medium', flex: 1, marginLeft: 12, textAlign: 'right' },
 });

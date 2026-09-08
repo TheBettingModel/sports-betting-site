@@ -13,7 +13,8 @@ export function SportFilter({ gameCounts }: SportFilterProps) {
   const colors = useColors();
   const { selectedSport, setSelectedSport } = useSports();
 
-  // Only show sports that have games today; always show 'All'
+  // Only show active sports that have games today; always show "All".
+  // UFC is absent from the typed SPORTS release scope.
   const availableSports = gameCounts
     ? SPORTS.filter(s => (gameCounts[s] ?? 0) > 0)
     : SPORTS;

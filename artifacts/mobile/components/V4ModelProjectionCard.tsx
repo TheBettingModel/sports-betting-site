@@ -20,36 +20,58 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
         : 'Unavailable';
   const startsAt = projection.eventStart ? new Date(projection.eventStart) : null;
   const failureReason = projection.officialFailureReason?.replaceAll('_', ' ');
+  const status = projection.lifecycleStatus.replace('V4_', '').replace('_', ' ');
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.metaRow}>
-        <Text style={[styles.status, { color: colors.primary }]}>
-          {projection.sport} · {projection.lifecycleStatus.replaceAll('_', ' ')}
-        </Text>
+        <View style={styles.statusBadge}>
+          <View style={[styles.statusDot, { backgroundColor: status === 'APPROVED' ? colors.primary : colors.mutedForeground }]} />
+          <Text style={[styles.status, { color: colors.mutedForeground }]}>
+            {projection.sport} · {status}
+          </Text>
+        </View>
         <Text style={[styles.time, { color: colors.mutedForeground }]}>
           {startsAt && !Number.isNaN(startsAt.getTime())
             ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
             : 'TBD'}
         </Text>
       </View>
-      <Text style={[styles.matchup, { color: colors.foreground }]}>{away} at {home}</Text>
-      <Text style={[styles.projectionLabel, { color: colors.mutedForeground }]}>
-        V4 MODEL PROJECTION
-      </Text>
-      <Text style={[styles.winner, { color: colors.foreground }]}>{winner}</Text>
-      <View style={styles.probabilityRow}>
-        <Text style={[styles.metric, { color: colors.mutedForeground }]}>{away} {percent(projection.awayWinProbability)}</Text>
-        {projection.drawProbability != null && (
-          <Text style={[styles.metric, { color: colors.mutedForeground }]}>Draw {percent(projection.drawProbability)}</Text>
-        )}
-        <Text style={[styles.metric, { color: colors.mutedForeground }]}>{home} {percent(projection.homeWinProbability)}</Text>
-      </View>
-      {projection.expectedAwayScore != null && projection.expectedHomeScore != null && (
-        <Text style={[styles.score, { color: colors.mutedForeground }]}>
-          Projected score: {away} {projection.expectedAwayScore.toFixed(1)} – {home} {projection.expectedHomeScore.toFixed(1)}
-        </Text>
+
+      {projection.expectedAwayScore != null && projection.expectedHomeScore != null ? (
+        <View style={[styles.scoreBlock, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.projectionLabel, { color: colors.primary }]}>V4 MODEL PROJECTION</Text>
+          <Text style={[styles.scoreText, { color: colors.foreground }]}>
+            Projected score: {away} {projection.expectedAwayScore.toFixed(1)} – {home} {projection.expectedHomeScore.toFixed(1)}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.matchupBlock}>
+          <Text style={[styles.matchup, { color: colors.foreground }]}>{away} at {home}</Text>
+          <Text style={[styles.projectionLabel, { color: colors.mutedForeground, marginTop: 14 }]}>
+            V4 MODEL PROJECTION
+          </Text>
+          <Text style={[styles.winner, { color: colors.foreground }]}>{winner}</Text>
+        </View>
       )}
+
+      <View style={styles.probabilityRow}>
+        <View style={[styles.probCol, { borderRightWidth: 1, borderRightColor: colors.border }]}>
+          <Text style={[styles.metricLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{away}</Text>
+          <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(projection.awayWinProbability)}</Text>
+        </View>
+        {projection.drawProbability != null && (
+          <View style={[styles.probCol, { borderRightWidth: 1, borderRightColor: colors.border }]}>
+            <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>Draw</Text>
+            <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(projection.drawProbability)}</Text>
+          </View>
+        )}
+        <View style={styles.probCol}>
+          <Text style={[styles.metricLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{home}</Text>
+          <Text style={[styles.metricValue, { color: colors.foreground }]}>{percent(projection.homeWinProbability)}</Text>
+        </View>
+      </View>
+
       <View style={[styles.boundary, { borderTopColor: colors.border }]}>
         <Text style={[styles.boundaryTitle, { color: colors.foreground }]}>
           PROJECTION ONLY · NOT AN OFFICIAL TBM PICK
@@ -65,17 +87,27 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 14, padding: 16 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 14, padding: 16, overflow: 'hidden' },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
   status: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   time: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-  matchup: { marginTop: 10, fontSize: 14, fontFamily: 'Inter_700Bold' },
-  projectionLabel: { marginTop: 14, fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+
+  scoreBlock: { marginTop: 14, padding: 14, borderRadius: 10 },
+  scoreText: { marginTop: 8, fontSize: 17, fontFamily: 'Inter_700Bold', letterSpacing: -0.3, lineHeight: 22 },
+
+  matchupBlock: { marginTop: 10 },
+  matchup: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  projectionLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
   winner: { marginTop: 3, fontSize: 24, fontFamily: 'Inter_700Bold', letterSpacing: -0.7 },
-  probabilityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
-  metric: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  score: { marginTop: 8, fontSize: 11, fontFamily: 'Inter_500Medium' },
-  boundary: { marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
+
+  probabilityRow: { flexDirection: 'row', marginTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#1E1E1E', paddingTop: 12 },
+  probCol: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+  metricLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', marginBottom: 2 },
+  metricValue: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+
+  boundary: { marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
   boundaryTitle: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
-  boundaryCopy: { marginTop: 4, fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium' },
+  boundaryCopy: { marginTop: 6, fontSize: 11, lineHeight: 16, fontFamily: 'Inter_500Medium' },
 });
