@@ -58,3 +58,4 @@
 - [NFL V4 shadow boundary](nfl-v4-shadow-boundary.md) — July 1 seasons, Pro Bowl quarantine, exact artifact execution, and append-only shadow evidence are mandatory.
 - [Render cutover boundary](render-cutover-boundary.md) — production is app-only Expo → Render → Neon; never partially move mobile or scheduler ownership.
 - [Production database export boundary](production-database-export-boundary.md) — Validate exports by expected tables; the legacy Neon database is not the live Replit production dataset.
+- [V4 slate accounting](v4-slate-accounting.md) — every scheduled fixture stays visible; unavailable forecasts are explicit, and only immutable pregame snapshots survive kickoff.
