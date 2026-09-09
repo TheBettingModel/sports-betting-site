@@ -40,6 +40,20 @@ function selection(projection: V4PublicProjection, away: string, home: string): 
   return 'Unavailable';
 }
 
+function projectedWinnerName(projection: V4PublicProjection, away: string, home: string): string {
+  if (projection.projectedWinner === 'HOME') return nickname(home);
+  if (projection.projectedWinner === 'AWAY') return nickname(away);
+  if (projection.projectedWinner === 'DRAW') return 'Draw';
+  return 'Unavailable';
+}
+
+function scoreMargin(away: string, home: string, expectedAwayScore?: number | null, expectedHomeScore?: number | null): string {
+  if (expectedAwayScore == null || expectedHomeScore == null) return '—';
+  const margin = Math.abs(expectedHomeScore - expectedAwayScore);
+  if (margin < 0.05) return 'Even';
+  return `${nickname(expectedHomeScore > expectedAwayScore ? home : away)} by ${margin.toFixed(1)}`;
+}
+
 export function V4ModelProjectionCard({ projection }: { projection: V4PublicProjection }) {
   const colors = useColors();
   const [expanded, setExpanded] = useState(false);
@@ -55,6 +69,17 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
     ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : 'TBD';
   const modelSelection = selection(projection, away, home);
+  const moneylineLean = projectedWinnerName(projection, away, home);
+  const scoreWinner = expectedHomeScore == null || expectedAwayScore == null
+    ? null
+    : expectedHomeScore > expectedAwayScore
+      ? 'HOME'
+      : expectedAwayScore > expectedHomeScore
+        ? 'AWAY'
+        : 'DRAW';
+  const signalsDisagree = scoreWinner !== null
+    && projection.projectedWinner != null
+    && scoreWinner !== projection.projectedWinner;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -77,7 +102,7 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
         </View>
 
         <View style={styles.pickBlock}>
-          <Text style={[styles.label, { color: colors.mutedForeground }]}>PICK</Text>
+          <Text style={[styles.label, { color: colors.mutedForeground }]}>MODEL LEAN</Text>
           <Text style={[styles.selectionText, { color: colors.foreground }]}>{modelSelection}</Text>
         </View>
 
@@ -107,11 +132,15 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
               {projection.drawProbability != null && (
                 <Detail label="Draw probability" value={percent(projection.drawProbability)} colors={colors} />
               )}
-              <Detail label="Projected winner" value={projection.projectedWinner ?? 'Unavailable'} colors={colors} />
-              <Detail label="Expected margin" value={projection.expectedMargin == null ? '—' : projection.expectedMargin.toFixed(1)} colors={colors} />
+              <Detail label="Moneyline lean" value={moneylineLean} colors={colors} />
+              <Detail label="Score margin" value={scoreMargin(away, home, expectedAwayScore, expectedHomeScore)} colors={colors} />
               <Detail label="Expected total" value={projection.expectedTotal == null ? '—' : projection.expectedTotal.toFixed(1)} colors={colors} />
-              <Detail label="Model version" value={projection.modelVersion} colors={colors} />
             </View>
+            {signalsDisagree && (
+              <Text style={[styles.signalNote, { color: colors.mutedForeground }]}>
+                Score and moneyline models disagree. The moneyline lean follows win probability.
+              </Text>
+            )}
             {(projection.awayStarterName || projection.homeStarterName) && (
               <View style={styles.pitchers}>
                 <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Pitcher Matchup</Text>
@@ -201,6 +230,7 @@ const styles = StyleSheet.create({
   detailFullWidth: { width: '100%' },
   detailLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
   detailValue: { fontSize: 12, lineHeight: 17, fontFamily: 'Inter_700Bold', marginTop: 3, flexShrink: 1 },
+  signalNote: { marginTop: 12, fontSize: 10, lineHeight: 15, fontFamily: 'Inter_500Medium' },
   pitchers: { marginTop: 18 },
   pitcherRow: { flexDirection: 'row', gap: 12 },
   pitcher: { flex: 1 },

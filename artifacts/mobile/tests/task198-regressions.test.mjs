@@ -215,6 +215,10 @@ const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCar
 assert.match(v4CardSource, /value == null \? '—'/);
 assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);
 assert.match(v4CardSource, /expectedHomeScore\.toFixed\(1\)/);
+assert.match(v4CardSource, /MODEL LEAN/);
+assert.match(v4CardSource, /Moneyline lean/);
+assert.match(v4CardSource, /Score and moneyline models disagree/);
+assert.doesNotMatch(v4CardSource, /Model version/);
 assert.match(v4CardSource, /MODEL PROJECTION/);
 assert.match(v4CardSource, /Not an Official Play/);
 assert.match(v4CardSource, /Pressable/);
