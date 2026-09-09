@@ -962,19 +962,11 @@ export const GetResultsSummaryResponse = zod.object({
   "pushes": zod.number(),
   "totalPicks": zod.number(),
   "winRate": zod.number(),
-  "unitsWonLost": zod.number()
-}),
-  "recordSegments": zod.object({
-  "preCutoverOfficial": zod.object({
-  "wins": zod.number(),
-  "losses": zod.number(),
-  "pushes": zod.number(),
-  "totalPicks": zod.number(),
-  "winRate": zod.number(),
   "unitsWonLost": zod.number(),
   "unitsRisked": zod.number(),
   "roi": zod.number()
-}).describe('Official wager results grouped by immutable persisted publication and model provenance.'),
+}),
+  "recordSegments": zod.object({
   "v4Official": zod.object({
   "wins": zod.number(),
   "losses": zod.number(),
@@ -1013,7 +1005,7 @@ export const GetResultsSummaryResponse = zod.object({
   "gradedAt": zod.string().nullish(),
   "modelId": zod.string(),
   "modelVersionId": zod.number(),
-  "provenance": zod.enum(['preCutoverOfficial', 'v4Official'])
+  "provenance": zod.enum(['v4Official'])
 })).optional(),
   "dataAsOf": zod.string().optional()
 })

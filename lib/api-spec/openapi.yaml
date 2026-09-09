@@ -1,0 +1,2601 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: games
+    description: Game data with model projections
+  - name: model
+    description: Model learning stats
+  - name: results
+    description: Model performance results and ROI
+  - name: device
+    description: Device push token and preference management
+  - name: chat
+    description: Subscriber community chat
+  - name: admin
+    description: Internal administrator operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /readyz:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Check database, scheduler, guarded serving, and V4 readiness
+      responses:
+        "200": { description: Service is ready }
+        "503": { description: Service is not ready }
+
+  /support:
+    get:
+      operationId: getSupportInformation
+      tags: [health]
+      summary: Get application support information
+      responses:
+        "200": { description: Support information }
+
+  /games/today:
+    get:
+      operationId: getGamesToday
+      tags: [games]
+      summary: Get today's games with model projections
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Today's games with projections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GamesTodayResponse"
+
+  /games/refresh:
+    post:
+      operationId: refreshGames
+      tags: [games]
+      summary: Pull fresh game data from ESPN and run model update
+      responses:
+        "200":
+          description: Refresh completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResponse"
+
+  /model/ncaaf/v4/projections:
+    get:
+      operationId: getNcaafV4Projections
+      tags: [model]
+      summary: Get the NCAAF V4 preview projection board for an Eastern calendar date
+      description: >-
+        Read-only NCAAF-only preview board. It never creates wagers, changes the
+        incumbent champion, or grants production publication approval.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: YYYY-MM-DD in America/New_York; omitted selects today.
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Frozen-model V4 preview board
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NcaafV4SubscriberProjectionBoard" }
+        "400": { description: Invalid requested date }
+        "401": { description: Authentication required }
+        "403": { description: Active subscription or owner access required }
+
+  /model/v4/projections:
+    get:
+      operationId: getV4FullSlateProjections
+      tags: [model]
+      summary: Get safe full-slate V4 model projections
+      description: >-
+        Returns every legitimate V4 forecast for one sport/day plus explicit
+        coverage failures. Validating projections are not official TBM picks.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sport
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [MLB, NCAAF, NFL, NBA, WNBA, NHL, SOCCER, NCAAMB]
+        - name: date
+          in: query
+          required: false
+          description: YYYY-MM-DD in America/New_York; omitted selects today.
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Safe model projections and full-slate coverage
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/V4FullSlateProjectionResponse" }
+        "400": { description: Invalid sport or date }
+
+  /internal/mlb-v4/readiness:
+    get:
+      operationId: getInternalMlbV4Readiness
+      tags: [admin]
+      summary: Get internal MLB V4 evidence and executor readiness
+      responses:
+        "200": { description: MLB V4 readiness status }
+
+  /chat/access:
+    get:
+      operationId: getChatAccess
+      tags: [chat]
+      summary: Get authenticated chat access metadata
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Chat access metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatAccess" }
+        "401": { description: Unauthorized }
+  /chat/messages:
+    get:
+      operationId: getChatMessages
+      tags: [chat]
+      summary: List chronological chat messages for Pro members
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessagesResponse" }
+        "401": { description: Unauthorized }
+        "403": { description: Pro subscription required }
+    post:
+      operationId: createChatMessage
+      tags: [chat]
+      summary: Post an owner chat message
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateChatMessageRequest" }
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessageResponse" }
+        "401": { description: Unauthorized }
+        "403": { description: Owner required }
+        "400": { description: Invalid body }
+  /chat/preferences:
+    put:
+      operationId: updateChatPreferences
+      tags: [chat]
+      summary: Update chat notification preference
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateChatPreferencesRequest" }
+      responses:
+        "200":
+          description: Updated preference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatPreferences" }
+        "401": { description: Unauthorized }
+        "403": { description: Pro subscription required }
+
+  /admin/model-runtime-status:
+    get:
+      operationId: getAdminModelRuntimeStatus
+      tags: [admin]
+      summary: Get actual guarded-serving configuration, identity, approval, and health
+      responses:
+        "200":
+          description: Guarded model runtime status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelRuntimeStatus"
+
+  /admin/model-runtime-dry-run:
+    post:
+      operationId: runAdminModelRuntimeDryRun
+      tags: [admin]
+      summary: Run an immutable real-slate guarded-serving dry run without publication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelRuntimeDryRunInput"
+      responses:
+        "200":
+          description: Persisted dry-run disposition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelRuntimeDryRunResult"
+        "400": { description: Invalid sport }
+
+  /admin/model-artifact-approvals:
+    post:
+      operationId: appendAdminModelArtifactApproval
+      tags: [admin]
+      summary: Append an explicit governed exact-artifact approval decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelArtifactApprovalInput"
+      responses:
+        "201":
+          description: Approval decision appended
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [eventId]
+                properties:
+                  eventId: { type: string }
+        "400": { description: Invalid or incomplete exact identity }
+
+  /admin/spread-models:
+    get:
+      operationId: getAdminSpreadModels
+      tags: [admin]
+      summary: Get isolated spread model configurations and validation metrics
+      responses:
+        "200":
+          description: Spread model status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/ncaaf-readiness:
+    get:
+      operationId: getAdminNcaafReadiness
+      tags: [admin]
+      summary: Get read-only NCAAF challenger evidence and validation readiness
+      description: Admin-only observability. This endpoint never changes model, evidence, publication, or promotion state.
+      responses:
+        "200":
+          description: NCAAF readiness and evidence coverage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NcaafReadiness"
+        "401": { description: Administrator credentials required }
+
+  /admin/ncaaf/v4/today-board:
+    get:
+      operationId: getAdminNcaafV4TodayBoard
+      tags: [admin]
+      summary: Get the complete current Eastern-day NCAAF V4 preview board
+      description: >-
+        Master-admin-only, today-only observability endpoint. It does not accept
+        a date override and never changes registry, publication, or champion state.
+      security: [{ masterApiKey: [] }]
+      responses:
+        "200":
+          description: Current-day frozen V4 preview board with market health and profiling
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NcaafV4ProjectionBoard" }
+        "401": { description: Master administrator credentials required }
+        "503": { description: Master administrator authentication is not configured }
+
+  /admin/ncaaf/core-backfill:
+    post:
+      operationId: runAdminNcaafCoreBackfill
+      tags: [admin]
+      summary: Manually backfill CFBD core games and materialize NCAAF v2 training rows
+      description: >-
+        Internal, master-admin-only operation. It sequentially captures the 2023,
+        2024, and 2025 CFBD games aggregates and materializes bounded 500-row
+        training batches. It is manual-only, idempotent, and does not acquire the
+        live NCAAF lock. A returned nextCursor must be supplied to resume after
+        the per-request materialization cap.
+      security: [{ masterApiKey: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NcaafCoreBackfillRequest"
+      responses:
+        "200":
+          description: Aggregate counts and replay audit; provider payloads are never returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NcaafCoreBackfillResult"
+        "400": { description: Invalid cursor or dryRun value }
+        "401": { description: Master administrator credentials required }
+        "503": { description: Master administrator authentication is not configured }
+
+  /admin/ncaaf-readiness/{eventId}:
+    get:
+      operationId: getAdminNcaafEventReadiness
+      tags: [admin]
+      summary: Get read-only NCAAF evidence readiness for one canonical provider event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Per-event NCAAF evidence, cohort, feature, performance, and market-match audit
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NcaafEventReadiness" }
+        "401": { description: Administrator credentials required }
+        "404": { description: NCAAF evidence event not found }
+
+  /admin/market-comparisons:
+    get:
+      operationId: getAdminMarketComparisons
+      tags: [admin]
+      summary: Compare internal moneyline and spread candidates with the official selected market
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema: { type: string, default: NCAAF }
+      responses:
+        "200":
+          description: Internal market candidate comparisons
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/market-approvals:
+    get:
+      operationId: getAdminMarketApprovals
+      tags: [admin]
+      summary: List latest exact automatic and manual market approval decisions
+      responses:
+        "200":
+          description: Latest append-only approval decisions by exact evidence identity
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      operationId: createAdminMarketApproval
+      tags: [admin]
+      summary: Append an exceptional manual market approval lifecycle decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketApprovalDecisionInput"
+      responses:
+        "201":
+          description: Approval decision appended
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "409":
+          description: Production approval evidence layers did not all pass
+
+  /admin/spread-models/{sport}/refresh-validation:
+    post:
+      operationId: refreshAdminSpreadValidation
+      tags: [admin]
+      summary: Recompute and persist spread validation metrics
+      parameters:
+        - name: sport
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Refreshed validation metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/spread-models/{sport}/promote:
+    post:
+      operationId: promoteAdminSpreadModel
+      tags: [admin]
+      summary: Promote a spread model only when all validation gates pass
+      parameters:
+        - name: sport
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Spread model promoted
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "409":
+          description: Promotion gates did not pass
+
+  /admin/spread-models/{sport}/suspend:
+    post:
+      operationId: suspendAdminSpreadModel
+      tags: [admin]
+      summary: Suspend a spread model without deleting prior approval history
+      parameters:
+        - name: sport
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpreadModelSuspensionInput"
+      responses:
+        "200":
+          description: Spread model suspended
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "409":
+          description: No exact validation context exists to suspend
+
+  /results/summary:
+    get:
+      operationId: getResultsSummary
+      tags: [results]
+      summary: Get overall and per-sport model performance summary
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Results summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsSummaryResponse"
+
+  /results/roi:
+    get:
+      operationId: getResultsRoi
+      tags: [results]
+      summary: Get win%, units, and ROI broken down by sport and rating tier
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ROI breakdown by rating and sport
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsRoiResponse"
+
+  /model-stats/history:
+    get:
+      operationId: getModelStatsHistory
+      tags: [model]
+      summary: Get weekly win-rate and units history per sport (last 8 weeks)
+      responses:
+        "200":
+          description: Weekly model performance history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelStatsHistoryResponse"
+
+  /model/stats:
+    get:
+      operationId: getModelStats
+      tags: [model]
+      summary: Get model learning accuracy stats per sport
+      responses:
+        "200":
+          description: Model accuracy stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelStatsResponse"
+
+  /admin/loss-reviews:
+    get:
+      operationId: getAdminLossReviews
+      tags: [admin]
+      summary: Get internal evidence-based reviews for graded losses
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Recent loss reviews and recurring evidence patterns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LossReviewsResponse"
+
+  /admin/outcome-reviews:
+    get:
+      operationId: getAdminOutcomeReviews
+      tags: [admin]
+      summary: Get internal evidence-based reviews for graded wins and losses
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: result
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, win, loss]
+            default: all
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Recent completed outcome reviews and recurring evidence patterns
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutcomeReviewsResponse"
+
+  /admin/publication-decisions:
+    get:
+      operationId: getAdminPublicationDecisions
+      tags: [admin]
+      summary: Inspect effective downstream publication decisions for one Eastern calendar date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Candidate-level publication status, reason, rank, staking, POTD, and model identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [easternDate, dataAsOf, decisions]
+                properties:
+                  easternDate: { type: string, format: date }
+                  dataAsOf: { type: string, format: date-time }
+                  decisions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+
+  /admin/forecast-reviews:
+    get:
+      operationId: getAdminForecastReviews
+      tags: [admin]
+      summary: Get auditable completed reviews for every model forecast
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: market
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: segment
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [published, forecast_only]
+        - name: qualification
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [qualified, passed]
+        - name: result
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, win, loss, push, void, postponed]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Forecast review ledger rows
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      operationId: refreshAdminForecastReviews
+      tags: [admin]
+      summary: Idempotently backfill reviews for completed forecast snapshots
+      responses:
+        "200":
+          description: Forecast review backfill result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/forecast-metrics:
+    get:
+      operationId: getAdminForecastMetrics
+      tags: [admin]
+      summary: Compare qualified picks with passed forecast outcomes
+      parameters:
+        - name: sport
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: market
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Coverage and selected-outcome calibration metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /admin/mlb-policy-revisions:
+    get:
+      operationId: getMlbPolicyRevisions
+      tags: [admin]
+      summary: List immutable MLB moneyline policy revisions and audit counts
+      responses:
+        "200":
+          description: MLB policy revisions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlbPolicyRevisionList"
+    post:
+      operationId: applyMlbPolicyRevision
+      tags: [admin]
+      summary: Apply an authorized MLB policy revision to unstarted games only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MlbPolicyRevisionInput"
+      responses:
+        "201":
+          description: Policy revision applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MlbPolicyRevisionApplyResult"
+        "400":
+          description: Invalid immutable revision request
+        "401":
+          description: Unauthorized
+
+  /push-tokens:
+    post:
+      operationId: registerPushToken
+      tags: [device]
+      summary: Register a device push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterPushTokenRequest"
+      responses:
+        "200":
+          description: Token registered
+        "400":
+          description: Bad request
+
+    delete:
+      operationId: deregisterPushToken
+      tags: [device]
+      summary: Remove a device push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeregisterPushTokenRequest"
+      responses:
+        "200":
+          description: Token removed
+
+  /notification-preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags: [device]
+      summary: Get per-sport notification preferences for the authenticated user
+      responses:
+        "200":
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+
+    put:
+      operationId: updateNotificationPreferences
+      tags: [device]
+      summary: Update per-sport notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNotificationPreferencesRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+
+  /preferences:
+    get:
+      operationId: getUserPreferences
+      tags: [device]
+      summary: Get notification/alert preferences for the authenticated user
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
+    put:
+      operationId: updateUserPreferences
+      tags: [device]
+      summary: Update notification/alert preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserPreferencesRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
+  /subscriptions/sync:
+    post:
+      operationId: syncSubscription
+      tags: [device]
+      summary: Sync RevenueCat entitlement to server DB (fallback for missed webhooks)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionSyncRequest"
+      responses:
+        "200":
+          description: Subscription synced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionSyncResponse"
+        "401":
+          description: Unauthorized
+
+  /subscriptions/status:
+    get:
+      operationId: getSubscriptionStatus
+      tags: [device]
+      summary: Get current subscription status from server DB
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatusResponse"
+        "401":
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    masterApiKey:
+      type: apiKey
+      in: header
+      name: X-Master-Key
+      description: Internal master key. An authenticated admin session token is also accepted by the server.
+  schemas:
+    V4FullSlateProjectionResponse:
+      type: object
+      required: [sport, date, lifecycleDisclaimer, coverage, fixtures, officialPicks, projections]
+      properties:
+        sport: { type: string }
+        date: { type: string }
+        lifecycleDisclaimer: { type: string }
+        coverage:
+          type: object
+          required: [scheduledEvents, eligibleEvents, forecastedEvents, failedEvents, forecastCoveragePct, failures]
+          properties:
+            scheduledEvents: { type: integer }
+            eligibleEvents: { type: integer }
+            forecastedEvents: { type: integer }
+            failedEvents: { type: integer }
+            forecastCoveragePct: { type: number }
+            failures:
+              type: array
+              items:
+                type: object
+                required: [gameId, reason]
+                properties:
+                  gameId: { type: string }
+                  reason: { type: string }
+        fixtures:
+          type: array
+          description: Every event discovered for this sport/date. Join AVAILABLE entries to projections by gameId.
+          items:
+            type: object
+            required: [gameId, sport, eventStart, homeParticipant, awayParticipant, availability, unavailableReason]
+            properties:
+              gameId: { type: string }
+              sport: { type: string }
+              eventStart: { type: [string, "null"] }
+              homeParticipant:
+                $ref: "#/components/schemas/V4SlateParticipant"
+              awayParticipant:
+                $ref: "#/components/schemas/V4SlateParticipant"
+              availability:
+                type: string
+                enum: [AVAILABLE, UNAVAILABLE]
+              unavailableReason:
+                type: [string, "null"]
+        officialPicks:
+          type: array
+          description: Persisted server-authoritative official V4 decisions; independent of current projection IDs.
+          items: { $ref: "#/components/schemas/V4OfficialPick" }
+        projections:
+          type: array
+          items: { $ref: "#/components/schemas/V4PublicProjection" }
+    V4SlateParticipant:
+      type: object
+      required: [id, name, abbreviation, logo]
+      properties:
+        id: { type: [string, "null"] }
+        name: { type: string }
+        abbreviation: { type: [string, "null"] }
+        logo: { type: [string, "null"] }
+    V4PublicProjection:
+      type: object
+      required: [eventId, sport, modelVersion, lifecycleStatus, forecastTimestamp, officialPickStatus, officialRole, officialRank, units, officialFailureReason]
+      properties:
+        eventId: { type: string }
+        sport: { type: string }
+        eventStart: { type: [string, "null"] }
+        homeParticipant: { type: [string, "null"] }
+        awayParticipant: { type: [string, "null"] }
+        homeParticipantAbbr: { type: [string, "null"] }
+        awayParticipantAbbr: { type: [string, "null"] }
+        homeParticipantLogo: { type: [string, "null"] }
+        awayParticipantLogo: { type: [string, "null"] }
+        homeStarterName: { type: [string, "null"] }
+        homeStarterEra: { type: [number, "null"] }
+        homeStarterWhip: { type: [number, "null"] }
+        awayStarterName: { type: [string, "null"] }
+        awayStarterEra: { type: [number, "null"] }
+        awayStarterWhip: { type: [number, "null"] }
+        modelVersion: { type: string }
+        lifecycleStatus:
+          type: string
+          enum: [V4_VALIDATING, V4_PROVISIONAL, V4_APPROVED]
+        expectedHomeScore: { type: [number, "null"] }
+        expectedAwayScore: { type: [number, "null"] }
+        expectedMargin: { type: [number, "null"] }
+        expectedTotal: { type: [number, "null"] }
+        homeWinProbability: { type: [number, "null"] }
+        drawProbability: { type: [number, "null"] }
+        awayWinProbability: { type: [number, "null"] }
+        projectedWinner: { type: [string, "null"], enum: [HOME, DRAW, AWAY, null] }
+        forecastTimestamp: { type: string }
+        officialPickStatus:
+          type: string
+          enum: [NOT_PUBLICATION_ELIGIBLE, NO_OFFICIAL_PLAY, OFFICIAL_TBM_PLAY]
+        officialRole:
+          type: string
+          description: Server-authoritative public role. Clients must not recompute rank or POTD.
+          enum: [TOP_PLAY, QUALIFIED_PLAY, PROJECTION]
+        officialRank:
+          type: [integer, "null"]
+          minimum: 1
+          description: Server-authoritative rank among qualified V4 plays; null for projections.
+        units:
+          type: integer
+          enum: [0, 1]
+          description: Official qualified plays are always flat 1U.
+        officialFailureReason:
+          type: [string, "null"]
+          description: Explicit fail-closed reason when no official V4 play exists.
+    V4OfficialPick:
+      type: object
+      required: [eventId, sport, market, selection, role, rank, units, status]
+      properties:
+        eventId: { type: string }
+        sport: { type: string }
+        homeParticipant: { type: [string, "null"] }
+        awayParticipant: { type: [string, "null"] }
+        homeParticipantAbbr: { type: [string, "null"] }
+        awayParticipantAbbr: { type: [string, "null"] }
+        homeParticipantLogo: { type: [string, "null"] }
+        awayParticipantLogo: { type: [string, "null"] }
+        market: { type: string }
+        selection: { type: string }
+        odds: { type: [integer, "null"] }
+        modelProbability: { type: [number, "null"] }
+        fairProbability: { type: [number, "null"] }
+        role: { type: string, enum: [TOP_PLAY, QUALIFIED_PLAY] }
+        rank: { type: integer, minimum: 1 }
+        units: { type: integer, enum: [1] }
+        status: { type: string, enum: [PUBLISHED] }
+        modelId: { type: [string, "null"] }
+        modelVersion: { type: [string, "null"] }
+        artifactId: { type: [string, "null"] }
+        artifactHash: { type: [string, "null"] }
+        inputHash: { type: [string, "null"] }
+        marketEvidenceId: { type: [string, "null"] }
+    NcaafV4SubscriberProjectionBoard:
+      type: object
+      required: [date, modelStatus, approvalStatus, publicationStatus, disclaimer, board]
+      additionalProperties: false
+      properties:
+        date: { type: string }
+        modelStatus: { type: string, enum: [V4_PREVIEW] }
+        approvalStatus: { type: string, enum: [UNVALIDATED] }
+        publicationStatus: { type: string, enum: [PREVIEW_ONLY] }
+        disclaimer: { type: string }
+        board:
+          type: array
+          items: { $ref: "#/components/schemas/NcaafV4SubscriberProjection" }
+    NcaafV4SubscriberProjection:
+      type: object
+      required: [kickoffAt, awayTeam, homeTeam, v4ModelOpinion, model, market, comparison, disclaimer]
+      additionalProperties: false
+      properties:
+        kickoffAt: { type: string, format: date-time }
+        awayTeam: { type: [string, "null"] }
+        homeTeam: { type: [string, "null"] }
+        v4ModelOpinion: { type: string, enum: [BUY, LEAN, FADE, NEUTRAL] }
+        disclaimer: { type: string }
+        model:
+          type: object
+          additionalProperties: false
+          required: [expectedHomePoints, expectedAwayPoints, homeWinProbability, awayWinProbability, fairHomeMoneyline, fairAwayMoneyline]
+          properties:
+            expectedHomePoints: { type: number }
+            expectedAwayPoints: { type: number }
+            homeWinProbability: { type: number }
+            awayWinProbability: { type: number }
+            fairHomeMoneyline: { type: [integer, "null"] }
+            fairAwayMoneyline: { type: [integer, "null"] }
+        market:
+          type: object
+          additionalProperties: false
+          required: [moneyline, spread, total]
+          properties:
+            moneyline:
+              type: [object, "null"]
+              additionalProperties: false
+              required: [capturedAt, homeOdds, awayOdds]
+              properties:
+                capturedAt: { type: string, format: date-time }
+                homeOdds: { type: integer }
+                awayOdds: { type: integer }
+            spread:
+              type: [object, "null"]
+              additionalProperties: false
+              required: [capturedAt, selection, line, odds]
+              properties:
+                capturedAt: { type: string, format: date-time }
+                selection: { type: string }
+                line: { type: number }
+                odds: { type: [integer, "null"] }
+            total:
+              type: [object, "null"]
+              additionalProperties: false
+              required: [capturedAt, selection, line, odds]
+              properties:
+                capturedAt: { type: string, format: date-time }
+                selection: { type: string }
+                line: { type: number }
+                odds: { type: [integer, "null"] }
+        comparison:
+          type: object
+          additionalProperties: false
+          required: [moneylineHomeEdge]
+          properties:
+            moneylineHomeEdge: { type: [number, "null"] }
+    NcaafV4ProjectionBoard:
+      type: object
+      required: [date, generatedAt, model, evidencePersistence, board, exclusions, audit]
+      properties:
+        date: { type: string, format: date }
+        generatedAt: { type: string, format: date-time }
+        model:
+          type: object
+          required: [id, modelStatus, approvalStatus, publicationStatus, configurationHash, parameterHash]
+          properties:
+            id: { type: string, const: tbm-ncaaf-v4-expected-score }
+            modelStatus: { type: string, const: V4_PREVIEW }
+            approvalStatus: { type: string, const: UNVALIDATED }
+            publicationStatus: { type: string, const: PREVIEW_ONLY }
+            configurationHash: { type: string }
+            parameterHash: { type: string }
+        evidencePersistence: { type: string }
+        board:
+          type: array
+          items: { $ref: "#/components/schemas/NcaafV4Projection" }
+        exclusions: { type: array, items: { type: object, additionalProperties: true } }
+        audit: { type: object, additionalProperties: true }
+    NcaafV4Projection:
+      type: object
+      required: [rank, gameId, predictionId, predictionHash, kickoffAt, modelStatus, approvalStatus, publicationStatus, marketMatch, model, v4ModelOpinion, incumbentAgreement, status]
+      properties:
+        rank: { type: integer, minimum: 1 }
+        gameId: { type: string }
+        predictionId: { type: string }
+        predictionHash: { type: string }
+        kickoffAt: { type: string, format: date-time }
+        awayTeam: { type: [string, "null"] }
+        homeTeam: { type: [string, "null"] }
+        neutralSite: { type: [boolean, "null"] }
+        modelStatus: { type: string, const: V4_PREVIEW }
+        approvalStatus: { type: string, const: UNVALIDATED }
+        publicationStatus: { type: string, const: PREVIEW_ONLY }
+        marketMatch:
+          type: object
+          required: [classification, attachable, matchReason, rootCause]
+          properties:
+            classification: { type: string, enum: [EXACT_ID_MATCH, EXACT_CANONICAL_MATCH, SAFE_TEAM_TIME_MATCH, AMBIGUOUS, UNMATCHED] }
+            attachable: { type: boolean }
+            matchReason: { type: string, enum: [SAFE_MATCH, NO_CURRENT_MARKET, STALE_MARKET, INCOMPLETE_COHERENT_SNAPSHOT, AMBIGUOUS_MATCH, REJECTED_UNSAFE_IDENTITY] }
+            rootCause: { type: string, enum: [SAFE_MATCH, NO_CURRENT_MARKET, STALE_MARKET, INCOMPLETE_COHERENT_SNAPSHOT, AMBIGUOUS_MATCH, REJECTED_UNSAFE_IDENTITY] }
+        model: { $ref: "#/components/schemas/NcaafV4ModelOutput" }
+        market: { $ref: "#/components/schemas/NcaafV4MarketOutput" }
+        comparison: { $ref: "#/components/schemas/NcaafV4Comparison" }
+        v4ModelOpinion: { type: string, enum: [BUY, LEAN, NEUTRAL, FADE] }
+        recommendationReason: { type: string }
+        incumbentAgreement: { type: string, enum: [AGREE, DISAGREE, NO_INCUMBENT_FORECAST] }
+        status: { type: string }
+    NcaafV4ModelOutput:
+      type: object
+      required: [id, version, configurationHash, parameterHash, featureSchema, featureCutoff, dataQuality, expectedHomePoints, expectedAwayPoints, expectedMargin, expectedTotal, homeWinProbability, awayWinProbability, fairHomeMoneyline, fairAwayMoneyline, marginUncertainty, totalUncertainty]
+      properties:
+        id: { type: string }
+        version: { type: string }
+        configurationHash: { type: string }
+        parameterHash: { type: string }
+        featureSchema: { type: string }
+        featureCutoff: { type: string, format: date-time }
+        dataQuality: { type: string, enum: [HIGH, MEDIUM, LOW, INSUFFICIENT] }
+        expectedHomePoints: { type: number }
+        expectedAwayPoints: { type: number }
+        expectedMargin: { type: number }
+        expectedTotal: { type: number }
+        homeWinProbability: { type: number }
+        awayWinProbability: { type: number }
+        fairHomeMoneyline: { type: [integer, "null"] }
+        fairAwayMoneyline: { type: [integer, "null"] }
+        marginUncertainty: { type: number }
+        totalUncertainty: { type: number }
+    NcaafV4MarketOutput:
+      type: object
+      required: [moneyline, spread, total]
+      properties:
+        moneyline:
+          type: [object, "null"]
+          required: [bookmaker, capturedAt, homeOdds, awayOdds, noVigHomeProbability, noVigAwayProbability]
+          properties:
+            bookmaker: { type: string }
+            capturedAt: { type: string, format: date-time }
+            homeOdds: { type: integer }
+            awayOdds: { type: integer }
+            noVigHomeProbability: { type: number }
+            noVigAwayProbability: { type: number }
+        spread:
+          type: [object, "null"]
+          required: [bookmaker, capturedAt, selection, line, odds]
+          properties:
+            bookmaker: { type: string }
+            capturedAt: { type: string, format: date-time }
+            selection: { type: string }
+            line: { type: number }
+            odds: { type: [integer, "null"] }
+        total:
+          type: [object, "null"]
+          required: [bookmaker, capturedAt, selection, line, odds]
+          properties:
+            bookmaker: { type: string }
+            capturedAt: { type: string, format: date-time }
+            selection: { type: string }
+            line: { type: number }
+            odds: { type: [integer, "null"] }
+    NcaafV4Comparison:
+      type: object
+      required: [moneylineHomeEdge, spread, total]
+      properties:
+        moneylineHomeEdge: { type: [number, "null"] }
+        spread:
+          type: [object, "null"]
+          required: [projectedHomeMargin, line, difference]
+          properties:
+            projectedHomeMargin: { type: number }
+            line: { type: number }
+            difference: { type: number }
+        total:
+          type: [object, "null"]
+          required: [projectedTotal, line, difference]
+          properties:
+            projectedTotal: { type: number }
+            line: { type: number }
+            difference: { type: number }
+    NcaafV2TrainingCursor:
+      type: object
+      required: [version, offset]
+      properties:
+        version:
+          type: string
+          enum: [ncaaf-v4-training-foundation-v2-cursor-v1]
+        offset: { type: integer, minimum: 0 }
+    NcaafCoreBackfillRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        dryRun: { type: boolean, default: false }
+        cursor:
+          oneOf:
+            - $ref: "#/components/schemas/NcaafV2TrainingCursor"
+            - type: "null"
+    NcaafCoreBackfillResult:
+      type: object
+      required: [manualOnly, dryRun, seasons, cfbd, materialization]
+      properties:
+        manualOnly: { type: boolean, const: true }
+        dryRun: { type: boolean }
+        seasons:
+          type: array
+          items: { type: integer, enum: [2023, 2024, 2025] }
+        cfbd:
+          type: object
+          required: [requested, rawInserted, gamesInserted, malformed]
+          properties:
+            requested: { type: integer, minimum: 0 }
+            rawInserted: { type: integer, minimum: 0 }
+            gamesInserted: { type: integer, minimum: 0 }
+            malformed: { type: integer, minimum: 0 }
+        materialization:
+          type: object
+          required: [invocations, attempted, inserted, alreadyMaterialized, totalEligible, nextCursor, audit]
+          properties:
+            invocations: { type: integer, minimum: 0 }
+            attempted: { type: integer, minimum: 0 }
+            inserted: { type: integer, minimum: 0 }
+            alreadyMaterialized: { type: integer, minimum: 0 }
+            totalEligible: { type: [integer, "null"], minimum: 0 }
+            nextCursor:
+              oneOf:
+                - $ref: "#/components/schemas/NcaafV2TrainingCursor"
+                - type: "null"
+            audit:
+              type: [object, "null"]
+              additionalProperties: true
+    ApprovalLayerResultInput:
+      type: object
+      required: [status, reasons, metrics]
+      properties:
+        status:
+          type: string
+          enum: [PASSED, FAILED, INSUFFICIENT]
+        reasons:
+          type: array
+          items: { type: string }
+        metrics:
+          type: object
+          additionalProperties: true
+    NcaafReasonCount:
+      type: object
+      required: [reason, count]
+      properties:
+        reason: { type: string }
+        count: { type: integer, minimum: 0 }
+    NcaafReadiness:
+      type: object
+      required: [engineeringReadyForV4, evidenceReadyForV4, readyForV4, gates, blockers, legacyCohort, featureSnapshots, evidenceRuns, sportsEvidenceCoverage, teamGamePerformance, marketEvidenceCoverage, cohorts, providerCapabilities, pointInTime, validation, dataAsOf]
+      properties:
+        engineeringReadyForV4: { type: boolean }
+        evidenceReadyForV4: { type: boolean }
+        readyForV4: { type: boolean }
+        gates: { type: object, additionalProperties: true }
+        blockers:
+          type: array
+          items: { type: string }
+        legacyCohort:
+          type: object
+          required: [total, classified, graded, pending, officialExcluded]
+          properties:
+            total: { type: integer }
+            classified: { type: integer }
+            graded: { type: integer }
+            pending: { type: integer }
+            officialExcluded: { type: integer }
+        featureSnapshots:
+          type: object
+          required: [total, ready, blocked, topBlockedReasons]
+          properties:
+            total: { type: integer }
+            ready: { type: integer }
+            blocked: { type: integer }
+            topBlockedReasons:
+              type: array
+              items: { $ref: "#/components/schemas/NcaafReasonCount" }
+        evidenceRuns:
+          type: object
+          required: [active, stale, finalized, recent]
+          properties:
+            active: { type: integer }
+            stale: { type: integer }
+            finalized: { type: integer }
+            recent:
+              type: array
+              items: { type: object, additionalProperties: true }
+        sportsEvidenceCoverage: { type: object, additionalProperties: true }
+        teamGamePerformance: { type: object, additionalProperties: true }
+        marketEvidenceCoverage: { type: object, additionalProperties: true }
+        cohorts:
+          type: object
+          required: [finalPregame, liveShadow, supported]
+          properties:
+            finalPregame: { type: integer }
+            liveShadow: { type: integer }
+            supported: { type: boolean }
+        providerCapabilities: { type: object, additionalProperties: true }
+        pointInTime:
+          type: object
+          required: [violations]
+          properties:
+            violations: { type: integer }
+        validation: { type: object, additionalProperties: true }
+        dataAsOf: { type: string, format: date-time }
+    NcaafEventReadiness:
+      type: object
+      required: [eventId, canonicalIdentity, sportsEvidence, featureSnapshots, cohorts, teamGamePerformance, marketMatch, missingReasons, quality, engineeringReadyForV4, evidenceReadyForV4, readyForV4, blockers, dataAsOf]
+      properties:
+        eventId: { type: string }
+        canonicalIdentity: { type: object, additionalProperties: true }
+        sportsEvidence: { type: array, items: { type: object, additionalProperties: true } }
+        featureSnapshots: { type: array, items: { type: object, additionalProperties: true } }
+        cohorts: { type: array, items: { type: object, additionalProperties: true } }
+        teamGamePerformance: { type: object, additionalProperties: true }
+        marketMatch: { type: object, additionalProperties: true }
+        missingReasons: { type: object, additionalProperties: true }
+        quality: { type: object, additionalProperties: true }
+        engineeringReadyForV4: { type: boolean }
+        evidenceReadyForV4: { type: boolean }
+        readyForV4: { type: boolean }
+        blockers: { type: array, items: { type: object, additionalProperties: true } }
+        dataAsOf: { type: string, format: date-time }
+    MarketApprovalDecisionInput:
+      type: object
+      required:
+        - sport
+        - market
+        - modelVersion
+        - evaluationVersion
+        - datasetVersion
+        - featureSchemaVersion
+        - evidenceCutoff
+        - sampleSize
+        - dataIntegrity
+        - predictiveQuality
+        - bettingQuality
+        - status
+        - reason
+      properties:
+        sport: { type: string }
+        market: { type: string }
+        modelVersion: { type: string }
+        evaluationVersion: { type: string }
+        datasetVersion: { type: string }
+        featureSchemaVersion: { type: string }
+        evidenceCutoff: { type: string, format: date-time }
+        sampleSize: { type: integer, minimum: 0 }
+        dataCoverage: { type: number }
+        trainingWindow: { type: object, additionalProperties: true }
+        validationWindow: { type: object, additionalProperties: true }
+        outOfSampleWindow: { type: object, additionalProperties: true }
+        evaluationSeasons:
+          type: array
+          items: { type: string }
+        dataIntegrity: { $ref: "#/components/schemas/ApprovalLayerResultInput" }
+        predictiveQuality: { $ref: "#/components/schemas/ApprovalLayerResultInput" }
+        bettingQuality: { $ref: "#/components/schemas/ApprovalLayerResultInput" }
+        status:
+          type: string
+          enum: [UNVALIDATED, SHADOW, PROVISIONAL, PRODUCTION_APPROVED, SUSPENDED]
+        reason: { type: string }
+        previousStatus: { type: [string, "null"] }
+        evaluationMetadata: { type: object, additionalProperties: true }
+    SpreadModelSuspensionInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
+    MlbMoneylinePolicy:
+      type: object
+      properties:
+        version:
+          type: string
+          enum: [mlb-moneyline-policy-v1]
+        buyThreshold:
+          type: number
+        strongBuyThreshold:
+          type: number
+        awayOffset:
+          type: number
+        maxFavoriteOdds:
+          type: integer
+    MlbPolicyRevisionInput:
+      type: object
+      required: [revisionKey, reason]
+      properties:
+        revisionKey:
+          type: string
+          minLength: 3
+        reason:
+          type: string
+          minLength: 8
+        policy:
+          $ref: "#/components/schemas/MlbMoneylinePolicy"
+    MlbPolicyRevision:
+      type: object
+      required: [id, revisionKey, sport, market, policyManifest, policyHash, reason, createdBy, activatedAt]
+      properties:
+        id: { type: integer }
+        revisionKey: { type: string }
+        sport: { type: string }
+        market: { type: string }
+        policyManifest: { $ref: "#/components/schemas/MlbMoneylinePolicy" }
+        policyHash: { type: string }
+        reason: { type: string }
+        createdBy: { type: string }
+        activatedAt: { type: string, format: date-time }
+        affectedPredictions: { type: integer }
+        effectivePicks: { type: integer }
+    MlbPolicyRevisionList:
+      type: object
+      required: [revisions, count]
+      properties:
+        revisions:
+          type: array
+          items: { $ref: "#/components/schemas/MlbPolicyRevision" }
+        count: { type: integer }
+    MlbPolicyRevisionApplyResult:
+      type: object
+      required: [revision, createdPredictions, effectivePicks, skipped]
+      properties:
+        revision: { $ref: "#/components/schemas/MlbPolicyRevision" }
+        createdPredictions: { type: integer }
+        effectivePicks: { type: integer }
+        skipped: { type: integer }
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    MarketProjection:
+      type: object
+      properties:
+        market: { type: string }
+        selection: { type: string }
+        teamAbbr: { type: string }
+        line: { type: number, nullable: true }
+        odds: { type: integer }
+        sportsbook: { type: string, nullable: true }
+        modelProbability: { type: number }
+        fairPrice: { type: integer }
+        edge: { type: number }
+        expectedValue: { type: number, nullable: true }
+        pushProbability: { type: number, nullable: true }
+        recommendation: { type: string }
+        units: { type: number }
+        eligible: { type: boolean }
+        gateStatus: { type: string, nullable: true }
+      required: [market, selection, teamAbbr, odds, modelProbability, fairPrice, edge, recommendation, units, eligible]
+
+    GameProjection:
+      type: object
+      properties:
+        id:
+          type: string
+        sport:
+          type: string
+        league:
+          type: string
+          nullable: true
+        isLocked:
+          type: boolean
+        homeTeamId:
+          type: string
+          nullable: true
+        homeTeamAbbr:
+          type: string
+        homeTeamName:
+          type: string
+        homeTeamRecord:
+          type: string
+        homeTeamLogo:
+          type: string
+          nullable: true
+        awayTeamAbbr:
+          type: string
+        awayTeamName:
+          type: string
+        awayTeamRecord:
+          type: string
+        awayTeamLogo:
+          type: string
+          nullable: true
+        awayTeamId:
+          type: string
+          nullable: true
+        gameTime:
+          type: string
+        gameDate:
+          type: string
+        status:
+          type: string
+        homeScore:
+          type: integer
+          nullable: true
+        awayScore:
+          type: integer
+          nullable: true
+        homeWinPct:
+          type: integer
+        confidence:
+          type: string
+        projectedSpread:
+          type: number
+        projectedTotal:
+          type: number
+        valueRating:
+          type: string
+        modelRecommendation:
+          type: string
+          nullable: true
+          description: Immutable model opinion before downstream publication gates.
+        publicationStatus:
+          type: string
+          nullable: true
+        publicationReason:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+          nullable: true
+        globalRank:
+          type: integer
+          nullable: true
+        selectedSideEdge:
+          type: number
+          nullable: true
+          description: Selected-side model probability minus no-vig fair probability, in percentage points.
+        requestedUnits:
+          type: number
+          nullable: true
+        approvedUnits:
+          type: number
+          nullable: true
+        stakePolicyVersion:
+          type: string
+          nullable: true
+        modelScore:
+          type: integer
+        edge:
+          type: number
+        confidenceNum:
+          type: integer
+        units:
+          type: number
+        sharpScore:
+          type: integer
+        sharpSignal:
+          type: string
+        finalModelScore:
+          type: integer
+        finalModelTier:
+          type: string
+        finalModelStars:
+          type: integer
+        podScore:
+          type: number
+        vegasSpread:
+          type: number
+        vegasTotal:
+          type: number
+        vegasHomeOdds:
+          type: integer
+        vegasAwayOdds:
+          type: integer
+        vegasDrawOdds:
+          type: integer
+        openingHomeOdds:
+          type: integer
+          nullable: true
+        openingAwayOdds:
+          type: integer
+          nullable: true
+        homeStarterName:
+          type: string
+          nullable: true
+        homeStarterEra:
+          type: number
+          nullable: true
+        homeStarterRecentEra:
+          type: number
+          nullable: true
+        homeStarterHand:
+          type: string
+          nullable: true
+        awayStarterName:
+          type: string
+          nullable: true
+        awayStarterEra:
+          type: number
+          nullable: true
+        awayStarterRecentEra:
+          type: number
+          nullable: true
+        awayStarterHand:
+          type: string
+          nullable: true
+        bestLineBook:
+          type: string
+          nullable: true
+        bestLineOdds:
+          type: integer
+          nullable: true
+        weatherWindMph:
+          type: number
+          nullable: true
+        weatherTotalAdj:
+          type: number
+          nullable: true
+        weatherSummary:
+          type: string
+          nullable: true
+        homeGoalieName:
+          type: string
+          nullable: true
+        homeGoalieSavePct:
+          type: number
+          nullable: true
+        awayGoalieName:
+          type: string
+          nullable: true
+        awayGoalieSavePct:
+          type: number
+          nullable: true
+        homeKeyInjuries:
+          type: string
+          nullable: true
+        awayKeyInjuries:
+          type: string
+          nullable: true
+        predictionCorrect:
+          type: boolean
+          nullable: true
+        selectedMarket:
+          type: string
+          nullable: true
+        selectedPick:
+          allOf:
+            - $ref: "#/components/schemas/MarketProjection"
+          nullable: true
+        moneylineMarket:
+          allOf:
+            - $ref: "#/components/schemas/MarketProjection"
+          nullable: true
+        spreadMarket:
+          allOf:
+            - $ref: "#/components/schemas/MarketProjection"
+          nullable: true
+        modelIdentity:
+          $ref: "#/components/schemas/PredictionModelIdentity"
+      required:
+        - id
+        - sport
+        - homeTeamAbbr
+        - homeTeamName
+        - homeTeamRecord
+        - awayTeamAbbr
+        - awayTeamName
+        - awayTeamRecord
+        - gameTime
+        - gameDate
+        - status
+        - homeWinPct
+        - confidence
+        - projectedSpread
+        - projectedTotal
+        - valueRating
+        - modelScore
+        - edge
+        - vegasSpread
+        - vegasTotal
+        - vegasHomeOdds
+        - vegasAwayOdds
+
+    PredictionModelIdentity:
+      type: object
+      description: Optional truthful identity from the latest persisted generating prediction.
+      properties:
+        engine: { type: string }
+        modelFamily: { type: ["string", "null"] }
+        modelVersion: { type: string }
+        artifactId: { type: ["string", "null"] }
+        servingMode: { type: ["string", "null"] }
+        inputVersion: { type: ["string", "null"] }
+        approvalStatus: { type: ["string", "null"] }
+        fallbackUsed: { type: boolean }
+        fallbackReason: { type: ["string", "null"] }
+        predictionTimestamp: { type: string, format: date-time }
+      required: [engine, modelVersion, fallbackUsed, predictionTimestamp]
+
+    ModelRuntimeStatus:
+      type: object
+      additionalProperties: true
+      required: [generatedAt, automaticRetraining, automaticParameterChanges, automaticPromotion, sports, technicalReadiness]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        automaticRetraining: { type: string }
+        automaticParameterChanges: { type: string }
+        automaticPromotion: { type: string }
+        sports:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelRuntimeSportStatus"
+        latestOfficialPrediction:
+          type: [object, "null"]
+          additionalProperties: true
+        technicalReadiness:
+          $ref: "#/components/schemas/TechnicalReadiness"
+
+    TechnicalReadiness:
+      type: object
+      additionalProperties: true
+      required:
+        - TECHNICAL_CUTOVER_READY
+        - MODEL_EVIDENCE_READY
+        - GUARDED_APPROVED
+        - technicalBlockers
+        - modelEvidenceBlockers
+        - guardedApprovalBlockers
+        - guardedPersistence
+      properties:
+        TECHNICAL_CUTOVER_READY:
+          $ref: "#/components/schemas/TechnicalReadinessBoolean"
+        MODEL_EVIDENCE_READY:
+          $ref: "#/components/schemas/TechnicalReadinessBoolean"
+        GUARDED_APPROVED:
+          $ref: "#/components/schemas/TechnicalReadinessBoolean"
+        technicalBlockers:
+          $ref: "#/components/schemas/TechnicalReadinessBlockers"
+        modelEvidenceBlockers:
+          $ref: "#/components/schemas/TechnicalReadinessBlockers"
+        guardedApprovalBlockers:
+          $ref: "#/components/schemas/TechnicalReadinessBlockers"
+        guardedPersistence:
+          $ref: "#/components/schemas/GuardedPersistenceReadiness"
+
+    TechnicalReadinessBlockers:
+      type: array
+      items: { type: string }
+
+    TechnicalReadinessBoolean:
+      type: boolean
+
+    GuardedPersistenceReadiness:
+      type: object
+      additionalProperties: true
+      required:
+        - schema
+        - counts
+        - environment
+        - maxSafeExecutionAgeHours
+        - latestSafeMutationVerification
+        - appendOnlyMutationRejectionVerified
+        - latestDryRunResolutions
+        - latestSafeExecutions
+        - officialHistoryIntegrity
+      properties:
+        schema:
+          $ref: "#/components/schemas/GuardedPersistenceSchema"
+        counts:
+          $ref: "#/components/schemas/GuardedPersistenceCounts"
+        environment:
+          $ref: "#/components/schemas/GuardedPersistenceEnvironment"
+        maxSafeExecutionAgeHours: { type: number }
+        latestSafeMutationVerification:
+          $ref: "#/components/schemas/GuardedPersistenceMutationVerification"
+        appendOnlyMutationRejectionVerified: { type: boolean }
+        latestDryRunResolutions:
+          $ref: "#/components/schemas/PerSportDryRunResolutions"
+        latestSafeExecutions:
+          $ref: "#/components/schemas/PerSportSafeExecutions"
+        officialHistoryIntegrity:
+          $ref: "#/components/schemas/OfficialHistoryIntegrity"
+
+    GuardedPersistenceEnvironment:
+      type: string
+      enum: [PRODUCTION, NON_PRODUCTION]
+
+    GuardedPersistenceSchema:
+      type: object
+      additionalProperties: true
+      required: [tables, triggers, indexes, constraints]
+      properties:
+        tables: { type: integer }
+        triggers: { type: integer }
+        indexes:
+          type: array
+          items: { type: string }
+        constraints:
+          type: array
+          items: { type: string }
+
+    GuardedPersistenceCounts:
+      type: object
+      additionalProperties: true
+      required: [approvalLedger, officialIdentity, officialLifecycle]
+      properties:
+        approvalLedger: { type: integer }
+        officialIdentity: { type: integer }
+        officialLifecycle: { type: integer }
+
+    GuardedPersistenceMutationVerification:
+      type: "null"
+
+    PerSportDryRunResolutions:
+      type: object
+      additionalProperties: true
+      required: [mlb, ncaaf]
+      properties:
+        mlb:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedDryRunResolution"
+            - type: "null"
+        ncaaf:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedDryRunResolution"
+            - type: "null"
+
+    GuardedDryRunResolution:
+      type: object
+      additionalProperties: true
+      required: [resolvedAt, dryRun, resolution, fallbackUsed, publicationDisposition]
+      properties:
+        resolvedAt: { type: string, format: date-time }
+        dryRun: { type: boolean }
+        resolution: { type: string }
+        fallbackUsed: { type: boolean }
+        publicationDisposition: { type: string }
+
+    PerSportSafeExecutions:
+      type: object
+      additionalProperties: true
+      required: [mlb, ncaaf]
+      properties:
+        mlb:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedSafeExecution"
+            - type: "null"
+        ncaaf:
+          anyOf:
+            - $ref: "#/components/schemas/GuardedSafeExecution"
+            - type: "null"
+
+    GuardedSafeExecution:
+      type: object
+      additionalProperties: true
+      required: [executedAt, reproducible, executorHealth, pitSafe, leakageSafe, safe]
+      properties:
+        executedAt: { type: string, format: date-time }
+        reproducible: { type: boolean }
+        executorHealth: { type: string }
+        pitSafe: { type: boolean }
+        leakageSafe: { type: boolean }
+        safe: { type: boolean }
+
+    OfficialHistoryIntegrity:
+      type: object
+      additionalProperties: true
+      required: [orphanedPredictionIdentities, orphanedLifecycleEvents, identitiesWithoutLifecycle]
+      properties:
+        orphanedPredictionIdentities: { type: integer }
+        orphanedLifecycleEvents: { type: integer }
+        identitiesWithoutLifecycle: { type: integer }
+
+    ModelRuntimeSportStatus:
+      type: object
+      additionalProperties: true
+      required: [sport, configuredMode, activePrimaryEngine, approvalStatus, executorAvailable, executorHealth, reproducibilityReady, officialBridgeReady, resolvedServingState, runtimeHealth, publicationStatus]
+      properties:
+        sport: { type: string, enum: [MLB, NCAAF] }
+        configuredMode: { type: string }
+        activePrimaryEngine: { type: string }
+        candidateEngine: { type: ["string", "null"] }
+        candidateVersion: { type: ["string", "null"] }
+        candidateArtifactHash: { type: ["string", "null"] }
+        candidateArtifactId: { type: ["string", "null"] }
+        inputContract: { type: ["string", "null"] }
+        approvalStatus: { type: string }
+        executorAvailable: { type: boolean }
+        executorHealth: { type: string, enum: [HEALTHY, UNHEALTHY, UNAVAILABLE] }
+        executorHealthReason: { type: string }
+        reproducibilityReady: { type: boolean }
+        officialBridgeReady: { type: boolean }
+        officialBridgeStatus: { type: string, enum: [READY, BLOCKED] }
+        supportedMarkets:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [EXECUTOR_SUPPORTED, DERIVABLE_BUT_NOT_APPROVED, NOT_SUPPORTED, LEGACY_ONLY]
+        resolvedServingState:
+          type: string
+          enum: [INCUMBENT_ACTIVE, INCUMBENT_FALLBACK, CANDIDATE_ACTIVE, STARTUP_BLOCKED]
+        runtimeHealth: { type: string }
+        publicationStatus:
+          type: string
+          enum: [APPROVED_NOT_ENABLED, ELIGIBLE_BY_APPROVAL, BLOCKED_BY_APPROVAL, BLOCKED_BY_RUNTIME, BLOCKED_BY_OFFICIAL_BRIDGE]
+
+    ModelRuntimeDryRunInput:
+      type: object
+      required: [sport]
+      properties:
+        sport:
+          type: string
+          enum: [MLB, NCAAF]
+
+    ModelArtifactApprovalInput:
+      type: object
+      required: [sport, market, modelFamily, modelId, modelVersion, artifactId, artifactHash, inputContractVersion, state, reason, evidenceReference]
+      properties:
+        sport: { type: string, enum: [MLB, NCAAF, NFL] }
+        market: { type: string }
+        modelFamily: { type: string }
+        modelId: { type: string }
+        modelVersion: { type: string }
+        artifactId: { type: string }
+        artifactHash: { type: string }
+        inputContractVersion: { type: string }
+        inputHash: { type: ["string", "null"] }
+        configurationHash: { type: ["string", "null"] }
+        parameterHash: { type: ["string", "null"] }
+        state:
+          type: string
+          enum: [UNVALIDATED, SHADOW_APPROVED, GUARDED_APPROVED, FULL_APPROVED, PRODUCTION_APPROVED, REVOKED]
+        reason: { type: string }
+        evidenceReference: { type: string }
+
+    ModelRuntimeDryRunResult:
+      type: object
+      required: [auditId, sport, disposition, resolution]
+      properties:
+        auditId: { type: string }
+        sport: { type: string, enum: [MLB, NCAAF] }
+        gameId: { type: ["string", "null"] }
+        disposition:
+          type: string
+          enum: [WOULD_SERVE, WOULD_FALLBACK, WOULD_PASS]
+        resolution:
+          type: object
+          additionalProperties: true
+        executorHealth:
+          type: object
+          additionalProperties: true
+        execution:
+          type: [object, "null"]
+          additionalProperties: true
+          properties:
+            inputSnapshotId: { type: string }
+            inputHash: { type: string }
+            outputHash: { type: string }
+            secondOutputHash: { type: ["string", "null"] }
+            reproducible: { type: boolean }
+            bridge:
+              type: [object, "null"]
+              additionalProperties: true
+
+    GamesTodayResponse:
+      type: object
+      properties:
+        games:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameProjection"
+        lastUpdated:
+          type: string
+        totalGames:
+          type: integer
+        liveGamesCount:
+          type: integer
+        isSubscribed:
+          type: boolean
+        freePickPublishedPickId:
+          type: [integer, "null"]
+        freePick:
+          allOf:
+            - $ref: "#/components/schemas/FreePick"
+          nullable: true
+      required:
+        - games
+        - lastUpdated
+        - totalGames
+        - liveGamesCount
+        - isSubscribed
+
+    FreePick:
+      type: object
+      required: [publishedPickId, gameId, sport, awayTeamName, awayTeamAbbr, homeTeamName, homeTeamAbbr, gameDate, startTime, status, market, selection, recommendation]
+      properties:
+        publishedPickId: { type: integer }
+        gameId: { type: string }
+        sport: { type: string }
+        awayTeamName: { type: string }
+        awayTeamAbbr: { type: string }
+        awayTeamLogo: { type: string, nullable: true }
+        homeTeamName: { type: string }
+        homeTeamAbbr: { type: string }
+        homeTeamLogo: { type: string, nullable: true }
+        gameDate: { type: string }
+        startTime: { type: string }
+        status: { type: string }
+        market: { type: string }
+        selection: { type: string }
+        recommendation: { type: string, enum: [Strong Buy, Buy] }
+
+    ChatAccess:
+      type: object
+      required: [canRead, canPost, isLocked, chatNotificationsEnabled]
+      properties:
+        canRead: { type: boolean }
+        canPost: { type: boolean }
+        isLocked: { type: boolean }
+        chatNotificationsEnabled: { type: boolean }
+    ChatMessage:
+      type: object
+      required: [id, authorId, authorDisplayName, body, createdAt]
+      properties:
+        id: { type: integer }
+        authorId: { type: string }
+        authorDisplayName: { type: string }
+        body: { type: string, maxLength: 1000 }
+        createdAt: { type: string, format: date-time }
+    ChatMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/ChatMessage" }
+    ChatMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { $ref: "#/components/schemas/ChatMessage" }
+    CreateChatMessageRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 1000 }
+    UpdateChatPreferencesRequest:
+      type: object
+      required: [chatNotificationsEnabled]
+      properties:
+        chatNotificationsEnabled: { type: boolean }
+    ChatPreferences:
+      type: object
+      required: [chatNotificationsEnabled]
+      properties:
+        chatNotificationsEnabled: { type: boolean }
+
+    RefreshResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        gamesUpdated:
+          type: integer
+        sportsRefreshed:
+          type: array
+          items:
+            type: string
+      required:
+        - message
+        - gamesUpdated
+        - sportsRefreshed
+
+    OverallStat:
+      type: object
+      properties:
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        unitsRisked:
+          type: number
+        roi:
+          type: number
+      required: [wins, losses, pushes, totalPicks, winRate, unitsWonLost, unitsRisked, roi]
+
+    SportStat:
+      type: object
+      properties:
+        sport:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        currentStreak:
+          type: integer
+        currentStreakDir:
+          type: string
+      required: [sport, wins, losses, pushes, totalPicks, winRate, unitsWonLost, currentStreak, currentStreakDir]
+
+    RecentResult:
+      type: object
+      properties:
+        pickId:
+          type: integer
+        sport:
+          type: string
+        awayTeamAbbr:
+          type: string
+        homeTeamAbbr:
+          type: string
+        awayScore:
+          type: integer
+          nullable: true
+        homeScore:
+          type: integer
+          nullable: true
+        pick:
+          type: string
+        odds:
+          type: integer
+          nullable: true
+        unitsRisked:
+          type: number
+          nullable: true
+        unitsWonLost:
+          type: number
+        result:
+          type: string
+        gameDate:
+          type: string
+        gradedAt:
+          type: string
+          nullable: true
+        modelId:
+          type: string
+        modelVersionId:
+          type: integer
+        provenance:
+          type: string
+          enum: [v4Official]
+      required: [pickId, sport, awayTeamAbbr, homeTeamAbbr, pick, unitsWonLost, result, gameDate, modelId, modelVersionId, provenance]
+
+    RecordSegment:
+      type: object
+      description: Official wager results grouped by immutable persisted publication and model provenance.
+      properties:
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        unitsRisked:
+          type: number
+        roi:
+          type: number
+      required: [wins, losses, pushes, totalPicks, winRate, unitsWonLost, unitsRisked, roi]
+
+    ResultsSummaryResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        overall:
+          $ref: "#/components/schemas/OverallStat"
+        recordSegments:
+          type: object
+          properties:
+            v4Official:
+              $ref: "#/components/schemas/RecordSegment"
+          required: [v4Official]
+        bySport:
+          type: array
+          items:
+            $ref: "#/components/schemas/SportStat"
+        recentResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecentResult"
+        dataAsOf:
+          type: string
+      required: [overall, recordSegments, bySport]
+
+    RoiEntry:
+      type: object
+      properties:
+        key:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        totalPicks:
+          type: integer
+        winRate:
+          type: number
+        unitsWonLost:
+          type: number
+        unitsRisked:
+          type: number
+        roi:
+          type: number
+      required: [key, wins, losses, pushes, totalPicks, winRate, unitsWonLost, unitsRisked, roi]
+
+    RoiByRatingEntry:
+      allOf:
+        - $ref: "#/components/schemas/RoiEntry"
+        - type: object
+          properties:
+            recommendation:
+              type: string
+          required: [recommendation]
+
+    RoiBySportEntry:
+      allOf:
+        - $ref: "#/components/schemas/RoiEntry"
+        - type: object
+          properties:
+            sport:
+              type: string
+          required: [sport]
+
+    RoiBySportAndRatingEntry:
+      allOf:
+        - $ref: "#/components/schemas/RoiEntry"
+        - type: object
+          properties:
+            sport:
+              type: string
+            recommendation:
+              type: string
+          required: [sport, recommendation]
+
+    ResultsRoiResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        byRating:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoiByRatingEntry"
+        bySport:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoiBySportEntry"
+        bySportAndRating:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoiBySportAndRatingEntry"
+        dataAsOf:
+          type: string
+      required: [byRating, bySport, bySportAndRating]
+
+    ModelStatsHistoryEntry:
+      type: object
+      properties:
+        week:
+          type: string
+        sport:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        unitsWon:
+          type: number
+        totalPicks:
+          type: integer
+      required: [week, sport, wins, losses, pushes, unitsWon, totalPicks]
+
+    ModelStatsHistoryResponse:
+      type: object
+      properties:
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelStatsHistoryEntry"
+        dataAsOf:
+          type: string
+      required: [history, dataAsOf]
+
+    ModelSportStat:
+      type: object
+      properties:
+        sport:
+          type: string
+        accuracyRate:
+          type: number
+        totalPredictions:
+          type: integer
+        correctPredictions:
+          type: integer
+        strongBuyAccuracy:
+          type: number
+        buyAccuracy:
+          type: number
+        confidenceMultiplier:
+          type: number
+        lastLearnedAt:
+          type: string
+          nullable: true
+      required:
+        - sport
+        - accuracyRate
+        - totalPredictions
+        - correctPredictions
+        - strongBuyAccuracy
+        - buyAccuracy
+        - confidenceMultiplier
+
+    ModelStatsResponse:
+      type: object
+      properties:
+        stats:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelSportStat"
+        overallAccuracy:
+          type: number
+        totalPredictions:
+          type: integer
+        dataAsOf:
+          type: string
+      required:
+        - stats
+        - overallAccuracy
+        - totalPredictions
+        - dataAsOf
+
+    LossReviewEntry:
+      type: object
+      properties:
+        pickId:
+          type: integer
+        sport:
+          type: string
+        market:
+          type: string
+        selection:
+          type: string
+        recommendation:
+          type: string
+        confidence:
+          type: string
+        publishedAt:
+          type: string
+        modelProbability:
+          type: number
+        finalRating:
+          type: [number, "null"]
+        finalScore:
+          type: [string, "null"]
+        clv:
+          type: [number, "null"]
+        gradedAt:
+          type: [string, "null"]
+        review:
+          type: [object, "null"]
+          additionalProperties: true
+      required: [pickId, sport, market, selection, recommendation, confidence, publishedAt, modelProbability, review]
+
+    OutcomeReviewEntry:
+      allOf:
+        - $ref: "#/components/schemas/LossReviewEntry"
+        - type: object
+          properties:
+            result:
+              type: string
+              enum: [win, loss]
+          required: [result]
+
+    LossReviewPattern:
+      type: object
+      properties:
+        classification:
+          type: string
+        sampleSize:
+          type: integer
+      required: [classification, sampleSize]
+
+    LossReviewsResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/LossReviewEntry"
+        patterns:
+          type: array
+          items:
+            $ref: "#/components/schemas/LossReviewPattern"
+        dataAsOf:
+          type: string
+      required: [reviews, patterns, dataAsOf]
+
+    OutcomeReviewsResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutcomeReviewEntry"
+        patterns:
+          type: array
+          items:
+            $ref: "#/components/schemas/LossReviewPattern"
+        dataAsOf:
+          type: string
+        resultFilter:
+          type: string
+          enum: [all, win, loss]
+      required: [reviews, patterns, dataAsOf, resultFilter]
+
+    RegisterPushTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+      required: [token, platform]
+
+    DeregisterPushTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+      required: [token]
+
+    NotificationPreferences:
+      type: object
+      properties:
+        enabledSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+        allSports:
+          type: array
+          items:
+            type: string
+      required: [allSports]
+
+    UpdateNotificationPreferencesRequest:
+      type: object
+      properties:
+        enabledSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    UserPreferences:
+      type: object
+      properties:
+        notifSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+        notifMinTier:
+          type: string
+        notifEnabled:
+          type: boolean
+        validSports:
+          type: array
+          items:
+            type: string
+        validTiers:
+          type: array
+          items:
+            type: string
+      required: [notifMinTier, notifEnabled, validSports, validTiers]
+
+    SubscriptionSyncRequest:
+      type: object
+      properties:
+        entitlementId:
+          type: string
+        expiresAt:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+      required: [entitlementId]
+
+    SubscriptionSyncResponse:
+      type: object
+      properties:
+        synced:
+          type: boolean
+        isSubscribed:
+          type: boolean
+      required: [synced, isSubscribed]
+
+    SubscriptionStatusResponse:
+      type: object
+      properties:
+        isSubscribed:
+          type: boolean
+        entitlement:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+          nullable: true
+      required: [isSubscribed]
+
+    UpdateUserPreferencesRequest:
+      type: object
+      properties:
+        notifSports:
+          type: array
+          items:
+            type: string
+          nullable: true
+        notifMinTier:
+          type: string
+        notifEnabled:
+          type: boolean

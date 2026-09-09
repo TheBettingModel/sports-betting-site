@@ -19,6 +19,100 @@ export type V4FullSlateProjectionResponseCoverage = {
   failures: V4FullSlateProjectionResponseCoverageFailuresItem[];
 };
 
+export type V4FullSlateProjectionResponseFixturesItemAvailability = typeof V4FullSlateProjectionResponseFixturesItemAvailability[keyof typeof V4FullSlateProjectionResponseFixturesItemAvailability];
+
+
+export const V4FullSlateProjectionResponseFixturesItemAvailability = {
+  AVAILABLE: 'AVAILABLE',
+  UNAVAILABLE: 'UNAVAILABLE',
+} as const;
+
+export interface V4SlateParticipant {
+  /** @nullable */
+  id: string | null;
+  name: string;
+  /** @nullable */
+  abbreviation: string | null;
+  /** @nullable */
+  logo: string | null;
+}
+
+export type V4FullSlateProjectionResponseFixturesItem = {
+  gameId: string;
+  sport: string;
+  /** @nullable */
+  eventStart: string | null;
+  homeParticipant: V4SlateParticipant;
+  awayParticipant: V4SlateParticipant;
+  availability: V4FullSlateProjectionResponseFixturesItemAvailability;
+  /** @nullable */
+  unavailableReason: string | null;
+};
+
+export type V4OfficialPickRole = typeof V4OfficialPickRole[keyof typeof V4OfficialPickRole];
+
+
+export const V4OfficialPickRole = {
+  TOP_PLAY: 'TOP_PLAY',
+  QUALIFIED_PLAY: 'QUALIFIED_PLAY',
+} as const;
+
+export type V4OfficialPickUnits = typeof V4OfficialPickUnits[keyof typeof V4OfficialPickUnits];
+
+
+export const V4OfficialPickUnits = {
+  NUMBER_1: 1,
+} as const;
+
+export type V4OfficialPickStatus = typeof V4OfficialPickStatus[keyof typeof V4OfficialPickStatus];
+
+
+export const V4OfficialPickStatus = {
+  PUBLISHED: 'PUBLISHED',
+} as const;
+
+export interface V4OfficialPick {
+  eventId: string;
+  sport: string;
+  /** @nullable */
+  homeParticipant?: string | null;
+  /** @nullable */
+  awayParticipant?: string | null;
+  /** @nullable */
+  homeParticipantAbbr?: string | null;
+  /** @nullable */
+  awayParticipantAbbr?: string | null;
+  /** @nullable */
+  homeParticipantLogo?: string | null;
+  /** @nullable */
+  awayParticipantLogo?: string | null;
+  market: string;
+  selection: string;
+  /** @nullable */
+  odds?: number | null;
+  /** @nullable */
+  modelProbability?: number | null;
+  /** @nullable */
+  fairProbability?: number | null;
+  role: V4OfficialPickRole;
+  /** @minimum 1 */
+  rank: number;
+  units: V4OfficialPickUnits;
+  status: V4OfficialPickStatus;
+  /** @nullable */
+  modelId?: string | null;
+  /** @nullable */
+  modelVersion?: string | null;
+  /** @nullable */
+  artifactId?: string | null;
+  /** @nullable */
+  artifactHash?: string | null;
+  /** @nullable */
+  inputHash?: string | null;
+  /** @nullable */
+  marketEvidenceId?: string | null;
+}
+
 export type V4PublicProjectionLifecycleStatus = typeof V4PublicProjectionLifecycleStatus[keyof typeof V4PublicProjectionLifecycleStatus];
 
 
@@ -49,6 +143,29 @@ export const V4PublicProjectionOfficialPickStatus = {
   OFFICIAL_TBM_PLAY: 'OFFICIAL_TBM_PLAY',
 } as const;
 
+/**
+ * Server-authoritative public role. Clients must not recompute rank or POTD.
+ */
+export type V4PublicProjectionOfficialRole = typeof V4PublicProjectionOfficialRole[keyof typeof V4PublicProjectionOfficialRole];
+
+
+export const V4PublicProjectionOfficialRole = {
+  TOP_PLAY: 'TOP_PLAY',
+  QUALIFIED_PLAY: 'QUALIFIED_PLAY',
+  PROJECTION: 'PROJECTION',
+} as const;
+
+/**
+ * Official qualified plays are always flat 1U.
+ */
+export type V4PublicProjectionUnits = typeof V4PublicProjectionUnits[keyof typeof V4PublicProjectionUnits];
+
+
+export const V4PublicProjectionUnits = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+} as const;
+
 export interface V4PublicProjection {
   eventId: string;
   sport: string;
@@ -58,6 +175,26 @@ export interface V4PublicProjection {
   homeParticipant?: string | null;
   /** @nullable */
   awayParticipant?: string | null;
+  /** @nullable */
+  homeParticipantAbbr?: string | null;
+  /** @nullable */
+  awayParticipantAbbr?: string | null;
+  /** @nullable */
+  homeParticipantLogo?: string | null;
+  /** @nullable */
+  awayParticipantLogo?: string | null;
+  /** @nullable */
+  homeStarterName?: string | null;
+  /** @nullable */
+  homeStarterEra?: number | null;
+  /** @nullable */
+  homeStarterWhip?: number | null;
+  /** @nullable */
+  awayStarterName?: string | null;
+  /** @nullable */
+  awayStarterEra?: number | null;
+  /** @nullable */
+  awayStarterWhip?: number | null;
   modelVersion: string;
   lifecycleStatus: V4PublicProjectionLifecycleStatus;
   /** @nullable */
@@ -78,6 +215,21 @@ export interface V4PublicProjection {
   projectedWinner?: V4PublicProjectionProjectedWinner;
   forecastTimestamp: string;
   officialPickStatus: V4PublicProjectionOfficialPickStatus;
+  /** Server-authoritative public role. Clients must not recompute rank or POTD. */
+  officialRole: V4PublicProjectionOfficialRole;
+  /**
+     * Server-authoritative rank among qualified V4 plays; null for projections.
+     * @minimum 1
+     * @nullable
+     */
+  officialRank: number | null;
+  /** Official qualified plays are always flat 1U. */
+  units: V4PublicProjectionUnits;
+  /**
+     * Explicit fail-closed reason when no official V4 play exists.
+     * @nullable
+     */
+  officialFailureReason: string | null;
 }
 
 export interface V4FullSlateProjectionResponse {
@@ -85,6 +237,10 @@ export interface V4FullSlateProjectionResponse {
   date: string;
   lifecycleDisclaimer: string;
   coverage: V4FullSlateProjectionResponseCoverage;
+  /** Every event discovered for this sport/date. Join AVAILABLE entries to projections by gameId. */
+  fixtures: V4FullSlateProjectionResponseFixturesItem[];
+  /** Persisted server-authoritative official V4 decisions; independent of current projection IDs. */
+  officialPicks: V4OfficialPick[];
   projections: V4PublicProjection[];
 }
 
@@ -1209,6 +1365,8 @@ export interface OverallStat {
   totalPicks: number;
   winRate: number;
   unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
 }
 
 export interface SportStat {
@@ -1222,6 +1380,13 @@ export interface SportStat {
   currentStreak: number;
   currentStreakDir: string;
 }
+
+export type RecentResultProvenance = typeof RecentResultProvenance[keyof typeof RecentResultProvenance];
+
+
+export const RecentResultProvenance = {
+  v4Official: 'v4Official',
+} as const;
 
 export interface RecentResult {
   pickId: number;
@@ -1237,11 +1402,33 @@ export interface RecentResult {
   result: string;
   gameDate: string;
   gradedAt?: string | null;
+  modelId: string;
+  modelVersionId: number;
+  provenance: RecentResultProvenance;
 }
+
+/**
+ * Official wager results grouped by immutable persisted publication and model provenance.
+ */
+export interface RecordSegment {
+  wins: number;
+  losses: number;
+  pushes: number;
+  totalPicks: number;
+  winRate: number;
+  unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
+}
+
+export type ResultsSummaryResponseRecordSegments = {
+  v4Official: RecordSegment;
+};
 
 export interface ResultsSummaryResponse {
   period?: string;
   overall: OverallStat;
+  recordSegments: ResultsSummaryResponseRecordSegments;
   bySport: SportStat[];
   recentResults?: RecentResult[];
   dataAsOf?: string;
@@ -1459,7 +1646,6 @@ export const GetV4FullSlateProjectionsSport = {
   WNBA: 'WNBA',
   NHL: 'NHL',
   SOCCER: 'SOCCER',
-  UFC: 'UFC',
   NCAAMB: 'NCAAMB',
 } as const;
 

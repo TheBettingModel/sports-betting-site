@@ -10,6 +10,5 @@ export type RecentResultProvenance = typeof RecentResultProvenance[keyof typeof 
 
 
 export const RecentResultProvenance = {
-  preCutoverOfficial: 'preCutoverOfficial',
   v4Official: 'v4Official',
 } as const;

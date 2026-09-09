@@ -1,0 +1,62 @@
+- [Clerk SPM nil-target fix](clerk-spm-nil-target.md) — @clerk/expo 3.x + RN 0.81 pod install crash; two nil guards needed in spm.rb via pnpm patch.
+- [Clerk signals auth flow](clerk-signals-auth.md) — @clerk/expo 3.7.x signals API; email OTP + Google only; no password; finalize() not setActive().
+- [WNBA + Soccer model improvements](wnba-soccer-model-improvements.md) — real Vegas odds from ESPN, home/road splits, soccer 3-outcome model, 6 international leagues, new DB columns.
+- [Phase 1 model engine upgrade](phase1-model-engine.md) — calibration, dynamic units, universal final rating, POD score; all fields flow through games table + model_predictions.
+- [MLB Pitcher Signal](mlb-pitcher-signal.md) — MLB Stats API; must hydrate=team to get team.id; use static MLB_ID_TO_ESPN map; stat type displayName is "season" not "statsSingleSeason".
+- [Odds API Features](odds-api-features.md) — consensus odds, Pinnacle sharp signal, best available line, opening odds COALESCE pattern, line movement in model.
+- [Phase 3 model signals](phase3-model-signals.md) — weather/NHL goalies/NFL injuries; Open-Meteo forecast_days=2 fix; pre-batch before game loop; CHW abbr for White Sox.
+- [Admin & push upgrades](admin-push-upgrades.md) — brute-force lockout on admin login; win-rate charts; push receipt retry (30-min scheduler); sport-specific notification prefs.
+- [MLB Bullpen + Lineup signals](mlb-bullpen-lineup-signals.md) — Phase 4 model signals; boxscore hydrate on schedule endpoint doesn't work — fetch /game/{gamePk}/boxscore separately; lineup cache needs seeding before parallel lookups.
+- [EAS provisioning profile regeneration](eas-provisioning-profile-fix.md) — force EAS to create a fresh profile via GraphQL delete; also how to fix missing Apple Team on stored ASC API key.
+- [OpenAPI spec sync requirement](openapi-spec-sync.md) — every new API route must be in lib/api-spec/openapi.yaml or mobile hooks won't exist; run codegen after edits; bump iOS buildNumber before each TestFlight submit.
+- [Production build env detection](production-build-env.md) — use NODE_ENV==="production" not CI==="true" to gate source maps; Clerk npm CDN proxy needed for /npm/* path.
+- [Apple Review IAP Submission Flow](apple-review-iap-submission.md) — exact 4-item sequence; EULA requirement; first-time group rule; RevenueCat Missing Metadata cause.
+- [iOS App Store code-delivery boundary](ios-app-store-code-delivery-boundary.md) — expo-updates/OTA executable bundles are prohibited after Apple 2.5.2 rejection; ship code changes through reviewed builds.
+- [Model Upgrade Phase 4](model-upgrade-phase4.md) — scheduler signal wiring (Tasks 103-105); NBA stats endpoint; NHL PP%/PK%; NFL divisional/dome/turnover signals; what was skipped and why.
+- [Mobile build domain priority](mobile-build-domain-priority.md) — build.js must check EXPO_PUBLIC_DOMAIN before REPLIT_DEV_DOMAIN; also EXPO_PUBLIC_DOMAIN must be set as a Replit env var; Metro port changed to 8083.
+- [Clerk JWKS tenant mismatch](clerk-jwks-tenant-mismatch.md) — JWKS must always use dev Clerk instance (renewing-filly-49); pk_live_* decodes to an unreachable Replit proxy, never use api.clerk.com/v1/jwks.
+- [MLB Lineup Matchup Signal](mlb-lineup-matchup-signal.md) — platoon splits + career vs pitcher; direction rule: awayStarterHand selects home OPS, homeStarterHand selects away OPS; cap ±0.06.
+- [ESPN logo URL exceptions](espn-logo-url-exceptions.md) — prefer scoreboard `team.logo`; numeric-ID CDN paths 404 for newer WNBA teams.
+- [MLB policy revisions](mlb-policy-revisions.md) — revise only unstarted picks immutably; effective selection and supersession prevent history rewrites.
+- [Forecast feed boundaries](forecast-feed-boundaries.md) — individual sport tabs show full forecast coverage; the All tab remains a curated recommendations view.
+- [Mobile publish path](mobile-publish-path.md) — generic project Publish deploys web artifacts; iOS updates require an Expo Launch session.
+- [Expo Metro monorepo watch boundaries](expo-metro-monorepo-watch-boundaries.md) — watch stable sources plus root node_modules, never the whole workspace.
+- [Mobile cold-launch startup gate](mobile-cold-launch-startup-gate.md) — optional font/storage startup work must fail open; never leave native splash on an unreachable null render.
+- [Decision snapshot learning replay](decision-snapshot-learning-replay.md) — accept supported evidence versions; replay only records falsely marked insufficient, never completed reviews.
+- [Immutable forecast review evidence](forecast-review-evidence.md) — grade completed forecasts only from snapshot-saved pregame evidence; rebuild derived rows once by ledger version.
+- [Modeled-date season boundaries](modeled-date-season-boundaries.md) — season-scoped inputs follow the game date and league calendar, never the server’s current date or provider defaults.
+- [NCAAF launch evidence gate](ncaaf-launch-evidence-gate.md) — keep recommendations Neutral until independent team evidence exists; never invent an opening-week edge.
+- [NCAAF evidence-time safety](ncaaf-evidence-time-safety.md) — retrospective captures are audit evidence, not pregame evidence; every read requires a strict pre-kickoff cutoff.
+- [NCAAF challenger promotion](ncaaf-challenger-promotion.md) — market prices are comparison-only facts; promotion stays fail-closed until every OOS gate passes.
+- [Spread market isolation](spread-market-isolation.md) — model spreads independently by sport; moneyline stays first and shadow spreads cannot enter production records.
+- [Exact market approval ledger](exact-market-approval-ledger.md) — public permission is append-only and version-exact; missing or mismatched approval always fails closed.
+- [Production model registry safety](production-model-registry-safety.md) — canonical IDs, one production row per market, shared slot locks, and proven rollback provenance are mandatory.
+- [Production startup DDL](production-startup-ddl.md) — never run schema DDL before opening the production port; managed publishing owns production schema changes.
+- [Feed refresh resilience](feed-refresh-resilience.md) — mobile refreshes only refetch; heavy server refreshes are single-flight, and transport failures must never look like empty slates.
+- [Collapsed Model Board hierarchy](collapsed-model-board-hierarchy.md) — cards answer what TBM likes; all reasons and analytics stay behind View Analysis.
+- [Sensitive entitlement caching](sensitive-entitlement-caching.md) — Picks and Chat require a fresh server grant; fetching/error states fail closed and evict premium caches.
+- [Safe free-pick contract](safe-free-pick-contract.md) — persist one exact published market; free clients receive a dedicated allowlisted DTO, never a full game projection.
+- [Managed database publish binding](managed-database-publish-binding.md) — a manually stored DATABASE_URL can make Replit reject publishing as an external database.
+- [MLB audit-first sequence](mlb-audit-first.md) — freeze production weights until auditability/publication safety passes, then run challenger replay before any promotion decision.
+- [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 stays nondeployable; OOS is spent; future starter work is prospective, and identity capture alone is not pipeline-ready.
+- [MLB PIT intelligence contract](mlb-pit-intelligence-contract.md) — append-only PIT evidence requires proven completion cutoffs and exact raw-body snapshots with shared version binding.
+- [MLB advanced feature eligibility](mlb-advanced-feature-eligibility.md) — #215 may use only consistently available, identity-safe, immutable PIT features with honest historical validation.
+- [Recommendation vs publication](recommendation-publication-separation.md) — raw model opinion, publication state, and public display are separate; Admin must never collapse blocked plays into true Neutral.
+- [NCAAF invalid-wager quarantine](ncaaf-invalid-wager-quarantine.md) — preserve bad historical rows, but exclude them through an append-only eligibility ledger and enforce actionable positive-unit publication.
+- [NCAAF intelligence provider boundary](ncaaf-intelligence-provider-boundary.md) — scoreboard-only evidence cannot support V4; shadow evidence is prospective from a fixed versioned boundary.
+- [NCAAF ESPN summary boundary](ncaaf-espn-summary-boundary.md) — completed-game boxscores/drives/player stats are usable; pregame QB/roster/injury and complete play-level history still require a provider.
+- [NCAAF scheduler independence](ncaaf-scheduler-independence.md) — production evidence capture must not share the all-sport heavy-job lock or aligned cron jobs can starve it.
+- [NCAAF today-capture boundary](ncaaf-today-capture-boundary.md) — filter current-day odds before deriving provider dates; downstream filtering alone still prefetches the future.
+- [Git credential purge coverage](git-credential-purge-coverage.md) — sanitize Replit’s agent-ledger ref plus path aliases and config-key aliases, then verify every reachable ref independently.
+- [CFBD advanced endpoint contracts](cfbd-advanced-endpoint-contracts.md) — plays are week-bulk, most advanced domains identify teams by name, and provider PPA must not be mislabeled EPA.
+- [NCAAF canonical identity bridge](ncaaf-canonical-identity-bridge.md) — equal CFBD/ESPN IDs are trusted only with exact school+mascot corroboration; name-only matches require comparable guards.
+- [NCAAF 2026 bridge denominator](ncaaf-2026-bridge-denominator.md) — compatibility covers FBS-vs-FBS only; prove the complete season FBS identity set before classifying other targets out-of-domain.
+- [MLB live PIT materialization](mlb-live-pit-materialization.md) — freeze derived evidence by source availability, canonical dedupe, and exact-version readiness joins.
+- [Guarded serving cutover gates](guarded-serving-cutover-gates.md) — mode, exact approval, and authentic executor availability are independent; all must pass before a candidate is active.
+- [V4 platform cutover boundary](v4-platform-cutover-boundary.md) — final sport routing is exact V4 or no forecast; legacy may run only on the old parallel platform before cutover.
+- [V4 core model quality gates](v4-core-model-quality-gates.md) — simpler cores still must beat baseline and avoid severe bias; fitted-but-failed candidates remain unbuilt.
+- [NFL V4 shadow boundary](nfl-v4-shadow-boundary.md) — July 1 seasons, Pro Bowl quarantine, exact artifact execution, and append-only shadow evidence are mandatory.
+- [Render cutover boundary](render-cutover-boundary.md) — production is app-only Expo → Render → Neon; never partially move mobile or scheduler ownership.
+- [Production database export boundary](production-database-export-boundary.md) — Validate exports by expected tables; the legacy Neon database is not the live Replit production dataset.
+- [V4 slate accounting](v4-slate-accounting.md) — every scheduled fixture stays visible; unavailable forecasts are explicit, and only immutable pregame snapshots survive kickoff.
+- [V4 record windows](v4-record-windows.md) — subscriber records are V4-only; seasons reset per sport/league and weeks reset Monday ET.
