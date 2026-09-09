@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -34,6 +34,21 @@ const SPORT_ACCENT: Record<string, string> = {
 
 const DEFAULT_ACCENT = '#4B5563';
 
+const ESPN_PRO_SLUG: Record<string, string> = {
+  MLB: 'mlb',
+  NFL: 'nfl',
+  NBA: 'nba',
+  NHL: 'nhl',
+  WNBA: 'wnba',
+};
+
+function abbreviationLogoUrl(sport: string, abbr: string): string | null {
+  const slug = ESPN_PRO_SLUG[sport];
+  return slug
+    ? `https://a.espncdn.com/i/teamlogos/${slug}/500/${abbr.toLowerCase()}.png`
+    : null;
+}
+
 /**
  * ESPN's numeric-ID CDN path 404s for these newer WNBA franchises even though
  * the scoreboard exposes a valid abbreviation-based asset. Keep this narrow
@@ -46,12 +61,20 @@ const WNBA_LOGO_OVERRIDES: Record<string, string> = {
 };
 
 export function TeamLogo({ sport, abbr, logoUrl, size = 40 }: TeamLogoProps) {
-  const [imgFailed, setImgFailed] = useState(false);
-
-  const resolvedLogoUrl = sport === 'WNBA'
+  const primaryLogoUrl = sport === 'WNBA'
     ? (WNBA_LOGO_OVERRIDES[abbr.toUpperCase()] ?? logoUrl)
     : logoUrl;
-  const showImage = !!resolvedLogoUrl && !imgFailed;
+  const logoCandidates = useMemo(
+    () => [...new Set([
+      primaryLogoUrl,
+      abbreviationLogoUrl(sport, abbr),
+    ].filter((value): value is string => Boolean(value)))],
+    [abbr, primaryLogoUrl, sport],
+  );
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  useEffect(() => setCandidateIndex(0), [logoCandidates]);
+  const resolvedLogoUrl = logoCandidates[candidateIndex];
+  const showImage = Boolean(resolvedLogoUrl);
   const accent    = SPORT_ACCENT[sport] ?? DEFAULT_ACCENT;
   const fontSize  = Math.round(size * 0.33);
   const borderWidth = size >= 36 ? 2 : 1.5;
@@ -59,11 +82,11 @@ export function TeamLogo({ sport, abbr, logoUrl, size = 40 }: TeamLogoProps) {
   if (showImage) {
     return (
       <Image
-          source={{ uri: resolvedLogoUrl }}
+        source={{ uri: resolvedLogoUrl }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
         contentFit="contain"
         transition={120}
-        onError={() => setImgFailed(true)}
+        onError={() => setCandidateIndex((current) => current + 1)}
       />
     );
   }

@@ -208,6 +208,8 @@ assert.match(picksSource, /board\.fixtures\.length/);
 assert.match(picksSource, /fixture\.availability === 'AVAILABLE'/);
 assert.match(picksSource, /V4UnavailableProjectionCard/);
 assert.match(picksSource, /V4 SLATE/);
+assert.match(picksSource, /getV4FullSlateProjections\(\{ sport, date: slateDate \}\)/);
+assert.match(picksSource, /timeZone: 'America\/New_York'/);
 
 const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
 assert.match(v4CardSource, /value == null \? '—'/);
@@ -218,6 +220,8 @@ assert.match(v4CardSource, /Not an Official Play/);
 assert.match(v4CardSource, /Pressable/);
 assert.match(v4CardSource, /TeamLogo/);
 assert.match(v4CardSource, /Pitcher Matchup/);
+assert.match(v4CardSource, /fullWidth/);
+assert.doesNotMatch(v4CardSource, /detailValue[^}]*numberOfLines=\{1\}/);
 assert.doesNotMatch(v4CardSource, /failureReason/);
 assert.doesNotMatch(v4CardSource, /TBM OFFICIAL TOP PLAY/);
 

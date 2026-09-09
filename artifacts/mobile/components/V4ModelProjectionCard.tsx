@@ -102,7 +102,7 @@ export function V4ModelProjectionCard({ projection }: { projection: V4PublicProj
           <View style={[styles.analysis, { borderTopColor: colors.border }]}>
             <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Model Projection</Text>
             <View style={styles.detailGrid}>
-              <Detail label="Projected score" value={`${nickname(away)} ${expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – ${nickname(home)} ${expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}`} colors={colors} />
+              <Detail label="Projected score" value={`${nickname(away)} ${expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – ${nickname(home)} ${expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}`} colors={colors} fullWidth />
               <Detail label="Win probability" value={`${nickname(away)} ${percent(projection.awayWinProbability)} · ${nickname(home)} ${percent(projection.homeWinProbability)}`} colors={colors} />
               {projection.drawProbability != null && (
                 <Detail label="Draw probability" value={percent(projection.drawProbability)} colors={colors} />
@@ -164,11 +164,11 @@ function Pitcher({
   );
 }
 
-function Detail({ label, value, colors }: { label: string; value: string; colors: ReturnType<typeof useColors> }) {
+function Detail({ label, value, colors, fullWidth = false }: { label: string; value: string; colors: ReturnType<typeof useColors>; fullWidth?: boolean }) {
   return (
-    <View style={styles.detail}>
+    <View style={[styles.detail, fullWidth && styles.detailFullWidth]}>
       <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>{label}</Text>
-      <Text style={[styles.detailValue, { color: colors.foreground }]} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.detailValue, { color: colors.foreground }]}>{value}</Text>
     </View>
   );
 }
@@ -198,8 +198,9 @@ const styles = StyleSheet.create({
   analysisHeading: { fontSize: 14, fontFamily: 'Inter_700Bold', marginBottom: 11 },
   detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   detail: { width: '46%' },
+  detailFullWidth: { width: '100%' },
   detailLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
-  detailValue: { fontSize: 12, fontFamily: 'Inter_700Bold', marginTop: 3 },
+  detailValue: { fontSize: 12, lineHeight: 17, fontFamily: 'Inter_700Bold', marginTop: 3, flexShrink: 1 },
   pitchers: { marginTop: 18 },
   pitcherRow: { flexDirection: 'row', gap: 12 },
   pitcher: { flex: 1 },

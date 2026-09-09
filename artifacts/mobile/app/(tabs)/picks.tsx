@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
@@ -37,6 +37,15 @@ function displaySport(sport: string) {
   return sport === 'NCAAMB' ? 'NCAAB' : sport === 'SOCCER' ? 'Soccer' : sport;
 }
 
+function easternDate(date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 type ListItem =
   | { type: 'section'; title: string; count: number }
   | { type: 'official-pick'; pick: V4OfficialPick }
@@ -49,6 +58,7 @@ export default function PicksScreen() {
   const router = useRouter();
   const { hasServerEntitlement } = useSubscription();
   const { selectedSport } = useSports();
+  const [slateDate, setSlateDate] = useState(() => easternDate());
   const requestedSports = selectedSport === 'All'
     ? [...V4_SPORTS]
     : [toV4Sport(selectedSport)].filter((sport): sport is GetV4FullSlateProjectionsSport => sport !== null);
@@ -57,8 +67,8 @@ export default function PicksScreen() {
   // substitute the retired games/today feed when this board is unavailable.
   const queries = useQueries({
     queries: requestedSports.map((sport) => ({
-      queryKey: ['/api/model/v4/projections', { sport, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
-      queryFn: () => getV4FullSlateProjections({ sport }),
+      queryKey: ['/api/model/v4/projections', { sport, date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
+      queryFn: () => getV4FullSlateProjections({ sport, date: slateDate }),
       enabled: Boolean(userId) && hasServerEntitlement,
       staleTime: 2 * 60 * 1000,
     })),
@@ -70,9 +80,16 @@ export default function PicksScreen() {
   const refetch = useCallback(() => Promise.all(queries.map((query) => query.refetch())), [queries]);
 
   useEffect(() => {
-    const refreshId = setInterval(() => { void refetch(); }, 5 * 60 * 1000);
+    const refreshId = setInterval(() => {
+      const currentDate = easternDate();
+      if (currentDate !== slateDate) {
+        setSlateDate(currentDate);
+        return;
+      }
+      void refetch();
+    }, 5 * 60 * 1000);
     return () => clearInterval(refreshId);
-  }, [refetch]);
+  }, [refetch, slateDate]);
 
   const projections = useMemo(() => boards.flatMap((board) => board.projections), [boards]);
   const officialPicks = useMemo(() => boards.flatMap((board) => board.officialPicks), [boards]);
@@ -106,7 +123,7 @@ export default function PicksScreen() {
     return items;
   }, [boards, hasExactlyOneTopPlay, qualifiedPlays, topPlays]);
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+  const today = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
   if (!hasServerEntitlement) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
