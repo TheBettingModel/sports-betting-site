@@ -13,4 +13,6 @@ export interface OverallStat {
   totalPicks: number;
   winRate: number;
   unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
 }

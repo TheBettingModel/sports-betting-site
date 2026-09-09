@@ -117,7 +117,6 @@ export default function ResultsScreen() {
   const { data, isLoading, refetch, isRefetching } = useGetResultsSummary({ period });
 
   const overall = data?.overall;
-  const recordSegments = data?.recordSegments;
   // The mobile release scope is authoritative even if historical records
   // contain a sport that is not currently presented to subscribers.
   const bySport = (data?.bySport ?? []).filter((stat) =>
@@ -130,7 +129,7 @@ export default function ResultsScreen() {
 
   // Always show the summary card once data has loaded (even 0-0).
   // Only add the per-sport breakdown when there are actually graded picks.
-  if (overall && recordSegments) {
+  if (overall) {
     listItems.push({ type: 'header-summary' });
 
     if (overall.totalPicks > 0) {
@@ -151,12 +150,14 @@ export default function ResultsScreen() {
   const renderItem = ({ item }: { item: ListItem }) => {
     switch (item.type) {
       case 'header-summary': {
-        if (!recordSegments) return null;
+        if (!overall) return null;
         return (
-          <View>
-            <RecordCard label="V4 OFFICIAL RECORD" record={recordSegments.v4Official} colors={colors} prominent />
-            <RecordCard label="HISTORICAL OFFICIAL RECORD" record={recordSegments.preCutoverOfficial} colors={colors} />
-          </View>
+          <RecordCard
+            label={period === 'season' ? 'V4 SEASON RECORD' : 'V4 WEEKLY RECORD'}
+            record={overall}
+            colors={colors}
+            prominent
+          />
         );
       }
 

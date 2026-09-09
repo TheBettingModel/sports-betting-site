@@ -2138,7 +2138,11 @@ components:
           type: number
         unitsWonLost:
           type: number
-      required: [wins, losses, pushes, totalPicks, winRate, unitsWonLost]
+        unitsRisked:
+          type: number
+        roi:
+          type: number
+      required: [wins, losses, pushes, totalPicks, winRate, unitsWonLost, unitsRisked, roi]
 
     SportStat:
       type: object
@@ -2203,7 +2207,7 @@ components:
           type: integer
         provenance:
           type: string
-          enum: [preCutoverOfficial, v4Official]
+          enum: [v4Official]
       required: [pickId, sport, awayTeamAbbr, homeTeamAbbr, pick, unitsWonLost, result, gameDate, modelId, modelVersionId, provenance]
 
     RecordSegment:
@@ -2238,11 +2242,9 @@ components:
         recordSegments:
           type: object
           properties:
-            preCutoverOfficial:
-              $ref: "#/components/schemas/RecordSegment"
             v4Official:
               $ref: "#/components/schemas/RecordSegment"
-          required: [preCutoverOfficial, v4Official]
+          required: [v4Official]
         bySport:
           type: array
           items:

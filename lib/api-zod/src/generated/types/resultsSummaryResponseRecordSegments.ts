@@ -8,6 +8,5 @@
 import type { RecordSegment } from './recordSegment';
 
 export type ResultsSummaryResponseRecordSegments = {
-  preCutoverOfficial: RecordSegment;
   v4Official: RecordSegment;
 };

@@ -25,6 +25,7 @@ import {
   officialPublicRecordSqlConditions,
 } from "../services/officialRecordPolicy";
 import { ACTIVE_PRODUCT_SPORTS } from "../services/sportScope";
+import { getSeasonContext } from "../services/season";
 
 // Recommendation display order for the official performance ledger.
 const RATING_ORDER: readonly string[] = OFFICIAL_RECORD_RECOMMENDATIONS;
@@ -66,6 +67,41 @@ function isV4OfficialRecord(row: {
 
 function hasV4ForecastIdentity(value: unknown): boolean {
   return typeof value === "string" && value.length > 0;
+}
+
+function easternDate(now: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+function easternWeekStart(today: string): string {
+  const noonUtc = new Date(`${today}T12:00:00Z`);
+  const day = noonUtc.getUTCDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  noonUtc.setUTCDate(noonUtc.getUTCDate() - daysSinceMonday);
+  return noonUtc.toISOString().slice(0, 10);
+}
+
+function periodQueryFloor(period: "week" | "season", today: string): string {
+  if (period === "week") return easternWeekStart(today);
+  return [...ACTIVE_PRODUCT_SPORTS]
+    .map((sport) => getSeasonContext(sport, today).startDate)
+    .sort()[0]!;
+}
+
+function isInRecordPeriod(
+  period: "week" | "season",
+  today: string,
+  row: { sport: string; gameDate: string; league?: string | null },
+): boolean {
+  const cutoff = period === "week"
+    ? easternWeekStart(today)
+    : getSeasonContext(row.sport, today, row.league).startDate;
+  return row.gameDate >= cutoff;
 }
 
 function summarizeRecordSegment(rows: LedgerRow[]): RecordSegment {
@@ -130,21 +166,10 @@ router.get(
   async (req, res): Promise<void> => {
     try {
       const period = req.query.period === "week" ? "week" : "season";
-
-      // Cut-off date: most recent Monday (ET) for "week", Jan 1 of this year for "season"
       const now = new Date();
-      let cutoffDate: string;
-      if (period === "week") {
-        // Find the most recent Monday in US Eastern time
-        const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-        const dayOfWeek = etNow.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // days since last Monday
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - daysToMonday);
-        cutoffDate = monday.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
-      } else {
-        cutoffDate = `${now.getFullYear()}-01-01`;
-      }
+      const today = easternDate(now);
+      const cutoffDate = periodQueryFloor(period, today);
+      const nflSeasonStart = `${getSeasonContext("NFL", today).startYear}-09-11`;
 
       // Fetch graded official plays in the period. Neutral/Fade projections are
       // still retained and reviewed for calibration, but do not represent a
@@ -167,6 +192,7 @@ router.get(
           awayScore: gamesTable.awayScore,
           homeScore: gamesTable.homeScore,
           gameDate: gamesTable.gameDate,
+          league: gamesTable.league,
           modelId: modelVersionsTable.modelId,
           modelVersionId: modelVersionsTable.id,
           featureSnapshot: modelPredictionsTable.featureSnapshot,
@@ -196,7 +222,7 @@ router.get(
         .where(and(
           gte(gamesTable.gameDate, cutoffDate),
           inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
-          ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
+          ...officialPublicRecordSqlConditions(nflSeasonStart),
         ))
         .orderBy(desc(pickResultsTable.gradedAt));
 
@@ -205,22 +231,18 @@ router.get(
       // raw projections even if a malformed/legacy publication row is present.
       const rows = ledgerRows.filter((row) => {
         const v4PredictionId = (row.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId;
-        return !hasV4ForecastIdentity(v4PredictionId) || isV4OfficialRecord({
+        return isInRecordPeriod(period, today, row) && isV4OfficialRecord({
           publicationReasonCode: row.publicationReasonCode,
           v4PredictionId,
           v4MappedModelVersionId: row.v4MappedModelVersionId,
         });
       });
-      const v4OfficialRows = rows.filter((row) => isV4OfficialRecord({
-        publicationReasonCode: row.publicationReasonCode,
-        v4PredictionId: (row.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId,
-        v4MappedModelVersionId: row.v4MappedModelVersionId,
-      }));
-      const preCutoverOfficialRows = rows.filter((row) => !v4OfficialRows.includes(row));
       const overall = summarizeRecordSegment(rows);
       const recordSegments = {
-        preCutoverOfficial: summarizeRecordSegment(preCutoverOfficialRows),
-        v4Official: summarizeRecordSegment(v4OfficialRows),
+        // Compatibility only for already-uploaded clients. New clients do not
+        // declare or render this field, and no legacy row enters any aggregate.
+        preCutoverOfficial: summarizeRecordSegment([]),
+        v4Official: overall,
       };
 
       // ── By sport ──────────────────────────────────────────────────────────
@@ -279,11 +301,7 @@ router.get(
         gradedAt: r.gradedAt?.toISOString() ?? null,
         modelId: r.modelId,
         modelVersionId: r.modelVersionId,
-        provenance: isV4OfficialRecord({
-          publicationReasonCode: r.publicationReasonCode,
-          v4PredictionId: (r.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId,
-          v4MappedModelVersionId: r.v4MappedModelVersionId,
-        }) ? "v4Official" : "preCutoverOfficial",
+         provenance: "v4Official",
       }));
 
       res.json({
@@ -318,27 +336,24 @@ router.get(
       const period = req.query.period === "week" ? "week" : "season";
 
       const now = new Date();
-      let cutoffDate: string;
-      if (period === "week") {
-        const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-        const dayOfWeek = etNow.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - daysToMonday);
-        cutoffDate = monday.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-      } else {
-        cutoffDate = `${now.getFullYear()}-01-01`;
-      }
+      const today = easternDate(now);
+      const cutoffDate = periodQueryFloor(period, today);
+      const nflSeasonStart = `${getSeasonContext("NFL", today).startYear}-09-11`;
 
       // Neutral/Fade projections remain in the forecast-review dataset for
       // model-quality analysis, but official ROI is limited to actual plays.
-      const rows = await db
+      const ledgerRows = await db
         .select({
           sport: publishedPicksTable.sport,
           recommendation: publishedPicksTable.recommendation,
           result: pickResultsTable.result,
           unitsWonLost: pickResultsTable.unitsWonLost,
           unitsRisked: pickResultsTable.unitsRisked,
+          publicationReasonCode: publishedPicksTable.publicationReasonCode,
+          featureSnapshot: modelPredictionsTable.featureSnapshot,
+          v4MappedModelVersionId: v4ArtifactModelVersionMappingsTable.modelVersionId,
+          gameDate: gamesTable.gameDate,
+          league: gamesTable.league,
         })
         .from(pickResultsTable)
         .innerJoin(
@@ -357,13 +372,23 @@ router.get(
           modelVersionsTable,
           eq(modelPredictionsTable.modelVersionId, modelVersionsTable.id),
         )
+        .leftJoin(
+          v4ArtifactModelVersionMappingsTable,
+          eq(modelVersionsTable.id, v4ArtifactModelVersionMappingsTable.modelVersionId),
+        )
         .where(
           and(
             gte(gamesTable.gameDate, cutoffDate),
             inArray(publishedPicksTable.sport, [...ACTIVE_PRODUCT_SPORTS]),
-            ...officialPublicRecordSqlConditions(`${now.getFullYear()}-09-11`),
+            ...officialPublicRecordSqlConditions(nflSeasonStart),
           ),
         );
+      const rows = ledgerRows.filter((row) => isInRecordPeriod(period, today, row)
+        && isV4OfficialRecord({
+          publicationReasonCode: row.publicationReasonCode,
+          v4PredictionId: (row.featureSnapshot as Record<string, unknown> | null)?.v4PredictionId,
+          v4MappedModelVersionId: row.v4MappedModelVersionId,
+        }));
 
       // ── Aggregation helper ────────────────────────────────────────────────
 

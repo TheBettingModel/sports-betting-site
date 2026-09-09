@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import express, { type Application } from "express";
 import request from "supertest";
 
@@ -19,6 +19,7 @@ type ResultRow = {
   awayScore: number;
   homeScore: number;
   gameDate: string;
+  league: string | null;
   gameSport: string;
   isEffective: boolean;
   isPublic: boolean;
@@ -71,7 +72,7 @@ vi.mock("@workspace/db", () => ({
   gamesTable: {
     id: "gameId", awayTeamAbbr: "awayTeamAbbr", homeTeamAbbr: "homeTeamAbbr",
     awayScore: "awayScore", homeScore: "homeScore", gameDate: "gameDate",
-    sport: "gameSport",
+    sport: "gameSport", league: "league",
   },
 }));
 vi.mock("drizzle-orm", () => ({
@@ -143,6 +144,7 @@ function row(overrides: Partial<ResultRow> = {}): ResultRow {
     awayScore: 2,
     homeScore: 3,
     gameDate: `${new Date().getFullYear()}-10-01`,
+    league: null,
     gameSport: "MLB",
     isEffective: true,
     isPublic: true,
@@ -152,10 +154,10 @@ function row(overrides: Partial<ResultRow> = {}): ResultRow {
     performanceEligible: true,
     predictionId: 101,
     modelVersionId: 201,
-    modelId: "legacy-model",
-    publicationReasonCode: null,
-    featureSnapshot: null,
-    v4MappedModelVersionId: null,
+    modelId: "tbm-v4-mlb",
+    publicationReasonCode: "V4_EXACT_APPROVED",
+    featureSnapshot: { v4PredictionId: "v4-forecast-101" },
+    v4MappedModelVersionId: 201,
     ...overrides,
   };
 }
@@ -178,6 +180,7 @@ async function ledgers(rows: ResultRow[]) {
 
 describe("results effective-pick ledger", () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
 
   it("counts an effective published pick in both ledgers", async () => {
     const { summary, roi } = await ledgers([row()]);
@@ -232,8 +235,11 @@ describe("results effective-pick ledger", () => {
     expect(roi.body.bySport).toMatchObject([{ sport: "NFL", wins: 1, totalPicks: 1 }]);
   });
 
-  it("segments exact persisted V4 official provenance while preserving historical official rows", async () => {
-    const legacy = row({ pickId: 1, result: "loss", unitsWonLost: -1 });
+  it("uses only exact persisted V4 official provenance", async () => {
+    const legacy = row({
+      pickId: 1, result: "loss", unitsWonLost: -1, modelId: "legacy-model",
+      publicationReasonCode: null, featureSnapshot: null, v4MappedModelVersionId: null,
+    });
     const v4 = row({
       pickId: 2, predictionId: 102, modelVersionId: 202, modelId: "tbm-v4-mlb",
       publicationReasonCode: "V4_EXACT_APPROVED",
@@ -245,13 +251,13 @@ describe("results effective-pick ledger", () => {
     expect(summary.body.recordSegments.v4Official).toMatchObject({
       wins: 1, losses: 0, totalPicks: 1, unitsWonLost: 0.91, unitsRisked: 1,
     });
-    expect(summary.body.recordSegments.preCutoverOfficial).toMatchObject({
-      wins: 0, losses: 1, totalPicks: 1, unitsWonLost: -1, unitsRisked: 1,
-    });
     expect(summary.body.recentResults).toEqual(expect.arrayContaining([
       expect.objectContaining({ pickId: 2, modelId: "tbm-v4-mlb", modelVersionId: 202, provenance: "v4Official" }),
-      expect.objectContaining({ pickId: 1, provenance: "preCutoverOfficial" }),
     ]));
+    expect(summary.body.recentResults).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ pickId: 1 }),
+    ]));
+    expect(summary.body.overall).toMatchObject({ wins: 1, losses: 0, totalPicks: 1 });
   });
 
   it("does not classify raw V4 projections or unpublished forecasts as official results", async () => {
@@ -272,6 +278,36 @@ describe("results effective-pick ledger", () => {
 
     expect(summary.body.overall.totalPicks).toBe(0);
     expect(summary.body.recordSegments.v4Official.totalPicks).toBe(0);
-    expect(summary.body.recordSegments.preCutoverOfficial.totalPicks).toBe(0);
+  });
+
+  it("resets the weekly V4 record on Monday in Eastern time", async () => {
+    vi.setSystemTime(new Date("2026-09-09T12:00:00.000Z"));
+    select.mockImplementation(() => query([
+      row({ pickId: 1, gameDate: "2026-09-06" }),
+      row({ pickId: 2, gameDate: "2026-09-07" }),
+    ]));
+    const summary = await request(app()).get("/api/results/summary?period=week");
+
+    expect(summary.body.overall).toMatchObject({ wins: 1, totalPicks: 1 });
+    expect(summary.body.recentResults).toEqual([
+      expect.objectContaining({ pickId: 2, provenance: "v4Official" }),
+    ]);
+  });
+
+  it("uses each sport's current season instead of one calendar-year cutoff", async () => {
+    vi.setSystemTime(new Date("2026-09-09T12:00:00.000Z"));
+    select.mockImplementation(() => query([
+      row({ pickId: 1, sport: "NBA", gameSport: "NBA", gameDate: "2025-09-30" }),
+      row({ pickId: 2, sport: "NBA", gameSport: "NBA", gameDate: "2025-10-01" }),
+      row({ pickId: 3, sport: "MLB", gameSport: "MLB", gameDate: "2025-12-31" }),
+      row({ pickId: 4, sport: "MLB", gameSport: "MLB", gameDate: "2026-01-01" }),
+    ]));
+    const summary = await request(app()).get("/api/results/summary?period=season");
+
+    expect(summary.body.overall).toMatchObject({ wins: 2, totalPicks: 2 });
+    expect(summary.body.bySport).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sport: "NBA", totalPicks: 1 }),
+      expect.objectContaining({ sport: "MLB", totalPicks: 1 }),
+    ]));
   });
 });

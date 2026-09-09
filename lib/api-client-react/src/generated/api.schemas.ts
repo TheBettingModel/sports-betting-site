@@ -1365,6 +1365,8 @@ export interface OverallStat {
   totalPicks: number;
   winRate: number;
   unitsWonLost: number;
+  unitsRisked: number;
+  roi: number;
 }
 
 export interface SportStat {
@@ -1383,7 +1385,6 @@ export type RecentResultProvenance = typeof RecentResultProvenance[keyof typeof 
 
 
 export const RecentResultProvenance = {
-  preCutoverOfficial: 'preCutoverOfficial',
   v4Official: 'v4Official',
 } as const;
 
@@ -1421,7 +1422,6 @@ export interface RecordSegment {
 }
 
 export type ResultsSummaryResponseRecordSegments = {
-  preCutoverOfficial: RecordSegment;
   v4Official: RecordSegment;
 };
 

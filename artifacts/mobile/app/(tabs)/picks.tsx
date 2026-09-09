@@ -102,6 +102,7 @@ export default function PicksScreen() {
   const hasExactlyOneTopPlay = hierarchy.topPlayIsAvailable;
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
+    const officialEventIds = new Set(officialPicks.map((pick) => pick.eventId));
     if (hasExactlyOneTopPlay) {
       items.push({ type: 'section', title: 'V4 TOP PLAY', count: 1 });
       topPlays.forEach((pick) => items.push({ type: 'official-pick', pick }));
@@ -113,15 +114,22 @@ export default function PicksScreen() {
     for (const board of boards) {
       if (!board.fixtures.length) continue;
       const projectionsByGameId = new Map(board.projections.map((projection) => [projection.eventId, projection]));
-      items.push({ type: 'section', title: `${displaySport(board.sport)} V4 SLATE`, count: board.fixtures.length });
-      board.fixtures.forEach((fixture) => items.push({
+      const visibleFixtures = selectedSport === 'All'
+        ? board.fixtures.filter((fixture) =>
+          fixture.availability === 'AVAILABLE'
+          && projectionsByGameId.has(fixture.gameId)
+          && !officialEventIds.has(fixture.gameId))
+        : board.fixtures;
+      if (!visibleFixtures.length) continue;
+      items.push({ type: 'section', title: `${displaySport(board.sport)} V4 SLATE`, count: visibleFixtures.length });
+      visibleFixtures.forEach((fixture) => items.push({
         type: 'fixture',
         fixture,
         projection: projectionsByGameId.get(fixture.gameId),
       }));
     }
     return items;
-  }, [boards, hasExactlyOneTopPlay, qualifiedPlays, topPlays]);
+  }, [boards, hasExactlyOneTopPlay, officialPicks, qualifiedPlays, selectedSport, topPlays]);
 
   const today = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
   if (!hasServerEntitlement) {

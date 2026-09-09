@@ -238,13 +238,16 @@ assert.doesNotMatch(officialCardSource, /expectedAwayScore|expectedHomeScore/);
 assert.match(picksSource, /board\.officialPicks/);
 assert.match(picksSource, /V4OfficialPickCard/);
 
-// Results must render server-provided V4 and historical ledgers independently;
-// it must not infer cutover status from dates or raw projections on-device.
+// Results must render only the strict V4 official ledger provided by the server.
 const resultsSource = fs.readFileSync(new URL('../app/(tabs)/results.tsx', import.meta.url), 'utf8');
-assert.match(resultsSource, /recordSegments\.v4Official/);
-assert.match(resultsSource, /recordSegments\.preCutoverOfficial/);
-assert.match(resultsSource, /V4 OFFICIAL RECORD/);
-assert.match(resultsSource, /HISTORICAL OFFICIAL RECORD/);
+assert.doesNotMatch(resultsSource, /recordSegments\.preCutoverOfficial/);
+assert.doesNotMatch(resultsSource, /HISTORICAL OFFICIAL RECORD/);
+assert.match(resultsSource, /const overall = data\?\.overall/);
+assert.match(resultsSource, /V4 SEASON RECORD/);
+assert.match(resultsSource, /V4 WEEKLY RECORD/);
+assert.match(picksSource, /selectedSport === 'All'/);
+assert.match(picksSource, /fixture\.availability === 'AVAILABLE'/);
+assert.match(picksSource, /!officialEventIds\.has\(fixture\.gameId\)/);
 assert.match(resultsSource, /No official picks graded yet/);
 assert.doesNotMatch(resultsSource, /cutoverDate|new Date\([^)]*\).*v4/i);
 assert.match(resultsSource, /SPORTS\.includes/);
