@@ -39,6 +39,26 @@ export type DiscoveredV4Event = Readonly<{
   failureReason: ForecastFailureReason | null;
 }>;
 
+const V4_PROVIDER_KEYS: Readonly<Record<TbmV4Sport, readonly string[]>> = {
+  NFL: ["NFL"],
+  NCAAF: ["NCAAF"],
+  NBA: ["NBA"],
+  NCAAMB: ["NCAAB"],
+  MLB: ["MLB"],
+  NHL: ["NHL"],
+  WNBA: ["WNBA"],
+  SOCCER: [
+    "Soccer",
+    "Soccer_EPL",
+    "Soccer_LaLiga",
+    "Soccer_Bundesliga",
+    "Soccer_SerieA",
+    "Soccer_Ligue1",
+    "Soccer_UCL",
+  ],
+  UFC: [],
+};
+
 export type FullSlateCoverage = Readonly<{
   runId: string;
   sport: TbmV4Sport;
@@ -96,6 +116,55 @@ export function classifyDiscoveredEvent(input: {
 
 export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Promise<DiscoveredV4Event[]> {
   const dbSport = sport === "SOCCER" ? "Soccer" : sport === "NCAAMB" ? "NCAAB" : sport;
+  const yyyymmdd = sportDate.replaceAll("-", "");
+  const providerGames = (await Promise.all(
+    V4_PROVIDER_KEYS[sport].map((providerKey) => fetchSportGamesByDate(providerKey, yyyymmdd)),
+  )).flat().filter((game) => game.gameDate === sportDate);
+  const uniqueProviderGames = [...new Map(providerGames.map((game) => [game.espnId, game])).values()];
+  if (uniqueProviderGames.length) {
+    await db.insert(gamesTable).values(uniqueProviderGames.map((game) => ({
+      id: game.espnId,
+      sport: game.sport,
+      league: game.league ?? null,
+      homeTeamId: game.homeTeamId ?? null,
+      awayTeamId: game.awayTeamId ?? null,
+      homeTeamLogo: game.homeTeamLogo ?? null,
+      awayTeamLogo: game.awayTeamLogo ?? null,
+      homeTeamAbbr: game.homeTeamAbbr,
+      homeTeamName: game.homeTeamName,
+      homeTeamRecord: game.homeTeamRecord,
+      awayTeamAbbr: game.awayTeamAbbr,
+      awayTeamName: game.awayTeamName,
+      awayTeamRecord: game.awayTeamRecord,
+      gameTime: game.gameTime,
+      gameDate: game.gameDate,
+      startsAt: new Date(game.commenceTimeISO),
+      status: game.status,
+      homeScore: game.homeScore ?? null,
+      awayScore: game.awayScore ?? null,
+    }))).onConflictDoUpdate({
+      target: gamesTable.id,
+      set: {
+        sport: sql`excluded.sport`,
+        league: sql`excluded.league`,
+        homeTeamId: sql`excluded.home_team_id`,
+        awayTeamId: sql`excluded.away_team_id`,
+        homeTeamLogo: sql`excluded.home_team_logo`,
+        awayTeamLogo: sql`excluded.away_team_logo`,
+        homeTeamAbbr: sql`excluded.home_team_abbr`,
+        homeTeamName: sql`excluded.home_team_name`,
+        awayTeamAbbr: sql`excluded.away_team_abbr`,
+        awayTeamName: sql`excluded.away_team_name`,
+        gameTime: sql`excluded.game_time`,
+        gameDate: sql`excluded.game_date`,
+        startsAt: sql`excluded.starts_at`,
+        status: sql`excluded.status`,
+        homeScore: sql`excluded.home_score`,
+        awayScore: sql`excluded.away_score`,
+        updatedAt: new Date(),
+      },
+    });
+  }
   const rows = await db.select({
     gameId: gamesTable.id,
     sport: gamesTable.sport,
@@ -108,14 +177,9 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
     eq(gamesTable.sport, dbSport),
     eq(gamesTable.gameDate, sportDate),
   )).orderBy(asc(gamesTable.startsAt), asc(gamesTable.id));
-  const incompleteNflRows = sport === "NFL" && rows.some((row) =>
-    !row.eventStart || !row.homeParticipantId || !row.awayParticipantId);
-  const nflSchedule = incompleteNflRows
-    ? await fetchSportGamesByDate("NFL", sportDate.replaceAll("-", ""))
-    : [];
-  const nflById = new Map(nflSchedule.map((game) => [game.espnId, game]));
+  const providerById = new Map(uniqueProviderGames.map((game) => [game.espnId, game]));
   return rows.flatMap((row) => {
-    const provider = nflById.get(row.gameId);
+    const provider = providerById.get(row.gameId);
     const event = classifyDiscoveredEvent({
       ...row,
       eventStart: row.eventStart ?? (provider ? new Date(provider.commenceTimeISO) : null),
