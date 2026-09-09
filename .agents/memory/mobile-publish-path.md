@@ -38,3 +38,9 @@ If the release branch is stale, first sync the intended mobile source and its re
 **Why:** Expo can successfully publish a valid update while the app still appears unchanged when the workflow checked out an older release-branch snapshot.
 
 **How to apply:** Treat a matching source commit as part of OTA validation, not just workflow success; after publication, force-close and relaunch the app twice so the downloaded bundle is applied.
+
+When Expo's managed GitHub build trigger cannot resolve a newly updated release ref, a direct authenticated EAS build from the workspace preserves the exact local commit and avoids the stale repository link. Start the build separately from submission.
+
+**Why:** Combining build and auto-submit can successfully create the iOS build but still return a command failure when the submit profile lacks Apple login fields. Expo submission can also receive conflicting Apple credential modes when both an app-specific password and the server-side App Store Connect API key are available.
+
+**How to apply:** Confirm the created build ID, version, build number, and source commit before submission. Submit that finished build by ID using the server-side App Store Connect API key only; do not launch a duplicate while the EAS submission workflow remains in progress without errors.
