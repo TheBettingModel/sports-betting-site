@@ -75,6 +75,7 @@ import { runNflV4ProspectiveCollection } from "./nflV4Prospective";
 import { captureV4MoneylineEvidenceFromSnapshot } from "./v4OfficialPersistence";
 import { canonicalV4EngineRegistry } from "./v4Platform";
 import { runRegisteredOfficialV4 } from "./v4FullSlate";
+import { runScheduledV4ShadowProjectionCapture } from "./v4ShadowProjectionScheduler";
 import { isActiveProductSport } from "./sportScope";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
@@ -89,6 +90,9 @@ const heavyJobs = new SingleFlightGroup();
 // windows are not skipped behind unrelated jobs.
 const mlbV4EvidenceJobs = new SingleFlightGroup();
 const nflV4EvidenceJobs = new SingleFlightGroup();
+// Subscriber-facing validating projections must not wait behind odds,
+// analytics, or sport-specific evidence jobs.
+const v4ShadowProjectionJobs = new SingleFlightGroup();
 
 function claimHeavyJob(jobName: string): number | null {
   const claim = heavyJobs.acquire(jobName);
@@ -1502,12 +1506,80 @@ async function runMlbAdvancedResearchCapture(): Promise<void> {
   }
 }
 
+async function runV4ShadowProjectionCapture(): Promise<void> {
+  const jobName = "v4-shadow-projection-capture";
+  const claim = v4ShadowProjectionJobs.acquire(jobName);
+  if (!claim.acquired) {
+    logSchedulerMemory(logger, {
+      jobName,
+      phase: "skipped",
+      blockedBy: claim.blockedBy,
+    });
+    return;
+  }
+  runningJobs.add(jobName);
+  const startedAt = performance.now();
+  logSchedulerMemory(logger, { jobName, phase: "start", startedAt });
+  let runId: number | null = null;
+  try {
+    runId = await startRun(jobName);
+    const result = await runScheduledV4ShadowProjectionCapture();
+    await finishRun(runId, "completed", result.forecastedEvents, undefined, {
+      mode: "SHADOW",
+      datesAttempted: result.datesAttempted,
+      sportsAttempted: result.sportsAttempted,
+      scheduledEvents: result.scheduledEvents,
+      forecastedEvents: result.forecastedEvents,
+      failedEvents: result.failedEvents,
+      failedAttempts: result.failedAttempts,
+      attempts: result.attempts.map((attempt) => attempt.status === "completed"
+        ? {
+            sport: attempt.sport,
+            sportDate: attempt.sportDate,
+            status: attempt.status,
+            scheduledEvents: attempt.coverage.scheduledEvents,
+            forecastedEvents: attempt.coverage.forecastedEvents,
+            failedEvents: attempt.coverage.failedEvents,
+          }
+        : {
+            sport: attempt.sport,
+            sportDate: attempt.sportDate,
+            status: attempt.status,
+            error: attempt.error,
+          }),
+    });
+    logger.info(
+      {
+        scheduledEvents: result.scheduledEvents,
+        forecastedEvents: result.forecastedEvents,
+        failedEvents: result.failedEvents,
+        failedAttempts: result.failedAttempts,
+      },
+      "Scheduler: V4 shadow projection capture complete",
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (runId !== null) await finishRun(runId, "failed", 0, message);
+    logger.warn({ error }, "Scheduler: V4 shadow projection capture failed — non-fatal");
+  } finally {
+    runningJobs.delete(jobName);
+    v4ShadowProjectionJobs.release(jobName);
+    logSchedulerMemory(logger, { jobName, phase: "end", startedAt });
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
  * Start all scheduled jobs. Call once at server startup.
  */
 export function startScheduler(): void {
+  // Persist current and next-day validating projections every 30 minutes.
+  // The offset avoids the odds, MLB, NFL, and NCAAF evidence windows, and the
+  // dedicated lock prevents this fan-out from starving those critical jobs.
+  cron.schedule("12,42 * * * *", () => {
+    void runV4ShadowProjectionCapture();
+  }, { timezone: "America/New_York" });
   // NFL V4 prospective forecasts are append-only, shadow-only, and isolated
   // from official pick generation and the shared heavy-job lock.
   cron.schedule("7,37 * * * *", () => {
@@ -1575,6 +1647,13 @@ export function startScheduler(): void {
   // Warm up team stats cache in the background so the first game refresh
   // has advanced analytics immediately available.
   warmUpTeamStatsCache();
+  // A restart must not leave upcoming early games dependent on a subscriber
+  // opening the sport tab before the next scheduled tick. Delay this bounded
+  // catch-up so it does not overlap startup recovery's peak memory work.
+  const startupShadowCapture = setTimeout(() => {
+    void runV4ShadowProjectionCapture();
+  }, 60_000);
+  startupShadowCapture.unref();
   // Start prospective evidence work immediately. Historical performance
   // repair can issue many date captures, so it must never hold the critical
   // FINAL_PREGAME capture/assignment path behind its completion.
@@ -1610,6 +1689,7 @@ export const schedulerJobs = {
   ncaafPerformanceBootstrap: bootstrapMissingNcaafPerformanceEvidence,
   ncaafHistoricalTrainingMaterialization: materializeNcaafHistoricalTrainingRows,
   nflV4ProspectiveCollection: runNflV4ProspectiveCollection,
+  v4ShadowProjectionCapture: runV4ShadowProjectionCapture,
 };
 
 /**
