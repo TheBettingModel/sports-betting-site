@@ -8,6 +8,7 @@ import {
 import {
   DbV4ForecastLedger,
   discoverV4Slate,
+  ensureSoccerRollingHistory,
   runFullSlateV4,
   type FullSlateCoverage,
   type V4ForecastLedger,
@@ -84,6 +85,7 @@ export async function runScheduledV4ShadowProjectionCapture(input: {
     for (const sport of sports) {
       try {
         const events = await discover(sport, sportDate);
+        if (sport === "SOCCER") await ensureSoccerRollingHistory(sportDate, events);
         const coverage = await run({
           sport,
           sportDate,

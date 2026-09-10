@@ -1,6 +1,11 @@
 import { Router, type IRouter } from "express";
 import { TBM_V4_PUBLIC_SPORTS, type TbmV4Sport } from "../services/v4Platform";
-import { DbV4ForecastLedger, discoverV4Slate, runFullSlateV4 } from "../services/v4FullSlate";
+import {
+  DbV4ForecastLedger,
+  discoverV4Slate,
+  ensureSoccerRollingHistory,
+  runFullSlateV4,
+} from "../services/v4FullSlate";
 import { rankOfficialV4Candidates } from "../services/v4OfficialPublication";
 import { db, gamesTable, modelPredictionsTable, publishedPicksTable, v4ForecastVersionsTable } from "@workspace/db";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
@@ -59,6 +64,7 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   const sport = sportValue as TbmV4Sport;
   const persistedSport = sport === "SOCCER" ? "Soccer" : sport;
   const events = await discoverV4Slate(sport, date);
+  if (sport === "SOCCER") await ensureSoccerRollingHistory(date, events);
   const snapshotLedger = new DbV4ForecastLedger();
   const coverage = await runFullSlateV4({
     // Persist immutable validating/developing forecasts so a legitimate

@@ -31,6 +31,8 @@ const ESPN_SPORT_PATHS: Record<string, string> = {
   Soccer_SerieA:    "soccer/ita.1",           // Serie A
   Soccer_Ligue1:    "soccer/fra.1",           // Ligue 1
   Soccer_UCL:       "soccer/uefa.champions",  // UEFA Champions League
+  Soccer_Eredivisie:"soccer/ned.1",           // Eredivisie
+  Soccer_SuperLig:  "soccer/tur.1",           // Turkish Süper Lig
   UFC:              "mma/ufc",
 };
 
@@ -42,6 +44,8 @@ const SPORT_FOR_KEY: Record<string, string> = {
   Soccer_SerieA:    "Soccer",
   Soccer_Ligue1:    "Soccer",
   Soccer_UCL:       "Soccer",
+  Soccer_Eredivisie:"Soccer",
+  Soccer_SuperLig:  "Soccer",
 };
 
 /**
@@ -64,6 +68,8 @@ const ESPN_CDN_SLUG: Record<string, string> = {
   Soccer_SerieA:    "soccer",
   Soccer_Ligue1:    "soccer",
   Soccer_UCL:       "soccer",
+  Soccer_Eredivisie:"soccer",
+  Soccer_SuperLig:  "soccer",
   // UFC uses fighter headshots, not team logos — omit intentionally
 };
 
@@ -86,6 +92,8 @@ const LEAGUE_LABEL: Record<string, string> = {
   Soccer_SerieA:    "Serie A",
   Soccer_Ligue1:    "Ligue 1",
   Soccer_UCL:       "Champions League",
+  Soccer_Eredivisie:"Eredivisie",
+  Soccer_SuperLig:  "Süper Lig",
 };
 
 // ── ESPN response interfaces ──────────────────────────────────────────────────
