@@ -21,6 +21,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4OfficialPickCard } from '@/components/V4OfficialPickCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
+import { V4LiveGamesBanner } from '@/components/V4LiveGamesBanner';
 import { splitV4Picks } from '@/utils/v4PicksHierarchy';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
@@ -93,16 +94,38 @@ export default function PicksScreen() {
 
   const projections = useMemo(() => boards.flatMap((board) => board.projections), [boards]);
   const officialPicks = useMemo(() => boards.flatMap((board) => board.officialPicks), [boards]);
-  const hierarchy = useMemo(() => splitV4Picks(officialPicks, projections), [officialPicks, projections]);
+  const upcomingGameIds = useMemo(() => new Set(
+    boards.flatMap((board) => board.fixtures)
+      .filter((fixture) => fixture.eventStatus === 'UPCOMING')
+      .map((fixture) => fixture.gameId),
+  ), [boards]);
+  const liveFixtures = useMemo(() => boards.flatMap((board) =>
+    board.fixtures.filter((fixture) => fixture.eventStatus === 'LIVE'),
+  ), [boards]);
+  const upcomingProjections = useMemo(
+    () => projections.filter((projection) => upcomingGameIds.has(projection.eventId)),
+    [projections, upcomingGameIds],
+  );
+  const upcomingOfficialPicks = useMemo(
+    () => officialPicks.filter((pick) => upcomingGameIds.has(pick.eventId)),
+    [officialPicks, upcomingGameIds],
+  );
+  const hierarchy = useMemo(
+    () => splitV4Picks(upcomingOfficialPicks, upcomingProjections),
+    [upcomingOfficialPicks, upcomingProjections],
+  );
   const { topPlays, qualifiedPlays } = hierarchy;
   const sportGameCounts = useMemo(() => Object.fromEntries(
-    boards.map((board) => [displaySport(board.sport), board.coverage.scheduledEvents]),
+    boards.map((board) => [
+      displaySport(board.sport),
+      board.fixtures.filter((fixture) => fixture.eventStatus === 'UPCOMING').length,
+    ]),
   ), [boards]);
 
   const hasExactlyOneTopPlay = hierarchy.topPlayIsAvailable;
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
-    const officialEventIds = new Set(officialPicks.map((pick) => pick.eventId));
+    const officialEventIds = new Set(upcomingOfficialPicks.map((pick) => pick.eventId));
     if (hasExactlyOneTopPlay) {
       items.push({ type: 'section', title: 'V4 TOP PLAY', count: 1 });
       topPlays.forEach((pick) => items.push({ type: 'official-pick', pick }));
@@ -112,14 +135,15 @@ export default function PicksScreen() {
       qualifiedPlays.forEach((pick) => items.push({ type: 'official-pick', pick }));
     }
     for (const board of boards) {
-      if (!board.fixtures.length) continue;
+      const upcomingFixtures = board.fixtures.filter((fixture) => fixture.eventStatus === 'UPCOMING');
+      if (!upcomingFixtures.length) continue;
       const projectionsByGameId = new Map(board.projections.map((projection) => [projection.eventId, projection]));
       const visibleFixtures = selectedSport === 'All'
-        ? board.fixtures.filter((fixture) =>
+        ? upcomingFixtures.filter((fixture) =>
           fixture.availability === 'AVAILABLE'
           && projectionsByGameId.has(fixture.gameId)
           && !officialEventIds.has(fixture.gameId))
-        : board.fixtures;
+        : upcomingFixtures;
       if (!visibleFixtures.length) continue;
       items.push({ type: 'section', title: `${displaySport(board.sport)} V4 SLATE`, count: visibleFixtures.length });
       visibleFixtures.forEach((fixture) => items.push({
@@ -129,7 +153,7 @@ export default function PicksScreen() {
       }));
     }
     return items;
-  }, [boards, hasExactlyOneTopPlay, officialPicks, qualifiedPlays, selectedSport, topPlays]);
+  }, [boards, hasExactlyOneTopPlay, upcomingOfficialPicks, qualifiedPlays, selectedSport, topPlays]);
 
   const today = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
   if (!hasServerEntitlement) {
@@ -163,6 +187,7 @@ export default function PicksScreen() {
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>V4 PICKS · {today}</Text>
             </View>
             <SportFilter gameCounts={sportGameCounts} />
+            <V4LiveGamesBanner fixtures={liveFixtures} />
             {!isLoading && hasError && <EmptyState message="V4 Picks are unavailable right now. No legacy picks are shown." />}
             {!isLoading && !hasError && hierarchy.topCandidateCount > 1 && (
               <View style={[styles.notice, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -181,7 +206,7 @@ export default function PicksScreen() {
             ? <V4ModelProjectionCard projection={item.projection} />
             : <V4UnavailableProjectionCard fixture={item.fixture} />;
         }}
-        ListEmptyComponent={!isLoading && !hasError
+        ListEmptyComponent={!isLoading && !hasError && liveFixtures.length === 0
           ? <EmptyState message={selectedSport === 'All'
             ? 'No V4 games or legitimate projections are available today.'
             : `No ${selectedSport} games, projections, or official plays today.`} />

@@ -202,6 +202,7 @@ export * from './v4FullSlateProjectionResponseCoverage';
 export * from './v4FullSlateProjectionResponseCoverageFailuresItem';
 export * from './v4FullSlateProjectionResponseFixturesItem';
 export * from './v4FullSlateProjectionResponseFixturesItemAvailability';
+export * from './v4FullSlateProjectionResponseFixturesItemEventStatus';
 export * from './v4OfficialPick';
 export * from './v4OfficialPickRole';
 export * from './v4OfficialPickStatus';

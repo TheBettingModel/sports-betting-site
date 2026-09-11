@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { V4FullSlateProjectionResponseFixturesItemAvailability } from './v4FullSlateProjectionResponseFixturesItemAvailability';
+import type { V4FullSlateProjectionResponseFixturesItemEventStatus } from './v4FullSlateProjectionResponseFixturesItemEventStatus';
 import type { V4SlateParticipant } from './v4SlateParticipant';
 
 export type V4FullSlateProjectionResponseFixturesItem = {
@@ -13,6 +14,11 @@ export type V4FullSlateProjectionResponseFixturesItem = {
   sport: string;
   /** @nullable */
   eventStart: string | null;
+  eventStatus: V4FullSlateProjectionResponseFixturesItemEventStatus;
+  /** @nullable */
+  homeScore: number | null;
+  /** @nullable */
+  awayScore: number | null;
   homeParticipant: V4SlateParticipant;
   awayParticipant: V4SlateParticipant;
   availability: V4FullSlateProjectionResponseFixturesItemAvailability;

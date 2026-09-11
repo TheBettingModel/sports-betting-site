@@ -90,6 +90,9 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     awayStarterName: gamesTable.awayStarterName,
     awayStarterEra: gamesTable.awayStarterEra,
     awayStarterWhip: gamesTable.awayStarterWhip,
+    eventStatus: gamesTable.status,
+    homeScore: gamesTable.homeScore,
+    awayScore: gamesTable.awayScore,
   }).from(gamesTable).where(inArray(
     gamesTable.id,
     events.map((event) => event.gameId),
@@ -197,6 +200,13 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
         gameId: event.gameId,
         sport: event.sport,
         eventStart: event.eventStart,
+        eventStatus: metadata?.eventStatus === "live"
+          ? "LIVE"
+          : metadata?.eventStatus === "final"
+            ? "FINAL"
+            : "UPCOMING",
+        homeScore: metadata?.homeScore ?? null,
+        awayScore: metadata?.awayScore ?? null,
         homeParticipant: {
           id: event.homeParticipantId,
           name: event.homeParticipantName,

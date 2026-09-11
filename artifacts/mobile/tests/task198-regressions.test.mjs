@@ -204,12 +204,22 @@ assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGam
 assert.match(picksSource, /hasServerEntitlement/);
 assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
 assert.doesNotMatch(picksSource, /UFC/);
-assert.match(picksSource, /board\.fixtures\.length/);
+assert.match(picksSource, /upcomingFixtures\.length/);
 assert.match(picksSource, /fixture\.availability === 'AVAILABLE'/);
 assert.match(picksSource, /V4UnavailableProjectionCard/);
 assert.match(picksSource, /V4 SLATE/);
 assert.match(picksSource, /getV4FullSlateProjections\(\{ sport, date: slateDate \}\)/);
 assert.match(picksSource, /timeZone: 'America\/New_York'/);
+assert.match(picksSource, /fixture\.eventStatus === 'UPCOMING'/);
+assert.match(picksSource, /fixture\.eventStatus === 'LIVE'/);
+assert.match(picksSource, /V4LiveGamesBanner/);
+assert.match(picksSource, /liveFixtures\.length === 0/);
+
+const liveGamesSource = fs.readFileSync(new URL('../components/V4LiveGamesBanner.tsx', import.meta.url), 'utf8');
+assert.match(liveGamesSource, /LIVE GAMES/);
+assert.match(liveGamesSource, /awayScore/);
+assert.match(liveGamesSource, /homeScore/);
+assert.match(liveGamesSource, /TeamLogo/);
 
 const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
 assert.match(v4CardSource, /value == null \? '—'/);

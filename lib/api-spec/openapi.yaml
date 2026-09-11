@@ -932,11 +932,16 @@ components:
           description: Every event discovered for this sport/date. Join AVAILABLE entries to projections by gameId.
           items:
             type: object
-            required: [gameId, sport, eventStart, homeParticipant, awayParticipant, availability, unavailableReason]
+            required: [gameId, sport, eventStart, eventStatus, homeScore, awayScore, homeParticipant, awayParticipant, availability, unavailableReason]
             properties:
               gameId: { type: string }
               sport: { type: string }
               eventStart: { type: [string, "null"] }
+              eventStatus:
+                type: string
+                enum: [UPCOMING, LIVE, FINAL]
+              homeScore: { type: [integer, "null"] }
+              awayScore: { type: [integer, "null"] }
               homeParticipant:
                 $ref: "#/components/schemas/V4SlateParticipant"
               awayParticipant:

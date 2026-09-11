@@ -300,6 +300,9 @@ export const GetV4FullSlateProjectionsResponse = zod.object({
   "gameId": zod.string(),
   "sport": zod.string(),
   "eventStart": zod.string().nullable(),
+  "eventStatus": zod.enum(['UPCOMING', 'LIVE', 'FINAL']),
+  "homeScore": zod.number().nullable(),
+  "awayScore": zod.number().nullable(),
   "homeParticipant": zod.object({
   "id": zod.string().nullable(),
   "name": zod.string(),

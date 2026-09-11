@@ -19,6 +19,15 @@ export type V4FullSlateProjectionResponseCoverage = {
   failures: V4FullSlateProjectionResponseCoverageFailuresItem[];
 };
 
+export type V4FullSlateProjectionResponseFixturesItemEventStatus = typeof V4FullSlateProjectionResponseFixturesItemEventStatus[keyof typeof V4FullSlateProjectionResponseFixturesItemEventStatus];
+
+
+export const V4FullSlateProjectionResponseFixturesItemEventStatus = {
+  UPCOMING: 'UPCOMING',
+  LIVE: 'LIVE',
+  FINAL: 'FINAL',
+} as const;
+
 export type V4FullSlateProjectionResponseFixturesItemAvailability = typeof V4FullSlateProjectionResponseFixturesItemAvailability[keyof typeof V4FullSlateProjectionResponseFixturesItemAvailability];
 
 
@@ -42,6 +51,11 @@ export type V4FullSlateProjectionResponseFixturesItem = {
   sport: string;
   /** @nullable */
   eventStart: string | null;
+  eventStatus: V4FullSlateProjectionResponseFixturesItemEventStatus;
+  /** @nullable */
+  homeScore: number | null;
+  /** @nullable */
+  awayScore: number | null;
   homeParticipant: V4SlateParticipant;
   awayParticipant: V4SlateParticipant;
   availability: V4FullSlateProjectionResponseFixturesItemAvailability;
