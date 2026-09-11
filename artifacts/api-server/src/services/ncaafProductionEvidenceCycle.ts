@@ -133,6 +133,18 @@ export function isNcaafCurrentGameDayKickoff(kickoffAt: Date, now: Date): boolea
   const { start, end } = ncaafCurrentEasternDayBounds(now);
   return kickoffAt > now && kickoffAt >= start && kickoffAt < end;
 }
+
+/**
+ * Evidence-ledger rows use the app's public `NCAAF-<id>` game identity, while
+ * immutable provider snapshots must retain ESPN's native numeric event ID.
+ * Keep the public ID at discovery/serving boundaries and normalize only when
+ * constructing provider-bound snapshot/cohort identities.
+ */
+export function normalizeNcaafProviderEventId(provider: string, eventId: string): string {
+  if (provider !== "espn") return eventId;
+  const match = /^NCAAF-(\d+)$/.exec(eventId);
+  return match?.[1] ?? eventId;
+}
 /** Normal scheduler-only initializer. It deliberately has no date argument, so
  * the board resolves only the exact current America/New_York day from cycleNow. */
 export async function initializeCurrentNcaafV4Forecasts(cycleNow: Date): Promise<unknown> {
@@ -170,7 +182,9 @@ async function listCanonicalUpcomingGames(now: Date): Promise<NcaafProductionEvi
   for (const row of rows) {
     if (!row.kickoffAt || !isNcaafCurrentGameDayKickoff(row.kickoffAt, now) || !row.homeTeamName || !row.awayTeamName) continue;
     const candidate: NcaafProductionEvidenceGame = {
-      id: row.id, provider: row.provider, eventId: row.eventId, season: row.season,
+      id: row.id, provider: row.provider,
+      eventId: normalizeNcaafProviderEventId(row.provider, row.eventId),
+      season: row.season,
       week: row.week, kickoffAt: row.kickoffAt, homeTeamId: row.homeTeamId, awayTeamId: row.awayTeamId,
       homeTeamName: row.homeTeamName, awayTeamName: row.awayTeamName, neutralSite: row.neutralSite,
       venue: { id: row.venueId, name: row.venueName, city: row.venueCity, state: row.venueState,

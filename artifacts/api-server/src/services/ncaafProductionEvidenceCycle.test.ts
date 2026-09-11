@@ -5,6 +5,7 @@ import {
   isNcaafCurrentGameDayKickoff,
   ncaafCurrentEasternDate,
   ncaafCurrentEasternDayBounds,
+  normalizeNcaafProviderEventId,
   type NcaafProductionEvidenceGame,
 } from "./ncaafProductionEvidenceCycle";
 import type { NcaafPregameCohortStore } from "./ncaafPregameCohorts";
@@ -44,6 +45,14 @@ describe("NCAAF production evidence cycle", () => {
     expect(end.getTime() - start.getTime()).toBe(25 * 60 * 60_000);
     expect(isNcaafCurrentGameDayKickoff(new Date("2026-11-01T18:00:00Z"), boundary)).toBe(true);
     expect(isNcaafCurrentGameDayKickoff(new Date("2026-11-02T18:00:00Z"), boundary)).toBe(false);
+  });
+
+  it("binds ESPN snapshots to provider-native IDs without changing other providers", () => {
+    expect(normalizeNcaafProviderEventId("espn", "NCAAF-401858214")).toBe("401858214");
+    expect(normalizeNcaafProviderEventId("espn", "401858214")).toBe("401858214");
+    expect(normalizeNcaafProviderEventId("college_football_data", "NCAAF-401858214"))
+      .toBe("NCAAF-401858214");
+    expect(normalizeNcaafProviderEventId("espn", "NCAAF-not-numeric")).toBe("NCAAF-not-numeric");
   });
 
   it("passes the cycle's current instant to capture rather than allowing a date+1 request", async () => {
