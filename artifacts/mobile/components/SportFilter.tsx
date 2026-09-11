@@ -20,6 +20,7 @@ export function SportFilter({ gameCounts }: SportFilterProps) {
   return (
     <ScrollView
       horizontal
+      style={styles.scroller}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
     >
@@ -71,6 +72,7 @@ export function SportFilter({ gameCounts }: SportFilterProps) {
 }
 
 const styles = StyleSheet.create({
+  scroller: { flexGrow: 0 },
   row: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' },
   chip: {
     paddingHorizontal: 14,

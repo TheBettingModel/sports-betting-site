@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
@@ -56,7 +56,11 @@ export default function PicksScreen() {
   const insets = useSafeAreaInsets();
   const { userId } = useAuth();
   const router = useRouter();
-  const { hasServerEntitlement } = useSubscription();
+  const {
+    hasServerEntitlement,
+    isLoading: isSubscriptionLoading,
+    serverEntitlementError,
+  } = useSubscription();
   const { selectedSport } = useSports();
   const [slateDate, setSlateDate] = useState(() => easternDate());
   const requestedSports = selectedSport === 'All'
@@ -152,6 +156,21 @@ export default function PicksScreen() {
   }, [boards, hasExactlyOneTopPlay, upcomingOfficialPicks, qualifiedPlays, selectedSport, topPlays]);
 
   const today = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+  if (!hasServerEntitlement && (isSubscriptionLoading || serverEntitlementError)) {
+    return (
+      <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={[styles.gateTitle, { color: colors.foreground }]}>
+          {serverEntitlementError ? 'Unable to verify Pro access' : 'Loading your account…'}
+        </Text>
+        <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
+          {serverEntitlementError
+            ? 'Your access has not changed. Please wait a moment and reopen Picks.'
+            : 'Checking your subscription securely.'}
+        </Text>
+      </View>
+    );
+  }
   if (!hasServerEntitlement) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
@@ -222,4 +241,7 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: .8 },
   noticeCopy: { marginTop: 5, fontSize: 12, lineHeight: 18, fontFamily: 'Inter_400Regular' },
   entitlementCopy: { marginHorizontal: 20, marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', fontFamily: 'Inter_400Regular' },
+  gateState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  gateTitle: { marginTop: 16, fontSize: 17, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  gateCopy: { marginTop: 8, fontSize: 13, lineHeight: 19, fontFamily: 'Inter_400Regular', textAlign: 'center' },
 });

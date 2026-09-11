@@ -233,6 +233,15 @@ assert.match(tabLayoutSource, /title: 'Live'/);
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
 assert.equal(appConfig.expo.ios.buildNumber, '33');
 
+const subscriptionSource = fs.readFileSync(new URL('../lib/revenuecat.tsx', import.meta.url), 'utf8');
+assert.match(subscriptionSource, /const getTokenRef = useRef\(getToken\)/);
+assert.match(subscriptionSource, /getTokenRef\.current\(\{ skipCache \}\)/);
+assert.doesNotMatch(subscriptionSource, /\}, \[getToken, userId\]\)/);
+assert.match(subscriptionSource, /serverEntitlementError: serverStatusQuery\.isError/);
+
+const sportFilterSource = fs.readFileSync(new URL('../components/SportFilter.tsx', import.meta.url), 'utf8');
+assert.match(sportFilterSource, /scroller: \{ flexGrow: 0 \}/);
+
 const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
 assert.match(v4CardSource, /value == null \? '—'/);
 assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);

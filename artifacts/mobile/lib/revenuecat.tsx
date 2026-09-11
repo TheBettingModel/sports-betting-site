@@ -60,6 +60,8 @@ function useSubscriptionContext() {
   const queryClient = useQueryClient();
   const clerkUserIdRef = useRef(userId);
   clerkUserIdRef.current = userId;
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
   const identityCoordinatorRef = useRef<ReturnType<typeof createRevenueCatIdentityCoordinator> | null>(null);
   if (!identityCoordinatorRef.current) {
     identityCoordinatorRef.current = createRevenueCatIdentityCoordinator({
@@ -94,7 +96,7 @@ function useSubscriptionContext() {
     if (!userId) throw new Error("Please sign in before managing your subscription.");
 
     const run = async (skipCache: boolean) => {
-      const token = await getToken({ skipCache });
+      const token = await getTokenRef.current({ skipCache });
       if (!token) throw new Error("Your sign-in is still loading. Please try again.");
       return request(token);
     };
@@ -105,7 +107,7 @@ function useSubscriptionContext() {
       if ((error as { status?: number })?.status !== 401) throw error;
       return run(true);
     }
-  }, [getToken, userId]);
+  }, [userId]);
 
   const customerInfoQuery = useQuery({
     queryKey: ["revenuecat", "customer-info", userId],
@@ -265,10 +267,12 @@ function useSubscriptionContext() {
     offerings: offeringsQuery.data,
     isSubscribed,
     hasServerEntitlement,
+    serverEntitlementError: serverStatusQuery.isError,
     isLoading:
       customerInfoQuery.isLoading ||
       offeringsQuery.isLoading ||
-      serverStatusQuery.isLoading,
+      serverStatusQuery.isLoading ||
+      serverStatusQuery.isFetching,
     purchase: purchaseMutation.mutateAsync,
     restore: restoreMutation.mutateAsync,
     isPurchasing: purchaseMutation.isPending,
