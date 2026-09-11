@@ -61,3 +61,4 @@
 - [Production database export boundary](production-database-export-boundary.md) — Validate exports by expected tables; the legacy Neon database is not the live Replit production dataset.
 - [V4 slate accounting](v4-slate-accounting.md) — every scheduled fixture stays visible; unavailable forecasts are explicit, and only immutable pregame snapshots survive kickoff.
 - [V4 record windows](v4-record-windows.md) — subscriber records are V4-only; seasons reset per sport/league and weeks reset Monday ET.
+- [Neon pooled advisory locks](neon-pooled-advisory-locks.md) — session locks can survive app clients on pooled endpoints; use transaction-scoped locks on a pinned client.
