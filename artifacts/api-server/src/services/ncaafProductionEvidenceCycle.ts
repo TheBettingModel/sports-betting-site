@@ -93,18 +93,34 @@ const NCAAF_GLOBAL_LOCK_KEY = 2_210_006;
 async function acquireNcaafGlobalLock(): Promise<(() => Promise<void>) | null> {
   const client = await pool.connect();
   try {
+    // Neon production uses transaction pooling. A session-level advisory lock
+    // can outlive the application client because a later unlock query may be
+    // routed to a different backend session. Keep one transaction open on this
+    // pinned client and let PostgreSQL release the xact lock automatically.
+    await client.query("BEGIN");
     const result = await client.query<{ acquired: boolean }>(
-      "SELECT pg_try_advisory_lock($1) AS acquired", [NCAAF_GLOBAL_LOCK_KEY],
+      "SELECT pg_try_advisory_xact_lock($1) AS acquired", [NCAAF_GLOBAL_LOCK_KEY],
     );
     if (!result.rows[0]?.acquired) {
+      await client.query("ROLLBACK");
       client.release();
       return null;
     }
+    let released = false;
     return async () => {
-      try { await client.query("SELECT pg_advisory_unlock($1)", [NCAAF_GLOBAL_LOCK_KEY]); }
-      finally { client.release(); }
+      if (released) return;
+      released = true;
+      try {
+        await client.query("COMMIT");
+      } catch (error) {
+        try { await client.query("ROLLBACK"); } catch { /* connection may already be closed */ }
+        throw error;
+      } finally {
+        client.release();
+      }
     };
   } catch (error) {
+    try { await client.query("ROLLBACK"); } catch { /* transaction may not have started */ }
     client.release();
     throw error;
   }
