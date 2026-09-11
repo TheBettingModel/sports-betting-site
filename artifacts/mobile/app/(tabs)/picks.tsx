@@ -21,7 +21,6 @@ import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4OfficialPickCard } from '@/components/V4OfficialPickCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
-import { V4LiveGamesBanner } from '@/components/V4LiveGamesBanner';
 import { splitV4Picks } from '@/utils/v4PicksHierarchy';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
@@ -98,9 +97,6 @@ export default function PicksScreen() {
     boards.flatMap((board) => board.fixtures)
       .filter((fixture) => fixture.eventStatus === 'UPCOMING')
       .map((fixture) => fixture.gameId),
-  ), [boards]);
-  const liveFixtures = useMemo(() => boards.flatMap((board) =>
-    board.fixtures.filter((fixture) => fixture.eventStatus === 'LIVE'),
   ), [boards]);
   const upcomingProjections = useMemo(
     () => projections.filter((projection) => upcomingGameIds.has(projection.eventId)),
@@ -187,7 +183,6 @@ export default function PicksScreen() {
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>V4 PICKS · {today}</Text>
             </View>
             <SportFilter gameCounts={sportGameCounts} />
-            <V4LiveGamesBanner fixtures={liveFixtures} />
             {!isLoading && hasError && <EmptyState message="V4 Picks are unavailable right now. No legacy picks are shown." />}
             {!isLoading && !hasError && hierarchy.topCandidateCount > 1 && (
               <View style={[styles.notice, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -206,7 +201,7 @@ export default function PicksScreen() {
             ? <V4ModelProjectionCard projection={item.projection} />
             : <V4UnavailableProjectionCard fixture={item.fixture} />;
         }}
-        ListEmptyComponent={!isLoading && !hasError && liveFixtures.length === 0
+        ListEmptyComponent={!isLoading && !hasError
           ? <EmptyState message={selectedSport === 'All'
             ? 'No V4 games or legitimate projections are available today.'
             : `No ${selectedSport} games, projections, or official plays today.`} />

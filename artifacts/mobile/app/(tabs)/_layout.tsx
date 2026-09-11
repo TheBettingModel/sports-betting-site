@@ -62,6 +62,18 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="live"
+        options={{
+          title: 'Live',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="dot.radiowaves.left.and.right" tintColor={color} size={22} />
+            ) : (
+              <Feather name="activity" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: 'Chat',

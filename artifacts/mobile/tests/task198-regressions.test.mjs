@@ -211,15 +211,27 @@ assert.match(picksSource, /V4 SLATE/);
 assert.match(picksSource, /getV4FullSlateProjections\(\{ sport, date: slateDate \}\)/);
 assert.match(picksSource, /timeZone: 'America\/New_York'/);
 assert.match(picksSource, /fixture\.eventStatus === 'UPCOMING'/);
-assert.match(picksSource, /fixture\.eventStatus === 'LIVE'/);
-assert.match(picksSource, /V4LiveGamesBanner/);
-assert.match(picksSource, /liveFixtures\.length === 0/);
+assert.doesNotMatch(picksSource, /fixture\.eventStatus === 'LIVE'/);
+assert.doesNotMatch(picksSource, /V4LiveGamesBanner/);
 
 const liveGamesSource = fs.readFileSync(new URL('../components/V4LiveGamesBanner.tsx', import.meta.url), 'utf8');
 assert.match(liveGamesSource, /LIVE GAMES/);
 assert.match(liveGamesSource, /awayScore/);
 assert.match(liveGamesSource, /homeScore/);
 assert.match(liveGamesSource, /TeamLogo/);
+
+const liveTabSource = fs.readFileSync(new URL('../app/(tabs)/live.tsx', import.meta.url), 'utf8');
+assert.match(liveTabSource, /fixture\.eventStatus === 'LIVE'/);
+assert.match(liveTabSource, /V4LiveGamesBanner/);
+assert.match(liveTabSource, /No games are live right now/);
+assert.match(liveTabSource, /5 \* 60 \* 1000/);
+
+const tabLayoutSource = fs.readFileSync(new URL('../app/(tabs)/_layout.tsx', import.meta.url), 'utf8');
+assert.match(tabLayoutSource, /name="live"/);
+assert.match(tabLayoutSource, /title: 'Live'/);
+
+const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
+assert.equal(appConfig.expo.ios.buildNumber, '33');
 
 const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
 assert.match(v4CardSource, /value == null \? '—'/);
