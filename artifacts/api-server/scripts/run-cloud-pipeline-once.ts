@@ -1,8 +1,14 @@
 import { schedulerJobs } from "../src/services/scheduler";
+import { bootstrapTask241V4Engines } from "../src/services/v4EngineBootstrap241";
 
 const startedAt = new Date().toISOString();
 const publicationEnabled = process.env["PUBLICATION_ENABLED"] === "true";
 const results: Record<string, unknown> = {};
+
+// The web entrypoint bootstraps this registry through app.ts. The cron
+// entrypoint bypasses app.ts, so it must initialize the same canonical V4
+// engines before any evidence cycle attempts to create shadow forecasts.
+bootstrapTask241V4Engines();
 
 // Evidence collection is safe in a parallel candidate environment. The
 // existing jobs are independently idempotent and provider-isolated.
