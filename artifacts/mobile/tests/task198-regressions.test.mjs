@@ -238,6 +238,7 @@ assert.match(subscriptionSource, /const getTokenRef = useRef\(getToken\)/);
 assert.match(subscriptionSource, /getTokenRef\.current\(\{ skipCache \}\)/);
 assert.doesNotMatch(subscriptionSource, /\}, \[getToken, userId\]\)/);
 assert.match(subscriptionSource, /serverEntitlementError: serverStatusQuery\.isError/);
+assert.match(subscriptionSource, /refetchInterval: \(query\) => query\.state\.status === "error" \? 30_000 : false/);
 
 const sportFilterSource = fs.readFileSync(new URL('../components/SportFilter.tsx', import.meta.url), 'utf8');
 assert.match(sportFilterSource, /scroller: \{ flexGrow: 0 \}/);

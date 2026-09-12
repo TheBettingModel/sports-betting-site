@@ -137,6 +137,9 @@ function useSubscriptionContext() {
     ),
     enabled: Boolean(userId),
     staleTime: 0,
+    retry: 1,
+    retryDelay: 2_000,
+    refetchInterval: (query) => query.state.status === "error" ? 30_000 : false,
   });
 
   const rcSubscribed =
