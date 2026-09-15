@@ -1,0 +1,333 @@
+This is strictly a UI/UX redesign using the REAL data already being returned.
+
+The current screen is functional but looks too generic and text-heavy. I want this to feel like a premium professional sports analytics terminal — somewhere between Bloomberg, ESPN, FanGraphs, and a modern sportsbook trading interface — while remaining consistent with TBM's black / charcoal / white / lime branding.
+
+Do NOT simply change colors or fonts. Redesign the information hierarchy and cards.
+
+========================================
+1. PAGE HEADER
+========================================
+
+Keep:
+
+TBM ANALYTICS
+
+Replace the oversized generic headline area with a tighter professional header:
+
+MARKET INTELLIGENCE
+Sharp Movement & CLV
+
+Below it, use one concise description:
+
+Track how the betting market is moving relative to TBM's model price.
+
+Make this header significantly more compact so actual market data appears higher on the screen.
+
+========================================
+2. ADD A MARKET PULSE SUMMARY
+========================================
+
+Above Today's Movement, create a compact horizontal Market Pulse section using REAL available data.
+
+Example:
+
+MARKET PULSE
+
+6 TRACKED     4 WITH MODEL     3 POSITIVE CLV
+
+If those exact metrics cannot legitimately be calculated from existing data, only show metrics that can.
+
+Never fabricate data.
+
+This should look like a compact trading-terminal KPI strip, NOT three giant cards.
+
+========================================
+3. SPORT FILTERS
+========================================
+
+Keep:
+
+ALL MOVES
+MLB
+SOCCER
+NFL
+etc.
+
+But make these smaller segmented filter controls.
+
+The active selection can use TBM lime.
+
+Inactive filters should be dark with subtle borders.
+
+Do not allow this row to dominate the page.
+
+========================================
+4. COMPLETELY REDESIGN MOVEMENT CARDS
+========================================
+
+The existing cards are too text-heavy.
+
+Each game should look like a MARKET CARD.
+
+Use team logos wherever legitimate mappings already exist.
+
+Example structure:
+
+MLB                         9:40 PM
+
+[MARLINS LOGO]  Miami
+                    @
+[D-BACKS LOGO]  Arizona
+
+--------------------------------
+
+MARKET DIRECTION
+
+        → ARIZONA
+
+POSITIVE MOVEMENT
+
+CLV                           +4.1%
+                              POSITIVE
+
+--------------------------------
+
+Sharp money is following the model.
+
+                           VIEW DETAILS >
+
+Team identity should be immediately recognizable.
+
+Use actual team logos rather than relying entirely on text.
+
+========================================
+5. MAKE MARKET DIRECTION VISUAL
+========================================
+
+This is the most important redesign.
+
+Do not represent Sharp Movement primarily as:
+
+"Positive · toward Arizona"
+
+Create a visual directional component.
+
+For example:
+
+MIAMI        MARKET MOVE →→→        ARIZONA
+
+or a compact horizontal market movement rail:
+
+MIAMI   ───────────────●────→   ARIZONA
+
+The visualization should indicate which side the market is moving toward.
+
+If the backend provides enough REAL information to show opening/current prices, create:
+
+OPEN
+Arizona -118
+
+        →→→
+
+CURRENT
+Arizona -126
+
+If those values are NOT returned by the existing API, do not invent them.
+
+The card must still work using the existing positive/negative/direction data.
+
+========================================
+6. CLV SHOULD LOOK LIKE A FINANCIAL METRIC
+========================================
+
+CLV is important and should not look like another sentence.
+
+Instead of:
+
+CLV        +4.1% · positive
+
+Use something like:
+
+CLV
++4.1%
+POSITIVE
+
+Make +4.1% one of the strongest visual numbers on the card.
+
+Positive CLV:
+TBM lime accent.
+
+Negative CLV:
+Use the existing warning/negative system.
+
+Neutral:
+Muted.
+
+Do not overuse lime everywhere else. Lime should mean something.
+
+========================================
+7. ADD VISUAL STATUS BADGES
+========================================
+
+Create small premium badges for:
+
+POSITIVE
+NEGATIVE
+NEUTRAL
+
+and, where supported by legitimate existing data:
+
+WITH MODEL
+AGAINST MODEL
+PAST MODEL PRICE
+
+These should be compact pills/tags rather than sentences.
+
+Example:
+
+[ WITH MODEL ]          [ +4.1% CLV ]
+
+========================================
+8. TEAM LOGOS
+========================================
+
+Use the existing TBM team-logo system/components if available.
+
+Support logos across:
+
+MLB
+NFL
+NBA
+NHL
+WNBA
+NCAAF
+NCAAMB
+Soccer
+
+Do not create another duplicate logo architecture.
+
+If a logo mapping is unavailable, gracefully use team initials.
+
+Never show broken image placeholders.
+
+========================================
+9. CARD INFORMATION HIERARCHY
+========================================
+
+Every card should visually prioritize information in this order:
+
+1. Teams / matchup
+2. Market direction
+3. CLV
+4. Movement classification
+5. Explanation
+6. Game time / league
+
+The current design gives almost everything equal weight.
+
+Fix that.
+
+========================================
+10. POSITIVE CARD EXAMPLE
+========================================
+
+The Marlins/Diamondbacks card should visually communicate almost instantly:
+
+Miami → Arizona
+
+MARKET MOVING TOWARD ARIZONA
+
++4.1% CLV
+
+POSITIVE
+
+Sharp money is following the model.
+
+The user should understand that without reading a paragraph.
+
+========================================
+11. NEGATIVE CARD EXAMPLE
+========================================
+
+Real Madrid / Elche should visually communicate:
+
+Real Madrid ← MARKET MOVEMENT
+
+-2.7% CLV
+
+NEGATIVE
+
+Market moved past the model price.
+
+Use a restrained warning treatment.
+
+Do not turn the entire card yellow/red.
+
+========================================
+12. DETAILS INTERACTION
+========================================
+
+Keep the chevron / detail interaction.
+
+When a user taps a market card, the detailed view can contain the deeper analytics.
+
+The main Analytics screen should be highly scannable.
+
+Think:
+
+SCAN → IDENTIFY → TAP → INVESTIGATE
+
+not:
+
+READ PARAGRAPHS → UNDERSTAND
+
+========================================
+13. PREMIUM VISUAL DESIGN
+========================================
+
+Maintain TBM branding:
+
+Black background
+Charcoal cards
+White primary typography
+Muted gray secondary typography
+TBM lime accent
+
+But improve depth using:
+
+Subtle card borders
+Slight surface elevation
+Clear spacing
+Team-logo containers
+Large numeric metrics
+Micro-label typography
+Movement rails/arrows
+Status pills
+Better alignment
+
+Avoid:
+
+Gradients
+Neon glow everywhere
+Huge cards
+Huge headers
+Generic boxes
+Excessive lime
+Excessive borders
+Decorative clutter
+Emojis
+Horizontal overflow
+
+This needs to look PROFESSIONAL, not flashy.
+
+========================================
+14. MOBILE DENSITY
+========================================
+
+This is a mobile analytics product.
+
+I should be able to see approximately 2 market cards or at least 1.5 cards on a normal iPhone screen after the header/filter area.
+
+Reduce unnecessary vertical whitespace.
+
+Cards should feel information-dense without becoming cramped.
