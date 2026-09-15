@@ -11,7 +11,7 @@ const markets = [
     home: 'Diamondbacks',
     market: 'ARI -1.5 · -105',
     open: 'Open +122',
-    move: '17¢ toward Arizona',
+    move: 'Positive · toward Arizona',
     clv: '+4.1%',
     tone: 'lime',
     note: 'Sharp money is following the model.',
@@ -23,7 +23,7 @@ const markets = [
     home: 'Elche',
     market: 'RMA -1.5 · -135',
     open: 'Open -110',
-    move: '25¢ past the model',
+    move: 'Negative · past the model',
     clv: '-2.7%',
     tone: 'amber',
     note: 'The market moved first. Value is thinning.',
@@ -35,7 +35,7 @@ const markets = [
     home: 'New York',
     market: 'NYJ -1.5 · -115',
     open: 'Open -2.5',
-    move: '1 pt toward New York',
+    move: 'Positive · toward New York',
     clv: '+0.8%',
     tone: 'lime',
     note: 'A steady move toward the model side.',
@@ -47,7 +47,7 @@ const markets = [
     home: 'Brewers',
     market: 'MIL -1.5 · -115',
     open: 'Open +105',
-    move: '20¢ toward Milwaukee',
+    move: 'Positive · toward Milwaukee',
     clv: '+3.2%',
     tone: 'lime',
     note: 'Closed on the model side. Final CLV confirmed.',
@@ -59,7 +59,7 @@ const markets = [
     home: 'Amsterdam',
     market: 'Current unavailable',
     open: 'Open +0.5 · -115',
-    move: 'No current snapshot',
+    move: 'Unavailable · no current snapshot',
     clv: '—',
     tone: 'muted',
     note: 'Market history has not arrived yet.',
@@ -134,18 +134,17 @@ export function SharpBoard() {
                 <ChevronRight size={15} className="mt-1 shrink-0 text-zinc-700" />
               </div>
 
-              <div className="mt-3 flex items-end justify-between border-t border-zinc-900 pt-3">
-                <div>
-                  <p className="text-[9px] uppercase tracking-[1px] text-zinc-600">Market now</p>
-                  <p className="mt-1 text-[13px] font-medium text-zinc-200">{game.market}</p>
-                  <p className="mt-1 text-[10px] text-zinc-600">{game.open}</p>
+              <div className="mt-3 border-t border-zinc-900 pt-2">
+                <div className="flex items-center justify-between py-1">
+                  <p className="text-[9px] font-bold uppercase tracking-[1px] text-zinc-600">Sharp movement</p>
+                  <p className={`text-[11px] font-semibold ${game.tone === 'lime' ? 'text-lime-400' : game.tone === 'amber' ? 'text-amber-400' : 'text-zinc-600'}`}>{game.move}</p>
                 </div>
-                <div className="text-right">
-                  <p className={`text-[13px] font-bold ${game.tone === 'lime' ? 'text-lime-400' : game.tone === 'amber' ? 'text-amber-400' : 'text-zinc-600'}`}>{game.clv} CLV</p>
-                  <p className={`mt-1 text-[10px] ${game.tone === 'lime' ? 'text-lime-400' : game.tone === 'amber' ? 'text-amber-400' : 'text-zinc-600'}`}>{game.move}</p>
+                <div className="flex items-center justify-between py-1">
+                  <p className="text-[9px] font-bold uppercase tracking-[1px] text-zinc-600">CLV</p>
+                  <p className={`text-[11px] font-semibold ${game.tone === 'lime' ? 'text-lime-400' : game.tone === 'amber' ? 'text-amber-400' : 'text-zinc-600'}`}>{game.clv === '—' ? 'Unavailable' : `${game.clv} · ${game.clv.startsWith('-') ? 'negative' : 'positive'}`}</p>
                 </div>
               </div>
-              <p className="mt-3 text-[11px] leading-4 text-zinc-500">{game.note}</p>
+              <p className="mt-2 text-[10px] leading-4 text-zinc-600">{game.note}</p>
             </button>
           ))}
         </div>
