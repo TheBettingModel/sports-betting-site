@@ -1,0 +1,12 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+.tbm-phone {
+  min-height: 100vh;
+  background: #000;
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.tbm-tab-safe {
+  padding-bottom: 92px;
+}
