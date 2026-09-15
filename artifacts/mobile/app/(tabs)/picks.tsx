@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,7 @@ import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
+import { fixtureMatchesTeamSearch } from '@/utils/matchupSearch';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
 
@@ -67,6 +68,7 @@ export default function PicksScreen() {
   } = useSubscription();
   const { selectedSport } = useSports();
   const [slateDate, setSlateDate] = useState(() => easternDate());
+  const [searchQuery, setSearchQuery] = useState('');
   const currentEasternDate = useRef(easternDate());
   const requestedSports = selectedSport === 'All'
     ? [...V4_SPORTS]
@@ -110,12 +112,13 @@ export default function PicksScreen() {
     const items: ListItem[] = [];
     
     for (const board of boards) {
-      if (!board.fixtures.length) continue;
-      items.push({ type: 'section', title: `${displaySport(board.sport)} SLATE`, count: board.fixtures.length });
+      const matchingFixtures = board.fixtures.filter((fixture) => fixtureMatchesTeamSearch(fixture, searchQuery));
+      if (!matchingFixtures.length) continue;
+      items.push({ type: 'section', title: `${displaySport(board.sport)} SLATE`, count: matchingFixtures.length });
       
       const projectionsByGameId = new Map(board.projections.map((projection) => [projection.eventId, projection]));
       
-      board.fixtures.forEach((fixture) => {
+      matchingFixtures.forEach((fixture) => {
         const projection = projectionsByGameId.get(fixture.gameId);
         
         if (fixture.availability === 'AVAILABLE' && projection) {
@@ -126,7 +129,7 @@ export default function PicksScreen() {
       });
     }
     return items;
-  }, [boards, slateDate]);
+  }, [boards, searchQuery, slateDate]);
 
   const dateLabel = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
   const isToday = slateDate === easternDate();
@@ -200,6 +203,32 @@ export default function PicksScreen() {
               </Pressable>
             </View>
             <SportFilter gameCounts={sportGameCounts} />
+            <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Feather name="search" size={17} color={colors.mutedForeground} />
+              <TextInput
+                accessibilityLabel="Search games by team"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search teams or matchups"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                clearButtonMode="never"
+                style={[styles.searchInput, { color: colors.foreground }]}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear team search"
+                  hitSlop={10}
+                  onPress={() => setSearchQuery('')}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
+                >
+                  <Feather name="x-circle" size={18} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
             {!isLoading && hasError && <EmptyState message="V4 data is unavailable right now. Pull to try again." />}
           </View>
         }
@@ -212,9 +241,11 @@ export default function PicksScreen() {
           return null;
         }}
         ListEmptyComponent={!isLoading && !hasError
-          ? <EmptyState message={selectedSport === 'All'
-            ? 'No games or projections are available today.'
-            : `No ${selectedSport} games today.`} />
+          ? <EmptyState message={searchQuery.trim()
+            ? `No matchups found for “${searchQuery.trim()}” on ${dateLabel}.`
+            : selectedSport === 'All'
+              ? 'No games or projections are available today.'
+              : `No ${selectedSport} games today.`} />
           : null}
       />
     </View>
@@ -231,6 +262,8 @@ const styles = StyleSheet.create({
   dateCenter: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   dateLabel: { fontSize: 14, fontFamily: 'Inter_700Bold', letterSpacing: .5 },
   dateHint: { marginTop: 3, fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+  searchBox: { minHeight: 46, marginHorizontal: 16, marginTop: 10, paddingHorizontal: 13, borderWidth: 1, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchInput: { flex: 1, minHeight: 44, paddingVertical: 0, fontSize: 14, fontFamily: 'Inter_400Regular' },
   section: { marginHorizontal: 16, marginTop: 18, marginBottom: 8 },
   sectionText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.3 },
   entitlementCopy: { marginHorizontal: 20, marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', fontFamily: 'Inter_400Regular' },

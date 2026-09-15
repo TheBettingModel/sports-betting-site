@@ -7,6 +7,7 @@ import {
 } from '../utils/viewerQueryKeys.ts';
 import { createRevenueCatIdentityCoordinator } from '../utils/revenueCatIdentity.ts';
 import { splitV4Picks } from '../utils/v4PicksHierarchy.ts';
+import { fixtureMatchesTeamSearch } from '../utils/matchupSearch.ts';
 import fs from 'node:fs';
 
 const awayProjection = getForecastMoneylineIdentity({
@@ -199,6 +200,16 @@ assert.equal(malformedTop.topPlayIsAvailable, false);
 assert.equal(malformedTop.topPlays.length, 0);
 assert.equal(malformedTop.topCandidateCount, 2);
 
+const searchFixture = {
+  awayParticipant: { name: 'North Carolina Tar Heels', abbreviation: 'UNC' },
+  homeParticipant: { name: 'Duke Blue Devils', abbreviation: 'DUKE' },
+};
+assert.equal(fixtureMatchesTeamSearch(searchFixture, 'unc'), true);
+assert.equal(fixtureMatchesTeamSearch(searchFixture, 'blue devils'), true);
+assert.equal(fixtureMatchesTeamSearch(searchFixture, 'duke unc'), true);
+assert.equal(fixtureMatchesTeamSearch(searchFixture, '  '), true);
+assert.equal(fixtureMatchesTeamSearch(searchFixture, 'kentucky'), false);
+
 const picksSource = fs.readFileSync(new URL('../app/(tabs)/picks.tsx', import.meta.url), 'utf8');
 assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGame|getForecast/);
 assert.match(picksSource, /hasServerEntitlement/);
@@ -213,6 +224,9 @@ assert.match(picksSource, /timeZone: 'America\/New_York'/);
 assert.match(picksSource, /Previous day/);
 assert.match(picksSource, /Next day/);
 assert.match(picksSource, /Return to today's games/);
+assert.match(picksSource, /Search games by team/);
+assert.match(picksSource, /fixtureMatchesTeamSearch/);
+assert.match(picksSource, /No matchups found for/);
 assert.doesNotMatch(picksSource, /V4LiveGamesBanner/);
 
 const liveGamesSource = fs.readFileSync(new URL('../components/V4LiveGamesBanner.tsx', import.meta.url), 'utf8');
