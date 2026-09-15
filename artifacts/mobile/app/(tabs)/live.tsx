@@ -132,9 +132,9 @@ export default function LiveScreen() {
         {!isLoading && hasError ? (
           <EmptyState message="Live scores are unavailable right now. Pull down to try again." />
         ) : !isLoading && liveFixtures.length === 0 ? (
-          <EmptyState message="No games are live right now. Upcoming games remain in Picks." />
+          <EmptyState message="No games are live right now. Upcoming matchups remain in Games." />
         ) : (
-          <V4LiveGamesBanner fixtures={liveFixtures} />
+          <V4LiveGamesBanner fixtures={liveFixtures} slateDate={slateDate} />
         )}
       </ScrollView>
     </View>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Link } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { TeamLogo } from '@/components/TeamLogo';
-import type { V4PublicProjection } from '@workspace/api-client-react';
+import type { V4PublicProjection, V4FullSlateProjectionResponseFixturesItem } from '@workspace/api-client-react';
 
 const TWO_WORD_NICKNAMES = [
   'Red Sox', 'White Sox', 'Blue Jays', 'Maple Leafs', 'Golden Knights',
@@ -29,17 +30,6 @@ function nickname(fullName: string): string {
   return parts[parts.length - 1] ?? fullName;
 }
 
-function percent(value: number | null | undefined): string {
-  return value == null ? '—' : `${(value * 100).toFixed(1)}%`;
-}
-
-function selection(projection: V4PublicProjection, away: string, home: string): string {
-  if (projection.projectedWinner === 'HOME') return `${nickname(home)} ML`;
-  if (projection.projectedWinner === 'AWAY') return `${nickname(away)} ML`;
-  if (projection.projectedWinner === 'DRAW') return 'Draw';
-  return 'Unavailable';
-}
-
 function projectedWinnerName(projection: V4PublicProjection, away: string, home: string): string {
   if (projection.projectedWinner === 'HOME') return nickname(home);
   if (projection.projectedWinner === 'AWAY') return nickname(away);
@@ -47,192 +37,69 @@ function projectedWinnerName(projection: V4PublicProjection, away: string, home:
   return 'Unavailable';
 }
 
-function scoreMargin(away: string, home: string, expectedAwayScore?: number | null, expectedHomeScore?: number | null): string {
-  if (expectedAwayScore == null || expectedHomeScore == null) return '—';
-  const margin = Math.abs(expectedHomeScore - expectedAwayScore);
-  if (margin < 0.05) return 'Even';
-  return `${nickname(expectedHomeScore > expectedAwayScore ? home : away)} by ${margin.toFixed(1)}`;
-}
-
-export function V4ModelProjectionCard({ projection }: { projection: V4PublicProjection }) {
+export function V4ModelProjectionCard({ 
+  projection, 
+  fixture, 
+  slateDate 
+}: { 
+  projection: V4PublicProjection, 
+  fixture: V4FullSlateProjectionResponseFixturesItem, 
+  slateDate: string 
+}) {
   const colors = useColors();
-  const [expanded, setExpanded] = useState(false);
-  const away = projection.awayParticipant ?? 'Away';
-  const home = projection.homeParticipant ?? 'Home';
-  const awayAbbr = projection.awayParticipantAbbr;
-  const homeAbbr = projection.homeParticipantAbbr;
-  const expectedAwayScore = projection.expectedAwayScore;
-  const expectedHomeScore = projection.expectedHomeScore;
-  const status = projection.lifecycleStatus.replace('V4_', '').replaceAll('_', ' ');
-  const startsAt = projection.eventStart ? new Date(projection.eventStart) : null;
+  const away = fixture.awayParticipant.name || 'Away';
+  const home = fixture.homeParticipant.name || 'Home';
+  const awayAbbr = fixture.awayParticipant.abbreviation;
+  const homeAbbr = fixture.homeParticipant.abbreviation;
+  
+  const startsAt = fixture.eventStart ? new Date(fixture.eventStart) : null;
   const time = startsAt && !Number.isNaN(startsAt.getTime())
     ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : 'TBD';
-  const modelSelection = selection(projection, away, home);
+    
   const moneylineLean = projectedWinnerName(projection, away, home);
-  const scoreWinner = expectedHomeScore == null || expectedAwayScore == null
-    ? null
-    : expectedHomeScore > expectedAwayScore
-      ? 'HOME'
-      : expectedAwayScore > expectedHomeScore
-        ? 'AWAY'
-        : 'DRAW';
-  const signalsDisagree = scoreWinner !== null
-    && projection.projectedWinner != null
-    && scoreWinner !== projection.projectedWinner;
+  const isLiveOrFinal = fixture.eventStatus === 'LIVE' || fixture.eventStatus === 'FINAL';
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[styles.meta, { borderBottomColor: colors.border }]}>
-        <View style={styles.metaLeft}>
-          <Text style={[styles.sport, { color: colors.foreground }]}>{projection.sport}</Text>
-          <View style={[styles.dot, { backgroundColor: status === 'APPROVED' ? colors.primary : colors.mutedForeground }]} />
-          <Text style={[styles.metaText, { color: colors.mutedForeground }]}>{status}</Text>
-        </View>
-        <Text style={[styles.metaText, { color: colors.mutedForeground }]}>{time}</Text>
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.matchupRow}>
-          {awayAbbr && <TeamLogo sport={projection.sport} abbr={awayAbbr} logoUrl={projection.awayParticipantLogo ?? undefined} size={24} />}
-          <Text style={[styles.matchup, { color: colors.foreground }]} numberOfLines={1}>{nickname(away)}</Text>
-          <Text style={[styles.vs, { color: colors.mutedForeground }]}>vs.</Text>
-          {homeAbbr && <TeamLogo sport={projection.sport} abbr={homeAbbr} logoUrl={projection.homeParticipantLogo ?? undefined} size={24} />}
-          <Text style={[styles.matchup, { color: colors.foreground }]} numberOfLines={1}>{nickname(home)}</Text>
-        </View>
-
-        <View style={styles.pickBlock}>
-          <Text style={[styles.label, { color: colors.mutedForeground }]}>MODEL LEAN</Text>
-          <Text style={[styles.selectionText, { color: colors.foreground }]}>{modelSelection}</Text>
-        </View>
-
-        <View style={styles.stateRow}>
-          <View style={[styles.stateDot, { backgroundColor: colors.primary }]} />
-          <Text style={[styles.stateText, { color: colors.primary }]}>MODEL PROJECTION</Text>
-          <Text style={[styles.stateSecondary, { color: colors.mutedForeground }]}>Not an Official Play</Text>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded }}
-          accessibilityLabel={expanded ? 'Hide analysis' : 'View analysis'}
-          onPress={() => setExpanded(value => !value)}
-          style={({ pressed }) => [styles.analysisButton, { borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}
-        >
-          <Text style={[styles.analysisText, { color: colors.foreground }]}>{expanded ? 'Hide Analysis' : 'View Analysis'}</Text>
-          <Text style={[styles.chevron, { color: colors.primary }]}>{expanded ? '−' : '+'}</Text>
-        </Pressable>
-
-        {expanded && (
-          <View style={[styles.analysis, { borderTopColor: colors.border }]}>
-            <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Model Projection</Text>
-            <View style={styles.detailGrid}>
-              <Detail label="Projected score" value={`${nickname(away)} ${expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – ${nickname(home)} ${expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}`} colors={colors} fullWidth />
-              <Detail label="Win probability" value={`${nickname(away)} ${percent(projection.awayWinProbability)} · ${nickname(home)} ${percent(projection.homeWinProbability)}`} colors={colors} />
-              {projection.drawProbability != null && (
-                <Detail label="Draw probability" value={percent(projection.drawProbability)} colors={colors} />
-              )}
-              <Detail label="Moneyline lean" value={moneylineLean} colors={colors} />
-              <Detail label="Score margin" value={scoreMargin(away, home, expectedAwayScore, expectedHomeScore)} colors={colors} />
-              <Detail label="Expected total" value={projection.expectedTotal == null ? '—' : projection.expectedTotal.toFixed(1)} colors={colors} />
+    <Link href={`/game/${fixture.gameId}?sport=${fixture.sport}&slateDate=${slateDate}`} asChild>
+      <Pressable style={({ pressed }) => [styles.card, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>
+        <View style={styles.content}>
+          <View style={styles.teams}>
+            <View style={styles.teamRow}>
+              {awayAbbr && <TeamLogo sport={fixture.sport} abbr={awayAbbr} logoUrl={fixture.awayParticipant.logo ?? undefined} size={20} />}
+              <Text style={[styles.teamName, { color: colors.foreground }]} numberOfLines={1}>{nickname(away)}</Text>
+              {isLiveOrFinal && fixture.awayScore != null && <Text style={[styles.score, { color: colors.foreground }]}>{fixture.awayScore}</Text>}
             </View>
-            {signalsDisagree && (
-              <Text style={[styles.signalNote, { color: colors.mutedForeground }]}>
-                Score and moneyline models disagree. The moneyline lean follows win probability.
-              </Text>
-            )}
-            {(projection.awayStarterName || projection.homeStarterName) && (
-              <View style={styles.pitchers}>
-                <Text style={[styles.analysisHeading, { color: colors.foreground }]}>Pitcher Matchup</Text>
-                <View style={styles.pitcherRow}>
-                  <Pitcher
-                    side={away}
-                    name={projection.awayStarterName}
-                    era={projection.awayStarterEra}
-                    whip={projection.awayStarterWhip}
-                    colors={colors}
-                  />
-                  <Pitcher
-                    side={home}
-                    name={projection.homeStarterName}
-                    era={projection.homeStarterEra}
-                    whip={projection.homeStarterWhip}
-                    colors={colors}
-                  />
-                </View>
-              </View>
-            )}
+            <View style={styles.teamRow}>
+              {homeAbbr && <TeamLogo sport={fixture.sport} abbr={homeAbbr} logoUrl={fixture.homeParticipant.logo ?? undefined} size={20} />}
+              <Text style={[styles.teamName, { color: colors.foreground }]} numberOfLines={1}>{nickname(home)}</Text>
+              {isLiveOrFinal && fixture.homeScore != null && <Text style={[styles.score, { color: colors.foreground }]}>{fixture.homeScore}</Text>}
+            </View>
           </View>
-        )}
-      </View>
-    </View>
-  );
-}
-
-function Pitcher({
-  side,
-  name,
-  era,
-  whip,
-  colors,
-}: {
-  side: string;
-  name?: string | null;
-  era?: number | null;
-  whip?: number | null;
-  colors: ReturnType<typeof useColors>;
-}) {
-  if (!name) return null;
-  return (
-    <View style={styles.pitcher}>
-      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{side}</Text>
-      <Text style={[styles.detailValue, { color: colors.foreground }]} numberOfLines={1}>{name}</Text>
-      {era != null && <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>ERA <Text style={{ color: colors.foreground }}>{era.toFixed(2)}</Text></Text>}
-      {whip != null && <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>WHIP <Text style={{ color: colors.foreground }}>{whip.toFixed(2)}</Text></Text>}
-    </View>
-  );
-}
-
-function Detail({ label, value, colors, fullWidth = false }: { label: string; value: string; colors: ReturnType<typeof useColors>; fullWidth?: boolean }) {
-  return (
-    <View style={[styles.detail, fullWidth && styles.detailFullWidth]}>
-      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>{label}</Text>
-      <Text style={[styles.detailValue, { color: colors.foreground }]}>{value}</Text>
-    </View>
+          
+          <View style={styles.meta}>
+            <Text style={[styles.time, { color: isLiveOrFinal ? colors.primary : colors.mutedForeground }]}>
+              {fixture.eventStatus === 'LIVE' ? 'LIVE' : fixture.eventStatus === 'FINAL' ? 'FINAL' : time}
+            </Text>
+            <View style={[styles.badge, { backgroundColor: colors.primary + '1A' }]}>
+              <Text style={[styles.badgeText, { color: colors.primary }]}>{moneylineLean.toUpperCase()} PROJECTED</Text>
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    </Link>
   );
 }
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 10, overflow: 'hidden' },
-  meta: { paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth },
-  metaLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sport: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
-  dot: { width: 5, height: 5, borderRadius: 3 },
-  metaText: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
-  content: { padding: 14 },
-  matchupRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  matchup: { fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: -0.4, flexShrink: 1 },
-  vs: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  pickBlock: { marginTop: 17 },
-  label: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
-  selectionText: { fontSize: 24, fontFamily: 'Inter_700Bold', marginTop: 3, lineHeight: 28 },
-  stateRow: { marginTop: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stateDot: { width: 5, height: 5, borderRadius: 3 },
-  stateText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.7 },
-  stateSecondary: { fontSize: 10, fontFamily: 'Inter_500Medium', marginLeft: 2 },
-  analysisButton: { marginTop: 14, minHeight: 38, borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  analysisText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.4 },
-  chevron: { fontSize: 19, fontFamily: 'Inter_400Regular', lineHeight: 20 },
-  analysis: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
-  analysisHeading: { fontSize: 14, fontFamily: 'Inter_700Bold', marginBottom: 11 },
-  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  detail: { width: '46%' },
-  detailFullWidth: { width: '100%' },
-  detailLabel: { fontSize: 9, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
-  detailValue: { fontSize: 12, lineHeight: 17, fontFamily: 'Inter_700Bold', marginTop: 3, flexShrink: 1 },
-  signalNote: { marginTop: 12, fontSize: 10, lineHeight: 15, fontFamily: 'Inter_500Medium' },
-  pitchers: { marginTop: 18 },
-  pitcherRow: { flexDirection: 'row', gap: 12 },
-  pitcher: { flex: 1 },
-  pitcherStat: { fontSize: 10, fontFamily: 'Inter_600SemiBold', marginTop: 4 },
+  content: { flexDirection: 'row', justifyContent: 'space-between', padding: 14, alignItems: 'center' },
+  teams: { flex: 1, gap: 10 },
+  teamRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  teamName: { fontSize: 15, fontFamily: 'Inter_700Bold', flex: 1 },
+  score: { fontSize: 16, fontFamily: 'Inter_700Bold', width: 30, textAlign: 'right' },
+  meta: { alignItems: 'flex-end', justifyContent: 'center', gap: 8, paddingLeft: 16 },
+  time: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
+  badge: { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 4 },
+  badgeText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
 });

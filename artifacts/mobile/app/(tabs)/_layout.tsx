@@ -52,12 +52,12 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="picks"
         options={{
-          title: 'Picks',
+          title: 'Games',
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="star.fill" tintColor={color} size={22} />
+              <SymbolView name="calendar" tintColor={color} size={22} />
             ) : (
-              <Feather name="star" size={22} color={color} />
+              <Feather name="calendar" size={22} color={color} />
             ),
         }}
       />
@@ -88,6 +88,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="results"
         options={{
+          href: null,
           title: 'Record',
           tabBarIcon: ({ color }) =>
             isIOS ? (

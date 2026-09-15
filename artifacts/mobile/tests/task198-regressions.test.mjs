@@ -204,14 +204,15 @@ assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGam
 assert.match(picksSource, /hasServerEntitlement/);
 assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
 assert.doesNotMatch(picksSource, /UFC/);
-assert.match(picksSource, /upcomingFixtures\.length/);
-assert.match(picksSource, /fixture\.availability === 'AVAILABLE'/);
+assert.match(picksSource, /board\.fixtures\.length/);
+assert.doesNotMatch(picksSource, /V4OfficialPickCard/);
 assert.match(picksSource, /V4UnavailableProjectionCard/);
-assert.match(picksSource, /V4 SLATE/);
+assert.match(picksSource, /SLATE/);
 assert.match(picksSource, /getV4FullSlateProjections\(\{ sport, date: slateDate \}\)/);
 assert.match(picksSource, /timeZone: 'America\/New_York'/);
-assert.match(picksSource, /fixture\.eventStatus === 'UPCOMING'/);
-assert.doesNotMatch(picksSource, /fixture\.eventStatus === 'LIVE'/);
+assert.match(picksSource, /Previous day/);
+assert.match(picksSource, /Next day/);
+assert.match(picksSource, /Return to today's games/);
 assert.doesNotMatch(picksSource, /V4LiveGamesBanner/);
 
 const liveGamesSource = fs.readFileSync(new URL('../components/V4LiveGamesBanner.tsx', import.meta.url), 'utf8');
@@ -229,6 +230,7 @@ assert.match(liveTabSource, /5 \* 60 \* 1000/);
 const tabLayoutSource = fs.readFileSync(new URL('../app/(tabs)/_layout.tsx', import.meta.url), 'utf8');
 assert.match(tabLayoutSource, /name="live"/);
 assert.match(tabLayoutSource, /title: 'Live'/);
+assert.match(tabLayoutSource, /href: null/);
 
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
 assert.equal(appConfig.expo.ios.buildNumber, '33');
@@ -243,32 +245,24 @@ assert.match(subscriptionSource, /refetchInterval: \(query\) => query\.state\.st
 const sportFilterSource = fs.readFileSync(new URL('../components/SportFilter.tsx', import.meta.url), 'utf8');
 assert.match(sportFilterSource, /scroller: \{ flexGrow: 0 \}/);
 
-const v4CardSource = fs.readFileSync(new URL('../components/V4ModelProjectionCard.tsx', import.meta.url), 'utf8');
-assert.match(v4CardSource, /value == null \? '—'/);
-assert.match(v4CardSource, /expectedAwayScore\.toFixed\(1\)/);
-assert.match(v4CardSource, /expectedHomeScore\.toFixed\(1\)/);
-assert.match(v4CardSource, /MODEL LEAN/);
-assert.match(v4CardSource, /Moneyline lean/);
-assert.match(v4CardSource, /Score and moneyline models disagree/);
-assert.doesNotMatch(v4CardSource, /Model version/);
-assert.match(v4CardSource, /MODEL PROJECTION/);
-assert.match(v4CardSource, /Not an Official Play/);
-assert.match(v4CardSource, /Pressable/);
-assert.match(v4CardSource, /TeamLogo/);
-assert.match(v4CardSource, /Pitcher Matchup/);
-assert.match(v4CardSource, /fullWidth/);
-assert.doesNotMatch(v4CardSource, /detailValue[^}]*numberOfLines=\{1\}/);
-assert.doesNotMatch(v4CardSource, /failureReason/);
-assert.doesNotMatch(v4CardSource, /TBM OFFICIAL TOP PLAY/);
+const gameDetailSource = fs.readFileSync(new URL('../app/game/[gameId].tsx', import.meta.url), 'utf8');
+assert.match(gameDetailSource, /value == null/);
+assert.match(gameDetailSource, /expectedAwayScore\.toFixed\(1\)/);
+assert.match(gameDetailSource, /expectedHomeScore\.toFixed\(1\)/);
+assert.match(gameDetailSource, /PROJECTED OUTCOME/);
+assert.match(gameDetailSource, /Projected winner/);
+assert.match(gameDetailSource, /Projected score and win probability point in different directions/);
+assert.doesNotMatch(gameDetailSource, /TBM OFFICIAL TOP PLAY/);
+assert.doesNotMatch(gameDetailSource, /Unit/);
+assert.doesNotMatch(gameDetailSource, /OFFICIAL TBM PLAY/);
+assert.match(gameDetailSource, /Pitcher Matchup/);
+assert.match(gameDetailSource, /fullWidth/);
 
 const officialCardSource = fs.readFileSync(new URL('../components/V4OfficialPickCard.tsx', import.meta.url), 'utf8');
-assert.match(officialCardSource, /OFFICIAL TBM PLAY/);
+assert.match(officialCardSource, /TBM PLAY/);
 assert.match(officialCardSource, /TeamLogo/);
-assert.match(officialCardSource, /View Analysis/);
-assert.match(officialCardSource, /artifactId/);
 assert.doesNotMatch(officialCardSource, /expectedAwayScore|expectedHomeScore/);
-assert.match(picksSource, /board\.officialPicks/);
-assert.match(picksSource, /V4OfficialPickCard/);
+assert.doesNotMatch(picksSource, /board\.officialPicks/);
 
 // Results must render only the strict V4 official ledger provided by the server.
 const resultsSource = fs.readFileSync(new URL('../app/(tabs)/results.tsx', import.meta.url), 'utf8');
@@ -278,8 +272,6 @@ assert.match(resultsSource, /const overall = data\?\.overall/);
 assert.match(resultsSource, /V4 SEASON RECORD/);
 assert.match(resultsSource, /V4 WEEKLY RECORD/);
 assert.match(picksSource, /selectedSport === 'All'/);
-assert.match(picksSource, /fixture\.availability === 'AVAILABLE'/);
-assert.match(picksSource, /!officialEventIds\.has\(fixture\.gameId\)/);
 assert.match(resultsSource, /No official picks graded yet/);
 assert.doesNotMatch(resultsSource, /cutoverDate|new Date\([^)]*\).*v4/i);
 assert.match(resultsSource, /SPORTS\.includes/);

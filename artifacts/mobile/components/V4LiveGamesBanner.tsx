@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { Link } from 'expo-router';
 import type { V4FullSlateProjectionResponseFixturesItem } from '@workspace/api-client-react';
 import { TeamLogo } from '@/components/TeamLogo';
 import { useColors } from '@/hooks/useColors';
@@ -12,8 +13,10 @@ function shortName(name: string, abbreviation: string | null): string {
 
 export function V4LiveGamesBanner({
   fixtures,
+  slateDate,
 }: {
   fixtures: V4FullSlateProjectionResponseFixturesItem[];
+  slateDate: string;
 }) {
   const colors = useColors();
   if (!fixtures.length) return null;
@@ -34,14 +37,15 @@ export function V4LiveGamesBanner({
         const away = shortName(fixture.awayParticipant.name, fixture.awayParticipant.abbreviation);
         const home = shortName(fixture.homeParticipant.name, fixture.homeParticipant.abbreviation);
         return (
-          <View
-            key={fixture.gameId}
-            style={[
-              styles.gameRow,
-              index > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
-            ]}
-          >
-            <Text style={[styles.sport, { color: colors.mutedForeground }]}>{fixture.sport}</Text>
+          <Link key={fixture.gameId} href={`/game/${fixture.gameId}?sport=${fixture.sport}&slateDate=${slateDate}`} asChild>
+            <Pressable
+              style={({ pressed }) => [
+                styles.gameRow,
+                index > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+                { opacity: pressed ? 0.6 : 1 }
+              ]}
+            >
+              <Text style={[styles.sport, { color: colors.mutedForeground }]}>{fixture.sport}</Text>
             <View style={styles.team}>
               <TeamLogo
                 sport={fixture.sport}
@@ -63,7 +67,8 @@ export function V4LiveGamesBanner({
                 size={18}
               />
             </View>
-          </View>
+          </Pressable>
+        </Link>
         );
       })}
     </View>
