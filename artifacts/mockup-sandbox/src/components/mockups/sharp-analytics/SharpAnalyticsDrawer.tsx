@@ -1,0 +1,66 @@
+import { useMemo, useState } from 'react';
+import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, CalendarDays, ChevronRight, CircleHelp, Clock3, Info, MessageCircle, RefreshCw, UserRound, X } from 'lucide-react';
+import './_group.css';
+
+type Sport = 'ALL' | 'MLB' | 'SOCCER' | 'NFL';
+type Game = typeof games[number];
+
+const games = [
+  { sport: 'MLB', time: '9:40 PM', away: 'Marlins', home: 'Diamondbacks', codeAway: 'MIA', codeHome: 'ARI', market: 'ARI -1.5 · -105', clv: '+4.1%', tone: 'lime', move: 'toward Arizona', note: 'Sharp money is following the model.', analytics: { projection: 'Arizona', probability: '61%', score: 'MIA 3.8 — ARI 5.1', total: '8.9 runs', line: 'ARI -1.5', movement: '+17¢', open: '+122', current: '-105', history: [38, 44, 41, 55, 61] } },
+  { sport: 'SOCCER', time: '3:30 PM', away: 'Real Madrid', home: 'Elche', codeAway: 'RMA', codeHome: 'ELC', market: 'RMA -1.5 · -135', clv: '-2.7%', tone: 'amber', move: 'past the model', note: 'The market moved first. Value is thinning.', analytics: { projection: 'Real Madrid', probability: '64%', score: 'RMA 2.1 — ELC 0.7', total: '2.8 goals', line: 'RMA -1.5', movement: '-25¢', open: '-110', current: '-135', history: [64, 59, 57, 52, 48] } },
+  { sport: 'NFL', time: '8:15 PM', away: 'Atlanta', home: 'New York', codeAway: 'ATL', codeHome: 'NYJ', market: 'NYJ -1.5 · -115', clv: '+0.8%', tone: 'lime', move: 'toward New York', note: 'A steady move toward the model side.', analytics: { projection: 'New York', probability: '54%', score: 'ATL 20 — NYJ 24', total: '44 points', line: 'NYJ -1.5', movement: '1 pt', open: '-2.5', current: '-1.5', history: [46, 49, 48, 52, 54] } },
+  { sport: 'MLB', time: 'FINAL', away: 'Cubs', home: 'Brewers', codeAway: 'CHC', codeHome: 'MIL', market: 'MIL -1.5 · -115', clv: '+3.2%', tone: 'lime', move: 'toward Milwaukee', note: 'Closed on the model side. Final CLV confirmed.', analytics: { projection: 'Milwaukee', probability: '58%', score: 'CHC 3 — MIL 5', total: '8 runs', line: 'MIL -1.5', movement: '+20¢', open: '+105', current: '-115', history: [42, 46, 51, 55, 58] } },
+] as const;
+
+const tabs = [[CalendarDays, 'Games'], [Activity, 'Sharp'], [MessageCircle, 'Chat'], [UserRound, 'Profile']] as const;
+
+function initials(name: string) {
+  return name.split(' ').map((part) => part[0]).join('').slice(0, 2);
+}
+
+function MiniChart({ values, tone }: { values: readonly number[]; tone: string }) {
+  const points = values.map((value, index) => `${index * 25},${34 - ((value - 35) / 35) * 26}`).join(' ');
+  return <div className="relative h-12 w-full overflow-hidden rounded border border-[#242827] bg-[#101312]">
+    <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-[#242827]" />
+    <svg viewBox="0 0 100 38" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+      <polyline points={points} fill="none" stroke={tone === 'lime' ? '#b6f23b' : '#f4b45d'} strokeWidth="1.8" vectorEffect="non-scaling-stroke" />
+    </svg>
+    <span className="absolute bottom-1 left-2 tbm-mono text-[7px] text-zinc-600">OPEN</span><span className="absolute bottom-1 right-2 tbm-mono text-[7px] text-zinc-600">NOW</span>
+  </div>;
+}
+
+export function SharpAnalyticsDrawer() {
+  const [sport, setSport] = useState<Sport>('ALL');
+  const [selected, setSelected] = useState<Game | null>(games[0]);
+  const [info, setInfo] = useState(false);
+  const [activeTab, setActiveTab] = useState('Sharp');
+  const visible = useMemo(() => games.filter((game) => sport === 'ALL' || game.sport === sport), [sport]);
+  return <main className="tbm-phone relative h-[100dvh] overflow-hidden bg-[#090b0b] text-white">
+    <div className="tbm-tab-safe px-4 pb-[104px] pt-8">
+      <header className="flex items-center justify-between">
+        <div><p className="text-[17px] font-extrabold tracking-[-.7px]">TBM <span className="text-zinc-600">/</span> ANALYTICS</p><p className="tbm-mono mt-1 text-[9px] uppercase tracking-[1.2px] text-zinc-600">TUE, SEP 15 · MARKET DESK</p></div>
+        <button type="button" aria-label="Refresh market movement" onClick={() => setSelected(null)} className="rounded border border-[#242827] p-2 text-zinc-500 hover:text-lime-400"><RefreshCw size={14} /></button>
+      </header>
+      <section className="mt-5 border-b pb-4 tbm-hairline">
+        <div className="flex items-start justify-between"><div><p className="tbm-mono text-[10px] font-medium tracking-[1.5px] text-lime-400">MARKET INTELLIGENCE</p><h1 className="mt-1 text-[21px] font-bold tracking-[-.8px]">Sharp Movement &amp; CLV</h1></div><button type="button" aria-label="About CLV" onClick={() => setInfo(!info)} className="rounded border border-[#242827] p-1.5 text-zinc-500"><CircleHelp size={14} /></button></div>
+        <p className="mt-2 text-[11px] leading-4 text-zinc-500">A clearer read on where the market is moving — and whether TBM got there first.</p>
+      </section>
+      {info && <div className="mt-3 flex gap-2 rounded border border-lime-900/60 bg-[#121a15] p-3 text-[10px] leading-4 text-zinc-400"><Info size={14} className="shrink-0 text-lime-400" /><p><b className="text-lime-400">CLV</b> measures the price TBM captured against the closing market. Tap any game for the full projection, probability, and market trail.</p></div>}
+      <section className="mt-4 rounded border tbm-hairline bg-[#0e1010] px-3 py-2.5"><p className="tbm-mono text-[9px] tracking-[1.4px] text-zinc-600">MARKET PULSE</p><div className="mt-2 grid grid-cols-3 divide-x divide-[#242827]"><div><p className="tbm-mono text-[15px]">4</p><p className="text-[8px] font-bold tracking-[.8px] text-zinc-600">TRACKED</p></div><div className="pl-3"><p className="tbm-mono text-[15px]">4</p><p className="text-[8px] font-bold tracking-[.8px] text-zinc-600">WITH MODEL</p></div><div className="pl-3"><p className="tbm-mono text-[15px] text-lime-400">3</p><p className="text-[8px] font-bold tracking-[.8px] text-zinc-600">POSITIVE CLV</p></div></div></section>
+      <div className="mt-3 flex gap-1.5 overflow-x-auto" role="tablist">{(['ALL', 'MLB', 'SOCCER', 'NFL'] as Sport[]).map((item) => <button key={item} type="button" role="tab" aria-selected={item === sport} onClick={() => setSport(item)} className={`shrink-0 rounded px-2.5 py-1.5 text-[9px] font-bold tracking-[.8px] ${item === sport ? 'bg-lime-400 text-black' : 'border border-[#242827] text-zinc-500'}`}>{item === 'ALL' ? 'ALL MOVES' : item}</button>)}</div>
+      <div className="mt-4 flex items-center justify-between"><p className="tbm-mono text-[9px] tracking-[1.2px] text-zinc-500">TODAY&apos;S MOVEMENT</p><p className="text-[9px] text-zinc-700">Updated 2m ago</p></div>
+      <div className="mt-2 space-y-2">{visible.map((game) => <button key={game.away} type="button" onClick={() => setSelected(game)} className="tbm-card block w-full rounded p-3 text-left">
+        <div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="tbm-mono text-[9px] text-zinc-600">{game.sport}</span><span className="h-1 w-1 rounded-full bg-zinc-700" /><span className="tbm-mono text-[9px] text-zinc-600">{game.time}</span></div><span className={`rounded px-1.5 py-1 text-[8px] font-bold ${game.tone === 'lime' ? 'bg-lime-400/10 text-lime-400' : 'bg-amber-400/10 text-amber-400'}`}>{game.clv.startsWith('+') ? 'POSITIVE' : 'NEGATIVE'}</span></div>
+        <div className="mt-3 grid grid-cols-[1fr_20px_1fr] items-center gap-2"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded bg-[#202523] text-[10px] font-bold text-zinc-300">{initials(game.away)}</span><span className="truncate text-[14px] font-bold">{game.away}</span></div><span className="text-center text-[10px] font-bold text-zinc-700">@</span><div className="flex items-center justify-end gap-2"><span className="truncate text-right text-[14px] font-bold">{game.home}</span><span className="flex h-8 w-8 items-center justify-center rounded bg-[#202523] text-[10px] font-bold text-zinc-300">{initials(game.home)}</span></div></div>
+        <div className="mt-3 border-t pt-2.5 tbm-hairline"><div className="flex items-center justify-between"><span className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">MARKET DIRECTION</span><span className={`text-[10px] font-bold uppercase ${game.tone === 'lime' ? 'text-lime-400' : 'text-amber-400'}`}>{game.move}</span></div><div className="mt-2 flex items-end justify-between"><div><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">CLV</p><p className={`tbm-mono mt-0.5 text-[22px] leading-none ${game.tone === 'lime' ? 'text-lime-400' : 'text-amber-400'}`}>{game.clv}</p></div><div className="text-right"><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">MARKET</p><p className="mt-1 text-[10px] font-semibold text-zinc-300">{game.market}</p></div></div></div><p className="mt-2 text-[10px] leading-4 text-zinc-500">{game.note}</p><div className="mt-2 flex items-center justify-end gap-1 text-[8px] font-bold tracking-[.8px] text-zinc-600">VIEW FULL ANALYTICS <ChevronRight size={12} /></div>
+      </button>)}</div>
+    </div>
+    <nav className="absolute inset-x-0 bottom-0 flex h-[76px] items-center justify-around border-t border-[#202322] bg-[#090a0a] pb-2">{tabs.map(([Icon, label]) => { const active = label === activeTab; return <button key={label} type="button" onClick={() => setActiveTab(label)} className={`flex flex-col items-center gap-1 text-[10px] ${active ? 'text-lime-400' : 'text-zinc-600'}`}><Icon size={19} strokeWidth={active ? 2.4 : 1.8} /><span>{label}</span></button>; })}</nav>
+    {selected && <div className="absolute inset-0 z-20 bg-[#090b0b]/80 backdrop-blur-[2px]" onClick={() => setSelected(null)}><aside className="absolute inset-x-0 bottom-0 rounded-t-[18px] border-t border-[#344238] bg-[#111514] px-4 pb-8 pt-3 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+      <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-700" /><div className="flex items-start justify-between"><div><p className="tbm-mono text-[9px] tracking-[1.4px] text-lime-400">{selected.sport} · {selected.time}</p><h2 className="mt-1 text-[19px] font-bold">{selected.away} <span className="text-zinc-600">@</span> {selected.home}</h2></div><button type="button" aria-label="Close analytics" onClick={() => setSelected(null)} className="rounded border border-[#2b3430] p-1.5 text-zinc-400"><X size={16} /></button></div>
+      <div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded border border-[#2b3430] bg-[#0d1110] p-3"><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">PROJECTED SCORE</p><p className="mt-2 text-[15px] font-bold">{selected.analytics.score}</p><p className="mt-1 text-[9px] text-zinc-500">TBM model output</p></div><div className="rounded border border-[#2b3430] bg-[#0d1110] p-3"><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">WIN PROBABILITY</p><p className="mt-2 text-[26px] font-medium text-lime-400">{selected.analytics.probability}</p><p className="mt-1 text-[9px] text-zinc-500">{selected.analytics.projection} favored</p></div><div className="rounded border border-[#2b3430] bg-[#0d1110] p-3"><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">PROJECTED TOTAL</p><p className="mt-2 text-[20px] font-bold">{selected.analytics.total}</p><p className="mt-1 text-[9px] text-zinc-500">Expected scoring</p></div><div className="rounded border border-[#2b3430] bg-[#0d1110] p-3"><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">MODEL LINE</p><p className="mt-2 text-[20px] font-bold">{selected.analytics.line}</p><p className="mt-1 text-[9px] text-zinc-500">Current {selected.analytics.current}</p></div></div>
+      <div className="mt-4 rounded border border-[#2b3430] bg-[#0d1110] p-3"><div className="flex items-center justify-between"><div><p className="tbm-mono text-[8px] tracking-[1px] text-zinc-600">WIN PROBABILITY · MARKET HISTORY</p><p className="mt-1 text-[10px] text-zinc-400">Open {selected.analytics.open} <span className="mx-1 text-zinc-700">→</span> Now {selected.analytics.current}</p></div><span className={`flex items-center gap-1 text-[10px] font-bold ${selected.tone === 'lime' ? 'text-lime-400' : 'text-amber-400'}`}>{selected.analytics.movement}{selected.tone === 'lime' ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}</span></div><div className="mt-3"><MiniChart values={selected.analytics.history} tone={selected.tone} /></div><div className="mt-3 flex items-center justify-between text-[9px] text-zinc-600"><span className="flex items-center gap-1"><Clock3 size={11} /> Last 6 hours</span><span className="flex items-center gap-1"><BarChart3 size={11} /> 5 snapshots</span></div></div>
+      <div className="mt-3 flex items-center justify-between border-t border-[#2b3430] pt-3"><span className="text-[10px] text-zinc-500">Market direction</span><span className="text-[11px] font-bold text-lime-400">{selected.move}</span></div>
+    </aside></div>}
+  </main>;
+}
