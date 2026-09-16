@@ -21,8 +21,7 @@ import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
-import { GameCard } from '@/components/GameCard';
-import { mapApiGame } from '@/utils/gameAdapter';
+import { FreeGameProjectionCard } from '@/components/FreeGameProjectionCard';
 import { fixtureMatchesTeamSearch } from '@/utils/matchupSearch';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
@@ -167,11 +166,15 @@ export default function PicksScreen() {
     return (
       <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
         <View style={styles.header}><Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text><Text style={[styles.sub, { color: colors.mutedForeground }]}>RESEARCH DESK</Text></View>
-        <SportFilter gameCounts={{}} />
+        <SportFilter
+          gameCounts={{}}
+          restrictIndividualSports
+          onRestrictedPress={() => router.push('/membership')}
+        />
         {freeGamesQuery.isLoading ? <ActivityIndicator color={colors.primary} /> : freeGames.map((game) => (
-          <GameCard key={game.id} game={mapApiGame(game)} />
+          <FreeGameProjectionCard key={game.id} game={game} slateDate={slateDate} />
         ))}
-        <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={Math.max(0, (freeGamesQuery.data?.totalGames ?? 0) - freeGames.length)} />
+        <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
         <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>Free members can open up to two games each day. Upgrade to Pro for every V4 projection.</Text>
       </View>
     );

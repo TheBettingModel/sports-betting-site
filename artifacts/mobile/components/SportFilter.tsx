@@ -7,9 +7,11 @@ import { useSports, SPORTS } from '@/context/SportsContext';
 interface SportFilterProps {
   /** Total game count per sport key. Positive counts are shown as badges. */
   gameCounts?: Record<string, number>;
+  restrictIndividualSports?: boolean;
+  onRestrictedPress?: () => void;
 }
 
-export function SportFilter({ gameCounts }: SportFilterProps) {
+export function SportFilter({ gameCounts, restrictIndividualSports = false, onRestrictedPress }: SportFilterProps) {
   const colors = useColors();
   const { selectedSport, setSelectedSport } = useSports();
 
@@ -33,6 +35,10 @@ export function SportFilter({ gameCounts }: SportFilterProps) {
             key={sport}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (restrictIndividualSports && sport !== 'All') {
+                onRestrictedPress?.();
+                return;
+              }
               setSelectedSport(sport as typeof selectedSport);
             }}
             style={[

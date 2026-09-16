@@ -214,7 +214,7 @@ const picksSource = fs.readFileSync(new URL('../app/(tabs)/picks.tsx', import.me
 assert.match(picksSource, /useGetGamesToday/);
 assert.match(picksSource, /freeGames/);
 assert.match(picksSource, /Free members can open up to two games each day/);
-assert.match(picksSource, /mapApiGame/);
+assert.match(picksSource, /FreeGameProjectionCard/);
 assert.doesNotMatch(picksSource, /getForecast/);
 assert.match(picksSource, /hasServerEntitlement/);
 assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
@@ -258,6 +258,10 @@ assert.match(liveTabSource, /enabled: Boolean\(userId\) && hasServerEntitlement/
 assert.doesNotMatch(liveTabSource, /V4LiveGamesBanner/);
 assert.doesNotMatch(liveTabSource, /MODEL LINE/);
 
+const chatSource = fs.readFileSync(new URL('../app/(tabs)/chat.tsx', import.meta.url), 'utf8');
+assert.match(chatSource, /enabled: !!userId && hasServerEntitlement/);
+assert.match(chatSource, /hasServerEntitlement && accessLoading/);
+
 const tabLayoutSource = fs.readFileSync(new URL('../app/(tabs)/_layout.tsx', import.meta.url), 'utf8');
 assert.match(tabLayoutSource, /name="live"/);
 assert.match(tabLayoutSource, /title: 'Analytics'/);
@@ -283,6 +287,10 @@ assert.match(subscriptionSource, /refetchInterval: \(query\) => query\.state\.st
 
 const sportFilterSource = fs.readFileSync(new URL('../components/SportFilter.tsx', import.meta.url), 'utf8');
 assert.match(sportFilterSource, /scroller: \{ flexGrow: 0 \}/);
+assert.match(sportFilterSource, /restrictIndividualSports && sport !== 'All'/);
+const freeGameCardSource = fs.readFileSync(new URL('../components/FreeGameProjectionCard.tsx', import.meta.url), 'utf8');
+assert.match(freeGameCardSource, /PROJECTED/);
+assert.doesNotMatch(freeGameCardSource, /Strong Buy|Buy|units|record/i);
 
 const gameDetailSource = fs.readFileSync(new URL('../app/game/[gameId].tsx', import.meta.url), 'utf8');
 assert.match(gameDetailSource, /value == null/);
@@ -296,6 +304,8 @@ assert.doesNotMatch(gameDetailSource, /Unit/);
 assert.doesNotMatch(gameDetailSource, /OFFICIAL TBM PLAY/);
 assert.match(gameDetailSource, /Pitcher Matchup/);
 assert.match(gameDetailSource, /fullWidth/);
+assert.match(gameDetailSource, /freeGamesQuery/);
+assert.match(gameDetailSource, /freeGames\?\.find/);
 
 const officialCardSource = fs.readFileSync(new URL('../components/V4OfficialPickCard.tsx', import.meta.url), 'utf8');
 assert.match(officialCardSource, /TBM PLAY/);

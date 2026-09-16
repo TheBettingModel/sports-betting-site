@@ -49,7 +49,7 @@ export default function ChatScreen() {
   const { data: access, isLoading: accessLoading } = useGetChatAccess({
     query: {
       queryKey: scopedAccessKey,
-      enabled: !!userId,
+      enabled: !!userId && hasServerEntitlement,
     }
   });
 
@@ -65,7 +65,6 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!userId || !hasServerEntitlement || access?.canRead === false) {
       queryClient.removeQueries({ queryKey: getGetChatMessagesQueryKey() });
-      queryClient.removeQueries({ queryKey: getGetChatAccessQueryKey() });
     }
   }, [userId, hasServerEntitlement, access?.canRead, queryClient]);
 
@@ -120,7 +119,7 @@ export default function ChatScreen() {
     });
   }, [access, updatePrefs, queryClient, scopedAccessKey]);
 
-  if (accessLoading) {
+  if (hasServerEntitlement && accessLoading) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 100 }} />
