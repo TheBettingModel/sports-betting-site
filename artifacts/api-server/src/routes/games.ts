@@ -39,6 +39,10 @@ import { runGrading, syncGameResults, recoverStaleGames } from "../services/grad
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
+import {
+  retainComparableHistory,
+  type MarketAnalyticsHistoryPoint,
+} from "../services/marketAnalyticsHistory";
 import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
 import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
 import {
@@ -241,13 +245,6 @@ function isStale(): boolean {
   return Date.now() - lastRefreshedAt.getTime() > STALE_MS;
 }
 
-type MarketHistoryPoint = {
-  selection: string;
-  price: number;
-  capturedAt: string;
-  sportsbook: string | null;
-};
-
 /**
  * GET /api/games/market-analytics
  *
@@ -310,12 +307,12 @@ router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToke
     .orderBy(asc(oddsSnapshotsTable.capturedAt));
 
   const byGame = new Map<string, {
-    marketHistory: MarketHistoryPoint[];
-    sharpMoneyHistory: MarketHistoryPoint[];
+    marketHistory: MarketAnalyticsHistoryPoint[];
+    sharpMoneyHistory: MarketAnalyticsHistoryPoint[];
   }>();
   for (const row of rows) {
     const entry = byGame.get(row.gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
-    const point: MarketHistoryPoint = {
+    const point: MarketAnalyticsHistoryPoint = {
       selection: row.selection,
       price: row.price,
       capturedAt: row.capturedAt.toISOString(),
@@ -331,8 +328,8 @@ router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToke
       const history = byGame.get(gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
       return {
         gameId,
-        marketHistory: history.marketHistory.slice(-24),
-        sharpMoneyHistory: history.sharpMoneyHistory.slice(-24),
+        marketHistory: retainComparableHistory(history.marketHistory),
+        sharpMoneyHistory: retainComparableHistory(history.sharpMoneyHistory),
       };
     }),
   });
