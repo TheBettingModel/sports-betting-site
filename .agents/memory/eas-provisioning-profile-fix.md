@@ -45,6 +45,8 @@ curl -X POST https://api.expo.dev/graphql \
 
 4. **Fire the build** — EAS will create a brand-new profile that includes all current App ID capabilities.
 
+5. **For non-interactive auto-submit**, keep `appleId`, `ascAppId`, and `appleTeamId` in the iOS production submit profile. The stored ASC key's team association alone is not enough for EAS CLI to schedule submission without prompting.
+
 ## Things that do NOT work
 - `eas build --clear-credentials` — flag does not exist in current EAS CLI
 - `autoCredentials: true` in eas.json — not a valid field, causes validation error
