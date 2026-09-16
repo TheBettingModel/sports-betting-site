@@ -63,6 +63,7 @@ import {
   rejectInvalidToken,
   _setLocalJwksForTest,
   isOwnerAccount,
+  isAppReviewAccount,
   ownerDisplayName,
 } from "./requireSubscriber";
 
@@ -77,6 +78,16 @@ describe("owner identity", () => {
     expect(ownerDisplayName("user_3GmXMcCGzqs1c5aD1snP08e7Frx")).toBe("TBM");
     expect(ownerDisplayName("user_3GyCCHwnYB9sIByophLiunxGtMf")).toBe("TBM");
     expect(ownerDisplayName("ordinary-user")).toBe("Owner");
+  });
+});
+
+describe("App Review identity", () => {
+  it("recognizes only exact valid Clerk IDs from the server environment", () => {
+    process.env["APP_REVIEW_USER_IDS"] = " user_review123,not-a-clerk-id,user_other456 ";
+    expect(isAppReviewAccount("user_review123")).toBe(true);
+    expect(isAppReviewAccount("user_other456")).toBe(true);
+    expect(isAppReviewAccount("user_review")).toBe(false);
+    expect(isAppReviewAccount("not-a-clerk-id")).toBe(false);
   });
 });
 
@@ -128,6 +139,7 @@ beforeEach(() => {
   _setLocalJwksForTest(mockCreateRemoteJWKSet());
   // Default: DB returns no subscriber row
   mockDb([]);
+  delete process.env["APP_REVIEW_USER_IDS"];
 });
 
 describe("resolveSubscriberStatus", () => {
@@ -216,6 +228,39 @@ describe("resolveSubscriberStatus", () => {
       userId: "user_new",
       isSubscribed: false,
       tokenRejected: false,
+    });
+  });
+
+  it("grants a configured App Review Clerk subject subscriber access without owner privileges", async () => {
+    process.env["APP_REVIEW_USER_IDS"] = "user_appreview123";
+    mockJwtVerify.mockResolvedValue({ payload: { sub: "user_appreview123" } });
+
+    const res = await request(buildApp())
+      .get("/test")
+      .set("Authorization", "Bearer valid.jwt.token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      userId: "user_appreview123",
+      isSubscribed: true,
+      isOwner: false,
+      tokenRejected: false,
+    });
+    expect(mockDbSelect).not.toHaveBeenCalled();
+  });
+
+  it("does not grant review access when the Clerk subject is not allowlisted", async () => {
+    process.env["APP_REVIEW_USER_IDS"] = "user_appreview123";
+    mockJwtVerify.mockResolvedValue({ payload: { sub: "user_someoneelse" } });
+
+    const res = await request(buildApp())
+      .get("/test")
+      .set("Authorization", "Bearer valid.jwt.token");
+
+    expect(res.body).toMatchObject({
+      userId: "user_someoneelse",
+      isSubscribed: false,
+      isOwner: false,
     });
   });
 });

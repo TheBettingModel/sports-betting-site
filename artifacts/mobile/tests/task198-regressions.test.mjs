@@ -263,6 +263,13 @@ assert.match(tabLayoutSource, /href: null/);
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
 assert.equal(appConfig.expo.ios.buildNumber, '33');
 
+const signInSource = fs.readFileSync(new URL('../app/(auth)/sign-in.tsx', import.meta.url), 'utf8');
+assert.match(signInSource, /App Review access/);
+assert.match(signInSource, /signIn\.password/);
+assert.match(signInSource, /emailAddress: email\.trim\(\)/);
+assert.match(signInSource, /secureTextEntry/);
+assert.match(signInSource, /testID="review-sign-in"/);
+
 const subscriptionSource = fs.readFileSync(new URL('../lib/revenuecat.tsx', import.meta.url), 'utf8');
 assert.match(subscriptionSource, /const getTokenRef = useRef\(getToken\)/);
 assert.match(subscriptionSource, /getTokenRef\.current\(\{ skipCache \}\)/);

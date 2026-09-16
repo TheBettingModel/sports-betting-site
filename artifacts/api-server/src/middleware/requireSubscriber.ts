@@ -56,6 +56,21 @@ export function isOwnerAccount(userId: string | null | undefined): boolean {
   return !!userId && OWNER_USER_IDS.has(userId);
 }
 
+/**
+ * App Review access is server-controlled and keyed only by immutable Clerk IDs.
+ * Never put reviewer emails, passwords, or this allowlist in the mobile bundle.
+ */
+export function isAppReviewAccount(userId: string | null | undefined): boolean {
+  if (!userId) return false;
+  const configuredIds = process.env["APP_REVIEW_USER_IDS"];
+  if (!configuredIds) return false;
+  return configuredIds
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => /^user_[A-Za-z0-9]+$/.test(value))
+    .includes(userId);
+}
+
 export function ownerDisplayName(userId: string): string {
   if (isOwnerAccount(userId)) return "TBM";
   return "Owner";
@@ -226,10 +241,14 @@ export async function resolveSubscriberStatus(
     tokenRejected = result.rejected;
 
     if (userId) {
-      // Owner accounts always have Pro access — no DB lookup needed.
+      // Owner and explicitly configured App Review accounts receive Pro access
+      // without relying on a client-side flag or RevenueCat purchase.
       if (isOwnerAccount(userId)) {
         isSubscribed = true;
         isOwner = true;
+      } else if (isAppReviewAccount(userId)) {
+        isSubscribed = true;
+        logger.info({ userId }, "App Review account granted subscriber access");
       } else {
         try {
           const [row] = await db

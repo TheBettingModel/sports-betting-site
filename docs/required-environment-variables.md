@@ -23,6 +23,7 @@ No values belong in this document.
 - `PUBLICATION_ENABLED`
 - `MLB_MODEL_MODE`
 - `NCAAF_MODEL_MODE`
+- `APP_REVIEW_USER_IDS` (optional, server-only comma-separated Clerk user IDs)
 
 ## Admin
 

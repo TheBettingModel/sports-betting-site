@@ -3,6 +3,7 @@
  *
  * Supported strategies (from Clerk environment):
  *   • Email OTP  — sendCode → verifyCode → finalize
+ *   • Password   — password → finalize
  *   • Google SSO — startSSOFlow → setActive
  */
 import React, { useCallback, useEffect, useState } from 'react';
@@ -41,7 +42,7 @@ const C = {
   muted: '#6B7280', error: '#EF4444', inputBg: '#1A1A1A',
 };
 
-type Stage = 'email' | 'code';
+type Stage = 'email' | 'code' | 'password';
 
 export default function SignInScreen() {
   useWarmUpBrowser();
@@ -53,6 +54,7 @@ export default function SignInScreen() {
 
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
   const [stage, setStage] = useState<Stage>('email');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,6 +108,39 @@ export default function SignInScreen() {
       router.replace('/(tabs)');
     } catch (err: any) {
       setErrorMsg(err?.message ?? 'Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── App Review / password sign-in ─────────────────────────────────────────
+  const handlePasswordSignIn = async () => {
+    if (!signIn || !email.trim() || !password) return;
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const { error } = await signIn.password({
+        emailAddress: email.trim(),
+        password,
+      });
+      if (error) {
+        setErrorMsg(error.longMessage ?? error.message ?? 'Invalid email or password.');
+        return;
+      }
+      const { error: finalizeError } = await signIn.finalize();
+      if (finalizeError) {
+        setErrorMsg(finalizeError.longMessage ?? finalizeError.message ?? 'Could not complete sign-in.');
+        return;
+      }
+      setPassword('');
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      setErrorMsg(
+        err?.errors?.[0]?.longMessage
+        ?? err?.errors?.[0]?.message
+        ?? err?.message
+        ?? 'Password sign-in failed. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -270,6 +305,71 @@ export default function SignInScreen() {
     );
   }
 
+  if (stage === 'password') {
+    return (
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+          <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
+          <Text style={s.title}>App Review access</Text>
+          <Text style={s.sub}>Use the review credentials provided in App Store Connect.</Text>
+
+          {errorMsg && <ErrBanner msg={errorMsg} />}
+
+          <Text style={s.label}>Email address</Text>
+          <TextInput
+            testID="review-email"
+            style={s.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="review@example.com"
+            placeholderTextColor={C.muted}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            returnKeyType="next"
+          />
+
+          <Text style={s.label}>Password</Text>
+          <TextInput
+            testID="review-password"
+            style={s.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            placeholderTextColor={C.muted}
+            autoCapitalize="none"
+            autoComplete="current-password"
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handlePasswordSignIn}
+          />
+
+          <Pressable
+            testID="review-sign-in"
+            style={[s.btn, (!email.trim() || !password || loading) && s.off]}
+            onPress={handlePasswordSignIn}
+            disabled={!email.trim() || !password || loading}
+          >
+            {loading
+              ? <ActivityIndicator size="small" color={C.primaryFg} />
+              : <Text style={s.btnTxt}>Sign In</Text>}
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              setStage('email');
+              setPassword('');
+              setErrorMsg(null);
+            }}
+            style={s.link}
+          >
+            <Text style={s.linkTxt}>← Back to regular sign in</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
   // ── Email screen ──────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.root}>
@@ -327,6 +427,19 @@ export default function SignInScreen() {
           {loading
             ? <ActivityIndicator size="small" color={C.primaryFg} />
             : <Text style={s.btnTxt}>{cooldown > 0 ? `Wait ${cooldown}s` : 'Send Code'}</Text>}
+        </Pressable>
+
+        <Pressable
+          testID="open-review-sign-in"
+          onPress={() => {
+            setStage('password');
+            setErrorMsg(null);
+          }}
+          disabled={loading || ssoLoading || appleLoading}
+          style={s.reviewLink}
+        >
+          <Feather name="key" size={14} color={C.muted} />
+          <Text style={s.linkTxt}>App Review access</Text>
         </Pressable>
 
         <View style={s.footer}>
@@ -400,4 +513,8 @@ const s = StyleSheet.create({
   footerLink: { color: C.primary, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   link: { paddingVertical: 10, alignItems: 'center' },
   linkTxt: { color: C.muted, fontSize: 14, fontFamily: 'Inter_400Regular' },
+  reviewLink: {
+    minHeight: 44, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 7, marginTop: -4, marginBottom: 8,
+  },
 });
