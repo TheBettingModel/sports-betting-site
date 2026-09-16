@@ -21,8 +21,8 @@ CLV direction requires a same-book market price captured at or before the foreca
 
 **How to apply:** Never substitute unrelated books, inferred opening prices, or mutable post-start data. Missing comparison evidence must fail closed.
 
-Analytics response limits must preserve the newest comparable pair per sportsbook and selection rather than taking a global tail across all observations.
+Analytics response limits must preserve the day's first observation plus the newest comparable pair per sportsbook and selection rather than taking a global tail.
 
-**Why:** On broad markets, a global tail can contain one latest quote from many books and discard every prior same-book quote, making real history appear unavailable.
+**Why:** On broad markets, a global tail can discard every prior same-book quote. Keeping only the newest pair can also hide a real daily move when both latest prices match.
 
-**How to apply:** Compact each sportsbook/selection group independently, then merge and sort the retained pairs for the client.
+**How to apply:** Compact each sportsbook/selection group independently to first + latest two, then merge and sort the retained observations for the client.

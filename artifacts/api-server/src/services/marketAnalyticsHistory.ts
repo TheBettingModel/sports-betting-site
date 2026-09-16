@@ -6,10 +6,12 @@ export type MarketAnalyticsHistoryPoint = {
 };
 
 /**
- * Keep the newest comparable pair for every sportsbook and selection.
+ * Keep the day's first observation and newest comparable pair for every
+ * sportsbook and selection.
  *
  * A global tail can discard the earlier member of each pair when many books
- * update at once, leaving the client unable to calculate any movement.
+ * update at once. Keeping only the newest pair can also hide a real daily move
+ * when the last two provider updates happen to carry the same price.
  */
 export function retainComparableHistory(
   points: MarketAnalyticsHistoryPoint[],
@@ -25,6 +27,9 @@ export function retainComparableHistory(
   }
 
   return [...byBookAndSelection.values()]
-    .flatMap((group) => group.slice(-2))
+    .flatMap((group) => {
+      if (group.length <= 3) return group;
+      return [group[0]!, ...group.slice(-2)];
+    })
     .sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
 }
