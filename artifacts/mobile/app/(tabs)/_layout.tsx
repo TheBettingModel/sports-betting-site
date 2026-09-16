@@ -64,12 +64,12 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="live"
         options={{
-          title: 'Live',
+          title: 'Analytics',
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="dot.radiowaves.left.and.right" tintColor={color} size={22} />
+              <SymbolView name="chart.xyaxis.line" tintColor={color} size={22} />
             ) : (
-              <Feather name="activity" size={22} color={color} />
+              <Feather name="trending-up" size={22} color={color} />
             ),
         }}
       />

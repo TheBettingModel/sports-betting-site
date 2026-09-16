@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
+import { eq, and, asc, desc, inArray, notInArray, sql } from "drizzle-orm";
 import {
   db, gamesTable, modelPredictionsTable, modelVersionsTable, modelWeightsTable,
-  officialPredictionIdentityTable, publishedPicksTable,
+  officialPredictionIdentityTable, publishedPicksTable, oddsSnapshotsTable,
+  marketsTable, sportsbooksTable,
 } from "@workspace/db";
 import { getDailyFreePick } from "../services/freePick";
 import { lockGame } from "../services/gameAccess";
@@ -239,6 +240,103 @@ function isStale(): boolean {
   if (!lastRefreshedAt) return true;
   return Date.now() - lastRefreshedAt.getTime() > STALE_MS;
 }
+
+type MarketHistoryPoint = {
+  selection: string;
+  price: number;
+  capturedAt: string;
+  sportsbook: string | null;
+};
+
+/**
+ * GET /api/games/market-analytics
+ *
+ * Subscriber-only, evidence-safe moneyline history for the Analytics tab.
+ * Sharp-book history is separated using the canonical sportsbook flag; the
+ * client must show unavailable when fewer than two comparable observations
+ * exist instead of inferring sharp action from ordinary market movement.
+ */
+router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
+  res.set("Cache-Control", "private, no-store");
+  res.set("Vary", "Authorization");
+
+  if (!req.subscriberStatus?.userId) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+  if (!req.subscriberStatus.isSubscribed && !req.subscriberStatus.isOwner) {
+    res.status(403).json({ message: "Active subscription required" });
+    return;
+  }
+
+  const requestedDate = typeof req.query["date"] === "string" ? req.query["date"] : null;
+  const date = requestedDate ?? new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    res.status(400).json({ message: "date must be YYYY-MM-DD" });
+    return;
+  }
+
+  const games = await db.select({ id: gamesTable.id })
+    .from(gamesTable)
+    .where(eq(gamesTable.gameDate, date));
+  const gameIds = games.map((game) => game.id);
+  if (gameIds.length === 0) {
+    res.json({ date, games: [] });
+    return;
+  }
+
+  const rows = await db.select({
+    gameId: oddsSnapshotsTable.gameId,
+    selection: oddsSnapshotsTable.selection,
+    price: oddsSnapshotsTable.price,
+    capturedAt: oddsSnapshotsTable.capturedAt,
+    sportsbook: sportsbooksTable.name,
+    isSharp: sportsbooksTable.isSharp,
+  })
+    .from(oddsSnapshotsTable)
+    .innerJoin(marketsTable, eq(oddsSnapshotsTable.marketId, marketsTable.id))
+    .leftJoin(sportsbooksTable, eq(oddsSnapshotsTable.sportsbookId, sportsbooksTable.id))
+    .where(and(
+      inArray(oddsSnapshotsTable.gameId, gameIds),
+      eq(marketsTable.slug, "moneyline"),
+      eq(oddsSnapshotsTable.isAvailable, true),
+      eq(oddsSnapshotsTable.isStale, false),
+    ))
+    .orderBy(asc(oddsSnapshotsTable.capturedAt));
+
+  const byGame = new Map<string, {
+    marketHistory: MarketHistoryPoint[];
+    sharpMoneyHistory: MarketHistoryPoint[];
+  }>();
+  for (const row of rows) {
+    const entry = byGame.get(row.gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
+    const point: MarketHistoryPoint = {
+      selection: row.selection,
+      price: row.price,
+      capturedAt: row.capturedAt.toISOString(),
+      sportsbook: row.sportsbook,
+    };
+    (row.isSharp === true ? entry.sharpMoneyHistory : entry.marketHistory).push(point);
+    byGame.set(row.gameId, entry);
+  }
+
+  res.json({
+    date,
+    games: gameIds.map((gameId) => {
+      const history = byGame.get(gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
+      return {
+        gameId,
+        marketHistory: history.marketHistory.slice(-24),
+        sharpMoneyHistory: history.sharpMoneyHistory.slice(-24),
+      };
+    }),
+  });
+});
 
 /** Convert American moneyline to raw implied probability (vig-inclusive). */
 function impliedProbFromOdds(american: number): number {

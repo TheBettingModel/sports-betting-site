@@ -236,14 +236,19 @@ assert.match(liveGamesSource, /homeScore/);
 assert.match(liveGamesSource, /TeamLogo/);
 
 const liveTabSource = fs.readFileSync(new URL('../app/(tabs)/live.tsx', import.meta.url), 'utf8');
-assert.match(liveTabSource, /fixture\.eventStatus === 'LIVE'/);
-assert.match(liveTabSource, /V4LiveGamesBanner/);
-assert.match(liveTabSource, /No games are live right now/);
-assert.match(liveTabSource, /5 \* 60 \* 1000/);
+assert.match(liveTabSource, /useGetGamesMarketAnalytics/);
+assert.match(liveTabSource, /SHARP MONEY DIRECTION/);
+assert.match(liveTabSource, /CLV DIRECTION/);
+assert.match(liveTabSource, /TBM model output · not a betting line/);
+assert.match(liveTabSource, /Verified sharp-book history has not arrived/);
+assert.match(liveTabSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
+assert.doesNotMatch(liveTabSource, /V4LiveGamesBanner/);
+assert.doesNotMatch(liveTabSource, /MODEL LINE/);
 
 const tabLayoutSource = fs.readFileSync(new URL('../app/(tabs)/_layout.tsx', import.meta.url), 'utf8');
 assert.match(tabLayoutSource, /name="live"/);
-assert.match(tabLayoutSource, /title: 'Live'/);
+assert.match(tabLayoutSource, /title: 'Analytics'/);
+assert.match(tabLayoutSource, /name="trending-up"/);
 assert.match(tabLayoutSource, /href: null/);
 
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));

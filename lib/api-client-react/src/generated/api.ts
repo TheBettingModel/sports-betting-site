@@ -28,6 +28,7 @@ import type {
   CreateAdminMarketApproval201,
   CreateChatMessageRequest,
   DeregisterPushTokenRequest,
+  GamesMarketAnalyticsResponse,
   GamesTodayResponse,
   GetAdminForecastMetrics200,
   GetAdminForecastMetricsParams,
@@ -41,6 +42,7 @@ import type {
   GetAdminPublicationDecisions200,
   GetAdminPublicationDecisionsParams,
   GetAdminSpreadModels200,
+  GetGamesMarketAnalyticsParams,
   GetGamesTodayParams,
   GetNcaafV4ProjectionsParams,
   GetResultsRoiParams,
@@ -498,6 +500,91 @@ export const useRefreshGames = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getRefreshGamesMutationOptions(options));
     }
+
+export const getGetGamesMarketAnalyticsUrl = (params?: GetGamesMarketAnalyticsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/games/market-analytics?${stringifiedParams}` : `/api/games/market-analytics`
+}
+
+/**
+ * Returns verified moneyline observations for one Eastern calendar date. Sharp-book observations are separated from ordinary market history and missing evidence is returned as an empty array.
+ * @summary Get subscriber market history for the Analytics tab
+ */
+export const getGamesMarketAnalytics = async (params?: GetGamesMarketAnalyticsParams, options?: RequestInit): Promise<GamesMarketAnalyticsResponse> => {
+
+  return customFetch<GamesMarketAnalyticsResponse>(getGetGamesMarketAnalyticsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGamesMarketAnalyticsQueryKey = (params?: GetGamesMarketAnalyticsParams,) => {
+    return [
+    `/api/games/market-analytics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGamesMarketAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError = ErrorType<void>>(params?: GetGamesMarketAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGamesMarketAnalyticsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGamesMarketAnalytics>>> = ({ signal }) => getGamesMarketAnalytics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGamesMarketAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getGamesMarketAnalytics>>>
+export type GetGamesMarketAnalyticsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get subscriber market history for the Analytics tab
+ */
+
+export function useGetGamesMarketAnalytics<TData = Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError = ErrorType<void>>(
+ params?: GetGamesMarketAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGamesMarketAnalyticsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetNcaafV4ProjectionsUrl = (params?: GetNcaafV4ProjectionsParams,) => {
   const normalizedParams = new URLSearchParams();

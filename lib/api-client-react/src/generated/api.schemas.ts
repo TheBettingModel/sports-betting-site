@@ -1326,6 +1326,34 @@ export interface GamesTodayResponse {
   freePick?: FreePick | null;
 }
 
+export type MarketHistoryPointSelection = typeof MarketHistoryPointSelection[keyof typeof MarketHistoryPointSelection];
+
+
+export const MarketHistoryPointSelection = {
+  home: 'home',
+  away: 'away',
+  draw: 'draw',
+} as const;
+
+export interface MarketHistoryPoint {
+  selection: MarketHistoryPointSelection;
+  price: number;
+  capturedAt: string;
+  /** @nullable */
+  sportsbook: string | null;
+}
+
+export type GamesMarketAnalyticsResponseGamesItem = {
+  gameId: string;
+  marketHistory: MarketHistoryPoint[];
+  sharpMoneyHistory: MarketHistoryPoint[];
+};
+
+export interface GamesMarketAnalyticsResponse {
+  date: string;
+  games: GamesMarketAnalyticsResponseGamesItem[];
+}
+
 export interface ChatAccess {
   canRead: boolean;
   canPost: boolean;
@@ -1630,6 +1658,13 @@ export interface UpdateUserPreferencesRequest {
 
 export type GetGamesTodayParams = {
 sport?: string;
+};
+
+export type GetGamesMarketAnalyticsParams = {
+/**
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date?: string;
 };
 
 export type GetNcaafV4ProjectionsParams = {

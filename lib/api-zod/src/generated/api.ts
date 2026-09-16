@@ -209,6 +209,37 @@ export const RefreshGamesResponse = zod.object({
 
 
 /**
+ * Returns verified moneyline observations for one Eastern calendar date. Sharp-book observations are separated from ordinary market history and missing evidence is returned as an empty array.
+ * @summary Get subscriber market history for the Analytics tab
+ */
+export const getGamesMarketAnalyticsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetGamesMarketAnalyticsQueryParams = zod.object({
+  "date": zod.coerce.string().regex(getGamesMarketAnalyticsQueryDateRegExp).optional()
+})
+
+export const GetGamesMarketAnalyticsResponse = zod.object({
+  "date": zod.string(),
+  "games": zod.array(zod.object({
+  "gameId": zod.string(),
+  "marketHistory": zod.array(zod.object({
+  "selection": zod.enum(['home', 'away', 'draw']),
+  "price": zod.number(),
+  "capturedAt": zod.string(),
+  "sportsbook": zod.string().nullable()
+})),
+  "sharpMoneyHistory": zod.array(zod.object({
+  "selection": zod.enum(['home', 'away', 'draw']),
+  "price": zod.number(),
+  "capturedAt": zod.string(),
+  "sportsbook": zod.string().nullable()
+}))
+}))
+})
+
+
+/**
  * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
  * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
  */
