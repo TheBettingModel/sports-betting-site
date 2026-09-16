@@ -244,6 +244,8 @@ assert.match(liveTabSource, /ordinary sportsbook movement with verified sharp-bo
 assert.doesNotMatch(liveTabSource, /CLV DIRECTION|POSITIVE CLV|Sharp Movement & CLV/);
 assert.match(liveTabSource, /TBM model output · not a betting line/);
 assert.match(liveTabSource, /Public market history is unavailable/);
+assert.match(liveTabSource, /Current.*movement pending/);
+assert.match(liveTabSource, /SHARP MOVE PENDING/);
 assert.match(liveTabSource, /PUBLIC MARKET HISTORY/);
 assert.match(liveTabSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
 assert.doesNotMatch(liveTabSource, /V4LiveGamesBanner/);

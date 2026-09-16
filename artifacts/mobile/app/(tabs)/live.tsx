@@ -91,7 +91,6 @@ function comparableHistory(
   }
   const groups = [...grouped.values()]
     .map((rows) => rows.sort((a, b) => a.capturedAt.localeCompare(b.capturedAt)))
-    .filter((rows) => rows.length >= 2)
     .sort((a, b) => {
       const aLast = a[a.length - 1]?.capturedAt ?? '';
       const bLast = b[b.length - 1]?.capturedAt ?? '';
@@ -149,7 +148,9 @@ function formatTime(value: string | null): string {
 }
 
 function directionCopy(item: BoardItem): string {
-  if (item.sharpDirection === 'UNAVAILABLE') return 'NO VERIFIED SHARP SNAPSHOT';
+  if (item.sharpDirection === 'UNAVAILABLE') {
+    return item.sharpHistory.length === 1 ? 'SHARP MOVE PENDING' : 'NO VERIFIED SHARP SNAPSHOT';
+  }
   if (item.sharpDirection === 'NEUTRAL') return 'NO MATERIAL SHARP MOVE';
   return item.sharpDirection === 'POSITIVE'
     ? `TOWARD ${item.selectedName.toUpperCase()}`
@@ -157,7 +158,9 @@ function directionCopy(item: BoardItem): string {
 }
 
 function publicDirectionCopy(item: BoardItem): string {
-  if (item.publicDirection === 'UNAVAILABLE') return 'NO PUBLIC MARKET HISTORY';
+  if (item.publicDirection === 'UNAVAILABLE') {
+    return item.publicHistory.length === 1 ? 'PUBLIC MOVE PENDING' : 'NO PUBLIC MARKET HISTORY';
+  }
   if (item.publicDirection === 'NEUTRAL') return 'NO MATERIAL PUBLIC MOVE';
   return item.publicDirection === 'POSITIVE'
     ? `TOWARD ${item.selectedName.toUpperCase()}`
@@ -256,10 +259,14 @@ function MarketCard({ item, onPress }: { item: BoardItem; onPress: () => void })
         <Text style={[styles.note, { color: colors.mutedForeground }]}>
           {item.publicHistory.length >= 2
             ? `Public: ${item.publicHistory[0]?.sportsbook ?? 'Market'} · ${formatPrice(item.publicHistory[0]?.price)} → ${formatPrice(item.publicHistory[item.publicHistory.length - 1]?.price)}`
-            : 'Public market history is unavailable.'}
+            : item.publicHistory.length === 1
+              ? `Public: ${item.publicHistory[0]?.sportsbook ?? 'Market'} · Current ${formatPrice(item.publicHistory[0]?.price)} · movement pending`
+              : 'Public market history is unavailable.'}
           {item.sharpHistory.length >= 2
             ? `\nSharp: ${item.sharpHistory[0]?.sportsbook ?? 'Verified sharp book'} · ${formatPrice(item.sharpHistory[0]?.price)} → ${formatPrice(item.sharpHistory[item.sharpHistory.length - 1]?.price)}`
-            : '\nSharp history is unavailable.'}
+            : item.sharpHistory.length === 1
+              ? `\nSharp: ${item.sharpHistory[0]?.sportsbook ?? 'Verified sharp book'} · Current ${formatPrice(item.sharpHistory[0]?.price)} · movement pending`
+              : '\nSharp history is unavailable.'}
         </Text>
         <View style={styles.viewDetails}>
           <Text style={[styles.micro, { color: colors.mutedForeground }]}>VIEW ANALYTICS</Text>
@@ -342,7 +349,9 @@ function AnalyticsDrawer({ item, onClose }: { item: BoardItem | null; onClose: (
             <Text style={[styles.historyRange, { color: colors.mutedForeground }]}>
               {item.publicHistory.length >= 2
                 ? `${formatPrice(item.publicHistory[0]?.price)} → ${formatPrice(item.publicHistory[item.publicHistory.length - 1]?.price)}`
-                : 'Public market history unavailable'}
+                : item.publicHistory.length === 1
+                  ? `Current ${formatPrice(item.publicHistory[0]?.price)} · movement pending`
+                  : 'Public market history unavailable'}
             </Text>
           </View>
 

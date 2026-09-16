@@ -161,19 +161,32 @@ function probToAmerican(prob: number): number {
 
 /**
  * Normalise a team name for fuzzy matching between ESPN and The Odds API.
- * Lowercases, strips punctuation, removes leading "the ".
+ * Lowercases, strips accents/punctuation, and resolves known provider aliases.
  */
-function normalizeName(name: string): string {
-  return name
+const TEAM_NAME_ALIASES: Record<string, string> = {
+  "athletic club": "athletic bilbao",
+  "deportivo": "deportivo la coruna",
+  "racing santander": "real racing club de santander",
+  "ca osasuna": "osasuna",
+  "elche cf": "elche",
+  "malaga cf": "malaga",
+};
+
+export function canonicalTeamName(name: string): string {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9 ]/g, "")
     .replace(/^the /, "")
+    .replace(/\s+/g, " ")
     .trim();
+  return TEAM_NAME_ALIASES[normalized] ?? normalized;
 }
 
 /** Build the lookup key for a game: "{normalizedHome}|{normalizedAway}" */
 function matchKey(homeTeam: string, awayTeam: string): string {
-  return `${normalizeName(homeTeam)}|${normalizeName(awayTeam)}`;
+  return `${canonicalTeamName(homeTeam)}|${canonicalTeamName(awayTeam)}`;
 }
 
 // ── In-memory cache ───────────────────────────────────────────────────────────
@@ -413,8 +426,8 @@ async function fetchAndNormalise(
     if (pinnacleBook) {
       const h2h = pinnacleBook.markets.find((m) => m.key === "h2h");
       if (h2h) {
-        const homePrice = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
-        const awayPrice = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
+        const homePrice = h2h.outcomes.find((o) => canonicalTeamName(o.name) === canonicalTeamName(g.home_team))?.price;
+        const awayPrice = h2h.outcomes.find((o) => canonicalTeamName(o.name) === canonicalTeamName(g.away_team))?.price;
         if (isValidAmericanOdds(homePrice) && isValidAmericanOdds(awayPrice)) {
           pinnacleHomeOdds = homePrice;
           pinnacleAwayOdds = awayPrice;
@@ -432,8 +445,8 @@ async function fetchAndNormalise(
     for (const book of publicBooks) {
       const h2h = book.markets.find((m) => m.key === "h2h");
       if (!h2h) continue;
-      const homeOut = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team));
-      const awayOut = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team));
+      const homeOut = h2h.outcomes.find((o) => canonicalTeamName(o.name) === canonicalTeamName(g.home_team));
+      const awayOut = h2h.outcomes.find((o) => canonicalTeamName(o.name) === canonicalTeamName(g.away_team));
       const drawOut = h2h.outcomes.find((o) => o.name.toLowerCase() === "draw");
       if (isValidAmericanOdds(homeOut?.price) && isValidAmericanOdds(awayOut?.price)) {
         homeProbs.push(impliedProb(homeOut.price));
@@ -470,10 +483,10 @@ async function fetchAndNormalise(
       const market = book.markets.find((m) => m.key === "spreads");
       if (!market) continue;
       const home = market.outcomes.find((o) =>
-        normalizeName(o.name) === normalizeName(g.home_team),
+        canonicalTeamName(o.name) === canonicalTeamName(g.home_team),
       );
       const away = market.outcomes.find((o) =>
-        normalizeName(o.name) === normalizeName(g.away_team),
+        canonicalTeamName(o.name) === canonicalTeamName(g.away_team),
       );
       if (
         !isValidMarketPoint(home?.point, "spread")
@@ -509,9 +522,9 @@ async function fetchAndNormalise(
     for (const book of g.bookmakers) {
       const h2h = book.markets.find((m) => m.key === "h2h");
       if (!h2h) continue;
-      const bHomeOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.home_team))?.price;
-      const bAwayOdds = h2h.outcomes.find((o) => normalizeName(o.name) === normalizeName(g.away_team))?.price;
-      const bDrawOdds = h2h.outcomes.find((o) => normalizeName(o.name) === "draw")?.price;
+      const bHomeOdds = h2h.outcomes.find((o) => canonicalTeamName(o.name) === canonicalTeamName(g.home_team))?.price;
+      const bAwayOdds = h2h.outcomes.find((o) => canonicalTeamName(o.name) === canonicalTeamName(g.away_team))?.price;
+      const bDrawOdds = h2h.outcomes.find((o) => canonicalTeamName(o.name) === "draw")?.price;
       if (isValidAmericanOdds(bHomeOdds) && isValidAmericanOdds(bAwayOdds)) {
         bookmakerOdds.push({
           book: book.key, homeOdds: bHomeOdds, awayOdds: bAwayOdds,
