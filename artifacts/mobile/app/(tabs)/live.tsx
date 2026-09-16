@@ -45,11 +45,9 @@ type BoardItem = {
   evidence?: GamesMarketAnalyticsResponseGamesItem;
   selectedSide: 'home' | 'away' | null;
   selectedName: string;
-  marketDirection: Direction;
+  publicDirection: Direction;
   sharpDirection: Direction;
-  clvDirection: Direction;
-  marketHistory: MarketHistoryPoint[];
-  clvHistory: MarketHistoryPoint[];
+  publicHistory: MarketHistoryPoint[];
   sharpHistory: MarketHistoryPoint[];
 };
 
@@ -82,7 +80,6 @@ function movementDirection(first: number, last: number): Direction {
 function comparableHistory(
   points: MarketHistoryPoint[],
   selection: 'home' | 'away' | null,
-  forecastTimestamp?: string,
 ): MarketHistoryPoint[] {
   if (!selection) return [];
   const grouped = new Map<string, MarketHistoryPoint[]>();
@@ -101,14 +98,7 @@ function comparableHistory(
       return bLast.localeCompare(aLast);
     });
   const chosen = groups[0] ?? [];
-  if (!forecastTimestamp || chosen.length < 2) return chosen;
-  const forecastMs = new Date(forecastTimestamp).getTime();
-  const atForecast = chosen.filter((point) => new Date(point.capturedAt).getTime() <= forecastMs);
-  const afterForecast = chosen.filter((point) => new Date(point.capturedAt).getTime() >= forecastMs);
-  const baseline = atForecast[atForecast.length - 1];
-  const latest = afterForecast[afterForecast.length - 1];
-  if (!baseline || !latest || baseline.capturedAt === latest.capturedAt) return [];
-  return [baseline, ...afterForecast.filter((point) => point.capturedAt !== baseline.capturedAt)];
+  return chosen;
 }
 
 function buildBoardItem(
@@ -126,30 +116,21 @@ function buildBoardItem(
     : selectedSide === 'away'
       ? fixture.awayParticipant.name
       : projection.projectedWinner === 'DRAW' ? 'Draw' : 'Unavailable';
-  const marketHistory = comparableHistory(evidence?.marketHistory ?? [], selectedSide);
+  const publicHistory = comparableHistory(evidence?.marketHistory ?? [], selectedSide);
   const sharpHistory = comparableHistory(evidence?.sharpMoneyHistory ?? [], selectedSide);
-  const clvHistory = comparableHistory(
-    evidence?.marketHistory ?? [],
-    selectedSide,
-    projection.forecastTimestamp,
-  );
   return {
     fixture,
     projection,
     evidence,
     selectedSide,
     selectedName,
-    marketDirection: marketHistory.length >= 2
-      ? movementDirection(marketHistory[0]!.price, marketHistory[marketHistory.length - 1]!.price)
+    publicDirection: publicHistory.length >= 2
+      ? movementDirection(publicHistory[0]!.price, publicHistory[publicHistory.length - 1]!.price)
       : 'UNAVAILABLE',
     sharpDirection: sharpHistory.length >= 2
       ? movementDirection(sharpHistory[0]!.price, sharpHistory[sharpHistory.length - 1]!.price)
       : 'UNAVAILABLE',
-    clvDirection: clvHistory.length >= 2
-      ? movementDirection(clvHistory[0]!.price, clvHistory[clvHistory.length - 1]!.price)
-      : 'UNAVAILABLE',
-    marketHistory,
-    clvHistory,
+    publicHistory,
     sharpHistory,
   };
 }
@@ -175,10 +156,10 @@ function directionCopy(item: BoardItem): string {
     : `AWAY FROM ${item.selectedName.toUpperCase()}`;
 }
 
-function marketDirectionCopy(item: BoardItem): string {
-  if (item.marketDirection === 'UNAVAILABLE') return 'NO MARKET HISTORY';
-  if (item.marketDirection === 'NEUTRAL') return 'NO MATERIAL MOVE';
-  return item.marketDirection === 'POSITIVE'
+function publicDirectionCopy(item: BoardItem): string {
+  if (item.publicDirection === 'UNAVAILABLE') return 'NO PUBLIC MARKET HISTORY';
+  if (item.publicDirection === 'NEUTRAL') return 'NO MATERIAL PUBLIC MOVE';
+  return item.publicDirection === 'POSITIVE'
     ? `TOWARD ${item.selectedName.toUpperCase()}`
     : `AWAY FROM ${item.selectedName.toUpperCase()}`;
 }
@@ -216,9 +197,8 @@ function MarketSparkline({ points, color }: { points: MarketHistoryPoint[]; colo
 
 function MarketCard({ item, onPress }: { item: BoardItem; onPress: () => void }) {
   const colors = useColors();
-  const marketColor = directionColor(item.marketDirection, colors);
+  const publicColor = directionColor(item.publicDirection, colors);
   const sharpColor = directionColor(item.sharpDirection, colors);
-  const clvColor = directionColor(item.clvDirection, colors);
   const fixture = item.fixture;
   return (
     <Pressable
@@ -263,26 +243,23 @@ function MarketCard({ item, onPress }: { item: BoardItem; onPress: () => void })
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.signalRow}>
-        <View style={styles.signalPrimary}>
-          <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET DIRECTION</Text>
-          <Text numberOfLines={1} style={[styles.direction, { color: marketColor }]}>{marketDirectionCopy(item)}</Text>
+        <View style={styles.signalColumn}>
+          <Text style={[styles.micro, { color: colors.mutedForeground }]}>PUBLIC MOVEMENT</Text>
+          <Text numberOfLines={1} style={[styles.direction, { color: publicColor }]}>{publicDirectionCopy(item)}</Text>
         </View>
-        <View style={styles.signalSecondary}>
-          <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MONEY</Text>
-          <Text numberOfLines={1} style={[styles.direction, { color: sharpColor }]}>{item.sharpDirection}</Text>
-        </View>
-        <View style={styles.clvBlock}>
-          <Text style={[styles.micro, { color: colors.mutedForeground }]}>
-            {fixture.eventStatus === 'FINAL' ? 'FINAL CLV' : 'CLV'}
-          </Text>
-          <Text style={[styles.clvDirection, { color: clvColor }]}>{item.clvDirection}</Text>
+        <View style={styles.signalColumn}>
+          <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MOVEMENT</Text>
+          <Text numberOfLines={1} style={[styles.direction, { color: sharpColor }]}>{directionCopy(item)}</Text>
         </View>
       </View>
       <View style={styles.detailsRow}>
         <Text style={[styles.note, { color: colors.mutedForeground }]}>
-          {item.marketHistory.length >= 2
-            ? `${item.marketHistory[0]?.sportsbook ?? 'Market'} · ${formatPrice(item.marketHistory[0]?.price)} → ${formatPrice(item.marketHistory[item.marketHistory.length - 1]?.price)}`
-            : 'Market history is unavailable.'}
+          {item.publicHistory.length >= 2
+            ? `Public: ${item.publicHistory[0]?.sportsbook ?? 'Market'} · ${formatPrice(item.publicHistory[0]?.price)} → ${formatPrice(item.publicHistory[item.publicHistory.length - 1]?.price)}`
+            : 'Public market history is unavailable.'}
+          {item.sharpHistory.length >= 2
+            ? `\nSharp: ${item.sharpHistory[0]?.sportsbook ?? 'Verified sharp book'} · ${formatPrice(item.sharpHistory[0]?.price)} → ${formatPrice(item.sharpHistory[item.sharpHistory.length - 1]?.price)}`
+            : '\nSharp history is unavailable.'}
         </Text>
         <View style={styles.viewDetails}>
           <Text style={[styles.micro, { color: colors.mutedForeground }]}>VIEW ANALYTICS</Text>
@@ -303,7 +280,7 @@ function AnalyticsDrawer({ item, onClose }: { item: BoardItem | null; onClose: (
     : item.selectedSide === 'away'
       ? projection.awayWinProbability
       : projection.drawProbability;
-  const chartColor = directionColor(item.marketDirection, colors);
+  const chartColor = directionColor(item.publicDirection, colors);
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalRoot}>
@@ -354,33 +331,29 @@ function AnalyticsDrawer({ item, onClose }: { item: BoardItem | null; onClose: (
           <View style={[styles.historyPanel, { borderColor: colors.border }]}>
             <View style={styles.historyHeader}>
               <View>
-                <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET HISTORY</Text>
+                <Text style={[styles.micro, { color: colors.mutedForeground }]}>PUBLIC MARKET HISTORY</Text>
                 <Text style={[styles.historyBook, { color: colors.mutedForeground }]}>
-                  {item.marketHistory[0]?.sportsbook ?? 'No comparable snapshot'}
+                  {item.publicHistory[0]?.sportsbook ?? 'No comparable public snapshot'}
                 </Text>
               </View>
-              <Text style={[styles.direction, { color: chartColor }]}>{marketDirectionCopy(item)}</Text>
+              <Text style={[styles.direction, { color: chartColor }]}>{publicDirectionCopy(item)}</Text>
             </View>
-            <MarketSparkline points={item.marketHistory} color={chartColor} />
+            <MarketSparkline points={item.publicHistory} color={chartColor} />
             <Text style={[styles.historyRange, { color: colors.mutedForeground }]}>
-              {item.marketHistory.length >= 2
-                ? `${formatPrice(item.marketHistory[0]?.price)} → ${formatPrice(item.marketHistory[item.marketHistory.length - 1]?.price)}`
-                : 'Market history unavailable'}
+              {item.publicHistory.length >= 2
+                ? `${formatPrice(item.publicHistory[0]?.price)} → ${formatPrice(item.publicHistory[item.publicHistory.length - 1]?.price)}`
+                : 'Public market history unavailable'}
             </Text>
           </View>
 
           <View style={[styles.drawerSignals, { borderTopColor: colors.border }]}>
             <View>
-              <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET DIRECTION</Text>
-              <Text style={[styles.direction, { color: directionColor(item.marketDirection, colors) }]}>{marketDirectionCopy(item)}</Text>
+              <Text style={[styles.micro, { color: colors.mutedForeground }]}>PUBLIC MOVEMENT</Text>
+              <Text style={[styles.direction, { color: directionColor(item.publicDirection, colors) }]}>{publicDirectionCopy(item)}</Text>
             </View>
             <View>
-              <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MONEY DIRECTION</Text>
+              <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MOVEMENT</Text>
               <Text style={[styles.direction, { color: directionColor(item.sharpDirection, colors) }]}>{directionCopy(item)}</Text>
-            </View>
-            <View style={styles.drawerClv}>
-              <Text style={[styles.micro, { color: colors.mutedForeground }]}>CLV DIRECTION</Text>
-              <Text style={[styles.direction, { color: chartColor }]}>{item.clvDirection}</Text>
             </View>
           </View>
         </View>
@@ -444,7 +417,11 @@ export default function AnalyticsScreen() {
   const visibleItems = activeSport === 'All'
     ? items
     : items.filter((item) => displaySport(item.fixture.sport) === activeSport);
-  const positiveClv = items.filter((item) => item.clvDirection === 'POSITIVE').length;
+  const verifiedSharp = items.filter((item) => item.sharpDirection !== 'UNAVAILABLE').length;
+  const splitSignals = items.filter((item) => (
+    (item.publicDirection === 'POSITIVE' && item.sharpDirection === 'NEGATIVE')
+    || (item.publicDirection === 'NEGATIVE' && item.sharpDirection === 'POSITIVE')
+  )).length;
   const availableSports = ['All', ...new Set(items.map((item) => displaySport(item.fixture.sport)))];
   const isLoading = hasServerEntitlement && (
     analyticsQuery.isLoading || projectionQueries.some((query) => query.isLoading)
@@ -480,7 +457,7 @@ export default function AnalyticsScreen() {
         </View>
         <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
         <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
-          An active subscription is required to view verified market movement and CLV analytics.
+          An active subscription is required to compare public market movement with verified sharp movement.
         </Text>
       </View>
     );
@@ -514,9 +491,9 @@ export default function AnalyticsScreen() {
             </View>
             <View style={styles.titleBlock}>
               <Text style={[styles.eyebrow, { color: colors.primary }]}>MARKET INTELLIGENCE</Text>
-              <Text style={[styles.title, { color: colors.foreground }]}>Sharp Movement & CLV</Text>
+              <Text style={[styles.title, { color: colors.foreground }]}>Public vs. Sharp Movement</Text>
               <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-                Track verified market movement relative to TBM’s forecast price.
+                Compare ordinary sportsbook movement with verified sharp-book direction.
               </Text>
             </View>
             <View style={[styles.pulse, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -525,12 +502,12 @@ export default function AnalyticsScreen() {
                 <Text style={[styles.micro, { color: colors.mutedForeground }]}>TRACKED</Text>
               </View>
               <View style={[styles.pulseCell, styles.pulseDivider, { borderColor: colors.border }]}>
-                <Text style={[styles.pulseValue, { color: colors.foreground }]}>{items.length}</Text>
-                <Text style={[styles.micro, { color: colors.mutedForeground }]}>WITH MODEL</Text>
+                <Text style={[styles.pulseValue, { color: colors.foreground }]}>{verifiedSharp}</Text>
+                <Text style={[styles.micro, { color: colors.mutedForeground }]}>VERIFIED SHARP</Text>
               </View>
               <View style={styles.pulseCell}>
-                <Text style={[styles.pulseValue, { color: colors.primary }]}>{positiveClv}</Text>
-                <Text style={[styles.micro, { color: colors.mutedForeground }]}>POSITIVE CLV</Text>
+                <Text style={[styles.pulseValue, { color: colors.primary }]}>{splitSignals}</Text>
+                <Text style={[styles.micro, { color: colors.mutedForeground }]}>SPLIT SIGNALS</Text>
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -608,11 +585,8 @@ const styles = StyleSheet.create({
   at: { width: 24, textAlign: 'center', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   divider: { height: 1, marginTop: 12 },
   signalRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 10, gap: 12 },
-  signalPrimary: { flex: 1.25, minWidth: 0 },
-  signalSecondary: { flex: 0.75, minWidth: 0 },
+  signalColumn: { flex: 1, minWidth: 0 },
   direction: { marginTop: 5, fontSize: 10, fontFamily: 'Inter_700Bold' },
-  clvBlock: { alignItems: 'flex-end' },
-  clvDirection: { marginTop: 5, fontSize: 17, fontFamily: 'Inter_700Bold', letterSpacing: -0.4 },
   detailsRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 10 },
   note: { flex: 1, fontSize: 9, lineHeight: 13, fontFamily: 'Inter_400Regular' },
   viewDetails: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -636,5 +610,4 @@ const styles = StyleSheet.create({
   historyRange: { marginTop: 2, fontSize: 9, fontFamily: 'Inter_600SemiBold' },
   chartUnavailable: { height: 62, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#1E1E1E' },
   drawerSignals: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  drawerClv: { alignItems: 'flex-end' },
 });

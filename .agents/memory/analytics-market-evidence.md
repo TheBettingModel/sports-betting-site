@@ -3,6 +3,12 @@ name: Analytics market evidence
 description: Evidence requirements for TBM Analytics sharp-money and CLV labels.
 ---
 
+The subscriber Analytics surface compares public market movement with verified sharp-book movement. CLV remains an internal model/evaluation signal and is not presented as a user-facing card metric.
+
+**Why:** Users benefit more from seeing where ordinary sportsbook movement agrees or disagrees with sharp books, while CLV is already part of V4 forecasting and evaluation.
+
+**How to apply:** Label non-sharp sportsbook movement as public market movement, not ticket or handle percentage. Show verified sharp movement separately and highlight opposing directions as split signals.
+
 Sharp-money direction may be shown only when at least two comparable moneyline observations exist for the projected side from the same sportsbook explicitly classified as sharp. Ordinary market movement and model-edge heuristics are not sharp-money evidence.
 
 **Why:** The legacy sharp signal can fall back to model edge when Pinnacle evidence is absent, so presenting it as verified sharp action would misstate the source.

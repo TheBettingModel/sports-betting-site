@@ -237,11 +237,14 @@ assert.match(liveGamesSource, /TeamLogo/);
 
 const liveTabSource = fs.readFileSync(new URL('../app/(tabs)/live.tsx', import.meta.url), 'utf8');
 assert.match(liveTabSource, /useGetGamesMarketAnalytics/);
-assert.match(liveTabSource, /SHARP MONEY DIRECTION/);
-assert.match(liveTabSource, /CLV DIRECTION/);
+assert.match(liveTabSource, /PUBLIC MOVEMENT/);
+assert.match(liveTabSource, /SHARP MOVEMENT/);
+assert.match(liveTabSource, /Public vs\. Sharp Movement/);
+assert.match(liveTabSource, /ordinary sportsbook movement with verified sharp-book direction/);
+assert.doesNotMatch(liveTabSource, /CLV DIRECTION|POSITIVE CLV|Sharp Movement & CLV/);
 assert.match(liveTabSource, /TBM model output · not a betting line/);
-assert.match(liveTabSource, /Market history is unavailable/);
-assert.match(liveTabSource, /MARKET DIRECTION/);
+assert.match(liveTabSource, /Public market history is unavailable/);
+assert.match(liveTabSource, /PUBLIC MARKET HISTORY/);
 assert.match(liveTabSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
 assert.doesNotMatch(liveTabSource, /V4LiveGamesBanner/);
 assert.doesNotMatch(liveTabSource, /MODEL LINE/);

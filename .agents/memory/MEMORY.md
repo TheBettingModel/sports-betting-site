@@ -62,4 +62,4 @@
 - [V4 slate accounting](v4-slate-accounting.md) — every scheduled fixture stays visible; unavailable forecasts are explicit, and only immutable pregame snapshots survive kickoff.
 - [V4 record windows](v4-record-windows.md) — subscriber records are V4-only; seasons reset per sport/league and weeks reset Monday ET.
 - [Neon pooled advisory locks](neon-pooled-advisory-locks.md) — session locks can survive app clients on pooled endpoints; use transaction-scoped locks on a pinned client.
-- [Analytics market evidence](analytics-market-evidence.md) — sharp direction requires flagged sharp-book history; CLV requires same-book forecast-time and later prices.
+- [Analytics market evidence](analytics-market-evidence.md) — user-facing Analytics compares public market movement with verified sharp-book movement; never imply bet percentages.
