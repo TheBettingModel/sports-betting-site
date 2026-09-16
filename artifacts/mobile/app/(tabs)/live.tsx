@@ -66,6 +66,15 @@ function displaySport(sport: string): string {
   return sport;
 }
 
+function isPregameFixture(
+  fixture: V4FullSlateProjectionResponseFixturesItem,
+  now = Date.now(),
+): boolean {
+  if (fixture.eventStatus !== 'UPCOMING' || !fixture.eventStart) return false;
+  const start = new Date(fixture.eventStart).getTime();
+  return Number.isFinite(start) && start > now;
+}
+
 function americanImplied(price: number): number {
   return price < 0 ? Math.abs(price) / (Math.abs(price) + 100) : 100 / (price + 100);
 }
@@ -409,11 +418,12 @@ export default function AnalyticsScreen() {
   const evidenceByGame = new Map((analyticsQuery.data?.games ?? []).map((game) => [game.gameId, game]));
   const items = useMemo(() => {
     const rows: BoardItem[] = [];
+    const now = Date.now();
     for (const board of boards) {
       const projections = new Map(board.projections.map((projection) => [projection.eventId, projection]));
       for (const fixture of board.fixtures) {
         const projection = projections.get(fixture.gameId);
-        if (!projection || fixture.eventStatus === 'LIVE') continue;
+        if (!projection || !isPregameFixture(fixture, now)) continue;
         rows.push(buildBoardItem(fixture, projection, evidenceByGame.get(fixture.gameId)));
       }
     }
