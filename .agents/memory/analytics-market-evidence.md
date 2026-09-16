@@ -9,6 +9,12 @@ Sharp-money direction may be shown only when at least two comparable moneyline o
 
 **How to apply:** Group observations by sportsbook and selection before comparing them. Show unavailable when the comparison is incomplete.
 
+Odds API snapshots for Analytics must be persisted for every active sport from named bookmaker quotes, not only sports with a registered V4 publication engine. Use the provider's `last_update` as the observation timestamp when present; server polling time would turn cached repeats into fake movement.
+
+**Why:** The V4 evidence path was NCAAF-specific, while Analytics reads the shared odds snapshot ledger. Reusing polling timestamps made repeated cached responses look like independent sharp observations.
+
+**How to apply:** Capture complete same-book moneyline outcomes, classify Pinnacle/Circa from the canonical slug, and deduplicate by provider event, book, selection, and provider observation time. Provider availability can still legitimately leave a sport unavailable.
+
 CLV direction requires a same-book market price captured at or before the forecast timestamp and a later comparable price. Label it projected before market closure and final only after the event/market has closed.
 
 **Why:** Opening-to-current movement without a forecast-time entry price is market movement, not CLV.

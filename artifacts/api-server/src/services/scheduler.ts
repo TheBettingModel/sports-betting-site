@@ -66,6 +66,7 @@ import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
 import { collectLiveForwardAdvancedResearch } from "./mlbAdvancedResearchCollector";
 import { captureMlbResearchMarketObservation } from "./mlbPointInTime";
+import { captureOddsApiMoneylineSnapshots } from "./marketSnapshotCapture";
 import {
   logSchedulerMemory,
   SingleFlightGroup,
@@ -585,6 +586,12 @@ async function runOddsIngestion(): Promise<void> {
             game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
           );
           const gameOdds = oddsLookup.odds;
+          await captureOddsApiMoneylineSnapshots({
+            sport: game.sport,
+            gameId: game.espnId,
+            eventStart: game.commenceTimeISO,
+            odds: gameOdds,
+          });
           const starters = game.sport === "MLB"
             ? await getProbablePitchers(
                 game.homeTeamAbbr,
