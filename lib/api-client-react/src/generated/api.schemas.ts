@@ -1324,6 +1324,10 @@ export interface GamesTodayResponse {
   /** @nullable */
   freePickPublishedPickId?: number | null;
   freePick?: FreePick | null;
+  /** @maxItems 2 */
+  freePicks?: FreePick[];
+  /** @maxItems 2 */
+  freeGames?: GameProjection[];
 }
 
 export type MarketHistoryPointSelection = typeof MarketHistoryPointSelection[keyof typeof MarketHistoryPointSelection];

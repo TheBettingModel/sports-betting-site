@@ -15,7 +15,7 @@ vi.mock("@workspace/db", () => ({
   gamesTable: { id: "gameId", gameDate: "gameDate", status: "status", finalModelScore: "final", modelScore: "model" },
 }));
 
-import { getDailyFreePick } from "./freePick";
+import { getDailyFreePick, getDailyFreePicks } from "./freePick";
 
 function query(rows: unknown[]) {
   const chain: Record<string, unknown> = {};
@@ -80,5 +80,19 @@ describe("getDailyFreePick", () => {
       .mockReturnValueOnce(query([{ publishedPickId: 44, gameId: "winner", market: "moneyline", selection: "home" }]));
     await expect(getDailyFreePick("2026-03-10")).resolves.toEqual({ publishedPickId: 44, gameId: "winner", market: "moneyline", selection: "home" });
     expect(onConflictDoNothing).toHaveBeenCalledOnce();
+  });
+});
+
+describe("getDailyFreePicks", () => {
+  it("returns at most two picks from different games", async () => {
+    select
+      .mockReturnValueOnce(query([{ publishedPickId: 7 }]))
+      .mockReturnValueOnce(query([{ publishedPickId: 7, gameId: "g7", market: "moneyline", selection: "home" }]))
+      .mockReturnValueOnce(query([{ publishedPickId: 8, gameId: "g8", market: "moneyline", selection: "away" }]));
+
+    await expect(getDailyFreePicks("2026-03-10")).resolves.toEqual([
+      { publishedPickId: 7, gameId: "g7", market: "moneyline", selection: "home" },
+      { publishedPickId: 8, gameId: "g8", market: "moneyline", selection: "away" },
+    ]);
   });
 });

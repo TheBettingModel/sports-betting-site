@@ -211,7 +211,11 @@ assert.equal(fixtureMatchesTeamSearch(searchFixture, '  '), true);
 assert.equal(fixtureMatchesTeamSearch(searchFixture, 'kentucky'), false);
 
 const picksSource = fs.readFileSync(new URL('../app/(tabs)/picks.tsx', import.meta.url), 'utf8');
-assert.doesNotMatch(picksSource, /useGetGamesToday|\/api\/games\/today|mapApiGame|getForecast/);
+assert.match(picksSource, /useGetGamesToday/);
+assert.match(picksSource, /freeGames/);
+assert.match(picksSource, /Free members can open up to two games each day/);
+assert.match(picksSource, /mapApiGame/);
+assert.doesNotMatch(picksSource, /getForecast/);
 assert.match(picksSource, /hasServerEntitlement/);
 assert.match(picksSource, /enabled: Boolean\(userId\) && hasServerEntitlement/);
 assert.doesNotMatch(picksSource, /UFC/);

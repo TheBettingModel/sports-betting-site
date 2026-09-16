@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useQueries } from '@tanstack/react-query';
 import {
+  useGetGamesToday,
   getV4FullSlateProjections,
   type GetV4FullSlateProjectionsSport,
   type V4FullSlateProjectionResponse,
@@ -20,6 +21,8 @@ import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
+import { GameCard } from '@/components/GameCard';
+import { mapApiGame } from '@/utils/gameAdapter';
 import { fixtureMatchesTeamSearch } from '@/utils/matchupSearch';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
@@ -82,6 +85,16 @@ export default function PicksScreen() {
       staleTime: 2 * 60 * 1000,
     })),
   });
+  const freeGamesQuery = useGetGamesToday(
+    {},
+    {
+      query: {
+        enabled: Boolean(userId) && !hasServerEntitlement && !isSubscriptionLoading && !serverEntitlementError,
+        queryKey: ['/api/games/today', { viewerId: userId ?? 'signed-out', entitled: false }],
+        staleTime: 2 * 60 * 1000,
+      },
+    },
+  );
   
   const boards = queries.map((query) => query.data).filter((board): board is V4FullSlateProjectionResponse => Boolean(board));
   const isLoading = hasServerEntitlement && queries.some((query) => query.isLoading);
@@ -150,12 +163,16 @@ export default function PicksScreen() {
     );
   }
   if (!hasServerEntitlement) {
+    const freeGames = freeGamesQuery.data?.freeGames ?? [];
     return (
       <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
         <View style={styles.header}><Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text><Text style={[styles.sub, { color: colors.mutedForeground }]}>RESEARCH DESK</Text></View>
         <SportFilter gameCounts={{}} />
-        <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
-        <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>An active subscription is required before V4 projections are requested or shown.</Text>
+        {freeGamesQuery.isLoading ? <ActivityIndicator color={colors.primary} /> : freeGames.map((game) => (
+          <GameCard key={game.id} game={mapApiGame(game)} />
+        ))}
+        <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={Math.max(0, (freeGamesQuery.data?.totalGames ?? 0) - freeGames.length)} />
+        <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>Free members can open up to two games each day. Upgrade to Pro for every V4 projection.</Text>
       </View>
     );
   }

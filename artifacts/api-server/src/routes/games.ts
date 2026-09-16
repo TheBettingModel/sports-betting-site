@@ -5,7 +5,7 @@ import {
   officialPredictionIdentityTable, publishedPicksTable, oddsSnapshotsTable,
   marketsTable, sportsbooksTable,
 } from "@workspace/db";
-import { getDailyFreePick } from "../services/freePick";
+import { getDailyFreePicks } from "../services/freePick";
 import { lockGame } from "../services/gameAccess";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection, type ComputeOptions } from "../services/model";
@@ -967,7 +967,7 @@ async function refreshStaleGamesOnce(): Promise<void> {
  *
  * Subscriber gating:
  *   - Pro subscribers receive full model projections for all games.
-   *   - Non-subscribers receive the one server-selected, persisted free pick.
+ *   - Non-subscribers receive at most two server-selected free picks.
  */
 router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
   // This response differs by bearer token and subscription status. Never let a
@@ -1108,10 +1108,14 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     .select()
     .from(gamesTable)
     .where(and(eq(gamesTable.gameDate, today), eq(gamesTable.status, "upcoming")))
-    .orderBy(desc(gamesTable.modelScore));
+    .orderBy(asc(gamesTable.startsAt), asc(gamesTable.id));
 
   const ratedGames = await attachMarketSelection(applyPublishedRatings(allTodayGames as AnyGame[]));
-  const freePick = await getDailyFreePick(today);
+  const freePicks = await getDailyFreePicks(today);
+  // Free members can inspect exactly two complete game cards when the slate has
+  // at least two upcoming games. The stable schedule ordering prevents sport
+  // filters or model-score refreshes from rotating additional games into view.
+  const freeGames = ratedGames.slice(0, 2).map((game) => ({ ...game, isLocked: false }));
 
   // Apply lock state across the full slate, then sport-filter for the response
   const gatedAll = ratedGames.map((game) => {
@@ -1129,10 +1133,13 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     totalGames: filtered.length,
     liveGamesCount,
     isSubscribed: false,
-    // This separately allowlisted DTO is the only non-Pro pick disclosure.
+    freeGames: freeGames.map(stripInternalDiagnostics),
+    // These separately allowlisted DTOs are the only non-Pro pick disclosures.
     // All game rows remain schedule-only locked cards.
-    freePick: freePick ?? null,
-    freePickPublishedPickId: freePick?.publishedPickId ?? null,
+    freePicks,
+    // Compatibility for already-installed clients.
+    freePick: freePicks[0] ?? null,
+    freePickPublishedPickId: freePicks[0]?.publishedPickId ?? null,
   });
 });
 

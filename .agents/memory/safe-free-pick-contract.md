@@ -1,10 +1,10 @@
 ---
-name: Safe free-pick contract
-description: The durable boundary between the persisted daily free-pick decision and what non-Pro clients may render.
+name: Free-tier game contract
+description: The durable boundary for daily non-Pro game access and premium API protection.
 ---
 
-Persist the daily free pick by exact published-pick ID and authorize its exact market and selection. Non-Pro clients receive a dedicated allowlisted free-pick DTO plus schedule-only locked game rows.
+Non-Pro members may receive at most two complete game cards from the current Eastern-day slate. The API selects those cards before any sport filtering, while every remaining game is returned only as a schedule-safe locked row. Analytics, Chat, Results, and model-board APIs remain subscriber-only.
 
-**Why:** Unlocking by game ID can expose another market or a Top Pick on the same game. Returning a redacted full projection is also brittle: either premium fields leak or the card becomes unrenderable.
+**Why:** The product promise is two useful daily previews without allowing filters, alternate routes, or direct API calls to expand free access or expose premium datasets.
 
-**How to apply:** Reject candidates with effective Top Pick siblings, never choose a fallback after persistence, and include only public matchup/schedule identity, exact market/selection, and the public recommendation label. Never include probabilities, scores, confidence, edge, EV, ROI, units, sharp signals, reasons, or analysis.
+**How to apply:** Select the two cards globally from a stable daily ordering, not independently per sport. Keep all other slate rows locked. Enforce premium access on the server for Chat messages, market analytics, performance/calibration analytics, Results, and V4 projections; UI locks are only presentation.
