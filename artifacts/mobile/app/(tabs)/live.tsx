@@ -45,8 +45,10 @@ type BoardItem = {
   evidence?: GamesMarketAnalyticsResponseGamesItem;
   selectedSide: 'home' | 'away' | null;
   selectedName: string;
+  marketDirection: Direction;
   sharpDirection: Direction;
   clvDirection: Direction;
+  marketHistory: MarketHistoryPoint[];
   clvHistory: MarketHistoryPoint[];
   sharpHistory: MarketHistoryPoint[];
 };
@@ -124,6 +126,7 @@ function buildBoardItem(
     : selectedSide === 'away'
       ? fixture.awayParticipant.name
       : projection.projectedWinner === 'DRAW' ? 'Draw' : 'Unavailable';
+  const marketHistory = comparableHistory(evidence?.marketHistory ?? [], selectedSide);
   const sharpHistory = comparableHistory(evidence?.sharpMoneyHistory ?? [], selectedSide);
   const clvHistory = comparableHistory(
     evidence?.marketHistory ?? [],
@@ -136,12 +139,16 @@ function buildBoardItem(
     evidence,
     selectedSide,
     selectedName,
+    marketDirection: marketHistory.length >= 2
+      ? movementDirection(marketHistory[0]!.price, marketHistory[marketHistory.length - 1]!.price)
+      : 'UNAVAILABLE',
     sharpDirection: sharpHistory.length >= 2
       ? movementDirection(sharpHistory[0]!.price, sharpHistory[sharpHistory.length - 1]!.price)
       : 'UNAVAILABLE',
     clvDirection: clvHistory.length >= 2
       ? movementDirection(clvHistory[0]!.price, clvHistory[clvHistory.length - 1]!.price)
       : 'UNAVAILABLE',
+    marketHistory,
     clvHistory,
     sharpHistory,
   };
@@ -166,6 +173,19 @@ function directionCopy(item: BoardItem): string {
   return item.sharpDirection === 'POSITIVE'
     ? `TOWARD ${item.selectedName.toUpperCase()}`
     : `AWAY FROM ${item.selectedName.toUpperCase()}`;
+}
+
+function marketDirectionCopy(item: BoardItem): string {
+  if (item.marketDirection === 'UNAVAILABLE') return 'NO MARKET HISTORY';
+  if (item.marketDirection === 'NEUTRAL') return 'NO MATERIAL MOVE';
+  return item.marketDirection === 'POSITIVE'
+    ? `TOWARD ${item.selectedName.toUpperCase()}`
+    : `AWAY FROM ${item.selectedName.toUpperCase()}`;
+}
+
+function formatPrice(price: number | undefined): string {
+  if (price == null) return '—';
+  return price > 0 ? `+${price}` : `${price}`;
 }
 
 function MarketSparkline({ points, color }: { points: MarketHistoryPoint[]; color: string }) {
@@ -196,6 +216,7 @@ function MarketSparkline({ points, color }: { points: MarketHistoryPoint[]; colo
 
 function MarketCard({ item, onPress }: { item: BoardItem; onPress: () => void }) {
   const colors = useColors();
+  const marketColor = directionColor(item.marketDirection, colors);
   const sharpColor = directionColor(item.sharpDirection, colors);
   const clvColor = directionColor(item.clvDirection, colors);
   const fixture = item.fixture;
@@ -243,23 +264,25 @@ function MarketCard({ item, onPress }: { item: BoardItem; onPress: () => void })
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.signalRow}>
         <View style={styles.signalPrimary}>
-          <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MONEY DIRECTION</Text>
-          <Text numberOfLines={1} style={[styles.direction, { color: sharpColor }]}>{directionCopy(item)}</Text>
+          <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET DIRECTION</Text>
+          <Text numberOfLines={1} style={[styles.direction, { color: marketColor }]}>{marketDirectionCopy(item)}</Text>
+        </View>
+        <View style={styles.signalSecondary}>
+          <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MONEY</Text>
+          <Text numberOfLines={1} style={[styles.direction, { color: sharpColor }]}>{item.sharpDirection}</Text>
         </View>
         <View style={styles.clvBlock}>
           <Text style={[styles.micro, { color: colors.mutedForeground }]}>
-            {fixture.eventStatus === 'FINAL' ? 'FINAL CLV' : 'CLV DIRECTION'}
+            {fixture.eventStatus === 'FINAL' ? 'FINAL CLV' : 'CLV'}
           </Text>
           <Text style={[styles.clvDirection, { color: clvColor }]}>{item.clvDirection}</Text>
         </View>
       </View>
       <View style={styles.detailsRow}>
         <Text style={[styles.note, { color: colors.mutedForeground }]}>
-          {item.sharpDirection === 'UNAVAILABLE'
-            ? 'Verified sharp-book history has not arrived.'
-            : item.sharpDirection === 'POSITIVE'
-              ? 'Verified sharp movement supports the model side.'
-              : 'Verified sharp movement does not support the model side.'}
+          {item.marketHistory.length >= 2
+            ? `${item.marketHistory[0]?.sportsbook ?? 'Market'} · ${formatPrice(item.marketHistory[0]?.price)} → ${formatPrice(item.marketHistory[item.marketHistory.length - 1]?.price)}`
+            : 'Market history is unavailable.'}
         </Text>
         <View style={styles.viewDetails}>
           <Text style={[styles.micro, { color: colors.mutedForeground }]}>VIEW ANALYTICS</Text>
@@ -280,7 +303,7 @@ function AnalyticsDrawer({ item, onClose }: { item: BoardItem | null; onClose: (
     : item.selectedSide === 'away'
       ? projection.awayWinProbability
       : projection.drawProbability;
-  const chartColor = directionColor(item.clvDirection, colors);
+  const chartColor = directionColor(item.marketDirection, colors);
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalRoot}>
@@ -331,19 +354,26 @@ function AnalyticsDrawer({ item, onClose }: { item: BoardItem | null; onClose: (
           <View style={[styles.historyPanel, { borderColor: colors.border }]}>
             <View style={styles.historyHeader}>
               <View>
-                <Text style={[styles.micro, { color: colors.mutedForeground }]}>
-                  {fixture.eventStatus === 'FINAL' ? 'FINAL CLV · MARKET HISTORY' : 'PROJECTED CLV · MARKET HISTORY'}
-                </Text>
+                <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET HISTORY</Text>
                 <Text style={[styles.historyBook, { color: colors.mutedForeground }]}>
-                  {item.clvHistory[0]?.sportsbook ?? 'No comparable snapshot'}
+                  {item.marketHistory[0]?.sportsbook ?? 'No comparable snapshot'}
                 </Text>
               </View>
-              <Text style={[styles.direction, { color: chartColor }]}>{item.clvDirection}</Text>
+              <Text style={[styles.direction, { color: chartColor }]}>{marketDirectionCopy(item)}</Text>
             </View>
-            <MarketSparkline points={item.clvHistory} color={chartColor} />
+            <MarketSparkline points={item.marketHistory} color={chartColor} />
+            <Text style={[styles.historyRange, { color: colors.mutedForeground }]}>
+              {item.marketHistory.length >= 2
+                ? `${formatPrice(item.marketHistory[0]?.price)} → ${formatPrice(item.marketHistory[item.marketHistory.length - 1]?.price)}`
+                : 'Market history unavailable'}
+            </Text>
           </View>
 
           <View style={[styles.drawerSignals, { borderTopColor: colors.border }]}>
+            <View>
+              <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET DIRECTION</Text>
+              <Text style={[styles.direction, { color: directionColor(item.marketDirection, colors) }]}>{marketDirectionCopy(item)}</Text>
+            </View>
             <View>
               <Text style={[styles.micro, { color: colors.mutedForeground }]}>SHARP MONEY DIRECTION</Text>
               <Text style={[styles.direction, { color: directionColor(item.sharpDirection, colors) }]}>{directionCopy(item)}</Text>
@@ -578,7 +608,8 @@ const styles = StyleSheet.create({
   at: { width: 24, textAlign: 'center', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   divider: { height: 1, marginTop: 12 },
   signalRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 10, gap: 12 },
-  signalPrimary: { flex: 1, minWidth: 0 },
+  signalPrimary: { flex: 1.25, minWidth: 0 },
+  signalSecondary: { flex: 0.75, minWidth: 0 },
   direction: { marginTop: 5, fontSize: 10, fontFamily: 'Inter_700Bold' },
   clvBlock: { alignItems: 'flex-end' },
   clvDirection: { marginTop: 5, fontSize: 17, fontFamily: 'Inter_700Bold', letterSpacing: -0.4 },
@@ -602,6 +633,7 @@ const styles = StyleSheet.create({
   historyPanel: { marginTop: 12, borderWidth: 1, borderRadius: 5, padding: 11 },
   historyHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   historyBook: { marginTop: 5, fontSize: 9, fontFamily: 'Inter_400Regular' },
+  historyRange: { marginTop: 2, fontSize: 9, fontFamily: 'Inter_600SemiBold' },
   chartUnavailable: { height: 62, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#1E1E1E' },
   drawerSignals: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   drawerClv: { alignItems: 'flex-end' },
