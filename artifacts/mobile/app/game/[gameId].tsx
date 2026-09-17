@@ -61,6 +61,43 @@ function scoreMargin(away: string, home: string, expectedAwayScore?: number | nu
   return `${nickname(expectedHomeScore > expectedAwayScore ? home : away)} by ${margin.toFixed(1)}`;
 }
 
+function projectionRead(
+  projection: V4PublicProjection,
+  away: string,
+  home: string,
+  expectedAwayScore?: number | null,
+  expectedHomeScore?: number | null,
+): { title: string; summary: string; strength: string } {
+  const winner = projectedWinnerName(projection, away, home);
+  if (winner === 'Draw') {
+    return {
+      title: 'TBM sees a balanced matchup',
+      summary: `The draw is the most likely single outcome at ${percent(projection.drawProbability)}. Neither side has a decisive model advantage.`,
+      strength: 'Balanced',
+    };
+  }
+  const winnerProbability = projection.projectedWinner === 'HOME'
+    ? projection.homeWinProbability
+    : projection.awayWinProbability;
+  const probability = winnerProbability == null ? null : (winnerProbability <= 1 ? winnerProbability * 100 : winnerProbability);
+  const margin = expectedAwayScore == null || expectedHomeScore == null
+    ? null
+    : Math.abs(expectedHomeScore - expectedAwayScore);
+  const strength = probability == null
+    ? 'Model lean'
+    : probability >= 65
+      ? 'Clear advantage'
+      : probability >= 56
+        ? 'Moderate advantage'
+        : 'Slight advantage';
+  const marginCopy = margin == null ? '' : ` and projects to finish ${margin.toFixed(1)} ahead`;
+  return {
+    title: `TBM leans ${winner}`,
+    summary: `${winner} carries ${percent(winnerProbability)} win probability${marginCopy}. This is where the model sees the clearest separation in the matchup.`,
+    strength,
+  };
+}
+
 export default function GameDetailScreen() {
   const params = useLocalSearchParams<{ gameId?: string | string[], sport?: string | string[], slateDate?: string | string[] }>();
   const gameId = Array.isArray(params.gameId) ? params.gameId[0] : params.gameId;
@@ -183,6 +220,9 @@ export default function GameDetailScreen() {
   const signalsDisagree = scoreWinner !== null
     && projection?.projectedWinner != null
     && scoreWinner !== projection.projectedWinner;
+  const read = projection
+    ? projectionRead(projection, away, home, expectedAwayScore, expectedHomeScore)
+    : null;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -216,13 +256,39 @@ export default function GameDetailScreen() {
         </View>
 
         {fixture.availability === 'AVAILABLE' && projection ? (
-          <View style={[styles.verdict, { backgroundColor: colors.card, borderColor: colors.border }]}>
-             <View style={styles.verdictHeader}>
-               <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-               <Text style={[styles.verdictTitle, { color: colors.primary }]}>PROJECTED OUTCOME</Text>
-             </View>
-             <Text style={[styles.verdictValue, { color: colors.foreground }]}>{projectedWinnerName(projection, away, home).toUpperCase()}</Text>
-             <Text style={[styles.verdictSub, { color: colors.mutedForeground }]}>Model forecast for this matchup</Text>
+          <View style={[styles.projectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.projectionEyebrow}>
+              <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.verdictTitle, { color: colors.primary }]}>TBM SCORE PROJECTION</Text>
+            </View>
+            <View style={styles.projectedScoreRow}>
+              <ProjectedTeam
+                name={away}
+                abbreviation={fixture.awayParticipant.abbreviation}
+                logo={fixture.awayParticipant.logo}
+                sport={fixture.sport}
+                score={expectedAwayScore}
+                colors={colors}
+              />
+              <View style={styles.projectedScoreCenter}>
+                <Text style={[styles.projectedScoreDivider, { color: colors.mutedForeground }]}>—</Text>
+                <Text style={[styles.projectedWinnerLabel, { color: colors.mutedForeground }]}>PROJECTED</Text>
+              </View>
+              <ProjectedTeam
+                name={home}
+                abbreviation={fixture.homeParticipant.abbreviation}
+                logo={fixture.homeParticipant.logo}
+                sport={fixture.sport}
+                score={expectedHomeScore}
+                colors={colors}
+              />
+            </View>
+            <View style={[styles.projectedWinnerPill, { backgroundColor: colors.goldBg }]}>
+              <Feather name="trending-up" size={14} color={colors.primary} />
+              <Text style={[styles.projectedWinnerPillText, { color: colors.primary }]}>
+                {projectedWinnerName(projection, away, home)} projected winner
+              </Text>
+            </View>
           </View>
         ) : (
           <View style={[styles.verdict, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -231,21 +297,61 @@ export default function GameDetailScreen() {
           </View>
         )}
 
+        {projection && read && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeadingRow}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Where TBM Sees Separation</Text>
+              <View style={[styles.strengthBadge, { backgroundColor: colors.goldBg }]}>
+                <Text style={[styles.strengthBadgeText, { color: colors.primary }]}>{read.strength}</Text>
+              </View>
+            </View>
+            <View style={[styles.readCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.readIcon, { backgroundColor: colors.goldBg }]}>
+                <Feather name="activity" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.readCopy}>
+                <Text style={[styles.readTitle, { color: colors.foreground }]}>{read.title}</Text>
+                <Text style={[styles.readSummary, { color: colors.mutedForeground }]}>{read.summary}</Text>
+              </View>
+            </View>
+            <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
+              Model separation describes the forecast, not a betting recommendation or guaranteed market edge.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Matchup Analytics</Text>
           {projection ? (
-            <View style={styles.grid}>
-              <Detail label="Projected score" value={`${nickname(away)} ${expectedAwayScore == null ? '—' : expectedAwayScore.toFixed(1)} – ${nickname(home)} ${expectedHomeScore == null ? '—' : expectedHomeScore.toFixed(1)}`} colors={colors} fullWidth />
-              <Detail label="Win probability" value={`${nickname(away)} ${percent(projection.awayWinProbability)} · ${nickname(home)} ${percent(projection.homeWinProbability)}`} colors={colors} fullWidth />
+            <View>
+              <ComparisonBar
+                label="Win probability"
+                awayName={nickname(away)}
+                homeName={nickname(home)}
+                awayValue={projection.awayWinProbability}
+                homeValue={projection.homeWinProbability}
+                formatter={percent}
+                colors={colors}
+              />
+              <ComparisonBar
+                label="Projected scoring"
+                awayName={nickname(away)}
+                homeName={nickname(home)}
+                awayValue={expectedAwayScore}
+                homeValue={expectedHomeScore}
+                formatter={(value: number | null | undefined) => value == null ? '—' : value.toFixed(1)}
+                colors={colors}
+                normalize
+              />
+              <View style={[styles.grid, { marginTop: 12 }]}>
               <Detail label="Expected margin" value={scoreMargin(away, home, expectedAwayScore, expectedHomeScore)} colors={colors} />
               <Detail label="Expected total" value={projection.expectedTotal == null ? '—' : projection.expectedTotal.toFixed(1)} colors={colors} />
-              <Detail label="Projected winner" value={projectedWinnerName(projection, away, home)} colors={colors} fullWidth />
+              </View>
               {signalsDisagree && (
                 <Text style={[styles.note, { color: colors.mutedForeground }]}>
                   Projected score and win probability point in different directions. The projected winner follows win probability.
                 </Text>
               )}
-              <Detail label="Forecast status" value={projection.lifecycleStatus.replaceAll('_', ' ')} colors={colors} fullWidth />
             </View>
           ) : (
             <EmptyState message="Analytics are not available for this matchup." />
@@ -255,10 +361,17 @@ export default function GameDetailScreen() {
         {projection && (projection.awayStarterName || projection.homeStarterName) && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Pitcher Matchup</Text>
-            <View style={styles.grid}>
-              <Pitcher side={away} name={projection.awayStarterName} era={projection.awayStarterEra} whip={projection.awayStarterWhip} colors={colors} />
-              <Pitcher side={home} name={projection.homeStarterName} era={projection.homeStarterEra} whip={projection.homeStarterWhip} colors={colors} />
-            </View>
+            <PitcherComparison
+              away={away}
+              home={home}
+              awayName={projection.awayStarterName}
+              homeName={projection.homeStarterName}
+              awayEra={projection.awayStarterEra}
+              homeEra={projection.homeStarterEra}
+              awayWhip={projection.awayStarterWhip}
+              homeWhip={projection.homeStarterWhip}
+              colors={colors}
+            />
           </View>
         )}
       </ScrollView>
@@ -320,14 +433,73 @@ function FreeGameDetail({ game, onBack, colors, topInset, bottomInset }: {
   );
 }
 
-function Pitcher({ side, name, era, whip, colors }: any) {
-  if (!name) return <View style={[styles.detailCard, { flex: 1, backgroundColor: colors.card, borderColor: colors.border }]} />;
+function ProjectedTeam({ name, abbreviation, logo, sport, score, colors }: any) {
   return (
-    <View style={[styles.detailCard, { flex: 1, backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{side}</Text>
-      <Text style={[styles.detailValue, { color: colors.foreground }]} numberOfLines={1}>{name}</Text>
-      {era != null && <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>ERA <Text style={{ color: colors.foreground }}>{era.toFixed(2)}</Text></Text>}
-      {whip != null && <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>WHIP <Text style={{ color: colors.foreground }}>{whip.toFixed(2)}</Text></Text>}
+    <View style={styles.projectedTeam}>
+      {abbreviation && <TeamLogo sport={sport} abbr={abbreviation} logoUrl={logo ?? undefined} size={38} />}
+      <Text style={[styles.projectedTeamName, { color: colors.foreground }]} numberOfLines={1}>{nickname(name)}</Text>
+      <Text style={[styles.projectedScore, { color: colors.foreground }]}>{score == null ? '—' : score.toFixed(1)}</Text>
+    </View>
+  );
+}
+
+function ComparisonBar({ label, awayName, homeName, awayValue, homeValue, formatter, colors, normalize = false }: any) {
+  const awayNumeric = awayValue == null ? 0 : Number(awayValue);
+  const homeNumeric = homeValue == null ? 0 : Number(homeValue);
+  const denominator = normalize
+    ? Math.max(awayNumeric + homeNumeric, 1)
+    : Math.max((awayNumeric <= 1 && homeNumeric <= 1 ? 1 : 100), awayNumeric + homeNumeric);
+  const awayWidth = Math.max(4, Math.min(96, awayNumeric / denominator * 100));
+  const homeWidth = Math.max(4, Math.min(96, homeNumeric / denominator * 100));
+  return (
+    <View style={[styles.comparisonCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.comparisonLabel, { color: colors.mutedForeground }]}>{label}</Text>
+      <View style={styles.comparisonValues}>
+        <View>
+          <Text style={[styles.comparisonTeam, { color: colors.foreground }]}>{awayName}</Text>
+          <Text style={[styles.comparisonNumber, { color: colors.foreground }]}>{formatter(awayValue)}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[styles.comparisonTeam, { color: colors.foreground }]}>{homeName}</Text>
+          <Text style={[styles.comparisonNumber, { color: colors.foreground }]}>{formatter(homeValue)}</Text>
+        </View>
+      </View>
+      <View style={[styles.barTrack, { backgroundColor: colors.secondary }]}>
+        <View style={[styles.awayBar, { width: `${awayWidth}%`, backgroundColor: colors.mutedForeground }]} />
+        <View style={[styles.homeBar, { width: `${homeWidth}%`, backgroundColor: colors.primary }]} />
+      </View>
+    </View>
+  );
+}
+
+function PitcherComparison({ away, home, awayName, homeName, awayEra, homeEra, awayWhip, homeWhip, colors }: any) {
+  const advantage = awayEra == null || homeEra == null
+    ? null
+    : awayEra < homeEra ? nickname(away) : homeEra < awayEra ? nickname(home) : 'Even';
+  return (
+    <View style={[styles.comparisonCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.pitcherColumns}>
+        <Pitcher side={away} name={awayName} era={awayEra} whip={awayWhip} colors={colors} />
+        <View style={[styles.pitcherDivider, { backgroundColor: colors.border }]} />
+        <Pitcher side={home} name={homeName} era={homeEra} whip={homeWhip} colors={colors} />
+      </View>
+      {advantage && (
+        <View style={[styles.pitcherRead, { borderTopColor: colors.border }]}>
+          <Text style={[styles.pitcherReadLabel, { color: colors.mutedForeground }]}>STARTING PITCHING ADVANTAGE</Text>
+          <Text style={[styles.pitcherReadValue, { color: colors.primary }]}>{advantage}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function Pitcher({ side, name, era, whip, colors }: any) {
+  return (
+    <View style={styles.pitcherColumn}>
+      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]} numberOfLines={1}>{nickname(side)}</Text>
+      <Text style={[styles.detailValue, { color: colors.foreground }]} numberOfLines={2}>{name || 'TBD'}</Text>
+      <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>ERA <Text style={{ color: colors.foreground }}>{era == null ? '—' : era.toFixed(2)}</Text></Text>
+      <Text style={[styles.pitcherStat, { color: colors.mutedForeground }]}>WHIP <Text style={{ color: colors.foreground }}>{whip == null ? '—' : whip.toFixed(2)}</Text></Text>
     </View>
   );
 }
@@ -362,6 +534,40 @@ const styles = StyleSheet.create({
   verdictSub: { fontSize: 13, fontFamily: 'Inter_500Medium', marginTop: 4, textAlign: 'center' },
   section: { paddingHorizontal: 16, marginTop: 12 },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', marginBottom: 12 },
+  sectionHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  projectionCard: { margin: 16, padding: 20, borderRadius: 16, borderWidth: 1 },
+  projectionEyebrow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 18 },
+  projectedScoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  projectedTeam: { flex: 1, alignItems: 'center', gap: 6 },
+  projectedTeamName: { fontSize: 13, fontFamily: 'Inter_700Bold', textAlign: 'center' },
+  projectedScore: { fontSize: 32, lineHeight: 38, fontFamily: 'Inter_700Bold' },
+  projectedScoreCenter: { width: 52, alignItems: 'center', paddingTop: 32 },
+  projectedScoreDivider: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
+  projectedWinnerLabel: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.7, marginTop: 4 },
+  projectedWinnerPill: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, marginTop: 16 },
+  projectedWinnerPillText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  strengthBadge: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, marginBottom: 12 },
+  strengthBadgeText: { fontSize: 10, fontFamily: 'Inter_700Bold' },
+  readCard: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  readIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  readCopy: { flex: 1 },
+  readTitle: { fontSize: 15, fontFamily: 'Inter_700Bold' },
+  readSummary: { fontSize: 12, lineHeight: 18, fontFamily: 'Inter_500Medium', marginTop: 5 },
+  disclaimer: { fontSize: 10, lineHeight: 15, fontFamily: 'Inter_500Medium', marginTop: 8 },
+  comparisonCard: { padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
+  comparisonLabel: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 0.5, textTransform: 'uppercase' },
+  comparisonValues: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  comparisonTeam: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  comparisonNumber: { fontSize: 18, fontFamily: 'Inter_700Bold', marginTop: 2 },
+  barTrack: { height: 7, borderRadius: 4, marginTop: 10, flexDirection: 'row', justifyContent: 'space-between', overflow: 'hidden' },
+  awayBar: { height: '100%', borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  homeBar: { height: '100%', borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
+  pitcherColumns: { flexDirection: 'row' },
+  pitcherColumn: { flex: 1, paddingHorizontal: 6 },
+  pitcherDivider: { width: StyleSheet.hairlineWidth, marginHorizontal: 12 },
+  pitcherRead: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 14, paddingTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pitcherReadLabel: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
+  pitcherReadValue: { fontSize: 12, fontFamily: 'Inter_700Bold' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   detailCard: { width: '47.5%', padding: 12, borderRadius: 8, borderWidth: 1 },
   detailLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.4 },
