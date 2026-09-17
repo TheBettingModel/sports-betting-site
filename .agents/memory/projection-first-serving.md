@@ -14,3 +14,5 @@ User-facing analysis may explain where TBM sees model separation within a matchu
 **Why:** The product should help users understand each game and form their own view without presenting an internal probability difference as proven betting value.
 
 **How to apply:** Use plain-language model outlooks based on projected score, win probability, and supported sport-specific factors. Label model-versus-market differences separately once verified market evidence is available.
+
+The owner confirmed the projection-first detail hierarchy—score projection, model separation explanation, and visual comparisons—as the desired direction.
