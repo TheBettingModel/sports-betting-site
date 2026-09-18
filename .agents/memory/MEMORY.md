@@ -65,3 +65,4 @@
 - [Analytics market evidence](analytics-market-evidence.md) — user-facing Analytics compares public market movement with verified sharp-book movement; never imply bet percentages.
 - [App Review authentication](app-review-authentication.md) — reviewer access uses Clerk password sign-in and server-verified identity; never ship credentials or a client-side entitlement bypass.
 - [Projection-first serving](projection-first-serving.md) — every eligible daily game gets the best available score projection; experimental validation never blocks display.
+- [NCAAF historical materialization](ncaaf-historical-materialization.md) — completed results may seed PIT-safe rolling strength; batch mappings and index evidence before replay.

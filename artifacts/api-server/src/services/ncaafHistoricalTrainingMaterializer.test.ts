@@ -26,13 +26,16 @@ const source = {
 describe("NCAAF historical training materializer", () => {
   it("uses only exact mapped CFBD/ESPN identities and persists idempotently", async () => {
     const persisted: unknown[] = [];
+    const reconciled: number[] = [];
     const store: NcaafHistoricalMaterializerStore = {
       load: async () => source,
       insert: async (row) => { persisted.push(row); return persisted.length === 1; },
+      reconcileMappings: async (seasons) => { reconciled.push(...seasons); return { teams: 2, games: 1 }; },
     };
     expect(historicalGamesFromCfbdEvidence(source)).toHaveLength(1);
     const result = await materializeNcaafHistoricalTrainingRows({ seasons: [2024] }, store);
     expect(result).toMatchObject({ attempted: 1, inserted: 1, alreadyMaterialized: 0 });
+    expect(reconciled).toEqual([2024]);
     expect(persisted).toHaveLength(1);
   });
   it("fails closed when evidence is retrospective rather than pregame", async () => {
