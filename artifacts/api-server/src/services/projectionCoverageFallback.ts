@@ -11,6 +11,8 @@ type CoverageFallbackInput = Readonly<{
   persistedHomeWinPct?: number | null;
   persistedSpread?: number | null;
   persistedTotal?: number | null;
+  marketHomeSpread?: number | null;
+  marketTotal?: number | null;
 }>;
 
 function legacySport(sport: TbmV4Sport): string {
@@ -48,9 +50,26 @@ export function buildProjectionCoverageFallback(input: CoverageFallbackInput): C
     && input.persistedHomeWinPct != null
     && input.persistedHomeWinPct > 0
     && input.persistedHomeWinPct < 100;
-  const total = usePersisted ? input.persistedTotal! : computed.projectedTotal;
-  const homeWin = (usePersisted ? input.persistedHomeWinPct! : computed.homeWinPct) / 100;
-  const margin = -(usePersisted ? input.persistedSpread! : computed.projectedSpread);
+  const useMarketBaseline = !usePersisted
+    && input.sport === "NCAAF"
+    && input.marketHomeSpread != null
+    && Number.isFinite(input.marketHomeSpread)
+    && Math.abs(input.marketHomeSpread) <= 100
+    && input.marketTotal != null
+    && Number.isFinite(input.marketTotal)
+    && input.marketTotal > 0
+    && input.marketTotal <= 500;
+  const total = usePersisted
+    ? input.persistedTotal!
+    : useMarketBaseline ? input.marketTotal! : computed.projectedTotal;
+  const margin = usePersisted
+    ? -input.persistedSpread!
+    : useMarketBaseline ? -input.marketHomeSpread! : -computed.projectedSpread;
+  const homeWin = usePersisted
+    ? input.persistedHomeWinPct! / 100
+    : useMarketBaseline
+      ? 1 / (1 + Math.exp(-margin / 7))
+      : computed.homeWinPct / 100;
 
   let drawProbability: number | undefined;
   let homeWinProbability = homeWin;
@@ -84,16 +103,19 @@ export function buildProjectionCoverageFallback(input: CoverageFallbackInput): C
   return {
     // Stable for the exact model input so repeated subscriber refreshes reuse
     // one immutable snapshot instead of allocating a new ledger version.
-    predictionId: stableHash({ inputHash, model: "coverage-baseline-v1" }),
+    predictionId: stableHash({ inputHash, model: "coverage-baseline-v2" }),
     sport: input.sport,
     gameId: input.gameId,
     modelFamily: "coverage-baseline",
     modelId: `tbm-${input.sport.toLowerCase()}-coverage-baseline`,
-    modelVersion: "1.0.0",
-    artifactId: "tbm-coverage-baseline-v1",
-    artifactHash: stableHash({ model: "coverage-baseline", version: "1.0.0" }),
-    inputContractVersion: "coverage-baseline-v1",
-    configurationHash: stableHash({ sport: input.sport, source: usePersisted ? "daily-refresh" : "record-baseline" }),
+    modelVersion: "2.0.0",
+    artifactId: "tbm-coverage-baseline-v2",
+    artifactHash: stableHash({ model: "coverage-baseline", version: "2.0.0" }),
+    inputContractVersion: "coverage-baseline-v2",
+    configurationHash: stableHash({
+      sport: input.sport,
+      source: usePersisted ? "daily-refresh" : useMarketBaseline ? "pregame-market-baseline" : "record-baseline",
+    }),
     parameterHash: stableHash({ sport: input.sport, model: "legacy-projection" }),
     contractId: "projection-coverage-v1",
     contractHash: stableHash({ required: ["score", "total", "margin", "probabilities"] }),
@@ -111,7 +133,14 @@ export function buildProjectionCoverageFallback(input: CoverageFallbackInput): C
     expectedAwayScore,
     expectedMargin: expectedHomeScore - expectedAwayScore,
     expectedTotal: expectedHomeScore + expectedAwayScore,
-    evidenceTier: usePersisted ? "ESTABLISHED_DAILY_MODEL" : "RECORD_BASELINE",
-    qualityFlags: ["DISPLAY_PROJECTION_ONLY", "NOT_A_RECOMMENDATION", "COVERAGE_FALLBACK"],
+    evidenceTier: usePersisted
+      ? "ESTABLISHED_DAILY_MODEL"
+      : useMarketBaseline ? "PREGAME_MARKET_BASELINE" : "RECORD_BASELINE",
+    qualityFlags: [
+      "DISPLAY_PROJECTION_ONLY",
+      "NOT_A_RECOMMENDATION",
+      "COVERAGE_FALLBACK",
+      ...(useMarketBaseline ? ["MARKET_INFORMED_BASELINE"] : []),
+    ],
   };
 }

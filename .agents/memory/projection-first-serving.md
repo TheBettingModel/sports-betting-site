@@ -16,3 +16,9 @@ User-facing analysis may explain where TBM sees model separation within a matchu
 **How to apply:** Use plain-language model outlooks based on projected score, win probability, and supported sport-specific factors. Label model-versus-market differences separately once verified market evidence is available.
 
 The owner confirmed the projection-first detail hierarchy—score projection, model separation explanation, and visual comparisons—as the desired direction.
+
+When the independent NCAAF model is unavailable, a verified pregame spread/total may support a display-only market baseline; raw win-loss records alone must not imply credible matchup strength.
+
+**Why:** Equal or superficially similar records can produce absurd forecasts for major talent mismatches, especially FBS–FCS games.
+
+**How to apply:** Validate provider team IDs and pre-kickoff timing, mark the forecast market-informed and non-recommendational, and never present it as independent market edge.

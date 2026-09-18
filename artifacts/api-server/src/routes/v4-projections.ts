@@ -11,6 +11,7 @@ import { db, gamesTable, modelPredictionsTable, publishedPicksTable, v4ForecastV
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 import { buildProjectionCoverageFallback } from "../services/projectionCoverageFallback";
+import { fetchEspnNcaafPregameMarket } from "../services/espnNcaafPregameMarket";
 
 const router: IRouter = Router();
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -93,6 +94,8 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     awayStarterWhip: gamesTable.awayStarterWhip,
     homeTeamRecord: gamesTable.homeTeamRecord,
     awayTeamRecord: gamesTable.awayTeamRecord,
+    homeTeamId: gamesTable.homeTeamId,
+    awayTeamId: gamesTable.awayTeamId,
     homeWinPct: gamesTable.homeWinPct,
     projectedSpread: gamesTable.projectedSpread,
     projectedTotal: gamesTable.projectedTotal,
@@ -133,7 +136,24 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
       .map(([, forecast]) => forecast),
   ];
   const advancedForecastIds = new Set(advancedAndSavedForecasts.map((forecast) => forecast.gameId));
-  const coverageFallbacks = events.flatMap((event) => {
+  const fallbackEvents = events.filter((event) => !advancedForecastIds.has(event.gameId)
+    && event.eligibility === "ELIGIBLE"
+    && event.eventStart !== null
+    && new Date(event.eventStart) > new Date()
+    && gameMetadataById.has(event.gameId));
+  const ncaafMarketEntries = await Promise.all(fallbackEvents.map(async (event) => {
+    if (event.sport !== "NCAAF" || !event.eventStart) return [event.gameId, null] as const;
+    const metadata = gameMetadataById.get(event.gameId);
+    return [event.gameId, await fetchEspnNcaafPregameMarket({
+      eventId: event.gameId,
+      eventStart: event.eventStart,
+      now: new Date(),
+      homeTeamId: metadata?.homeTeamId,
+      awayTeamId: metadata?.awayTeamId,
+    })] as const;
+  }));
+  const ncaafMarketByGameId = new Map(ncaafMarketEntries);
+  const coverageFallbacks = fallbackEvents.flatMap((event) => {
     if (advancedForecastIds.has(event.gameId)
       || event.eligibility !== "ELIGIBLE"
       || event.eventStart === null
@@ -150,6 +170,8 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
       persistedHomeWinPct: metadata.homeWinPct,
       persistedSpread: metadata.projectedSpread,
       persistedTotal: metadata.projectedTotal,
+      marketHomeSpread: ncaafMarketByGameId.get(event.gameId)?.homeSpread,
+      marketTotal: ncaafMarketByGameId.get(event.gameId)?.total,
     })];
   });
   await Promise.all(coverageFallbacks.map((forecast) => {

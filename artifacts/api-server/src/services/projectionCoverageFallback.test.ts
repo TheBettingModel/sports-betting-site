@@ -55,6 +55,29 @@ describe("projection coverage fallback", () => {
     })).toThrow("POST_START_COVERAGE_FORECAST_REJECTED");
   });
 
+  it("uses a validated NCAAF market baseline instead of a weak record-only score", () => {
+    const forecast = buildProjectionCoverageFallback({
+      gameId: "ncaaf-market",
+      sport: "NCAAF",
+      eventStart: "2026-09-19T02:30:00.000Z",
+      now: new Date("2026-09-17T12:00:00.000Z"),
+      homeRecord: "1-1",
+      awayRecord: "0-3",
+      marketHomeSpread: -57.5,
+      marketTotal: 67.5,
+    });
+
+    expect(forecast).toMatchObject({
+      expectedHomeScore: 63,
+      expectedAwayScore: 5,
+      expectedMargin: 58,
+      expectedTotal: 68,
+      evidenceTier: "PREGAME_MARKET_BASELINE",
+    });
+    expect(forecast.homeWinProbability).toBeGreaterThan(0.99);
+    expect(forecast.qualityFlags).toContain("MARKET_INFORMED_BASELINE");
+  });
+
   it("keeps the prediction identity stable across repeated refreshes of identical inputs", () => {
     const input = {
       gameId: "mlb-stable",
