@@ -16,3 +16,12 @@ are separate decisions.
 an authentic executor, and explicit publication approval per sport. Keep legacy
 history for audits, but do not use it for current forecasts after that sport's
 cutover.
+
+V4 is the permanent architecture: each sport keeps its own model path,
+database/history space, and improvement cycle.
+
+**Why:** Replacing it with another unified modeling layer would duplicate the
+completed architecture and add unnecessary complexity.
+
+**How to apply:** Repair ingestion, identity mapping, historical materialization,
+execution, grading, and retraining inside each existing sport-specific V4 path.
