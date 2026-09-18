@@ -60,6 +60,7 @@ import {
   runNcaafProductionEvidenceCycle,
 } from "./ncaafProductionEvidenceCycle";
 import { materializeNcaafHistoricalTrainingRows } from "./ncaafHistoricalTrainingMaterializer";
+import { backfillNcaafEspnHistoricalGameEvidence } from "./ncaafEspnHistoricalEvidenceBackfill";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
@@ -1577,6 +1578,19 @@ async function runV4ShadowProjectionCapture(): Promise<void> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/** Bounded, resumable canonical-history job. The immutable artifact is emitted
+ * only after every CFBD game date has an explicit successful ESPN date ledger. */
+export async function runNcaafHistoricalEspnBackfill(): Promise<void> {
+  const backfill = await backfillNcaafEspnHistoricalGameEvidence({
+    seasons: [2023, 2024, 2025, 2026],
+    maxDates: 12,
+  });
+  logger.info(backfill, "Scheduler: NCAAF historical ESPN canonical backfill finished");
+  if (backfill.remainingDates !== 0 || Object.keys(backfill.failures).length !== 0) return;
+  const historical = await materializeNcaafHistoricalTrainingRows();
+  logger.info(historical, "Scheduler: NCAAF PIT-safe historical training rows materialized");
+}
+
 /**
  * Start all scheduled jobs. Call once at server startup.
  */
@@ -1650,6 +1664,12 @@ export function startScheduler(): void {
   cron.schedule("0 3 * * *", () => {
     void runPushTokenCleanup();
   }, { timezone: "America/New_York" });
+  // One bounded batch per day; explicit date ledgers make empty dates final and
+  // provider failures retryable without treating partial game rows as complete.
+  cron.schedule("20 3 * * *", () => {
+    void runNcaafHistoricalEspnBackfill().catch((err) =>
+      logger.error({ err }, "Scheduler: NCAAF historical ESPN backfill failed"));
+  }, { timezone: "America/New_York" });
 
   // Warm up team stats cache in the background so the first game refresh
   // has advanced analytics immediately available.
@@ -1673,8 +1693,7 @@ export function startScheduler(): void {
   void bootstrapMissingNcaafPerformanceEvidence()
     .then(async (bootstrap) => {
       logger.info(bootstrap, "Scheduler: NCAAF completed-game bootstrap finished");
-      const historical = await materializeNcaafHistoricalTrainingRows();
-      logger.info(historical, "Scheduler: NCAAF PIT-safe historical training rows materialized");
+      await runNcaafHistoricalEspnBackfill();
     })
     .catch((err) => logger.error({ err }, "Scheduler: NCAAF startup evidence catch-up failed"));
 
@@ -1694,7 +1713,7 @@ export const schedulerJobs = {
   mlbV4EvidenceCollection: runScheduledMlbV4EvidenceCollection,
   ncaafProductionEvidenceCycle: runNcaafProductionEvidenceCycle,
   ncaafPerformanceBootstrap: bootstrapMissingNcaafPerformanceEvidence,
-  ncaafHistoricalTrainingMaterialization: materializeNcaafHistoricalTrainingRows,
+  ncaafHistoricalEspnBackfill: runNcaafHistoricalEspnBackfill,
   nflV4ProspectiveCollection: runNflV4ProspectiveCollection,
   v4ShadowProjectionCapture: runV4ShadowProjectionCapture,
 };

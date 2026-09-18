@@ -1755,6 +1755,7 @@ const JOB_MAP: Record<string, (() => Promise<void>) | undefined> = {
   "result-grading": schedulerJobs.resultGrading,
   "analytics-refresh": schedulerJobs.analyticsRefresh,
   "drift-monitoring": schedulerJobs.driftCheck,
+  "ncaaf-historical-backfill": schedulerJobs.ncaafHistoricalEspnBackfill,
 };
 
 router.post("/admin/jobs/:name/trigger", async (req, res): Promise<void> => {

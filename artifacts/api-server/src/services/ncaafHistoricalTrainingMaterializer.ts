@@ -10,7 +10,9 @@ import {
 } from "./ncaafHistoricalTrainingDataset";
 import { materializeCfbdMappingsForSeasons } from "./ncaafCfbdMappingMaterializer";
 
-export const NCAAF_HISTORICAL_ARTIFACT_KEY = "ncaaf-historical-2023-2026-pit-v2";
+/** V5 is a corpus revision over the unchanged V2 row schema. Prior artifacts
+ * remain immutable; this version follows complete-date ledgers and latest-state mappings. */
+export const NCAAF_HISTORICAL_ARTIFACT_KEY = "ncaaf-historical-2023-2026-pit-v5";
 type CfbdGame = typeof ncaafGameEvidenceTable.$inferSelect;
 type TeamMapping = typeof ncaafCfbdTeamMappingsTable.$inferSelect;
 type GameMapping = typeof ncaafCfbdGameMappingsTable.$inferSelect;
@@ -21,8 +23,7 @@ export interface NcaafHistoricalMaterializerStore {
     games: CfbdGame[]; teamMappings: TeamMapping[]; gameMappings: GameMapping[]; domainEvidence: DomainEvidence[];
   }>;
   insert(row: typeof ncaafHistoricalTrainingRowsTable.$inferInsert): Promise<boolean>;
-  /** Optional reconciliation hook keeps tests/dry-runs pure while production
-   * materialization refreshes the append-only identity ledgers first. */
+  insertMany?(rows: readonly (typeof ncaafHistoricalTrainingRowsTable.$inferInsert)[]): Promise<number>;
   reconcileMappings?(seasons: readonly number[]): Promise<{ teams: number; games: number }>;
 }
 export interface NcaafHistoricalMaterializationResult {
@@ -47,7 +48,11 @@ function numberStats(value: unknown): Record<string, number | null> {
 }
 function classifications(payload: unknown) {
   const item = object(payload);
-  return { home: text(item.homeClassification), away: text(item.awayClassification) };
+  const game = object(item.game);
+  return {
+    home: text(item.homeClassification) ?? text(game.homeClassification),
+    away: text(item.awayClassification) ?? text(game.awayClassification),
+  };
 }
 function completionAvailableAt(payload: unknown): Date | null {
   const item = object(payload);
@@ -77,10 +82,12 @@ function qbEvidence(domain: readonly DomainEvidence[], cfbdTeamId: string, canon
 export function historicalGamesFromCfbdEvidence(source: {
   games: readonly CfbdGame[]; teamMappings: readonly TeamMapping[]; gameMappings: readonly GameMapping[]; domainEvidence: readonly DomainEvidence[];
 }): HistoricalGameInput[] {
-  const gameMappings = newest(source.gameMappings.filter((row) => row.state === "MAPPED" && row.canonicalProvider === "espn" && row.canonicalEventId),
-    (row) => row.cfbdGameId);
-  const teamMappings = newest(source.teamMappings.filter((row) => row.state === "MAPPED" && row.canonicalProvider === "espn" && row.canonicalTeamId),
-    (row) => row.cfbdTeamId);
+  const gameMappings = newest(source.gameMappings, (row) => `${row.season}:${row.cfbdGameId}`);
+  const teamMappings = newest(source.teamMappings, (row) => `${row.season}:${row.cfbdTeamId}`);
+  const currentCfbdGames = newest(
+    source.games.filter((game) => game.provider === "college_football_data" && game.kickoffAt),
+    (game) => `${game.season}:${game.providerEventId}`,
+  );
   const evidenceByGame = new Map<string, DomainEvidence[]>();
   const evidenceByTeam = new Map<string, DomainEvidence[]>();
   for (const row of source.domainEvidence) {
@@ -93,13 +100,16 @@ export function historicalGamesFromCfbdEvidence(source: {
       evidenceByTeam.set(key, [...(evidenceByTeam.get(key) ?? []), row]);
     }
   }
-  return source.games.filter((game) => game.provider === "college_football_data" && game.kickoffAt)
+  return [...currentCfbdGames.values()]
     .map((game): HistoricalGameInput | null => {
-      const event = gameMappings.get(game.providerEventId);
+      const event = gameMappings.get(`${game.season}:${game.providerEventId}`);
       const homeCfbd = game.homeProviderTeamId; const awayCfbd = game.awayProviderTeamId;
-      const home = homeCfbd ? teamMappings.get(homeCfbd) : undefined;
-      const away = awayCfbd ? teamMappings.get(awayCfbd) : undefined;
-      if (!event || !home?.canonicalTeamId || !away?.canonicalTeamId || !game.kickoffAt) return null;
+      const home = homeCfbd ? teamMappings.get(`${game.season}:${homeCfbd}`) : undefined;
+      const away = awayCfbd ? teamMappings.get(`${game.season}:${awayCfbd}`) : undefined;
+      if (event?.state !== "MAPPED" || event.canonicalProvider !== "espn" || !event.canonicalEventId
+        || home?.state !== "MAPPED" || home.canonicalProvider !== "espn" || !home.canonicalTeamId
+        || away?.state !== "MAPPED" || away.canonicalProvider !== "espn" || !away.canonicalTeamId
+        || !game.kickoffAt) return null;
       const classes = classifications(game.payload);
       const relevantDomain = [...new Map([
         ...(evidenceByGame.get(`${game.season}:${game.providerEventId}`) ?? []),
@@ -140,6 +150,17 @@ export const dbNcaafHistoricalMaterializerStore: NcaafHistoricalMaterializerStor
       .returning({ id: ncaafHistoricalTrainingRowsTable.id });
     return inserted.length > 0;
   },
+  async insertMany(rows) {
+    let inserted = 0;
+    for (let offset = 0; offset < rows.length; offset += 500) {
+      const result = await db.insert(ncaafHistoricalTrainingRowsTable)
+        .values([...rows.slice(offset, offset + 500)])
+        .onConflictDoNothing()
+        .returning({ id: ncaafHistoricalTrainingRowsTable.id });
+      inserted += result.length;
+    }
+    return inserted;
+  },
 };
 
 /** Independently callable and bounded; scheduler/capture code may call this but
@@ -155,13 +176,17 @@ export async function materializeNcaafHistoricalTrainingRows(
   if (store.reconcileMappings) await store.reconcileMappings(seasons);
   const source = await store.load(seasons);
   const built = buildNcaafHistoricalTrainingDataset(historicalGamesFromCfbdEvidence(source));
-  let inserted = 0;
-  for (const row of built.rows) {
-    const didInsert = await store.insert({
+  const inserts = built.rows.map((row) => ({
       artifactKey: NCAAF_HISTORICAL_ARTIFACT_KEY, ...row,
       kickoffAt: new Date(row.kickoffAt), pregameCutoffAt: new Date(row.pregameCutoffAt),
-    });
-    if (didInsert) inserted++;
+    }));
+  let inserted = 0;
+  if (store.insertMany) {
+    inserted = await store.insertMany(inserts);
+  } else {
+    for (const row of inserts) {
+      if (await store.insert(row)) inserted++;
+    }
   }
   const blockers = { ...built.report.excluded };
   if (built.rows.length === 0 && source.games.length > 0 && !blockers.no_eligible_pregame_lineage) {
