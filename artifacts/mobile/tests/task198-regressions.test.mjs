@@ -258,6 +258,13 @@ assert.match(liveTabSource, /enabled: Boolean\(userId\) && hasServerEntitlement/
 assert.doesNotMatch(liveTabSource, /V4LiveGamesBanner/);
 assert.doesNotMatch(liveTabSource, /MODEL LINE/);
 
+const v4ProjectionRouteSource = fs.readFileSync(
+  new URL('../../api-server/src/routes/v4-projections.ts', import.meta.url),
+  'utf8',
+);
+assert.match(v4ProjectionRouteSource, /Cache-Control", "private, no-store"/);
+assert.match(v4ProjectionRouteSource, /Vary", "Authorization"/);
+
 const chatSource = fs.readFileSync(new URL('../app/(tabs)/chat.tsx', import.meta.url), 'utf8');
 assert.match(chatSource, /enabled: !!userId && hasServerEntitlement/);
 assert.match(chatSource, /hasServerEntitlement && accessLoading/);

@@ -49,6 +49,11 @@ function isValidPregameSnapshot(
 }
 
 router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken, async (req, res) => {
+  // This response is entitlement-scoped and generated from current slate data.
+  // A bare 304 has no JSON body, which the mobile API client correctly rejects.
+  res.set("Cache-Control", "private, no-store");
+  res.set("Vary", "Authorization");
+
   if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
     res.status(403).json({ error: "Active subscription required" });
     return;
