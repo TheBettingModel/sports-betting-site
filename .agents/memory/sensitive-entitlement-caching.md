@@ -17,4 +17,6 @@ client treats it as an API error, so a fully cached multi-request screen can
 appear to have no data even though the server is healthy.
 
 **How to apply:** Set the headers before entitlement checks on viewer-scoped
-JSON routes, and verify a request with `If-None-Match` still returns a body.
+JSON routes. Express can still convert a successful response to 304 despite
+`no-store`, so strip `If-None-Match` and `If-Modified-Since` on endpoints whose
+generated client requires a JSON body; verify a conditional request returns it.

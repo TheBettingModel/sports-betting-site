@@ -264,6 +264,7 @@ const v4ProjectionRouteSource = fs.readFileSync(
 );
 assert.match(v4ProjectionRouteSource, /Cache-Control", "private, no-store"/);
 assert.match(v4ProjectionRouteSource, /Vary", "Authorization"/);
+assert.match(v4ProjectionRouteSource, /delete req\.headers\["if-none-match"\]/);
 
 const chatSource = fs.readFileSync(new URL('../app/(tabs)/chat.tsx', import.meta.url), 'utf8');
 assert.match(chatSource, /enabled: !!userId && hasServerEntitlement/);
