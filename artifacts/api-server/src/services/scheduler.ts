@@ -67,7 +67,11 @@ import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
 import { collectLiveForwardAdvancedResearch } from "./mlbAdvancedResearchCollector";
 import { captureMlbResearchMarketObservation } from "./mlbPointInTime";
-import { captureOddsApiMoneylineSnapshots } from "./marketSnapshotCapture";
+import {
+  captureOddsApiMoneylineSnapshots,
+  getMarketAnalyticsCoverage,
+  type MarketAnalyticsCoverage,
+} from "./marketSnapshotCapture";
 import {
   logSchedulerMemory,
   SingleFlightGroup,
@@ -422,6 +426,57 @@ async function checkAndRaiseFetchErrorAlerts(
       { sport, consecutiveErrors },
       "Scheduler: critical data-quality alert raised — ESPN feed_fetch_error",
     );
+  }
+}
+
+const MARKET_ANALYTICS_ALERT_TYPES = {
+  public: "market_analytics_public_missing",
+  sharp: "market_analytics_sharp_missing",
+} as const;
+
+async function reconcileMarketAnalyticsCoverageAlerts(
+  gameDate: string,
+  scheduledGames: number,
+  coverage: MarketAnalyticsCoverage,
+): Promise<void> {
+  if (scheduledGames <= 0) return;
+  const now = new Date();
+
+  for (const kind of ["public", "sharp"] as const) {
+    const alertType = MARKET_ANALYTICS_ALERT_TYPES[kind];
+    const rows = kind === "public" ? coverage.publicRows : coverage.sharpRows;
+    const games = kind === "public" ? coverage.publicGames : coverage.sharpGames;
+
+    if (games > 0) {
+      const resolved = await db.update(dataQualityAlertsTable)
+        .set({ isResolved: true, resolvedAt: now, resolvedBy: "scheduler:auto" })
+        .where(and(
+          eq(dataQualityAlertsTable.alertType, alertType),
+          eq(dataQualityAlertsTable.isResolved, false),
+        ))
+        .returning({ id: dataQualityAlertsTable.id });
+      if (resolved.length > 0) {
+        logger.info({ kind, resolvedIds: resolved.map((row) => row.id) }, "Scheduler: market Analytics coverage alert auto-resolved");
+      }
+      continue;
+    }
+
+    const [existing] = await db.select({ id: dataQualityAlertsTable.id })
+      .from(dataQualityAlertsTable)
+      .where(and(
+        eq(dataQualityAlertsTable.alertType, alertType),
+        eq(dataQualityAlertsTable.isResolved, false),
+      ))
+      .limit(1);
+    if (existing) continue;
+
+    await db.insert(dataQualityAlertsTable).values({
+      alertType,
+      severity: "critical",
+      description: `No ${kind} sportsbook moneyline snapshots were available for ${gameDate} after odds ingestion processed ${scheduledGames} scheduled games.`,
+      metadata: { gameDate, scheduledGames, rows, games, coverage },
+    });
+    logger.error({ kind, gameDate, scheduledGames, coverage }, "Scheduler: critical market Analytics coverage alert raised");
   }
 }
 
@@ -962,7 +1017,14 @@ async function runOddsIngestion(): Promise<void> {
 
     // Evidence capture above completes before the one official V4 orchestrator.
     await runRegisteredOfficialV4(new Date());
-    await finishRun(runId, "completed", processed, undefined, sportCounts);
+    const analyticsCoverage = await getMarketAnalyticsCoverage(todayDateStr);
+    const scheduledGames = Object.values(sportCounts)
+      .reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
+    await finishRun(runId, "completed", processed, undefined, {
+      ...sportCounts,
+      marketAnalytics: analyticsCoverage,
+    });
+    await reconcileMarketAnalyticsCoverageAlerts(todayDateStr, scheduledGames, analyticsCoverage);
 
     // Auto-resolve any stale alerts for sports that returned games.
     await autoResolveSportAlerts(sportCounts);
@@ -977,7 +1039,7 @@ async function runOddsIngestion(): Promise<void> {
     // Notify when the current effective Strong Buy set changes.
     await maybeSendStrongBuyNotification();
 
-    logger.info({ processed, sportCounts }, "Scheduler: odds-ingestion complete");
+    logger.info({ processed, sportCounts, analyticsCoverage }, "Scheduler: odds-ingestion complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (runId !== null) await finishRun(runId, "failed", 0, msg);
@@ -1726,6 +1788,7 @@ export {
   checkAndRaiseSportAlerts as _checkAndRaiseSportAlerts,
   autoResolveSportAlerts as _autoResolveSportAlerts,
   checkAndRaiseFetchErrorAlerts as _checkAndRaiseFetchErrorAlerts,
+  reconcileMarketAnalyticsCoverageAlerts as _reconcileMarketAnalyticsCoverageAlerts,
 };
 
 /**

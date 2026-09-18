@@ -266,6 +266,20 @@ assert.match(v4ProjectionRouteSource, /Cache-Control", "private, no-store"/);
 assert.match(v4ProjectionRouteSource, /Vary", "Authorization"/);
 assert.match(v4ProjectionRouteSource, /delete req\.headers\["if-none-match"\]/);
 
+const schedulerSource = fs.readFileSync(
+  new URL('../../api-server/src/services/scheduler.ts', import.meta.url),
+  'utf8',
+);
+assert.match(schedulerSource, /getMarketAnalyticsCoverage/);
+assert.match(schedulerSource, /market_analytics_public_missing/);
+assert.match(schedulerSource, /market_analytics_sharp_missing/);
+
+const apiIndexSource = fs.readFileSync(
+  new URL('../../api-server/src/index.ts', import.meta.url),
+  'utf8',
+);
+assert.match(apiIndexSource, /runStartupCatchUp\(\)[\s\S]*schedulerJobs\.oddsIngestion\(\)/);
+
 const chatSource = fs.readFileSync(new URL('../app/(tabs)/chat.tsx', import.meta.url), 'utf8');
 assert.match(chatSource, /enabled: !!userId && hasServerEntitlement/);
 assert.match(chatSource, /hasServerEntitlement && accessLoading/);

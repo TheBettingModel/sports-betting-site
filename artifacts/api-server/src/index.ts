@@ -1,6 +1,6 @@
 import app, { markStartupReady } from "./app";
 import { logger } from "./lib/logger";
-import { runStartupCatchUp, startScheduler } from "./services/scheduler";
+import { runStartupCatchUp, schedulerJobs, startScheduler } from "./services/scheduler";
 import { initJwks } from "./middleware/requireSubscriber";
 import { reconcileLegacyPublishedPickEffectiveness } from "./services/publishedPickReconciliation";
 import { applyMlbFavoritePriceCapRepair } from "./services/mlbPolicyRevisions";
@@ -247,7 +247,9 @@ async function startServer(): Promise<void> {
     // Record tab empty until the hourly scheduler fires.
     // Use the scheduler's heavy-job group so startup recovery cannot overlap
     // odds ingestion, hourly grading, or analytics refresh.
-    void runStartupCatchUp();
+    void runStartupCatchUp()
+      .then(() => schedulerJobs.oddsIngestion())
+      .catch((err) => logger.error({ err }, "Startup odds ingestion failed"));
   }
 }
 

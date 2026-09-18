@@ -1,6 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   db,
+  gamesTable,
   marketsTable,
   oddsSnapshotsTable,
   sportsbooksTable,
@@ -26,6 +27,40 @@ export type MoneylineSnapshotRow = {
   price: number;
   capturedAt: Date;
 };
+
+export type MarketAnalyticsCoverage = {
+  publicRows: number;
+  publicGames: number;
+  sharpRows: number;
+  sharpGames: number;
+};
+
+/** Current-day named-book coverage used by scheduler health checks. */
+export async function getMarketAnalyticsCoverage(gameDate: string): Promise<MarketAnalyticsCoverage> {
+  const [coverage] = await db.select({
+    publicRows: sql<number>`count(*) filter (where ${sportsbooksTable.isSharp} = false)`,
+    publicGames: sql<number>`count(distinct ${oddsSnapshotsTable.gameId}) filter (where ${sportsbooksTable.isSharp} = false)`,
+    sharpRows: sql<number>`count(*) filter (where ${sportsbooksTable.isSharp} = true)`,
+    sharpGames: sql<number>`count(distinct ${oddsSnapshotsTable.gameId}) filter (where ${sportsbooksTable.isSharp} = true)`,
+  })
+    .from(oddsSnapshotsTable)
+    .innerJoin(gamesTable, eq(oddsSnapshotsTable.gameId, gamesTable.id))
+    .innerJoin(marketsTable, eq(oddsSnapshotsTable.marketId, marketsTable.id))
+    .innerJoin(sportsbooksTable, eq(oddsSnapshotsTable.sportsbookId, sportsbooksTable.id))
+    .where(and(
+      eq(gamesTable.gameDate, gameDate),
+      eq(marketsTable.slug, "moneyline"),
+      eq(oddsSnapshotsTable.isAvailable, true),
+      eq(oddsSnapshotsTable.isStale, false),
+    ));
+
+  return {
+    publicRows: Number(coverage?.publicRows ?? 0),
+    publicGames: Number(coverage?.publicGames ?? 0),
+    sharpRows: Number(coverage?.sharpRows ?? 0),
+    sharpGames: Number(coverage?.sharpGames ?? 0),
+  };
+}
 
 /**
  * Build complete, same-book moneyline rows from The Odds API's named quotes.
