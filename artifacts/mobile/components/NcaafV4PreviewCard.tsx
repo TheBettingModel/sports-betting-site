@@ -56,7 +56,7 @@ export function NcaafV4PreviewCard({ projection }: { projection: NcaafV4Subscrib
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerTopRow}>
           <View style={styles.boardMeta}>
-            <Text style={[styles.boardLabel, { color: colors.primary }]}>V4 PREVIEW / UNVALIDATED</Text>
+            <Text style={[styles.boardLabel, { color: colors.primary }]}>V4 MODEL PROJECTION</Text>
             <Text style={[styles.boardSlash, { color: colors.mutedForeground }]}>/</Text>
             <Text style={[styles.boardSport, { color: colors.mutedForeground }]}>NCAAF</Text>
           </View>
@@ -85,7 +85,7 @@ export function NcaafV4PreviewCard({ projection }: { projection: NcaafV4Subscrib
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.pickLabel, { color: colors.primary }]}>V4 PROJECTED PICK</Text>
+        <Text style={[styles.pickLabel, { color: colors.primary }]}>PROJECTED OUTCOME</Text>
         <View style={styles.pickRow}>
           <Text numberOfLines={1} style={[styles.pickName, { color: colors.foreground }]}>
             {pickTeamName} ML
@@ -113,7 +113,7 @@ export function NcaafV4PreviewCard({ projection }: { projection: NcaafV4Subscrib
             {fairOdds != null && <AnalysisRow label="Fair Price" value={fmtOdds(fairOdds)} colors={colors} />}
             {edgeAbs != null && <AnalysisRow label="Value Edge" value={`+${edgeAbs.toFixed(1)}%`} colors={colors} />}
             <View style={styles.analysisGroup}>
-              <AnalysisRow label="Disclaimer" value="This is an unvalidated V4 preview. It does not represent an official production play." colors={colors} />
+              <AnalysisRow label="About" value="This is an NCAA Football V4 model projection for matchup research." colors={colors} />
             </View>
           </View>
         )}

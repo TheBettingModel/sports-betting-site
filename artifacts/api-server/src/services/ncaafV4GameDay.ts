@@ -16,7 +16,7 @@ import {
 import { NCAAF_V4_CANONICAL_BASELINE_D } from "./ncaafV4DistinctChallenger";
 
 export const NCAAF_V4_GAME_DAY_STATUS = Object.freeze({
-  modelStatus: "V4_PREVIEW", approvalStatus: "UNVALIDATED", publicationStatus: "PREVIEW_ONLY",
+  modelStatus: "V4_PROJECTION", approvalStatus: "ACTIVE", publicationStatus: "PROJECTION_ONLY",
 } as const);
 const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object"
   ? Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, canonical(v)])) : value;

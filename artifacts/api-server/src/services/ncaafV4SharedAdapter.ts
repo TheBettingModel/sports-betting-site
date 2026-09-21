@@ -178,9 +178,8 @@ export function createNcaafV4SharedAdapter(
         expectedTotal: result.output.expectedTotal,
         evidenceTier: result.output.dataQuality,
         qualityFlags: Object.freeze([
-          "V4_VALIDATING",
-          "NO_OFFICIAL_PLAY",
-          "PREVIEW_ONLY",
+          "V4_PROJECTION",
+          "PROJECTION_ONLY",
           `EXECUTION_HASH:${result.outputHash}`,
         ]),
       });
@@ -189,9 +188,9 @@ export function createNcaafV4SharedAdapter(
       validateCanonicalV4Forecast(output, envelope, identity);
       if (output.approvalState !== "UNVALIDATED"
         || output.maturity !== "DEVELOPING"
-        || !output.qualityFlags.includes("NO_OFFICIAL_PLAY")
+        || !output.qualityFlags.includes("PROJECTION_ONLY")
         || output.predictionTimestamp !== envelope.predictionTimestamp) {
-        throw new Error("NCAAF_SHARED_ADAPTER_PUBLICATION_BOUNDARY_VIOLATION");
+        throw new Error("NCAAF_SHARED_ADAPTER_PROJECTION_BOUNDARY_VIOLATION");
       }
     },
   };

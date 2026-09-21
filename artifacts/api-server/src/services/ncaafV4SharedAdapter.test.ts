@@ -82,7 +82,7 @@ describe("NCAAF shared V4 adapter", () => {
       homeWinProbability: .66,
       awayWinProbability: .34,
       approvalState: "UNVALIDATED",
-      qualityFlags: ["V4_VALIDATING", "NO_OFFICIAL_PLAY", "PREVIEW_ONLY", "EXECUTION_HASH:output-hash"],
+      qualityFlags: ["V4_PROJECTION", "PROJECTION_ONLY", "EXECUTION_HASH:output-hash"],
     });
     engine.validateInput(envelope);
     engine.validateOutput(first, envelope);
@@ -95,7 +95,7 @@ describe("NCAAF shared V4 adapter", () => {
     expect(result.disposition).toBe("FORECAST");
     if (result.disposition === "FORECAST") {
       expect(result.forecast.approvalState).toBe("UNVALIDATED");
-      expect(result.forecast.qualityFlags).toContain("NO_OFFICIAL_PLAY");
+      expect(result.forecast.qualityFlags).toContain("PROJECTION_ONLY");
     }
   });
 

@@ -687,7 +687,7 @@ export const getGetV4FullSlateProjectionsUrl = (params: GetV4FullSlateProjection
 }
 
 /**
- * Returns every legitimate V4 forecast for one sport/day plus explicit coverage failures. Validating projections are not official TBM picks.
+ * Returns every legitimate V4 projection for one sport/day plus explicit coverage failures.
  * @summary Get safe full-slate V4 model projections
  */
 export const getV4FullSlateProjections = async (params: GetV4FullSlateProjectionsParams, options?: RequestInit): Promise<V4FullSlateProjectionResponse> => {

@@ -10,5 +10,5 @@ export type NcaafV4SubscriberProjectionBoardModelStatus = typeof NcaafV4Subscrib
 
 
 export const NcaafV4SubscriberProjectionBoardModelStatus = {
-  V4_PREVIEW: 'V4_PREVIEW',
+  V4_PROJECTION: 'V4_PROJECTION',
 } as const;

@@ -129,7 +129,7 @@ paths:
           schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
       responses:
         "200":
-          description: Frozen-model V4 preview board
+          description: Frozen-model NCAA Football V4 projection board
           content:
             application/json:
               schema: { $ref: "#/components/schemas/NcaafV4SubscriberProjectionBoard" }
@@ -143,8 +143,8 @@ paths:
       tags: [model]
       summary: Get safe full-slate V4 model projections
       description: >-
-        Returns every legitimate V4 forecast for one sport/day plus explicit
-        coverage failures. Validating projections are not official TBM picks.
+        Returns every legitimate V4 projection for one sport/day plus explicit
+        coverage failures.
       security: [{ bearerAuth: [] }]
       parameters:
         - name: sport
@@ -1075,9 +1075,9 @@ components:
       additionalProperties: false
       properties:
         date: { type: string }
-        modelStatus: { type: string, enum: [V4_PREVIEW] }
-        approvalStatus: { type: string, enum: [UNVALIDATED] }
-        publicationStatus: { type: string, enum: [PREVIEW_ONLY] }
+        modelStatus: { type: string, enum: [V4_PROJECTION] }
+        approvalStatus: { type: string, enum: [ACTIVE] }
+        publicationStatus: { type: string, enum: [PROJECTION_ONLY] }
         disclaimer: { type: string }
         board:
           type: array

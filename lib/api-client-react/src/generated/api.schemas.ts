@@ -262,21 +262,21 @@ export type NcaafV4SubscriberProjectionBoardModelStatus = typeof NcaafV4Subscrib
 
 
 export const NcaafV4SubscriberProjectionBoardModelStatus = {
-  V4_PREVIEW: 'V4_PREVIEW',
+  V4_PROJECTION: 'V4_PROJECTION',
 } as const;
 
 export type NcaafV4SubscriberProjectionBoardApprovalStatus = typeof NcaafV4SubscriberProjectionBoardApprovalStatus[keyof typeof NcaafV4SubscriberProjectionBoardApprovalStatus];
 
 
 export const NcaafV4SubscriberProjectionBoardApprovalStatus = {
-  UNVALIDATED: 'UNVALIDATED',
+  ACTIVE: 'ACTIVE',
 } as const;
 
 export type NcaafV4SubscriberProjectionBoardPublicationStatus = typeof NcaafV4SubscriberProjectionBoardPublicationStatus[keyof typeof NcaafV4SubscriberProjectionBoardPublicationStatus];
 
 
 export const NcaafV4SubscriberProjectionBoardPublicationStatus = {
-  PREVIEW_ONLY: 'PREVIEW_ONLY',
+  PROJECTION_ONLY: 'PROJECTION_ONLY',
 } as const;
 
 export type NcaafV4SubscriberProjectionV4ModelOpinion = typeof NcaafV4SubscriberProjectionV4ModelOpinion[keyof typeof NcaafV4SubscriberProjectionV4ModelOpinion];

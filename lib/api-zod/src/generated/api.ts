@@ -411,9 +411,9 @@ export const GetNcaafV4ProjectionsQueryParams = zod.object({
 
 export const GetNcaafV4ProjectionsResponse = zod.object({
   "date": zod.string(),
-  "modelStatus": zod.enum(['V4_PREVIEW']),
-  "approvalStatus": zod.enum(['UNVALIDATED']),
-  "publicationStatus": zod.enum(['PREVIEW_ONLY']),
+  "modelStatus": zod.enum(['V4_PROJECTION']),
+  "approvalStatus": zod.enum(['ACTIVE']),
+  "publicationStatus": zod.enum(['PROJECTION_ONLY']),
   "disclaimer": zod.string(),
   "board": zod.array(zod.object({
   "kickoffAt": zod.coerce.date(),
@@ -456,7 +456,7 @@ export const GetNcaafV4ProjectionsResponse = zod.object({
 
 
 /**
- * Returns every legitimate V4 forecast for one sport/day plus explicit coverage failures. Validating projections are not official TBM picks.
+ * Returns every legitimate V4 projection for one sport/day plus explicit coverage failures.
  * @summary Get safe full-slate V4 model projections
  */
 export const getV4FullSlateProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
