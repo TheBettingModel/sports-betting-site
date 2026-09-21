@@ -37,6 +37,7 @@
 - [Projection-first Games hub](collapsed-model-board-hierarchy.md) — TBM is a daily matchup research resource; complete slates and model outlooks replace bet-tracker framing.
 - [Sensitive entitlement caching](sensitive-entitlement-caching.md) — Picks and Chat require a fresh server grant; fetching/error states fail closed and evict premium caches.
 - [Free-tier game contract](safe-free-pick-contract.md) — free members get at most two full daily game cards; the remaining slate and all premium endpoints stay server-locked.
+- [Projection pass access](projection-pass-access.md) — signed-in free users choose one game for a server-enforced rolling 24-hour projection pass.
 - [Managed database publish binding](managed-database-publish-binding.md) — a manually stored DATABASE_URL can make Replit reject publishing as an external database.
 - [MLB audit-first sequence](mlb-audit-first.md) — freeze production weights until auditability/publication safety passes, then run challenger replay before any promotion decision.
 - [MLB V4 shadow boundary](mlb-v4-shadow-boundary.md) — V4 stays nondeployable; OOS is spent; future starter work is prospective, and identity capture alone is not pipeline-ready.
