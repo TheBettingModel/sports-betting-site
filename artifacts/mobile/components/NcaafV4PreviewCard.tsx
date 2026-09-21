@@ -56,7 +56,7 @@ export function NcaafV4PreviewCard({ projection }: { projection: NcaafV4Subscrib
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerTopRow}>
           <View style={styles.boardMeta}>
-            <Text style={[styles.boardLabel, { color: colors.primary }]}>V4 MODEL PROJECTION</Text>
+            <Text style={[styles.boardLabel, { color: colors.primary }]}>NCAA FOOTBALL V4 PROJECTION</Text>
             <Text style={[styles.boardSlash, { color: colors.mutedForeground }]}>/</Text>
             <Text style={[styles.boardSport, { color: colors.mutedForeground }]}>NCAAF</Text>
           </View>

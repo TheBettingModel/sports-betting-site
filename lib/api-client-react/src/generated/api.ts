@@ -603,7 +603,7 @@ export const getGetNcaafV4ProjectionsUrl = (params?: GetNcaafV4ProjectionsParams
 
 /**
  * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
- * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ * @summary Get the NCAA Football V4 Projection board for an Eastern calendar date
  */
 export const getNcaafV4Projections = async (params?: GetNcaafV4ProjectionsParams, options?: RequestInit): Promise<NcaafV4SubscriberProjectionBoard> => {
 
@@ -650,7 +650,7 @@ export type GetNcaafV4ProjectionsQueryError = ErrorType<void>
 
 
 /**
- * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ * @summary Get the NCAA Football V4 Projection board for an Eastern calendar date
  */
 
 export function useGetNcaafV4Projections<TData = Awaited<ReturnType<typeof getNcaafV4Projections>>, TError = ErrorType<void>>(

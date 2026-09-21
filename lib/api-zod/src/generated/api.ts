@@ -400,7 +400,7 @@ export const GetGamesMarketAnalyticsResponse = zod.object({
 
 /**
  * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
- * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ * @summary Get the NCAA Football V4 Projection board for an Eastern calendar date
  */
 export const getNcaafV4ProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 

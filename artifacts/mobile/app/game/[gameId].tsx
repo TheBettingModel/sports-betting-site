@@ -259,7 +259,9 @@ export default function GameDetailScreen() {
           <View style={[styles.projectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.projectionEyebrow}>
               <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.verdictTitle, { color: colors.primary }]}>TBM SCORE PROJECTION</Text>
+              <Text style={[styles.verdictTitle, { color: colors.primary }]}>
+                {fixture.sport === 'NCAAF' ? 'NCAA FOOTBALL V4 PROJECTION' : 'TBM SCORE PROJECTION'}
+              </Text>
             </View>
             <View style={styles.projectedScoreRow}>
               <ProjectedTeam

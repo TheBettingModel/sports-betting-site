@@ -12,7 +12,7 @@ export function toSubscriberNcaafV4Board(owner: Awaited<ReturnType<typeof getNca
     modelStatus: owner.model.modelStatus,
     approvalStatus: owner.model.approvalStatus,
     publicationStatus: owner.model.publicationStatus,
-    disclaimer: "NCAA Football V4 model projection for matchup research.",
+    disclaimer: "NCAA Football V4 Projection for matchup research.",
     board: owner.board.map(row => ({
       kickoffAt: row.kickoffAt, awayTeam: row.awayTeam, homeTeam: row.homeTeam,
       v4ModelOpinion: row.v4ModelOpinion,
@@ -26,7 +26,7 @@ export function toSubscriberNcaafV4Board(owner: Awaited<ReturnType<typeof getNca
       }, spread: row.market.spread && { capturedAt: row.market.spread.capturedAt, selection: row.market.spread.selection, line: row.market.spread.line, odds: row.market.spread.odds },
         total: row.market.total && { capturedAt: row.market.total.capturedAt, selection: row.market.total.selection, line: row.market.total.line, odds: row.market.total.odds } },
       comparison: { moneylineHomeEdge: row.comparison.moneylineHomeEdge },
-      disclaimer: "NCAA Football V4 model projection for matchup research.",
+      disclaimer: "NCAA Football V4 Projection for matchup research.",
     })),
   };
 }
