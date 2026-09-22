@@ -3,6 +3,13 @@
 **Policy:** `ncaaf-v4-learning-freeze-v1`  
 **Status:** production is frozen; this policy does not publish or promote.
 
+## Production observation baseline
+
+The first verified seven-day production collection started at
+`2026-09-22T15:06:45Z` (`2026-09-22 11:06:45 EDT`) and completed successfully.
+The initial live-week observation closes at `2026-09-29T15:06:45Z`. This
+timestamp is fixed; failed or partial intervals do not move it earlier.
+
 ## Collection
 
 Keep collecting prospective NCAAF V4 forecasts from the existing exact approved

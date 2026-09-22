@@ -10,6 +10,9 @@ import {
 } from "@workspace/db";
 import { ncaafRollingEasternBounds, ncaafRollingProjectionDates } from "./ncaafProductionEvidenceCycle";
 
+export const NCAAF_V4_LIVE_WEEK_STARTED_AT = new Date("2026-09-22T15:06:45.000Z");
+export const NCAAF_V4_LIVE_WEEK_DAYS = 7;
+
 export type HealthGameRow = {
   eventId: string;
   kickoffAt: Date;
@@ -113,7 +116,17 @@ export async function getNcaafV4HealthReport(now = new Date()) {
     gameStatus: gamesTable.status, homeTeamId: gamesTable.homeTeamId,
     awayTeamId: gamesTable.awayTeamId }).from(gamesTable).where(and(
     eq(gamesTable.sport, "NCAAF"), gte(gamesTable.startsAt, start), lt(gamesTable.startsAt, end)));
-  if (schedule.length === 0) return summarizeNcaafV4Health([], now, dates);
+  const observationCompletesAt = new Date(NCAAF_V4_LIVE_WEEK_STARTED_AT.getTime()
+    + NCAAF_V4_LIVE_WEEK_DAYS * 24 * 60 * 60 * 1000);
+  const observation = {
+    startedAt: NCAAF_V4_LIVE_WEEK_STARTED_AT.toISOString(),
+    completesAt: observationCompletesAt.toISOString(),
+    requiredDays: NCAAF_V4_LIVE_WEEK_DAYS,
+    completedDays: Math.max(0, Math.min(NCAAF_V4_LIVE_WEEK_DAYS,
+      Math.floor((now.getTime() - NCAAF_V4_LIVE_WEEK_STARTED_AT.getTime()) / (24 * 60 * 60 * 1000)))),
+    status: now >= observationCompletesAt ? "COMPLETE" as const : "COLLECTING" as const,
+  };
+  if (schedule.length === 0) return { ...summarizeNcaafV4Health([], now, dates), observation };
   const eventIds = [...new Set(schedule.flatMap((game) => [
     game.eventId,
     game.eventId.replace(/^NCAAF-/, ""),
@@ -189,5 +202,5 @@ export async function getNcaafV4HealthReport(now = new Date()) {
       homeFbs: homeTeamId ? (fbs.get(homeTeamId) ?? null) : null,
       awayFbs: awayTeamId ? (fbs.get(awayTeamId) ?? null) : null });
   }
-  return summarizeNcaafV4Health(rows, now, dates);
+  return { ...summarizeNcaafV4Health(rows, now, dates), observation };
 }
