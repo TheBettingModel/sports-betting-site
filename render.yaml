@@ -15,6 +15,14 @@ services:
         value: "false"
       - key: PUBLICATION_ENABLED
         value: "false"
+      - key: TBM_ENFORCE_RELEASE_ID
+        value: "true"
+      - key: TBM_RUNTIME_ROLE
+        value: "api"
+      - key: TBM_RELEASE_SHA
+        sync: false
+      - key: TBM_DATABASE_TARGET_ID
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: CORS_ALLOWED_ORIGINS
@@ -50,6 +58,14 @@ services:
         value: "--max-old-space-size=384"
       - key: PUBLICATION_ENABLED
         value: "false"
+      - key: TBM_ENFORCE_RELEASE_ID
+        value: "true"
+      - key: TBM_RUNTIME_ROLE
+        value: "scheduler"
+      - key: TBM_RELEASE_SHA
+        sync: false
+      - key: TBM_DATABASE_TARGET_ID
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: ODDS_API_KEY

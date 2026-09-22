@@ -11,6 +11,7 @@ import { reconcileLegacyNcaafPerformanceEligibility } from "./services/legacyNca
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { validateGuardedServingStartup } from "./services/guardedServing/startupValidation";
+import { getTbmReleaseIdentity } from "./lib/releaseIdentity";
 
 const rawPort = process.env["PORT"];
 
@@ -145,13 +146,17 @@ async function applyStartupMigrations(): Promise<void> {
 }
 
 async function startServer(): Promise<void> {
+  const releaseIdentity = getTbmReleaseIdentity("api");
   await new Promise<void>((resolve, reject) => {
     app.listen(port, (err) => {
       if (err) {
         reject(err);
         return;
       }
-      logger.info({ port }, "Server listening; startup reconciliation pending");
+      logger.info(
+        { port, releaseIdentity },
+        "Server listening; startup reconciliation pending",
+      );
       resolve();
     });
   }).catch((err) => {
@@ -230,7 +235,10 @@ async function startServer(): Promise<void> {
   }
 
   markStartupReady();
-  logger.info({ port }, "Startup reconciliation complete; API ready");
+  logger.info(
+    { port, releaseIdentity },
+    "Startup reconciliation complete; API ready",
+  );
 
   // Pre-fetch Clerk JWKS once so all subsequent JWT verifications are local
   // (avoids per-request outbound TLS to Clerk which fails intermittently in prod)

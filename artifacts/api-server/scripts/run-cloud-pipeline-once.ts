@@ -1,8 +1,10 @@
 import { schedulerJobs } from "../src/services/scheduler";
 import { bootstrapTask241V4Engines } from "../src/services/v4EngineBootstrap241";
+import { getTbmReleaseIdentity } from "../src/lib/releaseIdentity";
 
 const startedAt = new Date().toISOString();
 const publicationEnabled = process.env["PUBLICATION_ENABLED"] === "true";
+const releaseIdentity = getTbmReleaseIdentity("scheduler");
 const results: Record<string, unknown> = {};
 
 // The web entrypoint bootstraps this registry through app.ts. The cron
@@ -51,6 +53,7 @@ const failed = Object.values(results).some((value) =>
   (value as { status?: string }).status === "FAILED");
 console.log(JSON.stringify({
   mode: publicationEnabled ? "PRODUCTION" : "SHADOW",
+  release: releaseIdentity,
   startedAt,
   completedAt: new Date().toISOString(),
   results,

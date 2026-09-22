@@ -26,6 +26,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run security:signing-credentials
       - run: pnpm run security:source
+      - run: pnpm run release:preflight
       - run: pnpm run typecheck
       - run: pnpm --filter @workspace/api-server test
       - run: pnpm --filter @workspace/api-server run build
