@@ -82,7 +82,7 @@ describe("NCAAF shared V4 adapter", () => {
       homeWinProbability: .66,
       awayWinProbability: .34,
       approvalState: "UNVALIDATED",
-      qualityFlags: ["V4_VALIDATING", "NO_OFFICIAL_PLAY", "PREVIEW_ONLY", "EXECUTION_HASH:output-hash"],
+      qualityFlags: ["V4_PROJECTION", "PROJECTION_ONLY", "EXECUTION_HASH:output-hash"],
     });
     engine.validateInput(envelope);
     engine.validateOutput(first, envelope);
@@ -95,17 +95,26 @@ describe("NCAAF shared V4 adapter", () => {
     expect(result.disposition).toBe("FORECAST");
     if (result.disposition === "FORECAST") {
       expect(result.forecast.approvalState).toBe("UNVALIDATED");
-      expect(result.forecast.qualityFlags).toContain("NO_OFFICIAL_PLAY");
+      expect(result.forecast.qualityFlags).toContain("PROJECTION_ONLY");
     }
   });
 
-  it("rejects a tomorrow slate before shared execution", async () => {
+  it("accepts a future slate inside the rolling seven-day horizon", async () => {
     const tomorrow = Object.freeze({
       ...input,
       input: Object.freeze({ ...input.input, kickoffAt: "2026-09-07T20:00:00.000Z" }),
     });
     await expect(adapter(tomorrow).collectEvidence("NCAAF-401752601", now))
-      .rejects.toThrow("CURRENT_EASTERN_DATE_ONLY");
+      .resolves.toMatchObject({ sharedGameId: "NCAAF-401752601" });
+  });
+
+  it("rejects a future slate outside the rolling seven-day horizon", async () => {
+    const beyondHorizon = Object.freeze({
+      ...input,
+      input: Object.freeze({ ...input.input, kickoffAt: "2026-09-13T20:00:00.000Z" }),
+    });
+    await expect(adapter(beyondHorizon).collectEvidence("NCAAF-401752601", now))
+      .rejects.toThrow("OUTSIDE_ROLLING_HORIZON");
   });
 
   it("rejects non-ESPN or ambiguous event identity", async () => {

@@ -60,13 +60,24 @@ function easternDate(value: Date): string {
   }).format(value);
 }
 
-function assertCurrentEasternGame(input: MaterializedNcaafCandidateInput, now: Date): void {
+const NCAAF_PROJECTION_HORIZON_DAYS = 7;
+
+function addEasternCalendarDays(date: string, days: number): string {
+  const value = new Date(`${date}T12:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function assertRollingEasternGame(input: MaterializedNcaafCandidateInput, now: Date): void {
   const kickoff = new Date(input.input.kickoffAt);
   if (!Number.isFinite(kickoff.getTime()) || kickoff <= now) {
     throw new Error("NCAAF_SHARED_ADAPTER_GAME_ALREADY_STARTED");
   }
-  if (easternDate(kickoff) !== easternDate(now)) {
-    throw new Error("NCAAF_SHARED_ADAPTER_CURRENT_EASTERN_DATE_ONLY");
+  const today = easternDate(now);
+  const finalEligibleDate = addEasternCalendarDays(today, NCAAF_PROJECTION_HORIZON_DAYS - 1);
+  const kickoffDate = easternDate(kickoff);
+  if (kickoffDate < today || kickoffDate > finalEligibleDate) {
+    throw new Error("NCAAF_SHARED_ADAPTER_OUTSIDE_ROLLING_HORIZON");
   }
 }
 
@@ -101,13 +112,13 @@ export function createNcaafV4SharedAdapter(
       const input = await materialize(now, match[1]!);
       if (!input) throw new Error("NCAAF_SHARED_ADAPTER_NO_ELIGIBLE_PIT_INPUT");
       assertExactEspnBinding(gameId, input);
-      assertCurrentEasternGame(input, now);
+      assertRollingEasternGame(input, now);
       return Object.freeze({ sharedGameId: gameId, materialized: input });
     },
     async materializeInput(evidence, now) {
       const sharedEvidence = evidence as SharedNcaafEvidence;
       const materialized = sharedEvidence.materialized;
-      assertCurrentEasternGame(materialized, now);
+      assertRollingEasternGame(materialized, now);
       assertExactEspnBinding(sharedEvidence.sharedGameId, materialized);
       const audit = materialized.input.sourceAudit;
       const sourceEvidenceTimes = [audit.evidenceMaxCapturedAt, audit.evidenceMaxModeledAt]
@@ -178,9 +189,8 @@ export function createNcaafV4SharedAdapter(
         expectedTotal: result.output.expectedTotal,
         evidenceTier: result.output.dataQuality,
         qualityFlags: Object.freeze([
-          "V4_VALIDATING",
-          "NO_OFFICIAL_PLAY",
-          "PREVIEW_ONLY",
+          "V4_PROJECTION",
+          "PROJECTION_ONLY",
           `EXECUTION_HASH:${result.outputHash}`,
         ]),
       });
@@ -189,9 +199,9 @@ export function createNcaafV4SharedAdapter(
       validateCanonicalV4Forecast(output, envelope, identity);
       if (output.approvalState !== "UNVALIDATED"
         || output.maturity !== "DEVELOPING"
-        || !output.qualityFlags.includes("NO_OFFICIAL_PLAY")
+        || !output.qualityFlags.includes("PROJECTION_ONLY")
         || output.predictionTimestamp !== envelope.predictionTimestamp) {
-        throw new Error("NCAAF_SHARED_ADAPTER_PUBLICATION_BOUNDARY_VIOLATION");
+        throw new Error("NCAAF_SHARED_ADAPTER_PROJECTION_BOUNDARY_VIOLATION");
       }
     },
   };
