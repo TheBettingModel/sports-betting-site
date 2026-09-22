@@ -172,7 +172,7 @@ export async function getNcaafV4HealthReport(now = new Date()) {
     const intel = intelligenceMap.get(normalizedEventId);
     const forecast = forecastMap.get(normalizedEventId);
     const quality = feature?.quality as { status?: string } | null;
-    const readiness = intel?.quality as { state?: string } | null;
+    const readiness = intel?.quality as { state?: string; blockedReasons?: string[] } | null;
     const homeTeamId = game?.homeTeamId ?? scheduled.homeTeamId;
     const awayTeamId = game?.awayTeamId ?? scheduled.awayTeamId;
     rows.push({ eventId: normalizedEventId, kickoffAt: scheduled.kickoffAt,
@@ -180,7 +180,9 @@ export async function getNcaafV4HealthReport(now = new Date()) {
       evidenceStatus: game?.evidenceStatus ?? "missing", evidenceCapturedAt: game?.capturedAt ?? null,
       featureCreatedAt: feature?.createdAt ?? null, featureValid: quality?.status === "ready"
         && !!feature?.createdAt && feature.createdAt <= scheduled.kickoffAt,
-      intelligenceCreatedAt: intel?.createdAt ?? null, intelligenceValid: readiness?.state === "READY"
+      intelligenceCreatedAt: intel?.createdAt ?? null,
+      intelligenceValid: (readiness?.state === "READY" || readiness?.state === "PARTIAL")
+        && (readiness.blockedReasons?.length ?? 0) === 0
         && !!intel?.createdAt && intel.createdAt <= scheduled.kickoffAt,
       forecastPredictedAt: forecast?.predictedAt ?? null,
       forecastValid: !!forecast && forecast.predictedAt < forecast.eventStart && forecast.dataCutoff <= forecast.predictedAt,
