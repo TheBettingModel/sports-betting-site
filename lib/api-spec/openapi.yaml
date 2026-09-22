@@ -965,7 +965,7 @@ components:
               eventStart: { type: [string, "null"] }
               eventStatus:
                 type: string
-                enum: [UPCOMING, LIVE, FINAL]
+                enum: [UPCOMING, LIVE, FINAL, POSTPONED]
               homeScore: { type: [integer, "null"] }
               awayScore: { type: [integer, "null"] }
               homeParticipant:

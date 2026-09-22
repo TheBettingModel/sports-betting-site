@@ -49,6 +49,13 @@ export function V4UnavailableProjectionCard({
     : 'TBD';
     
   const isLiveOrFinal = fixture.eventStatus === 'LIVE' || fixture.eventStatus === 'FINAL';
+  const statusLabel = fixture.eventStatus === 'POSTPONED'
+    ? 'POSTPONED'
+    : fixture.eventStatus === 'LIVE'
+      ? 'LIVE'
+      : fixture.eventStatus === 'FINAL'
+        ? 'FINAL'
+        : time;
 
   return (
     <Link href={`/game/${fixture.gameId}?sport=${fixture.sport}&slateDate=${slateDate}`} asChild>
@@ -69,7 +76,7 @@ export function V4UnavailableProjectionCard({
           
           <View style={styles.meta}>
             <Text style={[styles.time, { color: isLiveOrFinal ? colors.primary : colors.mutedForeground }]}>
-              {fixture.eventStatus === 'LIVE' ? 'LIVE' : fixture.eventStatus === 'FINAL' ? 'FINAL' : time}
+              {statusLabel}
             </Text>
             <View style={[styles.badge, { backgroundColor: colors.border }]}>
               <Text style={[styles.badgeText, { color: colors.mutedForeground }]}>UNAVAILABLE</Text>

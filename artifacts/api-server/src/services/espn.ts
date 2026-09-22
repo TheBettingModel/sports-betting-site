@@ -203,7 +203,7 @@ export interface FetchedGame {
   gameDate: string;         // YYYY-MM-DD (Eastern)
   /** ISO 8601 game start time — preserved for doubleheader odds matching */
   commenceTimeISO: string;
-  status: "upcoming" | "live" | "final";
+  status: "upcoming" | "live" | "final" | "postponed";
   homeScore?: number;
   awayScore?: number;
 
@@ -245,11 +245,18 @@ function formatGameTime(isoDate: string): string {
   } catch { return "TBD"; }
 }
 
-function getStatus(event: EspnEvent): "upcoming" | "live" | "final" {
-  const state = event.status.type.state;
-  if (state === "post") return "final";
+export function normalizeEspnEventStatus(
+  status: EspnStatus,
+): "upcoming" | "live" | "final" | "postponed" {
+  const { state, completed } = status.type;
+  if (state === "post" && completed) return "final";
+  if (state === "post") return "postponed";
   if (state === "in") return "live";
   return "upcoming";
+}
+
+function getStatus(event: EspnEvent): FetchedGame["status"] {
+  return normalizeEspnEventStatus(event.status);
 }
 
 function lineScoreThroughHalf(competitor: EspnCompetitor): number | undefined {

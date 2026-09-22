@@ -251,12 +251,16 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
       return {
         gameId: event.gameId,
         sport: event.sport,
-        eventStart: event.eventStart,
+        // Older clients do not know POSTPONED yet. A null start makes them
+        // render TBD instead of the obsolete scheduled first-pitch time.
+        eventStart: metadata?.eventStatus === "postponed" ? null : event.eventStart,
         eventStatus: metadata?.eventStatus === "live"
           ? "LIVE"
           : metadata?.eventStatus === "final"
             ? "FINAL"
-            : "UPCOMING",
+            : metadata?.eventStatus === "postponed"
+              ? "POSTPONED"
+              : "UPCOMING",
         homeScore: metadata?.homeScore ?? null,
         awayScore: metadata?.awayScore ?? null,
         homeParticipant: {

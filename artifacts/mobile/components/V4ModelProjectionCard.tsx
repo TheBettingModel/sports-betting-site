@@ -59,6 +59,13 @@ export function V4ModelProjectionCard({
     
   const moneylineLean = projectedWinnerName(projection, away, home);
   const isLiveOrFinal = fixture.eventStatus === 'LIVE' || fixture.eventStatus === 'FINAL';
+  const statusLabel = fixture.eventStatus === 'POSTPONED'
+    ? 'POSTPONED'
+    : fixture.eventStatus === 'LIVE'
+      ? 'LIVE'
+      : fixture.eventStatus === 'FINAL'
+        ? 'FINAL'
+        : time;
 
   return (
     <Link href={`/game/${fixture.gameId}?sport=${fixture.sport}&slateDate=${slateDate}`} asChild>
@@ -79,7 +86,7 @@ export function V4ModelProjectionCard({
           
           <View style={styles.meta}>
             <Text style={[styles.time, { color: isLiveOrFinal ? colors.primary : colors.mutedForeground }]}>
-              {fixture.eventStatus === 'LIVE' ? 'LIVE' : fixture.eventStatus === 'FINAL' ? 'FINAL' : time}
+              {statusLabel}
             </Text>
             <View style={[styles.badge, { backgroundColor: colors.primary + '1A' }]}>
               <Text style={[styles.badgeText, { color: colors.primary }]}>{moneylineLean.toUpperCase()} PROJECTED</Text>

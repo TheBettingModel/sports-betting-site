@@ -13,6 +13,13 @@ function nickname(name: string): string {
 export function FreeGameProjectionCard({ game, slateDate }: { game: GameProjection; slateDate: string }) {
   const colors = useColors();
   const isLiveOrFinal = game.status === 'live' || game.status === 'final' || game.status === 'completed';
+  const statusLabel = game.status === 'live'
+    ? 'LIVE'
+    : isLiveOrFinal
+      ? 'FINAL'
+      : game.status === 'postponed'
+        ? 'POSTPONED'
+        : game.gameTime;
   const projected = game.homeWinPct >= 50 ? nickname(game.homeTeamName) : nickname(game.awayTeamName);
 
   return (
@@ -37,7 +44,7 @@ export function FreeGameProjectionCard({ game, slateDate }: { game: GameProjecti
         </View>
         <View style={styles.meta}>
           <Text style={[styles.time, { color: isLiveOrFinal ? colors.primary : colors.mutedForeground }]}>
-            {game.status === 'live' ? 'LIVE' : isLiveOrFinal ? 'FINAL' : game.gameTime}
+            {statusLabel}
           </Text>
           <View style={[styles.badge, { backgroundColor: colors.primary + '18' }]}>
             <Text style={[styles.badgeText, { color: colors.primary }]}>{projected.toUpperCase()} PROJECTED</Text>

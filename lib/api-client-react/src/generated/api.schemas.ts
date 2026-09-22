@@ -26,6 +26,7 @@ export const V4FullSlateProjectionResponseFixturesItemEventStatus = {
   UPCOMING: 'UPCOMING',
   LIVE: 'LIVE',
   FINAL: 'FINAL',
+  POSTPONED: 'POSTPONED',
 } as const;
 
 export type V4FullSlateProjectionResponseFixturesItemAvailability = typeof V4FullSlateProjectionResponseFixturesItemAvailability[keyof typeof V4FullSlateProjectionResponseFixturesItemAvailability];

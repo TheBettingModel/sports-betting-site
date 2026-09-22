@@ -51,6 +51,13 @@ export function V4OfficialPickCard({
     : 'TBD';
     
   const isLiveOrFinal = fixture.eventStatus === 'LIVE' || fixture.eventStatus === 'FINAL';
+  const statusLabel = fixture.eventStatus === 'POSTPONED'
+    ? 'POSTPONED'
+    : fixture.eventStatus === 'LIVE'
+      ? 'LIVE'
+      : fixture.eventStatus === 'FINAL'
+        ? 'FINAL'
+        : time;
   const isTopPlay = pick.role === 'TOP_PLAY';
 
   return (
@@ -72,7 +79,7 @@ export function V4OfficialPickCard({
           
           <View style={styles.meta}>
             <Text style={[styles.time, { color: isLiveOrFinal ? colors.primary : colors.mutedForeground }]}>
-              {fixture.eventStatus === 'LIVE' ? 'LIVE' : fixture.eventStatus === 'FINAL' ? 'FINAL' : time}
+              {statusLabel}
             </Text>
             <View style={[styles.badge, { backgroundColor: colors.primary }]}>
               <Text style={[styles.badgeText, { color: colors.background }]}>TBM PLAY</Text>

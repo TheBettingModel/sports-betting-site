@@ -13,4 +13,5 @@ export const V4FullSlateProjectionResponseFixturesItemEventStatus = {
   UPCOMING: 'UPCOMING',
   LIVE: 'LIVE',
   FINAL: 'FINAL',
+  POSTPONED: 'POSTPONED',
 } as const;
