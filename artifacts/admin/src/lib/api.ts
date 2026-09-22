@@ -187,6 +187,7 @@ export const adminApi = {
   ncaafReadinessEvent: (eventId: string) =>
     api.get<NcaafEventReadiness>(`/admin/ncaaf-readiness/${encodeURIComponent(eventId)}`),
   ncaafV4Projections: () => api.get<NcaafV4ProjectionBoard>("/admin/ncaaf/v4/today-board"),
+  ncaafV4HealthReport: () => api.get<NcaafV4HealthReport>("/admin/ncaaf/v4/health-report"),
 };
 
 export const modelApi = {
@@ -786,6 +787,37 @@ export interface ForecastReview {
   finalScore: string | null;
   reviewedAt: string;
   createdAt: string;
+}
+
+export interface NcaafV4HealthMetrics {
+  date?: string;
+  scheduledGames: number;
+  fbsVsFbsGames: number;
+  eligibilityProvableGames: number;
+  validEvidenceSnapshots: number;
+  validIntelligenceSnapshots: number;
+  v4Forecasts: number;
+  unavailable: number;
+  unavailableReasons: Record<string, number>;
+  latestEvidenceAt: string | null;
+  latestProjectionAt: string | null;
+  stale: boolean;
+  kickoffFrozenGames: number;
+  awaitingFinalGames: number;
+  gradedFinalGames: number;
+}
+
+export interface NcaafV4HealthReport {
+  asOf: string;
+  days: NcaafV4HealthMetrics[];
+  totals: NcaafV4HealthMetrics;
+  observation: {
+    startedAt: string;
+    completesAt: string;
+    requiredDays: number;
+    completedDays: number;
+    status: "COLLECTING" | "COMPLETE";
+  };
 }
 
 export interface NcaafV4ModelOutput {

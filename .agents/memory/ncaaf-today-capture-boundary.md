@@ -8,3 +8,12 @@ Normal NCAAF projection capture must use an explicit list of today plus six Amer
 **Why:** A downstream date filter previously allowed the upstream capture layer to request the rest of the future season. The subscriber product now intentionally supports seven days, but no unbounded prefetch.
 
 **How to apply:** Enforce each requested date at the first provider-response transformation used by scheduled capture; keep historical or diagnostic paths separate and test that no request exceeds today plus six Eastern dates.
+
+The first verified production live-week observation is fixed at
+`2026-09-22T15:06:45Z` and closes at `2026-09-29T15:06:45Z`.
+
+**Why:** Moving the start after partial or failed intervals would make the
+seven-day stabilization result unauditable.
+
+**How to apply:** Keep the start and completion timestamps visible in the
+admin health report; do not reset them to accelerate or delay review.

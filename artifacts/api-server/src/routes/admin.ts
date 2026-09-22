@@ -116,6 +116,7 @@ import {
   getNcaafReadinessBlockers,
 } from "../services/ncaafProviderCapabilities";
 import { getNcaafV4ProjectionBoard } from "../services/ncaafV4GameDay";
+import { getNcaafV4HealthReport } from "../services/ncaafV4HealthReport";
 import {
   parseNcaafV2CoreBackfillCursor,
   runNcaafV2CoreBackfill,
@@ -360,6 +361,16 @@ router.get("/admin/ncaaf/v4/today-board", async (req, res): Promise<void> => {
   } catch (error) {
     req.log?.error({ error }, "NCAAF V4 admin today board failed");
     res.status(500).json({ error: "Unable to build NCAAF V4 projection board" });
+  }
+});
+
+/** Read-only seven-day V4 operational health. Never creates or publishes forecasts. */
+router.get("/admin/ncaaf/v4/health-report", async (req, res): Promise<void> => {
+  try {
+    res.json(await getNcaafV4HealthReport());
+  } catch (error) {
+    req.log?.error({ error }, "NCAAF V4 health report failed");
+    res.status(500).json({ error: "Unable to build NCAAF V4 health report" });
   }
 });
 
