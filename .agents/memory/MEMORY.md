@@ -67,3 +67,4 @@
 - [App Review authentication](app-review-authentication.md) — reviewer access uses Clerk password sign-in and server-verified identity; never ship credentials or a client-side entitlement bypass.
 - [Projection-first serving](projection-first-serving.md) — every eligible daily game gets the best available score projection; experimental validation never blocks display.
 - [NCAAF historical materialization](ncaaf-historical-materialization.md) — completed results may seed PIT-safe rolling strength; batch mappings and index evidence before replay.
+- [GitHub workflow write scope](github-workflow-write-scope.md) — repo OAuth can write Git objects yet return 404 when a tree changes .github/workflows without workflow scope.
