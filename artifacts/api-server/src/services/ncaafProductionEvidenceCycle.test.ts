@@ -3,8 +3,10 @@ import {
   bootstrapNcaafCurrentSeasonPerformanceEvidence,
   createNcaafProductionEvidenceCycle,
   isNcaafCurrentGameDayKickoff,
+  isNcaafRollingProjectionKickoff,
   ncaafCurrentEasternDate,
   ncaafCurrentEasternDayBounds,
+  ncaafRollingProjectionDates,
   normalizeNcaafProviderEventId,
   type NcaafProductionEvidenceGame,
 } from "./ncaafProductionEvidenceCycle";
@@ -45,6 +47,16 @@ describe("NCAAF production evidence cycle", () => {
     expect(end.getTime() - start.getTime()).toBe(25 * 60 * 60_000);
     expect(isNcaafCurrentGameDayKickoff(new Date("2026-11-01T18:00:00Z"), boundary)).toBe(true);
     expect(isNcaafCurrentGameDayKickoff(new Date("2026-11-02T18:00:00Z"), boundary)).toBe(false);
+  });
+
+  it("uses an exact seven-day Eastern projection horizon", () => {
+    const boundary = new Date("2026-11-01T04:30:00Z");
+    expect(ncaafRollingProjectionDates(boundary)).toEqual([
+      "2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04",
+      "2026-11-05", "2026-11-06", "2026-11-07",
+    ]);
+    expect(isNcaafRollingProjectionKickoff(new Date("2026-11-07T18:00:00Z"), boundary)).toBe(true);
+    expect(isNcaafRollingProjectionKickoff(new Date("2026-11-08T18:00:00Z"), boundary)).toBe(false);
   });
 
   it("binds ESPN snapshots to provider-native IDs without changing other providers", () => {

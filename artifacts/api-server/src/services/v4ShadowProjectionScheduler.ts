@@ -55,8 +55,9 @@ function addCalendarDays(date: string, days: number): string {
 }
 
 /**
- * Proactively persists validating projections for today's and tomorrow's
- * public slates. This is deliberately SHADOW-only: it cannot publish a pick,
+ * Proactively persists validating projections for public slates. NCAAF uses a
+ * rolling seven-day window; other sports retain today's and tomorrow's window.
+ * This is deliberately SHADOW-only: it cannot publish a pick,
  * and runFullSlateV4 rejects every event whose pregame cutoff has passed.
  *
  * Attempts are isolated per sport/date so one provider or model failure cannot
@@ -73,7 +74,11 @@ export async function runScheduledV4ShadowProjectionCapture(input: {
 } = {}): Promise<V4ShadowProjectionCaptureResult> {
   const now = input.now ?? new Date();
   const today = easternDate(now);
-  const dates = input.dates ?? [today, addCalendarDays(today, 1)];
+  const standardDates = input.dates ?? [today, addCalendarDays(today, 1)];
+  const ncaafDates = input.dates ?? Array.from(
+    { length: 7 },
+    (_, index) => addCalendarDays(today, index),
+  );
   const sports = input.sports ?? TBM_V4_PUBLIC_SPORTS;
   const registry = input.registry ?? canonicalV4EngineRegistry;
   const ledger = input.ledger ?? new DbV4ForecastLedger();
@@ -81,8 +86,9 @@ export async function runScheduledV4ShadowProjectionCapture(input: {
   const run = input.run ?? runFullSlateV4;
   const attempts: ShadowCaptureAttempt[] = [];
 
-  for (const sportDate of dates) {
-    for (const sport of sports) {
+  for (const sport of sports) {
+    const sportDates = sport === "NCAAF" ? ncaafDates : standardDates;
+    for (const sportDate of sportDates) {
       try {
         const events = await discover(sport, sportDate);
         if (sport === "SOCCER") await ensureSoccerRollingHistory(sportDate, events);
@@ -113,7 +119,9 @@ export async function runScheduledV4ShadowProjectionCapture(input: {
   );
   return {
     capturedAt: now.toISOString(),
-    datesAttempted: [...dates],
+    datesAttempted: [...new Set(sports.flatMap(
+      (sport) => sport === "NCAAF" ? ncaafDates : standardDates,
+    ))],
     sportsAttempted: [...sports],
     scheduledEvents: completed.reduce((sum, attempt) => sum + attempt.coverage.scheduledEvents, 0),
     forecastedEvents: completed.reduce((sum, attempt) => sum + attempt.coverage.forecastedEvents, 0),

@@ -99,13 +99,22 @@ describe("NCAAF shared V4 adapter", () => {
     }
   });
 
-  it("rejects a tomorrow slate before shared execution", async () => {
+  it("accepts a future slate inside the rolling seven-day horizon", async () => {
     const tomorrow = Object.freeze({
       ...input,
       input: Object.freeze({ ...input.input, kickoffAt: "2026-09-07T20:00:00.000Z" }),
     });
     await expect(adapter(tomorrow).collectEvidence("NCAAF-401752601", now))
-      .rejects.toThrow("CURRENT_EASTERN_DATE_ONLY");
+      .resolves.toMatchObject({ sharedGameId: "NCAAF-401752601" });
+  });
+
+  it("rejects a future slate outside the rolling seven-day horizon", async () => {
+    const beyondHorizon = Object.freeze({
+      ...input,
+      input: Object.freeze({ ...input.input, kickoffAt: "2026-09-13T20:00:00.000Z" }),
+    });
+    await expect(adapter(beyondHorizon).collectEvidence("NCAAF-401752601", now))
+      .rejects.toThrow("OUTSIDE_ROLLING_HORIZON");
   });
 
   it("rejects non-ESPN or ambiguous event identity", async () => {

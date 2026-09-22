@@ -18,6 +18,30 @@ function coverage(sport: "MLB" | "SOCCER", sportDate: string): FullSlateCoverage
 }
 
 describe("scheduled V4 shadow projection capture", () => {
+  it("captures seven rolling dates for NCAAF by default", async () => {
+    const discover = vi.fn(async () => []);
+    const run = vi.fn(async (input: { sport: "NCAAF"; sportDate: string }) => ({
+      ...coverage("MLB", input.sportDate),
+      sport: input.sport,
+      runId: `${input.sport}-${input.sportDate}`,
+    }));
+
+    const result = await runScheduledV4ShadowProjectionCapture({
+      now: new Date("2026-09-09T22:00:00.000Z"),
+      sports: ["NCAAF"],
+      discover: discover as never,
+      run: run as never,
+      ledger: {} as never,
+    });
+
+    expect(discover).toHaveBeenCalledTimes(7);
+    expect(run).toHaveBeenCalledTimes(7);
+    expect(result.datesAttempted).toEqual([
+      "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12",
+      "2026-09-13", "2026-09-14", "2026-09-15",
+    ]);
+  });
+
   it("captures each sport/date in shadow mode with one shared immutable ledger", async () => {
     const discover = vi.fn(async () => []);
     const run = vi.fn(async (input: { sport: "MLB" | "SOCCER"; sportDate: string }) =>
