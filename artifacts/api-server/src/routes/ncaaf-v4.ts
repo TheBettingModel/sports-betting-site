@@ -12,7 +12,7 @@ export function toSubscriberNcaafV4Board(owner: Awaited<ReturnType<typeof getNca
     modelStatus: owner.model.modelStatus,
     approvalStatus: owner.model.approvalStatus,
     publicationStatus: owner.model.publicationStatus,
-    disclaimer: "Unvalidated V4 preview; not an official production play.",
+    disclaimer: "NCAA Football V4 Projection for matchup research.",
     board: owner.board.map(row => ({
       kickoffAt: row.kickoffAt, awayTeam: row.awayTeam, homeTeam: row.homeTeam,
       v4ModelOpinion: row.v4ModelOpinion,
@@ -26,13 +26,12 @@ export function toSubscriberNcaafV4Board(owner: Awaited<ReturnType<typeof getNca
       }, spread: row.market.spread && { capturedAt: row.market.spread.capturedAt, selection: row.market.spread.selection, line: row.market.spread.line, odds: row.market.spread.odds },
         total: row.market.total && { capturedAt: row.market.total.capturedAt, selection: row.market.total.selection, line: row.market.total.line, odds: row.market.total.odds } },
       comparison: { moneylineHomeEdge: row.comparison.moneylineHomeEdge },
-      disclaimer: "Unvalidated V4 preview; not an official production play.",
+      disclaimer: "NCAA Football V4 Projection for matchup research.",
     })),
   };
 }
 
-/** Preview-only V4 board. This route intentionally has no mutation, wager,
- * registry, or publication side effect. */
+/** Projection-only V4 board. This route has no wager or publication side effect. */
 router.get("/model/ncaaf/v4/projections", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
   try {
     if (!req.subscriberStatus?.userId) {
@@ -40,7 +39,7 @@ router.get("/model/ncaaf/v4/projections", resolveSubscriberStatus, rejectInvalid
       return;
     }
     if (!req.subscriberStatus.isSubscribed && !req.subscriberStatus.isOwner) {
-      res.status(403).json({ error: "Active subscription required for NCAAF V4 previews" });
+      res.status(403).json({ error: "Active subscription required for NCAAF V4 projections" });
       return;
     }
     const query = GetNcaafV4ProjectionsQueryParams.safeParse(req.query);

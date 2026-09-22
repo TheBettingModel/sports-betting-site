@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ACTIONABLE_ODDS_CACHE_MAX_AGE_MS,
+  canonicalTeamName,
   firstValidMoneylineMarket,
   firstValidMoneylineMarketForSport,
   hasValidMoneylineMarket,
@@ -14,6 +15,19 @@ import {
   selectActionableMoneylineMarket,
   selectPregameGameOdds,
 } from "./oddsApi";
+
+describe("provider team identity normalization", () => {
+  it("matches the current La Liga aliases used by ESPN and The Odds API", () => {
+    expect(canonicalTeamName("Athletic Club")).toBe(canonicalTeamName("Athletic Bilbao"));
+    expect(canonicalTeamName("Deportivo")).toBe(canonicalTeamName("Deportivo La Coruña"));
+    expect(canonicalTeamName("Racing Santander")).toBe(canonicalTeamName("Real Racing Club de Santander"));
+  });
+
+  it("normalizes accents without deleting the accented letter", () => {
+    expect(canonicalTeamName("Atlético Madrid")).toBe("atletico madrid");
+    expect(canonicalTeamName("Málaga CF")).toBe("malaga");
+  });
+});
 
 describe("American odds validation", () => {
   it("rejects an absent zero value from an upstream feed", () => {

@@ -1,0 +1,226 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --forecast-bg: #090b0a;
+  --forecast-card: #111312;
+  --forecast-card-refined: #101211;
+  --forecast-border: #252a27;
+  --forecast-border-soft: #1b201d;
+  --forecast-text: #f1f3f0;
+  --forecast-muted: #858d87;
+  --forecast-dim: #59625b;
+  --forecast-lime: #b7f34a;
+  --forecast-gold: #e5b85e;
+  --forecast-display: 'DM Sans', sans-serif;
+  --forecast-mono: 'Space Mono', monospace;
+}
+
+.forecast-preview {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  background: var(--forecast-bg);
+  color: var(--forecast-text);
+  font-family: var(--forecast-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+.forecast-preview *,
+.forecast-preview *::before,
+.forecast-preview *::after { box-sizing: border-box; }
+
+.forecast-shell {
+  width: min(100%, 430px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 0 44px;
+  background: #0b0d0c;
+}
+
+.forecast-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 16px 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--forecast-border);
+}
+
+.forecast-title {
+  margin: 0;
+  color: var(--forecast-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  line-height: 1.2;
+}
+
+.forecast-subtitle {
+  margin: 4px 0 0;
+  color: var(--forecast-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.forecast-order {
+  margin: 5px 0 0;
+  color: var(--forecast-lime);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .7px;
+}
+
+.forecast-count {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 26px;
+  height: 26px;
+  border: 1px solid var(--forecast-border);
+  border-radius: 50%;
+  background: #171a18;
+  color: var(--forecast-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.forecast-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  margin: 0 16px 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--forecast-border);
+  border-radius: 10px;
+  background: var(--forecast-card);
+}
+
+.forecast-matchup {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.forecast-teams {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--forecast-text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.forecast-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.forecast-at { color: var(--forecast-muted); }
+
+.forecast-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  color: var(--forecast-muted);
+  font-family: var(--forecast-mono);
+  font-size: 6px;
+  font-weight: 700;
+  letter-spacing: -.2px;
+  line-height: 1;
+}
+
+.forecast-logo img {
+  display: block;
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+}
+
+.forecast-time {
+  margin-top: 4px;
+  color: var(--forecast-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.forecast-details {
+  min-width: 0;
+  max-width: 57%;
+  text-align: right;
+}
+
+.forecast-status {
+  color: var(--forecast-lime);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.forecast-projection {
+  margin-top: 4px;
+  color: var(--forecast-text);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.forecast-market {
+  margin-top: 2px;
+  color: var(--forecast-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .35px;
+  white-space: nowrap;
+}
+
+.forecast-note {
+  margin-top: 4px;
+  color: var(--forecast-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+
+.forecast-row--locked { opacity: .78; }
+.forecast-status--muted { color: var(--forecast-muted); }
+.forecast-status--waiting { color: var(--forecast-gold); }
+
+.refined-shell { padding-top: 30px; }
+.refined-shell .forecast-section-header { margin-bottom: 10px; }
+.refined-shell .forecast-row {
+  min-height: 72px;
+  margin-bottom: 7px;
+  padding: 10px 13px;
+  border-color: var(--forecast-border-soft);
+  border-radius: 11px;
+  background: var(--forecast-card-refined);
+  box-shadow: 0 5px 14px rgba(0,0,0,.16);
+}
+.refined-shell .forecast-matchup { padding-top: 1px; }
+.refined-shell .forecast-details { max-width: 59%; }
+.refined-shell .forecast-status {
+  display: inline-block;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(183,243,74,.28);
+  letter-spacing: .85px;
+}
+.refined-shell .forecast-projection { margin-top: 5px; font-size: 12px; }
+.refined-shell .forecast-market { margin-top: 3px; color: #747d76; }
+
+@media (max-width: 350px) {
+  .forecast-section-header, .forecast-row { margin-left: 12px; margin-right: 12px; }
+  .forecast-row { gap: 8px; padding-left: 10px; padding-right: 10px; }
+  .forecast-details { max-width: 61%; }
+  .forecast-teams { gap: 3px; font-size: 13px; }
+  .forecast-team { gap: 2px; }
+  .forecast-logo, .forecast-logo img { width: 17px; height: 17px; }
+  .forecast-market { font-size: 8px; letter-spacing: .15px; }
+}

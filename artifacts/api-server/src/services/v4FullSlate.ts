@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -55,6 +55,8 @@ const V4_PROVIDER_KEYS: Readonly<Record<TbmV4Sport, readonly string[]>> = {
     "Soccer_SerieA",
     "Soccer_Ligue1",
     "Soccer_UCL",
+    "Soccer_Eredivisie",
+    "Soccer_SuperLig",
   ],
   UFC: [],
 };
@@ -83,6 +85,102 @@ function canonicalSport(dbSport: string): TbmV4Sport | null {
   if (normalized === "NCAAB") return "NCAAMB";
   return ["MLB", "NCAAF", "NFL", "NBA", "WNBA", "NHL", "UFC"].includes(normalized)
     ? normalized as TbmV4Sport : null;
+}
+
+type SoccerHistoryWarmupResult = Readonly<{
+  datesFetched: number;
+  remainingTeams: readonly string[];
+}>;
+
+const soccerHistoryWarmupCache = new Map<string, {
+  checkedAt: number;
+  result: SoccerHistoryWarmupResult;
+}>();
+const soccerHistoryWarmupInFlight = new Map<string, Promise<SoccerHistoryWarmupResult>>();
+const SOCCER_HISTORY_WARMUP_TTL_MS = 6 * 60 * 60 * 1000;
+const SOCCER_HISTORY_LOOKBACK_DAYS = 45;
+
+function priorCalendarDate(date: string, daysBack: number): string {
+  const value = new Date(`${date}T12:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() - daysBack);
+  return value.toISOString().slice(0, 10);
+}
+
+async function missingSoccerHistoryTeams(
+  events: readonly DiscoveredV4Event[],
+): Promise<string[]> {
+  const targetStartByTeam = new Map<string, Date>();
+  for (const event of events) {
+    if (!event.eventStart) continue;
+    const eventStart = new Date(event.eventStart);
+    for (const teamId of [event.homeParticipantId, event.awayParticipantId]) {
+      if (!teamId) continue;
+      const previous = targetStartByTeam.get(teamId);
+      if (!previous || eventStart < previous) targetStartByTeam.set(teamId, eventStart);
+    }
+  }
+  const results = await Promise.all([...targetStartByTeam.entries()].map(async ([teamId, targetStart]) => {
+    const [row] = await db.select({
+      completedGames: sql<number>`count(*)::int`,
+    }).from(gamesTable).where(and(
+      eq(gamesTable.sport, "Soccer"),
+      eq(gamesTable.status, "final"),
+      eq(gamesTable.homeTeamId, teamId),
+      lt(gamesTable.startsAt, targetStart),
+    ));
+    const [awayRow] = await db.select({
+      completedGames: sql<number>`count(*)::int`,
+    }).from(gamesTable).where(and(
+      eq(gamesTable.sport, "Soccer"),
+      eq(gamesTable.status, "final"),
+      eq(gamesTable.awayTeamId, teamId),
+      lt(gamesTable.startsAt, targetStart),
+    ));
+    return Number(row?.completedGames ?? 0) + Number(awayRow?.completedGames ?? 0) < 2
+      ? teamId
+      : null;
+  }));
+  return results.filter((teamId): teamId is string => teamId !== null).sort();
+}
+
+async function performSoccerHistoryWarmup(
+  sportDate: string,
+  events: readonly DiscoveredV4Event[],
+): Promise<SoccerHistoryWarmupResult> {
+  let remainingTeams = await missingSoccerHistoryTeams(events);
+  let datesFetched = 0;
+  for (let daysBack = 1; daysBack <= SOCCER_HISTORY_LOOKBACK_DAYS && remainingTeams.length; daysBack++) {
+    await discoverV4Slate("SOCCER", priorCalendarDate(sportDate, daysBack));
+    datesFetched++;
+    remainingTeams = await missingSoccerHistoryTeams(events);
+  }
+  const result = { datesFetched, remainingTeams };
+  soccerHistoryWarmupCache.set(sportDate, { checkedAt: Date.now(), result });
+  return result;
+}
+
+/**
+ * The rolling-score Soccer artifact requires two completed pregame matches for
+ * each team. The normal daily slate fetch is not enough for an unattended
+ * first request, so warm the local evidence table from bounded ESPN history.
+ * This stores only completed provider games; it never creates forecasts from
+ * a post-start event or substitutes league priors.
+ */
+export async function ensureSoccerRollingHistory(
+  sportDate: string,
+  events: readonly DiscoveredV4Event[],
+): Promise<SoccerHistoryWarmupResult> {
+  const cached = soccerHistoryWarmupCache.get(sportDate);
+  if (cached && Date.now() - cached.checkedAt < SOCCER_HISTORY_WARMUP_TTL_MS) return cached.result;
+  const existing = soccerHistoryWarmupInFlight.get(sportDate);
+  if (existing) return existing;
+  const promise = performSoccerHistoryWarmup(sportDate, events);
+  soccerHistoryWarmupInFlight.set(sportDate, promise);
+  try {
+    return await promise;
+  } finally {
+    soccerHistoryWarmupInFlight.delete(sportDate);
+  }
 }
 
 export function classifyDiscoveredEvent(input: {
@@ -195,7 +293,7 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
 function routeFailureReason(reason: string): ForecastFailureReason {
   if (reason === "NO_REGISTERED_V4_ENGINE") return "NO_ELIGIBLE_V4_ARTIFACT";
   if (/IDENTITY/.test(reason)) return "UNRESOLVED_IDENTITY";
-  if (/HISTORY|EVIDENCE|PREGAME_INPUT|NO_ELIGIBLE_PIT_INPUT/.test(reason)) {
+  if (/HISTORY|EVIDENCE|PREGAME_INPUT|NO_ELIGIBLE_PIT_INPUT|LIVE_INPUT_MATERIALIZATION_FAILED/.test(reason)) {
     return "INSUFFICIENT_PREGAME_EVIDENCE";
   }
   if (/START|CUTOFF|CHRONOLOGY/.test(reason)) return "INVALID_CUTOFF";

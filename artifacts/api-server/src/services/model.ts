@@ -32,7 +32,9 @@ export interface ProjectionResult {
 /** Default over/under totals per sport (used when ESPN doesn't return a real line) */
 const DEFAULT_TOTALS: Record<string, number> = {
   NFL:    47.5,
+  NCAAF:  54.5,
   NBA:    224.5,
+  NCAAB:  146.5,
   MLB:    8.5,
   NHL:    5.5,
   WNBA:   164.5,

@@ -13,10 +13,10 @@ const source = {
     payload: { homeClassification: "FBS", awayClassification: "FBS" },
   }],
   teamMappings: [
-    { id: 1, cfbdTeamId: "cfbd-home", canonicalProvider: "espn", canonicalTeamId: "espn-home", state: "MAPPED", capturedAt: captured },
-    { id: 2, cfbdTeamId: "cfbd-away", canonicalProvider: "espn", canonicalTeamId: "espn-away", state: "MAPPED", capturedAt: captured },
+    { id: 1, season: 2024, cfbdTeamId: "cfbd-home", canonicalProvider: "espn", canonicalTeamId: "espn-home", state: "MAPPED", capturedAt: captured },
+    { id: 2, season: 2024, cfbdTeamId: "cfbd-away", canonicalProvider: "espn", canonicalTeamId: "espn-away", state: "MAPPED", capturedAt: captured },
   ],
-  gameMappings: [{ id: 1, cfbdGameId: "cfbd-game", canonicalProvider: "espn", canonicalEventId: "espn-event", state: "MAPPED", capturedAt: captured }],
+  gameMappings: [{ id: 1, season: 2024, cfbdGameId: "cfbd-game", canonicalProvider: "espn", canonicalEventId: "espn-event", state: "MAPPED", capturedAt: captured }],
   domainEvidence: [{
     id: 1, endpoint: "elo", season: 2024, cfbdGameId: null, cfbdTeamId: "cfbd-home", cfbdPlayerId: null,
     pitClassification: "B", providerEffectiveAt: captured, capturedAt: captured, payload: { rating: 1 },
@@ -26,13 +26,16 @@ const source = {
 describe("NCAAF historical training materializer", () => {
   it("uses only exact mapped CFBD/ESPN identities and persists idempotently", async () => {
     const persisted: unknown[] = [];
+    const reconciled: number[] = [];
     const store: NcaafHistoricalMaterializerStore = {
       load: async () => source,
       insert: async (row) => { persisted.push(row); return persisted.length === 1; },
+      reconcileMappings: async (seasons) => { reconciled.push(...seasons); return { teams: 2, games: 1 }; },
     };
     expect(historicalGamesFromCfbdEvidence(source)).toHaveLength(1);
     const result = await materializeNcaafHistoricalTrainingRows({ seasons: [2024] }, store);
     expect(result).toMatchObject({ attempted: 1, inserted: 1, alreadyMaterialized: 0 });
+    expect(reconciled).toEqual([2024]);
     expect(persisted).toHaveLength(1);
   });
   it("fails closed when evidence is retrospective rather than pregame", async () => {
@@ -44,5 +47,45 @@ describe("NCAAF historical training materializer", () => {
     } as NcaafHistoricalMaterializerStore);
     expect(result.attempted).toBe(0);
     expect(result.blockers.no_eligible_pregame_lineage).toBe(1);
+  });
+  it("normalizes classifications from wrapped historical CFBD payloads", () => {
+    const wrapped = structuredClone(source);
+    wrapped.games[0]!.payload = {
+      game: { homeClassification: "fbs", awayClassification: "fbs" },
+      classifications: { ingestion: "retrospective_aggregate_not_pregame" },
+    };
+    expect(historicalGamesFromCfbdEvidence(wrapped)[0]).toMatchObject({
+      homeClassification: "fbs",
+      awayClassification: "fbs",
+    });
+  });
+  it("selects the newest append-only CFBD capture for each season and event", () => {
+    const repeated = structuredClone(source);
+    repeated.games = [
+      { ...repeated.games[0]!, id: 2, capturedAt: new Date("2024-09-02T00:00:00Z") },
+      {
+        ...repeated.games[0]!,
+        id: 1,
+        capturedAt: new Date("2024-08-20T00:00:00Z"),
+        gameStatus: "scheduled",
+        homeScore: null,
+        awayScore: null,
+      },
+    ];
+    const games = historicalGamesFromCfbdEvidence(repeated);
+    expect(games).toHaveLength(1);
+    expect(games[0]).toMatchObject({ completed: true, homeScore: 28, awayScore: 14 });
+  });
+  it("honors the latest mapping state instead of reviving an older mapped row", () => {
+    const superseded = structuredClone(source);
+    superseded.teamMappings.push({
+      ...superseded.teamMappings[0]!,
+      id: 3,
+      state: "UNMAPPED",
+      canonicalProvider: null,
+      canonicalTeamId: null,
+      capturedAt: new Date("2024-08-21T00:00:00Z"),
+    });
+    expect(historicalGamesFromCfbdEvidence(superseded)).toHaveLength(0);
   });
 });

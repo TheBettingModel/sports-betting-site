@@ -8,8 +8,11 @@ import {
   buildNcaafHistoricalTrainingDataset, type HistoricalEvidenceLineage, type HistoricalGameInput,
   type HistoricalQbEvidence,
 } from "./ncaafHistoricalTrainingDataset";
+import { materializeCfbdMappingsForSeasons } from "./ncaafCfbdMappingMaterializer";
 
-export const NCAAF_HISTORICAL_ARTIFACT_KEY = "ncaaf-historical-2023-2026-pit-v1";
+/** V5 is a corpus revision over the unchanged V2 row schema. Prior artifacts
+ * remain immutable; this version follows complete-date ledgers and latest-state mappings. */
+export const NCAAF_HISTORICAL_ARTIFACT_KEY = "ncaaf-historical-2023-2026-pit-v5";
 type CfbdGame = typeof ncaafGameEvidenceTable.$inferSelect;
 type TeamMapping = typeof ncaafCfbdTeamMappingsTable.$inferSelect;
 type GameMapping = typeof ncaafCfbdGameMappingsTable.$inferSelect;
@@ -20,6 +23,8 @@ export interface NcaafHistoricalMaterializerStore {
     games: CfbdGame[]; teamMappings: TeamMapping[]; gameMappings: GameMapping[]; domainEvidence: DomainEvidence[];
   }>;
   insert(row: typeof ncaafHistoricalTrainingRowsTable.$inferInsert): Promise<boolean>;
+  insertMany?(rows: readonly (typeof ncaafHistoricalTrainingRowsTable.$inferInsert)[]): Promise<number>;
+  reconcileMappings?(seasons: readonly number[]): Promise<{ teams: number; games: number }>;
 }
 export interface NcaafHistoricalMaterializationResult {
   artifactKey: string;
@@ -43,7 +48,22 @@ function numberStats(value: unknown): Record<string, number | null> {
 }
 function classifications(payload: unknown) {
   const item = object(payload);
-  return { home: text(item.homeClassification), away: text(item.awayClassification) };
+  const game = object(item.game);
+  return {
+    home: text(item.homeClassification) ?? text(game.homeClassification),
+    away: text(item.awayClassification) ?? text(game.awayClassification),
+  };
+}
+function completionAvailableAt(payload: unknown): Date | null {
+  const item = object(payload);
+  for (const key of ["completedAt", "finalizedAt"]) {
+    const value = item[key];
+    if (typeof value === "string") {
+      const parsed = new Date(value);
+      if (Number.isFinite(parsed.getTime())) return parsed;
+    }
+  }
+  return null;
 }
 function qbEvidence(domain: readonly DomainEvidence[], cfbdTeamId: string, canonicalTeamId: string): HistoricalQbEvidence[] {
   return domain.filter((row) => row.cfbdTeamId === cfbdTeamId && (row.endpoint === "roster" || row.endpoint === "player_stats") && row.cfbdPlayerId)
@@ -62,20 +82,40 @@ function qbEvidence(domain: readonly DomainEvidence[], cfbdTeamId: string, canon
 export function historicalGamesFromCfbdEvidence(source: {
   games: readonly CfbdGame[]; teamMappings: readonly TeamMapping[]; gameMappings: readonly GameMapping[]; domainEvidence: readonly DomainEvidence[];
 }): HistoricalGameInput[] {
-  const gameMappings = newest(source.gameMappings.filter((row) => row.state === "MAPPED" && row.canonicalProvider === "espn" && row.canonicalEventId),
-    (row) => row.cfbdGameId);
-  const teamMappings = newest(source.teamMappings.filter((row) => row.state === "MAPPED" && row.canonicalProvider === "espn" && row.canonicalTeamId),
-    (row) => row.cfbdTeamId);
-  return source.games.filter((game) => game.provider === "college_football_data" && game.kickoffAt)
+  const gameMappings = newest(source.gameMappings, (row) => `${row.season}:${row.cfbdGameId}`);
+  const teamMappings = newest(source.teamMappings, (row) => `${row.season}:${row.cfbdTeamId}`);
+  const currentCfbdGames = newest(
+    source.games.filter((game) => game.provider === "college_football_data" && game.kickoffAt),
+    (game) => `${game.season}:${game.providerEventId}`,
+  );
+  const evidenceByGame = new Map<string, DomainEvidence[]>();
+  const evidenceByTeam = new Map<string, DomainEvidence[]>();
+  for (const row of source.domainEvidence) {
+    if (row.cfbdGameId) {
+      const key = `${row.season}:${row.cfbdGameId}`;
+      evidenceByGame.set(key, [...(evidenceByGame.get(key) ?? []), row]);
+    }
+    if (row.cfbdTeamId) {
+      const key = `${row.season}:${row.cfbdTeamId}`;
+      evidenceByTeam.set(key, [...(evidenceByTeam.get(key) ?? []), row]);
+    }
+  }
+  return [...currentCfbdGames.values()]
     .map((game): HistoricalGameInput | null => {
-      const event = gameMappings.get(game.providerEventId);
+      const event = gameMappings.get(`${game.season}:${game.providerEventId}`);
       const homeCfbd = game.homeProviderTeamId; const awayCfbd = game.awayProviderTeamId;
-      const home = homeCfbd ? teamMappings.get(homeCfbd) : undefined;
-      const away = awayCfbd ? teamMappings.get(awayCfbd) : undefined;
-      if (!event || !home?.canonicalTeamId || !away?.canonicalTeamId || !game.kickoffAt) return null;
+      const home = homeCfbd ? teamMappings.get(`${game.season}:${homeCfbd}`) : undefined;
+      const away = awayCfbd ? teamMappings.get(`${game.season}:${awayCfbd}`) : undefined;
+      if (event?.state !== "MAPPED" || event.canonicalProvider !== "espn" || !event.canonicalEventId
+        || home?.state !== "MAPPED" || home.canonicalProvider !== "espn" || !home.canonicalTeamId
+        || away?.state !== "MAPPED" || away.canonicalProvider !== "espn" || !away.canonicalTeamId
+        || !game.kickoffAt) return null;
       const classes = classifications(game.payload);
-      const relevantDomain = source.domainEvidence.filter((row) =>
-        row.season === game.season && (row.cfbdGameId === game.providerEventId || row.cfbdTeamId === homeCfbd || row.cfbdTeamId === awayCfbd));
+      const relevantDomain = [...new Map([
+        ...(evidenceByGame.get(`${game.season}:${game.providerEventId}`) ?? []),
+        ...(homeCfbd ? evidenceByTeam.get(`${game.season}:${homeCfbd}`) ?? [] : []),
+        ...(awayCfbd ? evidenceByTeam.get(`${game.season}:${awayCfbd}`) ?? [] : []),
+      ].map((row) => [row.id, row])).values()];
       const evidence: HistoricalEvidenceLineage[] = relevantDomain.map((row) => ({
         source: `cfbd:${row.endpoint}`, sourceId: String(row.id), pitClass: row.pitClassification as HistoricalEvidenceLineage["pitClass"],
         effectiveAt: row.providerEffectiveAt, capturedAt: row.capturedAt,
@@ -87,6 +127,7 @@ export function historicalGamesFromCfbdEvidence(source: {
         kickoffAt: game.kickoffAt, homeCanonicalTeamId: home.canonicalTeamId, awayCanonicalTeamId: away.canonicalTeamId,
         homeClassification: classes.home, awayClassification: classes.away, homeScore: game.homeScore, awayScore: game.awayScore,
         completed: game.gameStatus?.trim().toLowerCase() === "final",
+        completionAvailableAt: completionAvailableAt(game.payload),
         neutralSite: game.neutralSite, evidence,
         qbEvidence: [...qbEvidence(relevantDomain, homeCfbd!, home.canonicalTeamId), ...qbEvidence(relevantDomain, awayCfbd!, away.canonicalTeamId)],
       };
@@ -94,6 +135,7 @@ export function historicalGamesFromCfbdEvidence(source: {
 }
 
 export const dbNcaafHistoricalMaterializerStore: NcaafHistoricalMaterializerStore = {
+  reconcileMappings: (seasons) => materializeCfbdMappingsForSeasons(seasons),
   async load(seasons) {
     const [games, teamMappings, gameMappings, domainEvidence] = await Promise.all([
       db.select().from(ncaafGameEvidenceTable).where(inArray(ncaafGameEvidenceTable.season, [...seasons])),
@@ -108,6 +150,17 @@ export const dbNcaafHistoricalMaterializerStore: NcaafHistoricalMaterializerStor
       .returning({ id: ncaafHistoricalTrainingRowsTable.id });
     return inserted.length > 0;
   },
+  async insertMany(rows) {
+    let inserted = 0;
+    for (let offset = 0; offset < rows.length; offset += 500) {
+      const result = await db.insert(ncaafHistoricalTrainingRowsTable)
+        .values([...rows.slice(offset, offset + 500)])
+        .onConflictDoNothing()
+        .returning({ id: ncaafHistoricalTrainingRowsTable.id });
+      inserted += result.length;
+    }
+    return inserted;
+  },
 };
 
 /** Independently callable and bounded; scheduler/capture code may call this but
@@ -120,15 +173,20 @@ export async function materializeNcaafHistoricalTrainingRows(
   if (!seasons.length || seasons.some((season) => !NCAAF_HISTORICAL_SEASONS.includes(season as 2023 | 2024 | 2025 | 2026))) {
     throw new Error("NCAAF historical materialization is limited to seasons 2023-2026");
   }
+  if (store.reconcileMappings) await store.reconcileMappings(seasons);
   const source = await store.load(seasons);
   const built = buildNcaafHistoricalTrainingDataset(historicalGamesFromCfbdEvidence(source));
-  let inserted = 0;
-  for (const row of built.rows) {
-    const didInsert = await store.insert({
+  const inserts = built.rows.map((row) => ({
       artifactKey: NCAAF_HISTORICAL_ARTIFACT_KEY, ...row,
       kickoffAt: new Date(row.kickoffAt), pregameCutoffAt: new Date(row.pregameCutoffAt),
-    });
-    if (didInsert) inserted++;
+    }));
+  let inserted = 0;
+  if (store.insertMany) {
+    inserted = await store.insertMany(inserts);
+  } else {
+    for (const row of inserts) {
+      if (await store.insert(row)) inserted++;
+    }
   }
   const blockers = { ...built.report.excluded };
   if (built.rows.length === 0 && source.games.length > 0 && !blockers.no_eligible_pregame_lineage) {

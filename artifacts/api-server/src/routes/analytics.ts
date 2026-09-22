@@ -10,6 +10,7 @@ import { Router, type IRouter } from "express";
 import { queryMetrics, runAnalytics } from "../services/analytics";
 import { computeCalibration } from "../services/calibration";
 import { logger } from "../lib/logger";
+import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 
 const router: IRouter = Router();
 
@@ -29,7 +30,11 @@ const router: IRouter = Router();
  *   edgeBucket      string  (e.g. "5–10%")
  *   isPlayOfDay     boolean ("true" | "false")
  */
-router.get("/analytics/performance", async (req, res): Promise<void> => {
+router.get("/analytics/performance", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
+  if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
+    res.status(403).json({ error: "Active subscription required" });
+    return;
+  }
   const {
     modelVersionId,
     sport,
@@ -76,7 +81,11 @@ router.get("/analytics/performance", async (req, res): Promise<void> => {
  *   sport           string   (optional — filters predictions)
  *   market          string   (optional)
  */
-router.get("/analytics/calibration", async (req, res): Promise<void> => {
+router.get("/analytics/calibration", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
+  if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
+    res.status(403).json({ error: "Active subscription required" });
+    return;
+  }
   const { modelVersionId, sport, market } = req.query;
 
   if (!modelVersionId) {
@@ -105,7 +114,11 @@ router.get("/analytics/calibration", async (req, res): Promise<void> => {
  * Trigger a full analytics recompute. Useful after a grading batch or manual
  * override. Returns the number of metric rows written.
  */
-router.post("/analytics/refresh", async (_req, res): Promise<void> => {
+router.post("/analytics/refresh", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
+  if (req.subscriberStatus?.isOwner !== true) {
+    res.status(403).json({ error: "Owner access required" });
+    return;
+  }
   const rows = await runAnalytics();
   res.json({
     message: "Analytics refresh complete",

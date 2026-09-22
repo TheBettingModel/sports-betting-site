@@ -10,5 +10,5 @@ export type NcaafV4SubscriberProjectionBoardApprovalStatus = typeof NcaafV4Subsc
 
 
 export const NcaafV4SubscriberProjectionBoardApprovalStatus = {
-  UNVALIDATED: 'UNVALIDATED',
+  ACTIVE: 'ACTIVE',
 } as const;

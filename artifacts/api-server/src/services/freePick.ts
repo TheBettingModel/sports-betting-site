@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
 import {
   dailyFreePicksTable,
   db,
@@ -97,4 +97,30 @@ export async function getDailyFreePick(easternDate: string): Promise<FreePickRow
     .where(eq(dailyFreePicksTable.easternDate, easternDate))
     .limit(1);
   return selected ? findEligiblePickById(easternDate, selected.publishedPickId) : null;
+}
+
+/**
+ * Returns at most two slate-level free disclosures. Slot one remains the
+ * immutable persisted selection. Slot two is selected deterministically from a
+ * different game and never replaces slot one.
+ */
+export async function getDailyFreePicks(easternDate: string): Promise<FreePickRow[]> {
+  const first = await getDailyFreePick(easternDate);
+  if (!first) return [];
+
+  const [second] = await db
+    .select(freePickColumns)
+    .from(publishedPicksTable)
+    .innerJoin(gamesTable, eq(gamesTable.id, publishedPicksTable.gameId))
+    .innerJoin(modelPredictionsTable, eq(modelPredictionsTable.id, publishedPicksTable.predictionId))
+    .innerJoin(modelVersionsTable, eq(modelVersionsTable.id, modelPredictionsTable.modelVersionId))
+    .where(and(
+      eligiblePickWhere(easternDate),
+      ne(publishedPicksTable.id, first.publishedPickId),
+      ne(publishedPicksTable.gameId, first.gameId),
+    ))
+    .orderBy(desc(gamesTable.finalModelScore), desc(gamesTable.modelScore), asc(publishedPicksTable.id))
+    .limit(1);
+
+  return second ? [first, second] : [first];
 }

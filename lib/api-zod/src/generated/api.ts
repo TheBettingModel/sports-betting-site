@@ -36,6 +36,12 @@ export const GetGamesTodayQueryParams = zod.object({
   "sport": zod.coerce.string().optional()
 })
 
+export const getGamesTodayResponseFreePicksMax = 2;
+
+export const getGamesTodayResponseFreeGamesMax = 2;
+
+
+
 export const GetGamesTodayResponse = zod.object({
   "games": zod.array(zod.object({
   "id": zod.string(),
@@ -194,7 +200,160 @@ export const GetGamesTodayResponse = zod.object({
   "market": zod.string(),
   "selection": zod.string(),
   "recommendation": zod.enum(['Strong Buy', 'Buy'])
-}).nullish()
+}).nullish(),
+  "freePicks": zod.array(zod.object({
+  "publishedPickId": zod.number(),
+  "gameId": zod.string(),
+  "sport": zod.string(),
+  "awayTeamName": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "awayTeamLogo": zod.string().nullish(),
+  "homeTeamName": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "homeTeamLogo": zod.string().nullish(),
+  "gameDate": zod.string(),
+  "startTime": zod.string(),
+  "status": zod.string(),
+  "market": zod.string(),
+  "selection": zod.string(),
+  "recommendation": zod.enum(['Strong Buy', 'Buy'])
+})).max(getGamesTodayResponseFreePicksMax).optional(),
+  "freeGames": zod.array(zod.object({
+  "id": zod.string(),
+  "sport": zod.string(),
+  "league": zod.string().nullish(),
+  "isLocked": zod.boolean().optional(),
+  "homeTeamId": zod.string().nullish(),
+  "homeTeamAbbr": zod.string(),
+  "homeTeamName": zod.string(),
+  "homeTeamRecord": zod.string(),
+  "homeTeamLogo": zod.string().nullish(),
+  "awayTeamAbbr": zod.string(),
+  "awayTeamName": zod.string(),
+  "awayTeamRecord": zod.string(),
+  "awayTeamLogo": zod.string().nullish(),
+  "awayTeamId": zod.string().nullish(),
+  "gameTime": zod.string(),
+  "gameDate": zod.string(),
+  "status": zod.string(),
+  "homeScore": zod.number().nullish(),
+  "awayScore": zod.number().nullish(),
+  "homeWinPct": zod.number(),
+  "confidence": zod.string(),
+  "projectedSpread": zod.number(),
+  "projectedTotal": zod.number(),
+  "valueRating": zod.string(),
+  "modelRecommendation": zod.string().nullish().describe('Immutable model opinion before downstream publication gates.'),
+  "publicationStatus": zod.string().nullish(),
+  "publicationReason": zod.string().nullish(),
+  "isPublic": zod.boolean().nullish(),
+  "globalRank": zod.number().nullish(),
+  "selectedSideEdge": zod.number().nullish().describe('Selected-side model probability minus no-vig fair probability, in percentage points.'),
+  "requestedUnits": zod.number().nullish(),
+  "approvedUnits": zod.number().nullish(),
+  "stakePolicyVersion": zod.string().nullish(),
+  "modelScore": zod.number(),
+  "edge": zod.number(),
+  "confidenceNum": zod.number().optional(),
+  "units": zod.number().optional(),
+  "sharpScore": zod.number().optional(),
+  "sharpSignal": zod.string().optional(),
+  "finalModelScore": zod.number().optional(),
+  "finalModelTier": zod.string().optional(),
+  "finalModelStars": zod.number().optional(),
+  "podScore": zod.number().optional(),
+  "vegasSpread": zod.number(),
+  "vegasTotal": zod.number(),
+  "vegasHomeOdds": zod.number(),
+  "vegasAwayOdds": zod.number(),
+  "vegasDrawOdds": zod.number().optional(),
+  "openingHomeOdds": zod.number().nullish(),
+  "openingAwayOdds": zod.number().nullish(),
+  "homeStarterName": zod.string().nullish(),
+  "homeStarterEra": zod.number().nullish(),
+  "homeStarterRecentEra": zod.number().nullish(),
+  "homeStarterHand": zod.string().nullish(),
+  "awayStarterName": zod.string().nullish(),
+  "awayStarterEra": zod.number().nullish(),
+  "awayStarterRecentEra": zod.number().nullish(),
+  "awayStarterHand": zod.string().nullish(),
+  "bestLineBook": zod.string().nullish(),
+  "bestLineOdds": zod.number().nullish(),
+  "weatherWindMph": zod.number().nullish(),
+  "weatherTotalAdj": zod.number().nullish(),
+  "weatherSummary": zod.string().nullish(),
+  "homeGoalieName": zod.string().nullish(),
+  "homeGoalieSavePct": zod.number().nullish(),
+  "awayGoalieName": zod.string().nullish(),
+  "awayGoalieSavePct": zod.number().nullish(),
+  "homeKeyInjuries": zod.string().nullish(),
+  "awayKeyInjuries": zod.string().nullish(),
+  "predictionCorrect": zod.boolean().nullish(),
+  "selectedMarket": zod.string().nullish(),
+  "selectedPick": zod.object({
+  "market": zod.string(),
+  "selection": zod.string(),
+  "teamAbbr": zod.string(),
+  "line": zod.number().nullish(),
+  "odds": zod.number(),
+  "sportsbook": zod.string().nullish(),
+  "modelProbability": zod.number(),
+  "fairPrice": zod.number(),
+  "edge": zod.number(),
+  "expectedValue": zod.number().nullish(),
+  "pushProbability": zod.number().nullish(),
+  "recommendation": zod.string(),
+  "units": zod.number(),
+  "eligible": zod.boolean(),
+  "gateStatus": zod.string().nullish()
+}).nullish(),
+  "moneylineMarket": zod.object({
+  "market": zod.string(),
+  "selection": zod.string(),
+  "teamAbbr": zod.string(),
+  "line": zod.number().nullish(),
+  "odds": zod.number(),
+  "sportsbook": zod.string().nullish(),
+  "modelProbability": zod.number(),
+  "fairPrice": zod.number(),
+  "edge": zod.number(),
+  "expectedValue": zod.number().nullish(),
+  "pushProbability": zod.number().nullish(),
+  "recommendation": zod.string(),
+  "units": zod.number(),
+  "eligible": zod.boolean(),
+  "gateStatus": zod.string().nullish()
+}).nullish(),
+  "spreadMarket": zod.object({
+  "market": zod.string(),
+  "selection": zod.string(),
+  "teamAbbr": zod.string(),
+  "line": zod.number().nullish(),
+  "odds": zod.number(),
+  "sportsbook": zod.string().nullish(),
+  "modelProbability": zod.number(),
+  "fairPrice": zod.number(),
+  "edge": zod.number(),
+  "expectedValue": zod.number().nullish(),
+  "pushProbability": zod.number().nullish(),
+  "recommendation": zod.string(),
+  "units": zod.number(),
+  "eligible": zod.boolean(),
+  "gateStatus": zod.string().nullish()
+}).nullish(),
+  "modelIdentity": zod.object({
+  "engine": zod.string(),
+  "modelFamily": zod.string().nullish(),
+  "modelVersion": zod.string(),
+  "artifactId": zod.string().nullish(),
+  "servingMode": zod.string().nullish(),
+  "inputVersion": zod.string().nullish(),
+  "approvalStatus": zod.string().nullish(),
+  "fallbackUsed": zod.boolean(),
+  "fallbackReason": zod.string().nullish(),
+  "predictionTimestamp": zod.coerce.date()
+}).optional().describe('Optional truthful identity from the latest persisted generating prediction.')
+})).max(getGamesTodayResponseFreeGamesMax).optional()
 })
 
 
@@ -209,8 +368,39 @@ export const RefreshGamesResponse = zod.object({
 
 
 /**
+ * Returns verified moneyline observations for one Eastern calendar date. Sharp-book observations are separated from ordinary market history and missing evidence is returned as an empty array.
+ * @summary Get subscriber market history for the Analytics tab
+ */
+export const getGamesMarketAnalyticsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetGamesMarketAnalyticsQueryParams = zod.object({
+  "date": zod.coerce.string().regex(getGamesMarketAnalyticsQueryDateRegExp).optional()
+})
+
+export const GetGamesMarketAnalyticsResponse = zod.object({
+  "date": zod.string(),
+  "games": zod.array(zod.object({
+  "gameId": zod.string(),
+  "marketHistory": zod.array(zod.object({
+  "selection": zod.enum(['home', 'away', 'draw']),
+  "price": zod.number(),
+  "capturedAt": zod.string(),
+  "sportsbook": zod.string().nullable()
+})),
+  "sharpMoneyHistory": zod.array(zod.object({
+  "selection": zod.enum(['home', 'away', 'draw']),
+  "price": zod.number(),
+  "capturedAt": zod.string(),
+  "sportsbook": zod.string().nullable()
+}))
+}))
+})
+
+
+/**
  * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
- * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ * @summary Get the NCAA Football V4 Projection board for an Eastern calendar date
  */
 export const getNcaafV4ProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
@@ -221,9 +411,9 @@ export const GetNcaafV4ProjectionsQueryParams = zod.object({
 
 export const GetNcaafV4ProjectionsResponse = zod.object({
   "date": zod.string(),
-  "modelStatus": zod.enum(['V4_PREVIEW']),
-  "approvalStatus": zod.enum(['UNVALIDATED']),
-  "publicationStatus": zod.enum(['PREVIEW_ONLY']),
+  "modelStatus": zod.enum(['V4_PROJECTION']),
+  "approvalStatus": zod.enum(['ACTIVE']),
+  "publicationStatus": zod.enum(['PROJECTION_ONLY']),
   "disclaimer": zod.string(),
   "board": zod.array(zod.object({
   "kickoffAt": zod.coerce.date(),
@@ -266,7 +456,7 @@ export const GetNcaafV4ProjectionsResponse = zod.object({
 
 
 /**
- * Returns every legitimate V4 forecast for one sport/day plus explicit coverage failures. Validating projections are not official TBM picks.
+ * Returns every legitimate V4 projection for one sport/day plus explicit coverage failures.
  * @summary Get safe full-slate V4 model projections
  */
 export const getV4FullSlateProjectionsQueryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -300,6 +490,9 @@ export const GetV4FullSlateProjectionsResponse = zod.object({
   "gameId": zod.string(),
   "sport": zod.string(),
   "eventStart": zod.string().nullable(),
+  "eventStatus": zod.enum(['UPCOMING', 'LIVE', 'FINAL']),
+  "homeScore": zod.number().nullable(),
+  "awayScore": zod.number().nullable(),
   "homeParticipant": zod.object({
   "id": zod.string().nullable(),
   "name": zod.string(),

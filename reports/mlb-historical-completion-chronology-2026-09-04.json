@@ -1,0 +1,246 @@
+{
+  "task": "224B-1",
+  "reportDate": "2026-09-04",
+  "title": "MLB Historical Completion-Time & Chronology Proof",
+  "classification": "B — Completion-Time Gate Mostly Resolved",
+  "finalArtifact": {
+    "schemaVersion": "mlb-completion-chronology-v3",
+    "artifactKey": "mlb-historical-2023-2026-completion-v3-raw-bound",
+    "status": "SEALED_COMPLETION_FOUNDATION",
+    "sourceManifestHash": "3a208fd04a80a96b9da136a46db6a12df33b514df3e59be2a6d98b6fbc7e2f7c",
+    "foundationChecksum": "97f989cb58217d3508caa2fd8d9ad596e1c3f5f366e762cab6aef2429d28e56f",
+    "replayChecksum": "cc7b78d3a3fd16409f07aeab80b2a48c66df84a9743bf27c621a3a3147341588"
+  },
+  "sections": [
+    {
+      "number": 1,
+      "name": "Executive Summary",
+      "result": "Completion chronology is safe for 9,390 of 9,393 admitted games. Three rain-shortened completed-early games remain quarantined. The safe original-candidate cohort contains 9,073 games."
+    },
+    {
+      "number": 2,
+      "name": "Source Discovery Matrix",
+      "sources": [
+        {
+          "source": "MLB schedule feed",
+          "coverage": 9393,
+          "usableFor": ["provider identity", "official game date", "scheduled first pitch", "final score", "status", "game number", "doubleheader metadata"],
+          "notUsableFor": ["historical completion timestamp"]
+        },
+        {
+          "source": "MLB feed/live with a fixed fields projection",
+          "coverage": 9393,
+          "usableFor": ["official final status", "first-play start", "terminal-play end", "terminal completion flag", "inning count"],
+          "rawBodiesArchived": 9393,
+          "rawBytesArchived": 167327838
+        },
+        {
+          "source": "MLB playByPlay",
+          "coverage": 9393,
+          "usableFor": ["same play chronology as feed/live"],
+          "notUsableFor": ["separate authoritative game-completion marker"]
+        },
+        {
+          "source": "MLB boxscore",
+          "coverage": 9393,
+          "usableFor": ["final statistics"],
+          "notUsableFor": ["reliable completion timestamp"]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "name": "Canonical Timestamp Design",
+      "completionHierarchy": [
+        "Explicit official gameEndDate when present",
+        "Official final status plus the actual terminal completed play about.endTime",
+        "Unresolved and quarantined"
+      ],
+      "featureCutoff": "Official first play about.startTime minus 1 millisecond",
+      "strictRule": "completion_time(prior_game) < feature_cutoff(target_game)",
+      "forbiddenSubstitutes": ["schedule date", "schedule order", "retrieval time", "database insertion time", "estimated duration"],
+      "authoritativeGames": 0,
+      "highConfidenceDerivedGames": 9390,
+      "unresolvedGames": 3
+    },
+    {
+      "number": 4,
+      "name": "Season-by-Season Completion Coverage",
+      "seasons": {
+        "2023": { "games": 2425, "highConfidenceDerived": 2425, "unresolved": 0, "coreEligible": 2347 },
+        "2024": { "games": 2435, "highConfidenceDerived": 2435, "unresolved": 0, "coreEligible": 2353 },
+        "2025": { "games": 2443, "highConfidenceDerived": 2441, "unresolved": 2, "coreEligible": 2361 },
+        "2026": { "games": 2090, "highConfidenceDerived": 2089, "unresolved": 1, "coreEligible": 2012 }
+      }
+    },
+    {
+      "number": 5,
+      "name": "Same-Day / Doubleheader Chronology",
+      "directedSameDayRelationships": 18,
+      "uniqueSameDayPairs": 9,
+      "eligibleDirections": 9,
+      "deniedDirections": 9,
+      "doubleheaderFlaggedGames": 120,
+      "rule": "Only strict timestamp comparison controls eligibility; labels and game number never do."
+    },
+    {
+      "number": 6,
+      "name": "Suspended / Resumed Games",
+      "admittedSuspended": 0,
+      "admittedResumed": 0,
+      "handling": "A suspended or incomplete game is denied. A resumed game becomes eligible only after official final status and terminal completion evidence prove completion before the later cutoff.",
+      "fixtureCoverage": true
+    },
+    {
+      "number": 7,
+      "name": "Postponed / Special Cases",
+      "admittedPostponed": 0,
+      "completedEarlyGames": 13,
+      "completedEarlyResolved": 10,
+      "completedEarlyUnresolved": 3,
+      "extraInningGames": 801,
+      "crossedUtcMidnight": 3506,
+      "sourceExclusions": {
+        "duplicateProviderGameId": 144,
+        "unfinishedGame": 7,
+        "missingScore": 2
+      }
+    },
+    {
+      "number": 8,
+      "name": "Feature Cutoff Design",
+      "source": "OFFICIAL_FIRST_PLAY_START_MINUS_1MS",
+      "gamesWithOfficialCutoff": 9393,
+      "scheduledFallbackUsed": 0,
+      "nullableWhenUnresolved": true,
+      "auditBindingViolations": 0
+    },
+    {
+      "number": 9,
+      "name": "Outcome Eligibility Logic",
+      "independentClocks": true,
+      "targetFeaturesFrozenAt": "target feature cutoff",
+      "priorOutcomesAdmittedAt": "canonical completion only",
+      "selfOutcomeVisible": false,
+      "futureOutcomeVisible": false,
+      "equalTimestampAdmitted": false,
+      "observedPitViolations": 0
+    },
+    {
+      "number": 10,
+      "name": "Rebuilt Historical Dataset",
+      "sourceGames": 9393,
+      "persistedGames": 9393,
+      "rawSnapshots": 9393,
+      "completionEvidenceRows": 9393,
+      "chronologyDecisionRows": 9393,
+      "teamGameFeatureRows": 18786,
+      "outcomeRows": 9393,
+      "featureSideCoverageViolations": 0,
+      "marketLeakageViolations": 0
+    },
+    {
+      "number": 11,
+      "name": "Revised Eligibility",
+      "originalCoreCandidates": 9076,
+      "coreEligible": 9073,
+      "partialCoreCandidates": 3,
+      "otherExcludedFeatureGames": 317,
+      "enhancedEligible": 0,
+      "splits": {
+        "TRAIN": 4700,
+        "VALIDATION": 2361,
+        "LOCKED_OOS": 2012
+      }
+    },
+    {
+      "number": 12,
+      "name": "Locked 2026 OOS Preservation",
+      "originalLockedOos": 2013,
+      "safeLockedOos": 2012,
+      "excludedLockedOos": 1,
+      "newMembersAdded": 0,
+      "preservationRule": "Chronology may remove unsafe rows but may never expand the sealed 2026 OOS cohort."
+    },
+    {
+      "number": 13,
+      "name": "Test and Fixture Results",
+      "focusedChronologyAndFoundationTests": { "passed": 20, "failed": 0 },
+      "fullApiTests": { "filesPassed": 76, "testsPassed": 468, "failed": 0 },
+      "coveredCases": ["strict inequality", "timestamp equality denial", "doubleheaders", "official-date UTC boundary", "rain-shortened final", "suspended", "resumed final", "postponed", "extra innings", "midnight crossing", "missing terminal timestamps", "incomplete terminal event", "retrieval-time leakage", "future outcomes", "null unresolved cutoff"]
+    },
+    {
+      "number": 14,
+      "name": "Deterministic Replay",
+      "firstMaterializationStatus": "SEALED_COMPLETION_FOUNDATION",
+      "secondMaterializationStatus": "VERIFIED_SEALED_ARTIFACT",
+      "sourceManifestHash": "3a208fd04a80a96b9da136a46db6a12df33b514df3e59be2a6d98b6fbc7e2f7c",
+      "foundationChecksum": "97f989cb58217d3508caa2fd8d9ad596e1c3f5f366e762cab6aef2429d28e56f",
+      "foundationReplayChecksum": "cc7b78d3a3fd16409f07aeab80b2a48c66df84a9743bf27c621a3a3147341588",
+      "persistedReplayChecksum": "cc7b78d3a3fd16409f07aeab80b2a48c66df84a9743bf27c621a3a3147341588",
+      "mismatches": 0
+    },
+    {
+      "number": 15,
+      "name": "Cross-Sport and Production Safety",
+      "mlbV4TrainedOrRetuned": false,
+      "mlbV1Modified": false,
+      "ncaafOrOtherSportModified": false,
+      "publicationLogicModified": false,
+      "deploymentPerformed": false,
+      "gitHistoryRewritten": false,
+      "appleOrEasCredentialsTouched": false,
+      "signingCredentialScan": "PASS"
+    },
+    {
+      "number": 16,
+      "name": "Commands and Artifacts",
+      "commands": [
+        "collect:mlb-historical-completion",
+        "build:mlb-historical-completion",
+        "audit:mlb-historical-completion",
+        "audit:mlb-historical-pit",
+        "test",
+        "typecheck",
+        "build",
+        "security:signing-credentials"
+      ],
+      "appendOnlyGuards": 20,
+      "persistedAudit": "PASS",
+      "v1Audit": "PASS_PARTIAL",
+      "supersededPartialPass": {
+        "schemaVersion": "mlb-completion-chronology-v2",
+        "artifactKey": "mlb-historical-2023-2026-completion-v3",
+        "rows": 5400,
+        "usedByFinalArtifact": false,
+        "mutatedOrDeleted": false
+      }
+    },
+    {
+      "number": 17,
+      "name": "Open Blockers",
+      "high": [],
+      "medium": [
+        "Provider feeds expose no explicit gameEndDate for this cohort, so 9,390 safe timestamps are high-confidence derived rather than authoritative.",
+        "Three rain-shortened completed-early games end in an incomplete terminal game_advisory and remain quarantined."
+      ],
+      "low": [
+        "A 5,400-row version-mismatched collection attempt is retained append-only under a superseded key and is excluded from the final manifest."
+      ],
+      "workspaceTypecheckNote": "The task-scoped DB/API typechecks pass. The workspace-wide typecheck is blocked by pre-existing errors in untouched artifacts/mockup-sandbox files."
+    },
+    {
+      "number": 18,
+      "name": "Final Classification",
+      "classification": "B — Completion-Time Gate Mostly Resolved",
+      "basis": "9,390 of 9,393 games have point-in-time-safe completion chronology; the remaining three are explicitly quarantined, all persisted integrity checks pass, and the locked OOS cohort only contracts."
+    },
+    {
+      "number": 19,
+      "name": "Next Task",
+      "nextTask": "224B-2",
+      "started": false,
+      "instruction": "Stop here. Do not train, retune, or begin downstream model work in this task."
+    }
+  ]
+}

@@ -38,6 +38,11 @@ type ResultRow = {
 const { select } = vi.hoisted(() => ({ select: vi.fn() }));
 
 vi.mock("../middleware/requireSubscriber", () => ({
+  resolveSubscriberStatus: (req: any, _res: unknown, next: () => void) => {
+    const free = req.headers["x-test-free"] === "true";
+    req.subscriberStatus = { userId: free ? "free-user" : "pro-user", isSubscribed: !free, isOwner: false };
+    next();
+  },
   rejectInvalidToken: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 vi.mock("../lib/logger", () => ({
@@ -181,6 +186,13 @@ async function ledgers(rows: ResultRow[]) {
 describe("results effective-pick ledger", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.useRealTimers());
+
+  it("denies Results data to a non-Pro account", async () => {
+    const value = app();
+    expect((await request(value).get("/api/results/summary").set("x-test-free", "true")).status).toBe(403);
+    expect((await request(value).get("/api/results/roi").set("x-test-free", "true")).status).toBe(403);
+    expect(select).not.toHaveBeenCalled();
+  });
 
   it("counts an effective published pick in both ledgers", async () => {
     const { summary, roi } = await ledgers([row()]);

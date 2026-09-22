@@ -1,0 +1,120 @@
+{
+  "task": "224C-1",
+  "generatedAt": "2026-09-05T17:00:00.000Z",
+  "checks": [
+    {
+      "name": "Focused MLB starter/PIT/chronology/model checks",
+      "command": "pnpm --filter @workspace/api-server exec vitest run src/services/mlbStarterEvidence224C.test.ts src/services/mlbExpectedRuns224C.test.ts src/services/mlbV4ExpectedRuns.test.ts src/services/mlbHistoricalChronology.test.ts src/services/mlbHistoricalPitFoundation.test.ts src/services/mlbHistoricalSource.test.ts src/services/mlbHistoricalIdentity.test.ts src/services/mlbHistoricalPitchingOutcomes.test.ts src/services/mlbHistoricalPitchingReplay.test.ts src/services/mlbPointInTime.test.ts src/services/mlbBullpen.test.ts src/services/mlbLineups.test.ts",
+      "status": "PASS",
+      "result": "12 files; 63 tests passed"
+    },
+    {
+      "name": "Full API test suite",
+      "command": "pnpm --filter @workspace/api-server test",
+      "status": "PASS",
+      "result": "81 files; 500 tests passed"
+    },
+    {
+      "name": "API TypeScript",
+      "command": "pnpm --filter @workspace/api-server run typecheck",
+      "status": "PASS",
+      "result": "tsc --noEmit completed without errors"
+    },
+    {
+      "name": "Database TypeScript",
+      "command": "pnpm --filter @workspace/db exec tsc -p tsconfig.json --noEmit",
+      "status": "PASS",
+      "result": "tsc --noEmit completed without errors"
+    },
+    {
+      "name": "API production bundle",
+      "command": "pnpm --filter @workspace/api-server run build",
+      "status": "PASS",
+      "result": "esbuild completed successfully"
+    },
+    {
+      "name": "Development schema application",
+      "command": "pnpm --filter @workspace/db run push",
+      "status": "PASS",
+      "result": "Additive schema applied; unsafe non-null projection was refused and replaced by a nullable legacy-compatible projection"
+    },
+    {
+      "name": "Append-only guard installation",
+      "command": "pnpm --filter @workspace/api-server run guard:mlb-historical-pit",
+      "status": "PASS",
+      "result": "24 MLB historical/research tables guarded"
+    },
+    {
+      "name": "Append-only mutation guard",
+      "command": "UPDATE mlb_pregame_starter_evidence_snapshots SET reason=reason WHERE id=(SELECT MIN(id) FROM mlb_pregame_starter_evidence_snapshots)",
+      "status": "PASS",
+      "result": "Database rejected UPDATE: MLB historical foundation is append-only"
+    },
+    {
+      "name": "Prospective capture",
+      "command": "pnpm --filter @workspace/api-server run capture:mlb-224c1-starters -- 2026-09-05",
+      "status": "PASS",
+      "result": "Authoritative v3 capture: 15 games, 30 PROBABLE_PREGAME slots, one schedule call, 0 after-cutoff games; observed_at was recorded after response receipt"
+    },
+    {
+      "name": "Prospective capture idempotence",
+      "command": "pnpm --filter @workspace/api-server run capture:mlb-224c1-starters -- 2026-09-05",
+      "status": "PASS",
+      "result": "0 inserted; 15 unchanged games skipped"
+    },
+    {
+      "name": "Prospective capture archive size",
+      "command": "SELECT SUM(pg_column_size(raw_game_payload)) FROM mlb_pregame_starter_evidence_snapshots WHERE schema_version='mlb-starter-evidence-224c-v3'",
+      "status": "PASS",
+      "result": "49,404 bytes across 30 authoritative v3 rows"
+    },
+    {
+      "name": "Research disposition freeze",
+      "command": "pnpm --filter @workspace/api-server run freeze:mlb-224c1",
+      "status": "PASS",
+      "result": "Exactly one RESEARCH_FAILED_NOT_COMPETITIVE / HISTORICAL_BENCHMARK_ONLY fact remains"
+    },
+    {
+      "name": "TRAIN/VALIDATION root-cause diagnostics",
+      "command": "pnpm --filter @workspace/api-server run audit:mlb-224c1-root-cause (twice)",
+      "status": "PASS",
+      "result": "Both runs produced diagnosticsHash b9273936246141412fd04f751a9724915a78d0fd58eae85f60a5056a80380e88 and identical file SHA-256 422aa4e086b0fbc95f12e60d4949835a9d6f3af05fef05c3cbf8c59a8c1e4a22"
+    },
+    {
+      "name": "Frozen #224C integrity",
+      "command": "pnpm --filter @workspace/api-server run audit:mlb-v4-expected-runs",
+      "status": "PASS",
+      "result": "All violation categories zero; determinismHash 969a5fded14392137a439121a7021fe1978fc489dd80fcb9330838d912a96be2"
+    },
+    {
+      "name": "Signing credential scan",
+      "command": "pnpm run security:signing-credentials",
+      "status": "PASS",
+      "result": "No Apple signing credential artifacts or local key configuration found"
+    },
+    {
+      "name": "Protected Replit Git-ref blocker",
+      "command": "git for-each-ref --format='%(refname)' | grep '^refs/replit/agent$'",
+      "status": "PASS",
+      "result": "Protected refs/replit/agent is absent; no Git history was modified"
+    },
+    {
+      "name": "Diff whitespace validation",
+      "command": "git diff --check",
+      "status": "PASS",
+      "result": "No whitespace errors"
+    },
+    {
+      "name": "Production and cross-sport boundary",
+      "command": "Scope review",
+      "status": "PASS",
+      "result": "No production routing, scheduler, UI, entitlement, push, non-MLB sport, deployment, Apple, or EAS changes"
+    },
+    {
+      "name": "Independent post-capture compliance review",
+      "command": "Read-only architect review of final diff and 36-section report",
+      "status": "PASS",
+      "result": "PIT receipt timing, schema-backed atomic idempotence, checksum integrity, OOS firewall, causal claims, classification C, and hard-stop boundaries passed"
+    }
+  ]
+}

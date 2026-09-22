@@ -28,6 +28,7 @@ import type {
   CreateAdminMarketApproval201,
   CreateChatMessageRequest,
   DeregisterPushTokenRequest,
+  GamesMarketAnalyticsResponse,
   GamesTodayResponse,
   GetAdminForecastMetrics200,
   GetAdminForecastMetricsParams,
@@ -41,6 +42,7 @@ import type {
   GetAdminPublicationDecisions200,
   GetAdminPublicationDecisionsParams,
   GetAdminSpreadModels200,
+  GetGamesMarketAnalyticsParams,
   GetGamesTodayParams,
   GetNcaafV4ProjectionsParams,
   GetResultsRoiParams,
@@ -499,6 +501,91 @@ export const useRefreshGames = <TError = ErrorType<unknown>,
       return useMutation(getRefreshGamesMutationOptions(options));
     }
 
+export const getGetGamesMarketAnalyticsUrl = (params?: GetGamesMarketAnalyticsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/games/market-analytics?${stringifiedParams}` : `/api/games/market-analytics`
+}
+
+/**
+ * Returns verified moneyline observations for one Eastern calendar date. Sharp-book observations are separated from ordinary market history and missing evidence is returned as an empty array.
+ * @summary Get subscriber market history for the Analytics tab
+ */
+export const getGamesMarketAnalytics = async (params?: GetGamesMarketAnalyticsParams, options?: RequestInit): Promise<GamesMarketAnalyticsResponse> => {
+
+  return customFetch<GamesMarketAnalyticsResponse>(getGetGamesMarketAnalyticsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGamesMarketAnalyticsQueryKey = (params?: GetGamesMarketAnalyticsParams,) => {
+    return [
+    `/api/games/market-analytics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGamesMarketAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError = ErrorType<void>>(params?: GetGamesMarketAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGamesMarketAnalyticsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGamesMarketAnalytics>>> = ({ signal }) => getGamesMarketAnalytics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGamesMarketAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getGamesMarketAnalytics>>>
+export type GetGamesMarketAnalyticsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get subscriber market history for the Analytics tab
+ */
+
+export function useGetGamesMarketAnalytics<TData = Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError = ErrorType<void>>(
+ params?: GetGamesMarketAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGamesMarketAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGamesMarketAnalyticsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetNcaafV4ProjectionsUrl = (params?: GetNcaafV4ProjectionsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -516,7 +603,7 @@ export const getGetNcaafV4ProjectionsUrl = (params?: GetNcaafV4ProjectionsParams
 
 /**
  * Read-only NCAAF-only preview board. It never creates wagers, changes the incumbent champion, or grants production publication approval.
- * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ * @summary Get the NCAA Football V4 Projection board for an Eastern calendar date
  */
 export const getNcaafV4Projections = async (params?: GetNcaafV4ProjectionsParams, options?: RequestInit): Promise<NcaafV4SubscriberProjectionBoard> => {
 
@@ -563,7 +650,7 @@ export type GetNcaafV4ProjectionsQueryError = ErrorType<void>
 
 
 /**
- * @summary Get the NCAAF V4 preview projection board for an Eastern calendar date
+ * @summary Get the NCAA Football V4 Projection board for an Eastern calendar date
  */
 
 export function useGetNcaafV4Projections<TData = Awaited<ReturnType<typeof getNcaafV4Projections>>, TError = ErrorType<void>>(
@@ -600,7 +687,7 @@ export const getGetV4FullSlateProjectionsUrl = (params: GetV4FullSlateProjection
 }
 
 /**
- * Returns every legitimate V4 forecast for one sport/day plus explicit coverage failures. Validating projections are not official TBM picks.
+ * Returns every legitimate V4 projection for one sport/day plus explicit coverage failures.
  * @summary Get safe full-slate V4 model projections
  */
 export const getV4FullSlateProjections = async (params: GetV4FullSlateProjectionsParams, options?: RequestInit): Promise<V4FullSlateProjectionResponse> => {

@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { getGuardedServingRuntimeStatus } from "../services/guardedServing/runtimeStatus";
 import { canonicalV4EngineRegistry } from "../services/v4Platform";
+import { getTbmReleaseIdentity } from "../lib/releaseIdentity";
 
 const router: IRouter = Router();
 
@@ -14,12 +15,14 @@ router.get("/healthz", (_req, res) => {
 
 router.get("/readyz", async (_req, res) => {
   try {
+    const release = getTbmReleaseIdentity("api");
     await db.execute(sql`SELECT 1`);
     const guarded = await getGuardedServingRuntimeStatus();
     res.json({
       status: "ready",
       database: "connected",
       scheduler: "configured",
+      release,
       guardedServing: guarded.sports.map((sport) => ({
         sport: sport.sport,
         state: sport.resolvedServingState,

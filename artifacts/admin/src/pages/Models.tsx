@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { timeAgo, statusColor, statusDot, pct } from "@/lib/utils";
 import { NcaafV4BoardPanel } from "@/components/NcaafV4BoardPanel";
+import { NcaafV4HealthReportPanel } from "@/components/NcaafV4HealthReportPanel";
 
 const STATUS_ORDER = ["production", "challenger", "approved", "development", "retired", "rejected"];
 const SPORT_TABS = ["ALL", "MLB", "NFL", "NBA", "WNBA", "NHL", "Soccer"];
@@ -864,6 +865,12 @@ export function Models() {
     refetchInterval: 30_000,
   });
 
+  const { data: v4HealthReport, isLoading: isLoadingV4HealthReport, isFetching: isFetchingV4HealthReport } = useQuery({
+    queryKey: ["ncaaf-v4-health-report"],
+    queryFn: () => adminApi.ncaafV4HealthReport(),
+    refetchInterval: 30_000,
+  });
+
 
   const deployMutation = useMutation({
     mutationFn: (id: number) => adminApi.deployModel(id),
@@ -897,6 +904,8 @@ export function Models() {
       <NcaafReadinessPanel readiness={ncaafReadiness} isLoading={ncaafReadinessLoading} />
 
       <NcaafV4BoardPanel board={v4Projections} isLoading={v4ProjectionsLoading} />
+
+      <NcaafV4HealthReportPanel report={v4HealthReport} isLoading={isLoadingV4HealthReport} isFetching={isFetchingV4HealthReport} />
 
       <section className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border">

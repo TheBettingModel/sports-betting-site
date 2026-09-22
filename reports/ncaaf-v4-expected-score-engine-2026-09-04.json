@@ -1,0 +1,268 @@
+{
+  "identity": {
+    "modelId": "tbm-ncaaf-v4-expected-score",
+    "approval": "UNVALIDATED",
+    "champion": false,
+    "publication": false,
+    "datasetVersion": "ncaaf-v4-training-foundation-v2",
+    "splitChecksum": "7cee52d5188179d81a177aa55b9ac54e06211f11ed8a5b0d29b032ff94095abc",
+    "configurationHash": "dd21683c4f9d3fcc63ded7c9273640bb5181fe8c2942707824d76285c6fcbf22",
+    "parameterHash": "73ef034eae9e5d10e678a76a9fe186f71daa3f81ca9cc213b9eb69ba8c254e69",
+    "oosUntouchedDuringSelection": true,
+    "compatibility2026": "PARTIAL",
+    "generated2026Predictions": 0
+  },
+  "counts": {
+    "2023": 792,
+    "2024": 798,
+    "2025": 808
+  },
+  "split": {
+    "training": 1590,
+    "validation": 398,
+    "oos": 410
+  },
+  "selection": {
+    "splitChecksum": "7cee52d5188179d81a177aa55b9ac54e06211f11ed8a5b0d29b032ff94095abc",
+    "candidates": [
+      {
+        "name": "simple-expected-score-linear",
+        "ridge": 0,
+        "validation": {
+          "homeMae": 11.010610718173089,
+          "homeRmse": 13.884307703038353,
+          "awayMae": 9.738369908143328,
+          "awayRmse": 11.878146848301405,
+          "marginMae": 14.403050314057273,
+          "marginRmse": 18.486204114856694,
+          "totalMae": 14.03407177707198,
+          "totalRmse": 18.055165557501276,
+          "brier": 0.19850968251592513,
+          "logLoss": 0.5805120826161633,
+          "count": 398
+        }
+      },
+      {
+        "name": "ridge-score-4",
+        "ridge": 4,
+        "validation": {
+          "homeMae": 11.011457065314264,
+          "homeRmse": 13.885808731443879,
+          "awayMae": 9.734862298152741,
+          "awayRmse": 11.875566059417192,
+          "marginMae": 14.40291122453942,
+          "marginRmse": 18.486693144388067,
+          "totalMae": 14.030586714503807,
+          "totalRmse": 18.053578130134873,
+          "brier": 0.19849353505881406,
+          "logLoss": 0.5804729396750996,
+          "count": 398
+        }
+      },
+      {
+        "name": "ridge-score-8",
+        "ridge": 8,
+        "validation": {
+          "homeMae": 11.011825039803242,
+          "homeRmse": 13.886655543992411,
+          "awayMae": 9.731765793230318,
+          "awayRmse": 11.873120933727842,
+          "marginMae": 14.40241637411971,
+          "marginRmse": 18.48631205848282,
+          "totalMae": 14.027152335979059,
+          "totalRmse": 18.05205451701372,
+          "brier": 0.19847468005703503,
+          "logLoss": 0.5804263698008306,
+          "count": 398
+        }
+      }
+    ],
+    "selected": {
+      "name": "ridge-score-8",
+      "ridge": 8
+    },
+    "baselines": [
+      {
+        "name": "A-historical-home-away-average",
+        "validation": {
+          "homeMae": 11.268199488006081,
+          "homeRmse": 14.286865944364699,
+          "awayMae": 10.7396036787712,
+          "awayRmse": 12.931267777244136,
+          "marginMae": 16.889447236180903,
+          "marginRmse": 21.61866864936077,
+          "totalMae": 13.317417275054513,
+          "totalRmse": 16.592094970413665,
+          "brier": 0.25,
+          "logLoss": 0.6931471805599467,
+          "count": 398
+        }
+      },
+      {
+        "name": "B-prior-offense-vs-defense",
+        "validation": {
+          "homeMae": 10.4238114594721,
+          "homeRmse": 13.201986859069594,
+          "awayMae": 9.760198621216482,
+          "awayRmse": 11.78544265376468,
+          "marginMae": 14.932568863141595,
+          "marginRmse": 19.123978726690005,
+          "totalMae": 12.875753229237448,
+          "totalRmse": 16.14471024222956,
+          "brier": 0.25,
+          "logLoss": 0.6931471805599467,
+          "count": 398
+        }
+      },
+      {
+        "name": "C-pregame-elo-winner",
+        "validation": {
+          "homeMae": 11.268199488006081,
+          "homeRmse": 14.286865944364699,
+          "awayMae": 10.7396036787712,
+          "awayRmse": 12.931267777244136,
+          "marginMae": 16.889447236180903,
+          "marginRmse": 21.61866864936077,
+          "totalMae": 13.317417275054513,
+          "totalRmse": 16.592094970413665,
+          "brier": 0.2431781113540396,
+          "logLoss": 0.6794435986895123,
+          "count": 398
+        }
+      },
+      {
+        "name": "D-simple-expected-score-linear",
+        "validation": {
+          "homeMae": 11.010610718173089,
+          "homeRmse": 13.884307703038353,
+          "awayMae": 9.738369908143328,
+          "awayRmse": 11.878146848301405,
+          "marginMae": 14.403050314057273,
+          "marginRmse": 18.486204114856694,
+          "totalMae": 14.03407177707198,
+          "totalRmse": 18.055165557501276,
+          "brier": 0.19850968251592513,
+          "logLoss": 0.5805120826161633,
+          "count": 398
+        }
+      }
+    ]
+  },
+  "validation": {
+    "homeMae": 11.011825039803242,
+    "homeRmse": 13.886655543992411,
+    "awayMae": 9.731765793230318,
+    "awayRmse": 11.873120933727842,
+    "marginMae": 14.40241637411971,
+    "marginRmse": 18.48631205848282,
+    "totalMae": 14.027152335979059,
+    "totalRmse": 18.05205451701372,
+    "brier": 0.2061143995440062,
+    "logLoss": 0.6008321621891716,
+    "count": 398
+  },
+  "oos": {
+    "homeMae": 9.825895022126078,
+    "homeRmse": 12.029510997650336,
+    "awayMae": 9.016843905640856,
+    "awayRmse": 11.31389463032026,
+    "marginMae": 13.363473193491904,
+    "marginRmse": 16.83496685873255,
+    "totalMae": 13.13352205227969,
+    "totalRmse": 16.186740992631478,
+    "brier": 0.19938614725150203,
+    "logLoss": 0.5860403462037687,
+    "count": 410
+  },
+  "calibration": [
+    {
+      "low": 0.5,
+      "high": 0.55,
+      "count": 64,
+      "predicted": 0.5255796088554198,
+      "observed": 0.4375,
+      "calibrationError": 0.08807960885541977
+    },
+    {
+      "low": 0.55,
+      "high": 0.6,
+      "count": 62,
+      "predicted": 0.576500523284772,
+      "observed": 0.5806451612903226,
+      "calibrationError": 0.004144638005550649
+    },
+    {
+      "low": 0.6,
+      "high": 0.65,
+      "count": 76,
+      "predicted": 0.6238666471696682,
+      "observed": 0.7105263157894737,
+      "calibrationError": 0.08665966861980545
+    },
+    {
+      "low": 0.65,
+      "high": 0.7,
+      "count": 43,
+      "predicted": 0.672870003047379,
+      "observed": 0.7441860465116279,
+      "calibrationError": 0.07131604346424891
+    },
+    {
+      "low": 0.7,
+      "high": 0.75,
+      "count": 32,
+      "predicted": 0.7259779473613259,
+      "observed": 0.90625,
+      "calibrationError": 0.18027205263867407
+    },
+    {
+      "low": 0.75,
+      "high": 0.8,
+      "count": 15,
+      "predicted": 0.7674545808136763,
+      "observed": 1,
+      "calibrationError": 0.23254541918632365
+    },
+    {
+      "low": 0.8,
+      "high": 1.001,
+      "count": 13,
+      "predicted": 0.8243214663059687,
+      "observed": 1,
+      "calibrationError": 0.1756785336940313
+    }
+  ],
+  "audit": {
+    "rows": 2398,
+    "sameGameLeakage": 0,
+    "futureGameLeakage": 0,
+    "futureSeasonLeakage": 0,
+    "postKickoffEvidence": 0,
+    "marketLeakage": 0
+  },
+  "coefficients": {
+    "population": 26.75377358490566,
+    "home": [
+      -3.7629191879279893,
+      0.3503513708011105,
+      0.3397599093157519,
+      1.230287572040461,
+      14.42043225185004,
+      -0.551098336208067,
+      0.07456189596333604,
+      0.4051909917646937,
+      0.6974095308107932
+    ],
+    "away": [
+      -4.2865298413551685,
+      0.2808001623970179,
+      0.337386718492351,
+      2.0893247247643054,
+      -12.3551342731594,
+      0.20318947897604878,
+      0.38140476489953123,
+      -0.3228794485967805,
+      -1.9137265417745717
+    ]
+  }
+}

@@ -60,12 +60,18 @@ import {
   runNcaafProductionEvidenceCycle,
 } from "./ncaafProductionEvidenceCycle";
 import { materializeNcaafHistoricalTrainingRows } from "./ncaafHistoricalTrainingMaterializer";
+import { backfillNcaafEspnHistoricalGameEvidence } from "./ncaafEspnHistoricalEvidenceBackfill";
 import { createNcaafFeatureSnapshot } from "./ncaafFeatures";
 import { ncaafSeasonForDate } from "./ncaafEvidenceLedger";
 import { runNcaafValidationCycle } from "./ncaafValidation";
 import { refreshAllSpreadApprovalLifecycles } from "./spreadModel";
 import { collectLiveForwardAdvancedResearch } from "./mlbAdvancedResearchCollector";
 import { captureMlbResearchMarketObservation } from "./mlbPointInTime";
+import {
+  captureOddsApiMoneylineSnapshots,
+  getMarketAnalyticsCoverage,
+  type MarketAnalyticsCoverage,
+} from "./marketSnapshotCapture";
 import {
   logSchedulerMemory,
   SingleFlightGroup,
@@ -75,6 +81,7 @@ import { runNflV4ProspectiveCollection } from "./nflV4Prospective";
 import { captureV4MoneylineEvidenceFromSnapshot } from "./v4OfficialPersistence";
 import { canonicalV4EngineRegistry } from "./v4Platform";
 import { runRegisteredOfficialV4 } from "./v4FullSlate";
+import { runScheduledV4ShadowProjectionCapture } from "./v4ShadowProjectionScheduler";
 import { isActiveProductSport } from "./sportScope";
 
 // Track the current effective Strong Buy set so an unchanged 30-minute refresh
@@ -89,6 +96,9 @@ const heavyJobs = new SingleFlightGroup();
 // windows are not skipped behind unrelated jobs.
 const mlbV4EvidenceJobs = new SingleFlightGroup();
 const nflV4EvidenceJobs = new SingleFlightGroup();
+// Subscriber-facing validating projections must not wait behind odds,
+// analytics, or sport-specific evidence jobs.
+const v4ShadowProjectionJobs = new SingleFlightGroup();
 
 function claimHeavyJob(jobName: string): number | null {
   const claim = heavyJobs.acquire(jobName);
@@ -419,6 +429,57 @@ async function checkAndRaiseFetchErrorAlerts(
   }
 }
 
+const MARKET_ANALYTICS_ALERT_TYPES = {
+  public: "market_analytics_public_missing",
+  sharp: "market_analytics_sharp_missing",
+} as const;
+
+async function reconcileMarketAnalyticsCoverageAlerts(
+  gameDate: string,
+  scheduledGames: number,
+  coverage: MarketAnalyticsCoverage,
+): Promise<void> {
+  if (scheduledGames <= 0) return;
+  const now = new Date();
+
+  for (const kind of ["public", "sharp"] as const) {
+    const alertType = MARKET_ANALYTICS_ALERT_TYPES[kind];
+    const rows = kind === "public" ? coverage.publicRows : coverage.sharpRows;
+    const games = kind === "public" ? coverage.publicGames : coverage.sharpGames;
+
+    if (games > 0) {
+      const resolved = await db.update(dataQualityAlertsTable)
+        .set({ isResolved: true, resolvedAt: now, resolvedBy: "scheduler:auto" })
+        .where(and(
+          eq(dataQualityAlertsTable.alertType, alertType),
+          eq(dataQualityAlertsTable.isResolved, false),
+        ))
+        .returning({ id: dataQualityAlertsTable.id });
+      if (resolved.length > 0) {
+        logger.info({ kind, resolvedIds: resolved.map((row) => row.id) }, "Scheduler: market Analytics coverage alert auto-resolved");
+      }
+      continue;
+    }
+
+    const [existing] = await db.select({ id: dataQualityAlertsTable.id })
+      .from(dataQualityAlertsTable)
+      .where(and(
+        eq(dataQualityAlertsTable.alertType, alertType),
+        eq(dataQualityAlertsTable.isResolved, false),
+      ))
+      .limit(1);
+    if (existing) continue;
+
+    await db.insert(dataQualityAlertsTable).values({
+      alertType,
+      severity: "critical",
+      description: `No ${kind} sportsbook moneyline snapshots were available for ${gameDate} after odds ingestion processed ${scheduledGames} scheduled games.`,
+      metadata: { gameDate, scheduledGames, rows, games, coverage },
+    });
+    logger.error({ kind, gameDate, scheduledGames, coverage }, "Scheduler: critical market Analytics coverage alert raised");
+  }
+}
+
 // ── Push notification helper ──────────────────────────────────────────────────
 
 /**
@@ -581,6 +642,12 @@ async function runOddsIngestion(): Promise<void> {
             game.sport, game.league ?? null, game.homeTeamName, game.awayTeamName, game.commenceTimeISO,
           );
           const gameOdds = oddsLookup.odds;
+          await captureOddsApiMoneylineSnapshots({
+            sport: game.sport,
+            gameId: game.espnId,
+            eventStart: game.commenceTimeISO,
+            odds: gameOdds,
+          });
           const starters = game.sport === "MLB"
             ? await getProbablePitchers(
                 game.homeTeamAbbr,
@@ -950,7 +1017,14 @@ async function runOddsIngestion(): Promise<void> {
 
     // Evidence capture above completes before the one official V4 orchestrator.
     await runRegisteredOfficialV4(new Date());
-    await finishRun(runId, "completed", processed, undefined, sportCounts);
+    const analyticsCoverage = await getMarketAnalyticsCoverage(todayDateStr);
+    const scheduledGames = Object.values(sportCounts)
+      .reduce<number>((sum, count) => sum + (typeof count === "number" ? count : 0), 0);
+    await finishRun(runId, "completed", processed, undefined, {
+      ...sportCounts,
+      marketAnalytics: analyticsCoverage,
+    });
+    await reconcileMarketAnalyticsCoverageAlerts(todayDateStr, scheduledGames, analyticsCoverage);
 
     // Auto-resolve any stale alerts for sports that returned games.
     await autoResolveSportAlerts(sportCounts);
@@ -965,7 +1039,7 @@ async function runOddsIngestion(): Promise<void> {
     // Notify when the current effective Strong Buy set changes.
     await maybeSendStrongBuyNotification();
 
-    logger.info({ processed, sportCounts }, "Scheduler: odds-ingestion complete");
+    logger.info({ processed, sportCounts, analyticsCoverage }, "Scheduler: odds-ingestion complete");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (runId !== null) await finishRun(runId, "failed", 0, msg);
@@ -1502,12 +1576,93 @@ async function runMlbAdvancedResearchCapture(): Promise<void> {
   }
 }
 
+async function runV4ShadowProjectionCapture(): Promise<void> {
+  const jobName = "v4-shadow-projection-capture";
+  const claim = v4ShadowProjectionJobs.acquire(jobName);
+  if (!claim.acquired) {
+    logSchedulerMemory(logger, {
+      jobName,
+      phase: "skipped",
+      blockedBy: claim.blockedBy,
+    });
+    return;
+  }
+  runningJobs.add(jobName);
+  const startedAt = performance.now();
+  logSchedulerMemory(logger, { jobName, phase: "start", startedAt });
+  let runId: number | null = null;
+  try {
+    runId = await startRun(jobName);
+    const result = await runScheduledV4ShadowProjectionCapture();
+    await finishRun(runId, "completed", result.forecastedEvents, undefined, {
+      mode: "SHADOW",
+      datesAttempted: result.datesAttempted,
+      sportsAttempted: result.sportsAttempted,
+      scheduledEvents: result.scheduledEvents,
+      forecastedEvents: result.forecastedEvents,
+      failedEvents: result.failedEvents,
+      failedAttempts: result.failedAttempts,
+      attempts: result.attempts.map((attempt) => attempt.status === "completed"
+        ? {
+            sport: attempt.sport,
+            sportDate: attempt.sportDate,
+            status: attempt.status,
+            scheduledEvents: attempt.coverage.scheduledEvents,
+            forecastedEvents: attempt.coverage.forecastedEvents,
+            failedEvents: attempt.coverage.failedEvents,
+          }
+        : {
+            sport: attempt.sport,
+            sportDate: attempt.sportDate,
+            status: attempt.status,
+            error: attempt.error,
+          }),
+    });
+    logger.info(
+      {
+        scheduledEvents: result.scheduledEvents,
+        forecastedEvents: result.forecastedEvents,
+        failedEvents: result.failedEvents,
+        failedAttempts: result.failedAttempts,
+      },
+      "Scheduler: V4 shadow projection capture complete",
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (runId !== null) await finishRun(runId, "failed", 0, message);
+    logger.warn({ error }, "Scheduler: V4 shadow projection capture failed — non-fatal");
+  } finally {
+    runningJobs.delete(jobName);
+    v4ShadowProjectionJobs.release(jobName);
+    logSchedulerMemory(logger, { jobName, phase: "end", startedAt });
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
+
+/** Bounded, resumable canonical-history job. The immutable artifact is emitted
+ * only after every CFBD game date has an explicit successful ESPN date ledger. */
+export async function runNcaafHistoricalEspnBackfill(): Promise<void> {
+  const backfill = await backfillNcaafEspnHistoricalGameEvidence({
+    seasons: [2023, 2024, 2025, 2026],
+    maxDates: 12,
+  });
+  logger.info(backfill, "Scheduler: NCAAF historical ESPN canonical backfill finished");
+  if (backfill.remainingDates !== 0 || Object.keys(backfill.failures).length !== 0) return;
+  const historical = await materializeNcaafHistoricalTrainingRows();
+  logger.info(historical, "Scheduler: NCAAF PIT-safe historical training rows materialized");
+}
 
 /**
  * Start all scheduled jobs. Call once at server startup.
  */
 export function startScheduler(): void {
+  // Persist current and next-day validating projections every 30 minutes.
+  // The offset avoids the odds, MLB, NFL, and NCAAF evidence windows, and the
+  // dedicated lock prevents this fan-out from starving those critical jobs.
+  cron.schedule("12,42 * * * *", () => {
+    void runV4ShadowProjectionCapture();
+  }, { timezone: "America/New_York" });
   // NFL V4 prospective forecasts are append-only, shadow-only, and isolated
   // from official pick generation and the shared heavy-job lock.
   cron.schedule("7,37 * * * *", () => {
@@ -1571,10 +1726,23 @@ export function startScheduler(): void {
   cron.schedule("0 3 * * *", () => {
     void runPushTokenCleanup();
   }, { timezone: "America/New_York" });
+  // One bounded batch per day; explicit date ledgers make empty dates final and
+  // provider failures retryable without treating partial game rows as complete.
+  cron.schedule("20 3 * * *", () => {
+    void runNcaafHistoricalEspnBackfill().catch((err) =>
+      logger.error({ err }, "Scheduler: NCAAF historical ESPN backfill failed"));
+  }, { timezone: "America/New_York" });
 
   // Warm up team stats cache in the background so the first game refresh
   // has advanced analytics immediately available.
   warmUpTeamStatsCache();
+  // A restart must not leave upcoming early games dependent on a subscriber
+  // opening the sport tab before the next scheduled tick. Delay this bounded
+  // catch-up so it does not overlap startup recovery's peak memory work.
+  const startupShadowCapture = setTimeout(() => {
+    void runV4ShadowProjectionCapture();
+  }, 60_000);
+  startupShadowCapture.unref();
   // Start prospective evidence work immediately. Historical performance
   // repair can issue many date captures, so it must never hold the critical
   // FINAL_PREGAME capture/assignment path behind its completion.
@@ -1587,8 +1755,7 @@ export function startScheduler(): void {
   void bootstrapMissingNcaafPerformanceEvidence()
     .then(async (bootstrap) => {
       logger.info(bootstrap, "Scheduler: NCAAF completed-game bootstrap finished");
-      const historical = await materializeNcaafHistoricalTrainingRows();
-      logger.info(historical, "Scheduler: NCAAF PIT-safe historical training rows materialized");
+      await runNcaafHistoricalEspnBackfill();
     })
     .catch((err) => logger.error({ err }, "Scheduler: NCAAF startup evidence catch-up failed"));
 
@@ -1608,8 +1775,9 @@ export const schedulerJobs = {
   mlbV4EvidenceCollection: runScheduledMlbV4EvidenceCollection,
   ncaafProductionEvidenceCycle: runNcaafProductionEvidenceCycle,
   ncaafPerformanceBootstrap: bootstrapMissingNcaafPerformanceEvidence,
-  ncaafHistoricalTrainingMaterialization: materializeNcaafHistoricalTrainingRows,
+  ncaafHistoricalEspnBackfill: runNcaafHistoricalEspnBackfill,
   nflV4ProspectiveCollection: runNflV4ProspectiveCollection,
+  v4ShadowProjectionCapture: runV4ShadowProjectionCapture,
 };
 
 /**
@@ -1620,6 +1788,7 @@ export {
   checkAndRaiseSportAlerts as _checkAndRaiseSportAlerts,
   autoResolveSportAlerts as _autoResolveSportAlerts,
   checkAndRaiseFetchErrorAlerts as _checkAndRaiseFetchErrorAlerts,
+  reconcileMarketAnalyticsCoverageAlerts as _reconcileMarketAnalyticsCoverageAlerts,
 };
 
 /**

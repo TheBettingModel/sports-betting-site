@@ -1,0 +1,301 @@
+{
+  "task": "237",
+  "title": "MLB V4 Authoritative Model Build + Frozen Production Candidate",
+  "generatedAt": "2026-09-06T14:14:24.000Z",
+  "classification": "C — MLB V4 MODEL BUILD BLOCKED",
+  "status": "COMPLETE_BLOCKED_AS_REQUIRED",
+  "flags": {
+    "MODEL_BUILD_READY": false,
+    "MODEL_PROMOTION_READY": false,
+    "GUARDED_APPROVED": false,
+    "LOCKED_OOS_NOT_QUERIED": true,
+    "ARTIFACT_FROZEN": false,
+    "EXECUTOR_REGISTERED": false,
+    "PUBLIC_V4_SERVING": false,
+    "AUTOMATIC_RETRAINING": false,
+    "AUTOMATIC_RECALIBRATION": false,
+    "AUTOMATIC_PARAMETER_CHANGES": false,
+    "AUTOMATIC_PROMOTION": false
+  },
+  "publicServing": {
+    "currentModelId": "tbm-mlb-moneyline-v1",
+    "configuredMode": "v1",
+    "v4Status": "OFF",
+    "fallbackStatus": "PASS"
+  },
+  "historicalFoundation": {
+    "artifactKey": "mlb-historical-2023-2026-pitcher-bullpen-pit-v5",
+    "seasons": [2023, 2024, 2025, 2026],
+    "rawGames": 9393,
+    "chronologySafeGames": 9390,
+    "eligibleGames": 9073,
+    "excludedGames": 320,
+    "retrievalCutoff": "2026-09-05T11:29:57.512Z",
+    "foundationHash": "cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050",
+    "replayHash": "a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42",
+    "sourceManifestHash": "8da8c322a3ec1ac6723d267cc9aa4b922c185654f809f26246934bbefd8a6d98",
+    "pitViolations": 0,
+    "targetLeakageViolations": 0,
+    "starterLeakageViolations": 0,
+    "featureTimeLeakageViolations": 0,
+    "marketLeakageViolations": 0,
+    "historicalPregameStarterCoverage": 0
+  },
+  "splits": {
+    "splitVersion": "mlb-completion-chronology-split-2023-2026-v3",
+    "train": {
+      "start": "2023-04-04",
+      "end": "2024-10-30",
+      "rows": 4700
+    },
+    "validation": {
+      "start": "2025-04-01",
+      "end": "2025-11-01",
+      "rows": 2361
+    },
+    "existingLockedOos": {
+      "start": "2026-04-01",
+      "end": "2026-09-04",
+      "rows": 2012,
+      "queriedByTask237": false,
+      "globallyUntouched": false,
+      "status": "SPENT_BY_PRIOR_EXPECTED_RUNS_EVALUATION"
+    }
+  },
+  "researchFeatureManifest": {
+    "version": "mlb-v4-moneyline-237-flat-38-v1",
+    "hash": "e6eb8f018049f4cf2030f40c8ab4e5763a6d9d1f55f22ca591dd74b969c1cfed",
+    "featureCount": 38,
+    "offenseCount": 8,
+    "contextCount": 6,
+    "bullpenCount": 24,
+    "starterCount": 0,
+    "missingnessPolicy": "TRAIN_DERIVED_MEDIAN_IMPUTATION",
+    "calibration": "IDENTITY",
+    "productionInputContractCompatible": false
+  },
+  "candidateFamilies": [
+    {
+      "id": "binary-logistic-l2-0.1",
+      "family": "binary-logistic",
+      "lambda": 0.1,
+      "validationLogLoss": 0.6874382383523808,
+      "validationBrier": 0.24703246807516793,
+      "validationAuc": 0.5554350747109664,
+      "validationEce": 0.025444315414265554,
+      "selectedForResearch": true
+    },
+    {
+      "id": "ridge-runs-1-none",
+      "family": "expected-runs-ridge",
+      "lambda": 1,
+      "validationLogLoss": 0.755140216568428,
+      "validationBrier": 0.27075377865063593,
+      "validationAuc": 0.5500221055460359,
+      "validationEce": 0.13727917964849226,
+      "selectedForResearch": false
+    },
+    {
+      "id": "poisson-runs-1-none",
+      "family": "expected-runs-poisson",
+      "lambda": 1,
+      "validationLogLoss": 0.6922043035665741,
+      "validationBrier": 0.2493309282762194,
+      "validationAuc": 0.5523135693377293,
+      "validationEce": 0.050030881383174096,
+      "selectedForResearch": false
+    },
+    {
+      "id": "nb2-runs-1-0.1",
+      "family": "expected-runs-nb2",
+      "lambda": 1,
+      "alpha": 0.1,
+      "validationLogLoss": 0.6905098764072195,
+      "validationBrier": 0.24861124232600884,
+      "validationAuc": 0.5521531957684495,
+      "validationEce": 0.046119200478567386,
+      "selectedForResearch": false
+    }
+  ],
+  "baselines": {
+    "naiveTrainingHomeWinPrior": {
+      "probability": 0.5238297872340425,
+      "validationLogLoss": 0.690385303051932,
+      "validationBrier": 0.24861989224704767,
+      "validationAuc": 0.5,
+      "validationEce": 0.017042724413571242
+    },
+    "simplePitSafeOffenseStrength": {
+      "validationLogLoss": 0.6887428062089295,
+      "validationBrier": 0.24779352275533686,
+      "validationAuc": 0.5381501269985292,
+      "validationEce": 0.023933240813671763
+    },
+    "v1Comparison": {
+      "status": "UNAVAILABLE",
+      "reason": "No identical sealed historical probability cohort for V1"
+    }
+  },
+  "uncertainty": {
+    "method": "PAIRED_PER_GAME_NORMAL_INTERVAL_DESCRIPTIVE",
+    "candidateMinusNaiveLogLoss": {
+      "mean": -0.002947064699557773,
+      "confidenceInterval95": [
+        -0.0088870163715043,
+        0.0029928869723887547
+      ],
+      "resolved": false
+    },
+    "candidateMinusNaiveBrier": {
+      "mean": -0.0015874241718854159,
+      "confidenceInterval95": [
+        -0.004430572503017242,
+        0.0012557241592464103
+      ],
+      "resolved": false
+    }
+  },
+  "ablations": {
+    "full": {
+      "logLoss": 0.6874382383523808,
+      "brier": 0.24703246807516793,
+      "auc": 0.5554350747109664
+    },
+    "offenseOnly": {
+      "logLoss": 0.6887428062089295,
+      "brier": 0.24779352275533686,
+      "auc": 0.5381501269985292
+    },
+    "bullpenOnly": {
+      "logLoss": 0.6890842263624551,
+      "brier": 0.24783274556407717,
+      "auc": 0.5466463141530398
+    },
+    "contextOnly": {
+      "logLoss": 0.6903853713066624,
+      "brier": 0.24861992629689242,
+      "auc": 0.5
+    },
+    "starter": {
+      "status": "NOT_APPLICABLE",
+      "reason": "No historical pregame starter features were admitted"
+    }
+  },
+  "researchCandidateIdentity": {
+    "status": "VALIDATION_SELECTED_UNFROZEN_RESEARCH_ONLY",
+    "modelId": "tbm-mlb-moneyline-v4-research-237",
+    "version": "validation-only-binary-logistic-l2-0.1",
+    "modelHash": "7761ffd0f2a75bdf89b4b7f891a3971194b47438f27869be3c2d758b909a6a33",
+    "parameterHash": "742d5cd1128aaf9b40040f9aef11b2a0d2df53afdee5e9338cd6f7626d5e736d",
+    "transformHash": "3677ed49c9e711ea5cde8796e0b4700007c0bf3769b197d2814200b9fa11d6f1",
+    "configurationHash": "9b27c9fff277fa1ad8e0818d6812c02643318cc4467f389412b57d646ad93be0",
+    "notAnArtifact": true
+  },
+  "frozenArtifact": {
+    "artifactId": null,
+    "modelVersion": null,
+    "artifactHash": null,
+    "parameterHash": null,
+    "configHash": null,
+    "calibrationHash": null,
+    "featureManifestHash": null,
+    "durableLocation": null,
+    "status": "BLOCKED_NOT_CREATED"
+  },
+  "executor": {
+    "registered": false,
+    "healthy": false,
+    "inputContract": "mlb-v4-model-input-v4",
+    "inputContractParity": "BLOCKED_UNPROVEN",
+    "realPregameForecast": "BLOCKED",
+    "supportedMarkets": [],
+    "architectureReview": "NOT_APPLICABLE_NO_EXECUTOR_INTEGRATED"
+  },
+  "governance": {
+    "approvalLedgerMlbRowsBefore": 0,
+    "approvalLedgerMlbRowsAfter": 0,
+    "approvalLedgerMlbApprovedRowsAfter": 0,
+    "existingMlbV4ShadowRowsObserved": 25,
+    "task237ShadowRowsInserted": 0,
+    "officialMlbV4RowsObserved": 0,
+    "positiveApprovalFixture": "PASS_TEST_ONLY",
+    "noRealApprovalCreated": true
+  },
+  "blockers": [
+    "No globally untouched final chronological holdout remains",
+    "Historical flat 38-feature schema lacks exact versioned parity with live model-input-v4",
+    "Validation lift over naive is modest and approximate 95% intervals include zero"
+  ],
+  "verification": {
+    "focusedTests": {
+      "command": "pnpm --filter @workspace/api-server exec vitest run src/services/mlbV4Moneyline237.test.ts",
+      "status": "PASS",
+      "testFiles": 1,
+      "tests": 5
+    },
+    "fullApiTests": {
+      "command": "pnpm --filter @workspace/api-server test",
+      "status": "PASS",
+      "testFiles": 90,
+      "tests": 567
+    },
+    "apiTypecheck": "PASS",
+    "libraryTypecheck": "PASS",
+    "apiBuild": "PASS",
+    "dbStandaloneTypecheck": "NO_SCRIPT",
+    "trainValidationExperiment": "PASS",
+    "gitDiffCheck": "PASS",
+    "signingCredentialGuard": "PASS",
+    "changedFileCredentialGrep": "PASS"
+  },
+  "security": {
+    "dependencyAudit": {
+      "status": "PASS_WITH_PREEXISTING_FINDINGS",
+      "critical": 0,
+      "high": 32,
+      "moderate": 23,
+      "low": 3,
+      "newDependencyAddedByTask237": false
+    },
+    "sast": {
+      "status": "PASS_WITH_PREEXISTING_FINDINGS",
+      "high": 2,
+      "medium": 8,
+      "task237Findings": 0,
+      "highFindingPaths": [
+        "artifacts/mobile/server/serve.js"
+      ]
+    },
+    "privacyDataflow": {
+      "status": "PASS",
+      "findings": 0
+    }
+  },
+  "independentReview": {
+    "modelScienceVerdict": "BLOCK_OOS_EVALUATION",
+    "architectureVerdict": "NOT_RUN_NO_EXECUTOR",
+    "reviewersIndependentFromImplementation": true
+  },
+  "reports": {
+    "experiment": {
+      "path": "reports/mlb-v4-moneyline-237.json",
+      "sha256": "2197c6cefe7c4305683ad327373df7ce72c771ca90abb528527a6dea07c95326"
+    },
+    "final": {
+      "path": "reports/task-237-mlb-v4-authoritative-model-build.md",
+      "sha256": "958edd9da715ef39de1e3ed4e102f02a73da451802c59dbb89262d83de5c5e20"
+    }
+  },
+  "filesChanged": [
+    "artifacts/api-server/package.json",
+    "artifacts/api-server/src/services/mlbV4Moneyline237.ts",
+    "artifacts/api-server/src/services/mlbV4Moneyline237.test.ts",
+    "artifacts/api-server/scripts/train-mlb-v4-moneyline-237.ts",
+    "reports/mlb-v4-moneyline-237.json",
+    "reports/task-237-mlb-v4-authoritative-model-build.md",
+    "reports/task-237-verification.json",
+    ".agents/memory/mlb-v4-shadow-boundary.md"
+  ],
+  "readyForTask238": true,
+  "readyForMlbGuardedCutover": false
+}

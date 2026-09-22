@@ -86,11 +86,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/RefreshResponse"
 
+  /games/market-analytics:
+    get:
+      operationId: getGamesMarketAnalytics
+      tags: [games]
+      summary: Get subscriber market history for the Analytics tab
+      description: >-
+        Returns verified moneyline observations for one Eastern calendar date.
+        Sharp-book observations are separated from ordinary market history and
+        missing evidence is returned as an empty array.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+      responses:
+        "200":
+          description: Evidence-safe market history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GamesMarketAnalyticsResponse"
+        "400": { description: Invalid requested date }
+        "401": { description: Authentication required }
+        "403": { description: Active subscription or owner access required }
+
   /model/ncaaf/v4/projections:
     get:
       operationId: getNcaafV4Projections
       tags: [model]
-      summary: Get the NCAAF V4 preview projection board for an Eastern calendar date
+      summary: Get the NCAA Football V4 Projection board for an Eastern calendar date
       description: >-
         Read-only NCAAF-only preview board. It never creates wagers, changes the
         incumbent champion, or grants production publication approval.
@@ -103,7 +129,7 @@ paths:
           schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
       responses:
         "200":
-          description: Frozen-model V4 preview board
+          description: NCAA Football V4 Projection board
           content:
             application/json:
               schema: { $ref: "#/components/schemas/NcaafV4SubscriberProjectionBoard" }
@@ -117,8 +143,8 @@ paths:
       tags: [model]
       summary: Get safe full-slate V4 model projections
       description: >-
-        Returns every legitimate V4 forecast for one sport/day plus explicit
-        coverage failures. Validating projections are not official TBM picks.
+        Returns every legitimate V4 projection for one sport/day plus explicit
+        coverage failures.
       security: [{ bearerAuth: [] }]
       parameters:
         - name: sport
@@ -932,11 +958,16 @@ components:
           description: Every event discovered for this sport/date. Join AVAILABLE entries to projections by gameId.
           items:
             type: object
-            required: [gameId, sport, eventStart, homeParticipant, awayParticipant, availability, unavailableReason]
+            required: [gameId, sport, eventStart, eventStatus, homeScore, awayScore, homeParticipant, awayParticipant, availability, unavailableReason]
             properties:
               gameId: { type: string }
               sport: { type: string }
               eventStart: { type: [string, "null"] }
+              eventStatus:
+                type: string
+                enum: [UPCOMING, LIVE, FINAL]
+              homeScore: { type: [integer, "null"] }
+              awayScore: { type: [integer, "null"] }
               homeParticipant:
                 $ref: "#/components/schemas/V4SlateParticipant"
               awayParticipant:
@@ -1044,9 +1075,9 @@ components:
       additionalProperties: false
       properties:
         date: { type: string }
-        modelStatus: { type: string, enum: [V4_PREVIEW] }
-        approvalStatus: { type: string, enum: [UNVALIDATED] }
-        publicationStatus: { type: string, enum: [PREVIEW_ONLY] }
+        modelStatus: { type: string, enum: [V4_PROJECTION] }
+        approvalStatus: { type: string, enum: [ACTIVE] }
+        publicationStatus: { type: string, enum: [PROJECTION_ONLY] }
         disclaimer: { type: string }
         board:
           type: array
@@ -2035,12 +2066,50 @@ components:
           allOf:
             - $ref: "#/components/schemas/FreePick"
           nullable: true
+        freePicks:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/FreePick"
+        freeGames:
+          type: array
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/GameProjection"
       required:
         - games
         - lastUpdated
         - totalGames
         - liveGamesCount
         - isSubscribed
+
+    GamesMarketAnalyticsResponse:
+      type: object
+      required: [date, games]
+      properties:
+        date: { type: string }
+        games:
+          type: array
+          items:
+            type: object
+            required: [gameId, marketHistory, sharpMoneyHistory]
+            properties:
+              gameId: { type: string }
+              marketHistory:
+                type: array
+                items: { $ref: "#/components/schemas/MarketHistoryPoint" }
+              sharpMoneyHistory:
+                type: array
+                items: { $ref: "#/components/schemas/MarketHistoryPoint" }
+
+    MarketHistoryPoint:
+      type: object
+      required: [selection, price, capturedAt, sportsbook]
+      properties:
+        selection: { type: string, enum: [home, away, draw] }
+        price: { type: integer }
+        capturedAt: { type: string }
+        sportsbook: { type: [string, "null"] }
 
     FreePick:
       type: object

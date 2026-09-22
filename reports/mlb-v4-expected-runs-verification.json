@@ -1,0 +1,87 @@
+{
+  "task": "224C",
+  "date": "2026-09-05",
+  "authoritativeSchemaVersion": "mlb-v4-expected-runs-training-v3",
+  "modelVersion": "224c-v3-cadb433dbbd7",
+  "checks": [
+    {
+      "command": "pnpm --filter @workspace/api-server run audit:mlb-historical-pitcher-bullpen",
+      "status": "PASS",
+      "result": "9,393 games; 9,390 chronology-safe; 9,073 offense-plus-bullpen eligible; all 13 violation categories zero; foundation, replay, and source-manifest hashes matched."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server run train:mlb-v4-expected-runs",
+      "status": "PASS",
+      "result": "Existing authoritative v3 pre-OOS lock verified exactly; deterministic first and second training hashes matched with mismatchCount=0."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server run evaluate:mlb-v4-expected-runs:oos",
+      "status": "PASS",
+      "result": "The first invocation opened exactly 2,012 locked OOS games once; the verification invocation returned VERIFIED_EXISTING_OOS_EXACT without another OOS read."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server run audit:mlb-v4-expected-runs",
+      "status": "PASS",
+      "result": "1 manifest, 1 model artifact, 1 pre-OOS lock, 9,073 immutable forecasts, 3 evaluation rows, 1 locked-OOS run; all 11 violation categories zero; determinism hash 969a5fded14392137a439121a7021fe1978fc489dd80fcb9330838d912a96be2."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server exec vitest run src/services/mlbV4ExpectedRuns.test.ts src/services/mlbExpectedRuns224C.test.ts src/services/mlbHistoricalPitchingReplay.test.ts src/services/mlbHistoricalPitchingOutcomes.test.ts src/services/mlbHistoricalChronology.test.ts",
+      "status": "PASS",
+      "result": "35/35 focused model, PIT replay, pitching outcome, and chronology tests passed across 5 files."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server test",
+      "status": "PARTIAL_PREEXISTING_FAILURE",
+      "result": "488/491 tests passed across 79/80 files. Three unrelated scheduler mock tests failed in the full parallel suite; no scheduler code was changed."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server exec vitest run src/services/scheduler.test.ts",
+      "status": "PASS",
+      "result": "19/19 scheduler tests passed when isolated, confirming a suite-order/timing issue rather than an MLB forecasting regression."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server run typecheck",
+      "status": "PASS",
+      "result": "API TypeScript check passed."
+    },
+    {
+      "command": "pnpm --filter @workspace/db exec tsc -p tsconfig.json --noEmit",
+      "status": "PASS",
+      "result": "Database TypeScript check passed."
+    },
+    {
+      "command": "pnpm run typecheck",
+      "status": "PARTIAL_PREEXISTING_FAILURE",
+      "result": "Workspace check stopped on unrelated existing mockup-sandbox TypeScript errors in PickFirst.tsx, calendar.tsx, and spinner.tsx. The API and database checks passed separately."
+    },
+    {
+      "command": "pnpm --filter @workspace/api-server run build",
+      "status": "PASS",
+      "result": "API production bundle completed successfully."
+    },
+    {
+      "command": "pnpm run security:signing-credentials",
+      "status": "PASS",
+      "result": "No Apple signing credential artifacts or local key configuration found."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "result": "No whitespace errors."
+    },
+    {
+      "command": "Pre-OOS architecture review and follow-up",
+      "status": "PASS",
+      "result": "No blocking findings after v3 split-foundation binding, chronology checks, atomic single-open advisory lock, append-only lineage, and OOS isolation safeguards."
+    }
+  ],
+  "productionActions": {
+    "deployed": false,
+    "pushed": false,
+    "productionModelModified": false,
+    "publicationModified": false,
+    "uiModified": false,
+    "otherSportsModified": false,
+    "appleOrEasCredentialsModified": false
+  }
+}

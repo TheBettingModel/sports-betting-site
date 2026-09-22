@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const NCAAF_HISTORICAL_TRAINING_SCHEMA_VERSION: "ncaaf-historical-team-game-v1" = "ncaaf-historical-team-game-v1";
+export const NCAAF_HISTORICAL_TRAINING_SCHEMA_VERSION: "ncaaf-historical-team-game-v2" = "ncaaf-historical-team-game-v2";
 export const NCAAF_HISTORICAL_SEASONS = Object.freeze([2023, 2024, 2025, 2026] as const);
 export type HistoricalPitClass = "A" | "B" | "C" | "D";
 
@@ -31,6 +31,8 @@ export interface HistoricalGameInput {
   season: number;
   week?: number | null;
   kickoffAt: Date;
+  /** Provider-confirmed completion time. When absent, kickoff + six hours is used conservatively. */
+  completionAvailableAt?: Date | null;
   homeCanonicalTeamId: string | null;
   awayCanonicalTeamId: string | null;
   homeClassification: string | null;
@@ -55,10 +57,23 @@ export interface HistoricalTrainingRow {
   homeCanonicalTeamId: string;
   awayCanonicalTeamId: string;
   targets: { homeWin: 0 | 1; homeMargin: number; totalPoints: number };
-  features: { neutralSite: boolean | null; qb: { home: HistoricalQbEvidence | null; away: HistoricalQbEvidence | null } };
+  features: {
+    neutralSite: boolean | null;
+    rolling: { home: HistoricalRollingTeamFeatures; away: HistoricalRollingTeamFeatures };
+    qb: { home: HistoricalQbEvidence | null; away: HistoricalQbEvidence | null };
+  };
   pitLineage: HistoricalEvidenceLineage[];
   quality: { fbsEligible: true; eligibleEvidence: number; excludedEvidence: Record<string, number>; qbEvidence: Record<string, string> };
   checksum: string;
+}
+
+export interface HistoricalRollingTeamFeatures {
+  priorGameCount: number;
+  averagePointsFor: number | null;
+  averagePointsAgainst: number | null;
+  averageMargin: number | null;
+  recentForm: number[];
+  enoughHistory: boolean;
 }
 
 export interface HistoricalDatasetQualityReport {
@@ -89,6 +104,29 @@ function digest(value: unknown) {
 function bump(target: Record<string, number>, key: string) { target[key] = (target[key] ?? 0) + 1; }
 function isFbs(value: string | null) { return value?.trim().toUpperCase() === "FBS"; }
 function pregameCutoff(kickoffAt: Date): Date { return new Date(kickoffAt.getTime() - 1); }
+const COMPLETION_GRACE_MS = 6 * 60 * 60 * 1000;
+const RECENT_FORM_WINDOW = 5;
+type CompletedTeamGame = { availableAt: Date; pointsFor: number; pointsAgainst: number };
+
+function completionAvailableAt(game: HistoricalGameInput): Date {
+  return validDate(game.completionAvailableAt ?? null)
+    ? game.completionAvailableAt!
+    : new Date(game.kickoffAt.getTime() + COMPLETION_GRACE_MS);
+}
+function rollingFeatures(history: readonly CompletedTeamGame[], cutoff: Date): HistoricalRollingTeamFeatures {
+  const available = history.filter((item) => item.availableAt < cutoff);
+  if (!available.length) return { priorGameCount: 0, averagePointsFor: null, averagePointsAgainst: null, averageMargin: null, recentForm: [], enoughHistory: false };
+  const pointsFor = available.reduce((sum, item) => sum + item.pointsFor, 0);
+  const pointsAgainst = available.reduce((sum, item) => sum + item.pointsAgainst, 0);
+  return {
+    priorGameCount: available.length,
+    averagePointsFor: pointsFor / available.length,
+    averagePointsAgainst: pointsAgainst / available.length,
+    averageMargin: (pointsFor - pointsAgainst) / available.length,
+    recentForm: available.slice(-RECENT_FORM_WINDOW).map((item) => item.pointsFor - item.pointsAgainst),
+    enoughHistory: available.length >= 1,
+  };
+}
 
 /** Only A/B evidence with a provider effective time strictly before kickoff can
  * enter the artifact. C/D material is retained as exclusion lineage, never
@@ -126,7 +164,8 @@ export function buildNcaafHistoricalTrainingDataset(games: readonly HistoricalGa
     pitClassesExcluded: { A: 0, B: 0, C: 0, D: 0 }, qbEvidenceRows: 0, checksum: "",
   };
   const seen = new Set<string>(); const rows: HistoricalTrainingRow[] = [];
-  for (const game of [...games].sort((a, b) => a.season - b.season || a.canonicalEventId.localeCompare(b.canonicalEventId))) {
+  const history = new Map<string, CompletedTeamGame[]>();
+  for (const game of [...games].sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime() || a.canonicalEventId.localeCompare(b.canonicalEventId))) {
     const reject = (reason: string) => bump(report.excluded, reason);
     if (!NCAAF_HISTORICAL_SEASONS.includes(game.season as typeof NCAAF_HISTORICAL_SEASONS[number])) { reject("season_out_of_bounds"); continue; }
     if (!game.canonicalProvider.trim() || !game.canonicalEventId.trim() || !game.homeCanonicalTeamId?.trim() || !game.awayCanonicalTeamId?.trim()) { reject("noncanonical_identity"); continue; }
@@ -137,9 +176,24 @@ export function buildNcaafHistoricalTrainingDataset(games: readonly HistoricalGa
     seen.add(identity);
     const cutoff = pregameCutoff(game.kickoffAt);
     const lineage = eligibleLineage(game, cutoff, report);
-    // A completed result alone is an outcome label, not a trainable PIT row.
-    // Do not manufacture an empty feature row when no dated A/B evidence exists.
-    if (lineage.included.length === 0) { reject("no_eligible_pregame_lineage"); continue; }
+    const homeHistory = rollingFeatures(history.get(game.homeCanonicalTeamId) ?? [], cutoff);
+    const awayHistory = rollingFeatures(history.get(game.awayCanonicalTeamId) ?? [], cutoff);
+    const recordCompletedOutcome = () => {
+      if (!game.homeCanonicalTeamId || !game.awayCanonicalTeamId || game.homeScore == null || game.awayScore == null) return;
+      const availableAt = completionAvailableAt(game);
+      for (const [teamId, pointsFor, pointsAgainst] of [[game.homeCanonicalTeamId, game.homeScore, game.awayScore], [game.awayCanonicalTeamId, game.awayScore, game.homeScore]] as const) {
+        const teamHistory = history.get(teamId) ?? [];
+        teamHistory.push({ availableAt, pointsFor, pointsAgainst });
+        history.set(teamId, teamHistory);
+      }
+    };
+    // Rolling completed outcomes are independently valid PIT features. Keep the
+    // first game without either historical lineage or prior outcomes out.
+    if (lineage.included.length === 0 && !homeHistory.enoughHistory && !awayHistory.enoughHistory) {
+      reject("no_eligible_pregame_lineage");
+      recordCompletedOutcome();
+      continue;
+    }
     const homeQb = qbForTeam(game.qbEvidence ?? [], game.homeCanonicalTeamId, cutoff);
     const awayQb = qbForTeam(game.qbEvidence ?? [], game.awayCanonicalTeamId, cutoff);
     if (homeQb) report.qbEvidenceRows++; if (awayQb) report.qbEvidenceRows++;
@@ -148,12 +202,13 @@ export function buildNcaafHistoricalTrainingDataset(games: readonly HistoricalGa
       season: game.season, week: game.week ?? null, kickoffAt: game.kickoffAt.toISOString(), pregameCutoffAt: cutoff.toISOString(),
       homeCanonicalTeamId: game.homeCanonicalTeamId, awayCanonicalTeamId: game.awayCanonicalTeamId,
       targets: { homeWin: (game.homeScore > game.awayScore ? 1 : 0) as 0 | 1, homeMargin: game.homeScore - game.awayScore, totalPoints: game.homeScore + game.awayScore },
-      features: { neutralSite: game.neutralSite ?? null, qb: { home: homeQb, away: awayQb } },
+      features: { neutralSite: game.neutralSite ?? null, rolling: { home: homeHistory, away: awayHistory }, qb: { home: homeQb, away: awayQb } },
       pitLineage: lineage.included,
       quality: { fbsEligible: true as const, eligibleEvidence: lineage.included.length, excludedEvidence: lineage.excluded,
         qbEvidence: { home: homeQb ? "CFBD_ID_DATED_QB_STATS" : "unavailable_no_eligible_cfbd_qb_id_stats", away: awayQb ? "CFBD_ID_DATED_QB_STATS" : "unavailable_no_eligible_cfbd_qb_id_stats" } },
     };
     rows.push({ ...base, checksum: digest(base) });
+    recordCompletedOutcome();
   }
   report.includedRows = rows.length;
   report.checksum = digest(rows.map(({ checksum }) => checksum));

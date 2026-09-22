@@ -1,0 +1,166 @@
+{
+  "task": "237P",
+  "title": "TBM Production Model Performance Autopsy",
+  "auditTimestamp": "2026-09-06T22:13:00Z",
+  "dataCutoff": "2026-09-06T22:04:36.749091Z",
+  "readOnly": true,
+  "classification": {
+    "code": "D",
+    "label": "BOTH FORECAST AND BET-SELECTION LAYERS DEGRADED"
+  },
+  "primaryWindow": {
+    "start": "2026-08-23T22:04:36.749091Z",
+    "end": "2026-09-06T22:04:36.749091Z"
+  },
+  "cohorts": {
+    "resultsApiStyle": "effective Buy/Strong Buy, graded, NFL preseason excluded; includes non-public rows",
+    "subscriberPublic": "resultsApiStyle plus is_public=true",
+    "forensicValidPublic": "subscriberPublic plus performance eligibility and integrity checks",
+    "forecast": "all effective performance-eligible pregame opinions with win/loss outcomes"
+  },
+  "ledger": {
+    "publicationEvents": 2447,
+    "effectiveDecisions": 1105,
+    "gradedEffective": 926,
+    "pendingEffective": 179,
+    "retiredTestModelEffective": 543,
+    "retiredTestModelPublic": 180,
+    "performanceIneligible": 99,
+    "soccerDrawsMisgradedAsPush": 22,
+    "clvBoundViolations": 35
+  },
+  "current14Days": {
+    "resultsApiStyle": {
+      "published": 98,
+      "graded": 95,
+      "wins": 37,
+      "losses": 58,
+      "pushes": 0,
+      "unitsRisked": 202.0,
+      "netUnits": -36.17,
+      "roiPct": -17.91,
+      "averageOdds": 41.04,
+      "medianOdds": -105,
+      "averageMarketProbability": 0.4648,
+      "averageModelProbability": 0.6343,
+      "averageSelectedEdgePercentagePoints": 18.73,
+      "averageStake": 2.126,
+      "maxDrawdownUnits": 53.33,
+      "longestLosingStreak": 10,
+      "longestWinningStreak": 5
+    },
+    "subscriberPublic": {
+      "published": 67,
+      "graded": 65,
+      "wins": 26,
+      "losses": 39,
+      "pushes": 0,
+      "unitsRisked": 137.0,
+      "netUnits": -25.91,
+      "roiPct": -18.91
+    },
+    "nonPublicContamination": {
+      "published": 31,
+      "graded": 30,
+      "netUnits": -10.26
+    }
+  },
+  "rollingResultsApiStyle": [
+    {"window":"7d","graded":57,"wins":17,"losses":40,"pushes":0,"units":-50.13,"roiPct":-40.27},
+    {"window":"14d","graded":95,"wins":37,"losses":58,"pushes":0,"units":-36.17,"roiPct":-17.91},
+    {"window":"30d","graded":261,"wins":113,"losses":144,"pushes":4,"units":-60.62,"roiPct":-10.52,"integrityAdjustedUnits":-68.62},
+    {"window":"60d","graded":371,"wins":174,"losses":187,"pushes":10,"units":-22.26,"roiPct":-2.87,"integrityAdjustedUnits":-39.26}
+  ],
+  "current14ByModel": [
+    {"sport":"MLB","model":"tbm-mlb-moneyline-v1","n":46,"wins":16,"losses":30,"units":-31.25,"roiPct":-31.89},
+    {"sport":"MLB","model":"test-mlb-moneyline-v99-1784573270185","status":"retired","n":17,"wins":10,"losses":7,"units":6.75,"roiPct":20.15},
+    {"sport":"NFL","model":"tbm-nfl-moneyline-v1","n":10,"wins":6,"losses":4,"units":7.17,"roiPct":34.98},
+    {"sport":"Soccer","model":"tbm-soccer-moneyline-v1","n":15,"wins":3,"losses":12,"units":-16.46,"roiPct":-45.10},
+    {"sport":"WNBA","model":"tbm-wnba-moneyline-v1","n":7,"wins":2,"losses":5,"units":-2.38,"roiPct":-17.63}
+  ],
+  "forecastMetrics14d": [
+    {"sport":"MLB","n":136,"averagePredicted":0.6226,"actual":0.4779,"brier":0.28715,"marketBrier":0.24997,"brierSkill":-0.1488,"logLoss":0.77915,"auc":0.4872},
+    {"sport":"NFL","n":15,"averagePredicted":0.6033,"actual":0.6000,"brier":0.23947,"marketBrier":0.26989,"brierSkill":0.1127,"logLoss":0.67643,"auc":0.5741},
+    {"sport":"Soccer","n":32,"averagePredicted":0.5644,"actual":0.3438,"brier":0.23177,"marketBrier":0.22091,"brierSkill":-0.0492,"logLoss":0.65417,"auc":0.7446},
+    {"sport":"WNBA","n":13,"averagePredicted":0.4415,"actual":0.3077,"brier":0.25468,"marketBrier":0.19876,"brierSkill":-0.2813,"logLoss":0.70372,"auc":0.4722}
+  ],
+  "segments14d": {
+    "worstOdds": {"bucket":"-149 to -110","n":33,"wins":12,"losses":21,"units":-24.73,"roiPct":-35.33},
+    "worstEdge": {"bucket":"10pp+ selected-side","n":80,"wins":31,"losses":49,"units":-30.27,"roiPct":-17.70},
+    "worstConfidence": {"bucket":"High","n":40,"wins":15,"losses":25,"units":-28.32,"roiPct":-30.45},
+    "favorites": {"n":40,"wins":16,"losses":24,"units":-26.31,"roiPct":-30.77},
+    "underdogs": {"n":46,"wins":18,"losses":28,"units":-3.76,"roiPct":-3.90}
+  },
+  "sizing14d": {
+    "actualUnits": -36.17,
+    "flatOneUnit": -14.451,
+    "amplificationUnits": -21.719,
+    "tiers": [
+      {"units":1.5,"n":8,"actual":3.35,"flat":2.23},
+      {"units":2.0,"n":59,"actual":-11.60,"flat":-5.804},
+      {"units":2.5,"n":24,"actual":-23.54,"flat":-9.417},
+      {"units":3.0,"n":4,"actual":-4.38,"flat":-1.46}
+    ]
+  },
+  "cap14d": {
+    "daysReached": 10,
+    "daysWithNonPublicActionable": 9,
+    "nonPublicOnCappedDays": 30,
+    "likelyCapDemoted": 27,
+    "strongerThanWeakestPublicByRating": 23,
+    "strongerThanAllPublicByRating": 6,
+    "strongerThanAllPublicByPodScore": 13
+  },
+  "variance14d": {
+    "actualUnits": -36.17,
+    "modelExpectedUnits": 87.001,
+    "modelStandardDeviation": 26.815,
+    "modelZScore": -4.593,
+    "marketExpectedUnits": 3.876,
+    "marketStandardDeviation": 26.216,
+    "marketZScore": -1.528
+  },
+  "clv14d": {
+    "n": 64,
+    "averagePercentagePoints": 0.2159,
+    "medianPercentagePoints": 0,
+    "positivePct": 39.06,
+    "reproducibleFromStoredClosingPrice": false
+  },
+  "health": {
+    "forecast": {
+      "MLB":"SEVERELY DEGRADED",
+      "Soccer":"DEGRADED",
+      "WNBA":"DEGRADED",
+      "NFL":"INSUFFICIENT EVIDENCE",
+      "NCAAF":"INSUFFICIENT EVIDENCE",
+      "NBA":"INSUFFICIENT EVIDENCE",
+      "NHL":"INSUFFICIENT EVIDENCE",
+      "UFC":"INSUFFICIENT EVIDENCE"
+    },
+    "selection": {
+      "MLB":"SEVERELY DEGRADED",
+      "Soccer":"SEVERELY DEGRADED",
+      "WNBA":"DEGRADED",
+      "NFL":"INSUFFICIENT EVIDENCE",
+      "NCAAF":"INSUFFICIENT EVIDENCE",
+      "NBA":"INSUFFICIENT EVIDENCE",
+      "NHL":"INSUFFICIENT EVIDENCE",
+      "UFC":"INSUFFICIENT EVIDENCE"
+    }
+  },
+  "checksums": {
+    "algorithm": "SHA-256",
+    "fullLedgerRows": 2447,
+    "fullLedger": "884428ff12ab4664bcf2efb2eab6fd16340eb81d6ea03d17a57cd797e535c252",
+    "current14ActionableRows": 98,
+    "current14Actionable": "62bc948a493d9470b2ea81c243b985ef359acc6dbc4a92b8c33fd75848f2f8b5"
+  },
+  "validation": {
+    "apiTypecheck": "PASS",
+    "dbTypecheck": "PASS",
+    "policyAndRegistryTests": {"status":"PASS","files":5,"tests":28},
+    "snapshotForecastPitTests": {"status":"PASS","files":3,"tests":21}
+  },
+  "nextRecommendedAction": "Authorize one separate fail-closed bet-selection/publication remediation task first, making the official record honor public/performance eligibility and preventing cap order plus variable staking from amplifying unvalidated forecast claims before any forecast retraining or V4 promotion."
+}

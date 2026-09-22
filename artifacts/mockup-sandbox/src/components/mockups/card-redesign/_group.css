@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --tbm-bg: #000000;
+  --tbm-card: #111111;
+  --tbm-border: #222222;
+  --tbm-foreground: #ffffff;
+  --tbm-muted: #6B7280;
+  --tbm-primary: #84CC16;
+  --tbm-primary-fg: #000000;
+  --tbm-win: #84CC16;
+  --tbm-loss: #EF4444;
+  --tbm-gold: #84CC16;
+  --tbm-surface: #0A0A0A;
+  --tbm-nfl: #4F46E5;
+  --tbm-nba: #EA580C;
+  --tbm-mlb: #0EA5E9;
+  --tbm-nhl: #8B5CF6;
+  --tbm-soccer: #22C55E;
+}
+
+* { font-family: 'Inter', sans-serif; box-sizing: border-box; }

@@ -1,10 +1,16 @@
 import { Router, type IRouter } from "express";
 import { TBM_V4_PUBLIC_SPORTS, type TbmV4Sport } from "../services/v4Platform";
-import { DbV4ForecastLedger, discoverV4Slate, runFullSlateV4 } from "../services/v4FullSlate";
+import {
+  DbV4ForecastLedger,
+  discoverV4Slate,
+  ensureSoccerRollingHistory,
+  runFullSlateV4,
+} from "../services/v4FullSlate";
 import { rankOfficialV4Candidates } from "../services/v4OfficialPublication";
 import { db, gamesTable, modelPredictionsTable, publishedPicksTable, v4ForecastVersionsTable } from "@workspace/db";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
+import { buildProjectionCoverageFallback } from "../services/projectionCoverageFallback";
 
 const router: IRouter = Router();
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -42,6 +48,13 @@ function isValidPregameSnapshot(
 }
 
 router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken, async (req, res) => {
+  // This response is entitlement-scoped and generated from current slate data.
+  // A bare 304 has no JSON body, which the mobile API client correctly rejects.
+  delete req.headers["if-none-match"];
+  delete req.headers["if-modified-since"];
+  res.set("Cache-Control", "private, no-store");
+  res.set("Vary", "Authorization");
+
   if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
     res.status(403).json({ error: "Active subscription required" });
     return;
@@ -59,6 +72,7 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   const sport = sportValue as TbmV4Sport;
   const persistedSport = sport === "SOCCER" ? "Soccer" : sport;
   const events = await discoverV4Slate(sport, date);
+  if (sport === "SOCCER") await ensureSoccerRollingHistory(date, events);
   const snapshotLedger = new DbV4ForecastLedger();
   const coverage = await runFullSlateV4({
     // Persist immutable validating/developing forecasts so a legitimate
@@ -84,6 +98,16 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
     awayStarterName: gamesTable.awayStarterName,
     awayStarterEra: gamesTable.awayStarterEra,
     awayStarterWhip: gamesTable.awayStarterWhip,
+    homeTeamRecord: gamesTable.homeTeamRecord,
+    awayTeamRecord: gamesTable.awayTeamRecord,
+    homeTeamId: gamesTable.homeTeamId,
+    awayTeamId: gamesTable.awayTeamId,
+    homeWinPct: gamesTable.homeWinPct,
+    projectedSpread: gamesTable.projectedSpread,
+    projectedTotal: gamesTable.projectedTotal,
+    eventStatus: gamesTable.status,
+    homeScore: gamesTable.homeScore,
+    awayScore: gamesTable.awayScore,
   }).from(gamesTable).where(inArray(
     gamesTable.id,
     events.map((event) => event.gameId),
@@ -111,14 +135,51 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
       || !isValidPregameSnapshot(snapshot.forecastPayload, event)) continue;
     snapshotByGameId.set(snapshot.gameId, snapshot.forecastPayload as unknown as typeof coverage.forecasts[number]);
   }
-  const forecasts = [
+  const advancedAndSavedForecasts = [
     ...coverage.forecasts,
     ...[...snapshotByGameId.entries()]
       .filter(([gameId]) => !coverage.forecasts.some((forecast) => forecast.gameId === gameId))
       .map(([, forecast]) => forecast),
   ];
+  const advancedForecastIds = new Set(advancedAndSavedForecasts.map((forecast) => forecast.gameId));
+  // NCAAF is now an exact-V4-only public projection surface. If its frozen V4
+  // executor cannot produce a PIT-safe forecast, expose the game as unavailable
+  // rather than silently substituting legacy or market-derived output.
+  const fallbackEvents = events.filter((event) => event.sport !== "NCAAF"
+    && !advancedForecastIds.has(event.gameId)
+    && event.eligibility === "ELIGIBLE"
+    && event.eventStart !== null
+    && new Date(event.eventStart) > new Date()
+    && gameMetadataById.has(event.gameId));
+  const coverageFallbacks = fallbackEvents.flatMap((event) => {
+    if (advancedForecastIds.has(event.gameId)
+      || event.eligibility !== "ELIGIBLE"
+      || event.eventStart === null
+      || new Date(event.eventStart) <= new Date()) return [];
+    const metadata = gameMetadataById.get(event.gameId);
+    if (!metadata) return [];
+    return [buildProjectionCoverageFallback({
+      gameId: event.gameId,
+      sport: event.sport,
+      eventStart: event.eventStart,
+      now: new Date(),
+      homeRecord: metadata.homeTeamRecord,
+      awayRecord: metadata.awayTeamRecord,
+      persistedHomeWinPct: metadata.homeWinPct,
+      persistedSpread: metadata.projectedSpread,
+      persistedTotal: metadata.projectedTotal,
+    })];
+  });
+  await Promise.all(coverageFallbacks.map((forecast) => {
+    const event = eventById.get(forecast.gameId);
+    return event?.eventStart
+      ? snapshotLedger.persist(forecast, event.eventStart)
+      : Promise.resolve({ version: 0, created: false });
+  }));
+  const forecasts = [...advancedAndSavedForecasts, ...coverageFallbacks];
   const failureByGameId = new Map(coverage.failures.map((failure) => [failure.gameId, failure.reason]));
-  const unresolvedFailures = coverage.failures.filter((failure) => !snapshotByGameId.has(failure.gameId));
+  const forecastIds = new Set(forecasts.map((forecast) => forecast.gameId));
+  const unresolvedFailures = coverage.failures.filter((failure) => !forecastIds.has(failure.gameId));
   // Official fields are read only from the persisted publication decision. A
   // live re-computation may show a projection, but can never invent a pick.
   const persisted = forecasts.length ? await db.select({
@@ -191,6 +252,13 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
         gameId: event.gameId,
         sport: event.sport,
         eventStart: event.eventStart,
+        eventStatus: metadata?.eventStatus === "live"
+          ? "LIVE"
+          : metadata?.eventStatus === "final"
+            ? "FINAL"
+            : "UPCOMING",
+        homeScore: metadata?.homeScore ?? null,
+        awayScore: metadata?.awayScore ?? null,
         homeParticipant: {
           id: event.homeParticipantId,
           name: event.homeParticipantName,

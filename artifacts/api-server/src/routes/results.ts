@@ -18,7 +18,7 @@ import {
   modelVersionsTable,
   v4ArtifactModelVersionMappingsTable,
 } from "@workspace/db";
-import { rejectInvalidToken } from "../middleware/requireSubscriber";
+import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 import { logger } from "../lib/logger";
 import {
   OFFICIAL_RECORD_RECOMMENDATIONS,
@@ -162,8 +162,13 @@ function computeStreak(results: string[]): { count: number; dir: "W" | "L" | "P"
  */
 router.get(
   "/results/summary",
+  resolveSubscriberStatus,
   rejectInvalidToken,
   async (req, res): Promise<void> => {
+    if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
+      res.status(403).json({ error: "Active subscription required" });
+      return;
+    }
     try {
       const period = req.query.period === "week" ? "week" : "season";
       const now = new Date();
@@ -330,8 +335,13 @@ router.get(
  */
 router.get(
   "/results/roi",
+  resolveSubscriberStatus,
   rejectInvalidToken,
   async (req, res): Promise<void> => {
+    if (req.subscriberStatus?.isSubscribed !== true && req.subscriberStatus?.isOwner !== true) {
+      res.status(403).json({ error: "Active subscription required" });
+      return;
+    }
     try {
       const period = req.query.period === "week" ? "week" : "season";
 

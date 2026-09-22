@@ -1,14 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useQueries } from '@tanstack/react-query';
 import {
+  useGetGamesToday,
   getV4FullSlateProjections,
   type GetV4FullSlateProjectionsSport,
   type V4FullSlateProjectionResponse,
-  type V4OfficialPick,
   type V4PublicProjection,
   type V4FullSlateProjectionResponseFixturesItem,
 } from '@workspace/api-client-react';
@@ -19,9 +20,9 @@ import { LockedPickCard } from '@/components/LockedPickCard';
 import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
-import { V4OfficialPickCard } from '@/components/V4OfficialPickCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
-import { splitV4Picks } from '@/utils/v4PicksHierarchy';
+import { FreeGameProjectionCard } from '@/components/FreeGameProjectionCard';
+import { fixtureMatchesTeamSearch } from '@/utils/matchupSearch';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
 
@@ -46,25 +47,35 @@ function easternDate(date = new Date()): string {
   }).format(date);
 }
 
+function shiftSlateDate(date: string, days: number): string {
+  const shifted = new Date(`${date}T12:00:00`);
+  shifted.setDate(shifted.getDate() + days);
+  return easternDate(shifted);
+}
+
 type ListItem =
   | { type: 'section'; title: string; count: number }
-  | { type: 'official-pick'; pick: V4OfficialPick }
-  | { type: 'fixture'; fixture: V4FullSlateProjectionResponseFixturesItem; projection?: V4PublicProjection };
+  | { type: 'projection'; projection: V4PublicProjection; fixture: V4FullSlateProjectionResponseFixturesItem; slateDate: string }
+  | { type: 'unavailable'; fixture: V4FullSlateProjectionResponseFixturesItem; slateDate: string };
 
 export default function PicksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { userId } = useAuth();
   const router = useRouter();
-  const { hasServerEntitlement } = useSubscription();
+  const {
+    hasServerEntitlement,
+    isLoading: isSubscriptionLoading,
+    serverEntitlementError,
+  } = useSubscription();
   const { selectedSport } = useSports();
   const [slateDate, setSlateDate] = useState(() => easternDate());
+  const [searchQuery, setSearchQuery] = useState('');
+  const currentEasternDate = useRef(easternDate());
   const requestedSports = selectedSport === 'All'
     ? [...V4_SPORTS]
     : [toV4Sport(selectedSport)].filter((sport): sport is GetV4FullSlateProjectionsSport => sport !== null);
 
-  // The V4 board is the sole current-day Picks source. In particular, do not
-  // substitute the retired games/today feed when this board is unavailable.
   const queries = useQueries({
     queries: requestedSports.map((sport) => ({
       queryKey: ['/api/model/v4/projections', { sport, date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
@@ -73,6 +84,17 @@ export default function PicksScreen() {
       staleTime: 2 * 60 * 1000,
     })),
   });
+  const freeGamesQuery = useGetGamesToday(
+    {},
+    {
+      query: {
+        enabled: Boolean(userId) && !hasServerEntitlement && !isSubscriptionLoading && !serverEntitlementError,
+        queryKey: ['/api/games/today', { viewerId: userId ?? 'signed-out', entitled: false }],
+        staleTime: 2 * 60 * 1000,
+      },
+    },
+  );
+  
   const boards = queries.map((query) => query.data).filter((board): board is V4FullSlateProjectionResponse => Boolean(board));
   const isLoading = hasServerEntitlement && queries.some((query) => query.isLoading);
   const isRefetching = queries.some((query) => query.isRefetching);
@@ -82,63 +104,78 @@ export default function PicksScreen() {
   useEffect(() => {
     const refreshId = setInterval(() => {
       const currentDate = easternDate();
-      if (currentDate !== slateDate) {
+      if (currentDate !== currentEasternDate.current && slateDate === currentEasternDate.current) {
         setSlateDate(currentDate);
-        return;
       }
+      currentEasternDate.current = currentDate;
       void refetch();
     }, 5 * 60 * 1000);
     return () => clearInterval(refreshId);
   }, [refetch, slateDate]);
 
-  const projections = useMemo(() => boards.flatMap((board) => board.projections), [boards]);
-  const officialPicks = useMemo(() => boards.flatMap((board) => board.officialPicks), [boards]);
-  const hierarchy = useMemo(() => splitV4Picks(officialPicks, projections), [officialPicks, projections]);
-  const { topPlays, qualifiedPlays } = hierarchy;
   const sportGameCounts = useMemo(() => Object.fromEntries(
-    boards.map((board) => [displaySport(board.sport), board.coverage.scheduledEvents]),
+    boards.map((board) => [
+      displaySport(board.sport),
+      board.fixtures.length,
+    ]),
   ), [boards]);
 
-  const hasExactlyOneTopPlay = hierarchy.topPlayIsAvailable;
   const listItems: ListItem[] = useMemo(() => {
     const items: ListItem[] = [];
-    const officialEventIds = new Set(officialPicks.map((pick) => pick.eventId));
-    if (hasExactlyOneTopPlay) {
-      items.push({ type: 'section', title: 'V4 TOP PLAY', count: 1 });
-      topPlays.forEach((pick) => items.push({ type: 'official-pick', pick }));
-    }
-    if (qualifiedPlays.length) {
-      items.push({ type: 'section', title: 'V4 QUALIFIED PLAYS', count: qualifiedPlays.length });
-      qualifiedPlays.forEach((pick) => items.push({ type: 'official-pick', pick }));
-    }
+    
     for (const board of boards) {
-      if (!board.fixtures.length) continue;
+      const matchingFixtures = board.fixtures.filter((fixture) => fixtureMatchesTeamSearch(fixture, searchQuery));
+      if (!matchingFixtures.length) continue;
+      items.push({ type: 'section', title: `${displaySport(board.sport)} SLATE`, count: matchingFixtures.length });
+      
       const projectionsByGameId = new Map(board.projections.map((projection) => [projection.eventId, projection]));
-      const visibleFixtures = selectedSport === 'All'
-        ? board.fixtures.filter((fixture) =>
-          fixture.availability === 'AVAILABLE'
-          && projectionsByGameId.has(fixture.gameId)
-          && !officialEventIds.has(fixture.gameId))
-        : board.fixtures;
-      if (!visibleFixtures.length) continue;
-      items.push({ type: 'section', title: `${displaySport(board.sport)} V4 SLATE`, count: visibleFixtures.length });
-      visibleFixtures.forEach((fixture) => items.push({
-        type: 'fixture',
-        fixture,
-        projection: projectionsByGameId.get(fixture.gameId),
-      }));
+      
+      matchingFixtures.forEach((fixture) => {
+        const projection = projectionsByGameId.get(fixture.gameId);
+        
+        if (fixture.availability === 'AVAILABLE' && projection) {
+          items.push({ type: 'projection', projection, fixture, slateDate });
+        } else {
+          items.push({ type: 'unavailable', fixture, slateDate });
+        }
+      });
     }
     return items;
-  }, [boards, hasExactlyOneTopPlay, officialPicks, qualifiedPlays, selectedSport, topPlays]);
+  }, [boards, searchQuery, slateDate]);
 
-  const today = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+  const dateLabel = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+  const isToday = slateDate === easternDate();
+  
+  if (!hasServerEntitlement && (isSubscriptionLoading || serverEntitlementError)) {
+    return (
+      <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={[styles.gateTitle, { color: colors.foreground }]}>
+          {serverEntitlementError ? 'Unable to verify Pro access' : 'Loading your account…'}
+        </Text>
+        <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
+          {serverEntitlementError
+            ? 'Your access has not changed. Please wait a moment and reopen Games.'
+            : 'Checking your subscription securely.'}
+        </Text>
+      </View>
+    );
+  }
   if (!hasServerEntitlement) {
+    const freeGames = freeGamesQuery.data?.freeGames ?? [];
     return (
       <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
-        <View style={styles.header}><Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text><Text style={[styles.sub, { color: colors.mutedForeground }]}>PICKS ENGINE</Text></View>
-        <SportFilter gameCounts={{}} />
+        <View style={styles.header}><Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text><Text style={[styles.sub, { color: colors.mutedForeground }]}>RESEARCH DESK</Text></View>
+        <SportFilter
+          gameCounts={{}}
+          restrictIndividualSports
+          onRestrictedPress={() => router.push('/membership')}
+        />
+        {freeGamesQuery.isLoading ? <ActivityIndicator color={colors.primary} /> : freeGames.map((game) => (
+          <FreeGameProjectionCard key={game.id} game={game} slateDate={slateDate} />
+        ))}
         <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
-        <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>An active subscription is required before V4 picks are requested or shown.</Text>
+        <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>Free members can open up to two games each day. Upgrade to Pro for every V4 projection.</Text>
       </View>
     );
   }
@@ -148,11 +185,9 @@ export default function PicksScreen() {
       <FlatList
         data={listItems}
         keyExtractor={(item, index) =>
-          item.type === 'official-pick'
-            ? `official-${item.pick.eventId}-${item.pick.market}`
-            : item.type === 'fixture'
-              ? `fixture-${item.fixture.gameId}`
-              : `${item.type}-${index}`
+          item.type === 'projection' ? `proj-${item.fixture.gameId}` :
+          item.type === 'unavailable' ? `unavail-${item.fixture.gameId}` :
+          `${item.type}-${index}`
         }
         contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} tintColor={colors.primary} colors={[colors.primary]} />}
@@ -160,31 +195,77 @@ export default function PicksScreen() {
           <View>
             <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
               <Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text>
-              <Text style={[styles.sub, { color: colors.mutedForeground }]}>V4 PICKS · {today}</Text>
+              <Text style={[styles.sub, { color: colors.mutedForeground }]}>GAMES · DAILY MODEL BOARD</Text>
+            </View>
+            <View style={[styles.dateNavigator, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Pressable
+                accessibilityLabel="Previous day"
+                onPress={() => setSlateDate((date) => shiftSlateDate(date, -1))}
+                style={({ pressed }) => [styles.dateButton, { opacity: pressed ? 0.55 : 1 }]}
+              >
+                <Feather name="chevron-left" size={20} color={colors.foreground} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Return to today's games"
+                onPress={() => setSlateDate(easternDate())}
+                style={styles.dateCenter}
+              >
+                <Text style={[styles.dateLabel, { color: colors.foreground }]}>{dateLabel}</Text>
+                <Text style={[styles.dateHint, { color: colors.mutedForeground }]}>{isToday ? 'TODAY' : 'TAP FOR TODAY'}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Next day"
+                onPress={() => setSlateDate((date) => shiftSlateDate(date, 1))}
+                style={({ pressed }) => [styles.dateButton, { opacity: pressed ? 0.55 : 1 }]}
+              >
+                <Feather name="chevron-right" size={20} color={colors.foreground} />
+              </Pressable>
             </View>
             <SportFilter gameCounts={sportGameCounts} />
-            {!isLoading && hasError && <EmptyState message="V4 Picks are unavailable right now. No legacy picks are shown." />}
-            {!isLoading && !hasError && hierarchy.topCandidateCount > 1 && (
-              <View style={[styles.notice, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.noticeTitle, { color: colors.foreground }]}>TOP PLAY UNAVAILABLE</Text>
-                <Text style={[styles.noticeCopy, { color: colors.mutedForeground }]}>The V4 board did not provide exactly one persisted Top Play. No Top Play is shown.</Text>
-              </View>
-            )}
+            <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Feather name="search" size={17} color={colors.mutedForeground} />
+              <TextInput
+                accessibilityLabel="Search games by team"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search teams or matchups"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                clearButtonMode="never"
+                style={[styles.searchInput, { color: colors.foreground }]}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear team search"
+                  hitSlop={10}
+                  onPress={() => setSearchQuery('')}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
+                >
+                  <Feather name="x-circle" size={18} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
+            {!isLoading && hasError && <EmptyState message="V4 data is unavailable right now. Pull to try again." />}
           </View>
         }
         renderItem={({ item }) => {
           if (item.type === 'section') {
             return <View style={styles.section}><Text style={[styles.sectionText, { color: colors.mutedForeground }]}>{item.title} · {item.count}</Text></View>;
           }
-          if (item.type === 'official-pick') return <V4OfficialPickCard pick={item.pick} />;
-          return item.fixture.availability === 'AVAILABLE' && item.projection
-            ? <V4ModelProjectionCard projection={item.projection} />
-            : <V4UnavailableProjectionCard fixture={item.fixture} />;
+          if (item.type === 'projection') return <V4ModelProjectionCard projection={item.projection} fixture={item.fixture} slateDate={item.slateDate} />;
+          if (item.type === 'unavailable') return <V4UnavailableProjectionCard fixture={item.fixture} slateDate={item.slateDate} />;
+          return null;
         }}
         ListEmptyComponent={!isLoading && !hasError
-          ? <EmptyState message={selectedSport === 'All'
-            ? 'No V4 games or legitimate projections are available today.'
-            : `No ${selectedSport} games, projections, or official plays today.`} />
+          ? <EmptyState message={searchQuery.trim()
+            ? `No matchups found for “${searchQuery.trim()}” on ${dateLabel}.`
+            : selectedSport === 'All'
+              ? 'No games or projections are available today.'
+              : `No ${selectedSport} games today.`} />
           : null}
       />
     </View>
@@ -196,10 +277,17 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 12 },
   brand: { fontSize: 30, fontFamily: 'Inter_700Bold', letterSpacing: -1 },
   sub: { fontSize: 10, fontFamily: 'Inter_700Bold', letterSpacing: 2, marginTop: 2 },
+  dateNavigator: { marginHorizontal: 16, marginBottom: 4, minHeight: 58, borderWidth: 1, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
+  dateButton: { width: 52, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  dateCenter: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  dateLabel: { fontSize: 14, fontFamily: 'Inter_700Bold', letterSpacing: .5 },
+  dateHint: { marginTop: 3, fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1.1 },
+  searchBox: { minHeight: 46, marginHorizontal: 16, marginTop: 10, paddingHorizontal: 13, borderWidth: 1, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchInput: { flex: 1, minHeight: 44, paddingVertical: 0, fontSize: 14, fontFamily: 'Inter_400Regular' },
   section: { marginHorizontal: 16, marginTop: 18, marginBottom: 8 },
   sectionText: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 1.3 },
-  notice: { marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderWidth: 1, borderRadius: 8 },
-  noticeTitle: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: .8 },
-  noticeCopy: { marginTop: 5, fontSize: 12, lineHeight: 18, fontFamily: 'Inter_400Regular' },
   entitlementCopy: { marginHorizontal: 20, marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', fontFamily: 'Inter_400Regular' },
+  gateState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  gateTitle: { marginTop: 16, fontSize: 17, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  gateCopy: { marginTop: 8, fontSize: 13, lineHeight: 19, fontFamily: 'Inter_400Regular', textAlign: 'center' },
 });

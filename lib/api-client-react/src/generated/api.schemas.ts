@@ -19,6 +19,15 @@ export type V4FullSlateProjectionResponseCoverage = {
   failures: V4FullSlateProjectionResponseCoverageFailuresItem[];
 };
 
+export type V4FullSlateProjectionResponseFixturesItemEventStatus = typeof V4FullSlateProjectionResponseFixturesItemEventStatus[keyof typeof V4FullSlateProjectionResponseFixturesItemEventStatus];
+
+
+export const V4FullSlateProjectionResponseFixturesItemEventStatus = {
+  UPCOMING: 'UPCOMING',
+  LIVE: 'LIVE',
+  FINAL: 'FINAL',
+} as const;
+
 export type V4FullSlateProjectionResponseFixturesItemAvailability = typeof V4FullSlateProjectionResponseFixturesItemAvailability[keyof typeof V4FullSlateProjectionResponseFixturesItemAvailability];
 
 
@@ -42,6 +51,11 @@ export type V4FullSlateProjectionResponseFixturesItem = {
   sport: string;
   /** @nullable */
   eventStart: string | null;
+  eventStatus: V4FullSlateProjectionResponseFixturesItemEventStatus;
+  /** @nullable */
+  homeScore: number | null;
+  /** @nullable */
+  awayScore: number | null;
   homeParticipant: V4SlateParticipant;
   awayParticipant: V4SlateParticipant;
   availability: V4FullSlateProjectionResponseFixturesItemAvailability;
@@ -248,21 +262,21 @@ export type NcaafV4SubscriberProjectionBoardModelStatus = typeof NcaafV4Subscrib
 
 
 export const NcaafV4SubscriberProjectionBoardModelStatus = {
-  V4_PREVIEW: 'V4_PREVIEW',
+  V4_PROJECTION: 'V4_PROJECTION',
 } as const;
 
 export type NcaafV4SubscriberProjectionBoardApprovalStatus = typeof NcaafV4SubscriberProjectionBoardApprovalStatus[keyof typeof NcaafV4SubscriberProjectionBoardApprovalStatus];
 
 
 export const NcaafV4SubscriberProjectionBoardApprovalStatus = {
-  UNVALIDATED: 'UNVALIDATED',
+  ACTIVE: 'ACTIVE',
 } as const;
 
 export type NcaafV4SubscriberProjectionBoardPublicationStatus = typeof NcaafV4SubscriberProjectionBoardPublicationStatus[keyof typeof NcaafV4SubscriberProjectionBoardPublicationStatus];
 
 
 export const NcaafV4SubscriberProjectionBoardPublicationStatus = {
-  PREVIEW_ONLY: 'PREVIEW_ONLY',
+  PROJECTION_ONLY: 'PROJECTION_ONLY',
 } as const;
 
 export type NcaafV4SubscriberProjectionV4ModelOpinion = typeof NcaafV4SubscriberProjectionV4ModelOpinion[keyof typeof NcaafV4SubscriberProjectionV4ModelOpinion];
@@ -1310,6 +1324,38 @@ export interface GamesTodayResponse {
   /** @nullable */
   freePickPublishedPickId?: number | null;
   freePick?: FreePick | null;
+  /** @maxItems 2 */
+  freePicks?: FreePick[];
+  /** @maxItems 2 */
+  freeGames?: GameProjection[];
+}
+
+export type MarketHistoryPointSelection = typeof MarketHistoryPointSelection[keyof typeof MarketHistoryPointSelection];
+
+
+export const MarketHistoryPointSelection = {
+  home: 'home',
+  away: 'away',
+  draw: 'draw',
+} as const;
+
+export interface MarketHistoryPoint {
+  selection: MarketHistoryPointSelection;
+  price: number;
+  capturedAt: string;
+  /** @nullable */
+  sportsbook: string | null;
+}
+
+export type GamesMarketAnalyticsResponseGamesItem = {
+  gameId: string;
+  marketHistory: MarketHistoryPoint[];
+  sharpMoneyHistory: MarketHistoryPoint[];
+};
+
+export interface GamesMarketAnalyticsResponse {
+  date: string;
+  games: GamesMarketAnalyticsResponseGamesItem[];
 }
 
 export interface ChatAccess {
@@ -1616,6 +1662,13 @@ export interface UpdateUserPreferencesRequest {
 
 export type GetGamesTodayParams = {
 sport?: string;
+};
+
+export type GetGamesMarketAnalyticsParams = {
+/**
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date?: string;
 };
 
 export type GetNcaafV4ProjectionsParams = {

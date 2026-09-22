@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, inArray, notInArray, sql } from "drizzle-orm";
+import { eq, and, asc, desc, inArray, notInArray, sql } from "drizzle-orm";
 import {
   db, gamesTable, modelPredictionsTable, modelVersionsTable, modelWeightsTable,
-  officialPredictionIdentityTable, publishedPicksTable,
+  officialPredictionIdentityTable, publishedPicksTable, oddsSnapshotsTable,
+  marketsTable, sportsbooksTable,
 } from "@workspace/db";
-import { getDailyFreePick } from "../services/freePick";
+import { getDailyFreePicks } from "../services/freePick";
 import { lockGame } from "../services/gameAccess";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection, type ComputeOptions } from "../services/model";
@@ -38,6 +39,10 @@ import { runGrading, syncGameResults, recoverStaleGames } from "../services/grad
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
+import {
+  retainComparableHistory,
+  type MarketAnalyticsHistoryPoint,
+} from "../services/marketAnalyticsHistory";
 import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
 import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
 import {
@@ -239,6 +244,96 @@ function isStale(): boolean {
   if (!lastRefreshedAt) return true;
   return Date.now() - lastRefreshedAt.getTime() > STALE_MS;
 }
+
+/**
+ * GET /api/games/market-analytics
+ *
+ * Subscriber-only, evidence-safe moneyline history for the Analytics tab.
+ * Sharp-book history is separated using the canonical sportsbook flag; the
+ * client must show unavailable when fewer than two comparable observations
+ * exist instead of inferring sharp action from ordinary market movement.
+ */
+router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
+  res.set("Cache-Control", "private, no-store");
+  res.set("Vary", "Authorization");
+
+  if (!req.subscriberStatus?.userId) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+  if (!req.subscriberStatus.isSubscribed && !req.subscriberStatus.isOwner) {
+    res.status(403).json({ message: "Active subscription required" });
+    return;
+  }
+
+  const requestedDate = typeof req.query["date"] === "string" ? req.query["date"] : null;
+  const date = requestedDate ?? new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    res.status(400).json({ message: "date must be YYYY-MM-DD" });
+    return;
+  }
+
+  const games = await db.select({ id: gamesTable.id })
+    .from(gamesTable)
+    .where(eq(gamesTable.gameDate, date));
+  const gameIds = games.map((game) => game.id);
+  if (gameIds.length === 0) {
+    res.json({ date, games: [] });
+    return;
+  }
+
+  const rows = await db.select({
+    gameId: oddsSnapshotsTable.gameId,
+    selection: oddsSnapshotsTable.selection,
+    price: oddsSnapshotsTable.price,
+    capturedAt: oddsSnapshotsTable.capturedAt,
+    sportsbook: sportsbooksTable.name,
+    isSharp: sportsbooksTable.isSharp,
+  })
+    .from(oddsSnapshotsTable)
+    .innerJoin(marketsTable, eq(oddsSnapshotsTable.marketId, marketsTable.id))
+    .leftJoin(sportsbooksTable, eq(oddsSnapshotsTable.sportsbookId, sportsbooksTable.id))
+    .where(and(
+      inArray(oddsSnapshotsTable.gameId, gameIds),
+      eq(marketsTable.slug, "moneyline"),
+      eq(oddsSnapshotsTable.isAvailable, true),
+      eq(oddsSnapshotsTable.isStale, false),
+    ))
+    .orderBy(asc(oddsSnapshotsTable.capturedAt));
+
+  const byGame = new Map<string, {
+    marketHistory: MarketAnalyticsHistoryPoint[];
+    sharpMoneyHistory: MarketAnalyticsHistoryPoint[];
+  }>();
+  for (const row of rows) {
+    const entry = byGame.get(row.gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
+    const point: MarketAnalyticsHistoryPoint = {
+      selection: row.selection,
+      price: row.price,
+      capturedAt: row.capturedAt.toISOString(),
+      sportsbook: row.sportsbook,
+    };
+    (row.isSharp === true ? entry.sharpMoneyHistory : entry.marketHistory).push(point);
+    byGame.set(row.gameId, entry);
+  }
+
+  res.json({
+    date,
+    games: gameIds.map((gameId) => {
+      const history = byGame.get(gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
+      return {
+        gameId,
+        marketHistory: retainComparableHistory(history.marketHistory),
+        sharpMoneyHistory: retainComparableHistory(history.sharpMoneyHistory),
+      };
+    }),
+  });
+});
 
 /** Convert American moneyline to raw implied probability (vig-inclusive). */
 function impliedProbFromOdds(american: number): number {
@@ -872,7 +967,7 @@ async function refreshStaleGamesOnce(): Promise<void> {
  *
  * Subscriber gating:
  *   - Pro subscribers receive full model projections for all games.
-   *   - Non-subscribers receive the one server-selected, persisted free pick.
+ *   - Non-subscribers receive at most two server-selected free picks.
  */
 router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (req, res): Promise<void> => {
   // This response differs by bearer token and subscription status. Never let a
@@ -1013,10 +1108,14 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     .select()
     .from(gamesTable)
     .where(and(eq(gamesTable.gameDate, today), eq(gamesTable.status, "upcoming")))
-    .orderBy(desc(gamesTable.modelScore));
+    .orderBy(asc(gamesTable.startsAt), asc(gamesTable.id));
 
   const ratedGames = await attachMarketSelection(applyPublishedRatings(allTodayGames as AnyGame[]));
-  const freePick = await getDailyFreePick(today);
+  const freePicks = await getDailyFreePicks(today);
+  // Free members can inspect exactly two complete game cards when the slate has
+  // at least two upcoming games. The stable schedule ordering prevents sport
+  // filters or model-score refreshes from rotating additional games into view.
+  const freeGames = ratedGames.slice(0, 2).map((game) => ({ ...game, isLocked: false }));
 
   // Apply lock state across the full slate, then sport-filter for the response
   const gatedAll = ratedGames.map((game) => {
@@ -1034,10 +1133,13 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     totalGames: filtered.length,
     liveGamesCount,
     isSubscribed: false,
-    // This separately allowlisted DTO is the only non-Pro pick disclosure.
+    freeGames: freeGames.map(stripInternalDiagnostics),
+    // These separately allowlisted DTOs are the only non-Pro pick disclosures.
     // All game rows remain schedule-only locked cards.
-    freePick: freePick ?? null,
-    freePickPublishedPickId: freePick?.publishedPickId ?? null,
+    freePicks,
+    // Compatibility for already-installed clients.
+    freePick: freePicks[0] ?? null,
+    freePickPublishedPickId: freePicks[0]?.publishedPickId ?? null,
   });
 });
 
