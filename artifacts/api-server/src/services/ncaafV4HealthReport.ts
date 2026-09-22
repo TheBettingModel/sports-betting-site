@@ -1,4 +1,4 @@
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, lt } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -109,25 +109,37 @@ export function summarizeNcaafV4Health(rows: HealthGameRow[], now: Date, dates: 
 export async function getNcaafV4HealthReport(now = new Date()) {
   const dates = ncaafRollingProjectionDates(now);
   const { start, end } = ncaafRollingEasternBounds(now);
-  const [schedule, evidence, features, intelligence, forecasts, performance] = await Promise.all([
-    db.select({ eventId: gamesTable.id, kickoffAt: gamesTable.startsAt,
-      gameStatus: gamesTable.status, homeTeamId: gamesTable.homeTeamId,
-      awayTeamId: gamesTable.awayTeamId }).from(gamesTable).where(and(
-      eq(gamesTable.sport, "NCAAF"), gte(gamesTable.startsAt, start), lt(gamesTable.startsAt, end))),
+  const schedule = await db.select({ eventId: gamesTable.id, kickoffAt: gamesTable.startsAt,
+    gameStatus: gamesTable.status, homeTeamId: gamesTable.homeTeamId,
+    awayTeamId: gamesTable.awayTeamId }).from(gamesTable).where(and(
+    eq(gamesTable.sport, "NCAAF"), gte(gamesTable.startsAt, start), lt(gamesTable.startsAt, end)));
+  if (schedule.length === 0) return summarizeNcaafV4Health([], now, dates);
+  const eventIds = [...new Set(schedule.flatMap((game) => [
+    game.eventId,
+    game.eventId.replace(/^NCAAF-/, ""),
+  ]))];
+  const teamIds = [...new Set(schedule.flatMap((game) =>
+    [game.homeTeamId, game.awayTeamId].filter((id): id is string => Boolean(id))))];
+  const [evidence, features, intelligence, forecasts, performance] = await Promise.all([
     db.select({ eventId: ncaafGameEvidenceTable.providerEventId, kickoffAt: ncaafGameEvidenceTable.kickoffAt,
       gameStatus: ncaafGameEvidenceTable.gameStatus, evidenceStatus: ncaafGameEvidenceTable.evidenceStatus,
       capturedAt: ncaafGameEvidenceTable.capturedAt, homeTeamId: ncaafGameEvidenceTable.homeProviderTeamId,
       awayTeamId: ncaafGameEvidenceTable.awayProviderTeamId }).from(ncaafGameEvidenceTable).where(and(
       gte(ncaafGameEvidenceTable.kickoffAt, start), lt(ncaafGameEvidenceTable.kickoffAt, end))),
     db.select({ eventId: ncaafFeatureSnapshotsTable.targetEventId, createdAt: ncaafFeatureSnapshotsTable.createdAt,
-      quality: ncaafFeatureSnapshotsTable.quality }).from(ncaafFeatureSnapshotsTable),
+      quality: ncaafFeatureSnapshotsTable.quality }).from(ncaafFeatureSnapshotsTable)
+      .where(inArray(ncaafFeatureSnapshotsTable.targetEventId, eventIds)),
     db.select({ eventId: ncaafFootballIntelligenceSnapshotsTable.targetEventId, createdAt: ncaafFootballIntelligenceSnapshotsTable.createdAt,
-      quality: ncaafFootballIntelligenceSnapshotsTable.qualityReadiness }).from(ncaafFootballIntelligenceSnapshotsTable),
+      quality: ncaafFootballIntelligenceSnapshotsTable.qualityReadiness }).from(ncaafFootballIntelligenceSnapshotsTable)
+      .where(inArray(ncaafFootballIntelligenceSnapshotsTable.targetEventId, eventIds)),
     db.select({ eventId: v4ForecastVersionsTable.gameId, predictedAt: v4ForecastVersionsTable.predictedAt,
       eventStart: v4ForecastVersionsTable.eventStart, dataCutoff: v4ForecastVersionsTable.dataCutoff }).from(v4ForecastVersionsTable)
       .where(and(gte(v4ForecastVersionsTable.eventStart, start), lt(v4ForecastVersionsTable.eventStart, end))),
-    db.select({ eventId: ncaafTeamGamePerformanceTable.providerEventId, teamId: ncaafTeamGamePerformanceTable.providerTeamId,
-      classification: ncaafTeamGamePerformanceTable.competitionClassification }).from(ncaafTeamGamePerformanceTable),
+    teamIds.length
+      ? db.select({ eventId: ncaafTeamGamePerformanceTable.providerEventId, teamId: ncaafTeamGamePerformanceTable.providerTeamId,
+        classification: ncaafTeamGamePerformanceTable.competitionClassification }).from(ncaafTeamGamePerformanceTable)
+        .where(inArray(ncaafTeamGamePerformanceTable.providerTeamId, teamIds))
+      : Promise.resolve([]),
   ]);
   const latest = <T extends { eventId: string; createdAt?: Date | null; predictedAt?: Date | null }>(items: T[]) => {
     const map = new Map<string, T>();
