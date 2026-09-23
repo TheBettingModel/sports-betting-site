@@ -37,6 +37,12 @@ vi.mock("@workspace/db", () => ({
     openingHomeOdds: "openingHomeOdds",
     openingAwayOdds: "openingAwayOdds",
   },
+  oddsSnapshotsTable: {
+    gameId: "gameId", marketId: "marketId", sportsbookId: "sportsbookId",
+    isAvailable: "isAvailable", isStale: "isStale",
+  },
+  marketsTable: { id: "id", slug: "slug" },
+  sportsbooksTable: { id: "id", isSharp: "isSharp" },
   sportSnoozesTable: { snoozedUntil: "snoozedUntil", sport: "sport" },
   publishedPicksTable: {},
 }));
@@ -78,6 +84,7 @@ function makeSelectBuilder(finalResult: unknown) {
 
   // Each chaining method returns `builder` so they stay thenable too
   builder.from = vi.fn().mockReturnValue(builder);
+  builder.innerJoin = vi.fn().mockReturnValue(builder);
   builder.where = vi.fn().mockReturnValue(builder);
   builder.orderBy = vi.fn().mockReturnValue(builder);
   // .limit() is the usual terminal — also return a plain promise is fine
@@ -423,10 +430,13 @@ describe("runOddsIngestion — dataSourceFreshness recording", () => {
     const args = getFinishRunArgs(updateBuilder);
     expect(args.status).toBe("completed");
     expect(args.recordsProcessed).toBe(0);
-    expect(args.dataSourceFreshness).toEqual({ NFL: 0, NBA: 0 });
+    expect(args.dataSourceFreshness).toEqual({
+      NFL: 0, NBA: 0,
+      marketAnalytics: { publicRows: 0, publicGames: 0, sharpRows: 0, sharpGames: 0 },
+    });
   });
 
-  it("records status=failed and dataSourceFreshness=null when fetchAllSportsDetailed throws", async () => {
+  it("records a per-sport fetch error without failing the whole ingestion run", async () => {
     const updateBuilder = setupDbForIngestion();
     mockFetchAllSportsDetailed.mockResolvedValue([
       { sport: "NFL", fetchStatus: "error", errorMessage: "timeout", games: [] },
@@ -461,7 +471,10 @@ describe("runOddsIngestion — dataSourceFreshness recording", () => {
     const args = getFinishRunArgs(updateBuilder);
     expect(args.status).toBe("completed");
     expect(args.recordsProcessed).toBe(0);
-    expect(args.dataSourceFreshness).toEqual({ NFL: 0, NBA: 0 });
+    expect(args.dataSourceFreshness).toEqual({
+      NFL: 0, NBA: 0,
+      marketAnalytics: { publicRows: 0, publicGames: 0, sharpRows: 0, sharpGames: 0 },
+    });
   });
 
   it("records status=failed and dataSourceFreshness=null when fetchAllSportsDetailed throws", async () => {
