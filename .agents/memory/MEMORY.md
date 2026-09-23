@@ -69,3 +69,4 @@
 - [NCAAF historical materialization](ncaaf-historical-materialization.md) — completed results may seed PIT-safe rolling strength; batch mappings and index evidence before replay.
 - [GitHub workflow write scope](github-workflow-write-scope.md) — repo OAuth can write Git objects yet return 404 when a tree changes .github/workflows without workflow scope.
 - [GitHub CLI release authentication](github-cli-release-auth.md) — workspace Git uses its own CLI credential helper; test branch writes separately from divergent main.
+- [GitHub release CI isolation](github-release-ci-isolation.md) — API tests need disposable PostgreSQL in Actions; never substitute production credentials or skip the suite.
