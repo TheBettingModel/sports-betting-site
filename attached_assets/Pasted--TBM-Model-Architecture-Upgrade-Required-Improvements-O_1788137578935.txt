@@ -1,0 +1,1571 @@
+# TBM Model Architecture Upgrade — Required Improvements
+
+## Objective
+
+Upgrade the current TBM architecture so the model becomes safer, more statistically disciplined, more price-aware, and better aligned with long-term risk-adjusted betting performance.
+
+Do NOT rebuild the existing model from scratch.
+
+Preserve the current strengths:
+
+* Sport-specific models
+* Existing moneyline production logic unless explicitly changed below
+* Independent spread modeling
+* No-vig market comparisons
+* Immutable prediction history
+* Exact published-pick grading
+* Existing sport-specific model inputs
+* Spread shadow ledger
+* CLV tracking
+* Approval gates
+* One primary official market per game
+* Existing model registry
+* Existing grading and historical records
+
+The goal is to improve how TBM:
+
+* Learns
+* Validates
+* Sizes risk
+* Measures probability quality
+* Compares against the sportsbook market
+* Handles uncertainty
+* Promotes model changes
+
+---
+
+# 1. Stop Direct Game-by-Game Production Weight Changes
+
+## Current issue
+
+The existing moneyline learning system adjusts sport-specific factor weights after individual graded picks.
+
+It currently considers:
+
+* Win/loss
+* Predicted probability
+* Brier score
+* Factor direction
+* Rolling accuracy
+
+Correct factors can receive small increases.
+
+Incorrect factors can receive small decreases.
+
+A confident incorrect prediction can create a larger penalty.
+
+Weights remain bounded.
+
+This is safer than unrestricted self-learning, but production weights should not change directly because of one game.
+
+## Required change
+
+Separate:
+
+**Evidence collection**
+
+from:
+
+**Production model modification**
+
+Every completed prediction should continue generating learning information, but those observations should be written to a research/learning dataset only.
+
+Do NOT immediately alter production weights.
+
+The new flow should be:
+
+```text
+Pregame Prediction
+→ Freeze Prediction
+→ Game Result
+→ Grade Prediction
+→ Calculate Prediction Metrics
+→ Store Feature Contributions
+→ Store Research Evidence
+→ Aggregate Sufficient Sample
+→ Generate Candidate Weight Change
+→ Backtest Candidate
+→ Walk-Forward Validation
+→ Out-of-Sample Comparison
+→ Shadow Challenger
+→ Approval Gate
+→ New Production Model Version
+```
+
+Production weights must remain frozen until a validated model version is explicitly promoted.
+
+## Required behavior
+
+After every graded game, store:
+
+* Prediction ID
+* Sport
+* Market
+* Model version
+* Selected side
+* Predicted probability
+* Market probability
+* Edge
+* EV
+* Final result
+* Brier score
+* Log loss
+* CLV
+* Feature values
+* Feature contributions
+* Prediction error
+* Recommendation tier
+* Data quality
+* Confidence
+* Timestamp
+
+Allow the system to identify possible weight improvements.
+
+Do NOT allow those changes to alter production immediately.
+
+## Hard rule
+
+```text
+ONE GAME CAN ADD EVIDENCE.
+ONE GAME CANNOT CHANGE THE PRODUCTION MODEL.
+```
+
+---
+
+# 2. Replace Raw Accuracy as a Major Learning Signal
+
+## Current issue
+
+The current moneyline learning system uses rolling accuracy and correctness as meaningful learning inputs.
+
+That can create a structural bias against profitable underdogs.
+
+Example:
+
+A +250 bet has break-even probability of approximately 28.6%.
+
+If TBM accurately identifies a class of +250 bets that wins 35% of the time, that profile can be profitable even though it loses 65% of its bets.
+
+A learning system that rewards a model mainly for exceeding 50% win rate can incorrectly penalize those predictions.
+
+## Required change
+
+Reduce the importance of raw win rate in model learning.
+
+Win rate should remain available as an analytics metric, but it must NOT serve as a major standalone signal for whether a model or factor is good.
+
+The primary hierarchy should become:
+
+### Probability Quality
+
+* Calibration
+* Brier Score
+* Brier Skill Score
+* Log Loss
+
+### Market Quality
+
+* Closing Line Value
+* Percentage beating closing market
+* No-vig market comparison
+
+### Betting Quality
+
+* ROI
+* Units
+* Drawdown
+* Risk-adjusted performance
+
+## Example
+
+Do NOT conclude:
+
+```text
+Win rate = 43%
+Therefore model is bad
+```
+
+Instead evaluate:
+
+```text
+Average odds = +180
+Win rate = 43%
+Break-even rate = 35.7%
+Positive CLV
+Positive Brier Skill
+Positive ROI
+Acceptable drawdown
+```
+
+That can represent a strong strategy.
+
+## Required rule
+
+The model should optimize:
+
+```text
+Probability Accuracy
++
+Price Accuracy
++
+Market Advantage
++
+Risk-Adjusted Return
+```
+
+not simply:
+
+```text
+Win Percentage
+```
+
+---
+
+# 3. Add Brier Skill Score Against the Sportsbook Market
+
+## Current issue
+
+TBM currently uses Brier score in learning and validation.
+
+Brier score measures whether TBM's probability estimates are accurate.
+
+However, Brier score alone does not answer whether TBM is adding value beyond the sportsbook market.
+
+## Required change
+
+Implement Brier Skill Score for all supported probability markets.
+
+For each prediction calculate:
+
+```text
+TBM_BRIER =
+(model_probability - actual_outcome)^2
+```
+
+Calculate the sportsbook baseline using the no-vig market probability:
+
+```text
+MARKET_BRIER =
+(no_vig_market_probability - actual_outcome)^2
+```
+
+Then over a meaningful sample:
+
+```text
+BRIER_SKILL =
+1 - (TBM_BRIER_MEAN / MARKET_BRIER_MEAN)
+```
+
+Interpretation:
+
+```text
+Brier Skill > 0
+TBM forecasts are better than the market baseline.
+
+Brier Skill = 0
+TBM performs similarly to the market.
+
+Brier Skill < 0
+TBM probability forecasts are worse than the market.
+```
+
+## Track Brier Skill by
+
+* Sport
+* Market
+* Model version
+* Season
+* Favorite/underdog
+* Home/away
+* Odds bucket
+* Edge bucket
+* Probability bucket
+* Confidence bucket
+* Recommendation tier
+
+## Critical rule
+
+A model should not be considered superior simply because it predicts outcomes reasonably well.
+
+The important question is:
+
+```text
+Does TBM estimate probabilities better than the sportsbook market?
+```
+
+---
+
+# 4. Redesign Unit Sizing Around Price, Edge, and Risk
+
+## Current issue
+
+Current unit sizing is driven primarily by TBM Score and recommendation tier.
+
+This can cause bets with very different payoff distributions to receive similar stake sizes.
+
+Example:
+
+```text
+Bet A
+Odds: -110
+Probability: 57%
+```
+
+and:
+
+```text
+Bet B
+Odds: +250
+Probability: 35%
+```
+
+could both have similar TBM Scores but radically different variance.
+
+## Required change
+
+Move toward a conservative, price-aware bankroll sizing system.
+
+Use fractional Kelly as the mathematical reference point.
+
+For decimal odds:
+
+```text
+b = decimal_odds - 1
+p = calibrated_model_probability
+q = 1 - p
+```
+
+Full Kelly:
+
+```text
+kelly_fraction =
+((b * p) - q) / b
+```
+
+Only positive Kelly values are eligible.
+
+Then use a conservative fraction:
+
+```text
+adjusted_kelly =
+kelly_fraction * kelly_fraction_multiplier
+```
+
+Examples of conservative multipliers:
+
+```text
+0.10 Kelly
+0.20 Kelly
+0.25 Kelly
+```
+
+Do NOT automatically use full Kelly.
+
+## Then reduce sizing based on
+
+* Prediction uncertainty
+* Calibration quality
+* Data quality
+* Model maturity
+* Market liquidity
+* Correlation
+* Sport exposure
+* Daily exposure
+* Drawdown state
+* Model approval state
+
+Conceptually:
+
+```text
+final_stake =
+fractional_kelly
+× calibration_factor
+× data_quality_factor
+× uncertainty_factor
+× maturity_factor
+× exposure_factor
+```
+
+Then cap with:
+
+```text
+MAX_UNITS_PER_PLAY
+MAX_UNITS_PER_GAME
+MAX_UNITS_PER_SPORT
+MAX_UNITS_PER_DAY
+```
+
+## TBM Score role
+
+TBM Score should remain useful for:
+
+* Ranking
+* Presentation
+* Tie-breaking
+* Recommendation tier
+* Maximum stake cap
+
+But TBM Score should NOT be the primary mathematical bankroll formula.
+
+---
+
+# 5. Keep the -160 Moneyline Guardrail, But Make It Configurable
+
+## Current issue
+
+The current moneyline system rejects prices of -160 or more expensive.
+
+This is a useful safety mechanism.
+
+However, it should not be treated as a permanent universal truth.
+
+## Required change
+
+Keep the current -160 production guardrail for now.
+
+Do NOT remove it during this upgrade.
+
+However, move it into sport-market configuration.
+
+Example:
+
+```text
+MLB:
+max_moneyline_price = -160
+
+NFL:
+max_moneyline_price = -160
+
+WNBA:
+max_moneyline_price = -160
+```
+
+## Shadow research
+
+Continue calculating model predictions for prices beyond -160.
+
+Store them in research/shadow history.
+
+Example:
+
+```text
+Market price = -175
+TBM probability = 68%
+No-vig probability = 62%
+EV = positive
+Publication = blocked by guardrail
+Research record = stored
+```
+
+This allows TBM to eventually determine whether certain expensive favorite ranges are actually profitable and calibrated.
+
+## Long-term rule
+
+Eventually price eligibility should depend on:
+
+* Calibrated probability
+* EV
+* CLV history
+* Uncertainty
+* Market quality
+* Risk
+* Sport-specific validation
+
+But do not remove the existing safety restriction until that evidence exists.
+
+---
+
+# 6. Upgrade Spread Learning to Use Margin Residuals
+
+## Current issue
+
+The spread system currently validates fixed formulas independently but does not yet have a robust spread-specific adaptive learning framework.
+
+Spread outcomes should not be learned solely through ATS win/loss.
+
+## Required change
+
+For every spread prediction store:
+
+```text
+predicted_margin
+sportsbook_spread
+cover_probability
+actual_margin
+```
+
+Then calculate:
+
+```text
+margin_residual =
+actual_margin - predicted_margin
+```
+
+and:
+
+```text
+absolute_margin_error =
+abs(margin_residual)
+```
+
+## Why
+
+Example:
+
+TBM predicts:
+
+```text
+Team A by 7.0
+```
+
+Actual result:
+
+```text
+Team A wins by 6
+```
+
+If the bet was:
+
+```text
+Team A -6.5
+```
+
+the wager loses.
+
+But the underlying margin prediction missed by only one point.
+
+The model should not treat that as equivalent to predicting:
+
+```text
+Team A by 7
+```
+
+and losing by 20.
+
+## Required spread learning metrics
+
+Track:
+
+* ATS win/loss/push
+* Margin error
+* Absolute margin error
+* RMSE
+* Cover probability
+* Brier score
+* Brier Skill Score
+* Log loss
+* Calibration
+* CLV
+* ROI
+* Drawdown
+
+## Spread improvement loop
+
+```text
+Spread Prediction
+→ Actual Margin
+→ Margin Residual
+→ Historical Residual Distribution
+→ Candidate Margin Model
+→ Walk-Forward Test
+→ Shadow
+→ Approval
+```
+
+Do NOT automatically alter spread weights after an individual game.
+
+---
+
+# 7. Permanently Separate Three Learning Systems
+
+TBM should explicitly separate:
+
+## A. Prediction Learning
+
+Question:
+
+```text
+How accurately can TBM estimate the true outcome?
+```
+
+Examples:
+
+* Win probability
+* Expected scoring margin
+* Expected score
+* Total probability
+
+Metrics:
+
+* Brier
+* Brier Skill
+* Log loss
+* Calibration
+* Margin error
+* RMSE
+
+---
+
+## B. Market Learning
+
+Question:
+
+```text
+Does TBM identify information the market is mispricing?
+```
+
+Metrics:
+
+* No-vig probability edge
+* Closing Line Value
+* Percentage beating close
+* Line movement
+* Sharp market comparison
+* Book disagreement
+* Edge persistence
+
+---
+
+## C. Betting Policy Learning
+
+Question:
+
+```text
+When should TBM actually wager and how much?
+```
+
+Metrics:
+
+* ROI
+* Units
+* Drawdown
+* Kelly efficiency
+* Recommendation-tier performance
+* Edge-bucket performance
+* Risk-adjusted return
+* Correlation
+* Exposure
+
+## Critical rule
+
+Do NOT allow these systems to become interchangeable.
+
+A losing bet does not necessarily mean the prediction model was bad.
+
+A winning bet does not necessarily mean the pricing decision was good.
+
+A strong prediction does not automatically mean it deserved a large stake.
+
+---
+
+# 8. Add Prediction Uncertainty to Moneylines
+
+## Current issue
+
+Moneyline outputs currently emphasize model probability, edge, confidence, and TBM Score.
+
+They do not fully represent uncertainty around the probability estimate.
+
+## Required change
+
+Every moneyline prediction should eventually contain:
+
+```text
+model_probability
+probability_uncertainty
+lower_probability_bound
+upper_probability_bound
+data_quality
+confidence
+```
+
+Example:
+
+```text
+Model Win Probability: 57.4%
+Uncertainty Range: 53.8%–60.9%
+Data Quality: 91/100
+Confidence: 72/100
+```
+
+Do NOT treat the uncertainty interval as a guaranteed statistical confidence interval unless the implemented method supports that interpretation.
+
+## Inputs to uncertainty
+
+Use factors such as:
+
+* Historical model residual variance
+* Sample size
+* Player availability certainty
+* Starting lineup certainty
+* QB/pitcher/goalie certainty
+* Data coverage
+* Model maturity
+* Market quality
+* Missing inputs
+* Model disagreement
+
+## Important distinction
+
+```text
+MODEL PROBABILITY
+≠
+CONFIDENCE
+≠
+UNCERTAINTY
+```
+
+All three need separate fields.
+
+---
+
+# 9. Make Thresholds Sport-Market Specific and Evidence Driven
+
+## Current issue
+
+TBM currently uses fixed thresholds such as:
+
+* MLB home Buy around 7% edge
+* WNBA home Buy around 8%
+* Many other sports around 5%
+* Additional away thresholds
+* Spread-specific thresholds
+
+These are useful conservative production rules.
+
+They should remain in place initially.
+
+## Required change
+
+Move every threshold into a versioned configuration layer.
+
+Example:
+
+```text
+sport = MLB
+market = moneyline
+
+buy_edge = 0.07
+strong_buy_edge = 0.12
+away_edge_addition = 0.03
+max_price = -160
+```
+
+and:
+
+```text
+sport = NCAAF
+market = spread
+
+minimum_edge = 0.05
+minimum_ev = 0.05
+maximum_uncertainty = ...
+```
+
+## Research layer
+
+Track candidate performance at many possible threshold levels.
+
+For example:
+
+```text
+Edge >= 2%
+Edge >= 3%
+Edge >= 4%
+Edge >= 5%
+Edge >= 6%
+Edge >= 8%
+Edge >= 10%
+```
+
+Evaluate each using:
+
+* Brier
+* Brier Skill
+* Calibration
+* CLV
+* ROI
+* Drawdown
+* Sample size
+* Stability
+
+## Rule
+
+Do NOT continuously auto-tune production thresholds.
+
+Threshold changes require:
+
+```text
+Candidate Configuration
+→ Backtest
+→ Walk-Forward Validation
+→ Shadow
+→ Approval
+→ New Version
+```
+
+---
+
+# 10. Add Deep Performance Segmentation
+
+## Required change
+
+All models should be evaluated in more detail than overall sport ROI.
+
+At minimum segment by:
+
+* Sport
+* Market
+* Model version
+* Season
+* Home
+* Away
+* Neutral
+* Favorite
+* Underdog
+* Odds bucket
+* Spread bucket
+* Edge bucket
+* Probability bucket
+* Confidence bucket
+* Recommendation tier
+* Data quality
+* Model maturity
+
+Where relevant also track:
+
+* Rest category
+* Injury certainty
+* Weather
+* Starting pitcher
+* QB status
+* Goalie status
+* Conference
+* Team tier
+* Large spread
+* Key number
+* Price profile
+
+## Purpose
+
+The model should detect situations such as:
+
+```text
+Overall ROI: +4%
+
+Favorites: -3%
+Underdogs: +9%
+
+Edge 2-4%: -5%
+Edge 6%+: +11%
+
+High-confidence: +7%
+Low-confidence: -8%
+```
+
+This allows TBM to determine where genuine advantages exist.
+
+Do NOT assume overall positive performance means every subgroup is useful.
+
+---
+
+# 11. Add Model Maturity Levels
+
+## Required change
+
+Every sport-market-model version should receive an explicit maturity state.
+
+Suggested values:
+
+```text
+EXPERIMENTAL
+DEVELOPING
+VALIDATED
+MATURE
+```
+
+This is separate from publication approval.
+
+Example:
+
+```text
+NCAAF Spread v0
+Maturity: EXPERIMENTAL
+Approval: SHADOW
+```
+
+or:
+
+```text
+MLB Moneyline v3
+Maturity: MATURE
+Approval: PRODUCTION_APPROVED
+```
+
+## Maturity should consider
+
+* Number of historical predictions
+* Number of graded predictions
+* Number of evaluation seasons
+* Data completeness
+* Probability calibration
+* Brier Skill
+* Log loss
+* CLV
+* ROI
+* Drawdown
+* Stability
+* Feature depth
+* Point-in-time integrity
+
+## Maturity may constrain
+
+* Maximum confidence
+* Maximum units
+* Recommendation tier
+* Publication eligibility
+* Market-selection priority
+
+Example:
+
+```text
+EXPERIMENTAL
+max confidence = 60
+max publication units = 0
+
+DEVELOPING
+max confidence = 70
+publication determined by approval gate
+
+VALIDATED
+normal confidence range
+
+MATURE
+full production policy
+```
+
+Exact caps should be configurable rather than hardcoded permanently.
+
+---
+
+# 12. Keep TBM Score Separate From Probability and EV
+
+## Required change
+
+Define these as independent concepts:
+
+### Model Probability
+
+```text
+Probability that the predicted outcome occurs.
+```
+
+Example:
+
+```text
+57.2%
+```
+
+### Edge
+
+```text
+TBM probability minus no-vig market probability.
+```
+
+Example:
+
+```text
++4.8 percentage points
+```
+
+### Expected Value
+
+```text
+Expected profit per unit risked at the actual sportsbook price.
+```
+
+Example:
+
+```text
++8.1%
+```
+
+### Confidence
+
+```text
+How much TBM trusts the underlying estimate based on calibration, uncertainty, data quality, maturity, and stability.
+```
+
+Example:
+
+```text
+76/100
+```
+
+### TBM Score
+
+```text
+Internal ranking/conviction score combining approved model and market factors.
+```
+
+Example:
+
+```text
+84/100
+```
+
+### Recommendation
+
+```text
+Neutral
+Lean
+Buy
+Strong Buy
+```
+
+Never imply:
+
+```text
+TBM Score 84 = 84% win probability
+```
+
+Never imply:
+
+```text
+Confidence 76 = 76% probability
+```
+
+Never imply:
+
+```text
+Edge 8% = 8% guaranteed ROI
+```
+
+Keep all fields separate in backend responses, database records, analytics, and frontend presentation.
+
+---
+
+# 13. Add Champion vs Challenger Model Promotion
+
+Every production model should have:
+
+```text
+CHAMPION
+```
+
+and potential replacements should run as:
+
+```text
+CHALLENGER
+```
+
+Example:
+
+```text
+MLB_ML_v3 = Champion
+MLB_ML_v4_candidate = Challenger
+```
+
+The challenger should run on the same games without affecting official picks.
+
+Compare:
+
+* Brier
+* Brier Skill
+* Log loss
+* Calibration
+* CLV
+* ROI
+* Drawdown
+* Prediction coverage
+* Stability
+* Performance by important segments
+
+Only promote if the challenger demonstrates meaningful improvement without unacceptable deterioration elsewhere.
+
+Never overwrite the old model.
+
+Promotion creates:
+
+```text
+new_model_version
+new_approval_record
+new_effective_date
+```
+
+---
+
+# 14. Add a Universal Model Evaluation Record
+
+Create a structured evaluation snapshot for every:
+
+```text
+sport
++
+market
++
+model_version
+```
+
+Suggested fields:
+
+```text
+sport
+market
+model_version
+evaluation_version
+dataset_version
+feature_schema_version
+
+evaluation_start
+evaluation_end
+point_in_time_cutoff
+
+prediction_count
+graded_count
+
+wins
+losses
+pushes
+
+average_model_probability
+average_edge
+average_ev
+
+brier_score
+market_brier_score
+brier_skill_score
+log_loss
+calibration_error
+
+average_clv
+median_clv
+percent_beating_close
+
+roi
+units
+max_drawdown
+
+margin_mae
+margin_rmse
+
+data_coverage
+data_quality
+
+favorite_roi
+underdog_roi
+home_roi
+away_roi
+
+status
+maturity
+approval_status
+
+created_at
+```
+
+Not every field applies to every market.
+
+Use nullable fields where appropriate rather than fake zeros.
+
+---
+
+# 15. Add Data-Quality Fail-Safes
+
+Each prediction should calculate a data-quality score.
+
+Potential inputs:
+
+* Market completeness
+* Market freshness
+* Player availability
+* Lineup confirmation
+* Starter confirmation
+* Injury completeness
+* Weather completeness
+* Team-stat coverage
+* Historical sample
+* Model input completeness
+
+Example:
+
+```text
+data_quality = 88/100
+```
+
+Low data quality should:
+
+* Reduce confidence
+* Reduce max units
+* Potentially downgrade recommendation
+* Potentially force Neutral
+* Prevent production publication below a hard floor
+
+Never fill missing predictive data with zero unless zero is semantically correct.
+
+Missing must remain distinct from zero.
+
+---
+
+# 16. Add Model Disagreement Tracking
+
+Where multiple submodels exist, store their independent outputs.
+
+Example:
+
+```text
+Power Rating Model: 56%
+Efficiency Model: 59%
+Player Model: 55%
+Market-Independent ML Model: 58%
+```
+
+Then calculate:
+
+```text
+ensemble_mean
+model_disagreement
+```
+
+Large disagreement should increase uncertainty.
+
+Small disagreement can support higher confidence.
+
+Do NOT allow all submodels to become identical transformations of the same input, or disagreement becomes meaningless.
+
+---
+
+# 17. Improve Approval Gates
+
+Continue using independent approval gates by:
+
+```text
+sport
+market
+model_version
+```
+
+The gate should evaluate three layers:
+
+## Data Integrity
+
+Hard gate:
+
+* Point-in-time integrity
+* No leakage
+* Required data present
+* Sufficient coverage
+* Valid market provenance
+* Sufficient sample
+
+## Predictive Quality
+
+Evaluate:
+
+* Brier
+* Brier Skill
+* Log loss
+* Calibration
+* Prediction error
+* Stability
+
+## Betting Quality
+
+Evaluate:
+
+* CLV
+* ROI
+* Units
+* Drawdown
+* Edge-bucket performance
+* Recommendation-tier performance
+
+Lifecycle:
+
+```text
+UNVALIDATED
+→ SHADOW
+→ PROVISIONAL
+→ PRODUCTION_APPROVED
+```
+
+Also support:
+
+```text
+PRODUCTION_APPROVED
+→ SUSPENDED
+```
+
+No exact production approval means:
+
+```text
+publication_units = 0
+official_pick = false
+subscriber_eligible = false
+notification_eligible = false
+official_record_eligible = false
+```
+
+Preserve the original research prediction.
+
+---
+
+# 18. Add Scheduled Model Research Runs
+
+Instead of changing weights continuously, create scheduled research evaluations.
+
+Examples:
+
+```text
+After each game:
+Store evidence only.
+
+Daily:
+Grade predictions and update analytics.
+
+Weekly:
+Run model diagnostics.
+
+Monthly or after minimum sample:
+Evaluate candidate improvements.
+
+End of season:
+Perform full model review and retraining.
+```
+
+The exact cadence may vary by sport and season.
+
+The important rule is that evaluation frequency and production-change frequency are different.
+
+---
+
+# 19. Add Drift Detection
+
+Monitor whether model relationships are changing.
+
+Track:
+
+* Calibration drift
+* Brier Skill drift
+* CLV drift
+* Scoring-environment drift
+* Feature-performance drift
+* Odds-market efficiency changes
+* Rule changes
+* Sport-specific structural changes
+
+Example:
+
+```text
+Last 500 predictions Brier Skill: +0.08
+Recent 100 predictions: -0.04
+```
+
+Do NOT automatically change the model based on that alone.
+
+Raise a drift flag for research and potential suspension if deterioration is severe.
+
+---
+
+# 20. Preserve Existing Architecture During Upgrade
+
+The implementation must NOT:
+
+* Rewrite historical predictions
+* Rewrite previous grades
+* Recalculate old official records using new rules
+* Retroactively change old units
+* Mix spread learning into moneyline learning
+* Mix moneyline learning into spread learning
+* Allow shadow models into official ROI
+* Break existing APIs unless versioned intentionally
+* Remove current sport-specific safeguards
+* Remove -160 guardrail during this phase
+* Change published records retroactively
+
+Existing records remain tied to:
+
+```text
+original_model_version
+original_market
+original_price
+original_prediction
+original_recommendation
+original_units
+```
+
+---
+
+# 21. Recommended Build Order
+
+Implement these upgrades in the following order.
+
+## Phase A — Learning Safety Repair
+
+Build:
+
+* Frozen production weights
+* Research evidence ledger
+* Candidate-change workflow
+* Champion/challenger structure
+* Model versioning
+
+This is the highest priority.
+
+---
+
+## Phase B — Spread Engine
+
+Continue building:
+
+* Projected margin
+* Sport-specific distribution
+* Cover probability
+* Push probability
+* Spread EV
+* Spread CLV
+* Margin residual learning
+* Shadow predictions
+
+Do not stop this work.
+
+---
+
+## Phase C — Universal Evaluation
+
+Add:
+
+* Brier Skill Score
+* Log loss
+* Calibration
+* CLV
+* Segmented analytics
+* Uncertainty
+* Data quality
+
+---
+
+## Phase D — Risk Engine
+
+Upgrade:
+
+* Position sizing
+* Fractional Kelly reference
+* Exposure caps
+* Correlation handling
+* Drawdown controls
+
+---
+
+## Phase E — Sport Model Depth
+
+Improve thinner models individually.
+
+Priority candidates based on the current structure include:
+
+* NCAAF
+* NCAAB
+* UFC
+* NBA player availability
+* NFL advanced efficiency
+* Soccer expected-goal depth
+
+Do not rebuild MLB or WNBA simply because other sports need additional depth.
+
+---
+
+# Final Target Architecture
+
+The final TBM system should operate as:
+
+```text
+RAW SPORT DATA
+        ↓
+POINT-IN-TIME VALIDATION
+        ↓
+SPORT-SPECIFIC PREDICTION MODEL
+        ↓
+MODEL PROBABILITY / EXPECTED MARGIN
+        ↓
+PREDICTION UNCERTAINTY
+        ↓
+DATA QUALITY
+        ↓
+SPORTSBOOK MARKET
+        ↓
+REMOVE VIG
+        ↓
+MODEL VS MARKET
+        ↓
+EDGE
+        ↓
+EXPECTED VALUE
+        ↓
+MARKET INTELLIGENCE
+        ↓
+APPROVAL GATE
+        ↓
+RISK ENGINE
+        ↓
+OFFICIAL CANDIDATE
+        ↓
+MARKET COMPETITION
+        ↓
+BEST VALIDATED MARKET
+        ↓
+POSITION SIZE
+        ↓
+FREEZE PREDICTION
+        ↓
+CLOSING LINE
+        ↓
+FINAL RESULT
+        ↓
+BRIER SCORE
+        ↓
+BRIER SKILL SCORE
+        ↓
+LOG LOSS
+        ↓
+CALIBRATION
+        ↓
+CLV
+        ↓
+ROI / DRAWDOWN
+        ↓
+RESEARCH EVIDENCE
+        ↓
+CANDIDATE MODEL IMPROVEMENTS
+        ↓
+BACKTEST
+        ↓
+WALK-FORWARD VALIDATION
+        ↓
+OUT-OF-SAMPLE TEST
+        ↓
+SHADOW CHALLENGER
+        ↓
+APPROVAL
+        ↓
+NEW PRODUCTION VERSION
+```
+
+# Core Architecture Rules
+
+The system should permanently follow these rules:
+
+1. **Prediction quality and bet results are not the same thing.**
+2. **Win rate is not the primary measure of profitability.**
+3. **Probability must be evaluated against the no-vig sportsbook baseline.**
+4. **CLV is a major measure of whether TBM is identifying real market value.**
+5. **One result must never directly rewrite production weights.**
+6. **All production changes require versioning and validation.**
+7. **Moneyline and spread models learn independently.**
+8. **TBM Score is not win probability.**
+9. **Confidence is not win probability.**
+10. **Edge is not guaranteed ROI.**
+11. **Unit sizing must account for price and variance.**
+12. **Every production model must have an audit trail.**
+13. **Missing data must lower confidence, not silently become zero.**
+14. **New models must prove themselves against the current champion.**
+15. **The objective is accurate calibrated probability, good pricing, positive expected value, and disciplined risk-adjusted performance—not simply picking winners.**

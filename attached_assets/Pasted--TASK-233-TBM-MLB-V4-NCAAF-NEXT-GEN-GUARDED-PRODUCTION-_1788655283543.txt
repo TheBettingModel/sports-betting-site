@@ -1,0 +1,1134 @@
+# TASK #233 — TBM MLB V4 + NCAAF NEXT-GEN GUARDED PRODUCTION LAUNCH
+
+## MISSION
+
+Move The Betting Model's completed next-generation infrastructure from foundation/evidence mode into REAL GUARDED PRODUCTION SERVING.
+
+This is the production-launch task.
+
+When this task is successfully completed:
+
+1. MLB V4 must be actively powering eligible MLB predictions displayed in the LIVE TBM application.
+2. NCAAF Next-Gen must be actively powering eligible NCAA Football predictions displayed in the LIVE TBM application.
+3. MLB V1 and the existing NCAAF production engine must remain available as immediate fallbacks.
+4. Production model versions must remain frozen and deterministic between governed review cycles.
+5. Prospective evidence collection must continue while the models are live.
+6. Production models must NOT automatically retrain, recalibrate, modify weights, change parameters, or promote themselves after individual games.
+7. NFL prospective next-generation collection/readiness should be activated or prepared where the existing architecture safely permits it.
+8. The pending Replit protected-ref deletion must remain completely isolated from this work.
+
+This task MUST NOT claim success merely because code, schemas, endpoints, feature flags, or model artifacts exist.
+
+SUCCESS REQUIRES PROOF THAT THE NEXT-GENERATION ENGINES ARE ACTUALLY SERVING THE PRODUCTION TBM APPLICATION END-TO-END.
+
+
+======================================================================
+1. AUTHORITATIVE STARTING STATE
+======================================================================
+
+Treat the completed Task #232 evidence as authoritative unless direct repository/database inspection proves otherwise.
+
+Current authoritative MLB V4 infrastructure includes:
+
+Collector:
+mlb-v4-live-collector-v2
+
+Starter evidence:
+v3
+
+Starter state:
+v4
+
+Team state:
+v4
+
+Context:
+v2
+
+Model input:
+v4
+
+Task #232 established:
+
+- Prospective collection operational
+- 15 games captured
+- Both starter slots captured for all 15 games
+- 30 starter-state-v4 rows
+- 60 team-state-v4 rows
+- 15 context-v2 rows
+- 15 model-input-v4 snapshots
+- Zero PIT violations
+- Zero market leakage
+- Zero target leakage
+- Zero actual-starter leakage
+- Successful collector/lifecycle cycles
+- Deterministic/idempotent rematerialization
+- pipelineReady=true
+- modelEvidenceReady=false
+- Only 1 current-version COMPLETE evidence pair at audit time
+- Zero repeat-starter diversity at audit time
+
+Do NOT reinterpret:
+
+modelEvidenceReady=false
+
+as meaning MLB V4 infrastructure is broken.
+
+It means the prospective evidence population is not yet mature enough for unrestricted validation/promotion conclusions.
+
+Task #233 introduces a separate production concept:
+
+SAFE_TO_SERVE_UNDER_GUARDRAILS
+
+This is intentionally different from:
+
+MODEL_EVIDENCE_READY
+
+Do NOT weaken, bypass, rename, falsify, or artificially satisfy the existing evidence-readiness definition to launch V4.
+
+
+======================================================================
+2. CRITICAL REPOSITORY / SECURITY BOUNDARY
+======================================================================
+
+The following obsolete contaminated Git ref remains pending deletion by Replit platform administration:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+This historical ref is associated with previously exposed Apple signing credentials.
+
+Those credentials have already been rotated/revoked.
+
+Current main has been sanitized.
+
+HARD RULE:
+
+Task #233 MUST NOT:
+
+- checkout this ref
+- merge this ref
+- cherry-pick from this ref
+- restore files from this ref
+- rewrite this ref
+- force-push this ref
+- delete this ref
+- modify this ref
+- build from this ref
+- deploy from this ref
+- materialize its contents
+- modify sanitized main merely to accommodate this ref
+
+All work must originate from the current sanitized authoritative repository state.
+
+The eventual Replit deletion of this ref is a SEPARATE administrative/security cleanup event.
+
+Its eventual deletion must NOT require rebuilding the production integration created by Task #233.
+
+If the current repository cannot be proven safe enough to proceed, STOP and report the exact blocker.
+
+Do not attempt destructive repository remediation.
+
+
+======================================================================
+3. PRODUCTION MODEL GOVERNANCE
+======================================================================
+
+Production models are VERSIONED, FROZEN DECISION ENGINES.
+
+Evidence systems continuously observe.
+
+Analysis systems periodically evaluate.
+
+Candidate models may be created from accumulated evidence.
+
+Production models MUST NOT modify themselves.
+
+Required lifecycle:
+
+COLLECT
+→ SNAPSHOT
+→ PREDICT
+→ FREEZE
+→ PUBLISH
+→ OUTCOME
+→ GRADE
+→ PAIR
+→ ANALYZE AT GOVERNED THRESHOLD
+→ CREATE CANDIDATE IF WARRANTED
+→ VALIDATE
+→ PROMOTE ONLY IF APPROVED
+→ REPEAT
+
+NEVER:
+
+LOSS → MODIFY MODEL
+
+NEVER:
+
+WINNING STREAK → INCREASE MODEL WEIGHTS
+
+NEVER:
+
+NEW GAME RESULT → AUTOMATIC RETRAINING
+
+NEVER:
+
+RECENT ROI DROP → AUTOMATIC RECALIBRATION
+
+NEVER:
+
+CANDIDATE MODEL → AUTOMATIC PRODUCTION PROMOTION
+
+The currently deployed production model must remain unchanged until an explicit governed promotion event occurs.
+
+
+======================================================================
+4. PRODUCTION MODEL MODES
+======================================================================
+
+Implement explicit server-side model modes using existing project configuration conventions.
+
+At minimum support:
+
+MLB_MODEL_MODE=v1|v4_guarded|v4
+
+NCAAF_MODEL_MODE=legacy|nextgen_guarded|nextgen
+
+Target launch configuration:
+
+MLB_MODEL_MODE=v4_guarded
+
+NCAAF_MODEL_MODE=nextgen_guarded
+
+Do NOT hard-code these modes inside business logic.
+
+They must provide operational kill switches that can be changed without rebuilding the model.
+
+If equivalent typed configuration already exists, extend it rather than creating a duplicate configuration system.
+
+
+======================================================================
+5. MLB V4 GUARDED PRODUCTION SERVING
+======================================================================
+
+OBJECTIVE:
+
+Make MLB V4 the PRIMARY production prediction engine for eligible MLB predictions.
+
+MLB V1 remains available as an immediate fallback.
+
+v4_guarded requires:
+
+- authoritative V4 model input exists
+- required starter state exists
+- required team state exists
+- required context exists
+- input freshness passes
+- market freshness passes
+- PIT checks pass
+- leakage checks pass
+- required model/version metadata exists
+- prediction is deterministic/reproducible
+- publication guardrails pass
+
+When all conditions pass:
+
+SERVE MLB V4
+
+When they do not:
+
+PASS
+
+OR
+
+USE AN EXPLICITLY DEFINED MLB V1 FALLBACK
+
+Do NOT silently generate a V1 prediction and label it as V4.
+
+Every prediction must truthfully identify the engine that generated it.
+
+
+======================================================================
+6. MLB MARKET COVERAGE
+======================================================================
+
+Audit all currently supported MLB production markets.
+
+Expected surfaces may include:
+
+- Moneyline
+- Run Line
+- Game Total
+- First 5
+- NRFI/YRFI
+- existing MLB Model Board surfaces
+
+For every market classify its V4 support as:
+
+V4_NATIVE
+
+V4_DERIVED_VALIDATED
+
+V1_FALLBACK
+
+PASS
+
+UNSUPPORTED
+
+Do NOT fabricate V4 support simply because V1 currently supports a market.
+
+The app must never imply that an unsupported V4 market was produced natively by V4.
+
+Preserve the existing universal market intelligence, ranking, line-shopping and POD infrastructure wherever compatible.
+
+
+======================================================================
+7. NCAAF NEXT-GEN GUARDED PRODUCTION SERVING
+======================================================================
+
+Move the authoritative next-generation NCAA Football model into guarded production serving.
+
+Do NOT falsely declare the remaining #221/#221B evidence program complete.
+
+Evidence maturity and guarded production serving are separate concepts.
+
+nextgen_guarded must require valid pregame information and all applicable safety checks.
+
+At minimum verify where supported:
+
+- matchup identity
+- team identity
+- kickoff time
+- current market
+- required football-performance inputs
+- team state
+- opponent state
+- game/context state
+- quarterback/starter information
+- injury/availability information
+- home/away/neutral site
+- rest
+- travel
+- weather
+- opponent strength
+- market freshness
+- PIT correctness
+- no postgame information
+- no target leakage
+- no future starter/injury information
+- no inappropriate closing-market leakage
+
+Every evaluated NCAAF opportunity must resolve honestly to something equivalent to:
+
+NEXTGEN
+
+LEGACY_FALLBACK
+
+PASS
+
+INELIGIBLE
+
+Never invent missing inputs.
+
+
+======================================================================
+8. END-TO-END APPLICATION INTEGRATION
+======================================================================
+
+This is NOT complete if the models only work inside backend tests.
+
+Prove this complete production path:
+
+SOURCE DATA
+→ PIT-SAFE SNAPSHOT
+→ AUTHORITATIVE MODEL INPUT
+→ MODEL ENGINE
+→ MODEL PROBABILITY/RATING
+→ MARKET COMPARISON
+→ EDGE
+→ CONFIDENCE
+→ ELIGIBILITY
+→ RECOMMENDATION
+→ UNIT/RISK LOGIC
+→ UNIVERSAL RANKING
+→ POD/BEST-BY-SPORT WHERE APPLICABLE
+→ PRODUCTION API
+→ LIVE TBM WEB/APP
+→ IMMUTABLE PREDICTION RECORD
+→ POSTGAME GRADING
+→ ANALYTICS/EVIDENCE
+
+A backend prediction that never reaches the live TBM application DOES NOT satisfy Task #233.
+
+
+======================================================================
+9. PREDICTION IMMUTABILITY
+======================================================================
+
+Every official production prediction must be attributable to the exact system that created it.
+
+Persist or verify equivalent fields including:
+
+prediction_id
+sport
+game_id
+model_family
+model_version
+engine_version
+input_schema_version
+input_snapshot_id
+prediction_timestamp
+market
+selection
+line
+odds
+sportsbook/source
+model_probability
+implied_probability
+edge
+confidence
+recommendation
+units
+guarded_mode
+fallback_used
+fallback_reason
+publication_status
+
+Where architecture permits, also preserve:
+
+feature_snapshot_hash
+model_artifact_hash
+configuration_hash
+market_snapshot_id
+
+A prediction's original state must NOT later be overwritten because:
+
+- line moved
+- odds changed
+- starter changed
+- injury changed
+- model upgraded
+- game finished
+- grading occurred
+
+Subsequent states must remain historically reconstructable.
+
+
+======================================================================
+10. NO POST-HOC PICK MUTATION
+======================================================================
+
+Once an official pick has been published, preserve the original prediction.
+
+If circumstances materially change before kickoff/first pitch, create an explicit lifecycle event such as:
+
+WITHDRAWN
+INVALIDATED
+STARTER_CHANGE
+MARKET_MOVED
+REPLACED
+
+Do NOT rewrite historical predictions.
+
+Analytics must be capable of distinguishing:
+
+- original prediction
+- published prediction
+- withdrawal
+- invalidation
+- replacement
+- final grading eligibility
+
+
+======================================================================
+11. GUARDED PUBLICATION / RISK POLICY
+======================================================================
+
+Do NOT assume every positive edge becomes an official TBM play.
+
+Use existing risk infrastructure where defensible.
+
+Guarded mode should be conservative.
+
+Audit/enforce where applicable:
+
+- minimum edge
+- minimum confidence
+- maximum acceptable price
+- heavy-favorite protection
+- stale-market rejection
+- duplicate suppression
+- conflicting-play suppression
+- starter uncertainty
+- lineup uncertainty
+- abnormal market movement
+- sportsbook availability
+- maximum units
+- same-game correlated exposure
+- daily portfolio concentration
+
+Do NOT optimize these thresholds using the tiny current prospective MLB V4 evidence sample.
+
+Use existing defensible rules or conservative launch rules and document them.
+
+
+======================================================================
+12. OWNER-VISIBLE MODEL IDENTITY
+======================================================================
+
+The owner must be able to verify what is actually running WITHOUT inspecting source code.
+
+Extend the existing model/status/admin infrastructure rather than creating unnecessary duplicate systems.
+
+At minimum expose for each sport:
+
+SPORT
+ACTIVE ENGINE
+MODEL VERSION
+MODE
+INPUT VERSION
+EVIDENCE COLLECTION STATUS
+LAST SUCCESSFUL MODEL RUN
+LAST SUCCESSFUL EVIDENCE RUN
+FALLBACK STATUS
+HEALTH
+
+Expected successful launch representation:
+
+MLB
+Engine: V4
+Mode: GUARDED LIVE
+Evidence Collection: ACTIVE
+Fallback: V1 READY
+Health: HEALTHY
+
+NCAAF
+Engine: NEXT-GEN
+Mode: GUARDED LIVE
+Evidence Collection: ACTIVE
+Fallback: LEGACY READY
+Health: HEALTHY
+
+The status displayed must be derived from actual runtime state.
+
+Do NOT hard-code "LIVE" merely for presentation.
+
+
+======================================================================
+13. CONTINUOUS PROSPECTIVE EVIDENCE
+======================================================================
+
+Production serving MUST NOT stop prospective evidence accumulation.
+
+Required lifecycle:
+
+PREGAME SNAPSHOT
+→ OFFICIAL PREDICTION
+→ FREEZE
+→ GAME OCCURS
+→ OFFICIAL OUTCOME
+→ GRADE
+→ PAIR
+→ EVIDENCE DATASET
+
+Continue accumulating:
+
+- model predictions
+- input snapshots
+- starters/QBs
+- team states
+- context
+- market state
+- opening/current/closing information where PIT-safe
+- final outcomes
+- actual starters
+- bullpen outcomes for MLB
+- grading
+- CLV where valid
+- confidence calibration evidence
+- edge realization
+- missingness
+- source reliability
+
+Production serving and evidence collection must remain operationally separable.
+
+A failure in research analysis must not automatically disable healthy production serving.
+
+A critical failure in authoritative prediction inputs SHOULD prevent unsafe publication.
+
+
+======================================================================
+14. GOVERNED MODEL REVIEW SYSTEM
+======================================================================
+
+Implement or establish a deterministic Model Review Gate.
+
+The system continuously COLLECTS.
+
+It periodically ANALYZES.
+
+It NEVER automatically modifies production.
+
+Support at least:
+
+A. HEALTH REVIEW
+
+Frequent operational evaluation.
+
+Analyze:
+
+- PIT violations
+- leakage
+- source failures
+- timeouts
+- rate limits
+- missingness
+- prediction/outcome pairing
+- market freshness
+- CLV direction where available
+- calibration anomalies
+- pipeline reliability
+
+Health review does NOT change model parameters.
+
+
+B. FORMAL MODEL REVIEW
+
+Triggered only after sport-appropriate evidence thresholds are reached.
+
+Analyze:
+
+- graded sample size
+- ROI
+- win rate
+- expected vs realized performance
+- CLV
+- probability calibration
+- confidence calibration
+- edge buckets
+- market types
+- favorite/underdog ranges
+- price ranges
+- home/away
+- team diversity
+- opponent diversity
+- starter/QB diversity
+- contextual diversity
+- feature stability
+- missingness
+- potential feature drift
+
+Formal review does NOT change production automatically.
+
+
+C. PROMOTION REVIEW
+
+If evidence suggests improvement is warranted:
+
+CURRENT PRODUCTION MODEL
+→ CREATE CANDIDATE
+→ TEST
+→ PIT-SAFE HISTORICAL EVALUATION WHERE VALID
+→ PROSPECTIVE SHADOW EVALUATION
+→ CHAMPION VS CHALLENGER
+→ PROMOTION DECISION
+
+If the candidate fails to demonstrate meaningful improvement:
+
+KEEP CURRENT PRODUCTION MODEL.
+
+
+======================================================================
+15. SPORT-SPECIFIC REVIEW PARAMETERS
+======================================================================
+
+Do NOT use one arbitrary sample threshold for every sport.
+
+Establish configurable review policies.
+
+Initial framework may use ranges such as:
+
+MLB:
+- health review continuously / operationally
+- statistical checkpoint around 25-50 graded official plays
+- formal review approximately 100-150 graded plays, subject to diversity requirements
+- major review at season end
+
+NCAAF:
+- health review continuously
+- early-season checkpoint after meaningful prospective volume
+- require team/conference/opponent diversity
+- account for early-season uncertainty
+- formal review must consider number of weeks AND sample diversity, not only raw pick count
+- major checkpoints around quarter-season, midseason, late-season/postseason
+
+NFL:
+- do NOT require MLB-sized samples
+- use week-based plus evidence-based reviews
+- account for inherently small season sample
+- emphasize QB/injury/roster/context stability
+- use quarter-season, midseason and late-season reviews
+
+These values are REVIEW TRIGGERS.
+
+They are NOT automatic retraining triggers.
+
+If existing research supports better thresholds, document and use them.
+
+
+======================================================================
+16. NEVER OPTIMIZE ONLY FOR WIN RATE OR ROI
+======================================================================
+
+Model review must not decide that a model improved solely because recent win rate or ROI increased.
+
+Evaluate multiple dimensions including:
+
+- calibration
+- CLV
+- edge realization
+- expected value behavior
+- probability buckets
+- confidence buckets
+- market-specific behavior
+- favorite/underdog behavior
+- price sensitivity
+- stability
+- out-of-sample performance
+- prospective performance
+- sample diversity
+
+Prevent short-term luck from becoming a production model change.
+
+
+======================================================================
+17. NFL PROSPECTIVE COLLECTION
+======================================================================
+
+NFL is approaching the beginning of its season.
+
+Use Task #233 to activate or prepare next-generation NFL prospective collection NOW where safely possible.
+
+Do NOT force an unready NFL model into production merely to satisfy this task.
+
+Priority is to begin collecting clean prospective evidence from the beginning of the season.
+
+Capture where supported:
+
+- matchup
+- kickoff
+- team state
+- offense state
+- defense state
+- quarterback state
+- injuries/availability
+- roster context
+- home/away
+- rest
+- travel
+- weather
+- opponent strength
+- market state
+- model inputs
+- model prediction/shadow prediction
+- final outcome
+- closing market where valid
+- grading
+
+Desired Task #233 NFL state:
+
+NFL PROSPECTIVE COLLECTION ACTIVE
+
+or, if a genuine blocker exists:
+
+NFL PROSPECTIVE COLLECTION BLOCKED — [EXACT REASON]
+
+Do NOT falsely claim NFL production launch if it was not actually launched.
+
+
+======================================================================
+18. FALLBACK TESTING
+======================================================================
+
+Prove fallback behavior.
+
+For MLB:
+
+Simulate or safely test a condition where V4 is ineligible.
+
+Verify:
+
+V4 INELIGIBLE
+→ fallback policy invoked
+→ V1 used OR PASS returned
+→ response correctly identifies fallback
+→ no V4 label applied to V1 output
+
+For NCAAF:
+
+NEXTGEN INELIGIBLE
+→ legacy fallback OR PASS
+→ fallback reason persisted
+→ output correctly identifies generating engine
+
+Fallback testing is mandatory.
+
+
+======================================================================
+19. KILL-SWITCH TESTING
+======================================================================
+
+Prove operational reversibility.
+
+Verify that:
+
+MLB_MODEL_MODE=v1
+
+restores V1 serving without destructive migration.
+
+Verify that:
+
+MLB_MODEL_MODE=v4_guarded
+
+restores guarded V4.
+
+Do equivalent testing for NCAAF.
+
+Do NOT permanently alter production simply for the test.
+
+Document the procedure.
+
+
+======================================================================
+20. PRODUCTION SMOKE TEST
+======================================================================
+
+Run an end-to-end smoke test against a REAL current or next valid slate.
+
+For MLB, prove at least one eligible game can traverse:
+
+live source
+→ V4 snapshot
+→ V4 input
+→ V4 prediction
+→ market comparison
+→ recommendation
+→ API
+→ application
+→ immutable prediction/evidence record
+
+For NCAAF, prove the same using an eligible current/upcoming game.
+
+Do NOT fabricate a successful smoke test using fake production data.
+
+Fixtures may still be used for automated tests, but they do not satisfy the real-slate acceptance requirement.
+
+
+======================================================================
+21. FRONTEND / APP VERIFICATION
+======================================================================
+
+Verify that existing TBM surfaces consume the new production outputs correctly.
+
+At minimum inspect:
+
+- homepage
+- Today's Betting Dashboard
+- MLB pages
+- MLB Model Board
+- NCAAF page
+- Play of the Day
+- Best Play by Sport
+- premium/locked cards
+- saved picks
+- results
+- analytics
+- owner/admin status
+
+Do not redesign the site unless necessary.
+
+This task is about production model integration, not cosmetic redesign.
+
+Verify mobile responsiveness remains intact.
+
+Verify no horizontal overflow/regression is introduced.
+
+
+======================================================================
+22. UNIVERSAL PIPELINE COMPATIBILITY
+======================================================================
+
+Verify MLB V4 and NCAAF Next-Gen correctly integrate with the existing TBM universal pipeline where applicable:
+
+- Universal Market Intelligence
+- Final Rating
+- Universal POD Score
+- Sportsbook Comparison
+- Sharp Book Analysis
+- Line Shopping
+- Market Intelligence Grade
+- Final Model Tier
+- Final Recommendation
+
+Do NOT allow legacy assumptions to corrupt next-generation model outputs.
+
+If an existing universal component is incompatible, create a clean versioned adapter rather than rewriting V4/NCAAF evidence architecture to fit old assumptions.
+
+
+======================================================================
+23. REPLIT FUTURE-COMPATIBILITY REQUIREMENT
+======================================================================
+
+All Task #233 production-launch work must be ADDITIVE, VERSIONED and REVERSIBLE.
+
+Do NOT unnecessarily modify authoritative prospective evidence contracts established by prior tasks.
+
+Future Replit-delivered repository/security fixes or model/evidence improvements should be consumable through:
+
+- versioned adapters
+- migrations
+- configuration
+- explicit version promotion
+
+They should NOT require:
+
+- rebuilding subscriber-facing APIs
+- rewriting historical evidence
+- destroying V1 fallback
+- rebuilding the frontend
+- redoing Task #233 from scratch
+
+The pending protected-ref deletion must remain unrelated to runtime model architecture.
+
+
+======================================================================
+24. VERIFICATION
+======================================================================
+
+Run all relevant focused and full verification.
+
+At minimum:
+
+- focused MLB V4 tests
+- focused NCAAF tests
+- evidence pipeline tests
+- PIT tests
+- leakage tests
+- fallback tests
+- kill-switch tests
+- immutable prediction tests
+- grading tests
+- universal pipeline tests
+- API tests
+- typecheck
+- database typecheck
+- frontend production build
+- backend production readiness
+- repository diff review
+- credential scan
+- protected-ref safety check
+- production smoke tests
+
+Do NOT weaken existing tests to make this task pass.
+
+Do NOT delete failing tests unless they are demonstrably obsolete and replacement coverage is added/documented.
+
+
+======================================================================
+25. DEPLOYMENT
+======================================================================
+
+If all required gates pass:
+
+Deploy through the project's normal production deployment path.
+
+Verify actual production runtime after deployment.
+
+Do NOT assume a successful build means a successful deployment.
+
+Verify the live backend and frontend/application.
+
+Confirm the active runtime model identity through the owner-visible status system.
+
+
+======================================================================
+26. REQUIRED FINAL CLASSIFICATION
+======================================================================
+
+Task #233 must end with EXACTLY ONE primary classification.
+
+A — PRODUCTION LAUNCH COMPLETE
+
+Use ONLY if:
+
+- MLB V4 Guarded is actually live in TBM production
+- NCAAF Next-Gen Guarded is actually live in TBM production
+- application surfaces consume the outputs
+- prediction logging is active
+- evidence collection remains active
+- fallback is proven
+- kill switch is proven
+- PIT/leakage checks pass
+- production smoke tests pass
+- production runtime status confirms the engines
+
+Expected status:
+
+MLB: V4_GUARDED_LIVE
+NCAAF: NEXTGEN_GUARDED_LIVE
+
+
+B — PARTIAL PRODUCTION LAUNCH
+
+Use if one next-generation sport is genuinely live but the other has a documented blocker.
+
+Report exactly which sport is live and which is blocked.
+
+
+C — PRODUCTION LAUNCH BLOCKED
+
+Use if neither next-generation engine can safely be launched.
+
+Existing production must remain safe and unchanged.
+
+Provide exact blockers and evidence.
+
+
+D — SAFETY / INTEGRITY STOP
+
+Use if repository integrity, credential exposure, PIT leakage, target leakage, destructive migration risk, or another critical safety issue prevents responsible continuation.
+
+Do not deploy.
+
+
+======================================================================
+27. REQUIRED FINAL REPORT
+======================================================================
+
+Produce a detailed Task #233 report containing:
+
+1. Final classification
+2. MLB active production engine
+3. MLB model version
+4. MLB model mode
+5. MLB input version
+6. MLB fallback status
+7. MLB markets using V4
+8. MLB markets using fallback/PASS
+9. NCAAF active production engine
+10. NCAAF model version
+11. NCAAF model mode
+12. NCAAF fallback status
+13. Evidence collection status
+14. NFL prospective collection status
+15. Prediction persistence status
+16. Number of real production predictions verified
+17. PIT audit results
+18. Leakage audit results
+19. Fallback test results
+20. Kill-switch test results
+21. API verification
+22. Frontend/app verification
+23. Universal pipeline verification
+24. Production smoke-test evidence
+25. Production deployment verification
+26. Owner-visible runtime status
+27. Full test results
+28. Typecheck/build results
+29. Repository/security verification
+30. Exact files changed
+31. Exact migrations added
+32. Exact configuration added
+33. Known limitations
+34. Remaining evidence-maturity limitations
+35. Recommended next task
+
+
+======================================================================
+28. REQUIRED OWNER-FACING PROOF
+======================================================================
+
+At completion, provide a concise runtime summary similar to:
+
+TBM PRODUCTION MODEL STATUS
+
+MLB
+Engine: V4
+Version: [EXACT VERSION]
+Mode: GUARDED LIVE
+Evidence Collection: ACTIVE
+Fallback: V1 READY
+Health: HEALTHY
+
+NCAAF
+Engine: NEXT-GEN
+Version: [EXACT VERSION]
+Mode: GUARDED LIVE
+Evidence Collection: ACTIVE
+Fallback: LEGACY READY
+Health: HEALTHY
+
+NFL
+Prospective Collection: ACTIVE / BLOCKED
+Production Engine: [CURRENT ENGINE]
+Next-Gen Production: NOT CLAIMED UNLESS ACTUALLY LIVE
+
+MODEL GOVERNANCE
+Production Auto-Retraining: DISABLED
+Automatic Parameter Changes: DISABLED
+Automatic Promotion: DISABLED
+Scheduled Evidence Review: ACTIVE
+Prediction History: IMMUTABLE
+
+REPOSITORY
+Authoritative Branch: sanitized main
+Contaminated Protected Ref: UNTOUCHED / PENDING REPLIT ADMIN DELETION
+
+
+======================================================================
+29. DEFINITION OF DONE
+======================================================================
+
+Task #233 is NOT done when V4 code exists.
+
+Task #233 is NOT done when V4 tests pass locally.
+
+Task #233 is NOT done when a V4 endpoint exists.
+
+Task #233 is NOT done when evidence collection works.
+
+Task #233 is NOT done when a feature flag exists.
+
+Task #233 is NOT done when someone says the models are "ready."
+
+For classification A, Task #233 is done only when:
+
+MLB V4 is actually serving eligible predictions in the live TBM application under guarded production.
+
+AND
+
+NCAAF Next-Gen is actually serving eligible predictions in the live TBM application under guarded production.
+
+AND
+
+Both are continuing to collect prospective evidence.
+
+AND
+
+Neither production model can automatically retrain/change itself based on new results.
+
+AND
+
+Fallback and kill-switch behavior has been proven.
+
+AND
+
+The production application identifies the actual active model/version.
+
+AND
+
+The contaminated Replit ref has remained untouched.
+
+DO NOT STOP AT "READY TO LAUNCH."
+
+THE OBJECTIVE OF TASK #233 IS TO ACTUALLY LAUNCH.

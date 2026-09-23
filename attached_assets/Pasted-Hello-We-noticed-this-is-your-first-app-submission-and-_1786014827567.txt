@@ -1,0 +1,82 @@
+Hello, 
+
+We noticed this is your first app submission and want to congratulate you on joining the Apple Developer Program. We look forward to working together on your submissions.
+
+When App Review identifies an issue with a submission, we’ll contact you with a message in App Store Connect with details about what we found and how to resolve the issue. Learn more about App Review and tips for a smooth review experience. 
+
+See below for additional information about the issues that require your attention for this submission. If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Review Environment
+Submission ID: 4dcf4b1f-9091-4f7d-84de-526eb66ad51f
+Review date: August 06, 2026
+Review Device: iPad Air 11-inch (M3)
+Version reviewed: 1.0 (15)
+
+Guideline 2.1(a) - Performance - App Completeness
+Issue Description
+
+The app exhibited one or more bugs that would negatively impact users.
+
+Bug description: Your app did not perform any further action when we tapped on 'Start Free Trial'.
+
+Review device details:
+
+- Device type: iPad Air 11-inch (M3) 
+- OS version: iPadOS 26.6
+- Internet Connection: Active
+
+Next Steps
+
+Test the app on supported devices to identify and resolve bugs and stability issues before submitting for review.
+
+If the bug cannot be reproduced, try the following:
+
+- For new apps, uninstall all previous versions of the app from a device, then install and follow the steps to reproduce.
+- For app updates, install the new version as an update to the previous version, then follow the steps to reproduce.
+
+Note that users expect apps they download to function on all the devices where they are available. For example, apps that may be downloaded onto iPad devices should function as expected for iPad users. 
+
+Resources
+
+- For information about testing apps and preparing them for review, see Testing a Release Build.
+- To learn about troubleshooting networking issues, see Networking Overview.
+
+
+Guideline 2.1(b) - Performance - App Completeness
+
+Issue Description
+
+We are unable to complete the review of the app because one or more of the In-App Purchase products have not been submitted for review.
+
+Specifically, the app includes references to subscriptions but the associated In-App Purchase products have not been submitted for review.
+
+Next Steps
+
+To resolve this issue, submit the In-App Purchase products and upload a new binary in App Store Connect so we can proceed with our review.
+
+Note you must provide an App Review screenshot in App Store Connect in order to submit In-App Purchases for review. Learn more about required In-App Purchase metadata.
+
+Resources
+
+- Learn more about how to offer In-App Purchases.
+- Learn more about submitting In-App Purchases and subscriptions to App Review.
+Guideline 1.5 - Safety
+Issue Description
+
+The Support URL provided in App Store Connect, https://thebettingmodel.replit.app, does not direct to a website with information users can use to ask questions and request support.
+
+Next Steps
+
+Update the specified Support URL to direct users to a functional webpage with support information.
+
+Resources
+
+- Learn about Support URLs and other platform version information on App Store Connect Help.
+- Learn more about developer information requirements in guideline 1.5.
+Support
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Test on the latest betas
+Betas of iOS 27, iPadOS 27, macOS 27, tvOS 27 and visionOS 27 are now available. Download the latest betas to prepare your app for upcoming software releases. Learn more about installing and using Apple beta software.

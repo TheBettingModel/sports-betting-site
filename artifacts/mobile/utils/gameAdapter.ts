@@ -1,0 +1,174 @@
+import type { GameProjection } from '@workspace/api-client-react';
+import type { Game } from '@/data/mockGames';
+
+/**
+ * Derives 1–2 short insight strings from existing projection fields.
+ * No extra API data needed — everything is already in GameProjection.
+ *
+ * Priority order:
+ *   1. Large model-vs-Vegas spread discrepancy (clearest signal of value)
+ *   2. High market edge %
+ *   3. Implied probability gap (model win% vs Vegas moneyline)
+ *   4. Dominant win probability (≥70%)
+ */
+function computeInsights(g: GameProjection): string[] {
+  const insights: string[] = [];
+  const edgeAbs = Math.abs(g.edge);
+  const pickIsHome = g.edge >= 0;
+  const pickAbbr = pickIsHome ? g.homeTeamAbbr : g.awayTeamAbbr;
+  const favoredWinPct = Math.max(g.homeWinPct, 100 - g.homeWinPct);
+  const favoredAbbr = g.homeWinPct >= 50 ? g.homeTeamAbbr : g.awayTeamAbbr;
+
+  // 1. Spread discrepancy
+  const spreadDiff = Math.abs(g.projectedSpread - g.vegasSpread);
+  if (spreadDiff >= 2.0) {
+    insights.push(`Model line ${spreadDiff.toFixed(1)} pts off Vegas spread`);
+  }
+
+  // 2. Strong edge vs market
+  if (edgeAbs >= 12) {
+    insights.push(`${pickAbbr} +${edgeAbs.toFixed(1)}% edge vs market`);
+  } else if (edgeAbs >= 7 && insights.length === 0) {
+    insights.push(`+${edgeAbs.toFixed(1)}% edge vs market`);
+  }
+
+  // 3. Implied probability gap (model win% vs moneyline implied odds)
+  if (insights.length < 2) {
+    const ml = g.vegasHomeOdds;
+    const vegasImplied = ml < 0
+      ? (Math.abs(ml) / (Math.abs(ml) + 100)) * 100
+      : (100 / (ml + 100)) * 100;
+    const impliedGap = Math.abs(g.homeWinPct - vegasImplied);
+    if (impliedGap >= 9) {
+      insights.push(`${impliedGap.toFixed(0)}% gap vs Vegas implied odds`);
+    }
+  }
+
+  // 4. Dominant win probability
+  if (favoredWinPct >= 70 && insights.length < 2) {
+    insights.push(`${favoredAbbr} ${favoredWinPct}% model win probability`);
+  }
+
+  return insights.slice(0, 2);
+}
+
+/**
+ * Maps a flat API GameProjection to the nested Game shape
+ * expected by all existing components.
+ */
+export function mapApiGame(g: GameProjection): Game {
+  const homeWords = g.homeTeamName.split(' ');
+  const awayWords = g.awayTeamName.split(' ');
+
+  return {
+    id: g.id,
+    sport: g.sport as Game['sport'],
+    league: g.league ?? undefined,
+    isLocked: g.isLocked ?? false,
+    insights: g.isLocked ? undefined : computeInsights(g),
+    selectedMarket: (g.selectedMarket === 'moneyline' || g.selectedMarket === 'spread') ? g.selectedMarket : undefined,
+    selectedPick: g.selectedPick ? {
+      ...g.selectedPick,
+      market: g.selectedPick.market as 'moneyline' | 'spread',
+      selection: g.selectedPick.selection as 'home' | 'away',
+      recommendation: g.selectedPick.recommendation as Game['projection']['valueRating'],
+      line: g.selectedPick.line ?? undefined,
+      sportsbook: g.selectedPick.sportsbook ?? undefined,
+      expectedValue: g.selectedPick.expectedValue ?? undefined,
+      pushProbability: g.selectedPick.pushProbability ?? undefined,
+      gateStatus: g.selectedPick.gateStatus ?? undefined,
+    } : undefined,
+    moneylineMarket: g.moneylineMarket ? {
+      ...g.moneylineMarket,
+      market: 'moneyline',
+      selection: g.moneylineMarket.selection as 'home' | 'away',
+      recommendation: g.moneylineMarket.recommendation as Game['projection']['valueRating'],
+      line: g.moneylineMarket.line ?? undefined,
+      sportsbook: g.moneylineMarket.sportsbook ?? undefined,
+      expectedValue: g.moneylineMarket.expectedValue ?? undefined,
+      pushProbability: g.moneylineMarket.pushProbability ?? undefined,
+      gateStatus: g.moneylineMarket.gateStatus ?? undefined,
+    } : undefined,
+    spreadMarket: g.spreadMarket ? {
+      ...g.spreadMarket,
+      market: 'spread',
+      selection: g.spreadMarket.selection as 'home' | 'away',
+      recommendation: g.spreadMarket.recommendation as Game['projection']['valueRating'],
+      line: g.spreadMarket.line ?? undefined,
+      sportsbook: g.spreadMarket.sportsbook ?? undefined,
+      expectedValue: g.spreadMarket.expectedValue ?? undefined,
+      pushProbability: g.spreadMarket.pushProbability ?? undefined,
+      gateStatus: g.spreadMarket.gateStatus ?? undefined,
+    } : undefined,
+    homeTeam: {
+      name: homeWords[homeWords.length - 1] ?? g.homeTeamName,
+      abbr: g.homeTeamAbbr,
+      espnId: g.homeTeamId ?? undefined,
+      logoUrl: g.homeTeamLogo ?? undefined,
+      record: g.homeTeamRecord,
+      city: homeWords.slice(0, -1).join(' ') || g.homeTeamName,
+    },
+    awayTeam: {
+      name: awayWords[awayWords.length - 1] ?? g.awayTeamName,
+      abbr: g.awayTeamAbbr,
+      espnId: g.awayTeamId ?? undefined,
+      logoUrl: g.awayTeamLogo ?? undefined,
+      record: g.awayTeamRecord,
+      city: awayWords.slice(0, -1).join(' ') || g.awayTeamName,
+    },
+    gameTime: g.gameTime,
+    status: (g.status ?? 'upcoming') as Game['status'],
+    homeScore: g.homeScore ?? undefined,
+    awayScore: g.awayScore ?? undefined,
+    projection: {
+      homeWinPct: g.homeWinPct,
+      confidence: g.confidence as 'High' | 'Medium' | 'Low',
+      projectedSpread: g.projectedSpread,
+      projectedTotal: g.projectedTotal,
+      valueRating: g.valueRating as 'Strong Buy' | 'Buy' | 'Neutral' | 'Fade',
+      modelScore: g.modelScore,
+      edge: g.edge,
+      // Phase 1
+      confidenceNum: g.confidenceNum ?? undefined,
+      units: g.units ?? undefined,
+      sharpScore: g.sharpScore ?? undefined,
+      sharpSignal: g.sharpSignal ?? undefined,
+      finalModelScore: g.finalModelScore ?? undefined,
+      finalModelTier: g.finalModelTier ?? undefined,
+      finalModelStars: g.finalModelStars ?? undefined,
+      podScore: g.podScore ?? undefined,
+      // Phase 2: starters + best line
+      homeStarterName: g.homeStarterName ?? undefined,
+      homeStarterEra: g.homeStarterEra ?? undefined,
+      homeStarterRecentEra: g.homeStarterRecentEra ?? undefined,
+      homeStarterHand: (g.homeStarterHand === 'L' || g.homeStarterHand === 'R') ? g.homeStarterHand : undefined,
+      awayStarterName: g.awayStarterName ?? undefined,
+      awayStarterEra: g.awayStarterEra ?? undefined,
+      awayStarterRecentEra: g.awayStarterRecentEra ?? undefined,
+      awayStarterHand: (g.awayStarterHand === 'L' || g.awayStarterHand === 'R') ? g.awayStarterHand : undefined,
+      bestLineBook: g.bestLineBook ?? undefined,
+      bestLineOdds: g.bestLineOdds ?? undefined,
+      // Phase 3: weather
+      weatherWindMph:  g.weatherWindMph  ?? undefined,
+      weatherTotalAdj: g.weatherTotalAdj ?? undefined,
+      weatherSummary:  g.weatherSummary  ?? undefined,
+      // Phase 3: NHL goalies
+      homeGoalieName:    g.homeGoalieName    ?? undefined,
+      homeGoalieSavePct: g.homeGoalieSavePct ?? undefined,
+      awayGoalieName:    g.awayGoalieName    ?? undefined,
+      awayGoalieSavePct: g.awayGoalieSavePct ?? undefined,
+      // Phase 3: NFL injuries
+      homeKeyInjuries: g.homeKeyInjuries ?? undefined,
+      awayKeyInjuries: g.awayKeyInjuries ?? undefined,
+    },
+    vegasLine: {
+      spread: g.vegasSpread,
+      total: g.vegasTotal,
+      homeOdds: g.vegasHomeOdds,
+      awayOdds: g.vegasAwayOdds,
+      openingHomeOdds: g.openingHomeOdds ?? undefined,
+      openingAwayOdds: g.openingAwayOdds ?? undefined,
+      drawOdds: g.vegasDrawOdds || undefined,
+    },
+  };
+}

@@ -1,0 +1,81 @@
+{
+  "task": 233,
+  "primaryClassification": "C — PRODUCTION LAUNCH BLOCKED",
+  "report": "reports/task-233-guarded-production-launch.md",
+  "reportSha256": "b58cae7af6ed5cc03b115888011b12a49eca5af16bdb3d69de16dd11a9e80c53",
+  "artifactsChanged": [
+    "reports/task-233-guarded-production-launch.md",
+    "reports/task-233-verification.json"
+  ],
+  "migrationsAdded": [],
+  "configurationAdded": [],
+  "repositorySecurity": {
+    "authoritativeBranch": "sanitized main",
+    "prohibitedRef": "refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8",
+    "prohibitedRefLocalStatus": "absent",
+    "prohibitedRefTouched": false,
+    "signingCredentialScan": "passed"
+  },
+  "production": {
+    "url": "https://Thebettingmodel.replit.app",
+    "deploymentMetadata": ["public", "autoscale", "successful current build"],
+    "task233DeploymentPerformed": false,
+    "realNextGenPredictionsVerifiedEndToEnd": 0,
+    "todayApi": {
+      "status": 200,
+      "games": 20,
+      "sports": ["MLB", "NCAAF", "Soccer"],
+      "engineModelVersionFieldsPresent": false
+    },
+    "root": {"status": 200, "observed": "Expo install/QR landing page"}
+  },
+  "modelStatus": {
+    "mlb": {"current": "tbm-mlb-moneyline-v1", "moneylineClassification": "CURRENT V1 PRODUCTION INCUMBENT", "challenger": "tbm-mlb-moneyline-v4", "state": "V1 CURRENT / V4 BLOCKED SHADOW", "modeExists": false},
+    "ncaaf": {"current": "tbm-ncaaf-moneyline-v1", "challenger": "tbm-ncaaf-v4-expected-score", "state": "LEGACY CURRENT / NEXT-GEN BLOCKED PREVIEW", "modeExists": false},
+    "nfl": {"current": "tbm-nfl-moneyline-v1", "prospective": "BLOCKED", "blockers": ["no module", "no ledger", "no evaluation", "no scheduler registration"]}
+  },
+  "database": {
+    "productionSchema": {"mlb_v4_evidence_tables": 0, "ncaaf_v4_evidence_tables": 0, "modelVersions": {"tbm-mlb-moneyline-v4": "challenger/shadow"}},
+    "development": {"mlb_v4_model_registry_live_foundation_table_rows": 0},
+    "modelPredictions": {
+      "mlbV1": {"count": 479, "latest": "2026-09-05T21:58:23.842Z"},
+      "mlbV4Challenger": {"count": 40, "latest": "2026-09-05T10:08:23.899Z"},
+      "ncaafV1": {"count": 99, "latest": "2026-07-20"},
+      "nflV1": {"count": 65, "latest": "2026-08-29"},
+      "createdCurrentUtcAuditDate": 0
+    }
+  },
+  "guardedServing": {
+    "mlbV4": "not approved; deployment permanently barred; unfitted shadow-only calibration",
+    "ncaafNextGen": "preview/unvalidated; no publication adapter or approval",
+    "guardedFallbackClassificationSatisfied": false,
+    "fallbackTest": "NOT RUN / BLOCKED",
+    "killSwitchTest": "NOT RUN / BLOCKED",
+    "productionSmokeTest": "NOT RUN / BLOCKED"
+  },
+  "audits": {
+    "mlb": {"collectorTimestamp": "2026-09-06T00:46:46Z", "collectorCycles": 4, "snapshots": 15, "currentCompletePairs": 3, "uniqueStarters": 30, "repeatStarters": 0, "pipelineReady": true, "modelEvidenceReady": false, "modelReady": false, "productionReady": false, "pit": 0, "marketLeakage": 0, "targetLeakage": 0, "actualStarterLeakage": 0},
+    "ncaaf": {"gameDayPredictions": 1205, "allPreviewUnvalidated": true, "approved": 0, "publishable": 0, "legitimateGrades": 0, "approval": false, "runtimeHealth": "PARTIAL", "pit": 0, "marketLeakage": 0, "invalidProbabilities": 0}
+  },
+  "verification": {
+    "apiTests": {"files": 83, "passed": 527},
+    "targetedTypechecks": ["API passed", "admin passed", "mobile passed", "DB passed"],
+    "productionBuilds": ["API passed", "admin passed; large chunk warning only"],
+    "workspaceTypecheck": "failed only on pre-existing unrelated mockup-sandbox PickFirst duplicate property and calendar/spinner React ref typing",
+    "credentialScan": "passed",
+    "gitDiffCheck": "passed",
+    "architectReview": "classification C mandatory; no security issue"
+  },
+  "governance": {
+    "autoRetraining": "disabled",
+    "automaticParameterChanges": "disabled",
+    "automaticPromotion": "disabled",
+    "incumbentsChanged": false,
+    "evidence": "immutable/shadow"
+  },
+  "ownerVisibleRuntimeStatus": {
+    "classification": "AUDIT-DERIVED STATUS",
+    "deployedOwnerVisibleRuntimeIdentityProofSystemExists": false
+  },
+  "recommendedNextTask": "Continue immutable prospective collection/grading and governed approval; separately build NFL prospective evidence foundation. Do not bypass approval or launch barred artifacts."
+}

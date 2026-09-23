@@ -1,0 +1,1586 @@
+TASK #224B-2 — MLB HISTORICAL PITCHER & BULLPEN PIT RECONSTRUCTION
+
+MISSION
+
+Build the historical starting-pitcher and bullpen point-in-time foundation required for MLB V4.
+
+TASK #224B-1 completed with:
+
+B — COMPLETION-TIME GATE MOSTLY RESOLVED
+
+Verified state:
+
+- 9,393 canonical MLB games
+- 9,390 / 9,393 games have chronology-safe completion evidence
+- 3 rain-shortened games remain explicitly quarantined
+- 9,073 original candidates remain core eligible
+- 2,012 chronology-safe locked 2026 OOS candidates
+- 9,393 exact provider responses archived and independently re-parsed
+- deterministic materialization and persisted replay checksums match
+- zero integrity violations in final raw-bound v3 audit
+- 468/468 API tests passed
+- production MLB V1 unchanged
+- MLB V4/V4.1 remain shadow/unvalidated
+- no deployment occurred
+- no other sport changed
+
+The chronology foundation must now be used to reconstruct historical pitcher and bullpen state WITHOUT allowing postgame information to leak backward.
+
+This remains a DATA FOUNDATION task.
+
+DO NOT TRAIN MLB V4.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+For every eligible historical MLB game, reconstruct as much trustworthy information as possible about:
+
+1. The starting pitcher information legitimately available before the target game.
+
+2. Each team's bullpen state legitimately knowable before the target game.
+
+3. Historical pitcher/bullpen outcomes that may be used only for FUTURE games after their completion boundary.
+
+The goal is to create a large PIT-safe MLB dataset capable of supporting a future expected-runs model.
+
+We want MLB V4 eventually to learn:
+
+OFFENSE
++
+STARTING PITCHER
++
+EXPECTED STARTER WORKLOAD
++
+BULLPEN QUALITY
++
+BULLPEN AVAILABILITY/FATIGUE
++
+PARK/CONTEXT WHERE SAFE
+→
+EXPECTED RUNS FOR EACH TEAM
+
+But #224B-2 does NOT train that model.
+
+==================================================
+NON-NEGOTIABLE MODEL INDEPENDENCE
+==================================================
+
+MLB is its own predictive system.
+
+Do NOT borrow:
+
+- NCAAF parameters
+- NFL parameters
+- NBA parameters
+- another sport's calibration
+- another sport's feature weights
+- another sport's scoring distributions
+
+Shared infrastructure is allowed.
+
+Forecasting intelligence must remain MLB-specific.
+
+Changing MLB must produce ZERO predictive changes in:
+
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+Hard rule:
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+==================================================
+SECTION 1 — PRESERVE #224B-1 CHRONOLOGY
+==================================================
+
+Do not weaken or replace the chronology rules established in #224B-1.
+
+For any prior game P and target game G:
+
+P may influence G only if:
+
+canonical_completion_time(P) < feature_cutoff(G)
+
+and all other #224B-1 eligibility requirements pass.
+
+The completion-aware historical replay must remain authoritative.
+
+No pitcher appearance, pitch count, bullpen appearance, result, innings pitched, or other outcome may enter historical state until its source game is proven complete.
+
+The 3 quarantined rain-shortened games must remain quarantined unless genuinely new authoritative evidence resolves them.
+
+Do NOT loosen the gate for coverage.
+
+==================================================
+SECTION 2 — HISTORICAL PITCHER SOURCE DISCOVERY
+==================================================
+
+Audit all legitimate existing sources for historical MLB pitching data.
+
+Search:
+
+- existing database
+- archived provider responses
+- MLB game feeds
+- MLB boxscores
+- MLB play-by-play
+- MLB stats feeds
+- current MLB services
+- existing pitcher ingestion code
+- existing historical scripts
+- existing research artifacts
+- provider archives already available to the project
+
+Determine whether we can recover:
+
+pitcher identity
+team
+handedness
+games started
+appearances
+innings pitched
+batters faced
+runs
+earned runs
+hits
+walks
+strikeouts
+home runs
+pitch count
+strikes
+starter/rest history
+
+And, if legitimately available:
+
+ERA
+FIP
+xFIP
+WHIP
+K%
+BB%
+K-BB%
+HR rate
+GB%
+FB%
+hard-hit rate
+barrel rate
+xERA
+xwOBA allowed
+pitch mix
+velocity
+spin
+
+For every source report:
+
+SOURCE
+SEASONS
+PLAYER COVERAGE
+GAME COVERAGE
+TIMESTAMP/AS-OF SUPPORT
+IDENTITY QUALITY
+PIT SAFETY
+REPRODUCIBILITY
+LIMITATIONS
+
+==================================================
+SECTION 3 — PITCHER IDENTITY BRIDGE
+==================================================
+
+Create/verify deterministic historical pitcher identities.
+
+Required:
+
+canonical_pitcher_id
+provider_pitcher_id
+pitcher_name
+team_at_game
+throws
+season
+game_id
+
+Handle:
+
+- traded pitchers
+- pitchers changing teams
+- rookies
+- call-ups
+- players with same/similar names
+- provider identity changes
+
+Do NOT use fuzzy name matching for ambiguous players without an explicit auditable resolution rule.
+
+Report:
+
+pitchers discovered
+resolved
+unresolved
+ambiguous
+duplicate identities
+games affected
+
+Any ambiguous identity must be excluded from pitcher-dependent eligibility.
+
+==================================================
+SECTION 4 — ACTUAL STARTER VS PREGAME STARTER
+==================================================
+
+This distinction is CRITICAL.
+
+#224B found that actual-only starter identity existed for both teams in approximately 9,384 games.
+
+Actual starter identity is an OUTCOME fact unless there is historical evidence showing that pitcher was expected/confirmed before the game.
+
+Do NOT silently treat:
+
+ACTUAL_STARTER
+
+as:
+
+CONFIRMED_PREGAME_STARTER.
+
+Classify historical starter state:
+
+CONFIRMED_PREGAME
+PROJECTED_PREGAME
+ACTUAL_ONLY
+UNKNOWN
+
+If historical probable/confirmed starter evidence cannot be reconstructed:
+
+retain ACTUAL_ONLY separately.
+
+Do NOT allow hindsight starter identity into pregame feature snapshots.
+
+==================================================
+SECTION 5 — STARTER-IDENTITY FEASIBILITY DECISION
+==================================================
+
+Determine whether historical pregame starter identity can actually be recovered at useful scale.
+
+Report by season:
+
+games
+both starters confirmed pregame
+one starter confirmed
+projected pregame
+actual-only
+unknown
+
+If legitimate pregame starter identity is unavailable historically:
+
+DO NOT destroy the historical foundation.
+
+Instead determine whether MLB V4 baseline training can use a two-stage architecture:
+
+CORE HISTORICAL BASELINE
+without hindsight starter identity
+
++
+
+PROSPECTIVE STARTER ENHANCEMENT
+trained/validated later using live-forward pregame starter evidence.
+
+Alternatively, if a defensible historical source proves starter identity was known before the game, document that provenance and admit it.
+
+No shortcuts.
+
+==================================================
+SECTION 6 — PITCHER OUTCOME LEDGER
+==================================================
+
+Construct a separate immutable pitcher appearance/outcome ledger.
+
+For every historical pitcher appearance where available:
+
+game_id
+pitcher_id
+team_id
+opponent_id
+appearance_order
+starter_flag_actual
+innings_pitched
+batters_faced
+runs_allowed
+earned_runs
+hits_allowed
+walks
+strikeouts
+home_runs_allowed
+pitch_count
+strikes
+appearance_completion_time
+source
+source_hash
+
+These are OUTCOME records.
+
+They MUST NOT enter the same game's pregame features.
+
+They become eligible historical evidence only after:
+
+source_game.canonical_completion_time < target_game.feature_cutoff
+
+==================================================
+SECTION 7 — PITCHER CHRONOLOGICAL STATE
+==================================================
+
+Using only previously completed eligible appearances, reconstruct each pitcher's state before a target game.
+
+Potential PIT-safe rolling values:
+
+career MLB appearances to date
+season appearances to date
+season starts to date
+season innings to date
+
+season:
+ERA
+WHIP
+K%
+BB%
+K-BB%
+HR rate
+
+rolling:
+last 3 appearances
+last 5 appearances
+last 10 appearances
+
+workload:
+days since last appearance
+days since last start
+last appearance pitch count
+last start pitch count
+recent innings
+recent batters faced
+recent pitches
+
+Do NOT calculate a statistic from appearances occurring after target cutoff.
+
+Persist:
+
+stat_through_time
+source_appearance_count
+sample_size
+missingness
+prior_type
+
+==================================================
+SECTION 8 — FIP / ADVANCED STARTER METRICS
+==================================================
+
+If the required underlying events are available, reconstruct metrics chronologically.
+
+For example, FIP must use only:
+
+HR
+BB
+HBP if available
+K
+IP
+
+from appearances completed before target cutoff.
+
+Do NOT use a final-season FIP value for an earlier game.
+
+For every advanced metric classify:
+
+RECONSTRUCTED_PIT_SAFE
+SOURCE_PIT_SAFE
+UNAVAILABLE
+LEAKAGE_RISK
+
+If xFIP, SIERA, xERA, xwOBA, Statcast, pitch mix, velocity, or spin cannot be reconstructed safely:
+
+leave them unavailable.
+
+Do not approximate them using future/full-season data.
+
+==================================================
+SECTION 9 — EXPECTED STARTER WORKLOAD FOUNDATION
+==================================================
+
+MLB V4 will eventually need expected starter innings.
+
+Do NOT train the expected-innings model during #224B-2.
+
+But reconstruct the historical evidence necessary for future estimation.
+
+Potential inputs:
+
+previous start IP
+rolling start IP
+season start IP
+previous pitch count
+rolling pitch count
+days rest
+recent workload
+starter role stability
+opener/bulk role evidence
+
+Prepare outcomes:
+
+actual starter innings
+actual starter batters faced
+actual starter pitch count
+
+Again:
+
+Target-game actual innings are an OUTCOME.
+
+Never a pregame feature for that game.
+
+==================================================
+SECTION 10 — OPENER / BULK / BULLPEN GAMES
+==================================================
+
+Explicitly identify unusual pitching structures where possible:
+
+traditional starter
+opener
+bulk pitcher
+bullpen game
+TBD
+late pitching change
+
+Do not assume the first pitcher used always represents a traditional starter.
+
+If role cannot be known pregame historically, preserve an explicit uncertainty state.
+
+These games may require separate future model treatment.
+
+==================================================
+SECTION 11 — BULLPEN SOURCE DISCOVERY
+==================================================
+
+Audit historical sources for relief-pitcher appearances.
+
+Determine whether we can reconstruct each team's bullpen state before every target game.
+
+Required foundation where possible:
+
+reliever identity
+team
+appearance
+innings
+batters faced
+pitch count
+runs
+earned runs
+walks
+strikeouts
+home runs
+appearance completion
+
+Report source quality and historical coverage.
+
+==================================================
+SECTION 12 — BULLPEN OUTCOME LEDGER
+==================================================
+
+Create an immutable bullpen/team-game outcome ledger.
+
+Potential fields:
+
+game_id
+team_id
+bullpen_innings
+bullpen_batters_faced
+bullpen_runs
+bullpen_earned_runs
+bullpen_hits
+bullpen_walks
+bullpen_strikeouts
+bullpen_home_runs
+relievers_used
+bullpen_pitch_count
+high_leverage_usage if legitimately derivable
+
+Store outcomes separately from pregame features.
+
+A bullpen outcome becomes historical evidence only after the game completion boundary passes.
+
+==================================================
+SECTION 13 — BULLPEN QUALITY PIT STATE
+==================================================
+
+Reconstruct bullpen quality chronologically.
+
+Potential metrics:
+
+season-to-date bullpen ERA
+season-to-date bullpen WHIP
+season-to-date bullpen K%
+season-to-date bullpen BB%
+season-to-date bullpen K-BB%
+season-to-date bullpen HR rate
+
+rolling:
+last 3 games
+last 5 games
+last 10 games
+last 14 days
+last 30 days
+
+If FIP can be legitimately reconstructed:
+
+include PIT bullpen FIP.
+
+Do NOT use final-season bullpen statistics backward.
+
+==================================================
+SECTION 14 — BULLPEN AVAILABILITY / FATIGUE
+==================================================
+
+This is one of the most important MLB-specific feature families.
+
+Using only completed prior appearances, reconstruct reliever workload.
+
+Potential features:
+
+pitches yesterday
+pitches last 2 days
+pitches last 3 days
+innings yesterday
+innings last 2 days
+innings last 3 days
+appearances yesterday
+appearances last 2 days
+appearances last 3 days
+back-to-back usage
+three-days-in-a-row usage
+days since last appearance
+
+At team level derive deterministic, NON-TRAINED descriptive states such as:
+
+AVAILABLE
+NORMAL
+WORKED
+TIRED
+VERY_TIRED
+UNKNOWN
+
+Do not optimize thresholds against game outcomes in this task.
+
+If thresholds already exist in current production code, document them rather than silently changing them.
+
+==================================================
+SECTION 15 — RELIEVER QUALITY & AVAILABILITY
+==================================================
+
+Where identities are reliable, determine which relievers were likely available before a target game based only on prior workload.
+
+Do NOT use knowledge of whether a reliever actually appeared in the target game.
+
+That would be leakage.
+
+Example:
+
+If closer X threw 35 pitches the night before, that is valid pregame evidence.
+
+If closer X did not pitch in the target game, that fact is NOT pregame evidence.
+
+Maintain the distinction.
+
+==================================================
+SECTION 16 — BULLPEN DEPTH
+==================================================
+
+Determine whether a historical team-level bullpen-depth measure can be reconstructed without hindsight.
+
+Possible approach:
+
+quality distribution of relievers with prior MLB evidence
++
+recent workload
+
+Do NOT use the target game's reliever usage to define who was available.
+
+If roster membership cannot be proven at target cutoff, use conservative team-level bullpen aggregates rather than fabricated reliever availability.
+
+==================================================
+SECTION 17 — EARLY-SEASON PITCHER PRIORS
+==================================================
+
+April and early-season games require special treatment.
+
+Determine what PIT-safe prior information exists for pitchers:
+
+previous MLB season
+multi-year MLB history
+career history before target date
+league-average prior
+rookie/unknown state
+
+Do NOT train prior weights.
+
+Prepare explicit provenance states:
+
+CURRENT_SEASON_SAMPLE
+PRIOR_SEASON_HISTORY
+MULTIYEAR_HISTORY
+ROOKIE_OR_NO_MLB_HISTORY
+LEAGUE_PRIOR_REQUIRED
+
+==================================================
+SECTION 18 — EARLY-SEASON BULLPEN PRIORS
+==================================================
+
+Likewise determine what safe information exists for bullpen quality early in the season.
+
+Potential:
+
+prior-season team bullpen
+returning reliever history
+league prior
+current-season observations as they accumulate
+
+Do not use later-season bullpen performance backward.
+
+==================================================
+SECTION 19 — TRADED PITCHERS / RELIEVERS
+==================================================
+
+Pitcher skill history should follow the player chronologically.
+
+Team bullpen state should follow the TEAM.
+
+Example:
+
+A reliever traded from Team A to Team B:
+
+his prior personal pitching history may remain part of his individual history.
+
+But Team A's bullpen state must not transfer to Team B.
+
+And Team B's prior bullpen state must not be attributed to him personally.
+
+Test trade boundaries explicitly.
+
+==================================================
+SECTION 20 — DOUBLEHEADER PITCHER/BULLPEN STATE
+==================================================
+
+Reuse #224B-1 completion chronology.
+
+For Game 2 of a doubleheader:
+
+Game 1 pitching/bullpen usage may affect Game 2 only if:
+
+Game 1 completion_time < Game 2 feature_cutoff.
+
+If Game 2 pregame snapshot/cutoff predates Game 1 completion:
+
+Game 1 workload must NOT appear.
+
+Do not use calendar ordering alone.
+
+==================================================
+SECTION 21 — SUSPENDED / RESUMED PITCHING
+==================================================
+
+A pitcher's/bullpen's workload from a suspended game becomes final historical evidence only according to the approved completion policy.
+
+Do not let partial game outcomes leak into future feature state unless the historical framework explicitly supports and timestamps that partial information.
+
+Conservative behavior is preferred.
+
+==================================================
+SECTION 22 — RAIN-SHORTENED QUARANTINE
+==================================================
+
+The 3 #224B-1 quarantined rain-shortened games remain quarantined.
+
+Do not use their pitcher/bullpen outcomes unless chronology and settlement evidence genuinely become safe.
+
+Do not resolve them merely to improve coverage.
+
+==================================================
+SECTION 23 — PREGAME PITCHER FEATURE SNAPSHOT
+==================================================
+
+Design/version the MLB pitcher PIT feature schema.
+
+Potential fields:
+
+canonical_game_id
+team_id
+opponent_id
+feature_cutoff
+
+pregame_starter_id
+starter_identity_state
+starter_handedness
+
+starter_season_ip
+starter_season_era
+starter_season_whip
+starter_season_k_pct
+starter_season_bb_pct
+starter_season_k_minus_bb_pct
+starter_season_hr_rate
+starter_season_fip if safe
+
+starter_recent_ip
+starter_recent_era
+starter_recent_whip
+starter_recent_k_pct
+starter_recent_bb_pct
+
+starter_days_rest
+starter_last_start_ip
+starter_last_start_pitch_count
+starter_recent_workload
+
+starter_sample_size
+starter_prior_state
+starter_feature_completeness
+
+stat_through_time
+source_hash
+
+Only include fields that are genuinely available.
+
+==================================================
+SECTION 24 — PREGAME BULLPEN FEATURE SNAPSHOT
+==================================================
+
+Design/version the MLB bullpen PIT feature schema.
+
+Potential fields:
+
+canonical_game_id
+team_id
+opponent_id
+feature_cutoff
+
+bullpen_season_ip
+bullpen_season_era
+bullpen_season_whip
+bullpen_season_k_pct
+bullpen_season_bb_pct
+bullpen_season_k_minus_bb_pct
+bullpen_season_hr_rate
+bullpen_season_fip if safe
+
+bullpen_last_3_ip
+bullpen_last_5_ip
+bullpen_last_10_era
+
+bullpen_pitches_last_1d
+bullpen_pitches_last_2d
+bullpen_pitches_last_3d
+bullpen_innings_last_1d
+bullpen_innings_last_2d
+bullpen_innings_last_3d
+
+relievers_used_last_1d
+relievers_used_last_2d
+back_to_back_relievers
+three_day_relievers
+
+bullpen_fatigue_state
+bullpen_sample_size
+bullpen_feature_completeness
+
+stat_through_time
+source_hash
+
+Again:
+
+Only persist legitimate data.
+
+==================================================
+SECTION 25 — MISSINGNESS
+==================================================
+
+Never convert unknown historical pitching information into fake certainty.
+
+Explicitly represent:
+
+starter_unknown
+starter_small_sample
+starter_actual_only
+pitch_count_missing
+bullpen_identity_incomplete
+bullpen_workload_incomplete
+advanced_metrics_unavailable
+
+Future models can learn/use missingness appropriately.
+
+#224B-2 must not hide it.
+
+==================================================
+SECTION 26 — REBUILD CORE ELIGIBILITY
+==================================================
+
+Current chronology-safe baseline:
+
+9,073 core-eligible chronology candidates.
+
+After pitcher/bullpen reconstruction classify games into tiers.
+
+Suggested:
+
+CORE_OFFENSE_ELIGIBLE
+
+Chronology + offense baseline safe.
+
+PITCHER_CORE_ELIGIBLE
+
+Chronology + legitimate pregame starter evidence.
+
+BULLPEN_CORE_ELIGIBLE
+
+Chronology + bullpen quality/workload evidence.
+
+FULL_CORE_ELIGIBLE
+
+Chronology + offense + starter + bullpen foundation sufficient for baseline expected-runs training.
+
+ENHANCED_ELIGIBLE
+
+Optional richer evidence also available.
+
+Do NOT change requirements merely to inflate counts.
+
+Report exact counts by season.
+
+==================================================
+SECTION 27 — HISTORICAL REPLAY
+==================================================
+
+Re-run the entire MLB historical timeline.
+
+For each target game:
+
+1. establish target cutoff
+
+2. admit only completed prior games
+
+3. construct offense state
+
+4. construct pitcher state
+
+5. construct bullpen state
+
+6. freeze feature snapshot
+
+7. do NOT expose target outcome
+
+8. advance chronology
+
+9. after canonical completion, add target pitching/bullpen outcomes to historical state
+
+10. continue
+
+This must be deterministic.
+
+==================================================
+SECTION 28 — PITCHER LEAKAGE TESTS
+==================================================
+
+At minimum test:
+
+1. Target-game pitcher outcome never enters target pregame features.
+
+2. Later pitcher appearances never enter earlier games.
+
+3. Full-season ERA is never applied backward.
+
+4. Actual starter identity is not treated as pregame-confirmed without provenance.
+
+5. Actual target-game innings do not become expected innings.
+
+6. Target-game pitch count does not enter pregame workload.
+
+7. Post-trade history follows correct player/team logic.
+
+8. Rookie missingness remains explicit.
+
+9. Same-day doubleheader pitcher usage follows completion chronology.
+
+10. Suspended-game pitching does not leak prematurely.
+
+Any failure is a HARD FAILURE.
+
+==================================================
+SECTION 29 — BULLPEN LEAKAGE TESTS
+==================================================
+
+At minimum test:
+
+1. Target-game reliever usage never defines target pregame availability.
+
+2. Target-game bullpen result never enters target features.
+
+3. Later games never enter earlier bullpen rolling state.
+
+4. Full-season bullpen metrics are not applied backward.
+
+5. Doubleheader workload follows actual completion chronology.
+
+6. Reliever non-use in target game is not interpreted as pregame unavailability.
+
+7. Trades do not corrupt team bullpen state.
+
+8. Missing roster evidence remains explicit.
+
+9. Suspended-game bullpen workload does not leak prematurely.
+
+10. Bullpen state is deterministic.
+
+Any failure is a HARD FAILURE.
+
+==================================================
+SECTION 30 — DATA QUALITY BY SEASON
+==================================================
+
+Report separately for:
+
+2023
+2024
+2025
+2026
+
+For each:
+
+games
+chronology-safe games
+
+starter identity:
+confirmed pregame
+projected pregame
+actual-only
+unknown
+
+starter PIT features:
+eligible
+partial
+unavailable
+
+bullpen:
+outcome coverage
+quality coverage
+workload coverage
+availability coverage
+
+full-core eligible
+enhanced eligible
+quarantined
+
+Do not hide poor historical coverage behind an overall percentage.
+
+==================================================
+SECTION 31 — LOCKED 2026 OOS PROTECTION
+==================================================
+
+Current chronology-safe locked 2026 OOS:
+
+2,012 games.
+
+This cohort is extremely important.
+
+DO NOT:
+
+train on it
+tune against it
+select features based on its model performance
+change its date window because future model performance is disappointing
+
+You may reconstruct PIT features for it.
+
+But it remains LOCKED for future evaluation.
+
+Report:
+
+original locked count: 2,012
+pitcher-feature eligible
+bullpen-feature eligible
+full-core eligible
+excluded/quarantined
+
+No new games may be added to the locked cohort without explicit justification.
+
+==================================================
+SECTION 32 — LINEUPS / WEATHER / ADVANCED FEATURES
+==================================================
+
+Do NOT expand this task unnecessarily.
+
+Historical lineups, historical weather forecasts, Statcast, pitch mix, velocity/spin, and other advanced features are NOT the primary objective of #224B-2.
+
+If an existing source makes one of these trivially and safely available, document it.
+
+Otherwise leave them for later/prospective enhancement.
+
+The first MLB V4 baseline does NOT need every sophisticated baseball feature.
+
+We need a clean, large, trustworthy baseline first.
+
+==================================================
+SECTION 33 — MARKET FIREWALL
+==================================================
+
+Sportsbook information must remain completely excluded from pitcher and bullpen sports features.
+
+Do not use:
+
+moneyline
+run line
+total
+implied probability
+market consensus
+Pinnacle
+opening price
+closing price
+line movement
+CLV
+market edge
+
+to construct pitcher quality, bullpen quality, fatigue, starter priors, or any sports forecast input.
+
+Historical market data remains separate.
+
+Target:
+
+MARKET LEAKAGE = 0
+
+==================================================
+SECTION 34 — CURRENT V4 LOW-RUN BIAS
+==================================================
+
+Preserve the #224A known failure:
+
+79-game diagnostic replay
+total-run bias approximately -2.327 runs/game
+76/79 projected totals below 8 runs
+
+DO NOT attempt to fix it.
+
+DO NOT change:
+
+4.50 run prior
+starter weighting
+bullpen weighting
+run clamps
+distribution
+calibration
+V4 coefficients
+V4.1
+
+#224C will address model construction after this foundation is approved.
+
+==================================================
+SECTION 35 — PROJECTED SCORE FOUNDATION
+==================================================
+
+The eventual MLB V4 must support real outputs:
+
+home_expected_runs
+away_expected_runs
+
+Example internal:
+
+ATL 4.38
+PHI 2.21
+
+Future UI:
+
+MODEL PROJECTED SCORE
+
+ATL 4 — PHI 2
+
+#224B-2 must prepare legitimate pitcher/bullpen evidence for those expected-run estimates.
+
+Do NOT publish scores yet.
+
+Do NOT modify UI.
+
+==================================================
+SECTION 36 — GLOBAL SIX-PICK CAP
+==================================================
+
+#224A/#224B identified a global publication-cap concern.
+
+Do NOT modify it here.
+
+Future desired behavior remains:
+
+Each sport independently determines its qualifying card.
+
+Cross-sport ranking happens afterward for products such as Play of the Day.
+
+Pitcher/bullpen reconstruction must not interact with publication capacity.
+
+==================================================
+SECTION 37 — APPEND-ONLY / IMMUTABILITY
+==================================================
+
+Preserve the append-only historical architecture.
+
+Do not destructively overwrite:
+
+feature snapshots
+outcomes
+canonical chronology
+provider archives
+production forecasts
+production picks
+market snapshots
+
+Version schema/materializations where necessary.
+
+Maintain/re-run append-only guards.
+
+==================================================
+SECTION 38 — DETERMINISM
+==================================================
+
+Run historical pitcher/bullpen materialization at least twice.
+
+Require identical:
+
+pitcher identities
+appearance ledgers
+starter classifications
+pitcher rolling states
+bullpen outcomes
+bullpen rolling states
+feature snapshots
+eligibility classifications
+quarantines
+hashes
+
+Report:
+
+dataset checksum
+pitcher ledger checksum
+bullpen ledger checksum
+replay checksum
+second-run checksum
+mismatch count
+
+Target:
+
+0 mismatches.
+
+==================================================
+SECTION 39 — PERFORMANCE / SCALE
+==================================================
+
+Report:
+
+games processed
+pitcher appearances processed
+bullpen appearances processed
+feature rows generated
+build duration
+provider requests if any
+cache usage
+database impact
+replay duration
+
+Do not weaken correctness for speed.
+
+==================================================
+SECTION 40 — REGRESSION TESTS
+==================================================
+
+Run all focused tests plus required regressions.
+
+At minimum:
+
+MLB chronology tests
+MLB PIT tests
+pitcher identity tests
+pitcher leakage tests
+bullpen leakage tests
+doubleheader tests
+suspended-game tests
+trade tests
+append-only tests
+market-firewall tests
+database tests
+API tests if affected
+DB/library/API typechecks
+API production build
+signing credential scan
+diff validation
+
+Confirm other sports remain unchanged.
+
+==================================================
+SECTION 41 — SECURITY / #223D-2
+==================================================
+
+The protected contaminated Git ref remains a separate Replit Support issue unless owner provides evidence that it has been removed.
+
+Do NOT:
+
+attempt deletion
+force push
+rewrite history
+modify Apple credentials
+modify EAS credentials
+deploy
+push
+
+Do not interfere with #223D-2.
+
+==================================================
+SECTION 42 — TRAINING FOUNDATION DECISION
+==================================================
+
+At the end determine whether we now possess enough PIT-safe baseball evidence to authorize actual MLB V4 expected-runs training.
+
+Return exactly one:
+
+A — MLB V4 CORE TRAINING FOUNDATION READY
+
+Large chronology-safe dataset exists with legitimate offense + starter + bullpen pregame evidence and protected chronological validation/OOS cohorts.
+
+B — MLB V4 BASELINE TRAINING FOUNDATION READY
+
+Large chronology-safe dataset exists, but one or more enhanced pitching/bullpen components must remain prospective-only. A legitimate simpler expected-runs baseline can nevertheless be trained.
+
+C — PITCHER/BULLPEN FOUNDATION PARTIAL
+
+Coverage improved, but the available pregame pitching evidence is insufficient for legitimate V4 training.
+
+D — PITCHER/BULLPEN FOUNDATION UNSAFE
+
+Leakage, identity, chronology, or provenance problems prevent legitimate training.
+
+Do NOT choose A just because many rows exist.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+#224B-2 succeeds if we can answer:
+
+1. How many games have legitimate pregame starter identity?
+
+2. How many have only actual starter identity?
+
+3. What historical starter statistics can be reconstructed PIT-safe?
+
+4. Can expected-starter-workload inputs be built safely?
+
+5. Can bullpen quality be reconstructed chronologically?
+
+6. Can bullpen workload/fatigue be reconstructed chronologically?
+
+7. Are pitcher and reliever identities deterministic?
+
+8. Are trades handled correctly?
+
+9. Are doubleheaders handled correctly?
+
+10. Are target-game outcomes fully isolated?
+
+11. Is sportsbook leakage zero?
+
+12. How many games are full-core eligible?
+
+13. How many locked 2026 OOS games have complete core evidence?
+
+14. Can MLB V4 expected-runs training legitimately begin?
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #224B-2 — MLB HISTORICAL PITCHER & BULLPEN PIT REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Classification:
+Games audited:
+Chronology-safe:
+Full-core eligible:
+Pitcher-core eligible:
+Bullpen-core eligible:
+Enhanced eligible:
+Locked OOS full-core:
+PIT violations:
+Market leakage:
+
+## 2. SOURCE INVENTORY
+
+Every pitching/bullpen source investigated.
+
+## 3. PITCHER IDENTITY
+
+Pitchers:
+Resolved:
+Unresolved:
+Ambiguous:
+Duplicate:
+Games affected:
+
+## 4. STARTER STATE
+
+By season:
+
+Confirmed pregame:
+Projected pregame:
+Actual only:
+Unknown:
+
+Explain exact training-safe treatment.
+
+## 5. PITCHER OUTCOME LEDGER
+
+Appearances:
+Starts:
+Relief appearances:
+Coverage:
+Missingness:
+Checksum:
+
+## 6. STARTER PIT FEATURES
+
+List exact reconstructed features.
+
+Coverage:
+Sample-size behavior:
+Prior handling:
+Missingness:
+
+## 7. EXPECTED STARTER WORKLOAD FOUNDATION
+
+Historical inputs available:
+Historical outcomes available:
+Coverage:
+Limitations:
+
+Confirm no expected-innings model was trained.
+
+## 8. BULLPEN OUTCOME LEDGER
+
+Games:
+Teams:
+Reliever appearances:
+Coverage:
+Checksum:
+
+## 9. BULLPEN PIT FEATURES
+
+Quality features:
+Workload features:
+Fatigue features:
+Availability features:
+Coverage:
+
+## 10. EARLY-SEASON PRIORS
+
+Pitcher:
+Bullpen:
+
+Document safe historical information only.
+
+## 11. TRADES / ROLE CHANGES
+
+Cases:
+Resolution:
+Violations:
+
+## 12. DOUBLEHEADERS / SPECIAL GAMES
+
+Cases:
+Safe:
+Quarantined:
+Violations:
+
+## 13. ELIGIBILITY BY SEASON
+
+2023:
+2024:
+2025:
+2026:
+
+For each:
+
+chronology-safe
+offense-core
+pitcher-core
+bullpen-core
+full-core
+enhanced
+quarantined
+
+## 14. LOCKED 2026 OOS
+
+Original locked:
+Pitcher-core:
+Bullpen-core:
+Full-core:
+Excluded:
+New members added: MUST BE 0 unless explicitly justified.
+
+Confirm no model training/tuning used the OOS outcomes.
+
+## 15. MARKET FIREWALL
+
+PASS / FAIL
+
+Sportsbook leakage count:
+
+Target = 0.
+
+## 16. PIT / LEAKAGE AUDIT
+
+List every pitcher/bullpen leakage test and PASS/FAIL.
+
+Target:
+
+0 future-information violations
+0 target-outcome leakage
+0 invalid starter confirmation
+0 target bullpen usage leakage
+0 invalid chronology
+0 market leakage
+
+## 17. DETERMINISM
+
+Dataset hash:
+Pitcher ledger hash:
+Bullpen ledger hash:
+Replay hash:
+Second-run hash:
+Mismatch count:
+
+## 18. PERFORMANCE / SCALE
+
+Games:
+Appearances:
+Rows:
+Build time:
+Replay time:
+Provider calls:
+DB impact:
+
+## 19. CROSS-SPORT REGRESSION
+
+NCAAF unchanged:
+NFL unchanged:
+NBA unchanged:
+WNBA unchanged:
+NHL unchanged:
+Soccer unchanged:
+UFC unchanged:
+
+## 20. TEST / BUILD RESULTS
+
+Exact commands/results.
+
+## 21. KNOWN V4 LOW-RUN FAILURE
+
+Confirm:
+
+No tuning performed.
+No V4/V4.1 coefficients changed.
+Known -2.327 run/game diagnostic bias preserved for future #224C comparison.
+
+## 22. PRODUCTION STATE
+
+Confirm:
+
+tbm-mlb-moneyline-v1 unchanged
+V4 shadow only
+V4.1 shadow only
+no publication changes
+no projected-score UI changes
+no six-pick-cap changes
+no deployment
+no push
+
+## 23. RISKS / REMAINING GAPS
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+## 24. FINAL CLASSIFICATION
+
+Return exactly one:
+
+A — MLB V4 CORE TRAINING FOUNDATION READY
+
+B — MLB V4 BASELINE TRAINING FOUNDATION READY
+
+C — PITCHER/BULLPEN FOUNDATION PARTIAL
+
+D — PITCHER/BULLPEN FOUNDATION UNSAFE
+
+Explain why.
+
+## 25. NEXT RECOMMENDED TASK
+
+If A or B:
+
+Recommend:
+
+#224C — MLB V4 EXPECTED-RUNS MODEL BUILD, TRAINING & CHRONOLOGICAL VALIDATION
+
+But DO NOT execute it.
+
+If C:
+
+Specify the shortest safe prerequisite required before #224C.
+
+If D:
+
+Stop and identify the integrity problem.
+
+==================================================
+HARD STOP
+==================================================
+
+After completing #224B-2:
+
+STOP.
+
+DO NOT begin #224C.
+
+DO NOT train MLB V4.
+
+DO NOT retune V4/V4.1.
+
+DO NOT modify tbm-mlb-moneyline-v1.
+
+DO NOT promote any MLB challenger.
+
+DO NOT publish projected scores.
+
+DO NOT redesign MLB analytics.
+
+DO NOT change publication thresholds.
+
+DO NOT change the global six-pick cap.
+
+DO NOT start NFL V4.
+
+DO NOT modify NCAAF.
+
+DO NOT deploy.
+
+DO NOT push.
+
+DO NOT manipulate Git history.
+
+DO NOT touch Apple/EAS credentials.
+
+Return the complete report and wait for owner review.

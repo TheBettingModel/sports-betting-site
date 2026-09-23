@@ -1,0 +1,524 @@
+Integrate a complete data, evaluation, and machine-learning feedback system into The Betting Model.
+
+## Central requirement
+
+The existing TBM FastAPI backend and Neon PostgreSQL database must remain the single source of truth.
+
+Do not create a disconnected prediction model inside the frontend.
+
+The application must collect data, save every prediction, grade every result, evaluate model performance, create reproducible training datasets, test proposed improvements, and deploy only approved model versions.
+
+The system must improve through controlled historical learning and validation. It must not automatically modify the production model after each individual win or loss.
+
+## 1. Database architecture
+
+Create or extend normalized PostgreSQL tables for:
+
+* sports
+* leagues
+* seasons
+* teams
+* players
+* games
+* game_results
+* sportsbooks
+* markets
+* odds_snapshots
+* closing_lines
+* injuries
+* lineups
+* weather_snapshots
+* raw_source_data
+* feature_definitions
+* feature_snapshots
+* model_versions
+* model_predictions
+* published_picks
+* pick_results
+* performance_metrics
+* training_datasets
+* training_runs
+* backtest_runs
+* model_comparisons
+* deployment_history
+* automation_runs
+* data_quality_alerts
+* model_drift_alerts
+
+Use foreign keys, indexes, uniqueness constraints, UTC timestamps, and migration files.
+
+Do not store critical information only in JSON when it needs to be queried frequently. JSON fields may be used for complete feature snapshots and source payload archives.
+
+Never delete or overwrite an original prediction snapshot after a game begins.
+
+## 2. Canonical identifiers
+
+Every record must use stable identifiers for:
+
+* Sport
+* League
+* Season
+* Game
+* Team
+* Player
+* Sportsbook
+* Market
+* Prediction
+* Published pick
+* Model version
+
+Create provider-mapping tables so different data sources can map their team, player and game identifiers to TBM canonical identifiers.
+
+Do not match games using team-name strings alone.
+
+## 3. Odds-history collection
+
+Save timestamped sportsbook odds throughout the life of each market.
+
+For each odds snapshot, record:
+
+* Game
+* Sportsbook
+* Market
+* Selection
+* Price
+* Line
+* Timestamp
+* Source
+* Market status
+* Whether the quote was available
+* Whether it was identified as stale
+* Whether it was the best available price
+
+Capture:
+
+* Opening line
+* Current line
+* Line at prediction
+* Line at publication
+* Best available line
+* Sharp-book line
+* Consensus line
+* Closing line
+
+Use this history for steam detection, reverse line movement, line shopping, CLV and market-timing analysis.
+
+## 4. Immutable prediction snapshots
+
+Every model evaluation must save an immutable prediction record before the game.
+
+Store:
+
+* Prediction ID
+* Game ID
+* Model version
+* Sport
+* Market
+* Selection
+* Odds
+* Sportsbook
+* Model probability
+* Implied probability
+* Fair probability
+* Edge
+* Confidence
+* Grade
+* Recommendation
+* Units
+* Universal POD score
+* Universal Final Rating
+* Market Intelligence Grade
+* Sharp signals
+* Line-shopping information
+* Feature snapshot
+* Prediction timestamp
+* Data cutoff timestamp
+
+Historical predictions must never be recalculated using updated information.
+
+## 5. Feature store
+
+Build a versioned feature system.
+
+Each feature definition must include:
+
+* Feature name
+* Description
+* Data type
+* Sport
+* Market
+* Source
+* Calculation method
+* Version
+* Data availability timing
+* Missing-value policy
+* Active status
+
+Save the exact feature values used for every prediction.
+
+Make sure training features and live prediction features use the same definitions and transformation code.
+
+## 6. Data leakage prevention
+
+A prediction or training row may use only information available before its data cutoff timestamp.
+
+Never use:
+
+* Final scores
+* Closing lines when predicting earlier prices
+* Confirmed information released after the prediction
+* Season statistics containing the game being predicted
+* Future injury or lineup updates
+* Any postgame feature
+
+Add automated leakage tests to the dataset-building pipeline.
+
+## 7. Automated grading
+
+Create market-specific grading functions for:
+
+* Moneyline
+* Spread
+* Run line
+* Totals
+* First five innings
+* NRFI
+* YRFI
+* First quarter
+* Soccer three-way moneyline
+* Soccer spread and totals
+* UFC moneyline
+* Pushes
+* Voids
+* Postponements
+
+For every published pick, save:
+
+* Result
+* Units risked
+* Units won or lost
+* Final score
+* Closing price
+* Closing line
+* CLV
+* Grading timestamp
+* Grading source
+* Manual override history
+
+Never change a graded result without creating an audit record.
+
+## 8. Evaluation metrics
+
+Calculate performance using:
+
+* Record
+* Units
+* ROI
+* Win rate
+* Closing-line value
+* Average CLV
+* Positive-CLV rate
+* Brier score
+* Log loss
+* Accuracy
+* Probability calibration
+* Maximum drawdown
+* Average odds
+* Sample size
+
+Break the metrics down by:
+
+* Sport
+* League
+* Market
+* Model version
+* Season
+* Month
+* Odds bucket
+* Edge bucket
+* Confidence bucket
+* Grade
+* Recommendation
+* Sportsbook
+* Favorite or underdog
+* Home or away
+* Time before game
+* Play of the Day status
+* Sharp signal
+* Injury certainty
+* Market-movement category
+
+Always display sample size beside performance metrics.
+
+## 9. Probability calibration
+
+Build calibration reports that compare predicted probabilities with actual outcomes.
+
+Use probability buckets and calibration curves.
+
+Provide model-calibration methods that can be trained on validation data without modifying historical predictions.
+
+Do not treat the frontend confidence score as an arbitrary display value. Confidence should be derived from measurable model information and calibrated historical performance.
+
+## 10. Dataset builder
+
+Create reproducible training datasets from the database.
+
+Each dataset must have:
+
+* Dataset ID
+* Creation timestamp
+* Sport
+* Market
+* Included seasons
+* Feature versions
+* Outcome definition
+* Data cutoff rules
+* Row count
+* Missing-data report
+* Source versions
+* Dataset checksum
+
+Build datasets using chronological ordering.
+
+Prevent duplicates and leakage.
+
+## 11. Sport-specific model pipelines
+
+Use separate training and evaluation pipelines for different sports and markets.
+
+Do not train one generic model to replace all TBM sport models.
+
+Keep shared utilities for:
+
+* Data validation
+* Vig removal
+* Calibration
+* Market intelligence
+* Line shopping
+* Performance evaluation
+* Model registration
+* Backtesting
+
+Allow sport-specific models to feed the existing Universal POD and ranking systems.
+
+## 12. Backtesting
+
+Create a walk-forward backtesting system.
+
+For every proposed model:
+
+* Train only on prior data
+* Validate on later data
+* Test on unseen chronological data
+* Use realistic odds available at the intended prediction time
+* Compare with the current production model
+* Compare with implied market probability
+* Calculate financial and probabilistic metrics
+* Record sample sizes
+* Test multiple seasons where available
+* Include transaction assumptions and realistic line availability
+
+Do not approve models based only on in-sample accuracy.
+
+## 13. Model registry
+
+Create a model registry containing:
+
+* Model ID
+* Version
+* Sport
+* Market
+* Status
+* Training dataset
+* Feature versions
+* Training period
+* Validation period
+* Test period
+* Hyperparameters
+* Evaluation metrics
+* Artifact location
+* Creation timestamp
+* Approval timestamp
+* Deployment timestamp
+* Approving user
+* Rollback target
+
+Supported statuses should include:
+
+* Development
+* Challenger
+* Approved
+* Production
+* Retired
+* Rejected
+
+## 14. Champion–challenger testing
+
+The current production model is the champion.
+
+New models must run as challengers before they can affect published picks.
+
+A challenger should:
+
+* Generate private predictions
+* Save full prediction snapshots
+* Be graded against actual outcomes
+* Be compared with the champion
+* Remain hidden from public users
+* Require a minimum sample size
+* Pass predefined performance requirements
+* Require Master Account Holder approval before deployment
+
+Do not automatically promote a challenger based on a short winning streak.
+
+## 15. Drift and health monitoring
+
+Monitor:
+
+* Feature drift
+* Prediction drift
+* Edge distribution
+* Confidence distribution
+* Average odds
+* Missing-data rate
+* Prediction count
+* Calibration
+* CLV
+* ROI
+* Source freshness
+* Failed automation jobs
+
+Create warnings when a distribution or performance metric moves beyond configured limits.
+
+A health warning must not automatically rewrite the model. It should trigger review or temporarily reduce publication when data quality is unsafe.
+
+## 16. Automated workflows
+
+Create scheduled backend jobs for:
+
+* Odds ingestion
+* Sports-stat ingestion
+* Injury ingestion
+* Lineup confirmation
+* Weather ingestion
+* Prediction generation
+* Prediction snapshot storage
+* Pick publication
+* Closing-line capture
+* Result ingestion
+* Pick grading
+* Analytics refresh
+* Drift monitoring
+* Dataset generation
+* Challenger training
+* Backtesting
+* Database backup
+
+Every run must store:
+
+* Job name
+* Start time
+* End time
+* Status
+* Records processed
+* Error details
+* Retry count
+* Model version
+* Data-source freshness
+
+Make all jobs idempotent so rerunning one does not create duplicate predictions, odds snapshots, results or graded picks.
+
+## 17. Production safety
+
+Require Master Account Holder approval before:
+
+* Deploying a model
+* Retiring a production model
+* Changing model thresholds
+* Changing unit-sizing rules
+* Changing Play of the Day ranking rules
+* Regrading a result
+* Deleting historical data
+* Changing data providers
+
+Maintain complete audit logs.
+
+Add immediate model rollback support.
+
+## 18. API endpoints
+
+Create protected FastAPI endpoints for:
+
+* Prediction history
+* Pick history
+* Odds history
+* Closing lines
+* Graded results
+* Analytics
+* Calibration reports
+* Model versions
+* Training runs
+* Backtests
+* Champion–challenger comparison
+* Model drift
+* Automation status
+* Data-quality alerts
+* Model approval
+* Deployment
+* Rollback
+
+Public endpoints must never expose private model code, secret feature calculations, premium picks or administrator controls.
+
+## 19. Admin dashboard
+
+Create a Master Account Holder dashboard showing:
+
+* Current production models
+* Active challenger models
+* Last successful data refresh
+* Prediction volume
+* Ungraded picks
+* Missing closing lines
+* Data-quality alerts
+* Model-drift alerts
+* Calibration
+* CLV
+* ROI
+* Champion-versus-challenger results
+* Automation failures
+* Deployment and rollback controls
+
+All administrative permissions must be verified by the backend.
+
+## 20. Development process
+
+Implement this system incrementally.
+
+For every step:
+
+1. Inspect the existing backend and database first.
+2. Preserve all working model behavior.
+3. Explain the proposed database and code changes.
+4. Create migration files.
+5. Provide complete code for every changed file.
+6. Add tests.
+7. Run the tests.
+8. Run the production build.
+9. Fix every error.
+10. Provide exact Git add, commit and push commands.
+
+Begin with:
+
+1. Database schema audit
+2. Immutable prediction snapshots
+3. Odds-history storage
+4. Results grading
+5. Closing-line capture
+6. Performance analytics
+7. Model registry
+8. Dataset builder
+9. Backtesting
+10. Champion–challenger testing
+
+Do not begin by replacing the existing TBM prediction logic.

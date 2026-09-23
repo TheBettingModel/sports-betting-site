@@ -1,0 +1,418 @@
+#216C — NCAAF Composed Havoc Path Firewall Fix
+
+AUTHORITATIVE CURRENT STATE:
+
+#216 direct-path fix was insufficient.
+
+Production verification returned:
+
+C. #216 FIX REGRESSED — SNAPSHOT OR FIREWALL FAILURE
+
+Exact rejected path:
+
+suppliedDomains.<side>.earlySeasonPrior.payload.components[1].payload.defense.havoc.total
+
+The existing exception currently handles only:
+
+suppliedDomains.<side>.earlySeasonPrior.payload.defense.havoc.total
+
+Scheduler/locking is NOT the current blocker.
+
+Current production state:
+- advisory lock healthy
+- current advisory lock rows: 0
+- RUNNING evidence rows: 0
+- STALE_RUNNING rows: 0
+- latest run finalized FAILED through stale reconciliation
+- v2 snapshots remain 661
+- new v2 snapshots: 0
+- new CFBD-enriched snapshots: 0
+
+DO NOT:
+- begin #222
+- modify model formulas
+- weaken the sportsbook market firewall globally
+- modify PIT logic
+- modify publication
+- modify NFL
+- modify MLB
+- modify other sports
+
+============================================================
+OBJECTIVE
+============================================================
+
+Fix the market-firewall classifier so legitimate NCAAF football havoc-total fields are accepted when they appear either:
+
+1. directly under earlySeasonPrior payload
+
+or
+
+2. inside composed earlySeasonPrior component payloads
+
+while generic sportsbook total fields remain rejected.
+
+============================================================
+1. TRACE THE EXACT CLASSIFIER
+============================================================
+
+Identify the exact code path responsible for classifying nested field paths as market-shaped.
+
+Report:
+
+- file
+- function
+- current matching logic
+- direct-path exception
+- why components[n] breaks the current exception
+
+Do not change anything until the failure is clearly identified.
+
+============================================================
+2. DEFINE ALLOWED FOOTBALL SEMANTICS
+============================================================
+
+Allowed semantic field:
+
+defense.havoc.total
+
+Only when it is part of a verified FOOTBALL PERFORMANCE evidence domain.
+
+Valid expected shapes include:
+
+suppliedDomains.<side>.earlySeasonPrior.payload.defense.havoc.total
+
+suppliedDomains.<side>.earlySeasonPrior.payload.components[*].payload.defense.havoc.total
+
+Potentially nested composition may also occur if the existing schema permits it.
+
+Do NOT globally permit keys named:
+
+total
+totals
+
+Do NOT whitelist by suffix alone.
+
+============================================================
+3. USE DOMAIN/PATH-AWARE MATCHING
+============================================================
+
+The exception must require BOTH:
+
+A. the field is inside the NCAAF earlySeasonPrior football-performance domain
+
+AND
+
+B. the terminal semantic path is exactly:
+
+defense.havoc.total
+
+The classifier may normalize dynamic array indices like:
+
+components[0]
+components[1]
+components[2]
+
+for structural matching.
+
+Example conceptual normalized form:
+
+components[*]
+
+Do not make arbitrary arrays safe.
+
+============================================================
+4. PRESERVE SPORTSBOOK REJECTION
+============================================================
+
+These must still FAIL anywhere applicable:
+
+market.total
+sportsbook.total
+betting.total
+openingTotal
+closingTotal
+totalLine
+over
+under
+moneyline
+spread
+odds
+price
+book
+sportsbook
+impliedProbability
+marketPrice
+openingLine
+closingLine
+
+Also reject malicious/ambiguous examples such as:
+
+earlySeasonPrior.payload.components[0].payload.market.total
+
+earlySeasonPrior.payload.components[0].payload.sportsbook.total
+
+earlySeasonPrior.payload.components[0].payload.defense.total
+
+earlySeasonPrior.payload.total
+
+earlySeasonPrior.payload.components[0].payload.total
+
+The only exception is the verified football metric:
+
+defense.havoc.total
+
+============================================================
+5. REGRESSION TESTS — REQUIRED
+============================================================
+
+Add explicit PASS tests for:
+
+PASS:
+suppliedDomains.home.earlySeasonPrior.payload.defense.havoc.total
+
+PASS:
+suppliedDomains.away.earlySeasonPrior.payload.defense.havoc.total
+
+PASS:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.defense.havoc.total
+
+PASS:
+suppliedDomains.home.earlySeasonPrior.payload.components[1].payload.defense.havoc.total
+
+PASS:
+suppliedDomains.away.earlySeasonPrior.payload.components[2].payload.defense.havoc.total
+
+If nested component composition is supported by schema, test that exact legitimate structural form too.
+
+Required FAIL tests:
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.total
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.defense.total
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.total
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.market.total
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.sportsbook.total
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.openingTotal
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.closingTotal
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.odds
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.price
+
+FAIL:
+suppliedDomains.home.earlySeasonPrior.payload.components[0].payload.impliedProbability
+
+============================================================
+6. TEST COMPOSED PRIOR OBJECT DIRECTLY
+============================================================
+
+Do not test only manually fabricated individual paths.
+
+Construct or load a representative composed earlySeasonPrior object matching production structure:
+
+earlySeasonPrior
+  payload
+    components
+      [0]
+        payload
+          defense
+            havoc
+              total
+
+Pass the complete object through the same recursive firewall scanner used by production snapshot generation.
+
+Verify the full object passes.
+
+============================================================
+7. TEST REAL PRODUCTION-EQUIVALENT SNAPSHOT COMPOSITION
+============================================================
+
+Use a production-equivalent NCAAF event/snapshot fixture that previously triggered:
+
+suppliedDomains.<side>.earlySeasonPrior.payload.components[1].payload.defense.havoc.total
+
+Run the actual snapshot-building path.
+
+Confirm:
+
+- no market-shaped rejection
+- snapshot object successfully reaches persistence stage
+- no other legitimate football fields are rejected
+
+Do not write fabricated production data during unit tests.
+
+============================================================
+8. BUILD / TEST
+============================================================
+
+Run complete relevant test suite.
+
+Report:
+
+new firewall tests
+existing firewall tests
+NCAAF intelligence tests
+NCAAF snapshot tests
+API/server tests if applicable
+typecheck
+build
+
+All must pass.
+
+============================================================
+9. PUBLISH
+============================================================
+
+Commit and publish the precision fix.
+
+Report exact commit SHA.
+
+============================================================
+10. PRODUCTION VERIFICATION
+============================================================
+
+After deployment, wait for or safely trigger ONE legitimate NCAAF evidence cycle using existing supported runtime controls.
+
+Do not bypass advisory locking.
+
+Verify:
+
+V2 BEFORE:
+661
+
+V2 AFTER:
+[number]
+
+NEW V2:
+[number]
+
+CFBD-ENRICHED BEFORE:
+[number]
+
+CFBD-ENRICHED AFTER:
+[number]
+
+NEW CFBD-ENRICHED:
+[number]
+
+============================================================
+11. VERIFY ACTUAL COMPOSED HAVOC PATH
+============================================================
+
+Inspect at least one newly persisted snapshot containing the composed structure:
+
+earlySeasonPrior.payload.components[*].payload.defense.havoc.total
+
+Confirm:
+
+COMPOSED_HAVOC_FIELD_PRESENT = TRUE
+
+FIREWALL_REJECTION = FALSE
+
+SNAPSHOT_PERSISTED = TRUE
+
+============================================================
+12. VERIFY MARKET FIREWALL IN PRODUCTION
+============================================================
+
+Re-run or verify regression checks after deployment.
+
+Return:
+
+MARKET_FIREWALL_INTACT = TRUE / FALSE
+
+No sportsbook total field may enter canonical sports intelligence.
+
+============================================================
+13. RUN FINALIZATION
+============================================================
+
+The verification production run must finalize normally.
+
+Report:
+
+run ID
+started
+finished
+duration
+status
+snapshots attempted
+snapshots persisted
+snapshots failed
+error summary
+
+If the run remains indefinitely RUNNING or is later stale-reconciled, report that separately.
+
+============================================================
+14. FINAL OUTPUT
+============================================================
+
+Return exactly:
+
+COMPOSED_HAVOC_FIREWALL_FIX =
+PASS / FAIL
+
+DIRECT_HAVOC_PATH =
+PASS / FAIL
+
+COMPONENT_HAVOC_PATH =
+PASS / FAIL
+
+MARKET_FIREWALL_INTACT =
+TRUE / FALSE
+
+NEW_PRODUCTION_V2_SNAPSHOT =
+TRUE / FALSE
+
+NEW_CFBD_ENRICHED_SNAPSHOT =
+TRUE / FALSE
+
+NCAAF_SNAPSHOT_PATH_HEALTHY =
+TRUE / FALSE
+
+RUN_FINALIZATION_HEALTHY =
+TRUE / FALSE
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #216C FULLY VERIFIED — NCAAF SNAPSHOT FIREWALL PATH HEALTHY
+
+B. #216C CODE FIX VALID — PRODUCTION CYCLE STILL NOT VERIFIED
+
+C. #216C STILL FAILING — EXACT REMAINING PATH DEFECT
+
+If C:
+identify the exact field path and classifier reason.
+
+Do not broaden the whitelist.
+
+============================================================
+STOP
+============================================================
+
+Do not begin #222.
+Do not modify models.
+Do not modify publication.
+Do not modify NFL.
+Do not modify MLB.
+
+Fix and verify only this composed havoc path issue, then stop.

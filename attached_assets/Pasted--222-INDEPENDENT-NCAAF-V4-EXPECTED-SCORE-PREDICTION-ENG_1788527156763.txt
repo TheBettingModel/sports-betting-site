@@ -1,0 +1,1423 @@
+#222 — INDEPENDENT NCAAF V4 EXPECTED-SCORE PREDICTION ENGINE
+
+AUTHORITATIVE STARTING STATE
+
+#221I is COMPLETE.
+
+Final production decision:
+
+B. #221I CORE FOUNDATION READY — BEGIN #222 WITH DOCUMENTED OPTIONAL DATA LIMITATIONS
+
+Production historical foundation:
+
+2023 PIT-safe FBS-vs-FBS rows: 792
+2024 PIT-safe FBS-vs-FBS rows: 798
+2025 PIT-safe FBS-vs-FBS rows: 808
+TOTAL PIT-safe historical rows: 2,398
+
+Exact team IDs represented: 136.
+
+Production verification:
+- PIT violations = 0
+- market leakage violations = 0
+- duplicate training rows = 0
+- development/production replay checksum identical
+- HISTORICAL_ATOMIC_BACKFILL_READY = TRUE
+- HISTORICAL_PIT_FOUNDATION_READY = TRUE
+- DATA_PIPELINE_READY = TRUE
+- V4_BUILD_READY = TRUE
+- V4_VALIDATION_READY = TRUE
+- FULL_LIVE_PUBLICATION_DATA_READY = FALSE
+
+Production also contains 1,826 unique frozen 2026 prospective intelligence snapshots.
+
+Training artifact:
+
+ncaaf-v4-training-foundation-v2
+
+Schema:
+
+ncaaf-chronological-team-game-v2
+
+============================================================
+MISSION
+============================================================
+
+Build the first complete independent NCAAF V4 sports prediction engine.
+
+This task is about predicting FOOTBALL.
+
+It is NOT yet about deciding which bets TBM should publish.
+
+The model must answer:
+
+Given everything legitimately known before kickoff:
+
+1. How many points should the home team score?
+2. How many points should the away team score?
+3. What is the expected margin?
+4. What is the expected game total?
+5. What is the probability each team wins?
+6. What is the uncertainty/distribution around those forecasts?
+
+The fundamental architecture must be:
+
+NCAAF DATA
+→ PIT-SAFE FEATURES
+→ TEAM TRUE TALENT
+→ OFFENSE
+→ DEFENSE
+→ MATCHUP
+→ GAME CONTEXT
+→ EXPECTED HOME POINTS
+→ EXPECTED AWAY POINTS
+→ SCORE DISTRIBUTION
+→ MARGIN DISTRIBUTION
+→ TOTAL DISTRIBUTION
+→ WIN PROBABILITY
+
+Sportsbook information comes AFTER this.
+
+============================================================
+CRITICAL ARCHITECTURE RULE
+============================================================
+
+NCAAF V4 MUST BE AN INDEPENDENT SPORTS ENGINE.
+
+Permanent TBM architecture:
+
+Shared infrastructure.
+Independent sports intelligence.
+
+Do NOT create a shared football prediction engine.
+
+Do NOT use NFL forecasting code, weights, features, calibration,
+learning state, configuration, or model parameters.
+
+Do NOT modify NFL.
+
+Do NOT modify MLB.
+
+Do NOT modify NBA/WNBA/NHL/NCAAB/Soccer/UFC.
+
+Generic TBM infrastructure may be reused only when it contains
+no sport-specific forecasting intelligence.
+
+NCAAF should have its own:
+
+engine
+feature schema
+training pipeline
+weights
+configuration
+model version
+calibration
+evaluation
+learning state
+approval state
+champion/challenger state
+
+============================================================
+DO NOT DO THESE THINGS
+============================================================
+
+DO NOT promote V4 to production champion.
+
+DO NOT replace the current NCAAF champion.
+
+DO NOT publish V4 picks.
+
+DO NOT change public NCAAF recommendations.
+
+DO NOT create live wagers.
+
+DO NOT create production units.
+
+DO NOT use CLV as a sports feature.
+
+DO NOT use sportsbook odds as a sports feature.
+
+DO NOT use spread as a sports feature.
+
+DO NOT use sportsbook total as a sports feature.
+
+DO NOT use market movement as a sports feature.
+
+DO NOT use closing lines as sports features.
+
+DO NOT use future information.
+
+DO NOT use retrospective full-season aggregates for an earlier game.
+
+DO NOT weaken PIT protections.
+
+DO NOT automatically optimize against ROI.
+
+DO NOT automatically modify production weights.
+
+============================================================
+MODEL VERSION
+============================================================
+
+Create a clearly versioned research/challenger model.
+
+Suggested identity:
+
+tbm-ncaaf-v4-expected-score
+
+or equivalent existing registry convention.
+
+It must NOT be production approved.
+
+Status should initially be:
+
+UNVALIDATED
+
+or the equivalent existing state.
+
+============================================================
+SPORT MODEL VS BETTING MODEL
+============================================================
+
+Maintain this strict separation.
+
+SPORTS MODEL:
+
+football evidence
+→ expected score
+→ margin
+→ total
+→ win probability
+→ uncertainty
+
+BETTING MODEL:
+
+sports prediction
++
+sportsbook market
+→ fair price
+→ no-vig comparison
+→ edge
+→ EV
+→ risk
+→ recommendation
+→ units
+
+#222 primarily builds the SPORTS MODEL.
+
+Market comparison belongs downstream.
+
+============================================================
+APPROVED CORE FEATURE FAMILIES
+============================================================
+
+#221I established these as production-eligible PIT-safe feature families:
+
+1. SCORE-DERIVED PRIOR OFFENSE
+
+Examples:
+
+season-to-date points/game
+rolling last-3 scoring
+rolling last-5 scoring
+sample count
+
+2. SCORE-DERIVED PRIOR DEFENSE
+
+Examples:
+
+season-to-date points allowed/game
+rolling last-3 points allowed
+rolling last-5 points allowed
+sample count
+
+3. PRIOR-SEASON STATE
+
+Examples:
+
+prior-season scoring
+prior-season points allowed
+prior-season performance sample
+
+4. TBM PRE-GAME ELO
+
+Chronologically reconstructed before each target game.
+
+5. CHRONOLOGICAL OPPONENT ADJUSTMENT
+
+Only using opponent state known before target kickoff.
+
+6. HOME / NEUTRAL CONTEXT
+
+Home-field state and neutral-site state.
+
+============================================================
+OPTIONAL / CURRENTLY LIMITED FEATURES
+============================================================
+
+Do NOT force these into V4 simply because they exist.
+
+PBP / advanced efficiency:
+OPTIONAL FOLLOW-ON
+
+QB history:
+OPTIONAL FOLLOW-ON
+
+Confirmed starting QB:
+LIVE-PUBLICATION ELIGIBILITY / UNSUPPORTED CURRENTLY
+
+Injuries:
+LIVE-PUBLICATION ELIGIBILITY / UNSUPPORTED CURRENTLY
+
+Depth chart:
+LIVE-PUBLICATION ELIGIBILITY / UNSUPPORTED CURRENTLY
+
+SP+:
+RESEARCH-ONLY until historical PIT timing proven
+
+FPI:
+RESEARCH-ONLY until historical PIT timing proven
+
+SRS:
+RESEARCH-ONLY until historical PIT timing proven
+
+Provider historical Elo:
+RESEARCH-ONLY
+
+Talent:
+RESEARCH-ONLY until timing proven
+
+Recruiting:
+RESEARCH-ONLY until timing proven
+
+Returning production:
+RESEARCH-ONLY until timing proven
+
+Coaching:
+RESEARCH-ONLY until timing proven
+
+Transfers:
+DO NOT USE
+
+Historical observed weather:
+DO NOT USE AS PREGAME FORECAST WEATHER
+
+============================================================
+PHASE 1 — FREEZE DATASET AND SPLITS
+============================================================
+
+Before fitting anything, freeze the dataset.
+
+Dataset:
+
+ncaaf-v4-training-foundation-v2
+
+Create immutable:
+
+dataset version
+dataset hash/checksum
+feature schema version
+training configuration version
+
+No random train/test split.
+
+Use chronological walk-forward methodology.
+
+Based on #221I:
+
+2023 + 2024:
+1,590 rows
+
+These may form the initial training era.
+
+2025 must be divided chronologically into:
+
+VALIDATION
+
+and
+
+OUT-OF-SAMPLE TEST
+
+Determine exact week boundary before fitting.
+
+Report:
+
+training games
+validation games
+OOS games
+
+The OOS set must remain untouched during model selection.
+
+2026 prospective snapshots must NOT be used for training #222.
+
+============================================================
+PHASE 2 — BASELINES FIRST
+============================================================
+
+Before building V4, create simple baselines.
+
+At minimum:
+
+BASELINE A:
+home/away historical scoring averages
+
+BASELINE B:
+simple prior offense vs prior defense
+
+BASELINE C:
+pregame Elo-based winner probability
+
+BASELINE D:
+simple expected-score model using offense + defense + home field
+
+These provide a minimum standard V4 must outperform.
+
+Do not compare against sportsbook markets yet as the primary training objective.
+
+============================================================
+PHASE 3 — EARLY-SEASON SHRINKAGE
+============================================================
+
+NCAAF has a major early-season sample problem.
+
+Week 1 cannot be treated like Week 10.
+
+Build explicit sample-size shrinkage.
+
+Conceptually:
+
+CURRENT TEAM STATE
+=
+w_current × current-season evidence
++
+w_prior × prior-season evidence
++
+w_population × population baseline
+
+Weights should depend on sample size.
+
+Example concept only:
+
+0 games:
+mostly prior-season/population
+
+1 game:
+heavy shrinkage
+
+3 games:
+moderate shrinkage
+
+6+ games:
+current season increasingly dominant
+
+Do NOT blindly hardcode these example numbers.
+
+Estimate or validate shrinkage using chronological data.
+
+Store shrinkage state in diagnostics.
+
+============================================================
+PHASE 4 — TEAM TRUE TALENT
+============================================================
+
+Construct latent/pre-match team-strength components.
+
+At minimum:
+
+OFFENSIVE STRENGTH
+DEFENSIVE STRENGTH
+OVERALL STRENGTH
+
+Potential components:
+
+shrunk season scoring
+shrunk season defense
+rolling scoring
+rolling defense
+pregame Elo
+opponent adjustment
+prior-season state
+
+Do not allow any one noisy recent game to dominate.
+
+============================================================
+PHASE 5 — OFFENSIVE EXPECTATION
+============================================================
+
+Estimate each team's expected scoring ability entering the game.
+
+The offense component should consider:
+
+team offensive strength
+recent offense
+sample size
+prior-season offense
+opponent-adjusted offense
+overall team strength
+
+It should represent:
+
+"How many points would this offense be expected to score against a neutral average opponent?"
+
+============================================================
+PHASE 6 — DEFENSIVE EXPECTATION
+============================================================
+
+Estimate defensive scoring suppression.
+
+Consider:
+
+points allowed
+recent points allowed
+prior-season defense
+opponent-adjusted defense
+sample size
+overall defensive strength
+
+Represent:
+
+"How many points would an average offense be expected to score against this defense?"
+
+============================================================
+PHASE 7 — MATCHUP INTERACTION
+============================================================
+
+Combine:
+
+HOME OFFENSE
+vs
+AWAY DEFENSE
+
+and:
+
+AWAY OFFENSE
+vs
+HOME DEFENSE
+
+The two expected scores must be modeled independently enough that:
+
+strong offense + weak opponent defense
+
+does not behave identically to:
+
+weak offense + strong opponent defense.
+
+Avoid simply predicting league-average total and splitting it.
+
+============================================================
+PHASE 8 — HOME FIELD / NEUTRAL SITE
+============================================================
+
+Estimate home-field effect from training evidence.
+
+Do not assume a universal arbitrary football value.
+
+Neutral games should receive zero ordinary home-field advantage unless
+the data supports some separate contextual treatment.
+
+Store home-field parameter/version.
+
+============================================================
+PHASE 9 — EXPECTED SCORE MODEL
+============================================================
+
+Primary outputs:
+
+expected_home_points
+expected_away_points
+
+Derived:
+
+expected_margin =
+expected_home_points - expected_away_points
+
+expected_total =
+expected_home_points + expected_away_points
+
+Expected score should remain the fundamental model output.
+
+Do not build separate contradictory ML/spread/total models unless diagnostics later justify it.
+
+============================================================
+PHASE 10 — MODEL FAMILY COMPARISON
+============================================================
+
+Do not assume one algorithm is best.
+
+Test a reasonable small set of interpretable model families.
+
+Examples:
+
+regularized linear regression
+ridge / elastic net
+Poisson-style count models where appropriate
+negative-binomial style model if dispersion supports it
+gradient boosting if available and sufficiently controlled
+
+Do NOT create a giant hyperparameter search.
+
+Do NOT optimize thousands of combinations against the OOS set.
+
+Compare using validation only.
+
+Preserve interpretability.
+
+============================================================
+PHASE 11 — SCORE DISTRIBUTION
+============================================================
+
+A point estimate is not enough.
+
+Estimate residual uncertainty around:
+
+home points
+away points
+
+Account for potential score covariance if supported.
+
+Construct a joint or simulation-based score distribution.
+
+The model should be capable of producing:
+
+P(home win)
+P(away win)
+
+and eventually:
+
+P(home margin > X)
+P(away margin > X)
+P(total > X)
+P(total < X)
+
+for arbitrary downstream market thresholds.
+
+============================================================
+PHASE 12 — MONTE CARLO OR ANALYTIC DISTRIBUTION
+============================================================
+
+Implement deterministic/reproducible probability generation.
+
+If Monte Carlo is used:
+
+fixed seed/version
+sufficient simulations
+stored simulation configuration
+reproducible output
+
+If analytic distribution is used:
+
+document assumptions.
+
+Do not make probabilities directly from edge.
+
+============================================================
+PHASE 13 — MONEYLINE PROBABILITY
+============================================================
+
+Derive:
+
+home_win_probability
+away_win_probability
+
+from the sports score distribution.
+
+Do NOT derive win probability from sportsbook odds.
+
+Required:
+
+home_prob + away_prob ≈ 1
+
+for games where ties are not modeled as final outcomes.
+
+Handle overtime consistently.
+
+============================================================
+PHASE 14 — SPREAD PROBABILITY INTERFACE
+============================================================
+
+Create a downstream interface such as:
+
+probability_home_covers(line)
+
+probability_away_covers(line)
+
+This should use V4's margin distribution.
+
+Do not train on the sportsbook spread.
+
+The spread is a QUERY against the sports distribution.
+
+============================================================
+PHASE 15 — TOTAL PROBABILITY INTERFACE
+============================================================
+
+Create:
+
+probability_over(total_line)
+
+probability_under(total_line)
+
+using V4's total distribution.
+
+The sportsbook total is a query threshold.
+
+It must not enter the sports forecast itself.
+
+============================================================
+PHASE 16 — FAIR PRICE INTERFACE
+============================================================
+
+Provide fair probability / fair odds conversion for:
+
+home ML
+away ML
+
+and probability outputs for arbitrary:
+
+spread
+total
+
+This is still model-derived fair pricing.
+
+Sportsbook comparison remains downstream.
+
+============================================================
+PHASE 17 — MISSING DATA
+============================================================
+
+Do not silently fill missing evidence with zero.
+
+Use explicit:
+
+availability
+sample count
+missing indicators where appropriate
+population shrinkage
+prior-season fallback
+
+Examples:
+
+first game of season:
+no current season history
+
+new FBS identity:
+may have no prior-season state
+
+Missing evidence must increase uncertainty when justified.
+
+============================================================
+PHASE 18 — CONFIDENCE VS UNCERTAINTY
+============================================================
+
+Do NOT make confidence equal edge.
+
+Model uncertainty should reflect factors such as:
+
+historical residual variance
+sample size
+missing features
+early-season uncertainty
+model disagreement if ensemble used
+
+Do not create arbitrary 90% confidence labels.
+
+Later calibration must determine whether stated probabilities are reliable.
+
+============================================================
+PHASE 19 — TRAINING
+============================================================
+
+Train only on the designated training chronology.
+
+Potential targets:
+
+home_points
+away_points
+
+Do not directly optimize ROI.
+
+Do not directly optimize units.
+
+Do not directly optimize sportsbook edge.
+
+Persist:
+
+training run ID
+dataset version
+feature schema version
+configuration
+parameters
+coefficients/weights
+training timestamps
+code/model version
+metrics
+
+============================================================
+PHASE 20 — VALIDATION
+============================================================
+
+Use the chronological validation cohort for:
+
+model family selection
+regularization
+reasonable hyperparameters
+shrinkage decisions
+distribution assumptions
+
+Metrics:
+
+HOME SCORE:
+MAE
+RMSE
+
+AWAY SCORE:
+MAE
+RMSE
+
+MARGIN:
+MAE
+RMSE
+
+TOTAL:
+MAE
+RMSE
+
+MONEYLINE:
+Brier
+log loss
+
+Also inspect:
+
+residual mean
+residual variance
+home bias
+favorite/underdog directional bias if derivable without using market
+early-season vs later-season performance
+
+============================================================
+PHASE 21 — LOCK MODEL BEFORE OOS
+============================================================
+
+After validation:
+
+freeze candidate configuration.
+
+Then run exactly once against the designated 2025 OOS set.
+
+Do not tune again using OOS results.
+
+If OOS reveals failure:
+
+record failure.
+
+A future V4.1 challenger may be created.
+
+Do not secretly retune V4 against OOS.
+
+============================================================
+PHASE 22 — OOS EVALUATION
+============================================================
+
+Report:
+
+score MAE/RMSE
+margin MAE/RMSE
+total MAE/RMSE
+moneyline Brier
+moneyline log loss
+
+Compare against the predeclared sports baselines.
+
+Also report:
+
+performance by week
+performance by sample-count band
+performance by home/neutral
+performance by predicted win-probability band
+
+============================================================
+PHASE 23 — CALIBRATION DIAGNOSTICS
+============================================================
+
+Produce calibration diagnostics for moneyline probability.
+
+Bins such as:
+
+50–55
+55–60
+60–65
+65–70
+70–75
+75–80
+80+
+
+Use sensible sample handling.
+
+Report:
+
+predicted probability
+observed win rate
+sample count
+calibration error
+
+Do not overfit a calibration transform yet unless justified.
+
+If calibration is clearly needed, document it for #223.
+
+============================================================
+PHASE 24 — DISTRIBUTION DIAGNOSTICS
+============================================================
+
+Evaluate whether margin and total residual distributions are reasonable.
+
+Check:
+
+mean
+standard deviation
+tails
+skew
+heteroscedasticity
+early-season variance
+favorite/underdog asymmetry where model-derived
+
+Determine whether one global residual variance is sufficient.
+
+If not, document the next improvement.
+
+============================================================
+PHASE 25 — FEATURE / COEFFICIENT DIAGNOSTICS
+============================================================
+
+Report model behavior.
+
+For interpretable models:
+
+coefficients
+direction
+magnitude
+
+For tree/ensemble models:
+
+feature importance
+permutation importance if practical
+
+Look for:
+
+wrong-sign relationships
+unstable parameters
+one-feature dominance
+early-season instability
+excessive recency sensitivity
+
+============================================================
+PHASE 26 — MARKET FIREWALL
+============================================================
+
+Run the production recursive market firewall against all V4 sports feature objects.
+
+Required violations:
+
+0
+
+Forbidden sports features:
+
+moneyline
+spread
+sportsbook total
+odds
+book
+price
+implied probability
+opening line
+closing line
+CLV
+market movement
+sharp signal
+sportsbook recommendation
+
+Note:
+
+expected_total is a SPORTS MODEL OUTPUT and must remain distinguishable
+from sportsbook total.
+
+Do not weaken the firewall to accomplish this.
+
+============================================================
+PHASE 27 — PIT AUDIT
+============================================================
+
+Audit all V4 training/validation/OOS rows.
+
+Required:
+
+same-game leakage = 0
+future-game leakage = 0
+future-season leakage = 0
+post-kickoff evidence = 0
+market leakage = 0
+
+Report exact counts.
+
+============================================================
+PHASE 28 — VERSIONING
+============================================================
+
+Create immutable version identity including:
+
+sport = NCAAF
+model family
+model version
+dataset version
+feature schema
+training window
+validation window
+OOS window
+configuration hash
+parameter hash
+code version
+
+A prediction must always identify exactly which model generated it.
+
+============================================================
+PHASE 29 — MODEL REGISTRY
+============================================================
+
+Register V4 as challenger/research model.
+
+Example:
+
+model:
+tbm-ncaaf-v4-expected-score
+
+approval:
+UNVALIDATED
+
+champion:
+FALSE
+
+public publication:
+FALSE
+
+Do not modify existing production champion.
+
+============================================================
+PHASE 30 — PREDICTION CONTRACT
+============================================================
+
+Create a clean prediction object.
+
+At minimum:
+
+prediction_id
+game_id
+sport
+model_version
+dataset_version
+feature_schema_version
+feature_cutoff
+generated_at
+
+expected_home_points
+expected_away_points
+expected_margin
+expected_total
+
+home_win_probability
+away_win_probability
+
+score_uncertainty
+margin_uncertainty
+total_uncertainty
+
+data_quality
+feature_availability
+diagnostics
+
+Do not include sportsbook recommendation in the core sports prediction.
+
+============================================================
+PHASE 31 — REPRODUCIBILITY
+============================================================
+
+Given:
+
+same game
+same frozen feature snapshot
+same model version
+same configuration
+
+V4 must produce the same forecast.
+
+Add deterministic replay tests.
+
+============================================================
+PHASE 32 — 2026 SHADOW GENERATION
+============================================================
+
+IMPORTANT DISTINCTION:
+
+The user ultimately wants NCAAF V4 LIVE.
+
+However, #222 is not the production approval task.
+
+After historical V4 is frozen, if architecture supports it safely,
+generate INTERNAL V4 challenger predictions against eligible untouched
+2026 frozen snapshots.
+
+These are evaluation predictions only.
+
+They must NOT:
+
+publish
+create wagers
+create units
+replace champion
+alter public recommendation
+
+This internal challenger evaluation is acceptable.
+
+Do not call the active future production champion "shadow" once it is approved later.
+
+============================================================
+PHASE 33 — 2026 SNAPSHOT COMPATIBILITY
+============================================================
+
+Verify that the historical feature schema can be generated from the current 2026 live evidence pipeline.
+
+For each core V4 family report:
+
+historical availability
+2026 availability
+schema compatibility
+
+We cannot approve V4 later if the training features cannot be reproduced prospectively.
+
+============================================================
+PHASE 34 — DO NOT REQUIRE OPTIONAL FEATURES
+============================================================
+
+Initial V4 should be capable of functioning without:
+
+confirmed starting QB
+injuries
+depth chart
+PBP
+SP+
+FPI
+SRS
+talent
+recruiting
+returning production
+weather
+
+These may improve future versions.
+
+Do not allow perfect-data ambitions to prevent a legitimate V4 core from being built.
+
+============================================================
+PHASE 35 — DATA QUALITY
+============================================================
+
+Create a V4 data-quality diagnostic.
+
+Possible states:
+
+HIGH
+MEDIUM
+LOW
+INSUFFICIENT
+
+This is NOT betting confidence.
+
+Base it on:
+
+current-season sample
+prior-season availability
+core feature completeness
+identity quality
+PIT status
+
+Document deterministic criteria.
+
+============================================================
+PHASE 36 — ABSTENTION SUPPORT
+============================================================
+
+The sports model may still forecast a game with limited evidence.
+
+But downstream publication must be able to abstain.
+
+Expose enough metadata so later #224/#225 can block publication when:
+
+data quality too low
+required live eligibility evidence missing
+model approval missing
+market approval missing
+
+Do not implement permissive publication shortcuts.
+
+============================================================
+PHASE 37 — TEST SUITE
+============================================================
+
+Add comprehensive tests for:
+
+NCAAF/NFL isolation
+dataset immutability
+chronological split
+OOS isolation
+early-season shrinkage
+first-game handling
+new-team handling
+pregame Elo
+opponent adjustment
+home field
+neutral site
+expected-score math
+margin math
+total math
+win probabilities
+spread probability
+total probability
+fair-price conversion
+missing data
+uncertainty
+market firewall
+PIT firewall
+version identity
+prediction reproducibility
+model registry
+no-publication behavior
+
+Run:
+
+full relevant tests
+typecheck
+build
+
+============================================================
+PHASE 38 — DO NOT JUDGE BY ROI YET
+============================================================
+
+#222 success is primarily:
+
+Can TBM create a legitimate, reproducible, independently validated
+football forecast?
+
+Do NOT declare V4 good because a small set of hypothetical bets made money.
+
+The first evaluation hierarchy should be:
+
+1. PIT integrity
+2. score accuracy
+3. margin accuracy
+4. total accuracy
+5. probability accuracy
+6. calibration
+7. stability
+8. baseline improvement
+
+Market/CLV/ROI evaluation comes afterward.
+
+============================================================
+PHASE 39 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-v4-expected-score-engine-2026-09-04.md
+
+Include:
+
+1. Executive summary
+2. Model architecture
+3. Dataset identity
+4. Chronological splits
+5. Baselines
+6. Feature families
+7. Early-season shrinkage
+8. Offensive strength
+9. Defensive strength
+10. Team true talent
+11. Matchup interaction
+12. Home-field estimate
+13. Expected-score model
+14. Candidate model families
+15. Selected candidate
+16. Score distribution
+17. Win probability
+18. Spread probability interface
+19. Total probability interface
+20. Fair-price interface
+21. Missing-data handling
+22. Uncertainty
+23. Training metrics
+24. Validation metrics
+25. OOS metrics
+26. Baseline comparisons
+27. Calibration diagnostics
+28. Distribution diagnostics
+29. Feature diagnostics
+30. PIT audit
+31. Market-firewall audit
+32. Version identity
+33. Model registry state
+34. Prediction contract
+35. 2026 compatibility
+36. 2026 internal challenger generation
+37. NFL isolation
+38. Test/build results
+39. Known limitations
+40. Recommendation for #223
+41. Final decision
+
+============================================================
+SUCCESS CRITERIA
+============================================================
+
+#222 may be considered complete only if:
+
+1. V4 independently predicts home and away expected points.
+
+2. Margin and total derive correctly from those scores.
+
+3. Win probability derives from the score/margin distribution.
+
+4. Spread and total probabilities are threshold queries against the
+sports distribution rather than sports-model inputs.
+
+5. PIT violations = 0.
+
+6. Market leakage violations = 0.
+
+7. OOS cohort was not used during model selection.
+
+8. V4 has immutable version/configuration identity.
+
+9. V4 is registered only as a challenger/research model.
+
+10. Existing NCAAF champion remains unchanged.
+
+11. Public NCAAF publication remains unchanged.
+
+12. NFL remains completely isolated.
+
+13. Current 2026 pipeline can reproduce the required core feature schema
+or exact incompatibilities are identified.
+
+14. V4 meaningfully competes with or improves the declared sports
+baselines without relying on sportsbook information.
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #222 COMPLETE — NCAAF V4 READY FOR #223 VALIDATION & CALIBRATION
+
+B. #222 ENGINE COMPLETE — ONE SPECIFIC MODEL QUALITY ISSUE MUST BE RESOLVED BEFORE #223
+
+C. #222 PARTIAL — ONE SPECIFIC DATA/FEATURE COMPATIBILITY BLOCKER REMAINS
+
+D. #222 FAILED — ARCHITECTURE OR VALIDATION DOES NOT SUPPORT V4
+
+Do not promote V4 regardless of decision.
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start the final response with:
+
+#222 FINAL
+
+MODEL:
+[value]
+
+MODEL VERSION:
+[value]
+
+DATASET:
+[value]
+
+TRAINING ROWS:
+[number]
+
+VALIDATION ROWS:
+[number]
+
+OOS ROWS:
+[number]
+
+EXPECTED-SCORE ENGINE:
+PASS / FAIL
+
+HOME SCORE MAE:
+[value]
+
+AWAY SCORE MAE:
+[value]
+
+MARGIN MAE:
+[value]
+
+TOTAL MAE:
+[value]
+
+MONEYLINE BRIER:
+[value]
+
+MONEYLINE LOG LOSS:
+[value]
+
+BASELINE COMPARISON:
+[value]
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+2026 FEATURE COMPATIBILITY:
+PASS / PARTIAL / FAIL
+
+2026 INTERNAL CHALLENGER PREDICTIONS:
+[number]
+
+MODEL REGISTRY STATUS:
+[value]
+
+CURRENT CHAMPION CHANGED:
+YES / NO
+
+PUBLICATION CHANGED:
+YES / NO
+
+NFL CHANGED:
+YES / NO
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[value]
+
+Then provide the complete report.
+
+============================================================
+STOP CONDITION
+============================================================
+
+Do NOT automatically begin #223.
+
+Do NOT promote V4.
+
+Do NOT publish V4 picks.
+
+Do NOT modify production recommendations.
+
+Complete #222,
+return the report,
+and STOP.

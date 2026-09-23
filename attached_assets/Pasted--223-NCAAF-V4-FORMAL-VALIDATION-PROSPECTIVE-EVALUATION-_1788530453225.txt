@@ -1,0 +1,1232 @@
+#223 — NCAAF V4 FORMAL VALIDATION, PROSPECTIVE EVALUATION & CALIBRATION GATE
+
+AUTHORITATIVE STARTING STATE
+
+#221I is COMPLETE.
+
+#222 is ENGINE COMPLETE.
+
+#222B established that the expanded challenger does NOT materially
+outperform the simple model.
+
+#222C is COMPLETE.
+
+Final #222C decision:
+
+B. #222C COMPLETE — CORE MODEL-ELIGIBLE BRIDGE PASS WITH DOCUMENTED
+OUT-OF-DOMAIN EXCLUSIONS; READY FOR #223
+
+============================================================
+CURRENT CANONICAL NCAAF V4 CORE
+============================================================
+
+Model:
+
+tbm-ncaaf-v4-expected-score
+
+Core architecture:
+
+D-simple-expected-score-linear
+
+This remains the recommended NCAAF V4 core because the distinct
+expanded-ridge challenger produced only a noise-sized margin
+improvement while worsening probability, away-score, and total metrics.
+
+Do NOT replace Baseline D during #223.
+
+Frozen configuration hash:
+
+212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86
+
+Frozen parameter hash:
+
+792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81
+
+Dataset:
+
+ncaaf-v4-training-foundation-v2
+
+Feature schema:
+
+ncaaf-chronological-team-game-v2
+
+============================================================
+HISTORICAL FOUNDATION
+============================================================
+
+2023 PIT-safe FBS-vs-FBS:
+792
+
+2024 PIT-safe FBS-vs-FBS:
+798
+
+2025 PIT-safe FBS-vs-FBS:
+808
+
+TOTAL:
+2,398
+
+Chronological split:
+
+TRAIN:
+2023–2024
+1,590 rows
+
+VALIDATION:
+2025 Weeks 1–7
+398 rows
+
+OOS:
+2025 Week 8+
+410 rows
+
+Historical PIT violations:
+0
+
+Historical market leakage:
+0
+
+Historical duplicates:
+0
+
+============================================================
+CANONICAL OOS METRICS
+============================================================
+
+Baseline D canonical OOS:
+
+Home score MAE:
+9.2826256764
+
+Away score MAE:
+8.4985635844
+
+Margin MAE:
+12.5008391763
+
+Total MAE:
+12.9390090779
+
+Moneyline Brier:
+0.1800233716
+
+Moneyline log loss:
+0.5347917462
+
+These are the canonical final V4 metrics.
+
+Do not substitute the older fixed-sigma Baseline D probability table.
+
+============================================================
+2026 PROSPECTIVE BRIDGE
+============================================================
+
+Fixed #222C assessment:
+
+Targets assessed:
+779
+
+Model-eligible FBS-vs-FBS:
+656
+
+Out-of-domain:
+123
+
+Identity-resolved eligible targets:
+656
+
+Identity-unresolved:
+0
+
+Exact eligible V4 feature inputs:
+656
+
+Internal frozen Baseline D predictions:
+656
+
+Model-eligible feature coverage:
+100.0%
+
+Ambiguous mappings accepted:
+0
+
+Fuzzy mappings accepted:
+0
+
+Post-cutoff identity violations:
+0
+
+PIT violations:
+0
+
+Market leakage:
+0
+
+2026 CORE FEATURE COMPATIBILITY:
+PASS
+
+V4 PROSPECTIVE EVALUATION READY:
+TRUE
+
+FULL LIVE PUBLICATION DATA READY:
+FALSE
+
+============================================================
+MISSION
+============================================================
+
+#223 is the formal evidence gate between:
+
+"we built a legitimate sports model"
+
+and
+
+"this model is safe and justified to become the production NCAAF
+champion."
+
+The purpose is to determine:
+
+1. Whether historical out-of-sample performance is stable enough.
+2. Whether V4 probabilities are adequately calibrated.
+3. Whether the score/margin/total distribution behaves realistically.
+4. Whether the 2026 prospective predictions can be legitimately
+evaluated.
+5. Whether V4 should advance toward controlled production approval.
+6. Whether any calibration transform is actually justified.
+7. Whether Baseline D remains the correct frozen production candidate.
+
+This is NOT yet the public go-live task.
+
+============================================================
+HARD RULES
+============================================================
+
+DO NOT publish V4 picks.
+
+DO NOT make V4 production champion automatically.
+
+DO NOT create public wagers.
+
+DO NOT create units.
+
+DO NOT alter V4 coefficients.
+
+DO NOT retrain the expected-score model.
+
+DO NOT alter the training/validation/OOS split.
+
+DO NOT reopen #222 model selection.
+
+DO NOT create a new challenger unless #223 formally concludes the
+current model fails.
+
+DO NOT use 2026 game results to change model weights.
+
+DO NOT optimize ROI.
+
+DO NOT optimize against sportsbook prices.
+
+DO NOT use sportsbook odds as sports features.
+
+DO NOT use closing lines as sports features.
+
+DO NOT use CLV to alter sports-model predictions.
+
+DO NOT modify NFL.
+
+DO NOT modify MLB.
+
+DO NOT modify unrelated sports.
+
+============================================================
+CORE PRINCIPLE
+============================================================
+
+Separate:
+
+SPORTS MODEL VALIDATION
+
+from
+
+BETTING POLICY VALIDATION.
+
+Sports-model validation asks:
+
+How accurately and reliably does V4 predict football?
+
+Betting-policy validation asks later:
+
+Does sportsbook price create profitable value relative to V4?
+
+#223 is primarily SPORTS MODEL VALIDATION.
+
+Market comparison may be evaluated separately only after the sports
+forecast is frozen.
+
+============================================================
+PART 1 — FREEZE #223 EVALUATION IDENTITY
+============================================================
+
+Create immutable #223 evaluation identity including:
+
+sport
+model ID
+configuration hash
+parameter hash
+dataset version
+feature schema version
+training window
+validation window
+OOS window
+prospective evaluation version
+evaluation code version
+evaluation timestamp
+calibration version
+distribution version
+
+No evaluation result should exist without this exact context.
+
+============================================================
+PART 2 — VERIFY MODEL IMMUTABILITY
+============================================================
+
+Before doing anything else verify:
+
+configuration hash exact match
+parameter hash exact match
+dataset exact match
+feature schema exact match
+historical split checksum exact match
+
+If any mismatch exists:
+
+STOP and FAIL CLOSED.
+
+Do not silently retrain.
+
+============================================================
+PART 3 — HISTORICAL OOS RECONFIRMATION
+============================================================
+
+Recompute the canonical 410-game OOS metrics from the frozen artifact.
+
+Required:
+
+Home MAE
+Home RMSE
+
+Away MAE
+Away RMSE
+
+Margin MAE
+Margin RMSE
+
+Total MAE
+Total RMSE
+
+Moneyline Brier
+Moneyline log loss
+
+They must reconcile with the immutable #222 artifact within deterministic
+numeric tolerance.
+
+Any unexplained discrepancy must stop approval.
+
+============================================================
+PART 4 — BASELINE COMPARISON
+============================================================
+
+Compare canonical V4 against:
+
+Baseline A
+historical home/away average
+
+Baseline B
+prior offense vs defense
+
+Baseline C
+pregame Elo winner
+
+Baseline D
+the current simple expected-score core itself
+
+The purpose here is not to require V4 to beat itself.
+
+Instead establish that the selected core materially improves on weaker
+sports baselines and that no distinct challenger demonstrated a robust
+gain over it.
+
+Document that the simple model is retained because evidence favors
+simplicity.
+
+============================================================
+PART 5 — PROBABILITY CALIBRATION AUDIT
+============================================================
+
+Perform a complete calibration evaluation using historical
+validation/OOS evidence without altering score-model coefficients.
+
+Report:
+
+reliability table
+calibration curve data
+expected calibration error
+maximum calibration error
+Brier
+log loss
+
+Probability bands should include sensible buckets such as:
+
+50–55
+55–60
+60–65
+65–70
+70–75
+75–80
+80+
+
+Also examine team-favorite probability using symmetric winner
+probability rather than home-only probability.
+
+============================================================
+PART 6 — CALIBRATION TRANSFORM CANDIDATES
+============================================================
+
+Evaluate only a small controlled set:
+
+A. no calibration
+
+B. Platt/logistic calibration
+
+C. optional mild parametric temperature/sigma adjustment if justified
+
+Avoid complex isotonic calibration unless sample size clearly supports
+it.
+
+IMPORTANT:
+
+Calibration must be fitted only using TRAIN/VALIDATION-appropriate data.
+
+Do NOT fit calibration on OOS.
+
+Do NOT fit calibration on 2026 prospective results.
+
+Do NOT alter expected home/away points.
+
+Calibration applies only to probability translation if justified.
+
+============================================================
+PART 7 — CALIBRATION DECISION
+============================================================
+
+A calibration transform may be selected only if:
+
+validation probability quality improves
+
+AND
+
+historical OOS probability quality is not materially degraded
+
+AND
+
+calibration stability is reasonable across probability bands.
+
+The prior #222B Platt calibration worsened OOS.
+
+Therefore no-calibration is the default unless #223 finds clear
+predeclared evidence otherwise.
+
+Do not force calibration.
+
+============================================================
+PART 8 — DISTRIBUTION VALIDATION
+============================================================
+
+Validate the probability distribution around expected scores.
+
+Current structure:
+
+expected home points
+expected away points
+normal-derived margin/total uncertainty
+
+Audit:
+
+margin residual mean
+margin residual SD
+margin skew
+margin tails
+
+total residual mean
+total residual SD
+total skew
+total tails
+
+home score residuals
+away score residuals
+
+============================================================
+PART 9 — HETEROSCEDASTICITY AUDIT
+============================================================
+
+Test whether uncertainty differs meaningfully by:
+
+week
+early vs late season
+sample-count state
+data quality
+predicted margin magnitude
+predicted total
+neutral vs home
+expected score level
+
+Do not automatically create a more complicated variance model.
+
+If one global uncertainty model is sufficient, retain it.
+
+If simple deterministic variance tiers materially improve validation
+and OOS probability quality without overfit, document the candidate.
+
+Any variance adjustment must be separate from score-model coefficients.
+
+============================================================
+PART 10 — HISTORICAL STABILITY
+============================================================
+
+Evaluate OOS results by:
+
+week
+month / chronological block
+home vs neutral
+data quality
+sample-count band
+predicted probability band
+predicted margin band
+expected-total band
+
+Report sample sizes.
+
+Do not draw strong conclusions from tiny subsets.
+
+============================================================
+PART 11 — ERROR OUTLIERS
+============================================================
+
+Identify the largest historical OOS misses.
+
+For example:
+
+top 10 largest margin errors
+top 10 total errors
+top score errors
+
+For each determine whether the miss appears related to:
+
+normal football variance
+early-season uncertainty
+missing optional data
+team discontinuity
+identity/data issue
+QB/injury information not available
+other known limitation
+
+Do NOT manually modify the model because of individual outliers.
+
+============================================================
+PART 12 — DATA-QUALITY VALIDATION
+============================================================
+
+Current states:
+
+HIGH
+MEDIUM
+LOW
+INSUFFICIENT
+
+Audit whether these states actually correspond to forecast reliability.
+
+For each state report:
+
+count
+margin MAE
+total MAE
+Brier
+log loss
+
+If INS UFFICIENT data games are substantially worse, document them for
+future publication abstention.
+
+Do not redefine data quality using sportsbook results.
+
+============================================================
+PART 13 — EARLY-SEASON VALIDATION
+============================================================
+
+NCAAF early season is structurally difficult.
+
+Evaluate:
+
+Weeks 0–1
+Weeks 2–3
+Weeks 4+
+or closest supported chronological grouping.
+
+Report:
+
+score MAE
+margin MAE
+total MAE
+Brier
+log loss
+
+Determine whether early-season forecasts require:
+
+higher uncertainty
+
+or
+
+publication abstention
+
+without changing the core expected-score model.
+
+============================================================
+PART 14 — PROSPECTIVE 2026 COHORT DEFINITION
+============================================================
+
+The 656 internal predictions from #222C must NOT automatically all be
+treated as completed prospective validation games.
+
+Create explicit cohorts:
+
+PREGAME_FROZEN_PENDING
+
+PREGAME_FROZEN_GRADED
+
+INVALID_AFTER_CUTOFF
+if any
+
+OUT_OF_DOMAIN
+
+Only predictions genuinely frozen before kickoff may enter prospective
+evaluation.
+
+Do not backfill missing pregame forecasts after the result is known.
+
+============================================================
+PART 15 — PROSPECTIVE GRADING
+============================================================
+
+For all legitimately completed 2026 frozen V4 predictions available at
+the time #223 runs:
+
+grade actual:
+
+home points
+away points
+margin
+total
+winner
+
+Compute:
+
+Home MAE
+Away MAE
+Margin MAE
+Total MAE
+Brier
+log loss
+
+Report exact prospective sample count.
+
+Do not require a large count that does not exist.
+
+Do not invent results for pending games.
+
+============================================================
+PART 16 — PROSPECTIVE VS HISTORICAL COMPARISON
+============================================================
+
+Compare current 2026 prospective results to:
+
+historical OOS
+historical validation
+
+Look for:
+
+similar error scale
+similar probability calibration
+large drift
+early-season instability
+systematic home/away bias
+systematic total bias
+
+Classify prospective evidence:
+
+CONSISTENT
+PROMISING
+INCONCLUSIVE
+CONCERNING
+
+based on actual sample size.
+
+============================================================
+PART 17 — PROSPECTIVE SAMPLE ADEQUACY
+============================================================
+
+Do NOT use a magical arbitrary number.
+
+Instead determine whether current prospective evidence is enough for:
+
+A. architecture validation
+
+B. provisional production approval
+
+C. full mature validation
+
+These are different standards.
+
+A smaller sample may be enough to verify that live feature
+reconstruction matches historical semantics.
+
+It may not be enough to establish mature calibration.
+
+Report those separately.
+
+============================================================
+PART 18 — OPTIONAL FEATURE IMPACT ANALYSIS
+============================================================
+
+Current missing live-publication data includes:
+
+confirmed starting QB
+injury availability
+depth-chart state
+
+These should NOT automatically invalidate the sports model.
+
+Analyze historically/prospectively whether missing these fields creates
+material risk.
+
+Do not invent unavailable data.
+
+Classify each as:
+
+CORE MODEL REQUIRED
+PUBLICATION ELIGIBILITY REQUIRED
+OPTIONAL ENHANCEMENT
+RESEARCH ONLY
+
+============================================================
+PART 19 — MODEL DOMAIN
+============================================================
+
+Current declared application domain:
+
+FBS-vs-FBS NCAAF games.
+
+Explicitly preserve out-of-domain handling for:
+
+FBS-vs-FCS
+FCS-vs-FBS
+non-FBS
+other unsupported classifications
+
+No prediction should be promoted outside the declared model domain.
+
+============================================================
+PART 20 — ABSTENTION RECOMMENDATIONS
+============================================================
+
+Determine whether later publication should abstain under conditions
+such as:
+
+INSUFFICIENT data quality
+unresolved identity
+unsupported matchup domain
+missing required live availability state
+extreme early-season uncertainty
+stale feature cutoff
+approval mismatch
+
+Do NOT activate publication yet.
+
+Simply define candidate gates for #224/#225.
+
+============================================================
+PART 21 — FAIR PROBABILITY INTEGRITY
+============================================================
+
+Verify:
+
+home_win_probability + away_win_probability ≈ 1
+
+for all eligible predictions.
+
+Check for:
+
+NaN
+infinite probability
+0/1 clipping problems
+impossible negative uncertainty
+score-output errors
+
+Required invalid predictions:
+0
+
+============================================================
+PART 22 — SPREAD/TOTAL QUERY INTEGRITY
+============================================================
+
+Verify the frozen distribution correctly answers arbitrary downstream:
+
+spread threshold queries
+
+and
+
+total threshold queries.
+
+The queried sportsbook line must not feed back into expected scores.
+
+Test representative:
+
+-3.5
+-7.5
++3.5
+
+and totals such as:
+
+45.5
+52.5
+60.5
+
+without using those values during sports-model fitting.
+
+============================================================
+PART 23 — MARKET COMPARISON SANDBOX
+============================================================
+
+This part is evaluation only.
+
+After the sports prediction is completely frozen, allow a separate
+sandbox to compare V4 fair probability against sportsbook no-vig
+probability.
+
+This must remain downstream.
+
+Report:
+
+number of historical/prospective games with exact market matches
+model probability
+market no-vig probability
+difference
+
+Do NOT use these differences to retrain V4.
+
+============================================================
+PART 24 — CLV EVALUATION SEPARATION
+============================================================
+
+If legitimate historical/prospective bet-time and close data exist,
+evaluate CLV separately.
+
+CLV may inform future BETTING POLICY.
+
+CLV must NOT modify:
+
+expected score
+sports probability
+model weights
+
+Report availability and sample size honestly.
+
+============================================================
+PART 25 — NO ROI PROMOTION RULE
+============================================================
+
+Do not promote V4 because a small hypothetical betting sample made
+money.
+
+Sports-model approval should primarily consider:
+
+PIT integrity
+score accuracy
+margin accuracy
+total accuracy
+Brier
+log loss
+calibration
+stability
+prospective consistency
+reproducibility
+
+ROI belongs to later downstream betting-policy validation.
+
+============================================================
+PART 26 — CHAMPION / CHALLENGER COMPARISON
+============================================================
+
+Compare V4 to the currently registered incumbent:
+
+tbm-ncaaf-moneyline-v1
+
+But do this carefully.
+
+Compare only on games where both have:
+
+valid pregame prediction
+same matchup domain
+valid identity
+appropriate comparable target
+
+Report:
+
+sample count
+accuracy
+Brier/log loss where comparable
+prediction disagreement
+coverage
+
+Do not automatically favor incumbent because it is live.
+
+Do not automatically favor V4 because it is newer.
+
+============================================================
+PART 27 — APPROVAL STATE RECOMMENDATION
+============================================================
+
+At the end of #223 determine whether V4 should remain:
+
+UNVALIDATED
+
+or advance to:
+
+SHADOW / PROVISIONAL
+
+or equivalent controlled pre-production approval state.
+
+Do NOT make it PRODUCTION_APPROVED in #223.
+
+That belongs to #224.
+
+============================================================
+PART 28 — VALIDATION GATES
+============================================================
+
+Define explicit gates for advancement to #224.
+
+At minimum:
+
+PIT violations = 0
+
+market leakage = 0
+
+historical OOS metrics reconciled
+
+no catastrophic calibration defect
+
+no material prospective schema mismatch
+
+prospective evaluation path valid
+
+probability outputs valid
+
+distribution queries valid
+
+model registry immutable
+
+NFL isolation intact
+
+No single metric should automatically determine advancement unless it
+indicates a severe model failure.
+
+============================================================
+PART 29 — APPROVAL EVIDENCE PACKAGE
+============================================================
+
+Create immutable validation evidence containing:
+
+model identity
+dataset identity
+feature schema
+hashes
+historical metrics
+validation metrics
+OOS metrics
+calibration results
+distribution diagnostics
+stability results
+prospective metrics
+prospective sample count
+domain
+limitations
+proposed abstention gates
+registry recommendation
+evaluation version
+
+This package will become the evidence used by #224.
+
+============================================================
+PART 30 — MODEL MATURITY
+============================================================
+
+Assign separate maturity state:
+
+EXPERIMENTAL
+DEVELOPING
+VALIDATED
+MATURE
+
+This is not the same as approval state.
+
+Likely outcomes:
+
+VALIDATED
+if historical + prospective evidence supports it
+
+or
+
+DEVELOPING
+if prospective evidence is still too thin
+
+Do not label MATURE prematurely.
+
+============================================================
+PART 31 — OPERATIONAL HEALTH
+============================================================
+
+#222C noted transient ESPN/database authentication timeouts.
+
+Audit current:
+
+provider errors
+database auth failures
+scheduler status
+stale runs
+duplicate invocations
+feature bridge success
+prediction generation
+
+These operational issues should not be confused with model quality, but
+production approval later requires a sufficiently reliable runtime.
+
+============================================================
+PART 32 — TEST SUITE
+============================================================
+
+Add/verify tests for:
+
+frozen model hash
+OOS metric reconciliation
+calibration isolation
+no OOS calibration fitting
+probability sums
+distribution integrity
+spread query
+total query
+prospective cohort eligibility
+prospective grading
+after-kickoff rejection
+out-of-domain rejection
+data-quality analysis
+early-season analysis
+market firewall
+PIT firewall
+registry immutability
+champion unchanged
+publication unchanged
+NFL isolation
+
+Run:
+
+full relevant tests
+typecheck
+production build
+
+============================================================
+PART 33 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-v4-formal-validation-2026-09-04.md
+
+Include:
+
+1. Executive summary
+2. Evaluation identity
+3. Frozen model verification
+4. Historical OOS reconciliation
+5. Baseline comparison
+6. Calibration audit
+7. Calibration candidate evaluation
+8. Calibration decision
+9. Distribution validation
+10. Heteroscedasticity
+11. Stability
+12. Historical error outliers
+13. Data-quality validation
+14. Early-season validation
+15. 2026 cohort definition
+16. Prospective grading
+17. Prospective metrics
+18. Historical/prospective comparison
+19. Sample adequacy
+20. Optional/live eligibility features
+21. Model domain
+22. Abstention recommendations
+23. Probability integrity
+24. Spread/total query integrity
+25. Market comparison sandbox
+26. CLV separation
+27. Incumbent comparison
+28. Advancement gates
+29. Validation evidence package
+30. Registry recommendation
+31. Maturity recommendation
+32. Operational health
+33. NFL/other sport isolation
+34. Tests/build
+35. Remaining limitations
+36. Final decision
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #223 COMPLETE — NCAAF V4 VALIDATED; READY FOR #224 CONTROLLED
+PRODUCTION APPROVAL
+
+B. #223 COMPLETE — NCAAF V4 VALIDATED WITH DOCUMENTED ABSTENTION
+LIMITS; READY FOR #224
+
+C. #223 PARTIAL — PROSPECTIVE SAMPLE OR ONE SPECIFIC VALIDATION BLOCKER
+REMAINS
+
+D. #223 FAILED — NCAAF V4 DOES NOT MEET VALIDATION STANDARD
+
+A or B advance to #224.
+
+Do not begin #224 automatically.
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start with:
+
+#223 FINAL
+
+MODEL:
+[value]
+
+MODEL VERSION:
+[value]
+
+CONFIGURATION HASH:
+[value]
+
+PARAMETER HASH:
+[value]
+
+HISTORICAL OOS GAMES:
+[number]
+
+HISTORICAL OOS MARGIN MAE:
+[value]
+
+HISTORICAL OOS TOTAL MAE:
+[value]
+
+HISTORICAL OOS BRIER:
+[value]
+
+HISTORICAL OOS LOG LOSS:
+[value]
+
+CALIBRATION DECISION:
+[value]
+
+PROSPECTIVE FROZEN PREDICTIONS:
+[number]
+
+PROSPECTIVE GRADED GAMES:
+[number]
+
+PROSPECTIVE MARGIN MAE:
+[value or N/A]
+
+PROSPECTIVE TOTAL MAE:
+[value or N/A]
+
+PROSPECTIVE BRIER:
+[value or N/A]
+
+PROSPECTIVE LOG LOSS:
+[value or N/A]
+
+PROSPECTIVE EVIDENCE:
+CONSISTENT / PROMISING / INCONCLUSIVE / CONCERNING
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+INVALID PROBABILITY OUTPUTS:
+[number]
+
+MODEL DOMAIN:
+[value]
+
+V4 VALIDATION READY:
+TRUE / FALSE
+
+PRODUCTION APPROVAL READY:
+TRUE / FALSE
+
+FULL LIVE PUBLICATION DATA READY:
+TRUE / FALSE
+
+MODEL APPROVAL STATE:
+[value]
+
+MODEL MATURITY:
+[value]
+
+CURRENT CHAMPION CHANGED:
+YES / NO
+
+PUBLICATION CHANGED:
+YES / NO
+
+NFL CHANGED:
+YES / NO
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[value]
+
+Then provide the complete report.
+
+============================================================
+STOP CONDITION
+============================================================
+
+Do NOT begin #224.
+
+Do NOT promote V4.
+
+Do NOT change production champion.
+
+Do NOT publish V4 picks.
+
+Do NOT create wagers or units.
+
+Complete #223,
+return the report,
+and STOP.

@@ -1,0 +1,668 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "0NAta2Z4Pft_jZ6h6mSCn"
+uri = "file://TBM_Betting_Model_Full_Infrastructure_Build.md"
+type = "text"
+title = "TBM Betting Model — Full Infrastructure Build"
+description = "Copy-ready architecture specification covering the current model, target upgrade, moneyline and spread systems, learning, risk, evaluation, data contracts, rollout, testing, and operating rules."
+logical_id = "29e43f47-2b55-40c5-90d0-e913085856b1"
+
+[[outputs]]
+id = "ks8to2342LIcX6Ugy1Kmg"
+uri = "file://reports/thebettingmodel-forensic-audit-2026-09-03.md"
+type = "text"
+title = "TheBettingModel Production Forensic Audit"
+description = "Read-only audit of the live prediction formulas, sports data, market influence, recommendation rules, publication gates, unit sizing, frozen learning, and one numerical MLB decision reconstruction."
+logical_id = "653bef1c-c9bc-4cda-92ca-c51dbb35912b"
+content_hash = "sha256:61ae39c1d65fe3295842abedeed8b9e2988e32130b13a12d61a9483fee6abb36"
+size = 43885
+mtime_ms = 1788432295144
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/653bef1c-c9bc-4cda-92ca-c51dbb35912b/7884580e-0b87-4783-98da-ddbfb5efe363"
+storage_version_token = "1788432313677758"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "S7w5qPePr86NSUmyhkEnU"
+uri = "file://reports/thebettingmodel-mlb-model-only-2026-09-03.md"
+type = "text"
+title = "TheBettingModel — Current MLB Moneyline Model"
+description = "MLB-only forensic review of production inputs, formulas, current weights, pitcher/bullpen/lineup signals, market evaluation, recommendation gates, publication, immutable evidence, and unit sizing."
+logical_id = "0fd3a881-aaf6-4d77-9f3f-23c54ee6415e"
+content_hash = "sha256:9d47cb263634d0fadb034aeebb7f94da04249701327ef7efd8ac8c6e25c09f1a"
+size = 29412
+mtime_ms = 1788432581927
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/0fd3a881-aaf6-4d77-9f3f-23c54ee6415e/ba31b15a-d6d3-4751-9130-6a1ff118f74b"
+storage_version_token = "1788432586443347"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "oFSTSorX0KQnx1kcFe75N"
+uri = "file://reports/ncaaf-read-only-forensic-audit-2026-09-03.md"
+type = "text"
+title = "NCAA Football Read-Only Forensic Audit"
+description = "Production forensic audit of NCAA Football evidence, predictions, publication, grading, and promotion safety as of September 3, 2026."
+logical_id = "cb79b857-9810-4a32-9517-b357b73bde18"
+content_hash = "sha256:ca72ad5d4ee199dbdcd949bdc3ed1517e122d5c2e20ed2e66bb9315779a3c2a8"
+size = 12251
+mtime_ms = 1788446998293
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/cb79b857-9810-4a32-9517-b357b73bde18/8d72a996-06d3-4702-8ffb-a271ca8054f1"
+storage_version_token = "1788447019739681"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "n_AoX87IhbHKQjuDFa0FS"
+uri = "file://reports/ncaaf-production-integrity-evidence-foundation-2026-09-03.md"
+type = "text"
+title = "NCAAF Production Integrity & Evidence Foundation"
+description = "The completed 58-section #220 implementation and verification report."
+logical_id = "506dd599-b376-48bb-93e4-53f0414473d9"
+content_hash = "sha256:1e5878c97fa685b2a1ba8018bbe52a2b8ffa926bd570184ef7f9dcae953ca6b0"
+size = 6135
+mtime_ms = 1788448288909
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/506dd599-b376-48bb-93e4-53f0414473d9/f50c1566-c454-48ba-a36b-d39a8aca5bc4"
+storage_version_token = "1788448359011639"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "bUQEVXOtJxCjprfIgxq_u"
+uri = "file://reports/ncaaf-advanced-football-intelligence-2026-09-03.md"
+type = "text"
+title = "NCAAF Advanced Football Intelligence Report"
+description = "Full #221 audit with all 81 required sections and 48 completion answers."
+logical_id = "7bd1f4ef-eaa3-47cd-9035-fe5cc8669164"
+content_hash = "sha256:7f4325937c57aed0d1fbbe5a3df7a1b35757d3166dd28925a59dfb9cee653b42"
+size = 24350
+mtime_ms = 1788450431701
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7bd1f4ef-eaa3-47cd-9035-fe5cc8669164/1eb9185e-2a99-439a-abc4-b8d9d180a6a1"
+storage_version_token = "1788450521142749"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "HevAH2iNwQ9V7SEBsElAH"
+uri = "file://reports/ncaaf-provider-activation-production-deployment-2026-09-03.md"
+type = "text"
+title = "Complete #221B NCAAF Provider Activation Report"
+description = "Full 77-section report with all 60 completion answers."
+logical_id = "ebef07db-8a1c-4096-bb92-6a052b09111b"
+content_hash = "sha256:895086eeabf1db58ee7f91bdb1518053b42af22cbb40a07c608b3e8220f5aa55"
+size = 8229
+mtime_ms = 1788452111501
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ebef07db-8a1c-4096-bb92-6a052b09111b/6c9e48c8-1acb-4722-9296-d3a81231d299"
+storage_version_token = "1788452219365873"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "XReTpVgtYyyzR1zwnxxbZ"
+uri = "file://reports/ncaaf-production-evidence-activation-2026-09-03.md"
+type = "text"
+title = "#221C NCAAF Production Evidence Activation Report"
+description = "Full authoritative 54-section report with all 50 completion questions answered, including post-publish production counts and remaining provider blockers."
+logical_id = "c379aa41-4cb0-4852-ad98-27dc5655fe58"
+content_hash = "sha256:2d75f70e18d9c84058631a29a5c45eb0805601cda530852add093a09b757ffa3"
+size = 21003
+mtime_ms = 1788455257011
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/c379aa41-4cb0-4852-ad98-27dc5655fe58/f2d19cfd-3200-4843-9f0f-bc443ff36cd5"
+storage_version_token = "1788455279482872"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "iovjdmHmHzx-WZk6aZSms"
+uri = "file://reports/ncaaf-cfbd-provider-integration-2026-09-03.md"
+type = "text"
+title = "#221D CFBD NCAAF Intelligence Integration Report"
+description = "Full 58-section completion report with all 60 explicit answers, verification results, production status, blockers, and #222 recommendation."
+logical_id = "3d78e591-5b1f-45a0-a278-e20d9c0ce8a0"
+content_hash = "sha256:4eeae95acc9f77fad4611685096b043de7bf179aaeb23884a76623012c3104d6"
+size = 39251
+mtime_ms = 1788460049571
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/3d78e591-5b1f-45a0-a278-e20d9c0ce8a0/bfac4ce7-53d6-4524-935e-35bcf6cdc9aa"
+storage_version_token = "1788460055434524"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "_bU9dAHAd_wyk5nf95Um2"
+uri = "file://reports/ncaaf-cfbd-production-verification-2026-09-03.md"
+type = "text"
+title = "#221D-PROD CFBD Production Verification"
+description = "Production PASS report with exact CFBD evidence counts, scheduler and provider health, intelligence readiness, PIT status, and all 20 required answers."
+logical_id = "c8b3b1ea-a94d-4d9d-b55a-2eea1c50d216"
+content_hash = "sha256:3ee6ffcf474dba18d3e17c679c526a2bc8e5b0c64f3ea3632c60dcbfdbde641d"
+size = 5973
+mtime_ms = 1788460551346
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/c8b3b1ea-a94d-4d9d-b55a-2eea1c50d216/d5314c62-f4d6-43c3-8843-dc0d05d48ea8"
+storage_version_token = "1788460557749501"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "cpq12h2lyhnmnH2Adsore"
+uri = "file://reports/ncaaf-cfbd-advanced-intelligence-2026-09-03.md"
+type = "text"
+title = "#221E CFBD Advanced Intelligence Report"
+description = "61-section development report and 61 completion answers covering endpoint contracts, canonical mappings, PIT controls, provider telemetry, readiness, and pending production verification."
+logical_id = "0c4bfde6-7877-4276-ae9e-408db2ff89bc"
+content_hash = "sha256:0b936834b9de8059175a30c14613b2025116e101678f52381d1d4f2bd5ad497e"
+size = 8947
+mtime_ms = 1788461608654
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/0c4bfde6-7877-4276-ae9e-408db2ff89bc/05825a2c-42f5-445a-9834-86e5791bd637"
+storage_version_token = "1788461727536514"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "O8wu0uLdpQrPZUE0ma9XT"
+uri = "file://reports/ncaaf-cfbd-advanced-intelligence-production-verification-2026-09-03.md"
+type = "text"
+title = "#221E-PROD Production Verification"
+description = "Read-only production audit with 45 required sections and 52 explicit answers. Final decision: NOT READY FOR #222 — DATA FOUNDATION BLOCKER."
+logical_id = "5992a265-d5ff-47eb-861b-aa8b671a468d"
+content_hash = "sha256:b1979985449cd08a7dba5372a2a227a52b8243b177ce18f4f6301905234907e2"
+size = 17810
+mtime_ms = 1788462693288
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/5992a265-d5ff-47eb-861b-aa8b671a468d/a99288ab-010a-42b1-89f5-928808e22e11"
+storage_version_token = "1788462706966778"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "gun41v-_LR_kI6mSCf4U-"
+uri = "file://reports/ncaaf-cfbd-production-recovery-2026-09-03.md"
+type = "text"
+title = "NCAAF CFBD Production Recovery Report"
+description = "Final #221F production audit with exact endpoint, domain, mapping, snapshot, cohort, PIT, provider-health, scheduler, and readiness counts as of 2026-09-03 20:25:06 UTC."
+logical_id = "1c38c5e2-535b-42b0-9f96-a03909d6f49c"
+content_hash = "sha256:d2620562059fc4cceda065b61f14d18c9eeb666a4d2c1a5961085ad06ed7629f"
+size = 12639
+mtime_ms = 1788467183584
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1c38c5e2-535b-42b0-9f96-a03909d6f49c/cdccc4b5-a617-4c89-8864-5342c630a7a3"
+storage_version_token = "1788467193983548"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "uxAmjBcQqCQ_w_hpfKMXy"
+uri = "file://reports/ncaaf-historical-atomic-replay-2026-09-04.md"
+type = "text"
+title = "Final #221I NCAAF Historical Atomic Replay Report"
+description = "Production-verified 2023–2025 atomic backfill, chronological replay, leakage audit, readiness matrix, and final decision."
+logical_id = "1fea1e14-4402-4a27-be65-e11c889205df"
+content_hash = "sha256:adbae9d2ed4f1b05ad34364a259604f640ddfa2abef4a115ed2aba95dd2daeb1"
+size = 9804
+mtime_ms = 1788492544902
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1fea1e14-4402-4a27-be65-e11c889205df/b2f458f5-33f3-4dda-b743-33cd02a679a7"
+storage_version_token = "1788492551896470"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "qNE5PPCIo0ksdr7iFJasL"
+uri = "file://reports/ncaaf-v4-expected-score-engine-2026-09-04.md"
+type = "text"
+title = "#222 NCAAF V4 Expected-Score Engine Report"
+description = "Final v5 challenger report with chronological splits, baselines, OOS metrics, calibration, PIT/market audits, registry state, and exact B decision."
+logical_id = "a6498c14-d2c7-406f-84e8-a21058f56b3a"
+content_hash = "sha256:ef3472828b50c1f8e58c4077503c58f95a8a5b79df2ce4bf638a4eab780520fe"
+size = 12872
+mtime_ms = 1788528230203
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/a6498c14-d2c7-406f-84e8-a21058f56b3a/2d19e9e9-97ad-432f-9def-e687a1b3d34a"
+storage_version_token = "1788528278426695"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "Qq9roczUwM3jBzayAgrWA"
+uri = "file://reports/ncaaf-v4-distinct-challenger-2026-09-04.md"
+type = "text"
+title = "#222B NCAAF V4 Distinct Challenger Report"
+description = "Final validation-only challenger comparison and 2026 feature-bridge audit, with exact decision C and one remaining identity-mapping blocker."
+logical_id = "8044ac92-c155-44ad-95e8-f4864e963589"
+content_hash = "sha256:ec7d3f37fc5978ba7cc526121abd04f8db24e01ab5f51a3aaf1cf25d97a37805"
+size = 35651
+mtime_ms = 1788529107551
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/8044ac92-c155-44ad-95e8-f4864e963589/38f35281-e98a-4ebb-a772-22407b3e859b"
+storage_version_token = "1788529162089242"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "e-x0OZ3bUEjmy2zq5N0fK"
+uri = "file://reports/ncaaf-v4-2026-identity-bridge-2026-09-04.md"
+type = "text"
+title = "#222C Final Identity Bridge Report"
+description = "Production-verified 2026 NCAAF identity bridge and feature-compatibility report with the exact decision B."
+logical_id = "7ba8d5ce-fef3-403d-95a1-d9c005f8a819"
+content_hash = "sha256:d685ba60fd1951c648cf0ed34655a9218f8b75b6a7d68bf7854655c9e6ee4d5c"
+size = 9939
+mtime_ms = 1788530249822
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7ba8d5ce-fef3-403d-95a1-d9c005f8a819/0bff1a99-9c88-4bb8-9d73-0e2249e54f88"
+storage_version_token = "1788530264119052"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "mLF36CIzLkwhLiD6Zk4yn"
+uri = "file://reports/ncaaf-v4-formal-validation-2026-09-04.md"
+type = "text"
+title = "#223 NCAAF V4 Formal Validation Report"
+description = "Complete 36-section formal validation report. Final decision: C, with zero legitimately graded prospective games as the sole advancement blocker."
+logical_id = "1ca45433-ed13-4e27-9c9e-4378d9abf8ef"
+content_hash = "sha256:7791db10b1ecc4e3ca9780ff63054d60b44cb4acfd1d44abdf7cc99be95d71e3"
+size = 16955
+mtime_ms = 1788531584182
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1ca45433-ed13-4e27-9c9e-4378d9abf8ef/bb2dd34a-7159-41b9-9314-287d3da9f73b"
+storage_version_token = "1788531642089050"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "C7n5bQBZAMCZ4RQbN6UjC"
+uri = "file://reports/ncaaf-v4-formal-validation-evidence-2026-09-04-v8.json"
+type = "unspecified"
+title = "#223 Immutable Validation Evidence"
+description = "Write-once machine-readable evidence with frozen identity, historical diagnostics, and complete hashed 656-input/656-prediction pre-kickoff ledgers."
+logical_id = "f67b6e20-a9ba-49d9-af47-eb1764f19bf9"
+content_hash = "sha256:bc23814777e40ee9ca9ecfba15d6a8198dd8fb2ff6739c1f86c7f974521c0f67"
+size = 2959435
+mtime_ms = 1788531481167
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/f67b6e20-a9ba-49d9-af47-eb1764f19bf9/42cbf0d1-f363-42c0-8e27-c326a06f6533"
+storage_version_token = "1788531643699675"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Nb5CQSyqhoxc6YtqrkI6E"
+uri = "file://reports/ncaaf-v4-prospective-validation-evidence-2026-09-04-20260904T143447911Z.json"
+type = "unspecified"
+title = "#223B Canonical Prospective Evidence"
+description = "Append-only machine-readable continuation evidence. All 656 forecasts remain pending; ledger/domain checks pass; runtime is PARTIAL."
+logical_id = "e1e48315-92e6-4034-a033-17f0239034c6"
+content_hash = "sha256:3affb3131815801b42e646d4dda5f5dcfe8392949de30ccdf385cd40bcd85738"
+size = 3767
+mtime_ms = 1788532488954
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e1e48315-92e6-4034-a033-17f0239034c6/e0be8d87-2898-4d0c-95d1-ec943ea83922"
+storage_version_token = "1788532559654619"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "bzKgS6lTKO3fFzTxjHpDN"
+uri = "file://reports/ncaaf-v4-prospective-validation-2026-09-04.md"
+type = "text"
+title = "#223B Prospective Validation Report"
+description = "Required 29-section report with final decision C: more legitimately graded prospective evidence is required."
+logical_id = "3dc48077-67d6-43d6-9de2-157cc61a1eab"
+content_hash = "sha256:6e36684284bc759ced9f66125543a212144a145fdb522d726782595cb8b214d8"
+size = 10878
+mtime_ms = 1788532507486
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/3dc48077-67d6-43d6-9de2-157cc61a1eab/c4148449-47e4-4442-811e-15e8079a4ca6"
+storage_version_token = "1788532560305628"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "afjobVFn45IkbtoiPBMOU"
+uri = "file://reports/apple-signing-credential-remediation-2026-09-04.md"
+type = "text"
+title = "#223D Apple Signing Credential Remediation Report"
+description = "Complete 32-section incident report covering local and remote history remediation, validation results, Apple/EAS owner actions, and remaining release blockers."
+logical_id = "1118a17f-1700-4249-b739-53b1c4161e9d"
+content_hash = "sha256:bc0122c33254e470ca7a6a46fbe1c1bf90b353895a5c7f27d2741aecb46d4fc5"
+size = 15283
+mtime_ms = 1788541872640
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/1118a17f-1700-4249-b739-53b1c4161e9d/43fa7b30-d669-49b2-a9f9-59540aa9cd8b"
+storage_version_token = "1788541905278591"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "chgIZWnEZfHvzHo3lFai_"
+uri = "file://reports/mlb-historical-completion-chronology-2026-09-04.md"
+type = "text"
+title = "MLB Completion Chronology Report"
+description = "The required 19-section TASK #224B-1 report with final chronology classification, coverage, replay checksums, blockers, and next-task boundary."
+logical_id = "aabda932-81bb-4b78-a6bf-9eac92ac666d"
+content_hash = "sha256:1149b5db5c4489830b03246fad46b42531f8eba0320ccdad8ab0577053650192"
+size = 9866
+mtime_ms = 1788579106035
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/aabda932-81bb-4b78-a6bf-9eac92ac666d/991965ad-4a99-433b-a546-4e9cd8608ff8"
+storage_version_token = "1788579139777847"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "uMRCfFZkZ_-CSdXjEfFae"
+uri = "file://reports/mlb-historical-completion-chronology-2026-09-04.json"
+type = "unspecified"
+title = "MLB Completion Chronology Audit Data"
+description = "Machine-readable TASK #224B-1 report containing the sealed v3 artifact identity, counts, checksums, validation results, and final classification."
+logical_id = "4fcb4450-d70e-4e6b-873e-49635ffeae4f"
+content_hash = "sha256:dbf51e7d700c55962e89410bdcf23c4b6d24d3b3c819ce61f5f56b0bf4ef294f"
+size = 9741
+mtime_ms = 1788579084919
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/4fcb4450-d70e-4e6b-873e-49635ffeae4f/65bed911-fdcb-4b96-8760-e27562531031"
+storage_version_token = "1788579140375060"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "qjeXdm7WVxG_4AF8YTHos"
+uri = "file://reports/mlb-historical-pitcher-bullpen-pit-2026-09-05.md"
+type = "text"
+title = "MLB Historical Pitcher & Bullpen PIT Report"
+description = "Complete 25-section TASK #224B-2 report with final classification B, authoritative v5 lineage, audits, coverage, risks, and hard-stop confirmation."
+logical_id = "b54354b3-cd74-4a71-8c4b-3e8cb1d281f5"
+content_hash = "sha256:2c1e0616a59f038ebc62eb09d439600d9a22c0e7d38a3e10b07a113dafda14aa"
+size = 17276
+mtime_ms = 1788611856884
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b54354b3-cd74-4a71-8c4b-3e8cb1d281f5/91fd6393-c7fd-4b92-91eb-1d9eff6610f1"
+storage_version_token = "1788611892533616"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "hQZPopKdXOmUu-FjwY1PO"
+uri = "file://reports/mlb-historical-pitcher-bullpen-pit-2026-09-05.json"
+type = "unspecified"
+title = "MLB Historical Pitcher & Bullpen PIT Report — JSON"
+description = "Machine-readable 25-section TASK #224B-2 report and authoritative v5 checksums."
+logical_id = "04078e93-cccf-41c8-b309-fa8c8dc2b9e8"
+content_hash = "sha256:b0cdc9cda6eaf8510b310354271735d7a17b4a023c1c3f29a466a9763c5c215a"
+size = 12847
+mtime_ms = 1788611857336
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/04078e93-cccf-41c8-b309-fa8c8dc2b9e8/8663a195-77e9-4612-9a27-5dd2e6b06ce5"
+storage_version_token = "1788611893293144"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "wR1Tilv6YTVfVTFgKBmqi"
+uri = "file://reports/mlb-v4-expected-runs-training-2026-09-05.md"
+type = "text"
+title = "MLB V4 Expected-Runs Training Report"
+description = "Complete 31-section TASK 224C report. Final classification: C — trained but not competitive."
+logical_id = "de68833c-560b-4620-8bd4-8d5c0832dbf0"
+content_hash = "sha256:60c6ad90d7e97de9bc2da703cd4a9309c5292d0f21fdcdd0f1479b9b3f47d78f"
+size = 2112725
+mtime_ms = 1788619267399
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/de68833c-560b-4620-8bd4-8d5c0832dbf0/3f97b1a7-6ed7-4b1b-99d9-d5abdb1e1984"
+storage_version_token = "1788619331266029"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "R6sFbJftUG4nRu9LNhCO1"
+uri = "file://reports/mlb-v4-expected-runs-training-2026-09-05.json"
+type = "unspecified"
+title = "MLB V4 Expected-Runs Training Report (JSON)"
+description = "Machine-readable 31-section TASK 224C report with sealed validation, OOS, audit, and reproducibility evidence."
+logical_id = "e788ad31-3f9d-4d50-a43d-7697478827c7"
+content_hash = "sha256:0e21984bfa292d8eb2c04f3f6bf804d1cd9cc7a255c7202d46494d2a6f9af473"
+size = 2451671
+mtime_ms = 1788619267383
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e788ad31-3f9d-4d50-a43d-7697478827c7/cc184952-5fe1-481f-a0bb-e24523524cfa"
+storage_version_token = "1788619332678679"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Sepp_rgbvVmogUdNKKM8-"
+uri = "file://reports/mlb-v4-pregame-starter-recovery-root-cause-2026-09-05.md"
+type = "text"
+title = "MLB V4 Pregame Starter Recovery & Root-Cause Audit"
+description = "Final 36-section #224C-1 report. Classification: C — prospective starter foundation required."
+logical_id = "b1ad3993-05c4-4748-a02f-c5acd2a44cb6"
+content_hash = "sha256:3ff7d068c326d122ccd395f4af3994e63837761bc9347c5b3ea957ddaf153b7f"
+size = 97630
+mtime_ms = 1788628027007
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b1ad3993-05c4-4748-a02f-c5acd2a44cb6/6c1a09e8-2d3d-4e24-a236-e0b72e7721b7"
+storage_version_token = "1788628077220892"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "KpuYsLhdtuVKOcov5UEwz"
+uri = "file://reports/mlb-v4-pregame-starter-recovery-root-cause-2026-09-05.json"
+type = "unspecified"
+title = "MLB V4 Pregame Starter Audit — JSON"
+description = "Machine-readable companion with all 36 report sections and deterministic report hash."
+logical_id = "fab7dc8e-e18b-4126-a052-45a5c782ea09"
+content_hash = "sha256:be25177c895b18ebb91ad774dff0acd96e3c63c171cee3340d652b407d157413"
+size = 121248
+mtime_ms = 1788628027007
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/fab7dc8e-e18b-4126-a052-45a5c782ea09/35882118-056e-45da-91de-0a4873558cda"
+storage_version_token = "1788628078075172"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "QW2DuHhagvz0UWKPHRL4C"
+uri = "file://reports/mlb-224c1b-prospective-starter-completeness.md"
+type = "text"
+title = "MLB V4 Prospective Starter Evidence Completeness Report"
+description = "Final 36-section #224C-1B audit. Classification: C — prospective pipeline partial."
+logical_id = "74e77979-7686-4938-9a3d-92c495b32a39"
+content_hash = "sha256:a860e9b2a8ed0b7b4a10b31e65f71e4eb239c7134f8887179ad3d789262b3d73"
+size = 25876
+mtime_ms = 1788646889086
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/74e77979-7686-4938-9a3d-92c495b32a39/f706cb77-3378-42d1-a26f-402339564951"
+storage_version_token = "1788646948120735"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "QG4IXyZ40eApb5118JfsE"
+uri = "file://reports/mlb-224c1b-prospective-starter-completeness.json"
+type = "unspecified"
+title = "MLB Prospective Starter Completeness — JSON"
+description = "Machine-readable audit with deterministic hash, completeness metrics, leakage gates, and verification results."
+logical_id = "99059f87-3712-4419-9702-2b7518b2a087"
+content_hash = "sha256:f0f00af51d89e262ab7efc3427d8faf921b91e6230c35abdbe50e4fd04e345bc"
+size = 32372
+mtime_ms = 1788646889086
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/99059f87-3712-4419-9702-2b7518b2a087/1b24bac0-b689-4699-812f-7da9f21dac59"
+storage_version_token = "1788646949040678"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Qq_iHkGpDHOGhf5Os0fyx"
+uri = "file://reports/mlb-224c1b-verification.json"
+type = "unspecified"
+title = "MLB Starter Evidence Audit Verification Ledger"
+description = "Exact focused/full test, typecheck, build, append-only, security, and independent-review results."
+logical_id = "f81b1aa0-9697-48ac-b9fb-3d78a66668df"
+content_hash = "sha256:ebffc69d008ce6575b6be39c39c600641eb6ebe45a8fb1ec8ccf5c6b855707bf"
+size = 3044
+mtime_ms = 1788646868938
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/f81b1aa0-9697-48ac-b9fb-3d78a66668df/3d2047a9-e615-4888-a999-0996a96f74dd"
+storage_version_token = "1788646949752664"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "0oQEnPBIASfWCnmygdHrk"
+uri = "file://reports/task-232-mlb-v4-live-foundation.md"
+type = "text"
+title = "Task 232 — MLB V4 Live Foundation Report"
+description = "Final 43-section evidence report. Classification: B — live foundation complete, prospective evidence accumulating."
+logical_id = "e4698969-1c4d-4f3b-9631-2c364d8a4840"
+content_hash = "sha256:e80da728e6e6fc39bf5327ac90311ae165ee86d41a8e26c5794e2f23ebac54ba"
+size = 6027
+mtime_ms = 1788649726554
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/e4698969-1c4d-4f3b-9631-2c364d8a4840/e6236138-8339-4736-ab6f-b358f0f2314a"
+storage_version_token = "1788649824883576"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "8AlqTImrD-daSbUsnwh9I"
+uri = "file://reports/task-232-verification.json"
+type = "unspecified"
+title = "Task 232 — Verification Ledger"
+description = "Machine-readable current-version metrics, hashes, test results, lifecycle evidence, and immutable-scope checks."
+logical_id = "be7c5c1e-d6bb-416b-b85e-c4a5d1fa4bca"
+content_hash = "sha256:8492f5a81b9d977f8e93fb7931cf0724d3663e2be54a7e3b353e64a6dbfdb957"
+size = 3908
+mtime_ms = 1788649743810
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/be7c5c1e-d6bb-416b-b85e-c4a5d1fa4bca/cf72b3d7-0359-4753-a4a4-414995d1e27f"
+storage_version_token = "1788649825500959"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "x3YmqBOHVCdsuv_AkxkFy"
+uri = "file://reports/task-233-guarded-production-launch.md"
+type = "text"
+title = "Task 233 — Guarded Production Launch Report"
+description = "Final 35-section audit. Classification C: production launch blocked; MLB V1 and NCAAF legacy remain safely unchanged."
+logical_id = "7271f02b-e1f2-47c5-9d82-083ec1e40cf2"
+content_hash = "sha256:b58cae7af6ed5cc03b115888011b12a49eca5af16bdb3d69de16dd11a9e80c53"
+size = 8219
+mtime_ms = 1788655867217
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/7271f02b-e1f2-47c5-9d82-083ec1e40cf2/fba9865d-b0a9-4df2-93dd-259c320897c2"
+storage_version_token = "1788655906494672"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "CYgwXIu4Ec3z6md7CndQu"
+uri = "file://reports/task-233-verification.json"
+type = "unspecified"
+title = "Task 233 — Verification Ledger"
+description = "Machine-readable production, database, evidence, security, build, test, and governance findings for the blocked launch."
+logical_id = "ac496cd8-decb-429b-a4e9-8d9882281647"
+content_hash = "sha256:a04787803b590d4e319185561472ab950fcc4724cc7120dc59b6aa60e967303d"
+size = 4363
+mtime_ms = 1788655871677
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ac496cd8-decb-429b-a4e9-8d9882281647/7aee1c56-ddd5-440b-97b1-9ffc2b5e935f"
+storage_version_token = "1788655907249151"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "UYvZetkXKNmtN6yrdjvKU"
+uri = "file://reports/task-234-guarded-serving-runtime.md"
+type = "text"
+title = "Task 234 Guarded Serving Runtime Report"
+description = "Final 45-section implementation and verification report. Classification: B — Guarded Serving Runway Partial."
+logical_id = "6fa44b66-1ad5-45b2-a878-c0f24172d67e"
+content_hash = "sha256:59c0760c02aadda3017a65da9572f2a8190d81b36cad2f8b7f1a950314d1582b"
+size = 8142
+mtime_ms = 1788658430250
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/6fa44b66-1ad5-45b2-a878-c0f24172d67e/b28342af-9d4d-4930-8e47-a83f9275081a"
+storage_version_token = "1788658475530120"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "F4qwBp4p1dAFM3v9cRVIh"
+uri = "file://reports/task-234-verification.json"
+type = "unspecified"
+title = "Task 234 Verification Ledger"
+description = "Machine-readable verification evidence, dry-run results, checks, blockers, and report hash."
+logical_id = "78b675d0-d32a-4a51-ab4c-919ef1e503a0"
+content_hash = "sha256:b36be89d57a9d2a4fc78d42dfe2a540ace847f74ba7c3fb147afc239944181f7"
+size = 5379
+mtime_ms = 1788658442622
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/78b675d0-d32a-4a51-ab4c-919ef1e503a0/7610a585-8381-440f-a5a2-febe11360182"
+storage_version_token = "1788658476237848"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "5nf5sk4uqJUfKbPmWn839"
+uri = "file://reports/task-235-authentic-candidate-execution.md"
+type = "text"
+title = "Task 235 Authentic Candidate Execution Report"
+description = "The required 66-item verification report covering authentic execution, fallback, schema, security, deployment, and remaining blockers."
+logical_id = "fa052382-261f-42bb-8d88-17e75100daad"
+content_hash = "sha256:f1b4c6830d4e71bf43cda3618d1015778593464b1bce993bce961f06ab0ee351"
+size = 11269
+mtime_ms = 1788660914398
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/fa052382-261f-42bb-8d88-17e75100daad/4acf1d7e-3aee-4a23-b0fc-db1e454167f5"
+storage_version_token = "1788661077762432"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "piQEzNvkshLzAbm0dedtg"
+uri = "file://reports/task-235-verification.json"
+type = "unspecified"
+title = "Task 235 Machine-Readable Verification"
+description = "Structured identities, hashes, dry-run evidence, schema status, test results, and Task 236 readiness state."
+logical_id = "57167436-b9c8-4f73-aaf9-8a0b54ec8cb2"
+content_hash = "sha256:6bd93a7766532a7638c9f79780d7cde065d48b893ab3b5bbffe99e240b7ae171"
+size = 9440
+mtime_ms = 1788661070363
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/57167436-b9c8-4f73-aaf9-8a0b54ec8cb2/cfcd9f0a-4b37-4d86-9e37-6f17dc98ea9a"
+storage_version_token = "1788661078447004"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "BbED_QegU5LUDh6_MoslJ"
+uri = "file://reports/task-236-final-technical-cutover-readiness.md"
+type = "text"
+title = "Task 236 Final Technical Cutover Readiness"
+description = "Final owner-readable readiness report. Classification C; no cutover or publish."
+logical_id = "5e8c9056-e807-4c01-afa2-11a80188d502"
+content_hash = "sha256:9540722520465d2c29f069ad867e0fc7762f00f4e6892cd666586fd190d47945"
+size = 19639
+mtime_ms = 1788665669474
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/5e8c9056-e807-4c01-afa2-11a80188d502/213a1a23-9c14-4ee2-a22f-c595f19fc7ad"
+storage_version_token = "1788665731367065"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "bOYnqAql8DMlzQ2pHpNyu"
+uri = "file://reports/task-236-verification.json"
+type = "unspecified"
+title = "Task 236 Verification Evidence"
+description = "Machine-readable verification evidence, blockers, counts, hashes, tests, security results, and readiness booleans."
+logical_id = "4be09e14-f450-41b3-af0a-dbf9fcb74c65"
+content_hash = "sha256:2a5c5f66ca67f791dbd23039ebed82d48bcab664bc1a03e298e00dcdf6f42853"
+size = 18795
+mtime_ms = 1788665707718
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/4be09e14-f450-41b3-af0a-dbf9fcb74c65/e87b7429-a30e-4850-94fd-38302a3e9a43"
+storage_version_token = "1788665732012850"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "CefEFJjqnigvLm5BHtYjE"
+uri = "file://reports/task-237p-production-model-performance-autopsy-2026-09-06.md"
+type = "text"
+title = "Task 237P Production Model Performance Autopsy"
+description = "Complete 36-section read-only production diagnosis with cohort definitions, attribution, validation, and final classification."
+logical_id = "a8a67878-35ce-496f-84a8-bad5f2e2adbd"
+content_hash = "sha256:2e93c1d7f98a0a72b484f566d17c21429897bf121830218f04417b843e88db35"
+size = 31416
+mtime_ms = 1788732976540
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/a8a67878-35ce-496f-84a8-bad5f2e2adbd/68281ffb-b64b-4722-8cc2-8d1102024528"
+storage_version_token = "1788733024016629"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "Rc2-rKQswSHmZ3abkoMJt"
+uri = "file://reports/task-237p-production-model-performance-autopsy-2026-09-06.json"
+type = "unspecified"
+title = "Task 237P Machine-Readable Metrics"
+description = "Structured JSON companion containing the fixed cutoff, cohorts, performance metrics, health flags, checksums, and validation results."
+logical_id = "808af43d-f96e-4d41-a791-2bc58c3592e7"
+content_hash = "sha256:fffbd20a3b12aad23d892a9362cdf7d4bec89c8fcd48b3e6fc1aa417b7cd890e"
+size = 6752
+mtime_ms = 1788732994419
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/808af43d-f96e-4d41-a791-2bc58c3592e7/c9e7ac3b-6734-4616-b56f-9e644abdada9"
+storage_version_token = "1788733024810837"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "Z1pI7wr0_JBi3n1A8ekd3"
+uri = "file://reports/task-238a-fail-closed-publication-remediation-2026-09-06.md"
+type = "text"
+title = "Task #238A Final Remediation Report"
+description = "Required 32-section implementation, replay, validation, schema, security-gate, and final-classification report."
+logical_id = "308ca54a-afcd-4751-bb9f-a069a6be99e8"
+content_hash = "sha256:2ecbafc549ec220d32fc51817622c37f3d9ea9e09745aa58f98a14cab75465f9"
+size = 19031
+mtime_ms = 1788736105680
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/308ca54a-afcd-4751-bb9f-a069a6be99e8/e2c20add-1ffe-4946-b073-029d47ee5b43"
+storage_version_token = "1788736167555610"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "8LBm7bugWaW4I_IDOP71U"
+uri = "file://reports/task-238a-downstream-policy-replay-2026-09-06.json"
+type = "unspecified"
+title = "Task #238A Deterministic Replay Evidence"
+description = "Diagnostic-only 14-day replay and current-day dry-run evidence with exact approval-ledger enforcement."
+logical_id = "b27edeb7-b1e7-493e-a827-55b4f82ece8b"
+content_hash = "sha256:1defce399a7700c73dc41e143cbbfa96c83b4b2cc79afc45842db9fdd97aea93"
+size = 27481
+mtime_ms = 1788736034576
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/b27edeb7-b1e7-493e-a827-55b4f82ece8b/9c7f08a9-c94e-4e42-a5d0-14b661101315"
+storage_version_token = "1788736172903824"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "lpkdsiDVINaF04-mAKLQU"
+uri = "file://reports/task-240-tbm-v4-platform-rebuild-cloud-migration.md"
+type = "text"
+title = "Task 240 — TBM V4 Platform Rebuild Report"
+description = "Complete 75-section implementation, migration, verification, release-gate, and classification report."
+logical_id = "ba62b720-f05e-40b1-a512-6b95cf51185c"
+content_hash = "sha256:6c567d5dcec553a3bae86e5c402b3ecb4b9e28a649ba8e2a2b936c2d38c02a4c"
+size = 16281
+mtime_ms = 1788743484683
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:481a48a8-d9c1-40b5-a69a-b780842f13e8/ba62b720-f05e-40b1-a512-6b95cf51185c/acc6c590-dd35-4573-bcb0-d8c125018f4e"
+storage_version_token = "1788743542199108"
+content_type = "text/markdown"

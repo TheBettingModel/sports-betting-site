@@ -1,0 +1,1709 @@
+# TASK #235 — TBM AUTHENTIC CANDIDATE EXECUTION + PRODUCTION PUBLISH READINESS
+
+## MISSION
+
+Complete the final missing execution and publish-readiness layer between the guarded-serving runtime created in Task #234 and a future controlled production cutover.
+
+Task #234 successfully implemented the incumbent-safe guarded-serving boundary, approval separation, explicit fallback behavior, kill switches, runtime identity, publication adapter seam, audit behavior, and owner-visible status infrastructure.
+
+However, Task #234 correctly ended:
+
+B — GUARDED SERVING RUNWAY PARTIAL
+
+because neither MLB nor NCAAF has an authentic typed next-generation candidate executor registered at the central production boundary.
+
+Task #235 must fix that.
+
+The primary objective is:
+
+CONNECT THE REAL NEXT-GENERATION MODEL ENGINES TO THE GUARDED PRODUCTION RUNTIME WITHOUT APPROVING OR PUBLICLY LAUNCHING THEM.
+
+When this task is complete, the system must be capable of executing the authentic next-generation candidate from fresh authoritative inputs through the exact guarded-serving/publication path that would be used after approval.
+
+Task #235 must prove:
+
+MLB:
+FRESH AUTHORITATIVE model-input-v4
+→ AUTHENTIC tbm-mlb-moneyline-v4 EXECUTOR
+→ GUARDED RESOLVER
+→ PUBLICATION ADAPTER
+→ UNIVERSAL PIPELINE
+→ API CONTRACT
+→ DRY-RUN DISPOSITION
+
+NCAAF:
+AUTHORITATIVE NEXT-GEN INPUT
+→ AUTHENTIC tbm-ncaaf-v4-expected-score EXECUTOR
+→ GUARDED RESOLVER
+→ PUBLICATION ADAPTER
+→ UNIVERSAL PIPELINE
+→ API CONTRACT
+→ DRY-RUN DISPOSITION
+
+The candidate models MUST remain unapproved unless a separate explicit governed approval already legitimately exists.
+
+Do NOT use Task #235 to force production launch.
+
+The intended next task after successful #235 is:
+
+TASK #236 — GOVERNED APPROVAL + CONTROLLED LIVE CUTOVER
+
+
+======================================================================
+1. AUTHORITATIVE STARTING STATE
+======================================================================
+
+Treat the Task #234 final report as authoritative unless direct inspection proves a material change.
+
+Task #234 classification:
+
+B — GUARDED SERVING RUNWAY PARTIAL
+
+Current safe configuration:
+
+MLB_MODEL_MODE=v1
+NCAAF_MODEL_MODE=legacy
+
+Current MLB incumbent:
+
+tbm-mlb-moneyline-v1
+
+Current MLB candidate:
+
+tbm-mlb-moneyline-v4
+
+Authoritative MLB candidate input contract:
+
+model-input-v4
+
+Current MLB candidate approval:
+
+NOT APPROVED / NOT PROMOTED
+
+Current MLB approved markets:
+
+NONE
+
+Current NCAAF incumbent:
+
+tbm-ncaaf-moneyline-v1
+
+Current NCAAF candidate:
+
+tbm-ncaaf-v4-expected-score
+
+Current NCAAF candidate approval:
+
+NOT APPROVED / NOT PROMOTED
+
+Current NCAAF approved markets:
+
+NONE
+
+
+Task #234 successfully established:
+
+- explicit MLB_MODEL_MODE
+- explicit NCAAF_MODEL_MODE
+- safe incumbent defaults
+- guarded MLB resolver
+- guarded NCAAF resolver
+- explicit fallback behavior
+- truthful engine identity
+- kill-switch behavior
+- serving mode separated from approval
+- append-only approval contract in development
+- publication adapter
+- universal pipeline seam
+- runtime observability
+- owner runtime status
+- dry-run audit infrastructure
+- startup fail-closed behavior
+- no automatic promotion
+- no automatic retraining
+- no model parameter changes
+
+Task #234 also established the remaining blockers:
+
+1. No authentic typed MLB candidate executor is registered.
+2. No authentic typed NCAAF candidate executor is registered.
+3. MLB dry run did not execute a fresh authoritative model-input-v4 inference.
+4. NCAAF dry run used a board/adaptation path rather than the central authentic production executor.
+5. Production publish schema/append-only triggers remain unverified.
+6. No fresh authentic candidate traversal through the complete production boundary exists.
+7. Candidate approval remains correctly blocked.
+
+
+======================================================================
+2. PRIMARY TASK #235 PRINCIPLE
+======================================================================
+
+Task #235 is about:
+
+EXECUTION READINESS
+
+NOT:
+
+MODEL PROMOTION
+
+NOT:
+
+MODEL RETRAINING
+
+NOT:
+
+MODEL PARAMETER TUNING
+
+NOT:
+
+MODEL APPROVAL
+
+NOT:
+
+PUBLIC LAUNCH
+
+The task must connect the authentic candidate engines while preserving all approval gates.
+
+Required distinction:
+
+EXECUTOR AVAILABLE = TRUE
+
+does NOT mean:
+
+GUARDED APPROVED = TRUE
+
+and does NOT mean:
+
+PRODUCTION LIVE = TRUE
+
+
+======================================================================
+3. DO NOT CHANGE MODEL BEHAVIOR TO MAKE THIS PASS
+======================================================================
+
+Do NOT:
+
+- retrain MLB V4
+- recalibrate MLB V4
+- change MLB V4 weights
+- change MLB V4 coefficients
+- change MLB V4 feature definitions
+- change NCAAF next-gen weights
+- change NCAAF next-gen parameters
+- alter NCAAF expected-score logic
+- modify thresholds to manufacture approval
+- fabricate missing inputs
+- convert preview evidence into production evidence
+- mark shadow records as official predictions
+- weaken PIT checks
+- weaken leakage checks
+- weaken approval checks
+- remove deployment safety bars
+
+Task #235 must execute the CURRENT authentic candidate artifacts as they actually exist.
+
+If an artifact cannot execute authentically, report the blocker.
+
+
+======================================================================
+4. AUTHENTIC EXECUTOR CONTRACT
+======================================================================
+
+Create or extend a typed candidate executor contract at the central production boundary.
+
+Prefer existing abstractions if they are suitable.
+
+Do NOT create unnecessary parallel execution systems.
+
+Conceptually:
+
+CandidateExecutor<Input, Output>
+
+must expose equivalent identity such as:
+
+sport
+modelFamily
+modelVersion
+artifactId
+artifactHash
+inputContractVersion
+supportedMarkets
+execute(input)
+health()
+reproducibility metadata
+
+The central serving boundary must interact with the candidate through this typed contract.
+
+Do NOT have routes/controllers directly invoke candidate-specific implementation details.
+
+
+======================================================================
+5. EXECUTOR REGISTRY
+======================================================================
+
+Implement or complete a central typed executor registry.
+
+Conceptually:
+
+candidateExecutorRegistry
+
+must resolve exact candidate identity to an authentic executor.
+
+Examples:
+
+tbm-mlb-moneyline-v4
+→ MLB V4 authentic executor
+
+tbm-ncaaf-v4-expected-score
+→ NCAAF authentic next-gen executor
+
+Identity matching must be exact.
+
+Do NOT select executors based on vague substring matching such as:
+
+contains("v4")
+
+or:
+
+startsWith("tbm-mlb")
+
+Unknown candidate identities must fail closed.
+
+
+======================================================================
+6. EXECUTOR AND APPROVAL MUST REMAIN SEPARATE
+======================================================================
+
+The following state must be valid:
+
+executorAvailable = true
+approvalStatus = SHADOW_APPROVED
+servingMode = v1
+
+Likewise:
+
+executorAvailable = true
+approvalStatus = UNVALIDATED
+servingMode = legacy
+
+This means:
+
+THE MODEL CAN EXECUTE AUTHENTICALLY
+
+but:
+
+THE MODEL CANNOT PUBLICLY SERVE.
+
+This is the desired Task #235 end state if approval remains blocked.
+
+
+======================================================================
+7. MLB V4 AUTHENTIC EXECUTOR
+======================================================================
+
+Register an authentic typed executor for:
+
+tbm-mlb-moneyline-v4
+
+The executor MUST consume the authoritative current V4 input contract:
+
+model-input-v4
+
+Do NOT execute MLB V4 from:
+
+- old model-input-v1
+- model-input-v2
+- model-input-v3
+- superseded evidence snapshots
+- reconstructed postgame data
+- old shadow output used as if it were fresh inference
+- legacy V1 inputs disguised as V4
+- board-only display records
+
+The executor must operate from the same authoritative pregame state V4 was designed to consume.
+
+
+======================================================================
+8. MLB FRESH INPUT MATERIALIZATION
+======================================================================
+
+For a current/upcoming eligible MLB game, prove fresh materialization of:
+
+starter evidence
+→ starter-state-v4
+→ team-state-v4
+→ context-v2
+→ model-input-v4
+
+All applicable source-time/PIT requirements must hold.
+
+The final model-input-v4 must be attributable to:
+
+game
+observation cutoff
+starter identities
+team state
+context
+input version
+materialization timestamp
+
+Do NOT use postgame information.
+
+
+======================================================================
+9. MLB V4 EXECUTION
+======================================================================
+
+Execute the authentic MLB V4 candidate against the freshly materialized model-input-v4.
+
+Persist/audit sufficient execution identity:
+
+game_id
+model_id
+model_version
+artifact_id
+artifact_hash
+input_snapshot_id
+input_version
+execution_timestamp
+output
+runtime status
+
+The candidate output must come from the actual V4 model logic.
+
+Do NOT substitute:
+
+- existing shadow prediction
+- manually calculated value
+- fixture
+- mocked prediction
+- V1 output
+- cached result from a different input snapshot
+
+for the required real-slate authentic execution.
+
+
+======================================================================
+10. MLB REPRODUCIBILITY TEST
+======================================================================
+
+For the same immutable model-input-v4 and exact candidate artifact:
+
+execute twice in isolated non-publishing mode.
+
+The candidate output must be deterministic within the model's defined numerical tolerance.
+
+Record:
+
+input snapshot identity
+artifact identity
+execution 1
+execution 2
+comparison result
+
+If nondeterminism is intentional, document its source and deterministic seeding/reproduction contract.
+
+Do NOT ignore unexplained nondeterminism.
+
+
+======================================================================
+11. MLB OUTPUT CONTRACT
+======================================================================
+
+Map the authentic V4 output into a typed candidate output contract without altering model semantics.
+
+At minimum preserve where legitimately available:
+
+selection
+model probability
+expected outcome/rating
+market
+model version
+input version
+prediction timestamp
+
+Do NOT invent:
+
+confidence
+edge
+units
+sharp score
+CLV
+market intelligence
+
+inside the raw model executor if those belong downstream.
+
+Those should be calculated by the appropriate existing pipeline component.
+
+
+======================================================================
+12. MLB GUARDED BOUNDARY INTEGRATION
+======================================================================
+
+After authentic execution exists, prove the central guarded runtime can consume it.
+
+Required dry-run path:
+
+fresh model-input-v4
+→ authentic V4 executor
+→ authentic V4 output
+→ approval check
+→ guarded resolver
+→ publication adapter
+→ market comparison
+→ edge/confidence where appropriate
+→ risk/publication policy
+→ universal pipeline
+→ final dry-run disposition
+
+Because approval may remain false, a legitimate result is:
+
+WOULD_FALLBACK
+Reason: V4_NOT_APPROVED
+
+The important difference from Task #234 is:
+
+THE AUTHENTIC V4 EXECUTOR MUST ACTUALLY HAVE RUN.
+
+
+======================================================================
+13. MLB APPROVAL MUST STILL BLOCK PUBLICATION
+======================================================================
+
+Prove:
+
+executorAvailable=true
++
+MLB_MODEL_MODE=v4_guarded
++
+approvalStatus != GUARDED_APPROVED
+=
+NO PUBLIC V4 PREDICTION
+
+Expected:
+
+V1 fallback
+
+or:
+
+PASS
+
+according to policy.
+
+No public V4 prediction may be created simply because the executor now exists.
+
+
+======================================================================
+14. MLB SUPPORTED MARKET TRUTH
+======================================================================
+
+Determine exactly which market(s) the current MLB V4 artifact authentically supports.
+
+Do NOT expand scope to Run Line, Totals, F5, or NRFI/YRFI unless the artifact genuinely implements those markets.
+
+For each MLB market report:
+
+EXECUTOR_SUPPORTED
+NOT_SUPPORTED
+LEGACY_ONLY
+
+This will define the eventual #236 cutover scope.
+
+
+======================================================================
+15. NCAAF AUTHENTIC EXECUTOR
+======================================================================
+
+Register an authentic typed executor for:
+
+tbm-ncaaf-v4-expected-score
+
+Do NOT use the Task #234 board-read adaptation as the final production executor.
+
+Locate the actual authoritative NCAAF next-generation expected-score/model logic.
+
+Wrap or expose it through the central typed executor contract without changing its model behavior.
+
+
+======================================================================
+16. NCAAF AUTHORITATIVE INPUT CONTRACT
+======================================================================
+
+Identify and document the exact authoritative input contract consumed by:
+
+tbm-ncaaf-v4-expected-score
+
+Do NOT guess.
+
+Document:
+
+input schema/version
+required fields
+optional fields
+missingness behavior
+team identity
+game identity
+kickoff
+observation cutoff
+team state
+opponent state
+QB/starter state where applicable
+injury state where applicable
+context
+market state where applicable
+
+The executor must consume the authentic next-gen contract.
+
+
+======================================================================
+17. NCAAF FRESH AUTHENTIC EXECUTION
+======================================================================
+
+For a real current/upcoming NCAAF game:
+
+materialize or retrieve the legitimate current pregame next-gen input.
+
+Then execute:
+
+tbm-ncaaf-v4-expected-score
+
+through the authentic executor.
+
+Persist/audit:
+
+game_id
+input identity
+input version
+artifact identity
+artifact hash
+execution timestamp
+candidate output
+runtime health
+
+Do NOT use a previously displayed board value as proof of fresh execution.
+
+
+======================================================================
+18. NCAAF MODEL_PREDICTION BRIDGE
+======================================================================
+
+Build the exact bridge between the authentic NCAAF candidate output and the central production prediction contract.
+
+This bridge must preserve model semantics.
+
+Conceptually:
+
+NCAAF NEXT-GEN INPUT
+→ EXPECTED SCORE MODEL
+→ AUTHENTIC OUTPUT
+→ MODEL_PREDICTION BRIDGE
+→ GUARDED RESOLVER
+→ PUBLICATION ADAPTER
+
+Do NOT make the frontend board itself the production model source.
+
+
+======================================================================
+19. NCAAF REPRODUCIBILITY
+======================================================================
+
+Run the authentic NCAAF executor twice against the same immutable input.
+
+Verify deterministic output within defined tolerance.
+
+Record:
+
+input identity
+artifact identity
+execution 1
+execution 2
+comparison
+
+Any unexplained nondeterminism is a blocker.
+
+
+======================================================================
+20. NCAAF GUARDED BOUNDARY INTEGRATION
+======================================================================
+
+Prove:
+
+fresh authoritative NCAAF input
+→ authentic next-gen executor
+→ model_prediction bridge
+→ approval check
+→ guarded resolver
+→ publication adapter
+→ universal pipeline
+→ final dry-run disposition
+
+A legitimate current result may remain:
+
+WOULD_FALLBACK
+Reason: NEXTGEN_NOT_APPROVED
+
+This is acceptable if authentic execution was proven.
+
+
+======================================================================
+21. NCAAF APPROVAL MUST STILL BLOCK PUBLICATION
+======================================================================
+
+Prove:
+
+executorAvailable=true
++
+NCAAF_MODEL_MODE=nextgen_guarded
++
+approvalStatus != GUARDED_APPROVED
+=
+NO PUBLIC NEXT-GEN PREDICTION
+
+Legacy fallback or PASS must occur according to policy.
+
+Do not alter real approval state for this test.
+
+
+======================================================================
+22. NCAAF SUPPORTED MARKET TRUTH
+======================================================================
+
+Determine exactly what production market(s) the current expected-score candidate can legitimately support.
+
+Do NOT assume expected score automatically means every spread/total/moneyline market is production-ready.
+
+Classify each supported market based on actual model and adapter behavior:
+
+EXECUTOR_SUPPORTED
+DERIVABLE_BUT_NOT_APPROVED
+NOT_SUPPORTED
+LEGACY_ONLY
+
+Do not fabricate support.
+
+
+======================================================================
+23. PRODUCTION PUBLISH SCHEMA
+======================================================================
+
+Task #234 created guarded schema support in development but did not verify the required production publish schema.
+
+Complete the managed production-safe migration path for the guarded-serving data structures.
+
+At minimum verify required storage for:
+
+model approval
+runtime resolution/audit
+official prediction identity
+prediction lifecycle
+review policy where applicable
+
+Use managed migrations.
+
+Do NOT manually patch production.
+
+
+======================================================================
+24. APPEND-ONLY PROTECTION
+======================================================================
+
+Install/verify append-only protections for immutable guarded-production records where required.
+
+Prove unauthorized:
+
+UPDATE
+
+and:
+
+DELETE
+
+are rejected for append-only evidence/official prediction records.
+
+If lifecycle changes require new state, use append-only events or the project's approved immutable-history pattern.
+
+Do not mutate original official prediction identity.
+
+
+======================================================================
+25. MIGRATION BACKWARD COMPATIBILITY
+======================================================================
+
+The migration must not disrupt:
+
+tbm-mlb-moneyline-v1
+
+or:
+
+tbm-ncaaf-moneyline-v1
+
+Safe incumbent serving must continue before, during, and after schema publication.
+
+If migration cannot be proven backward-compatible:
+
+STOP.
+
+
+======================================================================
+26. PRODUCTION SCHEMA VERIFICATION
+======================================================================
+
+After migration/publish where permitted, verify actual target schema.
+
+Do not infer success from migration files existing.
+
+Verify:
+
+required tables exist
+required indexes exist
+required constraints exist
+required append-only triggers exist
+registry compatibility exists
+incumbent paths still function
+
+Report development and production schema separately.
+
+
+======================================================================
+27. OFFICIAL VS DRY-RUN PERSISTENCE
+======================================================================
+
+Dry-run candidate executions must NOT create official public predictions.
+
+Clearly separate:
+
+CANDIDATE_EXECUTION_AUDIT
+
+from:
+
+OFFICIAL_PREDICTION
+
+The dry-run should preserve enough information to prove authentic execution without polluting:
+
+saved picks
+results
+subscriber cards
+POD
+analytics
+notifications
+official performance history
+
+
+======================================================================
+28. CENTRAL BOUNDARY ONLY
+======================================================================
+
+Both authentic executors must be registered at the same authoritative central serving boundary established by Task #234.
+
+Do NOT create:
+
+one MLB-only bypass route
+
+and:
+
+one NCAAF-only frontend shortcut.
+
+Scheduler, refresh, API and future cutover must converge through the same governed runtime.
+
+
+======================================================================
+29. SCHEDULER INTEGRATION
+======================================================================
+
+Verify both scheduler paths identified in #234 can access the authentic candidate executor through the central boundary.
+
+With safe incumbent modes active:
+
+candidate execution must not accidentally publish.
+
+If dry-run/shadow candidate execution occurs in scheduler operation, it must remain explicitly non-public until approved.
+
+
+======================================================================
+30. REFRESH INTEGRATION
+======================================================================
+
+Verify games refresh uses the central production boundary and can resolve:
+
+INCUMBENT
+CANDIDATE
+FALLBACK
+PASS
+
+truthfully.
+
+No route should assume V1 solely because a game object exists.
+
+
+======================================================================
+31. PUBLICATION ADAPTER VERIFICATION
+======================================================================
+
+Run authentic candidate output through the publication adapter in non-publishing dry-run mode.
+
+Verify:
+
+raw candidate semantics preserved
+model identity preserved
+input identity preserved
+approval status preserved
+market mapping correct
+no fabricated downstream fields
+fallback truthfulness preserved
+
+
+======================================================================
+32. UNIVERSAL PIPELINE VERIFICATION
+======================================================================
+
+Task #234 created the seam but did not prove authentic candidate traversal.
+
+Task #235 must prove authentic outputs can traverse all compatible downstream components.
+
+Where applicable:
+
+Sportsbook Comparison
+Sharp Book Analysis
+Line Shopping
+Market Intelligence
+Final Rating
+Universal POD Score
+Final Model Tier
+Final Recommendation
+
+If a component is not semantically compatible:
+
+mark it unavailable
+
+or:
+
+use a versioned adapter.
+
+Do NOT manufacture a legacy-compatible value.
+
+
+======================================================================
+33. API CONTRACT VERIFICATION
+======================================================================
+
+Prove candidate identity can flow through the API contract when an official candidate prediction eventually exists.
+
+During dry-run, do NOT expose a fake public candidate pick.
+
+Test the contract using isolated fixtures and/or non-public dry-run endpoints.
+
+Required identity should include equivalent:
+
+engine
+modelVersion
+inputVersion
+servingMode
+approvalStatus
+fallbackUsed
+fallbackReason
+
+Keep changes additive/backward-compatible.
+
+
+======================================================================
+34. OWNER RUNTIME STATUS
+======================================================================
+
+Update the owner/admin runtime status so it can now distinguish:
+
+EXECUTOR_AVAILABLE
+EXECUTOR_UNAVAILABLE
+EXECUTOR_HEALTHY
+EXECUTOR_UNHEALTHY
+UNAPPROVED
+GUARDED_APPROVED
+SERVING_INCUMBENT
+SERVING_CANDIDATE
+FALLBACK_ACTIVE
+STARTUP_BLOCKED
+
+After successful #235, expected truthful state may be:
+
+MLB
+Incumbent: tbm-mlb-moneyline-v1
+Candidate: tbm-mlb-moneyline-v4
+Executor Available: YES
+Executor Health: HEALTHY
+Approval: NOT GUARDED APPROVED
+Serving: INCUMBENT
+Ready for Approval Review: YES/NO based on actual evaluator
+
+NCAAF
+Incumbent: tbm-ncaaf-moneyline-v1
+Candidate: tbm-ncaaf-v4-expected-score
+Executor Available: YES
+Executor Health: HEALTHY
+Approval: NOT GUARDED APPROVED
+Serving: INCUMBENT
+Ready for Approval Review: YES/NO
+
+
+======================================================================
+35. STARTUP SAFETY WITH AUTHENTIC EXECUTORS
+======================================================================
+
+Task #234 reported next-gen modes fail startup because authentic executors do not exist.
+
+After executor registration, test startup again.
+
+Required behavior:
+
+MLB_MODEL_MODE=v1
+→ STARTUP PASS
+
+MLB_MODEL_MODE=v4_guarded
++
+executor available
++
+approval missing
+→ STARTUP MUST REMAIN SAFE
+
+Do not necessarily fail the entire application solely because approval is absent if the guarded resolver is designed to safely fall back.
+
+However, it MUST NOT serve V4.
+
+Apply equivalent behavior to NCAAF.
+
+Use the established #234 safety semantics unless direct architecture requires a safer result.
+
+
+======================================================================
+36. FALLBACK TEST WITH REAL EXECUTOR
+======================================================================
+
+Task #234 proved fallback using the guarded framework.
+
+Now prove fallback with the authentic executor physically registered.
+
+MLB:
+
+V4 executor available
++
+V4 healthy
++
+V4 not guarded approved
++
+mode=v4_guarded
+=
+V1 FALLBACK OR PASS
+
+NCAAF:
+
+Next-gen executor available
++
+next-gen healthy
++
+not guarded approved
++
+mode=nextgen_guarded
+=
+LEGACY FALLBACK OR PASS
+
+Persist/expose exact reason.
+
+
+======================================================================
+37. ELIGIBLE EXECUTOR FIXTURE TEST
+======================================================================
+
+Without modifying real approval state, use isolated test fixtures to prove:
+
+executor available
++
+exact artifact approved for guarded use
++
+market approved
++
+inputs eligible
++
+runtime healthy
++
+publication policy passes
+=
+CANDIDATE SELECTED
+
+This proves #236 will not discover another missing routing layer after approval.
+
+
+======================================================================
+38. KILL-SWITCH RETEST
+======================================================================
+
+With authentic executors registered, re-prove:
+
+MLB_MODEL_MODE=v1
+→ V1 primary
+
+MLB_MODEL_MODE=v4_guarded
+→ guarded evaluation
+
+NCAAF_MODEL_MODE=legacy
+→ legacy primary
+
+NCAAF_MODEL_MODE=nextgen_guarded
+→ guarded evaluation
+
+Restore safe defaults after testing unless an explicit governed production decision says otherwise.
+
+
+======================================================================
+39. NO REAL APPROVAL DURING #235
+======================================================================
+
+Unless the project already contains a legitimate independently approved record predating this task:
+
+DO NOT CREATE A REAL GUARDED APPROVAL.
+
+Task #235 is not the approval task.
+
+Do not insert:
+
+GUARDED_APPROVED
+
+merely to test production behavior.
+
+Use isolated fixtures for positive approval tests.
+
+Real approval belongs to #236.
+
+
+======================================================================
+40. NO PUBLIC CUTOVER DURING #235
+======================================================================
+
+Keep:
+
+MLB_MODEL_MODE=v1
+
+and:
+
+NCAAF_MODEL_MODE=legacy
+
+as production defaults after verification.
+
+Do not switch public production traffic to next-gen during Task #235.
+
+The purpose is to make #236 safe and narrow.
+
+
+======================================================================
+41. EVIDENCE COLLECTION MUST CONTINUE
+======================================================================
+
+Do not stop MLB prospective evidence accumulation while executor integration occurs.
+
+Continue:
+
+pregame collection
+snapshot materialization
+outcome collection
+pair completion
+grading/evidence accumulation
+
+Do not rewrite #232 evidence.
+
+NCAAF prospective/shadow evidence should likewise continue under its existing valid architecture.
+
+
+======================================================================
+42. MODEL REVIEW EVALUATOR REFRESH
+======================================================================
+
+After authentic executors are registered and real-slate execution succeeds, rerun the Task #234 model approval evaluator.
+
+For MLB report:
+
+executorAvailable
+executorHealthy
+freshInferenceVerified
+inputContractVerified
+reproducibilityVerified
+publicationAdapterVerified
+universalPipelineVerified
+evidenceReadiness
+calibrationReadiness
+approvalRecommendation
+remainingBlockers
+
+For NCAAF report equivalent fields.
+
+Do NOT allow the evaluator to automatically approve.
+
+
+======================================================================
+43. IMPORTANT EVIDENCE MATURITY DISTINCTION
+======================================================================
+
+A successful Task #235 does NOT require:
+
+modelEvidenceReady=true
+
+if that threshold legitimately requires more prospective evidence.
+
+But Task #235 DOES require:
+
+executorAvailable=true
+freshInferenceVerified=true
+reproducibilityVerified=true
+publicationPathVerified=true
+
+This distinction is essential.
+
+If the only remaining blocker after #235 is evidence/governed approval maturity, report that clearly.
+
+That is the desired outcome.
+
+
+======================================================================
+44. MLB REAL-SLATE ACCEPTANCE TEST
+======================================================================
+
+Use a REAL current/upcoming MLB game.
+
+Required evidence:
+
+1. identify game
+2. establish observation cutoff
+3. materialize fresh authoritative V4 inputs
+4. prove model-input-v4 exists
+5. execute authentic V4 artifact
+6. record output
+7. reproduce output
+8. pass output to guarded resolver
+9. verify approval check
+10. pass through publication adapter
+11. pass through compatible universal pipeline
+12. produce dry-run disposition
+13. verify no public V4 pick created
+14. verify incumbent production unchanged
+
+Fixtures do NOT satisfy this acceptance test.
+
+
+======================================================================
+45. NCAAF REAL-SLATE ACCEPTANCE TEST
+======================================================================
+
+Use a REAL current/upcoming NCAA Football game.
+
+Required evidence:
+
+1. identify game
+2. establish observation cutoff
+3. obtain/materialize authoritative next-gen input
+4. execute authentic expected-score artifact
+5. record output
+6. reproduce output
+7. bridge to model_prediction contract
+8. pass through guarded resolver
+9. verify approval check
+10. pass through publication adapter
+11. pass through compatible universal pipeline
+12. produce dry-run disposition
+13. verify no public next-gen pick created
+14. verify incumbent production unchanged
+
+Fixtures do NOT satisfy this acceptance test.
+
+
+======================================================================
+46. REAL-SLATE DATA UNAVAILABLE HANDLING
+======================================================================
+
+If no legitimate current/upcoming game is available for one sport during execution:
+
+Do NOT fabricate one.
+
+Do NOT use a completed game with postgame information as if it were pregame.
+
+Use the nearest legitimate future opportunity if available.
+
+If no legitimate opportunity exists, classify that sport's real-slate acceptance evidence as:
+
+BLOCKED — NO ELIGIBLE REAL-SLATE OPPORTUNITY
+
+and provide all other verification.
+
+Do not falsely claim success.
+
+
+======================================================================
+47. PRODUCTION DEPLOYMENT OF INFRASTRUCTURE
+======================================================================
+
+Task #235 may deploy:
+
+executor registration
+schema/migrations
+runtime identity improvements
+publication bridge
+non-public dry-run infrastructure
+observability
+
+provided safe defaults remain:
+
+MLB_MODEL_MODE=v1
+NCAAF_MODEL_MODE=legacy
+
+Infrastructure deployment must NOT equal model cutover.
+
+After deployment, verify incumbents remain active.
+
+
+======================================================================
+48. PRODUCTION RUNTIME VERIFICATION
+======================================================================
+
+If Task #235 infrastructure is deployed, verify actual production runtime.
+
+At minimum confirm:
+
+MLB incumbent active
+NCAAF incumbent active
+MLB candidate executor registered
+NCAAF candidate executor registered
+candidate approval unchanged
+no unintended candidate publication
+fallback healthy
+owner runtime status truthful
+API healthy
+scheduler healthy
+refresh healthy
+evidence collection healthy
+
+
+======================================================================
+49. NFL SCOPE
+======================================================================
+
+Do NOT allow NFL work to derail #235.
+
+Reuse the typed executor and approval interfaces in a sport-extensible way.
+
+NFL prospective infrastructure remains a separate build unless a trivial safe extension is possible.
+
+Do NOT claim NFL next-gen readiness without evidence.
+
+
+======================================================================
+50. SECURITY BOUNDARY
+======================================================================
+
+Use current sanitized main only.
+
+Do NOT recreate, checkout, restore, merge, materialize, or otherwise interact with:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Run credential scans after implementation.
+
+Do not weaken repository safeguards.
+
+
+======================================================================
+51. TEST REQUIREMENTS
+======================================================================
+
+Add focused tests for:
+
+- executor interface
+- exact executor registry matching
+- unknown executor rejection
+- MLB authentic executor
+- MLB input-contract validation
+- MLB reproducibility
+- NCAAF authentic executor
+- NCAAF input-contract validation
+- NCAAF model_prediction bridge
+- NCAAF reproducibility
+- guarded resolver with real executor registered
+- unapproved candidate fallback
+- approved isolated-fixture candidate selection
+- PASS behavior
+- kill switches
+- publication adapter
+- universal pipeline adapter
+- official/dry-run separation
+- immutable persistence
+- append-only mutation rejection
+- runtime identity
+- owner status
+- startup safety
+- backward compatibility
+
+Run the full existing suite afterward.
+
+
+======================================================================
+52. VERIFICATION REQUIREMENTS
+======================================================================
+
+Before completion run:
+
+- Task #235 focused tests
+- full API tests
+- MLB V4 tests
+- MLB evidence tests
+- NCAAF next-gen tests
+- guarded resolver tests
+- executor registry tests
+- reproducibility tests
+- PIT audits
+- leakage audits
+- approval tests
+- fallback tests
+- kill-switch tests
+- publication-adapter tests
+- universal-pipeline tests
+- immutable-prediction tests
+- append-only mutation tests
+- API contract tests
+- owner runtime status tests
+- scheduler tests
+- refresh tests
+- backend typecheck
+- DB typecheck
+- frontend/admin/mobile typechecks
+- production builds
+- credential scan
+- repository diff review
+- MLB real-slate authentic dry run
+- NCAAF real-slate authentic dry run
+
+Report pre-existing unrelated failures separately.
+
+
+======================================================================
+53. INDEPENDENT ARCHITECT REVIEW
+======================================================================
+
+Before final classification, perform an independent architecture review of the implemented candidate execution path.
+
+The review must specifically answer:
+
+1. Is MLB V4 actually executing from authoritative model-input-v4?
+2. Is NCAAF actually executing through the authentic expected-score engine?
+3. Are any board/shadow/cached values being substituted for fresh execution?
+4. Can an unapproved candidate accidentally publish?
+5. Does fallback truthfully identify the actual engine?
+6. Can safe incumbent modes be restored immediately?
+7. Are official predictions immutable?
+8. Are dry runs separated from official history?
+9. Is production schema safe/backward-compatible?
+10. Is anything still missing that would make #236 cutover unsafe?
+
+Do not override legitimate architect blockers merely to achieve classification A.
+
+
+======================================================================
+54. REQUIRED FINAL CLASSIFICATION
+======================================================================
+
+End Task #235 with EXACTLY ONE primary classification.
+
+
+A — AUTHENTIC CANDIDATE EXECUTION READY
+
+Use ONLY if:
+
+MLB:
+- authentic executor registered
+- exact model identity verified
+- fresh authoritative model-input-v4 inference verified
+- reproducibility verified
+- guarded resolver integration verified
+- publication adapter verified
+- universal pipeline traversal verified where compatible
+- real-slate dry run completed
+- no public candidate pick created
+- incumbent remains safe
+
+NCAAF:
+- authentic executor registered
+- exact model identity verified
+- authoritative next-gen input verified
+- authentic expected-score inference verified
+- model_prediction bridge verified
+- reproducibility verified
+- guarded resolver integration verified
+- publication adapter verified
+- universal pipeline traversal verified where compatible
+- real-slate dry run completed
+- no public candidate pick created
+- incumbent remains safe
+
+AND:
+
+- production publish schema is verified
+- append-only protections are verified
+- fallback works with real executors
+- kill switches work
+- approval remains independent
+- no automatic promotion exists
+- no model parameters were changed
+- security verification passes
+
+Classification A DOES NOT mean the candidates are approved or live.
+
+It means the technical execution path is ready for Task #236.
+
+
+B — AUTHENTIC CANDIDATE EXECUTION PARTIAL
+
+Use if one or more required authentic execution or production publish-readiness components remain incomplete.
+
+List exact blockers.
+
+
+C — AUTHENTIC CANDIDATE EXECUTION BLOCKED
+
+Use if authentic execution cannot safely be connected without material model/infrastructure remediation.
+
+
+D — SAFETY / INTEGRITY STOP
+
+Use only if critical PIT, leakage, security, destructive migration, credential, or repository integrity problems require immediate stop.
+
+
+======================================================================
+55. REQUIRED FINAL REPORT
+======================================================================
+
+Produce:
+
+reports/task-235-authentic-candidate-execution.md
+
+and:
+
+reports/task-235-verification.json
+
+Report at minimum:
+
+1. Final classification
+2. MLB incumbent identity
+3. MLB candidate identity
+4. MLB executor registration status
+5. MLB executor health
+6. MLB exact artifact/version/hash
+7. MLB authoritative input contract
+8. MLB fresh model-input-v4 materialization result
+9. MLB authentic inference result
+10. MLB reproducibility result
+11. MLB supported markets
+12. MLB guarded resolver result
+13. MLB fallback result
+14. MLB kill-switch result
+15. MLB publication-adapter result
+16. MLB universal-pipeline result
+17. MLB real-slate dry-run result
+18. MLB public publication count from dry run
+19. NCAAF incumbent identity
+20. NCAAF candidate identity
+21. NCAAF executor registration status
+22. NCAAF executor health
+23. NCAAF exact artifact/version/hash
+24. NCAAF authoritative input contract
+25. NCAAF fresh authentic inference result
+26. NCAAF reproducibility result
+27. NCAAF model_prediction bridge result
+28. NCAAF supported markets
+29. NCAAF guarded resolver result
+30. NCAAF fallback result
+31. NCAAF kill-switch result
+32. NCAAF publication-adapter result
+33. NCAAF universal-pipeline result
+34. NCAAF real-slate dry-run result
+35. NCAAF public publication count from dry run
+36. Production publish schema status
+37. Append-only trigger status
+38. Mutation test result
+39. Official prediction immutability status
+40. Dry-run/official separation status
+41. Approval registry status
+42. Current MLB approval status
+43. Current NCAAF approval status
+44. Model evaluator result for MLB
+45. Remaining MLB approval blockers
+46. Model evaluator result for NCAAF
+47. Remaining NCAAF approval blockers
+48. Runtime identity status
+49. Owner status result
+50. Scheduler result
+51. Refresh result
+52. API result
+53. PIT result
+54. Leakage result
+55. Security result
+56. Full test results
+57. Typecheck results
+58. Build results
+59. Deployment status
+60. Production runtime verification
+61. Exact migrations
+62. Exact configuration changes
+63. Exact files changed
+64. Independent architect conclusion
+65. Exact remaining blockers before #236
+66. READY FOR TASK #236: YES / NO
+
+
+======================================================================
+56. REQUIRED OWNER SUMMARY
+======================================================================
+
+At completion provide a concise verified summary:
+
+TBM AUTHENTIC CANDIDATE STATUS
+
+MLB
+Incumbent: [ACTUAL]
+Candidate: [ACTUAL]
+Executor Registered: YES / NO
+Executor Healthy: YES / NO
+Input Contract: [ACTUAL]
+Fresh V4 Inference: VERIFIED / BLOCKED
+Reproducibility: PASS / FAIL
+Supported Markets: [ACTUAL]
+Guarded Runtime: READY / BLOCKED
+Fallback: READY / BLOCKED
+Kill Switch: READY / BLOCKED
+Real-Slate Dry Run: PASS / BLOCKED
+Candidate Approval: [ACTUAL]
+Public Candidate Serving: OFF
+
+NCAAF
+Incumbent: [ACTUAL]
+Candidate: [ACTUAL]
+Executor Registered: YES / NO
+Executor Healthy: YES / NO
+Input Contract: [ACTUAL]
+Fresh Next-Gen Inference: VERIFIED / BLOCKED
+Reproducibility: PASS / FAIL
+Model Prediction Bridge: READY / BLOCKED
+Supported Markets: [ACTUAL]
+Guarded Runtime: READY / BLOCKED
+Fallback: READY / BLOCKED
+Kill Switch: READY / BLOCKED
+Real-Slate Dry Run: PASS / BLOCKED
+Candidate Approval: [ACTUAL]
+Public Candidate Serving: OFF
+
+PRODUCTION PUBLISH LAYER
+Schema: READY / BLOCKED
+Append-Only Protection: READY / BLOCKED
+Official Prediction Immutability: READY / BLOCKED
+Dry-Run Separation: VERIFIED / BLOCKED
+
+GOVERNANCE
+Automatic Retraining: DISABLED
+Automatic Parameter Changes: DISABLED
+Automatic Approval: DISABLED
+Automatic Promotion: DISABLED
+
+CURRENT PRODUCTION
+MLB: V1
+NCAAF: V1/LEGACY
+
+READY FOR TASK #236 CONTROLLED APPROVAL/CUTOVER:
+YES / NO
+
+
+======================================================================
+57. DEFINITION OF DONE
+======================================================================
+
+Task #235 is NOT done because an executor interface exists.
+
+Task #235 is NOT done because an executor is registered.
+
+Task #235 is NOT done because a unit test executes the model.
+
+Task #235 is NOT done because an old shadow prediction can be read.
+
+Task #235 is NOT done because a board displays a next-gen number.
+
+Task #235 is NOT done because the guarded resolver falls back correctly.
+
+Task #235 is NOT done because production schema exists.
+
+Task #235 is NOT done because candidate approval remains false.
+
+For classification A, Task #235 is done only when BOTH candidates have authentically executed from their authoritative pregame inputs on real current/upcoming games and traversed the same guarded production path that will be used during cutover.
+
+The desired end state is:
+
+MLB:
+
+AUTHORITATIVE model-input-v4
++
+AUTHENTIC V4 EXECUTOR
++
+DETERMINISTIC OUTPUT
++
+GUARDED RUNTIME
++
+PUBLICATION ADAPTER
++
+UNIVERSAL PIPELINE
++
+REAL-SLATE DRY RUN
+=
+TECHNICALLY READY FOR APPROVAL
+
+
+NCAAF:
+
+AUTHORITATIVE NEXT-GEN INPUT
++
+AUTHENTIC EXPECTED-SCORE EXECUTOR
++
+DETERMINISTIC OUTPUT
++
+MODEL_PREDICTION BRIDGE
++
+GUARDED RUNTIME
++
+PUBLICATION ADAPTER
++
+UNIVERSAL PIPELINE
++
+REAL-SLATE DRY RUN
+=
+TECHNICALLY READY FOR APPROVAL
+
+
+======================================================================
+58. FINAL DIRECTIVE
+======================================================================
+
+CONNECT THE REAL ENGINES.
+
+DO NOT AUDIT AROUND THE MISSING EXECUTORS.
+
+DO NOT SUBSTITUTE OLD SHADOW OUTPUTS FOR FRESH INFERENCE.
+
+DO NOT USE THE NCAAF BOARD AS THE PRODUCTION EXECUTOR.
+
+DO NOT CHANGE MODEL PARAMETERS.
+
+DO NOT RETRAIN THE MODELS.
+
+DO NOT APPROVE THE MODELS.
+
+DO NOT PUBLICLY CUT OVER THE MODELS.
+
+DO NOT BYPASS SAFETY BARS.
+
+KEEP MLB V1 AND NCAAF V1 SERVING SAFELY.
+
+PROVE THE AUTHENTIC CANDIDATES CAN EXECUTE FROM REAL PRE-GAME DATA THROUGH THE ACTUAL GUARDED PRODUCTION PATH.
+
+WHEN TASK #235 IS COMPLETE, THE REMAINING QUESTION MUST BE NARROW:
+
+"DO THE VERIFIED CANDIDATES NOW QUALIFY FOR GUARDED PRODUCTION APPROVAL AND CONTROLLED LIVE CUTOVER?"
+
+THAT DECISION BELONGS TO TASK #236.

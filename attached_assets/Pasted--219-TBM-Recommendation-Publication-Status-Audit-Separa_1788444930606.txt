@@ -1,0 +1,738 @@
+#219 — TBM Recommendation / Publication Status Audit & Separation
+
+We need to stop and cleanly audit a confusing behavior before doing any further sports-model development.
+
+DO NOT begin NCAAF V4.
+DO NOT begin NFL V4.
+DO NOT modify MLB V3/V4/V4.1.
+DO NOT change any sports model formulas.
+DO NOT change model weights.
+DO NOT change model thresholds.
+DO NOT change edge calculations.
+DO NOT change confidence calculations.
+DO NOT change units.
+DO NOT change approval requirements.
+DO NOT weaken evidence gates.
+DO NOT change publication eligibility.
+DO NOT change grading.
+DO NOT change Results or ROI.
+DO NOT change Free Pick, Top Pick, Play of the Day, or notifications.
+
+This task is about understanding and correctly representing the difference between:
+
+1. WHAT THE SPORTS MODEL ACTUALLY RECOMMENDS
+
+and
+
+2. WHETHER THAT RECOMMENDATION IS ALLOWED TO BE PUBLISHED.
+
+==================================================
+CURRENT ISSUE
+==================================================
+
+The dashboard is currently showing approximately 20 picks as "Neutral."
+
+A preliminary investigation found:
+
+- #214B MLB research collection did NOT change pick calculations.
+- The slate included NCAAF, MLB, and Soccer.
+- The publication-safety layer can convert the displayed recommendation to Neutral when the exact model/market approval is missing or is not PRODUCTION_APPROVED.
+- NCAAF also has an evidence gate that can prevent publication.
+- Therefore some rows displayed as Neutral may NOT actually be model-generated Neutral recommendations.
+- They may be stronger underlying model recommendations that were intentionally blocked from publication.
+
+This makes the Admin dashboard misleading.
+
+We need to audit this carefully and separate these concepts permanently.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Create a clean separation between:
+
+RAW MODEL OPINION
+
+PUBLICATION DECISION
+
+PUBLIC DISPLAY
+
+The desired conceptual structure is:
+
+raw_model_recommendation
+        ↓
+publication evaluation
+        ↓
+publication_status
+        ↓
+publication_block_reason
+        ↓
+public_display_recommendation
+
+Example:
+
+raw_model_recommendation = "Strong Buy"
+
+publication_status = "BLOCKED"
+
+publication_block_reason = "MODEL_NOT_PRODUCTION_APPROVED"
+
+public_display_recommendation = "Neutral"
+
+This is fundamentally different from:
+
+raw_model_recommendation = "Neutral"
+
+publication_status = "NOT_APPLICABLE_NO_PLAY"
+
+publication_block_reason = null
+
+public_display_recommendation = "Neutral"
+
+Admin must be able to distinguish these cases.
+
+Public/subscriber safety must remain unchanged.
+
+==================================================
+PHASE 1 — TRACE THE COMPLETE PIPELINE
+==================================================
+
+Before changing code, trace the complete recommendation pipeline for every currently supported sport.
+
+Start from:
+
+sports forecast
+→ model probability
+→ market/no-vig comparison
+→ edge
+→ raw recommendation/rating
+→ evidence gates
+→ model approval
+→ publication eligibility
+→ publication transformation/masking
+→ API response
+→ Admin dashboard
+→ subscriber/mobile display
+
+Document exactly where "Neutral" can currently be assigned.
+
+Identify every function that can:
+
+- calculate Neutral
+- overwrite a recommendation with Neutral
+- mask a recommendation as Neutral
+- default missing data to Neutral
+- block publication
+- apply evidence gates
+- apply approval gates
+
+Do not assume the preliminary diagnosis is correct.
+
+Prove it from code and persisted data.
+
+==================================================
+PHASE 2 — AUDIT TODAY'S ACTUAL ROWS
+==================================================
+
+Inspect the actual persisted rows responsible for today's dashboard.
+
+For every game currently displayed as Neutral, determine:
+
+sport
+game
+model identity
+model version
+market
+raw model probability
+market/no-vig probability
+edge
+raw model recommendation
+confidence if applicable
+approval state
+evidence state
+publication status
+publication block reason
+final displayed recommendation
+
+Produce counts showing:
+
+TRUE MODEL NEUTRAL
+
+versus
+
+MODEL NON-NEUTRAL BUT PUBLICATION BLOCKED
+
+versus
+
+MISSING/INVALID DATA
+
+versus
+
+OTHER REASON
+
+We need an exact answer for why the dashboard showed ~20 Neutral rows.
+
+==================================================
+PHASE 3 — VERIFY #214B ISOLATION
+==================================================
+
+Explicitly prove whether #214B changed any model recommendation.
+
+Compare before/after where possible:
+
+MLB V3 source/config/hash
+MLB V4 source/config/hash
+MLB V4.1 source/config/hash
+recommendation logic
+approval logic
+publication logic
+
+Confirm whether #214B caused any raw recommendation changes.
+
+Do not merely state that it should not have.
+
+Verify it.
+
+==================================================
+PHASE 4 — DEFINE CANONICAL STATES
+==================================================
+
+Create or formalize separate canonical concepts.
+
+At minimum the system must preserve:
+
+raw_model_recommendation
+
+publication_status
+
+publication_block_reason
+
+display_recommendation
+
+Do not necessarily create duplicate database columns if the existing architecture already stores equivalent immutable fields.
+
+First inspect what exists and use the safest minimal implementation.
+
+The important requirement is semantic separation.
+
+==================================================
+PHASE 5 — RAW MODEL RECOMMENDATION
+==================================================
+
+raw_model_recommendation must represent what the model/value engine actually concluded BEFORE publication safety masking.
+
+Examples may include existing TBM states such as:
+
+Strong Buy
+Buy
+Lean
+Neutral
+
+Use the project's existing canonical terminology.
+
+Do not invent unnecessary recommendation levels.
+
+Most importantly:
+
+A publication gate must NEVER rewrite historical/raw model opinion.
+
+==================================================
+PHASE 6 — PUBLICATION STATUS
+==================================================
+
+Create/use an explicit publication status.
+
+Examples:
+
+PUBLISHABLE
+PUBLISHED
+BLOCKED
+NOT_ELIGIBLE
+RESEARCH_ONLY
+
+Use existing canonical states where they already exist.
+
+Do not introduce redundant enums if the system already has appropriate states.
+
+==================================================
+PHASE 7 — PUBLICATION BLOCK REASON
+==================================================
+
+When publication is blocked, preserve a machine-readable reason.
+
+Potential examples:
+
+MODEL_NOT_PRODUCTION_APPROVED
+
+MARKET_NOT_PRODUCTION_APPROVED
+
+INSUFFICIENT_EVIDENCE
+
+DATA_QUALITY_FAILURE
+
+MISSING_REQUIRED_INPUT
+
+STALE_DATA
+
+PRICE_GUARDRAIL
+
+PUBLICATION_LIMIT
+
+RESEARCH_ONLY_MODEL
+
+SHADOW_MODEL
+
+OTHER
+
+Use actual system logic and existing terminology.
+
+Do not fabricate block reasons that the system cannot determine.
+
+==================================================
+PHASE 8 — DISPLAY RECOMMENDATION
+==================================================
+
+The public/subscriber application may continue masking non-publishable recommendations as Neutral if that is the existing safety behavior.
+
+DO NOT expose blocked Strong Buy/Buy recommendations to subscribers simply because Admin can now see them.
+
+Public behavior must remain safe.
+
+Admin behavior should be different.
+
+==================================================
+PHASE 9 — ADMIN DASHBOARD
+==================================================
+
+Update Admin observability so we can clearly see:
+
+RAW MODEL RATING
+
+PUBLIC STATUS
+
+BLOCK REASON
+
+PUBLIC DISPLAY
+
+For example:
+
+Game:
+Team A vs Team B
+
+Raw Model:
+Strong Buy
+
+Publication:
+Blocked
+
+Reason:
+Model Not Production Approved
+
+Public Display:
+Neutral
+
+Or:
+
+Game:
+Team C vs Team D
+
+Raw Model:
+Neutral
+
+Publication:
+No Play
+
+Public Display:
+Neutral
+
+The exact visual design can follow the existing Admin design system.
+
+Do not redesign unrelated Admin pages.
+
+==================================================
+PHASE 10 — DASHBOARD COUNTS
+==================================================
+
+Fix Admin counts so "Neutral" does not combine fundamentally different states.
+
+Admin should separately report something conceptually like:
+
+RAW MODEL DISTRIBUTION
+
+Strong Buy: X
+Buy: X
+Lean: X
+Neutral: X
+
+PUBLICATION
+
+Published/Publishable: X
+Blocked: X
+No Play: X
+
+BLOCKED REASONS
+
+Model Approval: X
+Evidence Gate: X
+Data Quality: X
+Other: X
+
+Use the actual available categories.
+
+Do not hardcode counts.
+
+==================================================
+PHASE 11 — PUBLIC DASHBOARD COUNTS
+==================================================
+
+Audit what subscriber/public dashboard KPIs mean.
+
+If public users are intentionally supposed to see blocked recommendations as Neutral, preserve that safety behavior.
+
+But make sure labels do not falsely imply internal model information.
+
+Do not expose:
+
+raw blocked picks
+research-only recommendations
+shadow-model recommendations
+unapproved plays
+
+to subscribers.
+
+==================================================
+PHASE 12 — NCAAF SPECIFIC AUDIT
+==================================================
+
+Because we are preparing to build an independent NCAAF V4 engine, perform a focused audit of the CURRENT NCAAF engine.
+
+Determine:
+
+current NCAAF model identity
+current model version
+current production approval state
+markets supported
+raw recommendation distribution
+evidence gates
+approval gates
+publication gates
+why current NCAAF games are being shown Neutral
+whether the model itself is producing Neutral
+whether publication safety is masking stronger raw outputs
+
+DO NOT CHANGE NCAAF MODEL LOGIC.
+
+This audit will become the baseline for the future independent NCAAF V4 engine.
+
+==================================================
+PHASE 13 — MLB SPECIFIC AUDIT
+==================================================
+
+Confirm MLB V3 production behavior remains correct.
+
+For today's MLB games determine:
+
+raw recommendation
+approval state
+publication state
+display recommendation
+
+Make sure #214B research collection does not interfere.
+
+Do not modify MLB.
+
+==================================================
+PHASE 14 — SOCCER SPECIFIC AUDIT
+==================================================
+
+Perform the same minimal check for Soccer because today's slate contains Soccer games.
+
+Determine whether Soccer Neutral states are:
+
+true model Neutral
+
+or
+
+publication-blocked.
+
+Do not change Soccer model logic.
+
+==================================================
+PHASE 15 — HISTORICAL IMMUTABILITY
+==================================================
+
+Do not rewrite historical model recommendations merely to support this separation.
+
+If historical rows do not contain enough information to reconstruct raw recommendation versus publication display:
+
+report UNKNOWN.
+
+Do not infer/fabricate historical raw recommendations.
+
+Future records should preserve the distinction correctly.
+
+==================================================
+PHASE 16 — API CONTRACT
+==================================================
+
+Ensure Admin APIs can expose the distinction clearly.
+
+Conceptually:
+
+{
+  "raw_model_recommendation": "Strong Buy",
+  "publication_status": "BLOCKED",
+  "publication_block_reason": "MODEL_NOT_PRODUCTION_APPROVED",
+  "display_recommendation": "Neutral"
+}
+
+Use naming consistent with the existing API architecture.
+
+Do not break existing mobile/subscriber API contracts unnecessarily.
+
+Prefer additive fields.
+
+==================================================
+PHASE 17 — PRODUCTION SAFETY
+==================================================
+
+This task must NOT cause blocked picks to become publishable.
+
+Add regression tests proving:
+
+blocked before #219
+=
+blocked after #219
+
+published before #219
+=
+published after #219
+
+raw model probability unchanged
+
+raw edge unchanged
+
+raw recommendation unchanged
+
+units unchanged
+
+==================================================
+PHASE 18 — TEST CASES
+==================================================
+
+Add tests covering at least:
+
+true Neutral recommendation
+
+Strong Buy blocked by approval
+
+Buy blocked by approval
+
+recommendation blocked by evidence gate
+
+research-only model
+
+shadow model
+
+missing approval
+
+production-approved model
+
+data-quality block
+
+public masking
+
+Admin raw visibility
+
+Admin counts
+
+public counts
+
+historical unknown state if applicable
+
+NCAAF gated recommendation
+
+MLB production recommendation
+
+Soccer gated/approved recommendation as appropriate
+
+==================================================
+PHASE 19 — TODAY'S DIAGNOSTIC REPORT
+==================================================
+
+Produce a concrete diagnostic table/report for today's slate.
+
+For each game include:
+
+sport
+game
+raw recommendation
+display recommendation
+publication status
+block reason
+
+Then summarize:
+
+Total games: X
+
+True Raw Neutral: X
+
+Raw Strong Buy: X
+
+Raw Buy: X
+
+Raw Lean: X
+
+Blocked: X
+
+Published/Publishable: X
+
+Other/Unknown: X
+
+The totals must reconcile exactly.
+
+==================================================
+PHASE 20 — REQUIRED REPORT
+==================================================
+
+Create:
+
+reports/recommendation-publication-status-audit-2026-09-03.md
+
+Include:
+
+1. Executive summary
+2. Root cause
+3. Complete recommendation pipeline
+4. Locations where Neutral is calculated
+5. Locations where Neutral is used as masking
+6. Existing approval architecture
+7. Existing evidence-gate architecture
+8. Existing publication architecture
+9. Canonical state separation implemented
+10. Database changes if any
+11. API changes
+12. Admin changes
+13. Public/subscriber behavior
+14. Today's exact slate audit
+15. True Neutral count
+16. Publication-blocked count
+17. Block reasons
+18. NCAAF audit
+19. MLB audit
+20. Soccer audit
+21. #214B isolation verification
+22. Historical immutability
+23. Tests
+24. API typecheck
+25. API production build
+26. Admin typecheck
+27. Admin production build
+28. Exact before/after behavior
+29. Remaining risks
+30. Recommendation before beginning NCAAF V4
+
+==================================================
+FINAL VERIFICATION
+==================================================
+
+Run:
+
+API typecheck
+API production build
+full relevant API tests
+Admin typecheck
+Admin production build
+workspace typecheck if safe
+
+Verify:
+
+No sports model formula changed.
+
+No model probability changed because of #219.
+
+No edge changed because of #219.
+
+No raw recommendation changed because of #219.
+
+No weights changed.
+
+No thresholds changed.
+
+No confidence calculation changed.
+
+No units changed.
+
+No approval gate was weakened.
+
+No evidence gate was weakened.
+
+No blocked recommendation became publishable.
+
+No research model became production.
+
+No shadow model became production.
+
+No official picks changed.
+
+No grading changed.
+
+No Results changed.
+
+No ROI changed.
+
+No Free Pick changed.
+
+No Top Pick changed.
+
+No Play of the Day changed.
+
+No notifications changed.
+
+No MLB V3/V4/V4.1 behavior changed.
+
+No NCAAF model logic changed.
+
+No Soccer model logic changed.
+
+==================================================
+STOP CONDITION
+==================================================
+
+STOP after:
+
+auditing the issue
+
+proving the cause
+
+separating raw recommendation from publication status
+
+making Admin observability clear
+
+fixing misleading Admin counts
+
+preserving public publication safety
+
+running verification
+
+writing the report
+
+DO NOT begin NCAAF V4.
+
+DO NOT begin NFL V4.
+
+DO NOT modify MLB.
+
+When complete, report back with:
+
+1. Exactly how many of today's displayed Neutral games were TRUE MODEL NEUTRAL.
+
+2. Exactly how many were NON-NEUTRAL MODEL OPINIONS MASKED/BLOCKED BY PUBLICATION.
+
+3. The exact block reasons.
+
+4. Whether #214B caused any raw model-output change.
+
+5. Whether any production behavior changed during #219.
+
+6. Whether the system is now clean enough to begin the independent NCAAF V4 build.

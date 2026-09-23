@@ -1,0 +1,753 @@
+The new TBM game card concept is moving in the right direction. I like the overall visual direction and information hierarchy.
+
+DO NOT redesign the card from scratch.
+
+I want to refine and elevate the existing design so it feels more like a premium professional sports analytics / financial intelligence product.
+
+Think:
+
+- Bloomberg Terminal
+- TradingView
+- FanGraphs
+- Action Network
+- Professional quantitative sports analytics
+
+The objective is:
+
+CLEANER
+MORE COMPACT
+MORE PREMIUM
+FASTER TO READ
+MATHEMATICALLY CLEAR
+MOBILE-FIRST
+
+==================================================
+1. KEEP THE CURRENT OVERALL DESIGN
+==================================================
+
+Keep the existing:
+
+- Dark TBM card
+- Lime accent
+- Team logos
+- Matchup section
+- TBM Pick section
+- Strong Buy / Units
+- Model probability
+- Market comparison
+- Model edge/value
+- View Analysis interaction
+- Rounded premium card styling
+
+Do NOT throw away the current design.
+
+This should be a refinement pass.
+
+==================================================
+2. REDUCE THE HEIGHT OF THE CARD
+==================================================
+
+The current card uses too much vertical space.
+
+We need to make the card more compact so users can comfortably scroll through multiple games.
+
+Reduce unnecessary:
+
+- Vertical padding
+- Empty space
+- Oversized matchup areas
+- Large separators
+- Decorative elements
+
+The card should still breathe, but it should not feel oversized.
+
+The goal is to fit more information into less space WITHOUT making it crowded.
+
+==================================================
+3. SIMPLIFY THE MATCHUP HEADER
+==================================================
+
+The matchup area currently takes up too much space.
+
+Simplify it.
+
+Instead of a large layout, move toward something like:
+
+WNBA                                      9:00 PM ET
+
+[NYL LOGO] NYL        @        LVA [LVA LOGO]
+           22-10               24-8
+
+or:
+
+WNBA • 9:00 PM ET
+
+[NYL] NEW YORK    @    LAS VEGAS [LVA]
+      22-10              24-8
+
+Keep:
+
+- Team logos
+- Team abbreviation/name
+- Records
+- Game time
+
+Remove unnecessary duplication such as:
+
+AWAY
+HOME
+
+unless those labels are actually providing meaningful information.
+
+The @ symbol already communicates home/away.
+
+IMPORTANT:
+
+Always display the actual team logo when available.
+
+Do not replace a missing team logo with a generic circle containing the team abbreviation unless there is genuinely no logo asset available.
+
+==================================================
+4. MAKE THE PICK THE VISUAL HERO
+==================================================
+
+The TBM recommendation should remain the most important section.
+
+Example:
+
+TBM PICK
+
+ACES ML                                  -190
+
+STRONG BUY • 2.5U
+
+Increase the visual hierarchy of:
+
+ACES ML
+
+The user's eye should naturally move:
+
+MATCHUP
+↓
+PICK
+↓
+MODEL OUTLOOK
+
+Do not make analytics compete visually with the actual betting recommendation.
+
+==================================================
+5. KEEP RECOMMENDATION SIMPLE
+==================================================
+
+Continue using:
+
+STRONG BUY • 2.5U
+
+Do not add:
+
+- Stars
+- Multiple confidence scores
+- Duplicate Strong Buy badges
+- 85/100 scores
+- Multiple recommendation indicators
+
+One recommendation tier + units is enough.
+
+Example:
+
+STRONG BUY • 2.5U
+
+==================================================
+6. REMOVE THE LARGE PROBABILITY SCALE
+==================================================
+
+Remove the horizontal 0–100 probability scale/bar from the collapsed card.
+
+It takes up too much vertical space and does not provide enough additional information.
+
+A bettor already understands what:
+
+64.0%
+
+means.
+
+Use that space for a cleaner model-vs-market comparison.
+
+==================================================
+7. CREATE A "MODEL OUTLOOK" SECTION
+==================================================
+
+Replace the existing probability area with a compact analytical section.
+
+Header:
+
+MODEL OUTLOOK
+
+Then display three core metrics horizontally when screen width permits:
+
+64.0%            -178             -190
+WIN PROB.        FAIR PRICE        MARKET
+
+On smaller mobile screens this can adapt responsively.
+
+The important thing is that these three concepts are extremely easy to compare.
+
+==================================================
+8. MODEL WIN PROBABILITY
+==================================================
+
+Continue making Model Win Probability one of the primary analytical metrics.
+
+Example:
+
+64.0%
+WIN PROB.
+
+This MUST represent an actual model probability.
+
+Do not derive this from:
+
+- confidence score
+- recommendation tier
+- 85/100 rating
+- edge score
+
+unless the backend explicitly defines those values as calibrated probability.
+
+==================================================
+9. ADD TBM FAIR PRICE
+==================================================
+
+If a valid Model Win Probability exists, calculate/display the corresponding TBM fair odds.
+
+Example:
+
+Model Probability:
+
+64.0%
+
+TBM Fair American Odds:
+
+approximately -178
+
+Display:
+
+-178
+FAIR PRICE
+
+This is a very useful professional betting metric because it shows what TBM believes the correct price should be.
+
+IMPORTANT:
+
+Use mathematically correct American odds conversion.
+
+For probability > 50%:
+
+Fair American Odds =
+-(Probability / (1 - Probability)) × 100
+
+For probability < 50%:
+
+Fair American Odds =
+((1 - Probability) / Probability) × 100
+
+Round appropriately for display.
+
+==================================================
+10. DISPLAY MARKET PRICE NEXT TO FAIR PRICE
+==================================================
+
+The third primary metric should be the current actionable market odds.
+
+Example:
+
+-190
+MARKET
+
+This creates an immediate comparison:
+
+TBM Probability
+64.0%
+
+TBM Fair Price
+-178
+
+Market Price
+-190
+
+Advanced bettors can immediately understand the pricing relationship.
+
+==================================================
+11. CRITICAL: AUDIT THE CURRENT "MODEL EDGE"
+==================================================
+
+Before changing the edge display, inspect exactly what the existing backend field means.
+
+The current example shows:
+
+MODEL WIN PROBABILITY
+64.0%
+
+MARKET IMPLIED
+65.5%
+
+MODEL EDGE
++14.6%
+
+Those three numbers appear mathematically inconsistent if "Model Edge" is intended to represent probability edge.
+
+64.0% - 65.5% = -1.5 percentage points.
+
+It does NOT equal +14.6%.
+
+Therefore:
+
+DO NOT simply display these values together without understanding their definitions.
+
+Audit:
+
+- model_edge
+- edge
+- probability_edge
+- expected_value
+- market_edge
+- pricing_edge
+- value_edge
+
+and determine exactly what each backend field represents.
+
+==================================================
+12. DO NOT CONFUSE DIFFERENT TYPES OF EDGE
+==================================================
+
+There may be multiple legitimate edge calculations in TBM.
+
+For example:
+
+PROBABILITY EDGE
+
+Model Win Probability
+minus
+Market Implied Probability
+
+Example:
+
+64.0% - 65.5% = -1.5 percentage points
+
+
+EXPECTED VALUE / BETTING EDGE
+
+This may use:
+
+Model probability
+Betting odds
+Potential payout
+
+and can produce a different number.
+
+
+MODEL SCORE EDGE
+
+The TBM backend may also have a proprietary model advantage score.
+
+These are NOT interchangeable.
+
+Do not label all of them:
+
+MODEL EDGE
+
+Determine what the +14.6% actually represents.
+
+If it represents a proprietary TBM value metric, rename it something clear such as:
+
+TBM VALUE EDGE
+
+If it represents expected value:
+
+EXPECTED VALUE
+
+If it represents probability difference:
+
+PROBABILITY EDGE
+
+The UI must never imply mathematically incorrect relationships.
+
+==================================================
+13. ADD MARKET IMPLIED PROBABILITY TO ANALYSIS
+==================================================
+
+Market implied probability is still valuable.
+
+However, it does not necessarily need to occupy a large section of the collapsed card.
+
+Consider moving it into View Analysis.
+
+Example:
+
+MARKET
+
+Current Odds          -190
+Implied Probability   65.5%
+Opening Odds          -175
+Best Price            -185
+
+This keeps the main card simple.
+
+==================================================
+14. NEW COLLAPSED CARD STRUCTURE
+==================================================
+
+The target card should conceptually look approximately like:
+
+------------------------------------------------
+
+MODEL BOARD / WNBA                  9:00 PM ET
+
+[NYL] NEW YORK   @   LAS VEGAS [LVA]
+      22-10              24-8
+
+------------------------------------------------
+
+TBM PICK
+
+ACES ML                              -190
+
+STRONG BUY • 2.5U
+
+------------------------------------------------
+
+MODEL OUTLOOK
+
+64.0%             -178             -190
+WIN PROB.         FAIR PRICE        MARKET
+
+------------------------------------------------
+
+TBM VALUE EDGE
++14.6%                       VIEW ANALYSIS →
+
+------------------------------------------------
+
+This is conceptual.
+
+Do not blindly reproduce the ASCII layout.
+
+Use the existing TBM design language.
+
+==================================================
+15. MAKE "VIEW ANALYSIS" MORE IMPORTANT
+==================================================
+
+View Analysis should become the gateway into the deeper model intelligence.
+
+Keep:
+
+VIEW ANALYSIS →
+
+Make sure it clearly looks interactive.
+
+When tapped, open an expanded card, modal, bottom sheet, or dedicated analysis view depending on the existing app architecture.
+
+Do not put every model metric on the collapsed card.
+
+==================================================
+16. BUILD "WHY TBM LIKES THIS BET"
+==================================================
+
+Inside View Analysis, create a structured explanation.
+
+Header:
+
+WHY TBM LIKES THIS BET
+
+Instead of dumping raw statistics, organize the information into understandable categories.
+
+Example:
+
+WHY TBM LIKES LAS VEGAS
+
+MODEL
+
+Las Vegas grades stronger in 7 of 10 weighted model categories.
+
+MATCHUP
+
++ Offensive Efficiency
++ Defensive Matchup
++ Home Court
+- Rebounding
+
+MARKET
+
+Opening Odds       -175
+Current Odds       -190
+Best Price          -185
+Market Direction    LVA
+Sharp Activity      Positive
+
+MODEL PRICING
+
+Win Probability     64.0%
+Fair Odds            -178
+Market Odds           -190
+Expected Value        X.X%
+
+RISK FACTORS
+
+2 IDENTIFIED
+
+Then provide:
+
+FULL MODEL DATA →
+
+==================================================
+17. THREE LEVELS OF INFORMATION
+==================================================
+
+The TBM interface should intentionally have three layers.
+
+LEVEL 1 — MODEL BOARD
+
+Purpose:
+
+"What should I bet?"
+
+Show only:
+
+- Matchup
+- Pick
+- Odds
+- Recommendation
+- Units
+- Win probability
+- Fair price
+- Market price
+- Primary value metric
+
+
+LEVEL 2 — VIEW ANALYSIS
+
+Purpose:
+
+"Why does TBM like this bet?"
+
+Show:
+
+- Key matchup advantages
+- Model factors
+- Market information
+- Pricing information
+- Risk factors
+- Sharp activity
+
+
+LEVEL 3 — FULL MODEL DATA
+
+Purpose:
+
+"Show me everything."
+
+This can contain:
+
+- Full model scoring
+- Historical inputs
+- Market intelligence
+- CLV
+- Opening/current line
+- Line movement
+- Sharp books
+- Line shopping
+- Sport-specific analytics
+- Injuries
+- Weather
+- Rest
+- Pitchers
+- Lineups
+- Advanced efficiency metrics
+- etc.
+
+This architecture allows casual bettors and advanced bettors to use the same product.
+
+==================================================
+18. MAKE THE LEFT LIME STRIPE MEAN SOMETHING
+==================================================
+
+The left-side lime stripe currently appears mostly decorative.
+
+Make it communicate recommendation strength.
+
+For example:
+
+ELITE
+Strongest lime treatment
+
+STRONG BUY
+Strong lime
+
+BUY
+Moderate lime
+
+LEAN
+Muted lime / gray-green
+
+PASS
+Gray
+
+Do not introduce a rainbow of colors.
+
+Stay within the TBM black / white / lime visual system.
+
+The difference can be communicated through:
+
+- brightness
+- opacity
+- thickness
+- subtle intensity
+
+rather than entirely different colors.
+
+==================================================
+19. KEEP THE CARD PROFESSIONAL
+==================================================
+
+The card should NOT look like:
+
+- A sportsbook promotion
+- A gambling advertisement
+- A social media betting graphic
+- A flashy casino interface
+
+It should look like:
+
+A professional quantitative sports intelligence product.
+
+Use:
+
+- Precise spacing
+- Strong typography
+- Clear hierarchy
+- Thin dividers
+- Subtle borders
+- Controlled lime accents
+- Consistent alignment
+- Minimal decoration
+
+==================================================
+20. MOBILE-FIRST RESPONSIVENESS
+==================================================
+
+The redesigned card must work perfectly inside the mobile app.
+
+Test:
+
+320px
+375px
+390px
+430px
+
+Ensure:
+
+- No horizontal scrolling
+- No clipped team names
+- No clipped odds
+- No overlapping logos
+- No metric overflow
+- View Analysis remains tappable
+- Metrics stack intelligently if necessary
+- Cards remain compact
+
+The desktop version can expand slightly, but mobile should drive the architecture.
+
+==================================================
+21. DO NOT CHANGE MODEL LOGIC
+==================================================
+
+This is extremely important.
+
+Do NOT change:
+
+- Pick generation
+- Model calculations
+- Recommendation thresholds
+- Unit sizing
+- Ranking logic
+- Universal POD logic
+- Database structure
+- Historical grading
+- Model training
+- Sport-specific calculations
+
+unless a genuine bug is discovered.
+
+This project is primarily:
+
+UI
+UX
+DATA PRESENTATION
+METRIC CLARITY
+
+If you discover a mathematical inconsistency in the backend, STOP and explain it before changing the calculation.
+
+==================================================
+22. AUDIT BEFORE IMPLEMENTATION
+==================================================
+
+Before writing code, inspect the current implementation and report:
+
+1. Which component renders this card?
+2. Which pages use it?
+3. Which API fields feed the card?
+4. Where does Model Win Probability come from?
+5. Where does Model Edge come from?
+6. How exactly is Model Edge calculated?
+7. Is Market Implied calculated frontend or backend?
+8. Do we already have Fair Odds?
+9. Do we already have Expected Value?
+10. Do we have Best Available Price?
+11. Do we have Opening Price?
+12. Do we have Sharp Book information?
+13. Which fields are universal across sports?
+14. Which fields are sport-specific?
+
+I want to understand the data before changing presentation.
+
+==================================================
+23. IMPLEMENTATION GOAL
+==================================================
+
+When finished, a user scrolling the TBM Model Board should understand each card in approximately 1–2 seconds.
+
+They should immediately see:
+
+WHO IS PLAYING?
+
+WHAT IS THE PICK?
+
+WHAT ARE THE ODDS?
+
+HOW LIKELY DOES TBM THINK IT IS TO WIN?
+
+WHAT DOES TBM THINK THE FAIR PRICE IS?
+
+WHAT IS THE CURRENT MARKET PRICE?
+
+HOW STRONGLY DOES TBM RECOMMEND IT?
+
+Then:
+
+VIEW ANALYSIS →
+
+should explain why.
+
+The philosophy should be:
+
+LESS INFORMATION AT FIRST GLANCE.
+MORE MEANINGFUL INFORMATION.
+ZERO DUPLICATION.
+CLEAR MATHEMATICS.
+PREMIUM PRESENTATION.
+ADVANCED INTELLIGENCE ONE TAP AWAY.
+
+Do not redesign unrelated pages.
+
+Start by auditing the current card and its data sources, report your findings, and then make the recommended UI changes.

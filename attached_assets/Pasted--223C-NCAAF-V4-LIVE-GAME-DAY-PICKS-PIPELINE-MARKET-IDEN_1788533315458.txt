@@ -1,0 +1,1185 @@
+#223C — NCAAF V4 LIVE GAME-DAY PICKS PIPELINE, MARKET IDENTITY REPAIR & DEPLOYMENT
+
+THIS IS THE NEXT AUTHORIZED TASK.
+
+We need to get the completed NCAAF V4 sports forecasting engine operational
+on The Betting Model TODAY so the website/app can show NCAAF projections
+and projected picks for today's games and tomorrow's larger slate.
+
+This is an operational integration task.
+
+DO NOT retrain the model.
+DO NOT redesign V4.
+DO NOT wait for prospective games to finish before completing this task.
+
+============================================================
+AUTHORITATIVE CURRENT STATE
+============================================================
+
+#221I COMPLETE
+#222 COMPLETE
+#222B COMPLETE
+#222C COMPLETE
+#223 COMPLETE/PARTIAL
+#223B COMPLETE/PARTIAL
+
+#223B FINAL:
+
+MODEL:
+tbm-ncaaf-v4-expected-score
+
+MODEL VERSION:
+D-simple-expected-score-linear
+
+CONFIGURATION HASH:
+212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86
+
+PARAMETER HASH:
+792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81
+
+FROZEN PROSPECTIVE LEDGER:
+656
+
+LEGITIMATELY GRADED:
+0
+
+PENDING:
+656
+
+HISTORICAL OOS MARGIN MAE:
+12.5008391763
+
+HISTORICAL OOS TOTAL MAE:
+12.9390090779
+
+HISTORICAL OOS BRIER:
+0.1800233716
+
+HISTORICAL OOS LOG LOSS:
+0.5347917462
+
+PIT VIOLATIONS:
+0
+
+MARKET LEAKAGE:
+0
+
+INVALID PROBABILITY OUTPUTS:
+0
+
+MODEL APPROVAL:
+UNVALIDATED
+
+MODEL MATURITY:
+DEVELOPING
+
+PRODUCTION APPROVAL:
+FALSE
+
+FULL LIVE PUBLICATION DATA:
+FALSE
+
+#223B runtime issue:
+
+1,196 unmatched_market_identity rows caused the latest NCAAF evidence
+cycle to be PARTIAL.
+
+============================================================
+IMPORTANT PRODUCT DECISION
+============================================================
+
+The owner needs NCAAF model projections and projected betting opinions
+available on TBM immediately.
+
+We are NOT going to falsely label V4 PRODUCTION_APPROVED.
+
+However, V4 may now power a live:
+
+NCAAF V4 PROJECTION / PROJECTED PICK
+
+experience.
+
+The system must distinguish:
+
+MODEL PROJECTION
+
+from:
+
+OFFICIAL PRODUCTION-APPROVED PICK
+
+until #224 is completed.
+
+The existing approved production champion must remain unchanged.
+
+============================================================
+MISSION
+============================================================
+
+Complete the entire operational path:
+
+CURRENT NCAAF SCHEDULE
+        ↓
+PIT-SAFE CURRENT FEATURES
+        ↓
+FROZEN NCAAF V4 ENGINE
+        ↓
+EXPECTED SCORE
+        ↓
+WIN PROBABILITY
+        ↓
+FAIR PRICE
+        ↓
+EXACT SPORTSBOOK MARKET MATCH
+        ↓
+NO-VIG MARKET PROBABILITY
+        ↓
+MODEL EDGE
+        ↓
+BETTING OPINION
+        ↓
+GAME-DAY API
+        ↓
+WEBSITE / APP
+        ↓
+DEPLOYMENT
+
+At completion, the owner must be able to open TBM and see today's and
+tomorrow's NCAAF V4 projected picks.
+
+============================================================
+PART 1 — PRESERVE MODEL IMMUTABILITY
+============================================================
+
+Before doing anything verify:
+
+MODEL:
+tbm-ncaaf-v4-expected-score
+
+MODEL VERSION:
+D-simple-expected-score-linear
+
+CONFIG HASH:
+212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86
+
+PARAMETER HASH:
+792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81
+
+The hashes must remain identical after this task.
+
+DO NOT:
+
+retrain
+refit
+recalibrate
+change coefficients
+change shrinkage
+change uncertainty
+change training rows
+change validation rows
+change OOS rows
+
+============================================================
+PART 2 — CURRENT SCHEDULE
+============================================================
+
+Use the existing authoritative NCAAF schedule/provider architecture.
+
+Resolve:
+
+TODAY
+
+TOMORROW
+
+using the runtime date/time.
+
+Do not hardcode September 4/5 into production code.
+
+Retrieve all scheduled games for both dates.
+
+Classify every game:
+
+MODEL_ELIGIBLE_FBS_VS_FBS
+
+OUT_OF_DOMAIN_FBS_VS_FCS
+
+OUT_OF_DOMAIN_OTHER
+
+IDENTITY_UNRESOLVED
+
+Only FBS-vs-FBS enters V4.
+
+============================================================
+PART 3 — CURRENT FEATURE BRIDGE
+============================================================
+
+Use the already-validated #222C feature bridge.
+
+Generate exact:
+
+ncaaf-chronological-team-game-v2
+
+inputs for each eligible game.
+
+Use only information available before feature cutoff.
+
+Record:
+
+feature_cutoff
+feature_schema
+data_quality
+missingness
+model_version
+
+Fail closed for:
+
+post-kickoff feature creation
+identity mismatch
+unsupported domain
+invalid feature schema
+non-finite feature values
+
+============================================================
+PART 4 — RUN V4
+============================================================
+
+Run the frozen Baseline D engine.
+
+For each game output:
+
+expected_home_points
+expected_away_points
+
+expected_margin
+expected_total
+
+home_win_probability
+away_win_probability
+
+fair_home_moneyline
+fair_away_moneyline
+
+margin_uncertainty
+total_uncertainty
+
+data_quality
+
+Do not use sportsbook information in this step.
+
+============================================================
+PART 5 — REPAIR MARKET IDENTITY MATCHING
+============================================================
+
+#223B reported:
+
+1,196 unmatched_market_identity rows.
+
+Investigate the exact causes.
+
+Do NOT simply suppress the PARTIAL status.
+
+Do NOT fuzzy-match unsafe games.
+
+Build deterministic market identity resolution.
+
+Prefer stable IDs.
+
+Use combinations such as:
+
+provider game ID
+ESPN game ID
+CFBD game ID
+canonical TBM game ID
+normalized exact team IDs
+scheduled kickoff
+home/away orientation
+
+where supported by existing architecture.
+
+Create explicit classifications:
+
+EXACT_ID_MATCH
+
+EXACT_CANONICAL_MATCH
+
+SAFE_TEAM_TIME_MATCH
+
+AMBIGUOUS
+
+UNMATCHED
+
+Only the first three may attach sportsbook data.
+
+AMBIGUOUS and UNMATCHED must fail closed.
+
+============================================================
+PART 6 — PREVENT WRONG-GAME MARKET ATTACHMENT
+============================================================
+
+This is critical.
+
+Never attach odds based solely on:
+
+similar team name
+mascot
+conference
+partial school name
+fuzzy text similarity
+
+Require deterministic evidence.
+
+Verify:
+
+home team
+away team
+game date
+kickoff tolerance
+sport
+market type
+
+before attaching odds.
+
+Test duplicate school-name and neutral-site scenarios.
+
+============================================================
+PART 7 — CURRENT MARKET SNAPSHOT
+============================================================
+
+For safely matched games retrieve available:
+
+moneyline
+spread
+total
+
+and sportsbook/book identity.
+
+Preserve timestamp:
+
+market_captured_at
+
+Calculate no-vig probabilities where applicable.
+
+Sportsbook information remains downstream from V4.
+
+============================================================
+PART 8 — MODEL VS MARKET
+============================================================
+
+After the V4 sports forecast is frozen, calculate:
+
+MONEYLINE:
+
+model probability
+market implied probability
+market no-vig probability
+probability edge
+fair odds
+market odds
+
+SPREAD:
+
+V4 projected margin
+sportsbook spread
+margin difference
+
+TOTAL:
+
+V4 projected total
+sportsbook total
+total difference
+
+Do not feed these values back into the sports model.
+
+============================================================
+PART 9 — BETTING OPINION
+============================================================
+
+Use the existing TBM betting-policy architecture where safely
+applicable.
+
+Do not invent a completely new arbitrary edge system if an existing
+standardized TBM policy already exists.
+
+Produce a downstream field:
+
+v4_model_opinion
+
+Allowed examples:
+
+BUY
+LEAN
+NEUTRAL
+FADE
+
+or the existing canonical TBM recommendation terminology.
+
+Also return:
+
+recommendation_reason
+model_edge
+data_quality
+market_quality
+
+IMPORTANT:
+
+This is a V4 projected betting opinion.
+
+It is NOT automatically a production-approved wager.
+
+============================================================
+PART 10 — PICK STATUS
+============================================================
+
+Every V4 output must carry:
+
+model_status = V4_PREVIEW
+
+publication_status
+
+approval_status
+
+Until #224:
+
+approval_status =
+UNVALIDATED
+
+publication_status must NOT falsely claim:
+
+PRODUCTION_APPROVED
+
+If the existing approved champion independently authorizes the same
+pick, that existing champion may continue to publish according to
+existing rules.
+
+============================================================
+PART 11 — CURRENT CHAMPION COMPARISON
+============================================================
+
+Where available compare:
+
+V4 opinion
+
+vs
+
+tbm-ncaaf-moneyline-v1
+
+Report:
+
+AGREE
+
+DISAGREE
+
+NO_INCUMBENT_FORECAST
+
+Do not force either model to agree.
+
+Do not modify the incumbent.
+
+============================================================
+PART 12 — GAME-DAY PICK FILTER
+============================================================
+
+Create a deterministic game-day V4 projection ranking.
+
+Exclude betting interpretation for:
+
+OUT_OF_DOMAIN
+IDENTITY_UNRESOLVED
+AMBIGUOUS_MARKET
+UNMATCHED_MARKET
+STALE_MARKET
+INSUFFICIENT_DATA
+INVALID_PROBABILITY
+POST_CUTOFF_FORECAST
+
+Keep valid underlying projections available internally where safe.
+
+============================================================
+PART 13 — TOP V4 PROJECTED PICKS
+============================================================
+
+Create:
+
+TOP NCAAF V4 PROJECTED PICKS
+
+Rank legitimate opportunities by the existing TBM downstream
+bet-selection framework.
+
+At minimum show:
+
+rank
+game
+market
+pick
+current odds/line
+V4 projected score
+V4 probability
+no-vig market probability where applicable
+edge
+data quality
+recommendation
+status
+
+Do not fabricate a pick where no sufficient model edge exists.
+
+A day with zero qualifying projected picks is valid.
+
+============================================================
+PART 14 — TODAY'S COMPLETE BOARD
+============================================================
+
+Produce a complete TODAY board.
+
+For every model-eligible game show:
+
+away team
+home team
+kickoff
+
+projected score
+
+projected winner
+
+win probability
+
+fair moneyline
+
+projected margin
+
+projected total
+
+current moneyline
+
+current spread
+
+current total
+
+model edge
+
+V4 model opinion
+
+data quality
+
+market-match quality
+
+incumbent agreement
+
+status
+
+============================================================
+PART 15 — TOMORROW'S COMPLETE BOARD
+============================================================
+
+Produce the identical board for TOMORROW.
+
+This is especially important because tomorrow has a larger college
+football slate.
+
+The system must support preparing tomorrow's card before kickoff.
+
+============================================================
+PART 16 — API
+============================================================
+
+Expose the projection board through the existing API architecture.
+
+Reuse existing NCAAF endpoints if appropriate.
+
+Otherwise create a clean endpoint following project conventions.
+
+Desired capabilities:
+
+today
+tomorrow
+specific date
+
+Example only:
+
+GET /api/model/ncaaf/v4/projections?date=YYYY-MM-DD
+
+and/or:
+
+GET /api/model/ncaaf/v4/today
+
+Do not create duplicate endpoints if an appropriate existing route
+already exists.
+
+Return structured JSON suitable for both admin and subscriber UI.
+
+============================================================
+PART 17 — ADMIN
+============================================================
+
+Add/upgrade the NCAAF model-operations page so the owner can see:
+
+TODAY'S NCAAF V4 BOARD
+
+TOMORROW'S NCAAF V4 BOARD
+
+TOP V4 PROJECTED PICKS
+
+market-match status
+
+data quality
+
+V4/incumbent agreement
+
+model version
+
+last sports forecast refresh
+
+last market refresh
+
+Do not clutter the page.
+
+Use existing TBM UI components/design conventions.
+
+============================================================
+PART 18 — SUBSCRIBER WEBSITE / APP
+============================================================
+
+Connect the existing NCAAF subscriber page to the new operational
+projection endpoint.
+
+Use existing TBM design language.
+
+Cards should remain clean and compact.
+
+Show:
+
+Team vs Team
+
+team logos if existing logo infrastructure supports them
+
+Projected Pick
+
+Odds/Line
+
+Projected Score
+
+Model Probability
+
+Edge
+
+status
+
+Do NOT expose internal diagnostics to normal subscribers.
+
+Do NOT redesign unrelated pages.
+
+============================================================
+PART 19 — PUBLIC LABELING BEFORE #224
+============================================================
+
+Until #224 passes, V4-generated recommendations must be clearly
+represented internally as:
+
+V4 PROJECTED PICK
+
+or equivalent existing preview terminology.
+
+Do not claim:
+
+V4 PRODUCTION APPROVED
+
+Do not alter registry truth.
+
+The UI may display the projection/pick to the owner/admin immediately.
+
+If subscriber/public display would violate existing publication
+approval rules, keep subscriber publication controlled by the current
+approved engine until #224.
+
+Do not bypass approval security.
+
+============================================================
+PART 20 — OWNER / MASTER ACCESS
+============================================================
+
+The owner/master account should be able to see the full V4 board,
+including all legitimate projected opportunities.
+
+Preserve existing membership/security rules.
+
+Do not expose owner-only diagnostics publicly.
+
+============================================================
+PART 21 — REFRESH ARCHITECTURE
+============================================================
+
+Separate:
+
+SPORTS FORECAST REFRESH
+
+from:
+
+MARKET REFRESH
+
+Sports forecasts must remain versioned and PIT-safe.
+
+Markets may refresh more frequently.
+
+Refreshing odds must NOT mutate:
+
+expected scores
+model probability
+model coefficients
+feature snapshot
+
+unless a new legitimate pregame sports snapshot is intentionally
+created under existing PIT rules.
+
+============================================================
+PART 22 — FROZEN EVIDENCE CONTINUITY
+============================================================
+
+Do not modify or overwrite the existing 656-row #223/#223B frozen
+prospective ledger.
+
+Game-day projections created by this task must have their own
+immutable prediction identity and timestamp where appropriate.
+
+They may later become prospective evidence only if:
+
+created before kickoff
+feature cutoff valid
+model identity exact
+prediction immutable
+
+============================================================
+PART 23 — GRADING CONTINUITY
+============================================================
+
+Ensure new legitimate pregame V4 predictions can later be graded
+automatically after games become final.
+
+Store enough identity to connect:
+
+prediction
+game
+kickoff
+final score
+model version
+feature snapshot
+market snapshot
+
+Do not grade pending/live games.
+
+============================================================
+PART 24 — CONTINUOUS LEARNING
+============================================================
+
+Preserve the TBM learning rule:
+
+Every completed game adds evidence.
+
+Production model weights do NOT automatically change after every game.
+
+Future V4.x changes require:
+
+new model version
+new parameter hash
+chronological validation
+OOS evaluation
+prospective comparison
+approval
+
+============================================================
+PART 25 — RUNTIME HEALTH
+============================================================
+
+Address the NCAAF-specific operational issues identified by #223B.
+
+Report:
+
+market rows
+matched rows
+unmatched rows
+ambiguous rows
+match rate
+
+provider errors
+feature bridge failures
+prediction failures
+
+stale runs
+active runs
+
+Do not modify Soccer or unrelated sport behavior.
+
+If generic scheduler duplication can be safely fixed without changing
+sport logic, fix it.
+
+Otherwise report it separately.
+
+============================================================
+PART 26 — FAIL-CLOSED RULES
+============================================================
+
+The live projection/pick pipeline must fail closed on:
+
+wrong model hash
+wrong parameter hash
+unsupported domain
+unresolved identity
+ambiguous market identity
+post-kickoff prediction
+stale feature cutoff
+invalid probability
+non-finite score
+missing required approval state
+wrong market/game association
+
+Never silently substitute another game.
+
+============================================================
+PART 27 — TESTS
+============================================================
+
+Add/run tests for:
+
+today schedule
+tomorrow schedule
+FBS-vs-FBS filtering
+FBS-vs-FCS exclusion
+identity bridge
+market identity matching
+ambiguous market rejection
+wrong-game odds rejection
+neutral-site matching
+kickoff matching
+V4 immutable hashes
+PIT cutoff
+expected-score output
+probability integrity
+fair-price conversion
+no-vig calculation
+ML edge
+spread comparison
+total comparison
+betting opinion
+projection ranking
+preview status
+incumbent comparison
+API serialization
+admin page
+subscriber page
+grading continuity
+no V4 promotion
+no registry mutation
+no publication bypass
+NFL isolation
+MLB isolation
+
+Run all relevant tests.
+
+Run typecheck.
+
+Run production build.
+
+============================================================
+PART 28 — ACTUAL CURRENT OUTPUT
+============================================================
+
+Do not stop after writing infrastructure.
+
+Run the completed pipeline against the actual current NCAAF slate.
+
+Return real results for TODAY and TOMORROW.
+
+Do not provide placeholders.
+
+Report:
+
+TODAY SCHEDULED
+TODAY MODEL ELIGIBLE
+TODAY V4 FORECASTS
+TODAY MARKET MATCHES
+TODAY PROJECTED PICKS
+
+TOMORROW SCHEDULED
+TOMORROW MODEL ELIGIBLE
+TOMORROW V4 FORECASTS
+TOMORROW MARKET MATCHES
+TOMORROW PROJECTED PICKS
+
+OUT OF DOMAIN
+UNMATCHED MARKET
+AMBIGUOUS MARKET
+
+============================================================
+PART 29 — DEPLOYMENT
+============================================================
+
+If and only if:
+
+tests pass
+typecheck passes
+production build passes
+model hashes remain unchanged
+PIT violations = 0
+market leakage = 0
+no publication-security regression exists
+
+then prepare and execute the normal repository deployment workflow.
+
+Use the repository's actual current branch and deployment conventions.
+
+Show the exact commands/results.
+
+At minimum:
+
+git status
+
+git add <all intended files>
+
+git commit -m "Add NCAAF V4 live projection and market pipeline"
+
+git push
+
+Verify push succeeds.
+
+If hosting auto-deploys from the pushed branch, verify the deployment
+actually starts/completes rather than merely assuming it did.
+
+Do not expose secrets.
+
+============================================================
+PART 30 — PRODUCTION VERIFICATION
+============================================================
+
+After deployment verify against the actual production URL.
+
+Check:
+
+API health
+
+NCAAF V4 projection endpoint
+
+today board
+
+tomorrow board
+
+market matching
+
+projected picks
+
+admin rendering
+
+subscriber rendering where authorized
+
+model hashes
+
+approval status
+
+Verify no obvious regression to other sports.
+
+============================================================
+PART 31 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-v4-live-game-day-pipeline-[CURRENT-DATE].md
+
+Include:
+
+1. Executive summary
+2. Frozen model verification
+3. Current schedule
+4. Domain filtering
+5. Feature bridge
+6. V4 forecast generation
+7. Market identity diagnosis
+8. Market identity repair
+9. Market match statistics
+10. Moneyline comparison
+11. Spread comparison
+12. Total comparison
+13. Betting opinion logic
+14. Today's complete board
+15. Tomorrow's complete board
+16. Top projected picks
+17. Incumbent comparison
+18. API implementation
+19. Admin implementation
+20. Subscriber implementation
+21. Preview/publication safeguards
+22. Evidence continuity
+23. Runtime health
+24. Tests
+25. Build
+26. Git commit
+27. Git push
+28. Deployment
+29. Production verification
+30. Remaining limitations
+31. Next step
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start with:
+
+#223C FINAL
+
+MODEL:
+[value]
+
+MODEL VERSION:
+[value]
+
+CONFIGURATION HASH:
+[value]
+
+PARAMETER HASH:
+[value]
+
+TODAY:
+[date]
+
+TODAY SCHEDULED:
+[number]
+
+TODAY MODEL ELIGIBLE:
+[number]
+
+TODAY V4 FORECASTS:
+[number]
+
+TODAY EXACT MARKET MATCHES:
+[number]
+
+TODAY PROJECTED PICKS:
+[number]
+
+TOMORROW:
+[date]
+
+TOMORROW SCHEDULED:
+[number]
+
+TOMORROW MODEL ELIGIBLE:
+[number]
+
+TOMORROW V4 FORECASTS:
+[number]
+
+TOMORROW EXACT MARKET MATCHES:
+[number]
+
+TOMORROW PROJECTED PICKS:
+[number]
+
+MARKET ROWS:
+[number]
+
+MARKET MATCHED:
+[number]
+
+MARKET UNMATCHED:
+[number]
+
+MARKET AMBIGUOUS:
+[number]
+
+MARKET MATCH RATE:
+[value]
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+INVALID PROBABILITY OUTPUTS:
+[number]
+
+MODEL APPROVAL STATE:
+UNVALIDATED
+
+MODEL MATURITY:
+DEVELOPING
+
+V4 PROJECTION PIPELINE LIVE:
+YES / NO
+
+V4 OFFICIAL PRODUCTION CHAMPION:
+NO
+
+CURRENT CHAMPION CHANGED:
+NO
+
+PUBLICATION SECURITY:
+PASS / FAIL
+
+NFL CHANGED:
+NO
+
+MLB CHANGED:
+NO
+
+TESTS:
+[value]
+
+TYPECHECK:
+PASS / FAIL
+
+BUILD:
+PASS / FAIL
+
+GIT COMMIT:
+[value]
+
+GIT PUSH:
+PASS / FAIL
+
+PRODUCTION DEPLOYMENT:
+PASS / FAIL
+
+PRODUCTION API:
+PASS / FAIL
+
+PRODUCTION UI:
+PASS / FAIL
+
+FINAL DECISION:
+[A/B/C/D]
+
+NEXT TASK:
+[value]
+
+Then provide the complete report.
+
+============================================================
+FINAL DECISION OPTIONS
+============================================================
+
+A. #223C COMPLETE — NCAAF V4 GAME-DAY PROJECTION PIPELINE LIVE;
+PROJECTED PICKS AVAILABLE; CONTINUE PROSPECTIVE GRADING
+
+B. #223C COMPLETE — NCAAF V4 PROJECTION PIPELINE LIVE WITH DOCUMENTED
+MARKET/PUBLICATION LIMITATIONS; CONTINUE PROSPECTIVE GRADING
+
+C. #223C PARTIAL — PIPELINE BUILT BUT ONE SPECIFIC DEPLOYMENT OR
+MARKET-INTEGRATION BLOCKER REMAINS
+
+D. #223C FAILED — LIVE PROJECTION PIPELINE DOES NOT MEET INTEGRITY
+STANDARD
+
+============================================================
+STOP CONDITIONS
+============================================================
+
+Do NOT start #224 automatically.
+
+Do NOT promote V4 to PRODUCTION_APPROVED.
+
+Do NOT change the production champion.
+
+Do NOT alter V4 coefficients.
+
+Do NOT begin another sport.
+
+Complete #223C, deploy if all safety/build gates pass, verify
+production, return the full report, and STOP.

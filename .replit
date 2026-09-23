@@ -1,0 +1,39 @@
+modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_DOMAIN = "thebettingmodel.replit.app"
+EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY = "goog_NbLuELjoUSqhaTbFpGZnfwZagwS"
+EXPO_PUBLIC_REVENUECAT_IOS_API_KEY = "appl_gPhYovPqWcXWdzqoXKRBUKLwZSH"
+EXPO_PUBLIC_REVENUECAT_TEST_API_KEY = "test_NezigGAOnPwyJoHJEkVYMsLbpmu"
+REVENUECAT_APPLE_APP_STORE_APP_ID = "app61f23ddcf8"
+REVENUECAT_GOOGLE_PLAY_STORE_APP_ID = "app8169cb68c0"
+REVENUECAT_PROJECT_ID = "projba2ee534"
+REVENUECAT_TEST_STORE_APP_ID = "app867e74aa63"
+EXPO_PUBLIC_ADMIN_USER_IDS = "pk_live_Y2xlcmsudGhlYmV0dGluZ21vZGVsLnJlcGxpdC5hcHAk"
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA"
+MLB_MODEL_MODE = "v1"
+NCAAF_MODEL_MODE = "legacy"

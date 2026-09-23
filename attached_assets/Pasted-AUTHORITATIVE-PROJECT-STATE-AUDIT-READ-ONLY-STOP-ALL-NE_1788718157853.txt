@@ -1,0 +1,718 @@
+AUTHORITATIVE PROJECT STATE AUDIT — READ ONLY
+
+STOP ALL NEW DEVELOPMENT FOR THIS TASK.
+
+Before we make any additional changes to The Betting Model, I need a complete authoritative audit of exactly where the project stands RIGHT NOW.
+
+I am specifically concerned because the app is currently displaying a BLACK SCREEN, and I do not want to make another change, deployment, push, rollback, model update, or infrastructure change until we know exactly what code exists, what is committed, what is deployed, what is only in development, and what is actually running.
+
+THIS IS A READ-ONLY INVESTIGATION.
+
+DO NOT:
+
+- edit code
+- create migrations
+- change environment variables
+- fix the black screen yet
+- revert anything
+- commit
+- push
+- deploy
+- publish an EAS update
+- submit an app build
+- modify Git history
+- delete branches/refs
+- modify Apple credentials
+- modify EAS credentials
+- train a model
+- retune a model
+- run #238
+- continue MLB model development
+- modify NCAAF
+- modify NFL
+- change production data
+- change production model behavior
+
+I want facts first.
+
+==================================================
+1. CURRENT GIT STATE
+==================================================
+
+Report:
+
+Current branch:
+Current HEAD SHA:
+Latest commit message:
+Latest 10 commits:
+Remote main SHA:
+Is local HEAD ahead/behind remote main?
+How many commits ahead/behind?
+Tracked modified files:
+Untracked files:
+Staged files:
+Uncommitted changes:
+
+Run appropriate read-only Git commands.
+
+Also determine whether recent MLB work including:
+
+#224C-1
+#224C-1B
+#232
+#237
+
+is:
+
+A. only in working tree
+B. committed locally
+C. pushed to remote main
+D. deployed
+E. some mixture
+
+List the exact commits/files associated with each task where determinable.
+
+DO NOT CHANGE GIT STATE.
+
+==================================================
+2. PROTECTED REPLIT SECURITY REF
+==================================================
+
+Check read-only whether this exact known contaminated ref still exists:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Report:
+
+EXISTS / REMOVED / CANNOT VERIFY
+
+Do not delete it.
+
+Do not force push.
+
+Do not rewrite history.
+
+Also run the existing read-only credential/signing scans.
+
+Report whether repository production deployment is still security-blocked.
+
+==================================================
+3. DEPLOYMENT STATE
+==================================================
+
+Determine exactly what is currently deployed.
+
+Production URL:
+
+https://Thebettingmodel.replit.app
+
+Report, where the environment/repository/platform makes this provable:
+
+Current production deployment ID/version:
+Production commit SHA:
+Production deployment timestamp:
+Production build status:
+Production API version/commit if exposed:
+Production web version/commit if exposed:
+Whether production matches local HEAD:
+Whether production matches remote main:
+
+If the exact deployed SHA cannot be proven, say:
+
+CANNOT VERIFY
+
+Do not guess.
+
+==================================================
+4. MOBILE APP DISTRIBUTION STATE
+==================================================
+
+Determine the current Expo/EAS mobile state using read-only commands/configuration.
+
+Project:
+
+@jacqueskaune/mobile
+
+Bundle:
+
+app.replit.thebettingmodel
+
+Report:
+
+Current app version:
+Current iOS build number:
+Current Android version/build if applicable:
+Current production EAS channel/branch:
+Most recent EAS Update:
+Most recent EAS production build:
+Runtime version:
+Update URL:
+Whether OTA updates are enabled:
+Whether the currently installed production app could have received a recent OTA update:
+Whether any recent update could plausibly have introduced the black screen.
+
+Do not publish an EAS Update.
+
+Do not create a build.
+
+Do not change credentials.
+
+==================================================
+5. BLACK-SCREEN INVESTIGATION
+==================================================
+
+Investigate the current mobile application startup path READ ONLY.
+
+I need the most likely factual cause of the black screen.
+
+Inspect:
+
+app entry point
+Expo configuration
+routing/navigation
+root layout
+providers
+authentication/session bootstrap
+API bootstrap
+environment configuration
+startup effects
+font/assets loading
+error boundaries
+recent mobile changes
+shared contract changes
+API response assumptions
+EAS update configuration
+
+Run safe/read-only diagnostics and existing tests/typechecks where appropriate.
+
+If runtime logs are available without changing production, inspect them.
+
+Report the exact error/stack trace if one exists.
+
+Do NOT fix it yet.
+
+Classify the black-screen cause as:
+
+CONFIRMED
+HIGH-CONFIDENCE SUSPECT
+UNKNOWN
+
+If confirmed, identify:
+
+file
+line/function
+error
+commit that introduced it if determinable
+whether it affects development only, OTA production, App Store build, or all environments
+
+==================================================
+6. PRODUCTION API HEALTH
+==================================================
+
+Perform non-mutating health/read checks against the production API/application where appropriate.
+
+Do NOT call endpoints that:
+
+refresh
+write
+grade
+save
+publish
+mutate
+trigger automation
+change production state
+
+Report:
+
+API reachable:
+Web reachable:
+Health endpoint:
+HTTP status:
+API errors:
+CORS errors if observable:
+Database connectivity if health output exposes it:
+Any 5xx responses:
+Any startup/runtime errors:
+
+==================================================
+7. CURRENT PRODUCTION SPORTS MODELS
+==================================================
+
+Using repository configuration plus safe production read endpoints where available, report exactly which model is currently active for:
+
+MLB
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+For each report:
+
+production model ID/version
+approval status
+maturity status if available
+publication status
+whether it differs from repository development state
+
+Do not change any model.
+
+==================================================
+8. MLB V4 DEVELOPMENT STATE
+==================================================
+
+Give me the authoritative current status of MLB V4.
+
+Include:
+
+Historical foundation status
+#224B-1
+#224B-2
+#224C
+#224C-1
+#224C-1B
+#232
+#237
+
+For each report:
+
+COMPLETE / PARTIAL / FAILED / NOT STARTED
+
+Artifacts:
+Hashes:
+Database/schema changes:
+Committed?
+Pushed?
+Deployed?
+Production-active?
+
+Specifically answer:
+
+Is #232 code currently running in production?
+
+Is #232 prospective MLB collection currently running automatically?
+
+Is #237 code/data currently running in production?
+
+Is any MLB V4 forecast currently being shown to subscribers?
+
+Is current MLB V1 still the production champion?
+
+Do not infer from task instructions alone.
+
+Verify from current repository/deployment state where possible.
+
+==================================================
+9. MLB PROSPECTIVE EVIDENCE STATE
+==================================================
+
+READ ONLY.
+
+Report current persisted prospective MLB evidence counts:
+
+collection runs
+games discovered
+starter snapshots
+PIT-safe starter slots
+both-starter games
+starter PIT states
+pregame feature snapshots
+baseline-core snapshots
+starter-core snapshots
+completed outcomes
+actual starter outcomes
+starter performance outcomes
+bullpen outcomes
+feature/outcome pairs
+starter-core completed pairs
+teams represented
+unique starters
+repeat starters
+
+If #232 infrastructure is not deployed, clearly distinguish:
+
+DEVELOPMENT DATABASE
+
+from:
+
+PRODUCTION DATABASE
+
+Do not mix counts.
+
+Do not trigger collection to increase counts.
+
+==================================================
+10. NCAAF CURRENT STATE
+==================================================
+
+Verify NCAAF was not accidentally affected.
+
+Report:
+
+current production model
+model hash
+parameter/config hash
+approval status
+publication status
+TODAY-ONLY behavior
+America/New_York behavior
+tomorrow prefetch status
+current production API health
+current UI health if observable
+
+Do not modify NCAAF.
+
+==================================================
+11. DATABASE MIGRATION STATE
+==================================================
+
+Report:
+
+latest migration in repository
+latest migration applied to development DB
+latest migration applied to production DB where verifiable
+
+Identify:
+
+pending migrations
+development-only tables
+production-only differences
+schema drift
+
+Specifically identify all #232/#237-related schema that exists:
+
+in code
+in development DB
+in production DB
+
+Do not apply migrations.
+
+==================================================
+12. ENVIRONMENT CONFIGURATION
+==================================================
+
+Verify required environment variable NAMES and presence only.
+
+NEVER print secret values.
+
+Report PRESENT / MISSING for relevant variables needed by:
+
+API
+database
+MLB data provider
+Expo
+EAS
+production API URL
+mobile app
+web/admin
+
+If an environment mismatch could cause the black screen, identify it.
+
+DO NOT PRINT:
+
+API keys
+database passwords
+tokens
+private keys
+Apple credentials
+EAS credentials
+secret values
+
+==================================================
+13. BUILD / TEST STATE
+==================================================
+
+Without changing code, run the appropriate current validation suite.
+
+At minimum where supported:
+
+mobile typecheck
+mobile static validation
+API typecheck
+database typecheck
+API production build
+admin typecheck/build
+focused MLB tests
+focused NCAAF tests
+scheduler tests
+credential/signing scan
+
+Report exact:
+
+command
+PASS / FAIL
+test counts
+errors
+
+Do not repair failures.
+
+==================================================
+14. WEB / ADMIN / MOBILE SURFACE STATUS
+==================================================
+
+Report separately:
+
+Production web:
+WORKING / BROKEN / UNKNOWN
+
+Admin:
+WORKING / BROKEN / UNKNOWN
+
+Mobile iOS:
+WORKING / BLACK SCREEN / UNKNOWN
+
+Mobile Android:
+WORKING / BROKEN / UNKNOWN
+
+API:
+WORKING / BROKEN / PARTIAL / UNKNOWN
+
+For each, provide evidence.
+
+==================================================
+15. WHAT IS ACTUALLY LIVE?
+==================================================
+
+This section is critical.
+
+Create a table with:
+
+COMPONENT
+DEVELOPMENT
+COMMITTED
+REMOTE MAIN
+DEPLOYED
+PRODUCTION ACTIVE
+
+Include at minimum:
+
+MLB V1
+MLB historical foundation
+#224C failed model
+#224C-1
+#224C-1B
+#232
+#237
+NCAAF current model
+new database migrations
+new API routes
+new scheduler logic
+new mobile code
+new web/admin code
+
+Use:
+
+YES
+NO
+PARTIAL
+UNKNOWN
+
+Do not guess UNKNOWN values.
+
+==================================================
+16. RECENT CHANGE TIMELINE
+==================================================
+
+Construct a chronological timeline of the recent project changes that can be proven from:
+
+Git
+build metadata
+EAS metadata
+deployment metadata
+database migration metadata
+
+Focus particularly on changes immediately before the black screen appeared.
+
+Identify the most likely change boundary.
+
+==================================================
+17. BLACK-SCREEN BLAST RADIUS
+==================================================
+
+Determine whether the black screen appears related to:
+
+mobile JavaScript bundle
+EAS OTA update
+native build
+API outage
+API schema mismatch
+database migration
+authentication
+routing
+environment configuration
+shared contract
+asset/font issue
+unknown
+
+Rank only evidence-supported possibilities.
+
+Do not speculate beyond available evidence.
+
+==================================================
+18. RELEASE BLOCKERS
+==================================================
+
+List all blockers before we can safely make the current development state live.
+
+Classify:
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+Examples could include, only if actually present:
+
+black screen
+protected contaminated Git ref
+schema drift
+failed tests
+uncommitted work
+unapplied migrations
+missing environment variables
+MLB evidence insufficiency
+unvalidated MLB model
+mobile runtime mismatch
+
+==================================================
+19. SAFE RECOVERY PLAN
+==================================================
+
+After completing the READ-ONLY audit, propose the shortest safe sequence from CURRENT STATE to:
+
+1. restore fully working app
+2. verify all current production functionality
+3. finish MLB V4 development
+4. validate MLB V4
+5. update subscriber analytics to actual V4 outputs
+6. push safely
+7. deploy safely
+8. verify production
+9. ensure iOS/mobile update path is correct
+10. declare launch-ready
+
+Do NOT execute the plan.
+
+==================================================
+20. NEXT SINGLE ACTION
+==================================================
+
+At the very end, tell me the ONE safest next action.
+
+Not five tasks.
+
+Not a giant roadmap.
+
+ONE next action based on what the audit actually finds.
+
+==================================================
+REQUIRED FINAL REPORT FORMAT
+==================================================
+
+Return:
+
+# THE BETTING MODEL — AUTHORITATIVE PROJECT STATE AUDIT
+
+## Executive Summary
+
+Production health:
+Mobile health:
+Black-screen status:
+Local HEAD:
+Remote main:
+Production commit:
+Security release gate:
+MLB production champion:
+MLB V4 state:
+NCAAF state:
+Database state:
+Safe to deploy right now:
+Next single action:
+
+## Git State
+
+## Security Ref State
+
+## Production Deployment State
+
+## EAS / Mobile Distribution State
+
+## Black-Screen Investigation
+
+## Production API Health
+
+## Current Production Sports Models
+
+## MLB V4 Development State
+
+## MLB Prospective Evidence State
+
+## NCAAF State
+
+## Database / Migration State
+
+## Environment State
+
+## Tests / Builds
+
+## Surface Health
+
+## What Is Actually Live?
+
+## Recent Change Timeline
+
+## Black-Screen Blast Radius
+
+## Release Blockers
+
+## Safe Recovery / Launch Sequence
+
+## Next Single Action
+
+==================================================
+HARD STOP
+==================================================
+
+THIS IS READ ONLY.
+
+DO NOT FIX ANYTHING.
+
+DO NOT EDIT CODE.
+
+DO NOT COMMIT.
+
+DO NOT PUSH.
+
+DO NOT DEPLOY.
+
+DO NOT PUBLISH AN EAS UPDATE.
+
+DO NOT CREATE A MOBILE BUILD.
+
+DO NOT RUN DATABASE MIGRATIONS.
+
+DO NOT TRIGGER COLLECTION.
+
+DO NOT TRIGGER GRADING.
+
+DO NOT TRIGGER AUTOMATION.
+
+DO NOT TRAIN MODELS.
+
+DO NOT RETUNE MODELS.
+
+DO NOT START #238.
+
+DO NOT MODIFY MLB.
+
+DO NOT MODIFY NCAAF.
+
+DO NOT MODIFY NFL.
+
+DO NOT MODIFY APPLE/EAS CREDENTIALS.
+
+DO NOT MODIFY GIT HISTORY.
+
+Return the complete audit and wait for owner review.

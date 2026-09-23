@@ -1,0 +1,1126 @@
+TASK #224A — MLB V4 DISCOVERY, DATA, PERFORMANCE & EXPECTED-RUNS ARCHITECTURE AUDIT
+
+MISSION
+
+Begin preparation for MLB V4.
+
+Target:
+Determine whether a legitimate, independently modeled MLB V4 can be built, validated, and prepared for production as early as tomorrow WITHOUT weakening TBM's validation, security, point-in-time, or model-governance standards.
+
+This task is DISCOVERY / AUDIT / ARCHITECTURE ONLY.
+
+Do NOT implement MLB V4 yet.
+Do NOT modify the production MLB V3 model.
+Do NOT deploy anything.
+Do NOT push anything.
+Do NOT alter NCAAF.
+Do NOT interfere with TASK #223D-2 or its sanitized repository state.
+Do NOT begin another sport.
+Do NOT fabricate missing historical data.
+Do NOT use sportsbook prices as substitutes for baseball prediction inputs.
+
+We want speed, but not at the expense of model integrity.
+
+==================================================
+CORE TBM ARCHITECTURAL RULE
+==================================================
+
+Every sport must have independent sports intelligence.
+
+Shared infrastructure is allowed.
+
+Shared forecasting intelligence is NOT.
+
+MLB V4 must be an independent baseball forecasting engine.
+
+It may share:
+- database infrastructure
+- API infrastructure
+- market ingestion infrastructure
+- prediction ledgers
+- evaluation tooling
+- model registry/governance
+- UI components
+- deployment infrastructure
+
+It must NOT inherit:
+- NCAAF model coefficients
+- NFL model coefficients
+- NBA model coefficients
+- another sport's calibration
+- another sport's scoring assumptions
+- another sport's feature weights
+- another sport's residual distributions
+- another sport's forecasting logic
+
+Hard architectural principle:
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+==================================================
+PRIMARY MLB V4 CONCEPT
+==================================================
+
+Investigate MLB V4 as a TRUE EXPECTED-RUNS MODEL.
+
+The sports model should independently estimate:
+
+expected_home_runs
+expected_away_runs
+
+Example internal output:
+
+Atlanta Braves: 3.42 expected runs
+Philadelphia Phillies: 1.87 expected runs
+
+Subscriber-facing presentation may later round this to:
+
+MODEL PROJECTED SCORE
+
+ATL 3 — PHI 2
+
+IMPORTANT:
+
+The projected score must be a REAL SPORTS-MODEL OUTPUT.
+
+Do NOT create a cosmetic projected score by reverse-engineering sportsbook moneylines, spreads/run lines, totals, implied probabilities, or betting-market prices.
+
+Market information belongs downstream in the bet-selection layer.
+
+==================================================
+SYSTEM SEPARATION
+==================================================
+
+Maintain two separate systems:
+
+SYSTEM 1 — MLB SPORTS PREDICTION MODEL
+
+Baseball Data
+→ Starting Pitcher
+→ Bullpen
+→ Lineup / Offense
+→ Splits
+→ Statcast / Quality of Contact
+→ Park
+→ Weather
+→ Rest / Travel / Scheduling
+→ Context
+→ Expected Runs by Team
+→ Game Win Probability
+→ Fair Price
+
+SYSTEM 2 — BET SELECTION
+
+Frozen Sports Forecast
+→ Sportsbook Market
+→ Market Implied Probability
+→ Model vs Market Comparison
+→ Edge / EV
+→ Risk Filters
+→ Market Intelligence
+→ Publication Decision
+
+Sportsbook information must NOT contaminate the independent sports forecast.
+
+==================================================
+SECTION 1 — CURRENT MLB V3 INVENTORY
+==================================================
+
+Perform a comprehensive READ-ONLY audit of the existing MLB system.
+
+Locate and document:
+
+- MLB prediction engine(s)
+- MLB model files
+- services
+- routes
+- database tables
+- schemas
+- caches
+- jobs
+- historical loaders
+- current-game loaders
+- grading systems
+- result storage
+- prediction ledgers
+- market ingestion
+- sportsbook comparison
+- CLV tracking
+- frontend/admin/mobile MLB components
+
+Identify every active MLB market/model including, where applicable:
+
+- Moneyline
+- Run Line
+- Full Game Total
+- First Five
+- First Five ML
+- First Five Run Line
+- First Five Total
+- NRFI
+- YRFI
+
+Determine whether these are:
+
+A. separate predictive models
+B. transformations of one central forecast
+C. market-derived heuristics
+D. combinations of the above
+
+Document exact current behavior.
+
+Do not assume previous documentation is accurate.
+Verify against current repository code and database state.
+
+==================================================
+SECTION 2 — CURRENT MLB V3 FORECASTING LOGIC
+==================================================
+
+Document exactly how MLB V3 currently generates predictions.
+
+Inventory all currently used baseball features.
+
+Specifically investigate:
+
+STARTING PITCHER
+
+- ERA
+- FIP
+- xFIP
+- SIERA if available
+- WHIP
+- K%
+- BB%
+- K-BB%
+- HR rate
+- GB%
+- FB%
+- hard-hit rate
+- barrel rate
+- xERA
+- xwOBA allowed
+- pitch mix
+- velocity
+- spin
+- platoon splits
+- recent workload
+- pitch count
+- rest
+- projected innings
+- starter confirmation status
+
+BULLPEN
+
+- bullpen ERA/FIP/xFIP if available
+- reliever quality
+- leverage relievers
+- availability
+- previous-day usage
+- multi-day usage
+- fatigue
+- handedness
+- bullpen depth
+- projected bullpen innings
+
+OFFENSE
+
+- runs/game
+- wOBA
+- xwOBA
+- wRC+
+- OPS
+- ISO
+- K%
+- BB%
+- hard-hit rate
+- barrel rate
+- launch quality
+- handedness splits
+- projected lineup
+- confirmed lineup
+- injuries/absences
+- recent lineup changes
+
+MATCHUP
+
+- batter vs pitcher where legitimate
+- handedness
+- pitch-type matchup
+- platoon advantage
+- park-adjusted offense
+- starter-vs-lineup matchup
+
+ENVIRONMENT
+
+- ballpark
+- park factors
+- temperature
+- wind
+- humidity
+- precipitation
+- roof status
+- altitude
+- day/night
+- umpire if available and PIT-safe
+
+SCHEDULE
+
+- rest
+- travel
+- time-zone changes
+- previous game duration if available
+- doubleheaders
+- getaway games if modeled
+
+Document:
+
+- exact source
+- transformation
+- weighting
+- missing-value behavior
+- fallback behavior
+- PIT availability
+- whether currently active or dead/unused
+
+==================================================
+SECTION 3 — MARKET LEAKAGE AUDIT
+==================================================
+
+This is critical.
+
+Determine whether any MLB V3 sports prediction component uses:
+
+- moneyline
+- run line
+- total
+- sportsbook implied probability
+- opening odds
+- current odds
+- consensus odds
+- sharp-book odds
+- line movement
+- CLV
+- market edge
+
+to create or materially influence the SPORTS forecast itself.
+
+Classify every market-derived input.
+
+We need a clean boundary:
+
+SPORTS FORECAST
+must be generated independently.
+
+MARKET COMPARISON
+happens afterward.
+
+Report any leakage risk explicitly.
+
+Do not silently fix it during this task.
+
+==================================================
+SECTION 4 — HISTORICAL DATA INVENTORY
+==================================================
+
+Determine exactly what historical MLB data exists locally/in persistent storage.
+
+Report:
+
+- seasons available
+- number of games
+- number of team-game rows
+- duplicate counts
+- missing-game counts
+- postseason inclusion
+- neutral-site games
+- doubleheaders
+- suspended/resumed games
+- seven-inning historical games if present
+- extra-inning handling
+
+For each historical feature family, determine whether it is:
+
+PIT_SAFE
+PIT_RECONSTRUCTABLE
+CURRENT_ONLY
+LEAKAGE_RISK
+UNAVAILABLE
+
+We need to know what information could legitimately have been known before first pitch.
+
+==================================================
+SECTION 5 — HISTORICAL PERFORMANCE AUDIT
+==================================================
+
+Audit existing MLB model performance.
+
+Use stored predictions/results only where provenance is trustworthy.
+
+Report, where available:
+
+- total predictions
+- graded predictions
+- pending
+- wins
+- losses
+- pushes
+- win rate
+- units
+- ROI
+- average odds
+- average model edge
+- average closing-line edge
+- CLV
+
+Break down by:
+
+- season
+- month
+- market
+- favorite/underdog
+- odds bucket
+- edge bucket
+- confidence bucket
+- home/away
+- starter-quality bucket if available
+- model version
+
+Most importantly:
+
+Do not evaluate only betting ROI.
+
+Where sports forecasts exist, evaluate predictive quality independently.
+
+==================================================
+SECTION 6 — EXPECTED-RUNS FEASIBILITY
+==================================================
+
+Determine whether our existing data can support a true MLB expected-runs model.
+
+Target outputs:
+
+mu_home_runs
+mu_away_runs
+
+Investigate candidate approaches.
+
+Examples may include:
+
+- Poisson
+- Negative Binomial
+- bivariate Poisson
+- hierarchical run model
+- gradient boosting count regression
+- separate home/away run regressors
+- residual-adjusted run model
+- ensemble
+
+Do NOT choose a complex model merely because it is sophisticated.
+
+Favor:
+
+- interpretability
+- calibration
+- stability
+- PIT correctness
+- reproducibility
+- sufficient sample size
+- low overfitting risk
+
+Determine the SIMPLEST defensible baseline.
+
+==================================================
+SECTION 7 — PROJECTED SCORE DESIGN
+==================================================
+
+The V4 sports model should persist raw projections.
+
+Example:
+
+home_expected_runs = 3.4237
+away_expected_runs = 1.8732
+
+UI may display:
+
+ATL 3 — PHI 2
+
+Do NOT discard decimals.
+
+Determine how projected runs can legitimately derive:
+
+- expected run differential
+- expected game total
+- win probability
+- fair moneyline
+
+Investigate whether a run distribution/simulation should generate:
+
+P(home wins)
+P(away wins)
+
+rather than using an arbitrary conversion from run differential.
+
+If simulation is appropriate, define a deterministic/reproducible method.
+
+==================================================
+SECTION 8 — WIN PROBABILITY & FAIR PRICE
+==================================================
+
+Determine how MLB V4 should derive game win probability from expected-run distributions.
+
+Required outputs:
+
+home_win_probability
+away_win_probability
+
+Must sum correctly after tie-resolution logic.
+
+Then derive fair American odds.
+
+Example:
+
+ATL win probability = 64.8%
+Fair ML ≈ -184
+
+Do NOT use sportsbook price to construct the probability.
+
+Sportsbook price is compared only after forecast freezing.
+
+==================================================
+SECTION 9 — RUN LINE / TOTAL DERIVATION
+==================================================
+
+Investigate whether the same expected-run distribution can legitimately support:
+
+- -1.5/+1.5 run-line probability
+- alternate run lines
+- game-total over/under probabilities
+
+Do NOT assume these are production-ready merely because expected runs exist.
+
+Determine what additional calibration is necessary.
+
+If probability calibration is insufficient, mark those markets:
+
+NOT YET VALIDATED
+
+rather than manufacturing probabilities.
+
+==================================================
+SECTION 10 — F5 ARCHITECTURE
+==================================================
+
+Determine whether First Five should use:
+
+A. a dedicated expected-runs model for innings 1–5
+or
+B. a calibrated transformation of full-game expected runs.
+
+Prefer dedicated baseball logic if data supports it.
+
+Evaluate:
+
+- starter projected innings
+- first-five scoring
+- bullpen exclusion/limited bullpen effect
+- lineup
+- park/weather
+- historical F5 outcomes
+
+Do not automatically merge F5 into full-game V4.
+
+==================================================
+SECTION 11 — NRFI/YRFI ARCHITECTURE
+==================================================
+
+Treat NRFI/YRFI separately.
+
+Do not assume full-game expected runs automatically provide a calibrated first-inning probability.
+
+Audit current NRFI/YRFI engine.
+
+Determine whether V4 should eventually model:
+
+P(run in first inning)
+
+using inning-specific factors such as:
+
+- top-of-order lineup
+- starting pitcher first-inning performance
+- platoon matchup
+- park
+- weather
+- team first-inning scoring
+- starter command/HR/contact profile
+
+Do not modify it yet.
+
+==================================================
+SECTION 12 — POINT-IN-TIME TRAINING FOUNDATION
+==================================================
+
+Determine whether we can construct a chronological MLB training table similar in governance quality to the NCAAF foundation.
+
+Each row must represent what was knowable BEFORE first pitch.
+
+Potential structure:
+
+game_id
+game_date
+season
+home_team
+away_team
+
+home_runs_actual
+away_runs_actual
+
+home pregame offense features
+away pregame offense features
+
+home starter pregame features
+away starter pregame features
+
+home bullpen pregame features
+away bullpen pregame features
+
+park/environment features
+
+plus explicit PIT provenance.
+
+No future-season statistics.
+No full-season stats applied backward.
+No postgame values used as pregame features.
+No closing sportsbook information in sports prediction features.
+
+Determine feasibility and coverage.
+
+==================================================
+SECTION 13 — CHRONOLOGICAL VALIDATION DESIGN
+==================================================
+
+Design a strict chronological validation scheme.
+
+NO random train/test split.
+
+Possible structure:
+
+TRAIN
+earliest seasons
+
+VALIDATION
+next chronological period
+
+OOS TEST
+latest untouched period
+
+If sufficient data exists, also define walk-forward evaluation.
+
+Report exact recommended dates/seasons based on actual available data.
+
+==================================================
+SECTION 14 — BASELINES
+==================================================
+
+Define simple MLB baselines V4 must beat.
+
+Potential baselines:
+
+- league-average scoring
+- home/away scoring average
+- rolling team offense/defense
+- starter-adjusted simple model
+- current MLB V3 where comparable
+
+For expected runs evaluate:
+
+MAE
+RMSE
+Poisson deviance if applicable
+team-run calibration
+game-total MAE
+run-differential MAE
+
+For win probability:
+
+Brier Score
+Log Loss
+calibration curve
+reliability buckets
+
+Betting ROI is SECONDARY validation.
+
+Do not promote a worse sports predictor merely because a small betting sample showed better ROI.
+
+==================================================
+SECTION 15 — MODEL CALIBRATION
+==================================================
+
+Design calibration evaluation for win probabilities.
+
+Buckets such as:
+
+50–55%
+55–60%
+60–65%
+65–70%
+70–75%
+75%+
+
+Compare:
+
+predicted win rate
+actual win rate
+sample size
+
+Determine whether isotonic, Platt/logistic, or another calibration layer is warranted ONLY after OOS evidence.
+
+==================================================
+SECTION 16 — FORECAST IMMUTABILITY
+==================================================
+
+MLB V4 predictions must be immutable/versioned.
+
+At forecast time persist:
+
+model_name
+model_version
+config_hash
+parameter_hash
+feature_schema_version
+data_snapshot/provenance
+forecast_timestamp
+game_id
+expected_home_runs
+expected_away_runs
+home_win_probability
+away_win_probability
+fair_home_ml
+fair_away_ml
+
+Then market snapshot separately.
+
+Do not overwrite old forecasts when data changes.
+
+If lineups/starter status cause a new forecast, create a new version/snapshot.
+
+==================================================
+SECTION 17 — LINEUP / STARTER STATE
+==================================================
+
+MLB has a major live-data challenge that NCAAF does not share in the same form.
+
+Audit how the system handles:
+
+- probable starter
+- confirmed starter
+- projected lineup
+- confirmed lineup
+- scratches
+- opener/bullpen games
+- late pitching changes
+
+Define forecast states such as:
+
+EARLY
+STARTER_CONFIRMED
+LINEUP_CONFIRMED
+FINAL_PREGAME
+
+Determine whether publication should require certain states.
+
+Do not implement yet.
+
+==================================================
+SECTION 18 — GAME-DAY WORKFLOW
+==================================================
+
+Design MLB V4 for current-day operation.
+
+Determine whether the existing daily refresh architecture can support:
+
+Today's schedule
+→ eligibility
+→ starter status
+→ lineup status
+→ PIT features
+→ expected runs
+→ win probability
+→ frozen forecast
+→ market snapshot
+→ bet-selection layer
+→ publication
+→ result
+→ closing market
+→ evaluation
+
+Avoid unnecessary future-game persistence unless existing product requirements explicitly require it.
+
+==================================================
+SECTION 19 — MODEL LEARNING
+==================================================
+
+Every completed MLB game should add evidence.
+
+But production weights MUST NOT automatically change after every game.
+
+Required principle:
+
+GAME
+→ immutable forecast
+→ result
+→ forecast error
+→ market result
+→ CLV
+→ evidence ledger
+
+Then periodically:
+
+evidence
+→ challenger training
+→ chronological validation
+→ OOS comparison
+→ promotion decision
+→ new version
+
+No uncontrolled online learning.
+
+==================================================
+SECTION 20 — PROJECTED SCORE ANALYTICS
+==================================================
+
+Design evaluation storage so that after a game:
+
+Projected:
+ATL 3.42
+PHI 1.87
+
+Actual:
+ATL 5
+PHI 2
+
+we can calculate:
+
+home run error
+away run error
+absolute team-run error
+game-total error
+run-differential error
+winner correctness
+probability calibration
+
+Over time analyze by:
+
+- team
+- pitcher
+- park
+- month
+- weather
+- favorite/underdog
+- projected total
+- projected margin
+- lineup state
+- model version
+
+This is intended to help future challenger development.
+
+==================================================
+SECTION 21 — SUBSCRIBER ANALYSIS UI CONTRACT
+==================================================
+
+Do NOT redesign UI in this task.
+
+Only define the future data contract necessary to support a simple display.
+
+Desired eventual subscriber presentation:
+
+MODEL PROJECTED SCORE
+
+ATL 3 — PHI 2
+
+Then existing fields such as:
+
+TBM Score
+Win Probability
+Fair ML
+Current Price
+Recommendation
+
+Keep projected score simple.
+
+Do not add unnecessary charts.
+
+Do not manufacture Spread/Run-Line Cover Probability unless validated.
+
+==================================================
+SECTION 22 — INDEPENDENCE TEST
+==================================================
+
+Explicitly determine how MLB V4 can be isolated from other sports.
+
+Required test concept:
+
+Change MLB V4 model/version/config.
+
+Expected:
+
+MLB forecasts change if appropriate.
+
+NCAAF forecasts:
+ZERO CHANGE
+
+NFL forecasts:
+ZERO CHANGE
+
+NBA:
+ZERO CHANGE
+
+WNBA:
+ZERO CHANGE
+
+NHL:
+ZERO CHANGE
+
+Soccer:
+ZERO CHANGE
+
+UFC:
+ZERO CHANGE
+
+Shared infrastructure changes must not alter another sport's predictive behavior.
+
+==================================================
+SECTION 23 — SECURITY / #223D-2 PROTECTION
+==================================================
+
+NCAAF #223D-2 is currently blocked only because Replit Support must remove this protected contaminated Git ref:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Do NOT attempt to delete it again.
+Do NOT manipulate Git history.
+Do NOT force push.
+Do NOT modify Apple credentials.
+Do NOT change EAS credentials.
+Do NOT deploy.
+Do NOT push.
+
+This MLB audit must not interfere with the sanitized repository checkpoint.
+
+READ-ONLY wherever possible.
+
+If temporary analysis artifacts are required, keep them outside tracked production paths unless absolutely necessary.
+
+==================================================
+SECTION 24 — TOMORROW READINESS ASSESSMENT
+==================================================
+
+We want MLB V4 ready quickly, potentially tomorrow.
+
+But the answer must be evidence-based.
+
+At the end classify MLB V4 readiness as exactly one:
+
+A — READY FOR IMMEDIATE V4 BUILD + VALIDATION
+
+Existing PIT-safe data and infrastructure are sufficient to construct and validate a legitimate V4 immediately.
+
+B — BUILDABLE WITH SMALL DATA GAPS
+
+Architecture is viable, but a limited set of recoverable data is missing.
+
+C — FOUNDATION WORK REQUIRED
+
+Historical/PIT-safe data is insufficient for a legitimate V4 and must be built first.
+
+D — CURRENT ARCHITECTURE UNSAFE
+
+Leakage, provenance, or structural problems must be resolved before V4.
+
+Do NOT choose A merely because we want to launch tomorrow.
+
+==================================================
+SECTION 25 — FASTEST SAFE PATH TO LIVE
+==================================================
+
+If readiness is A or B, provide the SHORTEST SAFE sequence of implementation tasks needed to reach production.
+
+Example only:
+
+#224B — PIT Historical Foundation
+#224C — Baseline Expected-Runs Model
+#224D — Challenger + OOS Validation
+#224E — Live 2026 Compatibility / Identity Bridge
+#224F — Prospective / Game-Day Pipeline
+#224G — Production Integration + Projected Score UI
+#224H — Production Verification
+
+Do not blindly use these names if a shorter legitimate sequence exists.
+
+Identify which steps can be combined safely.
+
+The goal is NOT to create unnecessary phases.
+
+The goal is:
+
+FASTEST SAFE PATH TO A VALIDATED MLB V4.
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #224A — MLB V4 DISCOVERY & ARCHITECTURE REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Current MLB architecture:
+Current MLB V3 status:
+Historical data status:
+PIT status:
+Expected-runs feasibility:
+Market leakage status:
+V4 readiness:
+
+## 2. CURRENT MLB V3 INVENTORY
+
+Exact engines, files, endpoints, tables, jobs and markets.
+
+## 3. CURRENT MODEL LOGIC
+
+Exact predictive architecture and feature families.
+
+## 4. DATA INVENTORY
+
+Seasons:
+Games:
+Team-game rows:
+Feature coverage:
+Missingness:
+PIT classification:
+
+## 5. MARKET LEAKAGE AUDIT
+
+PASS / PARTIAL / FAIL
+
+Explain exact findings.
+
+## 6. HISTORICAL PERFORMANCE
+
+Predictive and betting performance where trustworthy.
+
+## 7. EXPECTED-RUNS FEASIBILITY
+
+Recommended baseline architecture.
+
+Expected outputs:
+
+home_expected_runs
+away_expected_runs
+home_win_probability
+away_win_probability
+fair prices
+
+## 8. PROJECTED SCORE
+
+Confirm whether a legitimate model-generated score such as:
+
+ATL 3 — PHI 2
+
+can be supported.
+
+## 9. F5 / NRFI / RUN LINE / TOTALS
+
+State what can legitimately derive from the full-game model and what requires separate calibration/models.
+
+## 10. PIT TRAINING FOUNDATION
+
+Exact feasible schema and coverage.
+
+## 11. VALIDATION PLAN
+
+Exact chronological splits and metrics.
+
+## 12. LIVE 2026 DATA COMPATIBILITY
+
+Starters:
+Lineups:
+Bullpens:
+Weather:
+Park:
+Identity:
+Market matching:
+
+## 13. INDEPENDENCE
+
+Confirm MLB V4 can change without changing any other sport's predictive intelligence.
+
+## 14. RISKS / BLOCKERS
+
+Rank HIGH / MEDIUM / LOW.
+
+## 15. TOMORROW READINESS
+
+Return exactly:
+
+A — READY FOR IMMEDIATE V4 BUILD + VALIDATION
+
+or
+
+B — BUILDABLE WITH SMALL DATA GAPS
+
+or
+
+C — FOUNDATION WORK REQUIRED
+
+or
+
+D — CURRENT ARCHITECTURE UNSAFE
+
+Then explain why.
+
+## 16. FASTEST SAFE IMPLEMENTATION PLAN
+
+Give the minimum sequence of tasks required to get MLB V4 legitimately production-ready.
+
+For each task provide:
+
+- objective
+- data required
+- code areas affected
+- tests
+- validation gate
+- estimated complexity: LOW / MEDIUM / HIGH
+- whether it can be completed before tomorrow without cutting validation standards
+
+## 17. FINAL RECOMMENDATION
+
+Answer:
+
+Can MLB V4 legitimately be prepared for production by tomorrow?
+
+YES
+YES, CONDITIONALLY
+or
+NO
+
+Explain exactly what must be true.
+
+==================================================
+HARD STOP
+==================================================
+
+After returning the report:
+
+STOP.
+
+Do NOT implement #224B.
+Do NOT modify MLB V3.
+Do NOT deploy.
+Do NOT push.
+Do NOT modify NCAAF.
+Do NOT modify Apple/EAS credentials.
+Do NOT manipulate the protected contaminated ref.
+
+We will review the audit before authorizing implementation.

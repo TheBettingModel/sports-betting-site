@@ -1,0 +1,491 @@
+BUILD 29 ARTIFACT-SPECIFIC V4 AUDIT — NO CODE CHANGES ALLOWED
+
+I need a definitive audit of the EXACT iOS Build 29 that was submitted to Apple.
+
+DO NOT modify code.
+DO NOT create Build 30.
+DO NOT withdraw Build 29.
+DO NOT change Apple submission status.
+DO NOT deploy anything.
+DO NOT change Render.
+DO NOT change Neon.
+DO NOT change Replit production.
+DO NOT change scheduler ownership.
+DO NOT publish an OTA update.
+DO NOT make any architecture changes.
+
+This is an AUDIT ONLY.
+
+AUTHORITATIVE BUILD
+
+App version:
+1.0.1
+
+iOS build number:
+29
+
+EAS Build ID:
+4d27b050-5a24-4e2f-9dd2-6716056f3d14
+
+Known build/source commit used during the successful EAS build:
+af3702a0c32efce1b9ae1025deb9fbb8e30b86dd
+
+Known build-prep commit:
+bd742c9ec83110193a91d5b54c86ae228b0dbeea
+
+Submission workflow commit:
+78d1722303930721a48070d107c72f13010cbda3
+
+Apple submission:
+Version 1.0.1
+Build 29
+Status: Waiting for Review
+
+KNOWN VISUAL EVIDENCE
+
+We have already seen a rendered mobile screen from the upgraded app showing:
+
+V4 MODEL BOARD
+
+MLB · V4 VALIDATING
+
+Toronto Blue Jays at Athletics
+
+MODEL PROJECTION
+
+Toronto Blue Jays
+
+Toronto Blue Jays 55.8%
+Athletics 44.2%
+
+Projected score:
+Toronto Blue Jays 5.0 · Athletics 4.3
+
+NOT AN OFFICIAL TBM PICK
+
+Model projections do not count toward Top Picks, Play of the Day, units, record, or ROI.
+
+The screen also showed:
+
+ANALYZED · NO EDGE FOUND
+
+This creates a direct contradiction with a later report claiming Build 29 does NOT contain:
+
+- V4 projected scores
+- V4 full-slate probabilities
+- a V4-powered Model Board
+
+I need you to resolve that contradiction using the ACTUAL Build 29 source/artifact only.
+
+AUDIT OBJECTIVE
+
+Determine exactly what Build 29 contains and what it does not contain.
+
+Do not inspect only the current workspace state.
+
+Do not inspect only the latest branch state.
+
+Do not infer from newer code.
+
+You must tie every conclusion to the exact source used for Build 29 and, where possible, to the EAS build artifact/configuration for:
+
+4d27b050-5a24-4e2f-9dd2-6716056f3d14
+
+AUDIT THESE REQUIREMENTS
+
+For EACH requirement below, return exactly one status:
+
+PASS
+PARTIAL
+FAIL
+NOT APPLICABLE
+UNVERIFIABLE
+
+Then provide direct evidence.
+
+1. V4 MODEL BOARD EXISTS IN BUILD 29
+
+Verify whether Build 29 contains a dedicated V4 Model Board interface.
+
+Evidence should include:
+- exact file path
+- route/tab registration
+- relevant component
+- exact source commit
+- whether it is reachable in the built app
+
+2. V4 PROJECTED SCORES ARE DISPLAYED
+
+Verify whether Build 29 displays projected scores such as:
+
+Guardians 4.4 – Orioles 4.3
+
+or equivalent model-generated expected score output.
+
+Confirm:
+- backend response fields consumed
+- UI fields rendered
+- whether values are actual V4 forecast output
+- whether rounding occurs only in the UI
+
+3. V4 FULL-SLATE PROBABILITIES ARE DISPLAYED
+
+Verify whether Build 29 displays full-slate win probabilities.
+
+For MLB/NBA/NFL/NHL/WNBA/NCAAF/NCAAMB:
+- home win probability
+- away win probability
+
+For Soccer:
+- home
+- draw
+- away
+
+For UFC:
+- confirm whether no fake projection exists and V4 IN DEVELOPMENT is shown instead
+
+4. FULL-SLATE V4 ENDPOINT IS USED
+
+Verify whether Build 29 calls:
+
+/api/model/v4/projections?sport=<SPORT>&date=<DATE>
+
+Confirm:
+- exact production hostname
+- exact client code
+- date handling
+- sport handling
+- whether all supported sports are represented
+- whether this route is used by the Model Board
+
+5. BUILD 29 PRODUCTION HOSTNAME
+
+Verify whether Build 29 is compiled to use:
+
+tbm-api-v4-candidate.onrender.com
+
+or another hostname.
+
+Do NOT infer from current eas.json.
+
+Tie this directly to Build 29’s build configuration.
+
+6. V4 LIFECYCLE STATUS IS SHOWN
+
+Verify whether users see statuses such as:
+
+V4 APPROVED
+V4 PROVISIONAL
+V4 VALIDATING
+V4 IN DEVELOPMENT
+
+Confirm exact source logic.
+
+7. NCAAF FAIL-CLOSED STATE
+
+Verify whether Build 29 handles NCAAF with:
+
+V4 VALIDATING
+PREGAME EVIDENCE REQUIRED
+INSUFFICIENT PREGAME EVIDENCE
+
+when no legitimate V4 forecast is available.
+
+Confirm that no fake NCAAF projection is generated.
+
+8. PROJECTION IS SEPARATE FROM OFFICIAL PICK
+
+Verify whether Build 29 clearly separates:
+
+MODEL PROJECTION
+
+from:
+
+OFFICIAL TBM PLAY
+NO OFFICIAL PLAY
+NOT AN OFFICIAL TBM PICK
+
+Confirm that projection visibility does NOT automatically create a wager.
+
+9. OFFICIAL PICKS / TOP PICKS / POTD ARE V4-ONLY
+
+This is extremely important.
+
+Audit the actual official-publication layer in Build 29.
+
+Determine whether:
+
+- Qualified Plays come exclusively from V4
+- Top Picks come exclusively from V4
+- Play of the Day comes exclusively from V4
+- no legacy model can populate these surfaces
+
+If legacy or mixed sources remain, mark PARTIAL or FAIL.
+
+Show exact source/backend route evidence.
+
+10. #238A PUBLICATION SAFETY IS PRESERVED
+
+Verify:
+- fail-closed publication eligibility
+- approval required
+- cap applied after ranking
+- flat 1U
+- no unauthorized V4 publication
+- no model opinion automatically becoming a pick
+
+11. RECORD / ROI / UNITS ARE OFFICIAL-WAGER ONLY
+
+Verify whether Build 29 keeps:
+
+Record
+ROI
+Units
+POTD record
+
+separate from raw model projections.
+
+12. MODEL ANALYTICS VS BETTING ANALYTICS ARE SEPARATE
+
+Verify whether Build 29 distinguishes forecast analytics from official betting performance.
+
+13. LEGACY MODEL REPLACEMENT STATUS
+
+Determine whether Build 29:
+
+A. completely replaces legacy models with V4
+
+B. uses V4 for projection/model-board only while official picks remain partly legacy
+
+C. mixes V4 and legacy across multiple user-facing areas
+
+D. does not actually expose V4 meaningfully
+
+Do not give a vague answer.
+
+Choose the closest classification and prove it.
+
+14. TOP PLAY SOURCE
+
+Determine exactly what powers the user-facing Top Play in Build 29.
+
+Is it:
+- V4 only
+- legacy only
+- mixed/fallback
+- unavailable
+
+Show exact route/source.
+
+15. QUALIFIED PLAYS SOURCE
+
+Determine exactly what powers Qualified Plays in Build 29.
+
+Is it:
+- V4 only
+- legacy only
+- mixed/fallback
+- unavailable
+
+Show exact route/source.
+
+16. MODEL BOARD SOURCE
+
+Determine exactly what powers Model Board projections in Build 29.
+
+Confirm whether it is:
+- V4 only
+- legacy only
+- mixed
+- placeholder/mock
+
+17. NO FAKE MODEL OUTPUT
+
+Confirm Build 29 does not fabricate:
+- projected scores
+- probabilities
+- cover probabilities
+- NCAAF forecasts without evidence
+- UFC projections while unavailable
+
+18. APPLE 2.5.2 COMPLIANCE
+
+Verify Build 29 contains:
+- no expo-updates runtime
+- no executable OTA update path
+- runtime None
+- channel None
+- no production JS update URL
+
+19. BUILD 29 ACTUAL USER EXPERIENCE
+
+Based only on the exact Build 29 source/artifact, describe what a subscriber will actually see after installing 1.0.1.
+
+Keep this factual.
+
+Do not describe intended future functionality.
+
+20. ORIGINAL V4 LAUNCH OBJECTIVE
+
+Compare Build 29 against this intended product objective:
+
+FULL-SLATE V4 MODEL PROJECTIONS
++
+PROJECTED SCORES
++
+WIN PROBABILITIES
++
+MODEL BOARD
++
+OFFICIAL PICKS SELECTED ONLY FROM V4
++
+TOP PLAY SELECTED ONLY FROM V4
++
+POTD SELECTED ONLY FROM V4
++
+LEGACY MODEL REMOVED FROM OFFICIAL PUBLICATION
++
+#238A SAFETY PRESERVED
+
+Give one final status:
+
+PASS — Build 29 accomplishes the complete V4 launch objective
+
+PARTIAL — Build 29 exposes real V4 projections/model board but official publication is not fully V4-only
+
+FAIL — Build 29 does not meaningfully deliver the V4 launch objective
+
+UNVERIFIABLE — exact artifact/source cannot be established
+
+REQUIRED CONTRADICTION RESOLUTION
+
+You must explicitly reconcile these two statements:
+
+Statement A:
+We have visual evidence of Build 29-era UI showing:
+- V4 MODEL BOARD
+- V4 VALIDATING
+- full win probabilities
+- projected score
+- NOT AN OFFICIAL TBM PICK
+
+Statement B:
+A later report said Build 29 does not contain:
+- V4 projected scores
+- V4 full-slate probabilities
+- a V4-powered Model Board
+
+Determine which statement is supported by the exact Build 29 artifact/source.
+
+If Statement B was produced by examining the wrong branch, stale source, current workspace, old app version, or incomplete routing path, say that explicitly.
+
+FINAL REPORT FORMAT
+
+Return the result in this exact structure:
+
+BUILD 29 AUDIT RESULT
+
+Overall:
+PASS / PARTIAL / FAIL / UNVERIFIABLE
+
+Exact Build:
+1.0.1 (29)
+
+EAS Build ID:
+4d27b050-5a24-4e2f-9dd2-6716056f3d14
+
+Source Commit Verified:
+<commit or UNVERIFIABLE>
+
+Production API Host:
+<host>
+
+1. V4 Model Board:
+PASS/PARTIAL/FAIL
+Evidence:
+
+2. Projected Scores:
+PASS/PARTIAL/FAIL
+Evidence:
+
+3. Full-Slate Probabilities:
+PASS/PARTIAL/FAIL
+Evidence:
+
+4. Full-Slate V4 Endpoint:
+PASS/PARTIAL/FAIL
+Evidence:
+
+5. V4 Lifecycle Status:
+PASS/PARTIAL/FAIL
+Evidence:
+
+6. NCAAF Fail-Closed:
+PASS/PARTIAL/FAIL
+Evidence:
+
+7. Projection vs Official Pick Separation:
+PASS/PARTIAL/FAIL
+Evidence:
+
+8. Qualified Plays V4-Only:
+PASS/PARTIAL/FAIL
+Evidence:
+
+9. Top Play V4-Only:
+PASS/PARTIAL/FAIL
+Evidence:
+
+10. POTD V4-Only:
+PASS/PARTIAL/FAIL
+Evidence:
+
+11. #238A Publication Safety:
+PASS/PARTIAL/FAIL
+Evidence:
+
+12. Record/ROI/Units Separation:
+PASS/PARTIAL/FAIL
+Evidence:
+
+13. Model Analytics Separation:
+PASS/PARTIAL/FAIL
+Evidence:
+
+14. Legacy Model Replacement:
+PASS/PARTIAL/FAIL
+Evidence:
+
+15. No Fake Model Output:
+PASS/PARTIAL/FAIL
+Evidence:
+
+16. Apple 2.5.2 Compliance:
+PASS/PARTIAL/FAIL
+Evidence:
+
+CONTRADICTION RESOLUTION:
+<explain exactly why the previous report conflicts with the V4 Model Board evidence>
+
+WHAT BUILD 29 ACTUALLY DELIVERS:
+<short factual description>
+
+WHAT BUILD 29 DOES NOT DELIVER:
+<short factual description>
+
+FINAL CLASSIFICATION:
+A / B / C / D
+
+RECOMMENDATION:
+KEEP BUILD 29
+or
+REPLACE BUILD 29 WITH BUILD 30
+
+IMPORTANT:
+Do NOT recommend Build 30 merely because additional improvements are possible.
+
+Only recommend replacing Build 29 if a core requirement of the intended 1.0.1 V4 release is genuinely absent from the exact submitted artifact.
+
+NO CHANGES ARE AUTHORIZED.
+
+This is audit-only.

@@ -1,0 +1,295 @@
+{
+  "title": "TASK #224B-2 — MLB HISTORICAL PITCHER & BULLPEN PIT REPORT",
+  "generatedDate": "2026-09-05",
+  "authoritativeArtifact": {
+    "schemaVersion": "mlb-pitcher-bullpen-pit-v5",
+    "artifactKey": "mlb-historical-2023-2026-pitcher-bullpen-pit-v5",
+    "status": "VERIFIED_SEALED_ARTIFACT",
+    "sourceManifestHash": "8da8c322a3ec1ac6723d267cc9aa4b922c185654f809f26246934bbefd8a6d98",
+    "foundationChecksum": "cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050",
+    "replayChecksum": "a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42"
+  },
+  "sections": [
+    {
+      "number": 1,
+      "title": "EXECUTIVE SUMMARY",
+      "classification": "B — MLB V4 BASELINE TRAINING FOUNDATION READY",
+      "gamesAudited": 9393,
+      "chronologySafe": 9390,
+      "fullCoreEligible": 0,
+      "pitcherCoreEligible": 0,
+      "bullpenCoreEligible": 9073,
+      "enhancedEligible": 0,
+      "lockedOosFullCore": 0,
+      "pitViolations": 0,
+      "marketLeakage": 0,
+      "architectureReview": "PASS — no blocking correctness or safety issue remains"
+    },
+    {
+      "number": 2,
+      "title": "SOURCE INVENTORY",
+      "sources": [
+        {"source": "MLB Stats API exact boxscores", "status": "USED", "calls": 9393, "rawBytes": 1599369579},
+        {"source": "Sealed MLB completion chronology v3", "status": "USED"},
+        {"source": "Sealed MLB offense/team-game rows v3", "status": "USED"},
+        {"source": "Sealed chronology split v3", "status": "USED"},
+        {"source": "Timestamped historical probable starters", "status": "NOT_RECOVERED"},
+        {"source": "Timestamped reliever roster/injury availability", "status": "NOT_RECOVERED"},
+        {"source": "Market/sportsbook evidence", "status": "PROHIBITED_AND_EXCLUDED"}
+      ]
+    },
+    {
+      "number": 3,
+      "title": "PITCHER IDENTITY",
+      "uniquePitchers": 1473,
+      "identityRows": 80298,
+      "resolved": 80298,
+      "unresolved": 0,
+      "ambiguous": 0,
+      "duplicates": 0,
+      "gamesAffected": 0,
+      "canonicalRule": "mlb:{providerPlayerId}",
+      "fuzzyMatching": false
+    },
+    {
+      "number": 4,
+      "title": "STARTER STATE",
+      "totals": {"confirmedPregame": 0, "projectedPregame": 0, "actualOnly": 18780, "unknown": 6},
+      "bySeason": {
+        "2023": {"confirmedPregame": 0, "projectedPregame": 0, "actualOnly": 4850, "unknown": 0},
+        "2024": {"confirmedPregame": 0, "projectedPregame": 0, "actualOnly": 4870, "unknown": 0},
+        "2025": {"confirmedPregame": 0, "projectedPregame": 0, "actualOnly": 4882, "unknown": 4},
+        "2026": {"confirmedPregame": 0, "projectedPregame": 0, "actualOnly": 4178, "unknown": 2}
+      },
+      "trainingSafeTreatment": "Actual starters are outcome-only; pregame starter fields remain null; pitcher/full/enhanced eligibility remains false."
+    },
+    {
+      "number": 5,
+      "title": "PITCHER OUTCOME LEDGER",
+      "appearances": 80298,
+      "starts": 18780,
+      "reliefAppearances": 61518,
+      "coverageGames": 9390,
+      "quarantinedGames": 3,
+      "pitchIpBfHbpMissingRows": 0,
+      "handednessMissingRows": 80298,
+      "appearanceGroupHash": "94e5b4f0600831d212fc1f65562de243bc6e783f6c29818e2af29be542cf632f",
+      "pitcherLedgerHash": "3c13e8f6a834212f726c5e4bd11af62ecc36504e9ba5a0af3cc687acff3f3906"
+    },
+    {
+      "number": 6,
+      "title": "STARTER PIT FEATURES",
+      "schema": ["career", "season", "recent3", "recent5", "recent10", "rest", "lastAppearancePitchCount", "lastStartPitchCount", "lastStartInnings", "ERA", "WHIP", "K%", "BB%", "K-BB%", "HR rate", "HBP", "FIP"],
+      "pregameCoverage": 0,
+      "sampleBehavior": "Zero counts with null metrics when unavailable",
+      "priorHandling": "LEAGUE_PRIOR_REQUIRED or UNAVAILABLE",
+      "fixedFipConstant": 3.1
+    },
+    {
+      "number": 7,
+      "title": "EXPECTED STARTER WORKLOAD FOUNDATION",
+      "historicalOutcomesAvailable": 18780,
+      "historicalPregameInputsAvailable": 0,
+      "expectedInningsModelTrained": false,
+      "limitation": "No actual starter may be substituted retrospectively for a pregame starter."
+    },
+    {
+      "number": 8,
+      "title": "BULLPEN OUTCOME LEDGER",
+      "games": 9390,
+      "teamOutcomes": 18780,
+      "reliefAppearances": 61518,
+      "bullpenOutcomeGroupHash": "1a735c692a29046d8db072f9e20a45b214a73677913ff782b98ca67faebbe648",
+      "bullpenLedgerHash": "bf29980dc40dd4f134a48a7e905b52737c9f285cc8b9e9369aac4c70ef730180"
+    },
+    {
+      "number": 9,
+      "title": "BULLPEN PIT FEATURES",
+      "quality": ["season", "last3", "last5", "last10", "ERA", "WHIP", "K%", "BB%", "K-BB%", "HR rate", "HBP", "FIP"],
+      "workload": ["pitchesLast1d", "pitchesLast2d", "pitchesLast3d", "inningsLast1d", "inningsLast2d", "inningsLast3d", "relieversUsedLast1d", "relieversUsedLast2d"],
+      "fatiguePitchThresholds": {"WORKED": 40, "TIRED": 80, "VERY_TIRED": 120},
+      "consecutiveRule": "Same reliever on every immediately preceding official baseball date",
+      "availability": "UNAVAILABLE_NO_ROSTER_EVIDENCE",
+      "snapshots": 18786,
+      "completeSnapshots": 18426
+    },
+    {
+      "number": 10,
+      "title": "EARLY-SEASON PRIORS",
+      "pitcher": "LEAGUE_PRIOR_REQUIRED only for an evidenced identified starter; otherwise UNAVAILABLE",
+      "bullpen": "Current-season state only from strictly prior completed games; empty rates have zero counts and null metrics",
+      "fabricatedValues": 0
+    },
+    {
+      "number": 11,
+      "title": "TRADES / ROLE CHANGES",
+      "pitcherHistoryKey": "Exact MLB person ID",
+      "bullpenHistoryKey": "Canonical team ID",
+      "futureRoleInferred": false,
+      "violations": 0
+    },
+    {
+      "number": 12,
+      "title": "DOUBLEHEADERS / SPECIAL GAMES",
+      "doubleheaderGames": 120,
+      "sameDayRelationships": 18,
+      "sameDayAdmitted": 9,
+      "sameDayDenied": 9,
+      "crossedMidnightUtc": 3506,
+      "quarantined": 3,
+      "violations": 0
+    },
+    {
+      "number": 13,
+      "title": "ELIGIBILITY BY SEASON",
+      "bySeason": {
+        "2023": {"chronologySafe": 2425, "offenseCore": 2347, "pitcherCore": 0, "bullpenCore": 2347, "fullCore": 0, "enhanced": 0, "quarantined": 0},
+        "2024": {"chronologySafe": 2435, "offenseCore": 2353, "pitcherCore": 0, "bullpenCore": 2353, "fullCore": 0, "enhanced": 0, "quarantined": 0},
+        "2025": {"chronologySafe": 2441, "offenseCore": 2361, "pitcherCore": 0, "bullpenCore": 2361, "fullCore": 0, "enhanced": 0, "quarantined": 2},
+        "2026": {"chronologySafe": 2089, "offenseCore": 2012, "pitcherCore": 0, "bullpenCore": 2012, "fullCore": 0, "enhanced": 0, "quarantined": 1}
+      },
+      "totals": {"chronologySafe": 9390, "offenseCore": 9073, "pitcherCore": 0, "bullpenCore": 9073, "fullCore": 0, "enhanced": 0, "quarantined": 3}
+    },
+    {
+      "number": 14,
+      "title": "LOCKED 2026 OOS",
+      "originalLocked": 2013,
+      "safeLocked": 2012,
+      "pitcherCore": 0,
+      "bullpenCore": 2012,
+      "fullCore": 0,
+      "excluded": 1,
+      "newMembersAdded": 0,
+      "trainingOrTuningUsedOutcomes": false
+    },
+    {
+      "number": 15,
+      "title": "MARKET FIREWALL",
+      "status": "PASS",
+      "sportsbookLeakageCount": 0,
+      "target": 0
+    },
+    {
+      "number": 16,
+      "title": "PIT / LEAKAGE AUDIT",
+      "status": "PASS",
+      "chronologyRule": "prior.final && prior.canonicalCompletionTime < target.featureCutoff",
+      "futureInformationViolations": 0,
+      "targetOutcomeLeakage": 0,
+      "invalidStarterConfirmation": 0,
+      "targetBullpenUsageLeakage": 0,
+      "invalidChronology": 0,
+      "marketLeakage": 0,
+      "productionAuditViolations": 0,
+      "independentAuditViolations": 0
+    },
+    {
+      "number": 17,
+      "title": "DETERMINISM",
+      "datasetHash": "cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050",
+      "pitcherLedgerHash": "3c13e8f6a834212f726c5e4bd11af62ecc36504e9ba5a0af3cc687acff3f3906",
+      "bullpenLedgerHash": "bf29980dc40dd4f134a48a7e905b52737c9f285cc8b9e9369aac4c70ef730180",
+      "replayHash": "a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42",
+      "secondRunHash": "cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050",
+      "mismatchCount": 0,
+      "lineage": [
+        {"version": "v1", "foundation": "e4096d4d394361bfe1d8a2015354801959a23e84c0f811d22a408f0d844009b1", "replay": "f10356456d67f4399c55d20023416b51bab3a3038d8e2e7d2065b0d4632707e0", "authoritative": false},
+        {"version": "v2", "foundation": "c29586ef23cf56ace74a1470fc4f077c4e22a8191ecbd5fb3c3e7386e8e00bdc", "replay": "f10356456d67f4399c55d20023416b51bab3a3038d8e2e7d2065b0d4632707e0", "authoritative": false},
+        {"version": "v3", "foundation": "cd6e30be5af03376cec7ad7902c8f33563e9242a7067d7a793c9af86cf42ee4f", "replay": "f10356456d67f4399c55d20023416b51bab3a3038d8e2e7d2065b0d4632707e0", "authoritative": false},
+        {"version": "v4", "foundation": "ea6a7d505eb0b0c8a9d43bba2bfff4b2b8f57738a85fbdc904e3ef05b5dd6ecf", "replay": "1d0ac8283878b796102198fad686acf914c525c56427c734f0193d33325f5364", "authoritative": false},
+        {"version": "v5", "foundation": "cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050", "replay": "a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42", "authoritative": true}
+      ]
+    },
+    {
+      "number": 18,
+      "title": "PERFORMANCE / SCALE",
+      "games": 9393,
+      "appearances": 80298,
+      "derivedPersistedRows": 226341,
+      "providerCalls": 9393,
+      "rawBytes": 1599369579,
+      "firstBuildMilliseconds": 161823,
+      "secondBuildMilliseconds": 136653,
+      "productionAuditMilliseconds": 147348,
+      "independentAuditMilliseconds": 83966,
+      "dbImpact": "Additive append-only tables and sealed artifacts"
+    },
+    {
+      "number": 19,
+      "title": "CROSS-SPORT REGRESSION",
+      "NCAAF": "UNCHANGED",
+      "NFL": "UNCHANGED",
+      "NBA": "UNCHANGED",
+      "WNBA": "UNCHANGED",
+      "NHL": "UNCHANGED",
+      "Soccer": "UNCHANGED",
+      "UFC": "UNCHANGED"
+    },
+    {
+      "number": 20,
+      "title": "TEST / BUILD RESULTS",
+      "focusedTests": "PASS 11/11",
+      "fullApiTests": "PASS 479/479 across 78 files",
+      "apiTypecheck": "PASS",
+      "dbTypecheck": "PASS",
+      "apiProductionBuild": "PASS",
+      "chronologyAudit": "PASS zero violations",
+      "productionPitAudit": "PASS zero violations",
+      "independentPersistedAudit": "PASS zero violations",
+      "deterministicSecondBuild": "PASS exact hashes",
+      "appendOnlyGuards": "PASS 34/34",
+      "diffCheck": "PASS",
+      "architectureReview": "PASS",
+      "houndDogFindings": 0,
+      "changedScopeSecurityFindings": 0,
+      "projectWideOutOfScopeFindings": {"dependencyHigh": 32, "dependencyModerate": 23, "dependencyLow": 3, "sastHigh": 2, "sastHighLocation": "artifacts/mobile/server/serve.js"}
+    },
+    {
+      "number": 21,
+      "title": "KNOWN V4 LOW-RUN FAILURE",
+      "tuningPerformed": false,
+      "v4CoefficientsChanged": false,
+      "v41CoefficientsChanged": false,
+      "preservedDiagnosticBiasRunsPerGame": -2.327
+    },
+    {
+      "number": 22,
+      "title": "PRODUCTION STATE",
+      "tbmMlbMoneylineV1": "UNCHANGED",
+      "v4": "SHADOW_ONLY",
+      "v41": "SHADOW_ONLY",
+      "publicationChanges": false,
+      "projectedScoreUiChanges": false,
+      "sixPickCapChanges": false,
+      "deployment": false,
+      "push": false,
+      "gitHistoryManipulation": false,
+      "appleEasCredentialChanges": false
+    },
+    {
+      "number": 23,
+      "title": "RISKS / REMAINING GAPS",
+      "critical": [],
+      "high": ["No timestamped historical pregame starter identity; starter/full-core training remains prohibited."],
+      "medium": [
+        "No individual reliever roster availability, injury state, high-leverage usage, pitch mix, or advanced Statcast-style metrics.",
+        "Archive begins in 2023; LEAGUE_PRIOR_REQUIRED explicitly avoids false rookie claims.",
+        "Project-wide dependency and mobile SAST findings remain outside this task scope."
+      ],
+      "low": ["Three unresolved games remain quarantined.", "Non-blocking pg deprecation warning on deterministic second materialization."]
+    },
+    {
+      "number": 24,
+      "title": "FINAL CLASSIFICATION",
+      "classification": "B — MLB V4 BASELINE TRAINING FOUNDATION READY",
+      "reason": "9,073 chronology-safe offense-plus-bullpen-core games support a later simpler baseline; zero legitimate pregame starter identities correctly keep pitcher/full/enhanced eligibility at zero."
+    },
+    {
+      "number": 25,
+      "title": "NEXT RECOMMENDED TASK",
+      "recommendation": "#224C — MLB V4 EXPECTED-RUNS MODEL BUILD, TRAINING & CHRONOLOGICAL VALIDATION",
+      "executed": false,
+      "status": "STOPPED_FOR_OWNER_REVIEW"
+    }
+  ]
+}

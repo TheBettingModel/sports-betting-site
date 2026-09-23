@@ -1,0 +1,33 @@
+name: TBM Platform CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run security:signing-credentials
+      - run: pnpm run security:source
+      - run: pnpm run release:preflight
+      - run: pnpm run typecheck
+      - run: pnpm --filter @workspace/api-server test
+      - run: pnpm --filter @workspace/api-server run build
+      - run: pnpm --filter @workspace/admin run build

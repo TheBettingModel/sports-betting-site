@@ -1,0 +1,1578 @@
+#221D — CollegeFootballData NCAAF Intelligence Integration
+
+We have now added the production server secret:
+
+CFBD_API_KEY
+
+CollegeFootballData access is available to the TBM backend.
+
+============================================================
+AUTHORITATIVE CURRENT STATUS
+============================================================
+
+Completed:
+
+#219 — Recommendation / Publication Status Audit & Separation
+#220 — NCAAF Production Integrity & Evidence Foundation
+#221 — NCAAF Advanced Football Intelligence Foundation
+#221B — NCAAF Provider Activation & Production Deployment Foundation
+#221C — NCAAF Production Evidence Activation, Pregame Football Intelligence & Live-Engine Data Completion
+
+#221C authoritative findings:
+
+- production football-performance rows: 458
+- ESPN Summary-backed rows: 16
+- intelligence snapshots: 0
+- FINAL_PREGAME: 0
+- internal LIVE_SHADOW: 0
+- stale evidence runs reconciled: 37
+- DATA_PIPELINE_READY = false
+- V4_BUILD_READY = false
+- recommendation: DO NOT BEGIN #222
+- status: PROVIDER ACCESS REQUIRED
+
+The required external NCAAF provider access is now partially addressed because CollegeFootballData access has been obtained.
+
+============================================================
+CRITICAL PRODUCT DECISION
+============================================================
+
+The future NCAA Football engine is NOT intended to remain a permanent shadow model.
+
+Target:
+
+NCAAF V4
+→ initial validation
+→ explicit production approval
+→ LIVE authoritative NCAA Football champion
+→ qualified actionable picks published
+→ every completed game adds immutable learning evidence
+→ candidate improvements validated
+→ approved new versions deployed.
+
+LIVE_SHADOW remains only an INTERNAL prospective evidence/challenger mechanism.
+
+Do not make permanent shadow status a condition for the approved champion.
+
+============================================================
+PRIMARY OBJECTIVE
+============================================================
+
+Integrate CollegeFootballData into the isolated NCAAF intelligence pipeline and determine whether it provides enough legitimate independent football intelligence to make:
+
+DATA_PIPELINE_READY = true
+
+and potentially:
+
+V4_BUILD_READY = true.
+
+Do NOT build #222 in this task.
+
+Do NOT create NCAAF V4 probabilities.
+
+Do NOT calculate expected points.
+
+Do NOT create recommendations.
+
+Do NOT change units.
+
+Do NOT publish any new NCAAF wagers.
+
+Do NOT change any other sport.
+
+============================================================
+ARCHITECTURAL RULE
+============================================================
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+CollegeFootballData integration must be NCAAF-specific.
+
+Do NOT build a generic football provider layer that changes NFL forecasting behavior.
+
+NFL must remain isolated.
+
+============================================================
+PHASE 1 — VERIFY CFBD CREDENTIAL
+============================================================
+
+Read CFBD_API_KEY from the server environment only.
+
+Never log it.
+
+Never return it through an API.
+
+Never expose it to Admin/frontend/mobile.
+
+Never commit it.
+
+Verify actual authentication against CollegeFootballData.
+
+Report:
+
+credential present: yes/no
+authentication successful: yes/no
+HTTP status
+provider account/tier information if legitimately discoverable
+rate-limit/quota headers if available.
+
+Do not print the secret.
+
+============================================================
+PHASE 2 — PROVIDER CAPABILITY AUDIT
+============================================================
+
+Before implementing broad ingestion, inspect the actual CollegeFootballData API currently available to this account.
+
+Create a verified capability matrix covering:
+
+games
+teams
+conferences
+venues
+rosters
+players
+player statistics
+team statistics
+plays
+drives
+advanced team statistics
+advanced player statistics
+EPA
+success rate
+explosiveness
+line yards
+havoc
+pace
+special teams
+SP+
+SRS
+Elo
+FPI
+CORE/opponent-adjusted metrics
+recruiting
+talent composite
+transfers
+returning production
+coaches
+weather
+rankings
+FBS/FCS classification
+historical seasons.
+
+Do NOT rely only on assumptions/documentation.
+
+Call the real API and verify representative responses where safe.
+
+============================================================
+PHASE 3 — API ADAPTER
+============================================================
+
+Create an isolated NCAAF CollegeFootballData provider adapter.
+
+Suggested boundary:
+
+CollegeFootballDataAdapter
+
+Responsibilities:
+
+authentication
+request construction
+timeouts
+retries
+rate-limit handling
+response validation
+provider metadata
+captured_at
+payload hash
+explicit errors
+provenance.
+
+No model logic belongs inside the adapter.
+
+============================================================
+PHASE 4 — RAW PROVIDER EVIDENCE
+============================================================
+
+Store immutable raw CFBD evidence before feature engineering.
+
+Every raw snapshot must preserve:
+
+provider = COLLEGE_FOOTBALL_DATA
+endpoint/domain
+request identity
+season
+week where applicable
+team/game/player IDs where applicable
+provider observed/effective timestamp if supplied
+captured_at
+payload hash
+schema/provider version if available
+raw JSON payload or existing append-only raw-evidence mechanism.
+
+Never overwrite prior provider evidence.
+
+============================================================
+PHASE 5 — TEAM IDENTITY
+============================================================
+
+Establish identity-safe mapping between:
+
+CFBD team identity
+ESPN team identity
+TBM canonical NCAAF team identity.
+
+Use explicit mappings.
+
+Do not use dangerous fuzzy matching to silently combine teams.
+
+Track:
+
+provider
+provider_team_id
+canonical_team_id
+school name
+conference
+subdivision
+effective dates where needed
+mapping status
+mapping reason.
+
+============================================================
+PHASE 6 — GAME IDENTITY
+============================================================
+
+Map CFBD games to canonical TBM NCAAF games using legitimate evidence.
+
+Use:
+
+team identity
+home/away ordering
+kickoff timestamp
+season/week
+neutral-site state.
+
+Ambiguous matches must remain ambiguous/unmatched.
+
+No forced match.
+
+============================================================
+PHASE 7 — PLAYER IDENTITY
+============================================================
+
+Where CFBD supplies stable player IDs, establish canonical NCAAF player mapping.
+
+Preserve:
+
+provider_player_id
+canonical_player_id
+name
+team
+position
+season
+mapping state.
+
+Do not merge players solely because names look similar.
+
+============================================================
+PHASE 8 — HISTORICAL GAMES
+============================================================
+
+Ingest legitimate CFBD historical game data required for independent team-strength construction.
+
+Preserve season/week chronology.
+
+Do not use future games or later information in earlier snapshots.
+
+============================================================
+PHASE 9 — TEAM STATISTICS
+============================================================
+
+Inspect and ingest legitimate team-game/team-season statistics.
+
+Potential domains include:
+
+plays
+yards
+yards/play
+passing
+rushing
+turnovers
+sacks
+third downs
+red zone
+first downs
+penalties
+possession
+scoring.
+
+Use only verified fields.
+
+============================================================
+PHASE 10 — PLAY-BY-PLAY
+============================================================
+
+Verify actual CFBD play-by-play support.
+
+If supported for historical/current games, ingest immutable play evidence.
+
+Preserve:
+
+game
+play id
+drive id
+period
+clock
+down
+distance
+yard line
+offense/defense
+play type
+yards gained
+scoring state
+garbage-time designation if provider supplies it
+EPA if provider supplies it
+success state if provider supplies it
+captured/provider provenance.
+
+============================================================
+PHASE 11 — EPA
+============================================================
+
+If CFBD legitimately supplies EPA:
+
+store provider-supplied EPA separately from TBM-derived metrics.
+
+Do not recalculate or reinterpret provider EPA unless explicitly documented.
+
+Support future features such as:
+
+offensive EPA/play
+defensive EPA/play
+passing EPA
+rushing EPA
+early-down EPA
+success-adjusted EPA
+non-garbage-time EPA.
+
+Do NOT choose final V4 weights.
+
+============================================================
+PHASE 12 — SUCCESS RATE
+============================================================
+
+If provider supplies success:
+
+persist it.
+
+If not but complete down/distance/play inputs legitimately support calculation:
+
+implement a clearly versioned TBM-derived success-rate metric.
+
+Document the exact definition.
+
+Never calculate from incomplete plays.
+
+============================================================
+PHASE 13 — EXPLOSIVENESS
+============================================================
+
+If provider supplies explosiveness:
+
+persist provider metric.
+
+Otherwise only derive if inputs and definition are defensible and complete.
+
+Version any TBM-derived definition.
+
+============================================================
+PHASE 14 — HAVOC
+============================================================
+
+Inspect whether CFBD provides havoc or inputs sufficient to derive it legitimately.
+
+Possible components:
+
+TFL
+sacks
+forced fumbles
+interceptions
+passes defended where available.
+
+Do not fabricate missing components.
+
+============================================================
+PHASE 15 — LINE YARDS
+============================================================
+
+If CFBD exposes line-yard metrics:
+
+store them.
+
+If not, only derive from complete rushing/play evidence under a documented versioned definition.
+
+============================================================
+PHASE 16 — PACE
+============================================================
+
+Build legitimate pace evidence where supported.
+
+Potential:
+
+plays/game
+seconds/play
+plays/minute
+situation-adjusted pace.
+
+No sportsbook information.
+
+============================================================
+PHASE 17 — DRIVE INTELLIGENCE
+============================================================
+
+Where play/drive evidence permits, capture:
+
+drives/game
+points/drive
+yards/drive
+three-and-out rate
+turnover drive rate
+red-zone drive efficiency
+explosive drive rate.
+
+Keep these as NCAAF sports features.
+
+============================================================
+PHASE 18 — SPECIAL TEAMS
+============================================================
+
+Inspect CFBD for legitimate special-teams metrics.
+
+Potential:
+
+SP+ special teams
+field goals
+punting
+kick returns
+punt returns
+field position proxies.
+
+Do not synthesize unsupported quality ratings.
+
+============================================================
+PHASE 19 — SP+
+============================================================
+
+Verify current CFBD SP+ access.
+
+If available, ingest historical/current SP+ components with provider provenance.
+
+Possible components include:
+
+overall
+offense
+defense
+special teams
+pace
+rushing
+passing
+success
+explosiveness
+havoc.
+
+Keep SP+ as one independent prior/input, not the final model.
+
+============================================================
+PHASE 20 — CORE / OPPONENT-ADJUSTED METRICS
+============================================================
+
+Verify CFBD CORE or equivalent opponent-adjusted rating access.
+
+Persist:
+
+rating
+through-week/effective context
+model/version metadata
+offense/defense components where available.
+
+Never use a rating from after the prediction cutoff.
+
+============================================================
+PHASE 21 — SRS / ELO / FPI
+============================================================
+
+Audit real availability.
+
+If available, ingest separately.
+
+Do not average them blindly.
+
+Each remains an independent evidence source for future prior construction.
+
+============================================================
+PHASE 22 — RECRUITING
+============================================================
+
+Verify recruiting endpoints.
+
+Capture legitimate:
+
+class rankings
+recruit ratings
+team recruiting aggregates
+talent-related historical evidence.
+
+Recruiting data may contribute to early-season priors later.
+
+Do not turn recruiting ranking directly into win probability here.
+
+============================================================
+PHASE 23 — TALENT COMPOSITE
+============================================================
+
+Verify whether a team talent composite is available.
+
+If supported, store season-specific immutable values.
+
+No weight selection yet.
+
+============================================================
+PHASE 24 — TRANSFERS
+============================================================
+
+Verify transfer portal data.
+
+If available, capture:
+
+player identity
+origin
+destination
+season
+position
+rating where legitimate
+transfer date/effective context.
+
+Do not infer player impact weights yet.
+
+============================================================
+PHASE 25 — RETURNING PRODUCTION
+============================================================
+
+Verify whether CFBD supplies returning production or components sufficient for a defensible versioned measure.
+
+Capture legitimate values.
+
+Do not invent returning-production percentages.
+
+============================================================
+PHASE 26 — ROSTERS
+============================================================
+
+Verify CFBD roster coverage.
+
+If available, capture immutable season/team roster states.
+
+Preserve:
+
+player ID
+team
+position
+year/class if supplied
+height/weight if supplied
+jersey where relevant
+season.
+
+A season roster is NOT automatically a pregame active roster.
+
+============================================================
+PHASE 27 — QB INTELLIGENCE
+============================================================
+
+Inspect whether CFBD can legitimately identify:
+
+team quarterbacks
+QB historical performance
+QB season stats
+QB continuity
+returning starter indicators
+pregame expected starter.
+
+Distinguish these states explicitly:
+
+KNOWN_STARTER
+EXPECTED_STARTER
+ROSTER_QB
+HISTORICAL_QB
+UNKNOWN.
+
+Do not treat a roster QB as confirmed starter.
+
+============================================================
+PHASE 28 — PREGAME STARTING QB
+============================================================
+
+This is a critical blocker from #221C.
+
+Determine whether CFBD actually provides timestamped pregame starter information.
+
+If YES:
+
+capture it with provenance and effective timestamp.
+
+If NO:
+
+leave this domain:
+
+MISSING / EXTERNAL_PROVIDER_REQUIRED.
+
+Do not weaken the requirement by pretending season passing leader = starting QB.
+
+============================================================
+PHASE 29 — INJURIES
+============================================================
+
+Determine whether CFBD supplies legitimate timestamped pregame injury/availability data.
+
+If YES:
+
+integrate it.
+
+If NO:
+
+report clearly:
+
+INJURY_PROVIDER_STILL_REQUIRED.
+
+Missing injury feed never means healthy.
+
+============================================================
+PHASE 30 — DEPTH CHART
+============================================================
+
+Determine whether CFBD supports depth-chart/starter-state data.
+
+If unsupported:
+
+mark unsupported.
+
+Do not fabricate depth from roster order.
+
+============================================================
+PHASE 31 — COACHES
+============================================================
+
+Verify coaching endpoints.
+
+Capture season/effective:
+
+head coach
+coordinator data if actually supplied
+coach continuity
+tenure.
+
+No subjective coaching adjustment yet.
+
+============================================================
+PHASE 32 — WEATHER
+============================================================
+
+CFBD may expose weather information.
+
+Audit actual support.
+
+If legitimate pregame historical/current weather is available:
+
+capture it.
+
+Also compare against existing Open-Meteo infrastructure.
+
+Choose source roles explicitly.
+
+No postgame weather leakage into pregame snapshots.
+
+============================================================
+PHASE 33 — VENUE
+============================================================
+
+Build/verify canonical NCAAF venue metadata:
+
+venue ID
+name
+city/state
+latitude
+longitude
+elevation if legitimately available
+indoor/outdoor
+roof if supported.
+
+This should support future weather/home/altitude features.
+
+============================================================
+PHASE 34 — FBS/FCS
+============================================================
+
+Use legitimate CFBD team/classification information to populate:
+
+FBS
+FCS
+OTHER
+UNKNOWN.
+
+Do not infer solely from team name.
+
+============================================================
+PHASE 35 — EARLY-SEASON PRIOR FOUNDATION
+============================================================
+
+This is a major reason CFBD was added.
+
+Build a canonical evidence layer supporting future priors from:
+
+prior-season efficiency
+SP+
+CORE/opponent-adjusted ratings
+SRS/Elo/FPI where available
+QB continuity evidence
+returning production
+recruiting/talent
+transfers
+coaching continuity
+recent historical team performance.
+
+Do NOT assign the final V4 prior formula or weights in #221D.
+
+============================================================
+PHASE 36 — CHRONOLOGICAL CUTOFF
+============================================================
+
+Every historical feature must respect point-in-time availability.
+
+Example:
+
+A Week 2 forecast cannot consume a rating labeled through Week 5.
+
+Enforce effective-through week/time where providers expose it.
+
+============================================================
+PHASE 37 — HISTORICAL PIT CLASSIFICATION
+============================================================
+
+Because not every CFBD endpoint may offer perfect historical PIT semantics, classify evidence:
+
+A = verified PIT/effective timestamp
+B = season/week bounded with defensible chronological semantics
+C = retrospective aggregate usable only for research
+D = unsafe for historical prediction replay.
+
+Do not silently treat C/D as A.
+
+============================================================
+PHASE 38 — MARKET FIREWALL
+============================================================
+
+CollegeFootballData may expose betting/lines endpoints.
+
+DO NOT feed those into sports intelligence.
+
+Reject:
+
+odds
+spread
+moneyline
+total
+book
+consensus
+implied probability
+market probability.
+
+The sports model must remain market-free.
+
+Market stays downstream in the existing betting layer.
+
+============================================================
+PHASE 39 — CANONICAL DOMAIN STATES
+============================================================
+
+For every intelligence domain preserve:
+
+VALID
+PARTIAL
+MISSING
+UNSUPPORTED
+INVALID
+STALE
+
+with reason.
+
+Never zero-fill missing evidence.
+
+============================================================
+PHASE 40 — RELIABILITY
+============================================================
+
+Attach reliability/quality metadata to each domain.
+
+Potential dimensions:
+
+sample size
+recency
+provider completeness
+PIT quality
+identity confidence.
+
+Do not turn reliability into the final probability formula yet.
+
+============================================================
+PHASE 41 — NCAAF FOOTBALL INTELLIGENCE SCHEMA
+============================================================
+
+Populate the existing:
+
+ncaaf-football-intelligence-v1
+
+where schema-compatible.
+
+If CFBD integration requires a genuinely incompatible schema change:
+
+create a NEW immutable version.
+
+Do not redefine v1 silently.
+
+============================================================
+PHASE 42 — CANONICAL INTELLIGENCE CONTENT
+============================================================
+
+A canonical intelligence snapshot should be capable of carrying, where legitimately available:
+
+team strength history
+advanced offense
+advanced defense
+pace
+EPA
+success
+explosiveness
+havoc
+line yards
+drive metrics
+special teams
+QB history/state
+roster
+injury state
+returning production
+talent
+recruiting
+transfers
+coaching
+venue/context
+weather
+subdivision
+prior evidence.
+
+============================================================
+PHASE 43 — SNAPSHOT ACTIVATION
+============================================================
+
+#221C still had:
+
+intelligence_snapshots = 0.
+
+After CFBD integration, get legitimate production canonical snapshots persisting.
+
+Do not require every domain to be VALID to persist a snapshot.
+
+Persist truthful PARTIAL/BLOCKED states.
+
+============================================================
+PHASE 44 — SNAPSHOT READINESS
+============================================================
+
+Define measured readiness based on critical domains.
+
+Do not declare READY merely because a row exists.
+
+A canonical snapshot may be:
+
+READY
+PARTIAL
+BLOCKED.
+
+Report exact reasons.
+
+============================================================
+PHASE 45 — FINAL_PREGAME
+============================================================
+
+Activate actual production FINAL_PREGAME snapshots where evidence satisfies the required state.
+
+FINAL_PREGAME means:
+
+the immutable sports-only intelligence known before kickoff.
+
+It is intended to become the authoritative future NCAAF V4 input.
+
+============================================================
+PHASE 46 — FINAL_PREGAME CUT OFF
+============================================================
+
+Ensure:
+
+captured_at < kickoff
+effective evidence <= cutoff
+no post-kickoff row
+no future-week rating
+no postgame roster/injury state
+no later transfer/recruit evidence
+no closing market.
+
+============================================================
+PHASE 47 — FINAL_PREGAME MISSINGNESS
+============================================================
+
+If critical evidence is missing:
+
+do not fabricate readiness.
+
+Record the snapshot as BLOCKED/PARTIAL according to policy.
+
+============================================================
+PHASE 48 — INTERNAL PROSPECTIVE COHORT
+============================================================
+
+Keep the existing prospective LIVE_SHADOW/internal cohort infrastructure.
+
+Important:
+
+this is INTERNAL evidence infrastructure only.
+
+It does NOT mean the eventual approved NCAAF V4 champion will remain hidden.
+
+No backfill before the activation boundary.
+
+============================================================
+PHASE 49 — PROSPECTIVE COLLECTION
+============================================================
+
+Start capturing CFBD evidence prospectively for 2026 games immediately.
+
+Do not wait for #222.
+
+Every upcoming week matters for untouched evidence.
+
+============================================================
+PHASE 50 — SCHEDULER INTEGRATION
+============================================================
+
+Integrate CFBD into the existing NCAAF-specific dedicated scheduler cycle.
+
+Do not reintroduce the scheduler starvation fixed in #221C.
+
+Requirements:
+
+process-local single-flight
+bounded concurrency
+timeouts
+retry policy
+rate-limit awareness
+per-game isolation
+append-only persistence
+idempotency.
+
+============================================================
+PHASE 51 — RATE LIMIT MANAGEMENT
+============================================================
+
+Observe actual CFBD quota/rate behavior.
+
+Implement conservative rate controls.
+
+Avoid wasting calls.
+
+Prefer:
+
+bulk endpoints
+season/week fetches
+cached provider snapshots
+idempotent reuse
+only necessary pregame refreshes.
+
+Report estimated monthly call usage.
+
+============================================================
+PHASE 52 — PROVIDER HEALTH
+============================================================
+
+Add CFBD provider-health observability:
+
+last successful call
+last failed call
+latency
+status
+auth errors
+rate-limit errors
+timeouts
+payload validation errors
+calls today
+calls this month if measurable.
+
+Never expose the API key.
+
+============================================================
+PHASE 53 — FALLBACK POLICY
+============================================================
+
+CFBD failure must not corrupt canonical evidence.
+
+Fallback may use existing ESPN evidence only for domains ESPN legitimately supports.
+
+Do not replace missing advanced CFBD evidence with fabricated ESPN equivalents.
+
+============================================================
+PHASE 54 — ESPN ROLE AFTER CFBD
+============================================================
+
+Retain ESPN for legitimate roles such as:
+
+schedule
+event identity
+status
+scores
+venue/context
+completed-game Summary evidence.
+
+Do not remove useful existing provider paths.
+
+============================================================
+PHASE 55 — PROVIDER PRECEDENCE
+============================================================
+
+Document source authority by domain.
+
+Example structure:
+
+Schedule/game identity:
+ESPN primary / CFBD cross-check
+
+Advanced football:
+CFBD primary
+
+Historical play:
+CFBD primary
+
+Completed ESPN Summary:
+secondary validation/enrichment
+
+Odds:
+Odds API downstream market only
+
+Weather:
+CFBD or Open-Meteo depending validated coverage
+
+Do not blindly overwrite conflicting data.
+
+============================================================
+PHASE 56 — QB DATA GAP DECISION
+============================================================
+
+After integrating CFBD, explicitly answer:
+
+Can we construct a legitimate NCAAF V4 without another provider?
+
+If CFBD gives sufficient:
+
+team strength
+advanced play metrics
+historical evidence
+QB historical identity/performance
+priors
+
+but lacks confirmed pregame starter/injury/depth data, determine whether that missingness should:
+
+A. block V4_BUILD_READY
+or
+B. allow V4 engineering with explicit QB/availability uncertainty while still blocking certain production forecasts.
+
+Do NOT lower the standard casually.
+
+Give a reasoned engineering recommendation.
+
+============================================================
+PHASE 57 — INJURY PROVIDER DECISION
+============================================================
+
+If CFBD does not supply injuries:
+
+evaluate whether a supplemental provider is still required.
+
+Likely candidates:
+
+SportsDataIO College Football commercial
+Sportradar NCAAF
+another legitimate configured source.
+
+Do not purchase or fabricate credentials.
+
+Return exact recommendation.
+
+============================================================
+PHASE 58 — V4 BUILD READINESS
+============================================================
+
+V4_BUILD_READY should be measurable.
+
+Potential minimum conditions:
+
+legitimate historical independent team-strength evidence
+advanced offense/defense
+chronological/PIT-safe feature construction
+QB historical/performance evidence
+early-season prior foundation
+production canonical snapshot creation
+FINAL_PREGAME contract proven
+market firewall proven
+no critical fabricated data.
+
+Do not require perfection.
+
+Do not declare ready if the core independent football model cannot be built legitimately.
+
+============================================================
+PHASE 59 — DATA PIPELINE READY
+============================================================
+
+DATA_PIPELINE_READY should indicate:
+
+provider authenticated
+raw evidence flowing
+canonical evidence flowing
+identity stable
+production snapshots persisting
+scheduler healthy
+PIT controls active
+provider errors observable.
+
+============================================================
+PHASE 60 — NO MODEL BUILD
+============================================================
+
+Again:
+
+DO NOT BUILD NCAAF V4.
+
+No:
+
+expected home points
+expected away points
+win probability
+spread probability
+total probability
+calibration
+edge
+recommendation
+units.
+
+Those belong to #222+.
+
+============================================================
+PHASE 61 — LEARNING SAFETY
+============================================================
+
+Do not alter current production learning behavior.
+
+One game adds evidence.
+
+One game cannot mutate production weights.
+
+============================================================
+PHASE 62 — LEGACY QUARANTINE
+============================================================
+
+Re-verify #220 legacy NCAAF invalid cohort remains excluded.
+
+Do not re-enable those 99 rows for:
+
+grading
+ROI
+learning
+calibration
+promotion.
+
+============================================================
+PHASE 63 — PUBLICATION SAFETY
+============================================================
+
+Re-verify:
+
+Neutral
+zero-unit
+negative-unit
+invalid
+blocked
+
+cannot become published wagers.
+
+No change to current publication gates.
+
+============================================================
+PHASE 64 — NCAAF / NFL ISOLATION
+============================================================
+
+Add regression coverage proving CFBD NCAAF integration does not alter NFL:
+
+features
+probabilities
+weights
+configs
+versions
+provider behavior.
+
+============================================================
+PHASE 65 — OTHER SPORT ISOLATION
+============================================================
+
+Verify no changes to:
+
+MLB
+NBA
+WNBA
+NHL
+NCAAMB
+Soccer
+UFC.
+
+============================================================
+PHASE 66 — ADMIN OBSERVABILITY
+============================================================
+
+Upgrade NCAAF readiness/admin observability to include:
+
+CFBD credential status
+CFBD provider health
+raw evidence counts
+mapped teams
+unmapped teams
+mapped games
+unmatched games
+player mappings
+historical coverage
+play coverage
+EPA coverage
+success coverage
+explosiveness coverage
+havoc coverage
+line-yard coverage
+SP+ coverage
+CORE coverage
+Elo/SRS/FPI coverage
+recruiting coverage
+talent coverage
+transfer coverage
+returning production
+QB coverage
+roster coverage
+injury coverage
+coaching coverage
+weather coverage
+intelligence snapshots
+READY/PARTIAL/BLOCKED
+FINAL_PREGAME
+prospective cohort count
+PIT violations
+scheduler health.
+
+============================================================
+PHASE 67 — PRODUCTION VERIFICATION
+============================================================
+
+Do not stop at local tests.
+
+After integration, verify actual production.
+
+Observe actual:
+
+CFBD successful requests
+raw rows
+canonical rows
+intelligence snapshots
+FINAL_PREGAME assignments if legitimately eligible
+scheduler runs
+provider health.
+
+============================================================
+PHASE 68 — TESTS
+============================================================
+
+Add tests for at minimum:
+
+CFBD authentication without key exposure
+provider timeout
+rate limit
+invalid response
+raw append-only storage
+team mapping
+game mapping
+player mapping
+ambiguous identity
+historical cutoff
+week cutoff
+PBP ingestion
+EPA handling
+success handling
+explosiveness handling
+havoc handling
+recruiting
+transfer
+ratings
+market-field rejection
+domain missingness
+snapshot persistence
+snapshot readiness
+FINAL_PREGAME cutoff
+post-kickoff rejection
+prospective anti-backfill
+scheduler single-flight
+legacy quarantine
+publication invariant
+NCAAF/NFL isolation.
+
+============================================================
+PHASE 69 — VERIFICATION COMMANDS
+============================================================
+
+Run:
+
+full relevant API tests
+API typecheck
+API production build
+Admin typecheck
+Admin production build
+git diff --check.
+
+Run broader regression where feasible.
+
+Report exactly what was and was not run.
+
+============================================================
+PHASE 70 — REQUIRED REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-cfbd-provider-integration-2026-09-03.md
+
+Required sections:
+
+1. Executive summary
+2. CFBD credential verification
+3. Account/quota information
+4. Provider capability matrix
+5. Endpoints verified
+6. Raw evidence architecture
+7. Canonical identity architecture
+8. Team mapping
+9. Game mapping
+10. Player mapping
+11. Historical games
+12. Team stats
+13. Play-by-play
+14. EPA
+15. Success rate
+16. Explosiveness
+17. Havoc
+18. Line yards
+19. Pace
+20. Drives
+21. Special teams
+22. SP+
+23. CORE/opponent-adjusted data
+24. SRS
+25. Elo
+26. FPI
+27. Recruiting
+28. Talent composite
+29. Transfers
+30. Returning production
+31. Rosters
+32. QB history
+33. Pregame starting QB
+34. Injuries
+35. Depth charts
+36. Coaches
+37. Weather
+38. Venues
+39. FBS/FCS
+40. Early-season prior foundation
+41. Historical PIT classification
+42. Market firewall
+43. Football intelligence schema
+44. Intelligence snapshot counts
+45. READY/PARTIAL/BLOCKED counts
+46. FINAL_PREGAME counts
+47. Prospective cohort counts
+48. PIT violations
+49. Provider health
+50. Scheduler health
+51. Rate-limit usage
+52. ESPN coexistence
+53. Remaining data gaps
+54. Supplemental-provider recommendation
+55. DATA_PIPELINE_READY
+56. V4_BUILD_READY
+57. Exact blockers if false
+58. Recommendation for #222.
+
+============================================================
+COMPLETION QUESTIONS
+============================================================
+
+Answer explicitly:
+
+1. Was CFBD authentication successful?
+2. Was the key exposed anywhere?
+3. What tier/quota is actually observable?
+4. Which CFBD endpoints were successfully verified?
+5. How many raw CFBD evidence rows now exist?
+6. How many canonical CFBD evidence rows now exist?
+7. How many teams map correctly?
+8. How many teams remain unmapped?
+9. How many games map correctly?
+10. How many remain unmatched/ambiguous?
+11. Are stable player IDs available?
+12. Is historical game data available?
+13. Is complete-enough play-by-play available?
+14. Is EPA available?
+15. Is success rate available?
+16. Is explosiveness available?
+17. Is havoc available?
+18. Are line yards available?
+19. Is pace available?
+20. Are drive metrics available?
+21. Are special-teams metrics available?
+22. Is SP+ available?
+23. Is CORE/opponent-adjusted data available?
+24. Is SRS available?
+25. Is Elo available?
+26. Is FPI available?
+27. Is recruiting data available?
+28. Is talent composite available?
+29. Is transfer data available?
+30. Is returning production available?
+31. Are rosters available?
+32. Can QB historical performance be built?
+33. Can pregame starting QB be verified?
+34. Are timestamped injuries available?
+35. Are college depth charts available?
+36. Is coaching data available?
+37. Is weather available?
+38. Is FBS/FCS classification available?
+39. Can a legitimate early-season prior now be built?
+40. Are historical PIT semantics sufficient?
+41. Can market data enter sports intelligence?
+42. How many production intelligence snapshots exist?
+43. How many are READY?
+44. How many are PARTIAL?
+45. How many are BLOCKED?
+46. How many legitimate FINAL_PREGAME assignments exist?
+47. How many internal prospective cohort assignments exist?
+48. Were any PIT violations detected?
+49. Is the NCAAF scheduler healthy?
+50. Is another provider still required?
+51. If yes, exactly which domains remain missing?
+52. Should SportsDataIO commercial access be pursued?
+53. Is DATA_PIPELINE_READY true or false?
+54. Is V4_BUILD_READY true or false?
+55. If V4_BUILD_READY is false, what exact blockers remain?
+56. If true, should we begin #222?
+57. Did this task alter any current NCAAF forecast?
+58. Did this task alter NFL?
+59. Did this task alter any other sport?
+60. Did this task build any NCAAF V4 model logic?
+
+============================================================
+SUCCESS CONDITIONS
+============================================================
+
+#221D is successful when:
+
+- CFBD is legitimately authenticated
+- CFBD data is flowing in production
+- raw immutable evidence exists
+- canonical identity mapping works
+- useful historical football evidence exists
+- advanced football intelligence is populated where supported
+- canonical NCAAF intelligence snapshots actually persist
+- FINAL_PREGAME is production-proven where legitimate
+- PIT protection remains intact
+- market data remains downstream
+- missing pregame QB/injury/depth information remains explicit
+- no data is fabricated
+- no current NCAAF model changes
+- no NFL/other-sport changes
+- no V4 is built yet
+- readiness is measured honestly.
+
+============================================================
+STOP CONDITIONS
+============================================================
+
+If the CFBD credential does not work:
+
+STOP and report:
+
+CFBD ACCESS ERROR
+
+with the exact non-secret failure.
+
+If CFBD works but still leaves critical provider gaps:
+
+complete all legitimate CFBD integration first, then report:
+
+SUPPLEMENTAL PROVIDER ACCESS REQUIRED
+
+with exact missing domains.
+
+Do not compensate by inventing features.
+
+============================================================
+DO NOT CONTINUE INTO #222
+============================================================
+
+When #221D is complete:
+
+STOP.
+
+Return the report.
+
+If:
+
+V4_BUILD_READY = TRUE
+
+then the next task will be:
+
+#222 — Independent NCAAF V4 Expected-Score Production-Candidate Engine
+
+If:
+
+V4_BUILD_READY = FALSE
+
+then we will address the exact remaining provider/data blocker first.
+
+============================================================
+FINAL TARGET
+============================================================
+
+The target remains:
+
+CollegeFootballData
++ legitimate supplemental pregame availability data if needed
+→ authoritative NCAAF sports intelligence
+→ FINAL_PREGAME
+→ NCAAF V4 expected-score engine
+→ initial validation
+→ explicit approval
+→ LIVE NCAA Football champion
+→ qualified picks published
+→ every completed game adds learning evidence
+→ validated future NCAAF versions.
+
+Complete #221D only.

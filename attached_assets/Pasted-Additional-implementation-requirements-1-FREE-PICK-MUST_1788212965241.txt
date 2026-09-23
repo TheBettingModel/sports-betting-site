@@ -1,0 +1,138 @@
+Additional implementation requirements
+
+1. FREE PICK MUST BE SERVER-AUTHORITATIVE AND PERSISTED
+
+The daily free selection must be chosen once from eligible OFFICIAL published picks and persisted by published-pick ID.
+
+Eligibility:
+- official published pick
+- publication eligible
+- not Top Pick
+- not shadow/provisional
+- not cancelled
+- normal approval requirements satisfied
+
+Select the highest-ranked eligible non-Top-Pick official selection.
+
+Never select Top Pick as a fallback.
+
+If no eligible non-Top-Pick official pick exists, expose no free pick for that slate/day.
+
+Do not independently recalculate the free selection from each endpoint, screen, or sport filter.
+
+Sport filtering cannot produce another free selection.
+
+2. CHAT AUTHORIZATION MUST BE SERVER-SIDE
+
+Free signed-in users:
+- may know Chat exists
+- may receive locked-state metadata needed by the UI
+- may not receive message bodies/history
+- may not post
+
+Active Pro:
+- may read
+- may not post
+
+Authorized owners:
+- may read
+- may post
+
+Do not rely on client-side hiding for authorization.
+
+Use the existing authenticated authorization/account-role infrastructure for the two approved owner accounts rather than scattered client-side identity checks.
+
+3. CHAT V1 REMAINS SIMPLE
+
+Use persistent plain-text messages.
+
+Include:
+- stable message ID
+- author identity/reference
+- display name where appropriate
+- body
+- server-created timestamp
+- optional audited edit/delete metadata only if supported
+
+Use a reasonable message-length limit.
+
+Do not add:
+- subscriber posting
+- replies
+- reactions
+- attachments
+- structured betting records
+- HTML content
+- chat-driven model actions
+
+unless separately approved later.
+
+4. MODEL/PUBLICATION ISOLATION
+
+Chat operations must not:
+- create or modify model predictions
+- create official picks
+- modify published picks
+- grade picks
+- create learning outcomes
+- modify model weights
+- modify confidence multipliers
+- modify champion snapshots
+- modify approval records
+- calculate Top Pick
+- influence free-pick ranking
+
+Chat may reference picks in human-readable text but has no authority over the betting-model pipeline.
+
+5. TOP PICK PROTECTION
+
+Top Pick remains Pro-only under every API/view/filter condition.
+
+Tests must include:
+- Top Pick is highest-rated overall
+- Top Pick is only official pick
+- Top Pick and free pick are same sport
+- user changes sport filters
+- direct API request by Free account
+- stale client state
+- subscription expiration/downgrade
+
+None may expose Top Pick to a non-Pro account.
+
+6. CHAT NOTIFICATIONS
+
+Keep chat-message notifications logically separate from official pick alerts.
+
+Only entitled Pro/owner accounts should receive protected chat-message notifications.
+
+A notification must not leak protected message content to a Free account.
+
+Changing Chat notification preference must not alter official pick-alert preferences.
+
+7. REGRESSION SAFETY
+
+Confirm #201 and #205 invariants remain unchanged.
+
+#208 must not alter:
+- production learning freeze
+- champion hashes
+- historical immutability
+- ML/spread isolation
+- approval behavior
+- grading
+- scheduler stability
+- current model calculations
+
+After implementation report:
+- schema changes
+- API routes
+- authorization implementation
+- free-pick selection/freeze implementation
+- mobile files changed
+- notification changes
+- tests and results
+- direct API access-control test results
+- Top Pick leakage tests
+- confirmation #201/#205 behavior remains unchanged
+
+Stop after #208.

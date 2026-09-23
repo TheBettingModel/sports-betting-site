@@ -1,0 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
+.tbm-phone {
+  min-height: 100vh;
+  background: #080909;
+  color: #fff;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.tbm-tab-safe {
+  padding-bottom: 92px;
+}
+
+.tbm-mono { font-family: "DM Mono", monospace; }
+.tbm-card { background: #111313; border: 1px solid #242827; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.tbm-hairline { border-color: #242827; }
+.tbm-gridline {
+  background-image: linear-gradient(to right, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 25% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tbm-card { transition: border-color .2s ease, transform .2s ease; }
+  .tbm-card:active { transform: scale(.995); }
+}

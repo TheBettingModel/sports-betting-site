@@ -1,0 +1,2098 @@
+{
+  "artifact": "ncaaf-v4-2026-feature-bridge-2026-09-04",
+  "version": "ncaaf-v4-2026-feature-bridge-v1",
+  "assessedAt": "2026-09-04T00:00:00.000Z",
+  "status": "PARTIAL",
+  "compatibilityMatrix": [
+    {
+      "feature": "seasonToDate score-derived offense/defense",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "last3",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "last5",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "priorSeason",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "pregame Elo",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "opponentAdjusted",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "home/neutral",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "sample counts",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "missing/quality indicators",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    }
+  ],
+  "eligibleInputCount": 531,
+  "internalPredictionCount": 531,
+  "exclusions": [
+    {
+      "snapshotId": 11133,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11143,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11206,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11235,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11244,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11247,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11253,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11259,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11262,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11275,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11284,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11287,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11302,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11311,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11329,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11335,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11340,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11342,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11344,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11349,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11351,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11355,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11357,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11358,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11364,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11365,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11367,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11368,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11370,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11372,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11373,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11374,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11376,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11378,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11379,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11382,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11384,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11389,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11391,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11394,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11396,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11397,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11398,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11400,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11402,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11405,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11407,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11410,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11411,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11412,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11415,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11416,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11419,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11424,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11427,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11428,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11443,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11447,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11452,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11463,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11466,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11473,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11481,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11488,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11501,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11510,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11518,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11532,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11541,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11548,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11550,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11555,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11604,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11613,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11618,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11630,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11639,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11649,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11665,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11669,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11680,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11682,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11684,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11686,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11688,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11691,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11694,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11696,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11697,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11699,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11702,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11703,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11704,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11706,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11707,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11708,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11709,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11710,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11711,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11712,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11713,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11714,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11715,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11716,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11718,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11719,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11720,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11722,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11724,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11725,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11727,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11728,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11729,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11732,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11736,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11737,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11741,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11748,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11757,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11759,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11763,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11765,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11766,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11774,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11775,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11777,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11779,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11798,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11831,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11850,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11854,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11855,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11856,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11861,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11865,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11869,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11871,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11873,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11877,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16442,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16445,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16446,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16453,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16456,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16459,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16466,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16489,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16508,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16529,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16530,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16532,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16533,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16549,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16550,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16551,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16552,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16554,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16555,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16556,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16560,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16565,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16566,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16567,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16568,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16571,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16580,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16654,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16657,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16659,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16664,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16666,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16667,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16670,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16671,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16676,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16682,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16696,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16715,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16719,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16723,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16726,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16732,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16733,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16737,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16742,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16750,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16814,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16815,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16816,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16818,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16819,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16822,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16824,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16856,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16857,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16858,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16859,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16860,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16868,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16869,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16870,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16871,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16873,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16874,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16883,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16885,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16887,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16889,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16893,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16896,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16937,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16939,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16940,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16941,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16942,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16959,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16961,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16962,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16963,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16965,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16966,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16967,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16968,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16969,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16970,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16973,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16975,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16976,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16999,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17000,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17003,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17004,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17005,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17006,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17007,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17008,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17009,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17010,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17011,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17012,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17013,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17014,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17015,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17016,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17017,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17057,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17059,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17063,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17089,
+      "reason": "unsafe_target_team_identity_mapping"
+    }
+  ],
+  "pitAudit": {
+    "snapshotsSeen": 32860,
+    "targetsAssessed": 780,
+    "eligibleSnapshots": 531,
+    "sameGameLeakage": 0,
+    "futureGameLeakage": 0,
+    "futureSeasonLeakage": 0,
+    "postKickoffEvidence": 0,
+    "marketLeakage": 0,
+    "marketShapedSnapshotsRejected": 0,
+    "excludedCompletedEvidence": {
+      "not_completed_fbs_atomic": 1715130,
+      "outside_cutoff_or_season": 5039535,
+      "post_cutoff_evidence": 429579
+    }
+  },
+  "marketAudit": {
+    "violations": 0
+  },
+  "blockers": [
+    {
+      "snapshotId": 11133,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11143,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11206,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11235,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11244,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11247,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11253,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11259,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11262,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11275,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11284,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11287,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11302,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11311,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11329,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11335,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11340,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11342,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11344,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11349,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11351,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11355,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11357,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11358,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11364,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11365,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11367,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11368,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11370,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11372,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11373,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11374,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11376,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11378,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11379,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11382,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11384,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11389,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11391,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11394,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11396,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11397,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11398,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11400,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11402,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11405,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11407,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11410,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11411,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11412,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11415,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11416,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11419,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11424,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11427,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11428,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11443,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11447,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11452,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11463,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11466,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11473,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11481,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11488,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11501,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11510,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11518,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11532,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11541,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11548,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11550,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11555,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11604,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11613,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11618,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11630,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11639,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11649,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11665,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11669,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11680,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11682,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11684,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11686,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11688,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11691,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11694,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11696,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11697,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11699,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11702,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11703,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11704,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11706,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11707,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11708,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11709,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11710,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11711,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11712,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11713,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11714,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11715,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11716,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11718,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11719,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11720,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11722,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11724,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11725,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11727,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11728,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11729,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11732,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11736,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11737,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11741,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11748,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11757,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11759,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11763,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11765,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11766,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11774,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11775,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11777,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11779,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11798,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11831,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11850,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11854,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11855,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11856,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11861,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11865,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11869,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11871,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11873,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 11877,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16442,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16445,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16446,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16453,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16456,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16459,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16466,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16489,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16508,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16529,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16530,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16532,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16533,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16549,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16550,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16551,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16552,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16554,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16555,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16556,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16560,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16565,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16566,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16567,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16568,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16571,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16580,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16654,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16657,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16659,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16664,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16666,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16667,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16670,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16671,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16676,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16682,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16696,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16715,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16719,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16723,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16726,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16732,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16733,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16737,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16742,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16750,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16814,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16815,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16816,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16818,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16819,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16822,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16824,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16856,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16857,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16858,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16859,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16860,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16868,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16869,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16870,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16871,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16873,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16874,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16883,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16885,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16887,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16889,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16893,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16896,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16937,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16939,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16940,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16941,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16942,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16959,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16961,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16962,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16963,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16965,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16966,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16967,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16968,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16969,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16970,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16973,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16975,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16976,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 16999,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17000,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17003,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17004,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17005,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17006,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17007,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17008,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17009,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17010,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17011,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17012,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17013,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17014,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17015,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17016,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17017,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17057,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17059,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17063,
+      "reason": "unsafe_target_team_identity_mapping"
+    },
+    {
+      "snapshotId": 17089,
+      "reason": "unsafe_target_team_identity_mapping"
+    }
+  ],
+  "persistence": "none; nonpublic in-memory challenger inputs only"
+}

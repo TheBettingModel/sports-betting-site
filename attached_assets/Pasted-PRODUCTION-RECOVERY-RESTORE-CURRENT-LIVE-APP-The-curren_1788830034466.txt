@@ -1,0 +1,197 @@
+PRODUCTION RECOVERY — RESTORE CURRENT LIVE APP
+
+The current App Store version of The Betting Model (1.0) is still compiled to use:
+
+https://thebettingmodel.replit.app
+
+That hostname is currently returning Replit’s “This app isn’t live yet” response, causing the CURRENT LIVE APP to fail loading its API data.
+
+The replacement Render API is healthy at:
+
+https://tbm-api-v4-candidate.onrender.com
+
+I need you to restore service for the CURRENT LIVE APP immediately.
+
+OBJECTIVE
+
+Make https://thebettingmodel.replit.app serve the API expected by the existing App Store 1.0 binary again.
+
+Use the SMALLEST and SAFEST recovery.
+
+First determine exactly what the currently distributed 1.0 mobile binary expects from the Replit hostname.
+
+If the existing Replit API can simply be made live again without changing model/data behavior, do that.
+
+If that is no longer appropriate, configure the Replit hostname as a thin temporary compatibility bridge/proxy to the healthy Render API.
+
+CRITICAL CONSTRAINTS
+
+1. DO NOT modify Build 29.
+
+Version 1.0.1 Build 29 has already been submitted to Apple and is currently Waiting for Review.
+
+2. DO NOT create or publish an OTA update.
+
+3. DO NOT change the mobile app source or its compiled API hostname.
+
+4. DO NOT create another iOS build.
+
+5. DO NOT modify the Render candidate unless absolutely required for compatibility.
+
+6. DO NOT modify, delete, reset, or migrate Neon production data.
+
+7. DO NOT create duplicate picks, forecasts, results, predictions, or database writes.
+
+8. DO NOT create overlapping scheduler ownership.
+
+Preserve the CURRENT scheduler owner exactly as-is.
+
+Restoring HTTP/API access through Replit must NOT automatically enable another scheduler or cron process.
+
+9. DO NOT change the #238A publication safeguards.
+
+10. DO NOT change V4 model behavior, coefficients, artifacts, approval states, or publication eligibility.
+
+11. DO NOT retire, delete, reset, or destroy existing Replit data/configuration.
+
+12. DO NOT make unrelated architecture, UI, model, database, or deployment changes.
+
+CURRENT LIVE APP COMPATIBILITY
+
+Determine which endpoints the currently distributed App Store 1.0 binary actually calls.
+
+Restore all required routes through:
+
+https://thebettingmodel.replit.app
+
+At minimum investigate and verify:
+
+/api/games/today
+
+Existing Picks endpoints
+
+Existing Results endpoints
+
+Authentication / Clerk routes used by App Store 1.0
+
+Subscription / membership routes used by App Store 1.0
+
+Profile/account routes used by App Store 1.0
+
+Any additional endpoints referenced by the CURRENT DISTRIBUTED 1.0 MOBILE SOURCE.
+
+Do NOT assume /api/model/v4/projections is required by App Store 1.0 unless the existing binary actually calls it.
+
+PUBLIC PRODUCTION VERIFICATION
+
+After implementing the recovery, test the PUBLIC Replit hostname itself.
+
+Do not stop after testing localhost.
+
+At minimum verify:
+
+https://thebettingmodel.replit.app/api/games/today
+
+It must return the expected API/JSON response instead of:
+
+“This app isn’t live yet”
+
+HTML
+
+404
+
+or another Replit platform response.
+
+Then test every API route required by the current App Store 1.0 binary.
+
+END-TO-END LIVE APP VERIFICATION
+
+Confirm that the CURRENT LIVE APP can once again:
+
+- Start normally
+- Authenticate/login
+- Load today’s games
+- Load Picks
+- Load Results
+- Read membership/subscription status
+- Access the existing subscriber experience
+- Communicate with the production API successfully
+
+Also verify:
+
+- Exactly ONE scheduler owner remains active
+- No duplicate scheduler was started
+- No duplicate picks were generated
+- No duplicate predictions were generated
+- No duplicate database writes occurred
+- No unauthorized V4 publication occurred
+- #238A remains fail-closed
+- Neon data remains intact
+- Render remains intact
+- Build 29 remains untouched
+- Apple submission remains untouched
+
+IMPORTANT ARCHITECTURE CONTEXT
+
+This is a TEMPORARY PRODUCTION RECOVERY for the currently distributed App Store 1.0 binary.
+
+Version 1.0.1 Build 29 is already Waiting for Review at Apple.
+
+Build 29 is intended to move the production mobile application directly to the new Render + Neon architecture.
+
+Once Build 29 is:
+
+1. Approved by Apple
+2. Released
+3. Installed
+4. Verified against Render/Neon
+5. Confirmed healthy in production
+
+then the old Replit production compatibility dependency can be retired.
+
+However, I may continue using the FREE REPLIT WORKSPACE afterward as my DEVELOPMENT / VISUAL PREVIEW environment.
+
+That means the intended long-term architecture is:
+
+DEVELOPMENT / VISUAL TESTING:
+Replit
+
+SOURCE OF TRUTH:
+GitHub
+
+IOS BUILDS:
+Expo / EAS
+
+DISTRIBUTION:
+Apple App Store
+
+PRODUCTION API / MODEL:
+Render
+
+PRODUCTION DATABASE:
+Neon PostgreSQL
+
+Do not eliminate my ability to continue using Replit as a visual development/testing environment after the production migration.
+
+EXECUTE NOW
+
+Do not stop after diagnosing the issue.
+
+Implement the smallest safe recovery necessary to restore the CURRENT LIVE APP.
+
+After implementation, provide a final report containing:
+
+1. ROOT CAUSE
+2. EXACT CHANGE MADE
+3. PUBLIC REPLIT HOSTNAME STATUS
+4. EVERY LIVE APP API ENDPOINT VERIFIED
+5. LIVE APP END-TO-END STATUS
+6. CURRENT SCHEDULER OWNER
+7. CONFIRMATION THAT NO SECOND SCHEDULER WAS ENABLED
+8. DATABASE WRITE/INTEGRITY STATUS
+9. RENDER STATUS
+10. NEON STATUS
+11. BUILD 29 / APPLE SUBMISSION STATUS
+12. ANY TEMPORARY COMPONENT THAT MUST BE REMOVED AFTER 1.0.1 IS RELEASED
+
+Do not perform any additional migration, model, UI, Apple, scheduler, database, or production changes outside the recovery required above.

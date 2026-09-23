@@ -1,0 +1,667 @@
+I am returning to the NCAAF V4 project and need to determine exactly where we left off before making any more changes.
+
+DO NOT modify any code yet.
+DO NOT start a new task yet.
+DO NOT start #222 yet.
+DO NOT change the current NCAAF model.
+DO NOT change NFL or any other sport.
+
+I want a complete CURRENT-STATE AUDIT of the NCAAF project using:
+
+1. the current repository/code,
+2. current production deployment,
+3. current production database,
+4. existing reports,
+5. git history / recent commits,
+6. scheduler/runtime logs,
+7. current CFBD evidence,
+8. current canonical intelligence state.
+
+The goal is to tell me exactly what has already been completed and exactly what remains before we can build, validate, approve, and officially release NCAAF V4.
+
+============================================================
+LAST VERIFIED CHECKPOINT I HAVE
+============================================================
+
+The last production report I have is:
+
+#221F — NCAAF CFBD Production Recovery Verification
+
+At that point:
+
+- Advanced CFBD collection was working.
+- 59,241 normalized advanced domain rows existed.
+- 30,062 CFBD player identities existed.
+- Team stats existed.
+- Advanced stats existed.
+- Plays existed.
+- Rosters existed.
+- Player stats were materializing.
+- Recruiting existed.
+- Transfers existed.
+- Distributed/global scheduler locking worked.
+
+But:
+
+TEAM MAPPING:
+0 / 693 mapped
+
+GAME MAPPING:
+0 / 758 mapped
+
+PLAYER IDENTITIES:
+30,062 PROVIDER_ONLY
+
+NCAAF INTELLIGENCE:
+789 v1 snapshots
+0 v2 snapshots
+0 CFBD-enriched snapshots
+
+READY:
+0
+
+PARTIAL:
+0
+
+BLOCKED:
+789
+
+FINAL_PREGAME:
+0
+
+PROSPECTIVE COHORT:
+0
+
+SP+:
+0
+
+SRS:
+0
+
+Elo:
+0
+
+FPI:
+0
+
+Talent:
+0
+
+Returning production:
+0
+
+Coaches:
+0
+
+Weather:
+0
+
+DATA_PIPELINE_READY = FALSE
+
+V4_BUILD_READY = FALSE
+
+Final decision at that checkpoint:
+
+B. NOT READY FOR #222 — CFBD PIPELINE STILL BROKEN
+
+============================================================
+PLANNED NEXT TASK
+============================================================
+
+The planned next task was:
+
+#221G — NCAAF Canonical Identity Recovery, Prior-Domain Activation & V2 Snapshot Completion
+
+Its intended objectives were:
+
+1. Diagnose and repair the 0% canonical team mapping.
+2. Recover canonical game mapping.
+3. Preserve stable CFBD provider player identities.
+4. Build historical QB evidence where legitimate.
+5. Activate SP+.
+6. Activate Elo.
+7. Activate SRS.
+8. Activate FPI.
+9. Activate talent.
+10. Activate returning production.
+11. Activate coaches.
+12. Ensure weather capture works for upcoming games.
+13. Prioritize critical/prior data ahead of huge historical backfills.
+14. Repair evidence-run finalization.
+15. Preserve DB-backed global scheduler locking.
+16. Diagnose why 789 snapshots were processed but 0 V2 snapshots persisted.
+17. Persist ncaaf-football-intelligence-v2 snapshots.
+18. Add CFBD provenance to canonical snapshots.
+19. Allow READY/PARTIAL/BLOCKED V2 snapshots to persist.
+20. Operate FINAL_PREGAME prospectively.
+21. Start prospective cohort evidence without historical backfill.
+22. Preserve PIT safety.
+23. Determine whether the early-season prior foundation is sufficient for V4 construction.
+24. Recalculate DATA_PIPELINE_READY.
+25. Recalculate V4_BUILD_READY.
+26. Keep supplemental pregame QB/injury/depth gaps separate from core V4 construction readiness.
+
+============================================================
+FIRST QUESTION — WHERE DID WE ACTUALLY STOP?
+============================================================
+
+Determine whether #221G was:
+
+- NOT STARTED
+- PARTIALLY IMPLEMENTED
+- IMPLEMENTED LOCALLY
+- PUBLISHED
+- PRODUCTION VERIFIED
+- SUPERSEDED BY A LATER TASK
+
+Do not infer this from conversation text.
+
+Inspect the actual repository, reports, commits, deployment and production database.
+
+Tell me the latest completed NCAAF task number/name.
+
+List the relevant recent NCAAF commits.
+
+List any NCAAF reports created after:
+
+reports/ncaaf-cfbd-production-recovery-2026-09-03.md
+
+============================================================
+CURRENT PRODUCTION AUDIT
+============================================================
+
+Then audit the LIVE production system as it exists RIGHT NOW.
+
+Report current exact counts/status for:
+
+------------------------------
+CFBD RAW / NORMALIZED DATA
+------------------------------
+
+games
+teams
+conferences
+venues
+team stats
+advanced team stats
+plays
+rosters
+player stats
+SP+
+SRS
+Elo
+FPI
+recruiting
+talent
+returning production
+transfers
+coaches
+weather
+
+Report both raw and normalized counts where applicable.
+
+------------------------------
+TEAM MAPPING
+------------------------------
+
+Report:
+
+encountered
+mapped
+unmapped
+ambiguous
+invalid
+mapping percentage
+
+Also report:
+
+FBS encountered
+FBS mapped
+FBS mapping percentage
+
+If mapping is still failing, give the exact current reason.
+
+------------------------------
+GAME MAPPING
+------------------------------
+
+Report:
+
+considered
+mapped
+unmatched
+ambiguous
+invalid
+mapping percentage
+
+Give failure reasons by category.
+
+------------------------------
+PLAYER IDENTITY
+------------------------------
+
+Report:
+
+total
+PROVIDER_ONLY
+MAPPED
+AMBIGUOUS
+INVALID
+
+Do not treat PROVIDER_ONLY as inherently invalid.
+
+Determine whether stable CFBD player IDs are now usable for historical NCAAF player/QB intelligence.
+
+------------------------------
+QB HISTORICAL INTELLIGENCE
+------------------------------
+
+Determine whether production can now build legitimate historical QB evidence using:
+
+CFBD player ID
+canonical team
+season
+rosters
+player stats
+plays/PPA
+
+Report whether we currently have usable:
+
+attempts
+completions
+passing yards
+yards/attempt
+TD
+INT
+rushing
+games
+PPA
+team continuity
+
+Do NOT claim confirmed future starter identity unless independently supported.
+
+------------------------------
+RATINGS / PRIOR DATA
+------------------------------
+
+Report current production status of:
+
+SP+
+Elo
+SRS
+FPI
+Talent
+Returning Production
+Recruiting
+Coaching
+Transfers
+prior-season team performance
+advanced team performance
+
+For every domain report:
+
+AVAILABLE
+PARTIAL
+MISSING
+
+and its current PIT class:
+
+A
+B
+C
+D
+
+------------------------------
+EARLY-SEASON PRIOR
+------------------------------
+
+Answer:
+
+EARLY_SEASON_PRIOR_DATA_READY = TRUE / FALSE
+
+Explain exactly why.
+
+Do NOT create model weights.
+
+------------------------------
+CANONICAL INTELLIGENCE
+------------------------------
+
+Report:
+
+total NCAAF intelligence snapshots
+v1 snapshots
+v2 snapshots
+CFBD-enriched v2 snapshots
+latest v2 timestamp
+
+Then report:
+
+READY
+PARTIAL
+BLOCKED
+
+List the primary reasons for PARTIAL/BLOCKED.
+
+------------------------------
+FINAL_PREGAME
+------------------------------
+
+Report:
+
+FINAL_PREGAME total
+new prospective FINAL_PREGAME
+CFBD-enriched FINAL_PREGAME
+games represented
+latest FINAL_PREGAME
+
+If zero, explain whether this is:
+
+pipeline failure
+
+or
+
+no legitimate qualifying window.
+
+------------------------------
+PROSPECTIVE COHORT
+------------------------------
+
+Report:
+
+total assignments
+CFBD-backed assignments
+first assignment timestamp
+latest assignment timestamp
+anti-backfill status
+
+------------------------------
+PIT SAFETY
+------------------------------
+
+Report:
+
+post-kickoff snapshot violations
+post-cutoff evidence violations
+future-week rating violations
+retrospective C/D leakage
+historical backfill violations
+
+TOTAL PIT VIOLATIONS
+
+------------------------------
+SCHEDULER
+------------------------------
+
+Report:
+
+latest successful NCAAF cycle
+latest partial
+latest failure
+running
+stale running
+cycle duration
+global lock status
+duplicate Autoscale prevention
+evidence-run finalization status
+
+------------------------------
+PROVIDER HEALTH
+------------------------------
+
+Report:
+
+latest CFBD success
+latest CFBD failure
+auth failures
+429s
+timeouts
+malformed responses
+retries
+latency
+call usage today/month if available
+
+============================================================
+SUPPLEMENTAL DATA GAPS
+============================================================
+
+Explicitly report the current status of:
+
+PREGAME STARTING QB
+INJURY / AVAILABILITY
+DEPTH / STARTER STATE
+
+For each return:
+
+AVAILABLE
+PARTIAL
+MISSING
+UNSUPPORTED
+
+Then explain whether each gap blocks:
+
+1. V4 architecture/building,
+2. V4 historical training/calibration,
+3. individual upcoming-game forecast eligibility,
+4. official public wager publication.
+
+Do not automatically block V4 construction because these live availability feeds are incomplete.
+
+============================================================
+CURRENT MODEL STATUS
+============================================================
+
+Tell me what NCAAF model is CURRENTLY production champion.
+
+Report:
+
+model name/version
+current forecast architecture
+current approval status
+whether it publishes picks
+whether any legacy model is still live
+whether any V4 code already exists
+whether any V4 predictions already exist
+whether any V4 evaluation already exists
+
+Do not modify it.
+
+============================================================
+WHAT REMAINS BEFORE NCAAF V4?
+============================================================
+
+After auditing everything, divide remaining work into:
+
+A. MUST COMPLETE BEFORE BUILDING V4
+
+B. CAN BE BUILT DURING V4 DEVELOPMENT
+
+C. MUST COMPLETE BEFORE V4 PRODUCTION APPROVAL
+
+D. MUST COMPLETE BEFORE PUBLIC LIVE WAGER RELEASE
+
+E. NICE-TO-HAVE FUTURE IMPROVEMENTS
+
+Be strict about this distinction.
+
+We do NOT need perfect data before beginning V4.
+
+We need enough legitimate independent football intelligence to build and validate the first NCAAF expected-score engine.
+
+============================================================
+TARGET NCAAF V4 ARCHITECTURE
+============================================================
+
+Remember that the intended V4 sports forecasting architecture is:
+
+NCAAF DATA
+→ PIT DATA
+→ TEAM TRUE TALENT
+→ QB
+→ OFFENSE
+→ DEFENSE
+→ TALENT / RETURNING PRODUCTION
+→ TRANSFERS
+→ COACHING
+→ MATCHUP
+→ WEATHER / HOME / TRAVEL
+→ EXPECTED HOME POINTS
+→ EXPECTED AWAY POINTS
+→ SCORE / MARGIN DISTRIBUTION
+→ ML / SPREAD / TOTAL PROBABILITIES
+→ EMPIRICAL CALIBRATION
+
+ONLY AFTER THAT:
+
+MARKET
+→ NO-VIG
+→ EDGE
+→ EV
+→ RISK FILTER
+→ RECOMMENDATION
+→ UNITS
+→ PUBLICATION
+
+Sportsbook odds must NOT create the sports forecast.
+
+============================================================
+INDEPENDENT SPORT RULE
+============================================================
+
+NCAAF must have its OWN engine.
+
+Do NOT build a shared football forecasting engine with NFL.
+
+Shared infrastructure is allowed.
+
+Shared sports intelligence/model weights/features/calibration/learning state are not.
+
+============================================================
+LEARNING RULE
+============================================================
+
+The eventual NCAAF V4 production champion should learn from every completed game.
+
+But:
+
+EVERY GAME ADDS EVIDENCE.
+
+EVERY GAME DOES NOT AUTOMATICALLY CHANGE PRODUCTION WEIGHTS.
+
+Production changes must go through:
+
+candidate/challenger
+walk-forward validation
+calibration evaluation
+champion/challenger comparison
+approval/versioning
+controlled promotion
+
+No uncontrolled online weight mutation.
+
+============================================================
+RELEASE PATH
+============================================================
+
+I want you to determine our exact remaining path to:
+
+1. finish the NCAAF data foundation,
+2. build NCAAF V4,
+3. historically train/backtest it using PIT-safe evidence,
+4. calibrate it,
+5. compare it against baseline/market/champion,
+6. run prospective validation,
+7. approve it,
+8. promote it to LIVE CHAMPION,
+9. publish qualified NCAAF picks,
+10. continuously collect learning evidence afterward.
+
+Do not promise profitability.
+
+Evaluation should include, where appropriate:
+
+Log Loss
+Brier Score
+Brier Skill Score
+calibration
+MAE/RMSE expected margin
+MAE/RMSE expected total
+ATS probability calibration
+total probability calibration
+CLV
+ROI
+units
+drawdown
+sample size
+
+============================================================
+FINAL OUTPUT
+============================================================
+
+Return a report titled:
+
+NCAAF V4 — CURRENT STATE & RELEASE ROADMAP
+
+Start with:
+
+LATEST COMPLETED TASK:
+[task]
+
+CURRENT PRODUCTION STATUS:
+[summary]
+
+DATA_PIPELINE_READY:
+TRUE / FALSE
+
+V4_BUILD_READY:
+TRUE / FALSE
+
+V4_VALIDATION_READY:
+TRUE / FALSE
+
+FULL_LIVE_PUBLICATION_DATA_READY:
+TRUE / FALSE
+
+CURRENT NCAAF PRODUCTION CHAMPION:
+[model/version]
+
+Then provide:
+
+1. What has already been completed
+2. What #221G status actually is
+3. Current production data counts
+4. Mapping status
+5. QB/player status
+6. Prior/rating status
+7. Canonical intelligence status
+8. FINAL_PREGAME status
+9. Prospective evidence status
+10. PIT status
+11. Scheduler/provider status
+12. Supplemental availability gaps
+13. Current NCAAF model/champion status
+14. Exact remaining blockers
+15. Exact task sequence from here through official NCAAF V4 release
+
+At the end, give me:
+
+NEXT TASK:
+[exact task number and name]
+
+WHY:
+[brief explanation]
+
+RECOMMENDATION:
+Return exactly one:
+
+A. CONTINUE/FINISH #221G FIRST
+
+B. READY TO BEGIN #222 — NCAAF V4 ENGINE
+
+C. DATA FOUNDATION IS READY, BUT A DIFFERENT PRE-V4 TASK IS REQUIRED
+
+D. V4 ALREADY EXISTS — MOVE TO VALIDATION/APPROVAL
+
+Do NOT make any changes.
+
+Audit only and stop.

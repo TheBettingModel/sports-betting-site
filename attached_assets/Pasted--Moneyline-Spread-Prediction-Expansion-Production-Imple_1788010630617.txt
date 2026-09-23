@@ -1,0 +1,849 @@
+# Moneyline + Spread Prediction Expansion — Production Implementation Specification
+
+## Objective
+
+Add a trustworthy point-spread prediction system alongside the existing moneyline model.
+
+Moneyline remains the current production baseline.
+
+Spread predictions must be built, evaluated, calibrated, and validated as an independent predictive market before they are allowed to influence official play selection.
+
+The goal is not to convert a moneyline probability into a spread probability.
+
+The goal is to answer two separate questions:
+
+**Moneyline:**
+What is the probability this team wins the game?
+
+**Spread:**
+What is the probability this team covers this exact sportsbook line at this exact price?
+
+These probabilities must be independently modeled.
+
+---
+
+# 1. Keep Moneyline Production Logic Untouched
+
+Do not modify existing production moneyline logic while spread development is underway.
+
+Preserve:
+
+* Existing moneyline probabilities
+* Existing fair-price calculations
+* Existing recommendation thresholds
+* Existing confidence rules
+* Existing unit sizing
+* Existing MLB safeguards
+* Existing NCAAF Neutral / zero-unit gates
+* Existing Play of the Day logic
+* Existing grading
+* Existing learning history
+* Existing notifications
+* Existing published records
+* Existing immutable predictions
+
+Spread development must not accidentally alter historical or current moneyline behavior.
+
+---
+
+# 2. Build a Separate Spread Prediction Engine
+
+Each eligible game should generate two independent candidate objects:
+
+### Moneyline Candidate
+
+Contains:
+
+* Team
+* Sportsbook
+* Odds
+* Model win probability
+* No-vig market probability
+* Fair moneyline
+* Edge
+* Expected value
+* Confidence
+* Recommendation
+* Units
+
+### Spread Candidate
+
+Contains:
+
+* Team
+* Exact spread
+* Sportsbook
+* Spread price
+* Model cover probability
+* No-vig cover probability
+* Fair spread
+* Fair spread price
+* Edge
+* Expected value
+* Confidence
+* Recommendation
+* Units
+* Push probability where applicable
+
+The spread candidate must not inherit the moneyline probability.
+
+---
+
+# 3. Create an Expected Margin Model
+
+Spread prediction should begin with an independent estimate of game margin.
+
+For every game calculate:
+
+**Expected Margin = Expected Team A Score − Expected Team B Score**
+
+Example:
+
+TBM projection:
+
+Team A: 30.8
+Team B: 24.1
+
+Expected margin:
+
+Team A +6.7
+
+If Team A is favored, TBM fair spread is approximately:
+
+Team A -6.7
+
+This expected margin should be produced by the underlying sport model using the available team, player, matchup, situational, and scoring inputs.
+
+The sportsbook spread should not influence this initial fair-margin prediction.
+
+---
+
+# 4. Build Sport-Specific Margin Distributions
+
+Do not apply one universal spread formula across sports.
+
+Each sport needs its own margin distribution.
+
+Examples:
+
+### NFL / NCAAF
+
+Margin distributions must account for football scoring structure and key numbers.
+
+Important margins include:
+
+* 3
+* 7
+* 10
+* 14
+* Other empirically meaningful college/pro football margins
+
+A one-point difference around -3 has different value from a one-point difference around -17.
+
+### NBA / WNBA
+
+Basketball margins are much more continuous.
+
+Margin probability should account for:
+
+* Expected margin
+* Expected pace
+* Expected possessions
+* Scoring variance
+* Team variance
+* Game environment
+* Late-game fouling
+
+### MLB
+
+Run-line probabilities should be modeled through run distributions.
+
+For example:
+
+* Team scoring distribution
+* Opponent scoring distribution
+* Starting pitcher
+* Bullpen
+* Lineup
+* Park
+* Weather
+
+Do not simply transform MLB moneyline probability into -1.5 cover probability.
+
+### Soccer
+
+Asian handicap or goal-spread probabilities should come from expected-goal / score distributions where supported.
+
+Unsupported markets must remain unavailable.
+
+Never fabricate spread probabilities merely so every sport has the feature.
+
+---
+
+# 5. Calculate Probability at the Exact Sportsbook Line
+
+Once the expected margin distribution exists, evaluate the exact offered line.
+
+Example:
+
+TBM expected margin:
+
+Team A by 6.4
+
+Sportsbook offers:
+
+Team A -3.5
+
+Calculate:
+
+**P(Team A margin > 3.5)**
+
+That becomes the model cover probability.
+
+If sportsbook offers:
+
+Team A -5.5
+
+recalculate:
+
+**P(Team A margin > 5.5)**
+
+The probability must change with the exact line.
+
+Never store one generic “spread probability” for a game.
+
+---
+
+# 6. Model Push Probability Explicitly
+
+For whole-number spreads, calculate:
+
+* Win probability
+* Push probability
+* Loss probability
+
+Example:
+
+Team A -3
+
+Model:
+
+Cover: 52.8%
+Push: 8.1%
+Lose: 39.1%
+
+Expected value must incorporate push settlement correctly.
+
+Pushes should return stake and must not be treated as losses.
+
+---
+
+# 7. Derive Fair Spread
+
+In addition to cover probability at the sportsbook line, calculate TBM's fair spread.
+
+Example:
+
+TBM fair spread:
+
+Team A -5.8
+
+Market:
+
+Team A -3.5
+
+This difference is useful for analysis, but it is not sufficient by itself to trigger a bet.
+
+The actual betting decision must use cover probability and expected value at the available sportsbook price.
+
+---
+
+# 8. Remove Vig from Spread Markets
+
+Spread markets usually contain prices on both sides.
+
+Example:
+
+Team A -3.5 -110
+Team B +3.5 -110
+
+Convert both into implied probabilities and remove the sportsbook margin.
+
+Store:
+
+* Raw implied probability
+* No-vig probability
+* TBM probability
+
+Compare TBM probability against the no-vig market baseline.
+
+---
+
+# 9. Require Complete Two-Sided Market Data
+
+A spread candidate should preferably have both market sides available.
+
+Example:
+
+Team A -4 -108
+Team B +4 -112
+
+This allows accurate no-vig calculation and market validation.
+
+If only one side exists:
+
+* Mark market quality lower
+* Avoid assuming a synthetic opposite price
+* Do not create misleading no-vig probabilities
+
+---
+
+# 10. Preserve Sportsbook and Line Provenance
+
+Every spread prediction must permanently record:
+
+* Sportsbook
+* Exact line
+* Exact price
+* Timestamp
+* Opposing side line
+* Opposing side price
+* Consensus line
+* Best available line
+* Best available price
+
+Do not grade against a generic market spread.
+
+Grade against the exact spread that was recommended.
+
+---
+
+# 11. Track Opening, Current, Bet and Closing Lines
+
+Store independently:
+
+* Opening spread
+* Opening price
+* Current spread
+* Current price
+* Recommended/bet spread
+* Recommended/bet price
+* Closing spread
+* Closing price
+
+This is required for legitimate spread CLV analysis.
+
+---
+
+# 12. Calculate Spread Expected Value
+
+Spread recommendations must be driven by expected value rather than spread difference alone.
+
+For a market without push possibility:
+
+**EV = P(win) × profit − P(loss) × stake**
+
+For whole-number lines:
+
+**EV = P(win) × profit + P(push) × 0 − P(loss) × stake**
+
+Store EV as both:
+
+* Dollar/unit EV
+* Percentage EV
+
+---
+
+# 13. Add Prediction Uncertainty
+
+Expected margin should include uncertainty.
+
+Example:
+
+TBM fair margin:
+
+Team A +5.9
+
+Margin uncertainty:
+
+±7.8 points
+
+That uncertainty directly determines the cover distribution.
+
+Two games with the same projected margin may have very different spread confidence because their variance is different.
+
+---
+
+# 14. Calibrate Spread Probabilities Independently
+
+Moneyline calibration cannot automatically be used for spread predictions.
+
+Maintain separate calibration models for:
+
+* NFL spreads
+* NCAAF spreads
+* NBA spreads
+* WNBA spreads
+* MLB run lines
+* Soccer handicaps
+
+Track calibration buckets such as:
+
+50–52%
+52–54%
+54–56%
+56–58%
+58–60%
+60%+
+
+If TBM predicts 56% spread cover probabilities, approximately 56% of comparable out-of-sample predictions should cover over a sufficiently large sample.
+
+---
+
+# 15. Track Spread-Specific Brier Score
+
+Calculate Brier score for ATS probability forecasts.
+
+For non-push outcomes:
+
+**Brier = (Predicted Cover Probability − Actual Outcome)²**
+
+Store spread Brier separately from moneyline Brier.
+
+Pushes should be handled according to an explicitly documented evaluation methodology rather than arbitrarily recording them as wins or losses.
+
+---
+
+# 16. Track Spread Log Loss
+
+Use spread-specific log loss alongside Brier score.
+
+This helps detect overly aggressive cover probabilities.
+
+A model predicting:
+
+70% cover probability
+
+and repeatedly losing those wagers should be penalized far more heavily than a conservative 53% prediction.
+
+---
+
+# 17. Track Spread Closing Line Value
+
+Spread CLV is mandatory.
+
+Example:
+
+TBM recommended:
+
+Team A -3
+
+Closing:
+
+Team A -5
+
+TBM obtained approximately two points of favorable line movement.
+
+Store:
+
+* Bet line
+* Closing line
+* Point CLV
+* Price CLV
+* Closing no-vig probability
+* Whether TBM beat the close
+
+CLV should be evaluated even when the individual bet loses.
+
+---
+
+# 18. Validate by Exact Line Characteristics
+
+Spread performance should be segmented by:
+
+* Sport
+* Season
+* Market
+* Favorite
+* Underdog
+* Home
+* Road
+* Neutral
+* Spread bucket
+* Key number
+* Price
+* Edge bucket
+* Cover probability bucket
+* Confidence bucket
+* Recommendation
+* Data quality
+* Model version
+
+For football also track performance around:
+
+* ±3
+* ±7
+* ±10
+* ±14
+* Large college spreads
+
+---
+
+# 19. Add Spread-Specific Risk Controls
+
+Create separate minimum requirements for spread recommendations.
+
+Examples:
+
+* Minimum model edge
+* Minimum EV
+* Minimum calibration confidence
+* Minimum sample support
+* Minimum data quality
+* Maximum uncertainty
+* Acceptable sportsbook price
+* Acceptable market liquidity
+
+Do not automatically reuse moneyline thresholds.
+
+Spread thresholds must eventually be determined through spread-specific historical validation.
+
+---
+
+# 20. Shadow Mode First
+
+All spread candidates begin in shadow mode.
+
+Shadow predictions should:
+
+* Run for every supported game
+* Be permanently stored
+* Never affect published plays
+* Never affect official records
+* Never alter existing units
+* Never replace moneyline recommendations
+
+Continue collecting:
+
+* Prediction
+* Offered spread
+* Offered price
+* Closing spread
+* Closing price
+* Result
+* ATS result
+* CLV
+* Brier score
+* Log loss
+* Calibration
+* ROI
+* Drawdown
+
+---
+
+# 21. Define Explicit Promotion Gates
+
+Spread predictions should only leave shadow mode after sufficient out-of-sample evidence exists.
+
+Promotion should require acceptable performance across multiple measures.
+
+Do not approve spread production based only on ROI.
+
+Evaluate:
+
+### Probability Quality
+
+* Brier score
+* Calibration
+* Log loss
+
+### Market Quality
+
+* Closing line value
+* Percentage beating close
+
+### Betting Results
+
+* ROI
+* Units
+* Drawdown
+
+### Stability
+
+* Multiple seasons where possible
+* Different teams
+* Different spread ranges
+* Different market environments
+* Adequate sample size
+
+A model showing +10% ROI but negative CLV and poor calibration should not pass.
+
+---
+
+# 22. Use Champion vs Challenger Architecture
+
+Moneyline remains the production champion.
+
+Spread begins as a challenger.
+
+Do not assume spreads will outperform moneyline.
+
+Allow the historical evidence to determine which market is better for each sport and situation.
+
+Eventually TBM may learn that certain profiles are stronger on:
+
+* Moneyline
+* Spread
+* Run line
+* Handicap
+
+That should emerge from data rather than being predetermined.
+
+---
+
+# 23. Compare Markets Per Game
+
+After spread validation is complete, every game may produce multiple valid candidates.
+
+Example:
+
+Moneyline:
+
+Team A -145
+Model probability: 64%
+EV: +3.8%
+
+Spread:
+
+Team A -2.5 -110
+Cover probability: 56.8%
+EV: +8.4%
+
+The market-selection engine should be able to recognize that the spread provides better risk-adjusted value.
+
+---
+
+# 24. One Best Primary Market Per Game
+
+For official selections, avoid blindly publishing correlated bets from the same model opinion.
+
+After spread reaches production status, rank:
+
+* Moneyline
+* Spread
+
+using factors such as:
+
+* Expected value
+* Calibrated probability
+* Confidence
+* Price quality
+* Prediction uncertainty
+* Historical performance
+* CLV profile
+* Market quality
+
+Select one primary market when appropriate.
+
+Correlated secondary bets may still be stored analytically but should not automatically become multiple official plays.
+
+---
+
+# 25. Risk-Aware Tie Breaking
+
+If moneyline and spread candidates are nearly equal, consider:
+
+* Lower prediction uncertainty
+* Better historical calibration
+* Better liquidity
+* Better CLV profile
+* Better price
+* Lower variance
+* Better model support
+
+Do not select a spread merely because its raw edge number is 0.2% larger.
+
+---
+
+# 26. Preserve Immutable Predictions
+
+Every moneyline and spread candidate must receive its own prediction ID.
+
+Example:
+
+Game:
+
+Ohio State vs Michigan
+
+Records:
+
+`prediction_123_ML`
+
+`prediction_123_SPREAD`
+
+Both must remain permanently available.
+
+Never overwrite the moneyline record when spread becomes selected.
+
+This allows true side-by-side historical comparison.
+
+---
+
+# 27. Analytics Comparison
+
+The analytics system should show both markets side by side.
+
+Example:
+
+### Ohio State vs Michigan
+
+**Moneyline**
+
+Pick: Ohio State
+Price: -160
+Model probability: 65.2%
+Fair price: -187
+Edge: +3.7%
+EV: +4.4%
+Confidence: 74
+Status: Play
+
+**Spread**
+
+Pick: Ohio State -3
+Price: -110
+Model cover probability: 57.1%
+Fair spread: -5.2
+Edge: +4.7%
+EV: +9.0%
+Confidence: 78
+Status: Play
+
+**Selected Market**
+
+Ohio State -3
+
+Reason:
+
+Higher calibrated EV with acceptable uncertainty and stronger historical spread profile.
+
+---
+
+# 28. Mobile Card Behavior
+
+The main card should remain simple.
+
+Show only the selected market prominently.
+
+Example:
+
+OHIO STATE vs MICHIGAN
+
+**OHIO STATE -3**
+
+57% TBM Cover Probability
+
+The detailed analytics area/dropdown can show:
+
+* Moneyline candidate
+* Spread candidate
+* Fair line
+* Fair odds
+* Edge
+* EV
+* Confidence
+* Market comparison
+
+Do not overload the primary card.
+
+---
+
+# 29. Supported Market Rules
+
+Only activate spread prediction for sports with valid scoring/margin models.
+
+If the model cannot reliably produce a distribution for a particular market:
+
+Return:
+
+`spread_available: false`
+
+Do not create synthetic or guessed probabilities to fill the interface.
+
+Accuracy is more important than coverage.
+
+---
+
+# 30. Final Architecture
+
+The completed system should operate as:
+
+Football / Baseball / Basketball / Soccer Inputs
+→ Independent Game Projection
+→ Expected Score
+→ Expected Margin
+→ Sport-Specific Margin Distribution
+→ Fair Spread
+→ Exact-Line Cover Probability
+→ Calibration
+→ Sportsbook Spread + Price
+→ No-Vig Market Probability
+→ Spread Edge
+→ Expected Value
+→ Prediction Uncertainty
+→ Market Intelligence
+→ Recommendation Candidate
+→ Shadow Validation
+→ Closing Line
+→ ATS Result
+→ CLV
+→ Brier Score
+→ Log Loss
+→ Calibration
+→ ROI / Drawdown
+→ Promotion Evaluation
+
+At the same time:
+
+Independent Game Projection
+→ Win Probability
+→ Fair Moneyline
+→ Sportsbook Moneyline
+→ No-Vig Probability
+→ Moneyline Edge
+→ Expected Value
+→ Existing Production Recommendation
+
+After spread validation:
+
+Moneyline Candidate
++
+Spread Candidate
+↓
+Market Selection Engine
+↓
+Best Risk-Adjusted Market
+↓
+Official Play
+
+---
+
+# Critical Rule
+
+Do not build spread predictions as an extension of moneyline probability.
+
+Build the spread model around:
+
+**Expected game margin + sport-specific scoring variance + exact sportsbook line + exact price.**
+
+Moneyline asks:
+
+**Will the team win?**
+
+Spread asks:
+
+**By how much is the team likely to win or lose, what is the probability that margin clears this exact line, and is the offered price profitable?**
+
+These are different prediction problems and must remain independently measurable.
+
+Moneyline should remain the production baseline until the spread model demonstrates through out-of-sample calibration, Brier score, log loss, closing-line value, ROI, and drawdown that it is trustworthy enough for production use.
