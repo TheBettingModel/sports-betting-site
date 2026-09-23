@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { getGuardedServingRuntimeStatus } from "../services/guardedServing/runtimeStatus";
 import { canonicalV4EngineRegistry } from "../services/v4Platform";
 import { getTbmReleaseIdentity } from "../lib/releaseIdentity";
+import { assertRequiredProductionSchema } from "../lib/requiredProductionSchema";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ router.get("/readyz", async (_req, res) => {
   try {
     const release = getTbmReleaseIdentity("api");
     await db.execute(sql`SELECT 1`);
+    await assertRequiredProductionSchema();
     const guarded = await getGuardedServingRuntimeStatus();
     res.json({
       status: "ready",
@@ -35,7 +37,7 @@ router.get("/readyz", async (_req, res) => {
   } catch (error) {
     res.status(503).json({
       status: "not_ready",
-      database: "unavailable_or_registry_check_failed",
+      database: "unavailable_or_schema_or_registry_check_failed",
       reason: error instanceof Error ? error.message : "READINESS_CHECK_FAILED",
       checkedAt: new Date().toISOString(),
     });

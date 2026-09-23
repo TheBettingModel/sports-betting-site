@@ -23,6 +23,9 @@ if (expectedSha && expectedSha !== exactHead) {
 if (!/autoDeploy:\s*false/.test(render)) {
   fail("Render must require an explicit deploy");
 }
+if (!/healthCheckPath:\s*\/api\/readyz/.test(render)) {
+  fail("Render API must check database and schema readiness, not just process health");
+}
 if (!/key:\s*SCHEDULER_ENABLED\s*\n\s*value:\s*"false"/.test(render)) {
   fail("Render API must keep its in-process scheduler disabled");
 }
