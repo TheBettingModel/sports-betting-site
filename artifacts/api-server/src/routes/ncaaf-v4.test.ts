@@ -9,7 +9,7 @@ vi.mock("../middleware/requireSubscriber", () => ({
 }));
 vi.mock("../services/ncaafV4GameDay", () => ({ getNcaafV4ProjectionBoard: vi.fn(async () => ({
   date: "2026-09-06", generatedAt: "2026-09-06T12:00:00.000Z", evidencePersistence: "response-only",
-  model: { id: "tbm-ncaaf-v4-expected-score", modelStatus: "V4_PREVIEW", approvalStatus: "UNVALIDATED", publicationStatus: "PREVIEW_ONLY", configurationHash: "a", parameterHash: "b" }, board: [{
+  model: { id: "tbm-ncaaf-v4-expected-score", modelStatus: "V4_PROJECTION", approvalStatus: "ACTIVE", publicationStatus: "PROJECTION_ONLY", configurationHash: "a", parameterHash: "b" }, board: [{
     gameId: "secret-game", predictionId: "secret-prediction", predictionHash: "secret-hash", kickoffAt: "2026-09-06T18:00:00.000Z", awayTeam: "Away", homeTeam: "Home", v4ModelOpinion: "BUY",
     model: { expectedHomePoints: 28, expectedAwayPoints: 21, homeWinProbability: .7, awayWinProbability: .3, fairHomeMoneyline: -233, fairAwayMoneyline: 233, configurationHash: "secret", parameterHash: "secret", featureCutoff: "secret" },
     market: { moneyline: { capturedAt: "2026-09-06T12:00:00.000Z", homeOdds: -120, awayOdds: 100 }, spread: null, total: null },

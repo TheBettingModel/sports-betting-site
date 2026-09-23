@@ -46,6 +46,7 @@ jobs:
           db_url="${db_url}tbm_ci:${CI_DB_PASSWORD}@localhost:5432/tbm_ci"
           echo "DATABASE_URL=$db_url" >> "$GITHUB_ENV"
       - run: pnpm --filter @workspace/db run push
+      - run: pnpm --filter @workspace/api-server exec tsx ./scripts/install-guarded-serving-guards.ts
       - run: pnpm run security:signing-credentials
       - run: pnpm run security:source
       - run: pnpm run release:preflight
