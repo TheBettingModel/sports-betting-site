@@ -264,7 +264,7 @@ function Card({ d }: { d: CardData }) {
             padding: "5px 9px",
             background: "#0a0a0a", borderRadius: 5, border: "1px solid #1a1a1a",
           }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF",
+            <span style={{ fontSize: 10, fontWeight: 700,
               color: d.pickIsHome ? "#d1d5db" : "#9CA3AF" }}>
               {d.homeStarter}
             </span>
