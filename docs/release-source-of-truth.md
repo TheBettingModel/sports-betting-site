@@ -19,8 +19,12 @@ never merge them into the release branch wholesale.
 - Persistent production data: one Neon PostgreSQL target
 - Replit: authoritative authoring, validation, and preview workspace
 
-Vercel and the Replit deployment are not production dependencies for the
-distributed iOS app.
+Vercel is not a production dependency. Until a reviewed iOS build points
+directly at Render, the installed app still calls the published Replit URL,
+which forwards `/api` traffic to the Render API. Replit is therefore a
+temporary production dependency, and a deploy to that Render service changes
+the backend serving subscribers immediately. Do not call it an isolated
+canary while this bridge remains in place.
 
 ## One-release identity
 
@@ -51,7 +55,9 @@ services with the same Neon connection.
    Never depend on API startup DDL.
 6. Configure both Render services with the same release SHA and database target
    label.
-7. Deploy the Render API explicitly. Verify `/api/healthz` and `/api/readyz`.
+7. Deploy the Render API explicitly. `/api/healthz` proves the process is up;
+   `/api/readyz` must prove the database, required V4 schema, and runtime gates
+   are ready. Render's health check must use `/api/readyz`.
 8. Run the scheduler in shadow mode. Verify its release SHA and database
    fingerprint match the API and that it created no public rows.
 9. Enable exactly one scheduler owner. Keep the API in-process scheduler off.
@@ -83,3 +89,5 @@ Do not release when any of these is true:
 - A required database migration has not been applied and verified.
 - The mobile build points to an unverified or candidate API.
 - Publication is enabled without exact model and market approval.
+- The published Replit API still forwards to the candidate, but the Render
+  deployment has been treated as traffic-isolated.
