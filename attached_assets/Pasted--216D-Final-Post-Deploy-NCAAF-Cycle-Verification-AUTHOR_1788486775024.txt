@@ -1,0 +1,406 @@
+#216D — Final Post-Deploy NCAAF Cycle Verification
+
+AUTHORITATIVE CURRENT STATE:
+
+#216C CODE FIX = VALID
+
+Deployed commit:
+4c848f4909ecc7cca18fac469a97ab4596bce0ba
+
+Verified:
+- 58 test files passed
+- 380 tests passed
+- typecheck passed
+- build passed
+- direct havoc paths passed
+- indexed component paths passed
+- nested component composition passed
+- complete composed-prior object passed
+- production-equivalent snapshot insertion passed
+- sportsbook/ambiguous totals remain rejected
+
+Current production counts:
+V2 = 661
+CFBD-enriched = 649
+
+No post-deployment snapshot has yet been persisted.
+
+Operational state:
+- deployment ready at 2026-09-04T01:46:37.954Z
+- run 235 started before deployment at 2026-09-04T01:37:46.303Z
+- run 235 remains recorded RUNNING
+- old advisory lock has cleared
+- current advisory lock rows = 0
+- new deployment startup capture correctly skipped due global_duplicate_invocation
+
+DO NOT:
+- modify firewall code unless new evidence proves a defect
+- modify NCAAF model logic
+- begin #222
+- modify PIT
+- modify publication
+- modify NFL
+- modify MLB
+- modify any other sport
+- bypass distributed locking
+
+============================================================
+OBJECTIVE
+============================================================
+
+Obtain ONE clean NCAAF production evidence cycle running entirely on deployed commit:
+
+4c848f4909ecc7cca18fac469a97ab4596bce0ba
+
+and prove:
+
+1. run lifecycle works
+2. snapshot persistence works
+3. composed havoc fields pass
+4. market firewall remains intact
+5. advisory locking behaves correctly
+
+This is an operational verification task.
+
+============================================================
+1. RECONCILE RUN 235
+============================================================
+
+Inspect run 235.
+
+Determine whether it is genuinely active or orphaned.
+
+Report:
+- current status
+- started_at
+- last heartbeat/update
+- current age
+- owning invocation/process if known
+- whether that owner still exists
+- whether advisory lock still exists
+- whether run qualifies as stale under existing production rules
+
+Current known advisory lock count is 0.
+
+If run 235 is provably stale/orphaned:
+
+use ONLY the existing supported stale-run reconciliation mechanism.
+
+Do not manually delete it.
+Do not fabricate completion.
+Do not alter evidence produced by it.
+
+After reconciliation report its final state:
+
+COMPLETED / PARTIAL / FAILED
+
+============================================================
+2. VERIFY CLEAN GLOBAL STATE
+============================================================
+
+Before the next cycle verify:
+
+advisory locks = 0
+legitimate RUNNING NCAAF runs = 0
+stale RUNNING NCAAF runs = 0
+
+If this state cannot be reached using existing supported mechanisms, stop and identify the exact lifecycle defect.
+
+============================================================
+3. START OR WAIT FOR NEXT SUPPORTED CYCLE
+============================================================
+
+Obtain ONE legitimate NCAAF cycle that starts AFTER deployment timestamp:
+
+2026-09-04T01:46:37.954Z
+
+Preferred:
+normal dedicated NCAAF scheduler.
+
+Existing cadence:
+minutes 2, 17, 32, 47.
+
+If an existing supported internal/admin NCAAF evidence trigger already exists, it may be used.
+
+DO NOT:
+- create a bypass
+- bypass advisory locking
+- run concurrent cycles
+- manually insert snapshots
+
+Record:
+
+run ID
+started_at
+deployment/commit if observable
+
+The run MUST have started after the deployment became ready.
+
+============================================================
+4. VERIFY RUN LIFECYCLE
+============================================================
+
+Follow that run through finalization.
+
+It must end as exactly:
+
+COMPLETED
+PARTIAL
+FAILED
+
+It must not remain indefinitely RUNNING.
+
+Report:
+
+run ID
+start
+finish
+duration
+final status
+coverage
+error details
+provider calls
+snapshot attempts
+snapshot successes
+snapshot failures
+
+============================================================
+5. VERIFY SNAPSHOT PERSISTENCE
+============================================================
+
+Baseline:
+
+V2 = 661
+CFBD-enriched = 649
+
+After the clean cycle report:
+
+V2 AFTER =
+NEW V2 =
+
+CFBD-ENRICHED AFTER =
+NEW CFBD-ENRICHED =
+
+Also report:
+
+READY =
+PARTIAL =
+BLOCKED =
+
+A snapshot may remain PARTIAL/BLOCKED for legitimate data-readiness reasons.
+
+The important verification is whether the snapshot BUILD/PERSISTENCE path succeeds.
+
+Do not require READY status merely to prove #216C.
+
+============================================================
+6. VERIFY COMPOSED HAVOC IN REAL NEW SNAPSHOT
+============================================================
+
+Inspect at least one NEW snapshot produced by this post-deployment cycle.
+
+Find legitimate:
+
+earlySeasonPrior.payload.components[*].payload.defense.havoc.total
+
+or the equivalent actual composed path.
+
+Report:
+
+COMPOSED_HAVOC_PRESENT =
+TRUE / FALSE
+
+COMPOSED_HAVOC_FIREWALL_REJECTION =
+TRUE / FALSE
+
+SNAPSHOT_PERSISTED =
+TRUE / FALSE
+
+If the newly processed games simply do not contain a composed havoc component, do NOT falsely fail the firewall.
+
+Instead:
+- report NO_RUNTIME_SAMPLE
+- rely on production-equivalent test coverage for the composed path
+- still verify that snapshots persisted without another market-firewall failure
+
+============================================================
+7. CHECK PRODUCTION LOGS
+============================================================
+
+Search the entire new run for:
+
+market-shaped
+havoc.total
+components[
+firewall
+snapshot failure
+snapshot persistence
+global_duplicate_invocation
+stale
+timeout
+
+Report exact relevant failures.
+
+If another legitimate football field is being falsely rejected, provide its exact path.
+
+Do NOT broaden firewall rules during this task.
+
+============================================================
+8. VERIFY MARKET FIREWALL
+============================================================
+
+Confirm the deployed regression suite remains authoritative.
+
+Return:
+
+MARKET_FIREWALL_INTACT =
+TRUE / FALSE
+
+There must be no evidence that sportsbook:
+
+odds
+moneyline
+spread
+total line
+price
+book
+implied probability
+opening line
+closing line
+
+entered sports intelligence.
+
+============================================================
+9. VERIFY DISTRIBUTED LOCK
+============================================================
+
+For the clean cycle confirm:
+
+one owner acquired lock
+duplicates were rejected safely if attempted
+lock remained valid during legitimate execution
+lock released after finalization
+no orphaned lock remained
+
+Return:
+
+GLOBAL_LOCK_HEALTHY =
+TRUE / FALSE
+
+============================================================
+10. RUN FINALIZATION HEALTH
+============================================================
+
+Separate two questions:
+
+A. Did this new clean cycle finalize correctly?
+
+B. Is the broader historical run-finalization system healthy?
+
+Return:
+
+POST_DEPLOY_RUN_FINALIZED =
+TRUE / FALSE
+
+RUN_FINALIZATION_HEALTHY =
+TRUE / FALSE
+
+If the new run finalizes but historical run-finalization remains concerning, explain that separately.
+
+Do not fail #216C's firewall verification solely because older unrelated run-history statistics are poor.
+
+============================================================
+11. FINAL OUTPUT
+============================================================
+
+Return exactly:
+
+COMPOSED_HAVOC_FIREWALL_FIX =
+PASS / FAIL
+
+DIRECT_HAVOC_PATH =
+PASS / FAIL
+
+COMPONENT_HAVOC_PATH =
+PASS / FAIL
+
+MARKET_FIREWALL_INTACT =
+TRUE / FALSE
+
+POST_DEPLOY_RUN_STARTED =
+TRUE / FALSE
+
+POST_DEPLOY_RUN_FINALIZED =
+TRUE / FALSE
+
+NEW_PRODUCTION_V2_SNAPSHOT =
+TRUE / FALSE
+
+NEW_CFBD_ENRICHED_SNAPSHOT =
+TRUE / FALSE
+
+NCAAF_SNAPSHOT_PATH_HEALTHY =
+TRUE / FALSE
+
+GLOBAL_LOCK_HEALTHY =
+TRUE / FALSE
+
+RUN_FINALIZATION_HEALTHY =
+TRUE / FALSE
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #216 COMPLETE — FIREWALL AND PRODUCTION SNAPSHOT PATH VERIFIED
+
+B. #216 CODE COMPLETE — EXACT OPERATIONAL LIFECYCLE BLOCKER REMAINS
+
+C. #216 STILL FAILING — EXACT SNAPSHOT/FIREWALL DEFECT REMAINS
+
+============================================================
+IMPORTANT
+============================================================
+
+If a post-deployment run successfully creates new snapshots and the only remaining issue is that those snapshots are BLOCKED because historical/team/QB evidence is incomplete:
+
+THAT IS NOT A #216 FAILURE.
+
+#216 concerns:
+- firewall correctness
+- snapshot construction
+- snapshot persistence
+- production cycle verification
+
+Do not conflate V4 data readiness with #216 verification.
+
+============================================================
+NEXT STEP IF A
+============================================================
+
+If decision A:
+
+Do NOT begin #222.
+
+State that the next task is:
+
+#221I — NCAAF 2023–2025 Atomic Historical Backfill & Chronological PIT Replay
+
+That task will address the separate major blocker:
+
+TOTAL PIT-SAFE TRAINING GAMES = 0
+
+============================================================
+STOP
+============================================================
+
+Do not modify code unless verification uncovers a genuine lifecycle defect.
+
+Do not begin #222.
+Do not train V4.
+Do not change publication.
+Do not modify NFL or MLB.
+
+Verify one clean post-deployment production cycle and stop.

@@ -1,0 +1,81 @@
+Additional requirements for #205
+
+1. Memory configuration is a safeguard, not the only diagnosis
+- Add an explicit Node memory setting appropriate for the runtime.
+- Do not consider the task complete solely because increasing --max-old-space-size prevents the immediate crash.
+- Identify whether memory growth is caused by:
+  - overlapping scheduler jobs
+  - unbounded catch-up batches
+  - loading too many games/predictions/markets into memory
+  - retained objects/listeners/timers
+  - repeated provider payload accumulation
+  - concurrent reconciliation/refresh jobs
+  - large database queries without pagination/batching
+
+2. Prevent overlapping heavy jobs
+- Verify scheduler jobs that should be single-flight cannot overlap.
+- If a prior run is still active, a second copy should skip, defer, or safely queue rather than execute concurrently.
+- Catch-up work must not create multiple overlapping copies of the same task.
+
+3. Bound catch-up processing
+- Catch-up work must use explicit batch limits/pagination.
+- Do not load an unbounded historical backlog into memory in one operation.
+- Process batches, release references, then continue.
+- Preserve exactly-once grading/evidence semantics.
+
+4. Add memory observability
+During scheduler/catch-up verification, record at minimum:
+- process RSS
+- heap used
+- heap total
+- external memory if available
+- job name
+- job start/end
+- batch size
+- duration
+
+Do not log secrets or provider credentials.
+
+This should make it possible to determine whether memory returns toward baseline after jobs complete or continuously grows.
+
+5. Define the verification window
+Do not verify only that the API starts.
+
+The health endpoint must remain available through:
+- startup reconciliation
+- catch-up processing
+- at least one normal scheduler cycle
+- normal API requests during/after the cycle
+
+If practical, allow multiple representative scheduler cycles to run during verification.
+
+6. Preserve #201 invariants
+Explicitly test/confirm:
+- production model weights remain unchanged
+- confidence multipliers remain unchanged
+- champion snapshot hashes remain unchanged
+- historical predictions remain immutable
+- spread and moneyline learning remain isolated
+- research evidence can still be written successfully
+
+7. Do not hide failures by disabling required work
+The fix must not simply disable scheduler/catch-up jobs that production requires.
+If a problematic job must temporarily be constrained, preserve its required work through safe batching/single-flight behavior.
+
+8. Production runtime configuration
+The Node memory configuration must be applied through the managed deployment/runtime configuration and not through an ad hoc local-only command.
+Document the final NODE_OPTIONS/runtime value and why it was selected.
+
+9. Stop after #205
+After completion provide:
+- root cause found
+- memory/runtime changes
+- scheduler/catch-up changes
+- files changed
+- tests added
+- before/after memory observations
+- health verification duration
+- confirmation that #201 behavior is unchanged
+- any remaining memory-growth risk
+
+Do not begin Phase 2 automatically.

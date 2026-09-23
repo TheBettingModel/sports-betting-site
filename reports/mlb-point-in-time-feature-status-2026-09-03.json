@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "mlb-pit-v1",
+  "scope": "research-only; no production model behavior changed",
+  "features": [
+    {"name":"fip","status":"ACTIVE"},
+    {"name":"confirmed_lineup_ops","status":"ACTIVE"},
+    {"name":"league_pit_run_environment","status":"CAPTURED_RESEARCH_ONLY"},
+    {"name":"travel","status":"AVAILABLE_NOT_USED"},
+    {"name":"xera","status":"NOT_SUPPORTED"},
+    {"name":"statcast_barrel_pct","status":"NOT_SUPPORTED"},
+    {"name":"oaa","status":"NOT_SUPPORTED"}
+  ]
+}

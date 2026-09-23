@@ -1,0 +1,2937 @@
+TASK #244 — TBM V4 PRODUCTION INTEGRATION, PUBLIC FULL-SLATE MODEL BOARDS & CONTROLLED CLOUD CUTOVER
+
+PROJECT: The Betting Model (TBM)
+DATE: September 2026
+
+EXECUTION MODE:
+FINAL MAJOR V4 PRODUCTION INTEGRATION + CONTROLLED DEPLOYMENT
+
+THIS IS NOT ANOTHER AUDIT-ONLY TASK.
+
+THIS TASK IS AUTHORIZED TO IMPLEMENT THE REQUIRED CODE, COMPLETE THE NCAAF ADAPTER, INTEGRATE THE V4 PLATFORM, UPDATE THE EXISTING USER EXPERIENCE, PREPARE/EXECUTE THE AUTHORIZED CLOUD DEPLOYMENT WHERE CREDENTIALS/PERMISSIONS ARE AVAILABLE, VERIFY PRODUCTION, AND LEAVE TBM OPERATING ON THE NEW V4 ARCHITECTURE.
+
+DO NOT STOP AT:
+"READY TO DEPLOY"
+"DEPLOYMENT PLAN CREATED"
+"CONFIGURATION AUTHORED"
+"NEEDS FUTURE INTEGRATION"
+
+when the remaining work is legitimately executable with the available environment and authorization.
+
+At the same time:
+
+DO NOT fabricate credentials.
+DO NOT bypass provider authorization.
+DO NOT weaken security.
+DO NOT lower model quality gates.
+DO NOT expose secrets.
+DO NOT copy contaminated Git history.
+DO NOT silently fall back to legacy models.
+
+==================================================
+0. FINAL MISSION
+==================================================
+
+TBM has completed the major V4 architecture and model-building phases.
+
+The mission of #244 is to transition TBM from:
+
+V4 DEVELOPMENT PLATFORM
+
+to:
+
+V4 OPERATING PRODUCTION PLATFORM.
+
+The target production architecture is:
+
+SPORT DATA
+    ↓
+SPORT-SPECIFIC V4 ENGINE
+    ↓
+IMMUTABLE FULL-SLATE FORECAST
+    ↓
+PUBLIC MODEL BOARD
+    ↓
+MODEL ANALYTICS
+
+and separately:
+
+IMMUTABLE V4 FORECAST
+    ↓
+PUBLICATION PERMISSION
+    ↓
+MARKET COMPARISON
+    ↓
+#238A SAFETY / SELECTION
+    ↓
+OFFICIAL TBM PLAY
+    ↓
+TOP PICKS / POTD / UNITS
+    ↓
+OFFICIAL BETTING RESULTS
+    ↓
+BETTING ANALYTICS
+
+These are related systems.
+
+They are NOT the same system.
+
+A game does NOT need to become an Official TBM Pick to appear on the website.
+
+==================================================
+1. AUTHORITATIVE STARTING STATE
+==================================================
+
+The following legitimate V4 engines currently exist:
+
+MLB
+- V4 operational
+- SHADOW
+- publication disabled
+
+NFL
+- V4 operational
+- SHADOW
+- V4_VALIDATING
+- publication disabled
+- model selected in #243B: ELO_HOME_55
+- clean cohort: 1,139 club games
+- 4 Pro Bowl events quarantined
+- validation Brier: 0.22043
+- validation baseline: 0.24060
+- OOS Brier: 0.21657
+- OOS baseline: 0.25220
+- OOS AUC: 0.72681
+- total-score bias: +0.17
+- artifact hash:
+  0da3f4e62a88da4c8d486b6433ca83c907e2cbd2fc072834817cbdb919233c5e
+- Week 1 dry run: 15/15 forecasts
+- 100% coverage
+- 15 immutable shadow forecasts persisted
+- NOT_PUBLICATION_ELIGIBLE
+- shadow collection currently runs at startup and twice hourly
+
+NBA
+- V4 operational
+- SHADOW
+- publication disabled
+
+WNBA
+- V4 operational
+- SHADOW
+- publication disabled
+
+NHL
+- V4 operational
+- SHADOW
+- publication disabled
+
+NCAAMB
+- V4 operational
+- SHADOW
+- publication disabled
+
+Soccer
+- V4 operational
+- SHADOW
+- publication disabled
+- legitimate HOME/DRAW/AWAY model
+
+NCAAF
+- legitimate frozen dedicated V4 exists
+- model foundation already built
+- shared full-slate V4 adapter remains incomplete
+
+UFC
+- no legitimate V4 core yet
+- must remain NO_FORECAST / IN DEVELOPMENT
+- UFC DOES NOT BLOCK THIS DEPLOYMENT
+
+==================================================
+2. PRODUCT PRINCIPLE — CRITICAL
+==================================================
+
+TBM IS NOT ONLY A PICKS WEBSITE.
+
+The model itself is a user-facing product.
+
+Users should be able to browse supported games and see what the model projects even when:
+
+- there are zero official picks
+- the sport is still SHADOW
+- the model is accumulating prospective validation
+- the market does not present a qualifying wager
+
+A legitimate V4 SHADOW forecast should still provide the complete supported model experience.
+
+SHADOW means:
+
+V4 VALIDATING
+NOT AN OFFICIAL TBM PICK
+
+SHADOW DOES NOT MEAN:
+
+hidden
+disabled
+unfinished-looking
+excluded from public Model Board
+excluded from model analytics
+replaced with legacy output
+
+==================================================
+3. REQUIRED PUBLIC MODEL STATES
+==================================================
+
+Use clear user-facing states.
+
+STATE A:
+
+V4 VALIDATING
+Not an Official TBM Pick
+
+Meaning:
+- legitimate V4 forecast exists
+- model is validating
+- forecast may be publicly displayed
+- forecast contributes to model analytics
+- forecast is NOT an official wager
+
+STATE B:
+
+NO OFFICIAL PLAY
+
+Meaning:
+- legitimate forecast exists
+- model may be approved or otherwise eligible for evaluation
+- no wager cleared publication criteria
+- projection remains visible
+
+STATE C:
+
+OFFICIAL TBM PLAY
+
+Meaning:
+- legitimate V4 forecast exists
+- model has publication permission
+- market opportunity qualified
+- #238A passed
+- wager was actually published
+- wager enters official betting record
+
+STATE D:
+
+V4 IN DEVELOPMENT
+
+Meaning:
+- no legitimate operational V4 forecast exists
+- schedule/game may still be visible
+- NO projection may be fabricated
+- NO legacy model may masquerade as V4
+
+Currently UFC should use this state.
+
+==================================================
+4. FIRST HARD GATE — NCAAF ADAPTER
+==================================================
+
+BEFORE PRODUCTION CUTOVER:
+
+FINISH THE NCAAF SHARED FULL-SLATE V4 ADAPTER.
+
+This is the first implementation step of #244.
+
+Do not begin final production cutover until this is working.
+
+The frozen NCAAF V4 model already exists.
+
+Do NOT retrain it unnecessarily.
+
+Do NOT replace it with a generic model.
+
+Connect the existing legitimate frozen NCAAF V4 engine to:
+
+- shared V4 event discovery
+- canonical event identity
+- strict V4 router
+- evidence/materialization contract
+- full-slate forecasting
+- canonical forecast envelope
+- immutable forecast persistence
+- forecast versioning
+- public projection API
+- model analytics
+- grading/outcome pairing
+
+==================================================
+5. NCAAF ADAPTER PARITY
+==================================================
+
+The adapter must preserve the exact frozen NCAAF semantics.
+
+Verify:
+
+feature order
+feature meaning
+normalization
+team orientation
+home/away orientation
+projected score semantics
+win probability semantics
+cutoff semantics
+PIT rules
+artifact identity
+parameter identity
+determinism
+
+Do not approximate the dedicated engine through a generic adapter.
+
+==================================================
+6. NCAAF DAY RULE
+==================================================
+
+Preserve the permanent NCAAF production rule:
+
+NORMAL PRODUCTION PROCESSES ONLY THE CURRENT EASTERN CALENDAR DATE.
+
+Timezone:
+
+America/New_York
+
+Normal production must NOT:
+
+prefetch tomorrow
+forecast tomorrow
+persist tomorrow's forecasts
+request tomorrow's NCAAF V4 slate for production generation
+
+Explicit date parameters may exist only for legitimate diagnostics/testing/history where already supported.
+
+==================================================
+7. NCAAF FULL-SLATE TEST
+==================================================
+
+After adapter completion, run a legitimate current-date development dry run.
+
+Report:
+
+scheduled games
+supported games
+eligible games
+forecasted games
+failed games
+coverage percentage
+failure reasons
+
+Every eligible game should be attempted before market filtering.
+
+==================================================
+8. NCAAF IMMUTABLE FORECAST TEST
+==================================================
+
+Verify NCAAF forecasts:
+
+are created before event start
+contain exact model/artifact identity
+contain exact projected scores
+contain probabilities where supported
+are append-only
+are versioned
+cannot be overwritten after event start
+are safely gradeable later
+
+==================================================
+9. NCAAF HARD GATE RESULT
+==================================================
+
+Do not continue to production cutover until NCAAF is either:
+
+A. successfully connected and operational
+
+OR
+
+B. a genuine external/non-code blocker is proven.
+
+If a resolvable implementation defect is found:
+
+FIX IT.
+
+Do not merely document it.
+
+==================================================
+10. CANONICAL PRODUCTION SPORT MATRIX
+==================================================
+
+After NCAAF adapter completion, target:
+
+MLB      → V4 FORECAST
+NFL      → V4 FORECAST
+NBA      → V4 FORECAST
+WNBA     → V4 FORECAST
+NHL      → V4 FORECAST
+NCAAF    → V4 FORECAST
+NCAAMB   → V4 FORECAST
+SOCCER   → V4 FORECAST
+UFC      → NO_FORECAST / IN DEVELOPMENT
+
+There must be no legacy fallback inside the canonical V4 board.
+
+==================================================
+11. NO LEGACY FALLBACK
+==================================================
+
+Absolute production rule:
+
+IF LEGITIMATE V4 EXISTS:
+USE V4.
+
+IF LEGITIMATE V4 DOES NOT EXIST:
+NO_FORECAST.
+
+NEVER:
+
+V4 unavailable
+→ V1/V2/V3 output
+→ label it as V4
+
+This applies to:
+
+API
+homepage
+sport pages
+model boards
+analytics
+POTD
+Top Picks
+scheduler
+mobile
+admin
+background jobs
+
+==================================================
+12. RETIRE REPLACED LEGACY FORECASTING
+==================================================
+
+Identify all current production paths still generating current predictions from legacy models.
+
+For every sport with a legitimate operational V4:
+
+retire/disable legacy current-forecast generation.
+
+Do not necessarily delete historical legacy code/data if required for historical reproducibility.
+
+But legacy models must stop producing current canonical forecasts.
+
+==================================================
+13. LEGACY HISTORY PRESERVATION
+==================================================
+
+Historical legacy predictions/results may remain for historical audit.
+
+Clearly preserve:
+
+model identity
+version
+publication status
+historical result
+
+Do not rewrite historical predictions as V4.
+
+==================================================
+14. FULL-SLATE FIRST
+==================================================
+
+For every operational V4 sport:
+
+EVENT DISCOVERY
+    ↓
+ELIGIBILITY
+    ↓
+V4 FORECAST
+    ↓
+IMMUTABLE PERSISTENCE
+    ↓
+PUBLIC MODEL BOARD
+
+must occur BEFORE:
+
+odds filtering
+edge filtering
+recommendation filtering
+#238A
+Top Picks
+POTD
+
+Every eligible game gets analyzed.
+
+Not only betting candidates.
+
+==================================================
+15. FULL-SLATE COVERAGE METRICS
+==================================================
+
+For every operational sport report daily:
+
+scheduled
+supported
+eligible
+forecasted
+failed
+coverage_pct
+
+Do not silently omit failures.
+
+==================================================
+16. FORECAST IMMUTABILITY
+==================================================
+
+Preserve #242.
+
+Forecasts must be:
+
+append-only
+versioned
+idempotent
+event-bound
+model-bound
+artifact-bound
+cutoff-bound
+
+No post-start mutation.
+
+==================================================
+17. FORECAST VERSIONING
+==================================================
+
+If legitimate new information becomes available before event start:
+
+append a new forecast version.
+
+Do NOT overwrite the prior version.
+
+Public display may use the latest legitimate pre-event forecast.
+
+Evaluation rules must define which version is graded.
+
+==================================================
+18. PUBLIC MODEL BOARD
+==================================================
+
+Implement/finish the public Model Board using the existing TBM visual system.
+
+DO NOT redesign the entire website.
+
+The Model Board should show every supported eligible event for operational V4 sports.
+
+Each compact card should prioritize simplicity.
+
+Recommended visible information:
+
+TEAM / OPPONENT
+team logos
+game time
+model projected score where supported
+projected winner
+win probability
+V4 status
+official-pick status
+
+Do not overload compact cards.
+
+==================================================
+19. MODEL BOARD GAME DETAILS
+==================================================
+
+When deeper analysis already exists or can be safely exposed, the expanded game view may show:
+
+projected home score
+projected away score
+projected margin
+projected total
+home win probability
+away win probability
+Soccer draw probability
+model version/status
+forecast timestamp
+supported model factors
+validation status
+official pick status
+
+Do not invent unsupported analytics.
+
+==================================================
+20. MLB PUBLIC EXPERIENCE
+==================================================
+
+MLB V4 should display its legitimate supported projection outputs.
+
+Where supported:
+
+projected home runs
+projected away runs
+projected winner
+win probability
+projected total
+projected margin
+V4 status
+
+Do not show fake run-line cover probability unless a separately validated model exists.
+
+==================================================
+21. NFL PUBLIC EXPERIENCE
+==================================================
+
+NFL V4 should use the legitimate #243B engine.
+
+Display where supported:
+
+projected home points
+projected away points
+projected winner
+home win probability
+away win probability
+projected total
+projected margin
+
+Example presentation concept:
+
+MODEL PROJECTION
+BUF 27 — NYJ 23
+
+Buffalo Win Probability: 62%
+
+NFL V4
+VALIDATING
+
+Not an Official TBM Pick
+
+Do not fabricate spread-cover probability.
+
+==================================================
+22. NBA PUBLIC EXPERIENCE
+==================================================
+
+Show legitimate V4 supported outputs including projected score and probabilities where available.
+
+Do not fall back to legacy NBA calculations.
+
+==================================================
+23. WNBA PUBLIC EXPERIENCE
+==================================================
+
+Show legitimate V4 supported outputs.
+
+No legacy fallback.
+
+==================================================
+24. NHL PUBLIC EXPERIENCE
+==================================================
+
+Show legitimate V4 supported outputs.
+
+No fabricated puck-line probability.
+
+==================================================
+25. NCAAMB PUBLIC EXPERIENCE
+==================================================
+
+Show legitimate V4 supported outputs.
+
+No legacy fallback.
+
+==================================================
+26. NCAAF PUBLIC EXPERIENCE
+==================================================
+
+After adapter completion, show legitimate frozen V4 outputs.
+
+Projected scores must come from the actual frozen model.
+
+Example:
+
+MODEL PROJECTED SCORE
+KU 45 — Lindenwood 17
+
+Do not fabricate spread-cover probabilities.
+
+==================================================
+27. SOCCER PUBLIC EXPERIENCE
+==================================================
+
+Soccer is a three-way outcome sport.
+
+Display legitimate:
+
+HOME probability
+DRAW probability
+AWAY probability
+
+Do not collapse the sport model into a fake binary probability.
+
+Projected score may be shown only if the legitimate V4 engine supports it.
+
+==================================================
+28. UFC PUBLIC EXPERIENCE
+==================================================
+
+UFC currently has no legitimate V4.
+
+Do not fabricate fighter probabilities.
+
+Do not use a legacy model.
+
+Scheduled events/fights may be displayed if existing schedule infrastructure supports them, but model state must be:
+
+UFC V4
+IN DEVELOPMENT
+
+Model Projection: —
+
+UFC does NOT block deployment.
+
+==================================================
+29. VALIDATING CARDS SHOULD NOT LOOK BROKEN
+==================================================
+
+Do NOT make V4_VALIDATING cards look like error states.
+
+Avoid giant warning banners.
+
+Use premium TBM styling.
+
+Example:
+
+V4 MODEL PROJECTION
+
+VALIDATING
+
+Not an Official TBM Pick
+
+The forecast is legitimate.
+
+The publication state is what remains restricted.
+
+==================================================
+30. HOMEPAGE MODEL BOARD
+==================================================
+
+The homepage should remain useful even with zero official picks.
+
+Provide a clear daily V4 summary such as:
+
+TODAY'S MODEL BOARD
+
+MLB
+15 Games
+15 Projected
+
+NFL
+15 Games
+15 Projected
+
+NCAAF
+X Games
+X Projected
+
+etc.
+
+Exact UI should fit the existing TBM design.
+
+Do not create excessive clutter.
+
+==================================================
+31. ZERO OFFICIAL PICKS IS VALID
+==================================================
+
+The website must handle:
+
+TOTAL MODEL FORECASTS: 80
+OFFICIAL TBM PLAYS: 0
+
+without appearing empty or broken.
+
+Never force an Official Pick merely to populate the website.
+
+==================================================
+32. TOP PICKS REMAIN
+==================================================
+
+Preserve Top Picks.
+
+Top Picks contain ONLY:
+
+actually publication-approved
+actually #238A-qualified
+actually published
+Official TBM Plays
+
+A V4_VALIDATING projection cannot appear in Top Picks.
+
+==================================================
+33. PLAY OF THE DAY REMAINS
+==================================================
+
+Preserve Play of the Day.
+
+POTD must come only from legitimate Official TBM Plays.
+
+If nothing qualifies:
+
+NO PLAY OF THE DAY
+
+is correct.
+
+Never force POTD.
+
+==================================================
+34. UNITS REMAIN
+==================================================
+
+Preserve official units.
+
+Under current #238A safety:
+
+approved official staking = flat 1.0U
+
+unless a later separately approved staking system changes it.
+
+SHADOW forecasts receive:
+
+NO OFFICIAL UNITS.
+
+==================================================
+35. RECORD / ROI REMAIN
+==================================================
+
+Preserve:
+
+official record
+units
+ROI
+POTD record
+drawdown
+sport betting performance
+
+But calculate these ONLY from legitimate official published plays.
+
+==================================================
+36. MODEL ANALYTICS VS BETTING ANALYTICS
+==================================================
+
+Separate these clearly.
+
+MODEL ANALYTICS evaluates forecast quality.
+
+BETTING ANALYTICS evaluates actual official wagers.
+
+Never mix them.
+
+==================================================
+37. MODEL ANALYTICS
+==================================================
+
+Build/finish Model Performance analytics using immutable V4 forecasts.
+
+Where supported report:
+
+forecasts generated
+forecasts graded
+coverage
+winner accuracy
+Brier score
+log loss
+calibration
+ECE
+home score MAE
+away score MAE
+margin MAE
+total MAE
+bias
+sport breakdown
+model version
+validation progress
+
+Only show metrics legitimately supported by the sport/model.
+
+==================================================
+38. VALIDATING MODELS BELONG IN MODEL ANALYTICS
+==================================================
+
+SHADOW/V4_VALIDATING forecasts SHOULD contribute to model analytics.
+
+That is how users and TBM can observe how the model is performing while it validates.
+
+==================================================
+39. VALIDATING MODELS DO NOT BELONG IN BETTING ANALYTICS
+==================================================
+
+Unless actually published as an Official TBM Play:
+
+do not count validating projections in:
+
+record
+units
+ROI
+POTD
+official win rate
+official drawdown
+
+==================================================
+40. OFFICIAL BETTING ANALYTICS
+==================================================
+
+Continue to provide:
+
+record
+wins
+losses
+pushes
+units
+ROI
+POTD record
+drawdown
+sport breakdown
+
+using #238A's corrected eligibility/publication rules.
+
+==================================================
+41. FIX HISTORICAL CONTAMINATION IN DISPLAY LOGIC
+==================================================
+
+Preserve the #237P/#238A corrections.
+
+Do not allow:
+
+non-public rows
+performance-ineligible rows
+retired test models
+shadow forecasts
+validation forecasts
+
+to contaminate official displayed betting performance.
+
+==================================================
+42. SOCCER GRADING
+==================================================
+
+Preserve corrected three-way grading.
+
+A team-selection bet that ends in a draw is a loss unless the actual wager semantics explicitly make it otherwise.
+
+Do not restore old draw-as-push behavior.
+
+==================================================
+43. CLV SAFETY
+==================================================
+
+Historical corrupted CLV must not be presented as trustworthy.
+
+If exact closing price is unavailable or lineage is unsafe:
+
+CLV = UNKNOWN / NULL
+
+Do not fabricate.
+
+==================================================
+44. #238A MUST REMAIN INTACT
+==================================================
+
+Preserve:
+
+fail-closed eligibility
+exact model approval
+global cross-sport ranking
+six-pick cap AFTER ranking
+flat approved 1.0U staking
+requested units separately retained
+POTD safety
+official-record filtering
+subscriber/API protections
+append-only audit
+process-order invariance
+
+==================================================
+45. PUBLICATION PERMISSION IS SEPARATE
+==================================================
+
+A technically operational V4 model does NOT automatically become publication-approved.
+
+Current SHADOW engines remain publication-disabled unless an existing legitimate approval state says otherwise.
+
+Do not promote merely because #244 deploys them.
+
+==================================================
+46. MARKET LAYER
+==================================================
+
+Sport forecast remains independent from market.
+
+Market data may be used downstream for:
+
+fair-price comparison
+edge
+EV
+book comparison
+sharp analysis
+line shopping
+publication selection
+
+but must not modify/redefine the frozen sport forecast.
+
+==================================================
+47. MODEL OPINION VS BETTING OPINION
+==================================================
+
+Example:
+
+MODEL:
+Buffalo 27
+New York 23
+Buffalo win probability 62%
+
+BETTING LAYER:
+No Official Play
+
+This is a perfectly valid output.
+
+==================================================
+48. API — CANONICAL V4 PROJECTIONS
+==================================================
+
+Finish/verify canonical public V4 projection endpoints.
+
+Existing #242 endpoint:
+
+GET /api/model/v4/projections?sport=SOCCER&date=YYYY-MM-DD
+
+should be generalized/verified across operational V4 sports.
+
+Maintain compatibility where possible.
+
+==================================================
+49. API RESPONSE SAFETY
+==================================================
+
+Public API responses must NOT expose:
+
+secret provider payloads
+private evidence payloads
+credentials
+internal-only hashes unnecessarily
+sensitive infrastructure details
+
+Expose only what the product needs.
+
+==================================================
+50. API FORECAST ENVELOPE
+==================================================
+
+Preserve canonical identity internally:
+
+event identity
+sport
+model ID
+model version
+artifact identity
+forecast version
+cutoff
+prediction timestamp
+approval
+maturity
+projection outputs
+status
+
+Public response may safely simplify internal details.
+
+==================================================
+51. API COMPATIBILITY
+==================================================
+
+Avoid unnecessarily breaking existing:
+
+web
+admin
+mobile
+
+clients.
+
+Where legacy response shapes are currently consumed, use a controlled compatibility layer if appropriate.
+
+Do NOT use the compatibility layer to generate legacy forecasts.
+
+==================================================
+52. MOBILE PROTECTION
+==================================================
+
+Preserve the mobile black-screen startup fix:
+
+8-second fail-open timeout
+splash dismissal fallback
+system-font/default fallback
+visible Clerk loading state
+reachable Clerk retry
+
+Do not regress it.
+
+==================================================
+53. MOBILE BINARY
+==================================================
+
+Do not force an immediate new App Store binary unless the API migration genuinely requires one.
+
+Prefer API-compatible migration.
+
+If a new binary is genuinely required:
+
+document the exact reason.
+
+Do not expose Apple credentials.
+
+==================================================
+54. CLEAN SOURCE TRUST BOUNDARY
+==================================================
+
+The old Replit Git history is untrusted.
+
+Known contaminated commit:
+
+e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Known contaminated reachable ref historically:
+
+refs/remotes/gitsafe-backup/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+DO NOT use that history as the new production Git source.
+
+==================================================
+55. CLEAN SOURCE ROOT
+==================================================
+
+Use the sanitized clean source candidate created by #240/#241/#242/#243/#243B.
+
+Historically:
+
+/tmp/tbm-clean-source
+
+Verify the current clean-source export contains all required latest changes before release.
+
+Do not blindly assume an old /tmp copy contains #243B.
+
+Re-export clean source if necessary.
+
+==================================================
+56. SOURCE SECRET SCAN
+==================================================
+
+Before creating/pushing the clean production repository:
+
+scan the complete source tree.
+
+Verify no:
+
+API keys
+database credentials
+Clerk secrets
+Apple private keys
+.p8 material
+signing certificates
+private tokens
+passwords
+compromised secrets
+environment values
+
+are committed.
+
+==================================================
+57. CREATE CLEAN GITHUB SOURCE OF TRUTH
+==================================================
+
+If authorized GitHub credentials/integration are available:
+
+create or use the intended clean TBM GitHub repository.
+
+Initialize it from the sanitized source tree only.
+
+Do NOT preserve contaminated legacy object history.
+
+The clean repository becomes the authoritative production source of truth.
+
+==================================================
+58. GITHUB PUSH
+==================================================
+
+If authorized:
+
+commit the clean production source.
+
+Use a clear release commit such as:
+
+TBM V4 production integration and cloud cutover
+
+Push to the intended production branch.
+
+Verify remote commit identity.
+
+If GitHub authorization is unavailable:
+
+do not fabricate success.
+
+Report the exact external blocker and leave a fully prepared clean repo ready to push.
+
+==================================================
+59. PRODUCTION DATABASE
+==================================================
+
+Use the intended Neon PostgreSQL production database.
+
+Do not print secrets.
+
+Verify connectivity through environment configuration.
+
+==================================================
+60. DATABASE MIGRATION
+==================================================
+
+Apply the additive V4 production migration only after:
+
+migration inspection
+backup/recovery verification
+compatibility review
+
+Known migration from #240:
+
+20260906_001_tbm_v4_platform.sql
+
+Verify whether subsequent tasks added additional migrations.
+
+Apply all legitimate pending production migrations in correct order.
+
+==================================================
+61. DATABASE BACKUP / RECOVERY GATE
+==================================================
+
+Before production schema mutation:
+
+verify a legitimate recovery path.
+
+This may be:
+
+Neon branch
+snapshot
+PITR
+provider-supported restore
+equivalent verified mechanism
+
+Do not merely state that Neon "probably has backups."
+
+Verify what is actually available.
+
+If recovery cannot be verified due provider permissions:
+
+do not perform an unsafe destructive migration.
+
+Because migration is intended to be additive, determine whether it can safely proceed without destructive risk.
+
+Document exact reasoning.
+
+==================================================
+62. DATABASE MIGRATION SAFETY
+==================================================
+
+Prefer:
+
+CREATE TABLE IF NOT EXISTS
+additive columns
+new indexes
+new constraints only when safe
+no destructive legacy deletion during cutover
+
+Do not drop historical production data merely to clean architecture.
+
+==================================================
+63. PRODUCTION API / MODEL SERVER
+==================================================
+
+Deploy the clean V4 API/model server to the authorized cloud runtime.
+
+Preferred architecture from prior work:
+
+Render or existing authorized equivalent.
+
+The production API must NOT depend on Replit runtime.
+
+==================================================
+64. API ENVIRONMENT
+==================================================
+
+Configure required environment values through provider secrets/environment management.
+
+Never commit secrets.
+
+Verify required variables exist without printing their values.
+
+==================================================
+65. API HEALTH
+==================================================
+
+After deployment verify:
+
+/api/healthz
+
+and:
+
+/api/readyz
+
+or canonical equivalents.
+
+Readiness must confirm required DB/model dependencies.
+
+==================================================
+66. V4 MODEL READINESS
+==================================================
+
+Production readiness should expose/verify:
+
+MLB ready
+NFL ready
+NBA ready
+WNBA ready
+NHL ready
+NCAAF ready
+NCAAMB ready
+Soccer ready
+UFC NO_FORECAST / IN DEVELOPMENT
+
+Do not mark UFC ready falsely.
+
+==================================================
+67. EXTERNAL SCHEDULER
+==================================================
+
+Move production scheduled work away from Replit runtime.
+
+Use the authorized scheduler architecture already prepared, such as:
+
+Render Cron
+GitHub Actions
+or equivalent existing authorized scheduler.
+
+==================================================
+68. SINGLE-SCHEDULER OWNERSHIP
+==================================================
+
+This is a hard safety requirement.
+
+Avoid duplicate forecasting from:
+
+old in-process scheduler
+new cron
+Replit
+startup job
+multiple cloud instances
+
+Define ONE authoritative production scheduler for recurring forecast collection.
+
+==================================================
+69. NFL SCHEDULER REVIEW
+==================================================
+
+#243B currently has NFL shadow collection:
+
+at startup
+and twice hourly.
+
+During cutover:
+
+verify idempotency
+verify immutable versioning
+verify no duplicate forecasts
+verify no scheduler race
+verify no post-kickoff writes
+
+Decide whether startup collection remains appropriate in production once external scheduling owns the process.
+
+Prefer one clear scheduler owner.
+
+==================================================
+70. SCHEDULER SPORT ISOLATION
+==================================================
+
+A failure in one sport must not prevent other sports from forecasting.
+
+Report per-sport job status.
+
+==================================================
+71. SCHEDULER PUBLICATION DEFAULT
+==================================================
+
+Publication remains disabled for SHADOW models.
+
+Scheduler may:
+
+discover
+materialize
+forecast
+persist
+grade
+update model analytics
+
+It must NOT turn SHADOW forecasts into official picks.
+
+==================================================
+72. FRONTEND DEPLOYMENT
+==================================================
+
+Deploy the existing TBM frontend to Vercel or the authorized intended frontend runtime.
+
+Preserve the current premium visual system.
+
+Do NOT redesign the entire site.
+
+==================================================
+73. FRONTEND API TARGET
+==================================================
+
+Update production frontend configuration to point at the new cloud API.
+
+Do not hardcode secrets.
+
+Verify production requests.
+
+==================================================
+74. CORS
+==================================================
+
+Configure API CORS for legitimate production origins only.
+
+Do not use unrestricted wildcard production CORS unless genuinely required and justified.
+
+==================================================
+75. SECURITY HEADERS
+==================================================
+
+Preserve/verify the security headers created in prior tasks.
+
+Do not weaken them merely to get deployment working.
+
+==================================================
+76. HOMEPAGE
+==================================================
+
+Preserve the existing TBM homepage style.
+
+Adapt it to V4 data.
+
+Desired hierarchy:
+
+TODAY'S BETTING DASHBOARD / MODEL BOARD
+
+Flagship/Official Play area if one exists
+
+Model slate summary
+
+Official play count
+
+Best/Top official plays if eligible
+
+sport projections / navigation
+
+membership presentation
+
+analytics snapshot
+
+Do not resurrect removed clutter such as the old Market Intelligence box unless currently required.
+
+==================================================
+77. TODAY'S SPORTS BOARD
+==================================================
+
+The user must be able to understand that TBM is actively analyzing games even when there are no official bets.
+
+Example:
+
+TODAY'S MODEL BOARD
+
+63 Games
+63 V4 Forecasts
+0 Official Plays
+
+This is a successful state.
+
+==================================================
+78. SPORT PAGES
+==================================================
+
+Preserve individual sport pages.
+
+Users should be able to browse:
+
+MLB
+NFL
+NBA
+WNBA
+NHL
+NCAAF
+NCAAMB
+Soccer
+UFC
+
+Do not replace all sport pages with only one generic page.
+
+==================================================
+79. COMPACT CARDS
+==================================================
+
+Preserve the existing compact premium card direction.
+
+Cards should emphasize:
+
+logos
+Team vs Team
+projection
+status
+
+Avoid excessive technical metadata on the compact card.
+
+==================================================
+80. EXPANDED ANALYSIS
+==================================================
+
+Detailed model analytics may live behind expanded card/game detail.
+
+Keep the default interface simple.
+
+==================================================
+81. TEAM LOGOS
+==================================================
+
+Preserve existing team-logo support.
+
+Verify no broken logo mapping introduced by canonical V4 identities.
+
+Fix legitimate mapping mismatches encountered during integration.
+
+Do not spend the task on unnecessary visual redesign.
+
+==================================================
+82. MOBILE RESPONSIVENESS
+==================================================
+
+Verify:
+
+no horizontal overflow
+cards fit viewport
+navigation works
+projection scores fit
+probabilities fit
+status labels fit
+expanded analysis is readable
+
+Test representative phone widths.
+
+==================================================
+83. MEMBERSHIP / ENTITLEMENTS
+==================================================
+
+Preserve existing Clerk/membership behavior.
+
+Do not accidentally expose paid official betting content due Model Board changes.
+
+At the same time:
+
+do not incorrectly hide public validating projections if the intended product policy says they are public.
+
+Keep:
+
+MODEL PROJECTION ACCESS
+
+separate from:
+
+OFFICIAL PREMIUM BETTING ACCESS
+
+according to existing product rules.
+
+==================================================
+84. OWNER / ADMIN
+==================================================
+
+Preserve owner/admin access.
+
+Admin should remain hidden from ordinary public navigation.
+
+Do not expose admin routes/data through frontend changes.
+
+==================================================
+85. MODEL ANALYTICS PAGE
+==================================================
+
+Update/finish the analytics experience so it can clearly display V4 model performance independently from betting performance.
+
+Suggested organization:
+
+MODEL PERFORMANCE
+
+BETTING PERFORMANCE
+
+Do not mix denominators.
+
+==================================================
+86. MODEL PERFORMANCE — SPORT DETAIL
+==================================================
+
+For each operational V4 sport, show supported metrics.
+
+At minimum:
+
+model status
+forecast count
+graded count
+coverage
+Brier where supported
+calibration where supported
+winner accuracy where useful
+
+For score models:
+
+score MAE
+margin MAE
+total MAE
+bias
+
+==================================================
+87. NFL ANALYTICS
+==================================================
+
+NFL should start with its historical validation context and accumulate prospective 2026 evidence.
+
+Do not present historical validation as though it were prospective live performance.
+
+Label them separately.
+
+==================================================
+88. PROSPECTIVE ANALYTICS
+==================================================
+
+As 2026 forecasts finish:
+
+pair outcomes
+grade immutable forecasts
+update prospective metrics
+
+Never alter the original forecast.
+
+==================================================
+89. APPROVAL DOES NOT AUTO-CHANGE
+==================================================
+
+Do not automatically promote a model from SHADOW based on an arbitrary number of games.
+
+Prospective evidence should inform a later explicit approval review.
+
+==================================================
+90. NO NIGHTLY MODEL MUTATION
+==================================================
+
+Frozen V4.0 artifacts remain frozen.
+
+Daily jobs update:
+
+evidence
+forecasts
+outcomes
+analytics
+
+They do NOT automatically rewrite production coefficients.
+
+==================================================
+91. FUTURE CHALLENGERS
+==================================================
+
+Preserve architecture for:
+
+MLB V4.1
+NFL V4.1
+NBA V4.1
+etc.
+
+Challengers must train/validate separately and receive explicit promotion.
+
+==================================================
+92. PRODUCTION CUTOVER ORDER
+==================================================
+
+Use a controlled order.
+
+Recommended:
+
+1. finish NCAAF adapter
+2. full regression
+3. refresh clean source export
+4. verify source/security scans
+5. establish clean GitHub source
+6. verify DB recovery
+7. apply additive DB migrations
+8. deploy API/model server
+9. verify API health/readiness
+10. run production V4 shadow forecast smoke test
+11. verify persistence
+12. configure external scheduler
+13. disable duplicate/legacy scheduler ownership
+14. deploy frontend
+15. switch frontend API target
+16. verify CORS/auth
+17. verify Model Boards
+18. verify analytics
+19. verify official-pick separation
+20. verify mobile API compatibility
+21. verify production logs
+22. retire Replit runtime dependency
+23. final smoke test
+24. rollback only if required
+
+Do not randomly cut services over.
+
+==================================================
+93. PARALLEL STAGING WHERE POSSIBLE
+==================================================
+
+Bring up the new API before taking the old runtime out of service where provider architecture permits.
+
+Verify it independently.
+
+Then switch clients.
+
+==================================================
+94. REPLIT RETIREMENT
+==================================================
+
+After successful cloud verification:
+
+remove Replit as an active production runtime dependency.
+
+Do not delete useful local development source blindly.
+
+Do not touch contaminated Git refs unnecessarily if provider-level cleanup remains external.
+
+Simply ensure production no longer depends on them.
+
+==================================================
+95. ROLLBACK
+==================================================
+
+Maintain a concrete rollback path during cutover.
+
+Rollback must not mean:
+
+"restore contaminated legacy Git as source of truth."
+
+Rollback should use:
+
+previous safe deployment
+database-safe additive compatibility
+frontend environment rollback
+provider deployment rollback
+
+as appropriate.
+
+==================================================
+96. PRODUCTION SMOKE TEST — MODEL BOARD
+==================================================
+
+For every operational V4 sport:
+
+request today's legitimate slate.
+
+Verify:
+
+games discovered
+forecasts generated
+forecasts persisted
+API returns them
+frontend displays them
+status correct
+no legacy fallback
+
+==================================================
+97. PRODUCTION SMOKE TEST — OFFICIAL PICK SAFETY
+==================================================
+
+For SHADOW forecasts verify:
+
+official_pick = false
+publication eligible = false
+units absent/zero as appropriate
+not in Top Picks
+not POTD
+not in official record
+not in official ROI
+
+==================================================
+98. PRODUCTION SMOKE TEST — ZERO PICKS
+==================================================
+
+Explicitly test a zero-official-play state.
+
+The website must still show:
+
+full model slate
+projections
+model analytics
+
+without error.
+
+==================================================
+99. PRODUCTION SMOKE TEST — UFC
+==================================================
+
+Verify UFC does NOT produce fake forecasts.
+
+Expected:
+
+V4 IN DEVELOPMENT
+NO_FORECAST
+
+==================================================
+100. PRODUCTION SMOKE TEST — NCAAF
+==================================================
+
+Verify NCAAF is using:
+
+the actual frozen NCAAF V4
+
+through:
+
+the new shared adapter.
+
+Not legacy NCAAF.
+
+==================================================
+101. PRODUCTION SMOKE TEST — NFL
+==================================================
+
+Verify production NFL forecast identity matches #243B.
+
+Artifact hash must match:
+
+0da3f4e62a88da4c8d486b6433ca83c907e2cbd2fc072834817cbdb919233c5e
+
+unless a separately legitimate, explicitly documented artifact version was created after #243B.
+
+No silent substitution.
+
+==================================================
+102. PRODUCTION FORECAST COUNTS
+==================================================
+
+Report actual production forecast coverage by sport after cutover.
+
+Do not claim 100% if failures exist.
+
+==================================================
+103. PRODUCTION PERSISTENCE
+==================================================
+
+Verify forecasts survive API restart/redeployment because canonical predictions are persisted, not only held in memory.
+
+==================================================
+104. PRODUCTION GRADING
+==================================================
+
+Verify completed events can be paired and graded without mutating forecasts.
+
+==================================================
+105. OBSERVABILITY
+==================================================
+
+Ensure production logs/health provide enough information to detect:
+
+provider failure
+DB failure
+forecast failure
+scheduler failure
+sport-specific failure
+grading failure
+
+without logging secrets.
+
+==================================================
+106. ERROR ISOLATION
+==================================================
+
+One broken sport must not blank the entire website.
+
+If one sport fails:
+
+other sports remain available.
+
+The failed sport should expose an appropriate safe state.
+
+==================================================
+107. FAIL CLOSED
+==================================================
+
+When forecast evidence is invalid:
+
+NO_FORECAST
+
+not:
+
+legacy forecast
+fabricated forecast
+stale forecast presented as current
+
+==================================================
+108. STALE FORECAST SAFETY
+==================================================
+
+Do not present an old forecast as today's current forecast merely because current generation failed.
+
+Include enough event/date/version semantics to prevent stale substitution.
+
+==================================================
+109. TEST SUITE
+==================================================
+
+Run complete automated verification.
+
+At minimum:
+
+API tests
+DB/model tests
+V4 router tests
+NCAAF adapter tests
+full-slate tests
+immutability tests
+grading tests
+#238A tests
+official-record tests
+POTD tests
+Top Picks tests
+scheduler tests
+API compatibility tests
+admin tests
+mobile typecheck
+frontend typecheck/build
+API typecheck/build
+OpenAPI generation
+route coverage
+credential scan
+Apple signing scan
+clean-source scan
+
+==================================================
+110. PROCESS-ORDER TEST
+==================================================
+
+Preserve #238A process-order invariance.
+
+Global official selection must not depend on sport processing order.
+
+==================================================
+111. SCHEDULER IDEMPOTENCY TEST
+==================================================
+
+Run the same scheduled collection twice.
+
+Verify no unsafe duplicate forecast behavior.
+
+==================================================
+112. POST-START WRITE TEST
+==================================================
+
+Attempt prohibited forecast mutation after event start.
+
+Require rejection.
+
+==================================================
+113. LEGACY FALLBACK TEST
+==================================================
+
+For every operational V4 sport:
+
+make legacy engine unavailable/irrelevant in test.
+
+Canonical V4 projection must still use exact V4.
+
+For UFC:
+
+must return NO_FORECAST.
+
+==================================================
+114. OFFICIAL RECORD TEST
+==================================================
+
+Insert/use representative:
+
+shadow forecast
+non-public pick
+retired model row
+official published play
+
+Verify only legitimate official published play affects official betting performance.
+
+==================================================
+115. FRONTEND BUILD
+==================================================
+
+Production frontend build must pass before deployment.
+
+Do not deploy a knowingly failing Vite build.
+
+==================================================
+116. API BUILD
+==================================================
+
+Production API build/typecheck must pass before deployment.
+
+==================================================
+117. NO SECRET OUTPUT
+==================================================
+
+Do not place secret values in:
+
+report
+logs
+Git
+screenshots
+terminal output copied into report
+
+Redact where necessary.
+
+==================================================
+118. APPLE MATERIAL
+==================================================
+
+Do not request or expose:
+
+.p8
+private certificate material
+distribution certificate private keys
+
+Existing secure EAS credentials remain external.
+
+==================================================
+119. DEPENDENCY SECURITY
+==================================================
+
+Do not derail the deployment with reckless major dependency upgrades.
+
+Address only security issues that are directly blocking safe production or can be safely resolved without destabilizing the release.
+
+Document remaining known audit findings.
+
+==================================================
+120. CLEAN COMMIT
+==================================================
+
+Once production-ready source is verified:
+
+commit the complete final source.
+
+Do not provide partial snippets as the deployment result.
+
+==================================================
+121. PUSH
+==================================================
+
+If GitHub authorization is available:
+
+push the final production commit.
+
+Verify remote state.
+
+This task is intended to carry through the push rather than stopping before it.
+
+==================================================
+122. AUTO-DEPLOY
+==================================================
+
+Where configured:
+
+GitHub push
+→ Render deploy
+→ Vercel deploy
+
+Verify deployment actually occurred.
+
+Do not assume auto-deploy happened merely because push succeeded.
+
+==================================================
+123. DEPLOYMENT STATUS
+==================================================
+
+Capture actual:
+
+API deployment status
+frontend deployment status
+scheduler status
+database migration status
+production health
+production readiness
+
+==================================================
+124. PRODUCTION URLS
+==================================================
+
+Report the final production:
+
+frontend URL
+API URL
+
+Do not expose private admin/internal URLs unnecessarily.
+
+==================================================
+125. FINAL USER EXPERIENCE TEST
+==================================================
+
+Test as an ordinary user.
+
+Confirm:
+
+homepage loads
+Model Board loads
+sport navigation works
+games visible
+team logos visible
+projected scores visible where supported
+probabilities visible
+V4 VALIDATING visible
+Not an Official TBM Pick visible
+zero official picks handled
+analytics load
+no admin leakage
+no horizontal mobile overflow
+
+==================================================
+126. FINAL OWNER EXPERIENCE TEST
+==================================================
+
+Verify owner/admin behavior remains available according to existing entitlement rules.
+
+Do not expose owner access publicly.
+
+==================================================
+127. FINAL MOBILE COMPATIBILITY TEST
+==================================================
+
+Verify the currently released mobile app can still:
+
+start
+authenticate
+reach API
+load primary data
+
+without requiring a new binary if compatibility was preserved.
+
+==================================================
+128. MODEL BOARD MUST FEEL COMPLETE
+==================================================
+
+This is a final product requirement.
+
+A user opening TBM should NOT conclude:
+
+"there are no picks, so the model isn't doing anything."
+
+They should be able to see:
+
+every supported game
+what V4 projects
+which team is favored by the model
+projected score where supported
+probability
+model status
+analytics
+
+Official Picks are an additional layer.
+
+==================================================
+129. DO NOT LABEL SHADOW AS BAD
+==================================================
+
+Use:
+
+V4 VALIDATING
+
+not language implying the model is broken.
+
+And:
+
+Not an Official TBM Pick
+
+to communicate publication state.
+
+==================================================
+130. MODEL BOARD VS PICKS
+==================================================
+
+Final product hierarchy:
+
+MODEL BOARD
+"What does TBM project?"
+
+↓
+
+GAME ANALYSIS
+"Why?"
+
+↓
+
+PUBLICATION / MARKET QUALIFICATION
+"Is there a wager?"
+
+↓
+
+TOP PICKS / POTD
+"What should I consider betting according to the official TBM publication layer?"
+
+↓
+
+RESULTS
+"What happened?"
+
+↓
+
+ANALYTICS
+"How is the model and betting product performing?"
+
+==================================================
+131. NO FORCED BETS
+==================================================
+
+A production day may legitimately have:
+
+80 forecasts
+0 official plays
+NO POTD
+
+This is correct.
+
+==================================================
+132. OFFICIAL PLAY LANGUAGE
+==================================================
+
+Only actual #238A-published plays should use language such as:
+
+OFFICIAL TBM PLAY
+
+Do not use that label for model leans.
+
+==================================================
+133. VALIDATING LEANS
+==================================================
+
+If existing UI displays model lean/opinion derived legitimately from the forecast, it may remain on Model Board/game analysis.
+
+But it must clearly remain:
+
+MODEL OPINION
+NOT AN OFFICIAL TBM PICK
+
+and must not contaminate betting analytics.
+
+==================================================
+134. DATA SOURCE FAILURE
+==================================================
+
+If a required live source is unavailable:
+
+fail safely.
+
+Do not use post-event/hindsight data.
+
+Do not silently substitute market price as sport intelligence.
+
+==================================================
+135. CUTOFF ENFORCEMENT
+==================================================
+
+Preserve:
+
+evidence_time <= cutoff <= prediction_time < event_start
+
+as applicable to canonical evidence/forecast generation.
+
+==================================================
+136. FULL-SLATE BEFORE MARKET
+==================================================
+
+Explicitly verify in production architecture:
+
+forecast generation does not depend on whether sportsbook odds are available.
+
+A model projection may exist even when no betting market is currently available.
+
+==================================================
+137. PUBLIC PROJECTION AND MARKET PRICE
+==================================================
+
+Do not allow market changes to rewrite the frozen sport projection.
+
+Market layer may change:
+
+edge
+EV
+official qualification
+
+but not:
+
+sport-model projected score/probability
+
+unless a legitimate new pre-event sport evidence snapshot creates a new forecast version.
+
+==================================================
+138. ANALYTICS VERSIONING
+==================================================
+
+Analytics should be attributable to model/version.
+
+Do not combine materially different V4 versions without labeling/aggregation rules.
+
+==================================================
+139. HISTORICAL VS PROSPECTIVE
+==================================================
+
+Where historical validation metrics are displayed alongside live prospective performance:
+
+label them separately.
+
+Do not imply historical OOS results occurred live.
+
+==================================================
+140. NFL LIVE VALIDATION
+==================================================
+
+NFL #243B historical metrics may be shown as historical validation context.
+
+2026 immutable Week 1+ forecasts should accumulate separately as prospective validation.
+
+==================================================
+141. MODEL PROMOTION
+==================================================
+
+#244 does NOT automatically approve SHADOW models for betting publication.
+
+A later explicit evidence review may change approval.
+
+==================================================
+142. DEPLOYMENT DOES NOT EQUAL PUBLICATION APPROVAL
+==================================================
+
+Critical:
+
+PRODUCTION DEPLOYED
+
+means the model can operate and display projections.
+
+It does NOT mean:
+
+OFFICIAL PICKS ENABLED.
+
+==================================================
+143. UFC AFTER LAUNCH
+==================================================
+
+Do not hold the platform hostage for UFC.
+
+After deployment, UFC can receive a focused V4 build using:
+
+fighter identity
+chronology
+orientation-invariant modeling
+legitimate historical evidence
+
+But that is not #244.
+
+==================================================
+144. NO NEW GIANT MODEL RESEARCH
+==================================================
+
+Do not retrain all eight operational models during #244.
+
+This is integration/deployment.
+
+Only fix a model artifact if a genuine correctness/parity defect is discovered that makes deployment unsafe.
+
+==================================================
+145. NO GENERALIZED INFRASTRUCTURE LOOP
+==================================================
+
+#240-#243 already built the platform foundation.
+
+Do not spend #244 creating another abstract framework.
+
+USE THE EXISTING INFRASTRUCTURE.
+
+CONNECT IT.
+
+DEPLOY IT.
+
+VERIFY IT.
+
+==================================================
+146. NO UNNECESSARY REWRITE
+==================================================
+
+Do not rewrite working components solely for stylistic consistency.
+
+Minimize deployment risk.
+
+==================================================
+147. FIX RESOLVABLE ISSUES
+==================================================
+
+If during implementation you encounter:
+
+build error
+type error
+route mismatch
+adapter mismatch
+schema mismatch
+logo mapping
+CORS issue
+scheduler race
+migration issue
+frontend API mismatch
+mobile compatibility issue
+
+and it is legitimately resolvable:
+
+FIX IT.
+
+Continue.
+
+Do not stop after the first error and return an audit.
+
+==================================================
+148. EXTERNAL BLOCKERS
+==================================================
+
+Stop only where a genuine external authorization/provider blocker exists, such as:
+
+missing GitHub authorization
+missing Render authorization
+missing Vercel authorization
+missing Neon permission
+provider outage
+required DNS ownership unavailable
+
+Clearly distinguish:
+
+CODE BLOCKER
+
+from:
+
+EXTERNAL AUTHORIZATION BLOCKER.
+
+==================================================
+149. DO NOT ASK FOR SECRETS IN CHAT
+==================================================
+
+If a provider connection is missing:
+
+use the platform's secure integration/secret workflow where available.
+
+Do not ask the user to paste private keys/passwords into the report/chat.
+
+==================================================
+150. FINAL PRODUCTION VERIFICATION WINDOW
+==================================================
+
+After cutover, perform immediate production smoke verification.
+
+Do not declare success solely from deployment status.
+
+Test actual requests.
+
+==================================================
+151. FINAL SPORT MATRIX
+==================================================
+
+Report:
+
+SPORT
+MODEL ID
+VERSION
+ARTIFACT
+TECHNICALLY READY?
+FORECASTING?
+PUBLIC MODEL BOARD?
+APPROVAL
+MATURITY
+PUBLICATION ENABLED?
+OFFICIAL PICK ELIGIBLE?
+LEGACY FALLBACK?
+TODAY COVERAGE
+
+for:
+
+MLB
+NFL
+NBA
+WNBA
+NHL
+NCAAF
+NCAAMB
+Soccer
+UFC
+
+==================================================
+152. FINAL FORECAST COVERAGE TABLE
+==================================================
+
+Report actual production:
+
+SPORT
+SCHEDULED
+ELIGIBLE
+FORECASTED
+FAILED
+COVERAGE %
+STATUS
+
+==================================================
+153. FINAL MODEL ANALYTICS TABLE
+==================================================
+
+Where data exists report:
+
+SPORT
+MODEL VERSION
+HISTORICAL VALIDATION SAMPLE
+PROSPECTIVE FORECASTS
+PROSPECTIVE GRADED
+BRIER
+LOG LOSS
+CALIBRATION/ECE
+SCORE MAE
+MARGIN MAE
+TOTAL MAE
+STATUS
+
+Use N/A honestly.
+
+==================================================
+154. FINAL BETTING ANALYTICS CHECK
+==================================================
+
+Report:
+
+official published plays
+record
+units
+ROI
+POTD status
+
+and verify SHADOW forecasts are excluded.
+
+Do not fabricate a nonzero record.
+
+==================================================
+155. FINAL INFRASTRUCTURE TABLE
+==================================================
+
+Report:
+
+COMPONENT
+PROVIDER
+STATUS
+PRODUCTION?
+HEALTH
+NOTES
+
+for:
+
+Git source
+API/model server
+PostgreSQL
+scheduler
+frontend
+mobile API compatibility
+authentication
+analytics/grading
+
+==================================================
+156. FINAL SECURITY TABLE
+==================================================
+
+Report:
+
+credential scan
+Apple signing scan
+Git history trust
+CORS
+security headers
+secret management
+DB recovery
+production logs
+
+PASS / BLOCKED / WARNING with explanation.
+
+==================================================
+157. FINAL TEST TABLE
+==================================================
+
+Report exact:
+
+test suite
+files
+tests
+passed
+failed
+typecheck
+build
+OpenAPI
+credential scan
+signing scan
+clean export
+
+Do not say "tests passed" without numbers where numbers are available.
+
+==================================================
+158. REQUIRED FINAL REPORT
+==================================================
+
+Create:
+
+reports/task-244-tbm-v4-production-integration-public-full-slate-model-boards-controlled-cloud-cutover.md
+
+Required sections:
+
+# TASK #244 — TBM V4 PRODUCTION INTEGRATION, PUBLIC FULL-SLATE MODEL BOARDS & CONTROLLED CLOUD CUTOVER
+
+## 1. Executive Summary
+## 2. Final Classification
+## 3. Starting State
+## 4. Deployment Authorization / External Access
+## 5. NCAAF Adapter — Starting Gap
+## 6. NCAAF Adapter — Implementation
+## 7. NCAAF Train/Live Parity
+## 8. NCAAF Full-Slate Verification
+## 9. NCAAF Immutable Persistence
+## 10. NCAAF Hard-Gate Result
+## 11. Final V4 Sport Registry
+## 12. Legacy Engine Retirement
+## 13. No-Legacy-Fallback Verification
+## 14. Full-Slate Forecast Architecture
+## 15. Forecast Coverage
+## 16. Immutable Forecast Persistence
+## 17. Forecast Versioning
+## 18. Forecast Cutoff Safety
+## 19. Public Projection API
+## 20. API Compatibility
+## 21. Model Board Product Rules
+## 22. V4_VALIDATING
+## 23. NO_OFFICIAL_PLAY
+## 24. OFFICIAL_TBM_PLAY
+## 25. V4_IN_DEVELOPMENT
+## 26. Homepage Integration
+## 27. MLB Model Board
+## 28. NFL Model Board
+## 29. NBA Model Board
+## 30. WNBA Model Board
+## 31. NHL Model Board
+## 32. NCAAF Model Board
+## 33. NCAAMB Model Board
+## 34. Soccer Model Board
+## 35. UFC In-Development State
+## 36. Compact Cards
+## 37. Expanded Game Analysis
+## 38. Team Logos / Identity Mapping
+## 39. Mobile Responsive Verification
+## 40. Membership / Entitlements
+## 41. Owner / Admin Protection
+## 42. Model Analytics
+## 43. Historical Validation Analytics
+## 44. Prospective Validation Analytics
+## 45. Betting Analytics
+## 46. Official Record Protection
+## 47. Top Picks Protection
+## 48. POTD Protection
+## 49. Units Protection
+## 50. #238A Preservation
+## 51. Soccer Grading Preservation
+## 52. CLV Safety
+## 53. Market Layer Separation
+## 54. Clean Source Trust Boundary
+## 55. Credential Scan
+## 56. Clean GitHub Source
+## 57. Git Commit / Push
+## 58. Database Recovery Verification
+## 59. Production Database Migration
+## 60. Cloud API Deployment
+## 61. API Environment
+## 62. Production Health
+## 63. Production Readiness
+## 64. External Scheduler
+## 65. Scheduler Ownership
+## 66. Scheduler Idempotency
+## 67. NFL Shadow Collection
+## 68. Frontend Deployment
+## 69. Frontend API Cutover
+## 70. CORS / Security Headers
+## 71. Mobile Compatibility
+## 72. Replit Runtime Retirement
+## 73. Rollback
+## 74. Production Model Board Smoke Test
+## 75. Production Zero-Official-Pick Test
+## 76. Production Official-Pick Safety Test
+## 77. Production NCAAF Test
+## 78. Production NFL Test
+## 79. Production UFC Test
+## 80. Production Forecast Coverage
+## 81. Production Persistence
+## 82. Production Grading
+## 83. Production Analytics
+## 84. Error Isolation
+## 85. Observability
+## 86. Full Regression
+## 87. Security Verification
+## 88. Final Sport Matrix
+## 89. Final Forecast Coverage Table
+## 90. Final Model Analytics Table
+## 91. Final Betting Analytics Check
+## 92. Final Infrastructure Table
+## 93. Final Security Table
+## 94. Final Test Table
+## 95. Production URLs
+## 96. Files Changed
+## 97. Commits
+## 98. Deployment IDs
+## 99. Genuine Remaining Blockers
+## 100. What Is Actually Live Now
+## 101. Final Classification
+## 102. EXACTLY ONE RECOMMENDED NEXT TASK
+
+==================================================
+159. FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — TBM V4 PRODUCTION CUTOVER COMPLETE; PUBLIC FULL-SLATE MODEL BOARDS LIVE; CLOUD INFRASTRUCTURE LIVE; LEGACY CURRENT FORECASTING RETIRED; PRODUCTION VERIFIED
+
+B — TBM V4 PRODUCTION INTEGRATION COMPLETE AND DEPLOYED; MINOR NON-CRITICAL POST-LAUNCH ITEMS REMAIN
+
+C — TBM V4 PRODUCTION INTEGRATION COMPLETE BUT CUTOVER BLOCKED BY SPECIFIC EXTERNAL AUTHORIZATION / PROVIDER ISSUE
+
+D — PRODUCTION CUTOVER UNSAFE OR MATERIAL IMPLEMENTATION DEFECT REMAINS
+
+Do not return A merely because code is ready.
+
+A requires actual production verification.
+
+==================================================
+160. WHAT IS ACTUALLY LIVE NOW
+==================================================
+
+Answer plainly:
+
+Is the clean Git source live?
+
+Is the cloud API live?
+
+Is production PostgreSQL migrated?
+
+Is the external scheduler live?
+
+Is Vercel/frontend live against the new API?
+
+Does production still depend on Replit runtime?
+
+Is NCAAF using its frozen V4 through the shared adapter?
+
+Is NFL using the exact #243B V4 artifact?
+
+Can MLB generate/display V4 projections?
+
+Can NFL generate/display V4 projections?
+
+Can NBA generate/display V4 projections?
+
+Can WNBA generate/display V4 projections?
+
+Can NHL generate/display V4 projections?
+
+Can NCAAF generate/display V4 projections?
+
+Can NCAAMB generate/display V4 projections?
+
+Can Soccer generate/display V4 projections?
+
+Does UFC correctly return NO_FORECAST / IN DEVELOPMENT?
+
+Can users see every eligible supported game?
+
+Can users see projected scores where legitimately supported?
+
+Can users see probabilities?
+
+Are V4_VALIDATING projections visible?
+
+Are validating forecasts excluded from Official Picks?
+
+Are validating forecasts excluded from official Record/Units/ROI?
+
+Does Top Picks still work?
+
+Does POTD still work?
+
+Does Model Analytics work?
+
+Does Betting Analytics work?
+
+Does zero-official-picks work?
+
+Does mobile still work?
+
+Are legacy current forecasts retired?
+
+Is rollback available?
+
+==================================================
+161. EXACTLY ONE RECOMMENDED NEXT TASK
+==================================================
+
+If classification A or B:
+
+Recommend exactly one focused post-launch task.
+
+Preferred:
+
+TASK #245 — TBM V4 POST-LAUNCH PRODUCTION VERIFICATION, PROSPECTIVE VALIDATION & UFC V4 COMPLETION
+
+This should NOT be another platform rebuild.
+
+If classification C:
+
+Recommend exactly one task that resolves the specific external deployment blocker and completes cutover.
+
+If classification D:
+
+Recommend exactly one narrowly scoped repair task for the actual blocking defect.
+
+==================================================
+162. FINAL EXECUTION DIRECTIVE
+==================================================
+
+THIS IS THE FINAL MAJOR TBM V4 INTEGRATION AND DEPLOYMENT TASK.
+
+START BY FINISHING THE NCAAF SHARED FULL-SLATE ADAPTER.
+
+DO NOT RETRAIN THE EXISTING LEGITIMATE MODELS UNLESS A REAL CORRECTNESS DEFECT REQUIRES IT.
+
+THEN INTEGRATE:
+
+MLB V4
+NFL V4
+NBA V4
+WNBA V4
+NHL V4
+NCAAF V4
+NCAAMB V4
+SOCCER V4
+
+INTO THE PRODUCTION FULL-SLATE MODEL EXPERIENCE.
+
+UFC REMAINS:
+
+V4 IN DEVELOPMENT
+NO_FORECAST
+
+AND DOES NOT BLOCK DEPLOYMENT.
+
+EVERY ELIGIBLE GAME FROM AN OPERATIONAL V4 SPORT SHOULD BE ANALYZED.
+
+EVERY LEGITIMATE V4 FORECAST SHOULD BE AVAILABLE TO THE PUBLIC MODEL BOARD ACCORDING TO PRODUCT ACCESS RULES.
+
+SHADOW MEANS:
+
+V4 VALIDATING
+NOT AN OFFICIAL TBM PICK
+
+IT DOES NOT MEAN HIDDEN.
+
+THE WEBSITE MUST REMAIN FULLY USEFUL WITH ZERO OFFICIAL PICKS.
+
+KEEP:
+
+TOP PICKS
+PLAY OF THE DAY
+UNITS
+RECORD
+ROI
+
+AS THE SEPARATE OFFICIAL BETTING PRODUCT.
+
+DO NOT ALLOW SHADOW FORECASTS TO CONTAMINATE THAT PRODUCT.
+
+PRESERVE #238A.
+
+PRESERVE IMMUTABLE FORECASTS.
+
+PRESERVE PIT SAFETY.
+
+PRESERVE MODEL/MARKET SEPARATION.
+
+PRESERVE THE MOBILE STARTUP FIX.
+
+PRESERVE SECURITY.
+
+USE THE CLEAN SOURCE TRUST BOUNDARY.
+
+DO NOT COPY CONTAMINATED GIT HISTORY.
+
+MOVE THE PRODUCTION RUNTIME OFF REPLIT.
+
+VERIFY DATABASE RECOVERY BEFORE UNSAFE MUTATION.
+
+DEPLOY THE CLOUD API.
+
+DEPLOY THE EXTERNAL SCHEDULER.
+
+DEPLOY THE FRONTEND.
+
+VERIFY THE FRONTEND IS ACTUALLY USING THE NEW API.
+
+VERIFY EVERY OPERATIONAL SPORT.
+
+VERIFY NCAAF.
+
+VERIFY THE EXACT NFL #243B ARTIFACT.
+
+VERIFY UFC FAILS CLOSED.
+
+VERIFY ZERO OFFICIAL PICKS.
+
+VERIFY MODEL ANALYTICS.
+
+VERIFY BETTING ANALYTICS.
+
+VERIFY MOBILE COMPATIBILITY.
+
+VERIFY NO LEGACY FALLBACK.
+
+VERIFY THE ACTUAL PRODUCTION URLS.
+
+IF AN IMPLEMENTATION PROBLEM IS RESOLVABLE:
+
+FIX IT AND CONTINUE.
+
+DO NOT TURN THIS INTO ANOTHER AUDIT-ONLY TASK.
+
+DO NOT STOP AT "READY FOR DEPLOYMENT" IF THE AVAILABLE AUTHORIZATION ALLOWS DEPLOYMENT.
+
+THE END STATE OF TASK #244 SHOULD BE:
+
+TBM V4
+OPERATING IN PRODUCTION
+
+WITH:
+
+FULL-SLATE MODEL PROJECTIONS
++
+MODEL ANALYTICS
++
+A SEPARATE SAFE OFFICIAL BETTING LAYER
+
+AND WITH USERS ABLE TO SEE WHAT THE MODEL THINKS ABOUT THE ENTIRE SUPPORTED SLATE EVEN WHILE THE V4 MODELS CONTINUE THEIR PROSPECTIVE VALIDATION.

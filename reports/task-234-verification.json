@@ -1,0 +1,153 @@
+{
+  "task": 234,
+  "generatedAt": "2026-09-06T01:33:52Z",
+  "classification": {
+    "code": "B",
+    "label": "GUARDED SERVING RUNWAY PARTIAL",
+    "architectConclusion": "No release-blocking bug remains for incumbent-safe defaults. Classification A is impossible because no authentic typed MLB/NCAAF candidate executor is registered, all nextgen modes fail startup by design, and no fresh authoritative MLB model-input-v4 inference was run."
+  },
+  "configuredDefaults": {
+    "MLB_MODEL_MODE": "v1",
+    "NCAAF_MODEL_MODE": "legacy",
+    "secretsRecorded": false
+  },
+  "models": {
+    "MLB": {
+      "incumbent": "tbm-mlb-moneyline-v1",
+      "candidate": "tbm-mlb-moneyline-v4",
+      "inputContract": "model-input-v4",
+      "candidateApproved": false,
+      "candidatePromoted": false,
+      "approvedMarkets": []
+    },
+    "NCAAF": {
+      "incumbent": "tbm-ncaaf-moneyline-v1",
+      "candidate": "tbm-ncaaf-v4-expected-score",
+      "candidateApproved": false,
+      "candidatePromoted": false,
+      "approvedMarkets": []
+    }
+  },
+  "approvalAndPersistence": {
+    "approvalLedgerCount": 0,
+    "officialIdentityCount": 0,
+    "modeAndApprovalIndependent": true,
+    "approvalContract": {
+      "appendOnly": true,
+      "explicit": true,
+      "masterAdminProtected": true,
+      "actorDerived": true,
+      "marketSpecific": true
+    }
+  },
+  "servingBoundary": {
+    "centralBoundaryWiredIn": ["games refresh", "scheduler path 1", "scheduler path 2"],
+    "defaultModesReturnUnchangedIncumbentProjection": true,
+    "onlyIncumbentOrFallbackMayReachProcessGameSnapshot": true,
+    "candidateOrPassCannotBeMislabeledAsV1": true,
+    "authenticTypedCandidateExecutorRegistered": false
+  },
+  "runtimeStatus": {
+    "truthfulOwnerStatus": true,
+    "fields": ["executorAvailable", "resolvedServingState"],
+    "approvedWithoutExecutor": {
+      "incumbentRemainsActive": true,
+      "resolvedServingState": "STARTUP_BLOCKED",
+      "publicationStatus": "BLOCKED_BY_RUNTIME"
+    }
+  },
+  "schema": {
+    "developmentGuardedSchema": {
+      "appendOnlyTables": 5,
+      "triggers": 10,
+      "mutationTest": "BLOCKED"
+    },
+    "productionSchemaAndTriggerInstallation": "PUBLISH_TIME_VERIFICATION_BLOCKER",
+    "productionTablesClaimedToExist": false
+  },
+  "api": {
+    "openApiUpdated": true,
+    "generatedClientsRegenerated": true,
+    "gamesTodayModelIdentity": {
+      "additiveOptional": true,
+      "source": "official immutable identity",
+      "fabricatedWhenAbsent": false
+    }
+  },
+  "dryRuns": {
+    "MLB": {
+      "auditId": "b223b677-3fdb-46ed-99c4-a65e4eceb39d",
+      "gameId": "823094",
+      "disposition": "WOULD_FALLBACK",
+      "reason": "V4_NOT_APPROVED",
+      "candidateInput": "unavailable",
+      "successfulAuthoritativeModelInputV4Inference": false,
+      "note": "It traversed existing older pregame/shadow records and is not a fresh authoritative model-input-v4 inference."
+    },
+    "NCAAF": {
+      "auditId": "c832dc95-c152-48cf-abd1-ddc5e0490708",
+      "gameId": "espn:NCAAF-401858210",
+      "disposition": "WOULD_FALLBACK",
+      "reason": "NEXTGEN_NOT_APPROVED",
+      "candidateRead": "healthy board read",
+      "registeredCentralProductionExecutor": false,
+      "note": "This is a board/adaptation dry-run, not a registered central production executor."
+    },
+    "createdPublicPicks": false,
+    "createdNotifications": false,
+    "createdOfficialIdentities": false
+  },
+  "reviews": {
+    "MLB": {
+      "recommendation": "BLOCK",
+      "blockers": ["evidence", "sample", "calibration", "leakage", "runtime"]
+    },
+    "NCAAF": {
+      "recommendation": "BLOCK",
+      "blockers": ["evidence", "sample", "calibration", "leakage", "runtime"]
+    },
+    "policiesReusableForFutureNFL": true,
+    "evaluatorCanApprove": false
+  },
+  "startupChecks": {
+    "default": "PASSES",
+    "v4_guarded": "BLOCKS_ON_MISSING_EXACT_MLB_REGISTRY_RECORD",
+    "nextgen_guarded": "BLOCKS_ON_NO_AUTHENTIC_EXECUTOR_AFTER_SCHEMA_VERIFICATION"
+  },
+  "verification": {
+    "apiTests": {"files": 85, "tests": 543, "status": "PASSED"},
+    "focusedTests": {"files": 2, "tests": 16, "status": "PASSED"},
+    "targetedTypechecks": {"API": "PASSED", "admin": "PASSED", "mobile": "PASSED", "DB": "PASSED"},
+    "builds": {"API": "PASSED", "admin": "PASSED"},
+    "workspaceWideTypecheck": {
+      "status": "FAILED_PREEXISTING_UNRELATED_ERRORS_ONLY",
+      "files": ["PickFirst.tsx", "calendar.tsx", "spinner.tsx"],
+      "fixedByTask234": false
+    },
+    "signingCredentialScan": "PASSED",
+    "gitDiffCheck": "PASSED"
+  },
+  "workflows": {"API": "RUNNING_CLEANLY", "admin": "RUNNING_CLEANLY"},
+  "production": {
+    "changedOrRedeployed": false,
+    "existingIncumbentsUnchanged": true,
+    "modelParametersChanged": false,
+    "trainingChanged": false,
+    "picksChanged": false,
+    "historyChanged": false,
+    "prohibitedHistoricalGitRefUntouched": true
+  },
+  "task235Prerequisites": [
+    "authentic exact executors",
+    "authoritative MLB model-input-v4 fresh inference",
+    "NCAAF exact production adapter/model_prediction bridge",
+    "managed publish schema/triggers",
+    "successful real-slate dry runs",
+    "independent approval"
+  ],
+  "report": {
+    "path": "reports/task-234-guarded-serving-runtime.md",
+    "sha256": "59c0760c02aadda3017a65da9572f2a8190d81b36cad2f8b7f1a950314d1582b",
+    "numberedH2SectionCount": 45
+  }
+}

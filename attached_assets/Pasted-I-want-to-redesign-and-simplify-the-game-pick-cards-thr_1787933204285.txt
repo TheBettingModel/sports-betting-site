@@ -1,0 +1,717 @@
+I want to redesign and simplify the game/pick cards throughout The Betting Model (TBM) app.
+
+IMPORTANT:
+Do not change the underlying model calculations, API responses, database structure, betting logic, rankings, or recommendation engine.
+
+This is primarily a FRONTEND/UI redesign.
+
+The goal is to make every pick card significantly cleaner, faster to understand, and easier to use on mobile while still communicating why the TBM model likes a particular bet.
+
+==================================================
+TBM PICK CARD REDESIGN
+==================================================
+
+CURRENT PROBLEM
+
+The current cards contain too much information competing for attention.
+
+Examples of information currently displayed include:
+
+- Strong Buy / rating
+- Model Edge vs Vegas
+- Pick
+- Odds
+- Units
+- CLV
+- Opening odds
+- Current odds
+- Line movement
+- Team records
+- Home/Away
+- 85/100 score
+- Edge %
+- Confidence stars
+- Game time
+- Team logos
+
+Individually these metrics are useful, but displaying all of them simultaneously makes the card difficult to scan.
+
+A user should be able to look at a card for approximately 1–2 seconds and immediately understand:
+
+1. What game is this?
+2. What is TBM betting?
+3. What are the odds?
+4. How likely does TBM believe the bet is to win?
+5. How large is the model's advantage over the market?
+6. How strongly does TBM recommend the bet?
+
+Everything else should become secondary information.
+
+==================================================
+NEW CARD INFORMATION HIERARCHY
+==================================================
+
+Every standard pick card should follow this hierarchy:
+
+1. GAME / MATCHUP
+2. TBM PICK
+3. MODEL WIN PROBABILITY
+4. MARKET IMPLIED PROBABILITY
+5. MODEL EDGE
+6. RECOMMENDATION / UNITS
+7. VIEW ANALYSIS
+
+The most important information must visually dominate the card.
+
+==================================================
+1. GAME HEADER
+==================================================
+
+At the top of the card display:
+
+SPORT • GAME TIME
+
+Example:
+
+NFL • 8:00 PM EDT
+
+Keep this small and muted.
+
+Immediately underneath show the matchup.
+
+Example:
+
+[Bengals Logo] BENGALS
+@
+[Eagles Logo] EAGLES
+
+or a clean horizontal format:
+
+[Bengals Logo] CIN  @  PHI [Eagles Logo]
+
+Use actual team logos.
+
+The matchup should be visually obvious but should NOT overpower the betting recommendation.
+
+Do not clutter this section with unnecessary team records unless there is a strong UX reason.
+
+==================================================
+2. THE PICK
+==================================================
+
+The betting recommendation should be the primary element of the card.
+
+Example:
+
+THE PICK
+
+BENGALS ML   +120
+
+The pick and odds should be presented together.
+
+Avoid splitting information into unnecessary badges such as:
+
+CIN
+AWAY
+Moneyline
++120
+
+Instead use one clean recommendation:
+
+BENGALS ML +120
+
+Other examples:
+
+YANKEES ML -125
+
+CUBS +1.5 -140
+
+OVER 8.5 -110
+
+CHIEFS -3 -105
+
+The user should immediately know exactly what TBM recommends betting.
+
+==================================================
+3. MODEL WIN PROBABILITY
+==================================================
+
+Make Model Win Probability the primary analytical metric.
+
+Example:
+
+61.8%
+
+MODEL WIN PROBABILITY
+
+This should replace abstract confidence displays such as:
+
+85/100
+★★★★★
+
+Win probability is easier for users to understand and directly communicates what the model believes.
+
+IMPORTANT:
+
+Use the actual model probability.
+
+Do NOT fabricate or estimate probabilities from unrelated scores.
+
+If the backend does not currently provide a true calibrated win probability, identify that before implementing this section.
+
+==================================================
+4. MARKET IMPLIED PROBABILITY
+==================================================
+
+Directly compare TBM's probability against the sportsbook market.
+
+Example:
+
+TBM
+61.8%
+
+MARKET
+45.5%
+
+This should be extremely easy to understand.
+
+Calculate market implied probability from the current betting odds where appropriate.
+
+For American odds:
+
+Positive odds:
+100 / (odds + 100)
+
+Negative odds:
+abs(odds) / (abs(odds) + 100)
+
+Example:
+
++120
+
+100 / 220 = 45.45%
+
+Market Implied Probability = 45.5%
+
+Use the best/current actionable sportsbook price that TBM is actually recommending.
+
+==================================================
+5. MODEL EDGE
+==================================================
+
+Display the difference between TBM probability and market implied probability.
+
+Example:
+
+MODEL EDGE
++16.3%
+
+Formula:
+
+Model Win Probability
+-
+Market Implied Probability
+=
+Model Probability Edge
+
+Example:
+
+61.8%
+-
+45.5%
+=
++16.3%
+
+IMPORTANT:
+
+Do not blindly replace an existing "edge" calculation if the backend currently defines edge differently.
+
+We may have multiple concepts:
+
+- Probability edge
+- Expected value
+- Model edge
+- Market edge
+- Pricing edge
+
+Keep these definitions mathematically distinct.
+
+If necessary, label this new metric:
+
+PROBABILITY EDGE
+
+rather than overwriting another existing edge field.
+
+==================================================
+6. RECOMMENDATION + UNITS
+==================================================
+
+Keep the recommendation system extremely simple.
+
+Example:
+
+STRONG BUY • 3.0U
+
+Possible tiers can remain whatever the backend currently produces, such as:
+
+ELITE
+STRONG BUY
+BUY
+LEAN
+PASS
+
+Do not invent new thresholds unless they already exist in the model.
+
+The recommendation should appear only ONCE.
+
+Do not show "Strong Buy" in multiple locations on the same card.
+
+Units should remain visible because they communicate recommended bet sizing.
+
+Example:
+
+STRONG BUY
+3.0U
+
+or:
+
+STRONG BUY • 3.0U
+
+==================================================
+7. VIEW ANALYSIS
+==================================================
+
+Add a clear interaction at the bottom:
+
+VIEW ANALYSIS →
+
+or
+
+WHY TBM LIKES THIS BET →
+
+Tapping this should expand the card, open a modal, bottom sheet, drawer, or detailed analysis page depending on the existing architecture.
+
+This second layer is where advanced analytics should live.
+
+==================================================
+EXPANDED ANALYSIS
+==================================================
+
+Do NOT delete valuable model intelligence.
+
+Move secondary information into the expanded analysis section.
+
+This can include:
+
+MODEL INFORMATION
+- Final model score
+- Confidence score
+- Model version
+- Recommendation tier
+
+MARKET INFORMATION
+- Opening odds
+- Current odds
+- Best available odds
+- Sportsbook
+- Line movement
+- Market direction
+- Sharp book information
+- Steam
+- Reverse line movement
+- Market strength
+- Price profile
+- Line shopping value
+
+VALUE INFORMATION
+- Model probability
+- Market implied probability
+- Probability edge
+- Expected value if available
+- Fair odds
+- Current odds
+- Price advantage
+
+GAME INFORMATION
+- Team records
+- Home/Away
+- injuries
+- starting lineup information
+- weather
+- rest
+- travel
+- matchup information
+
+SPORT-SPECIFIC MODEL FACTORS
+should also remain available in the detailed analysis.
+
+For example MLB could include:
+
+- Starting pitcher edge
+- Bullpen edge
+- Lineup edge
+- Park factors
+- Weather
+- Umpire
+- Bullpen fatigue
+- Offensive splits
+- Pitcher splits
+
+Do not force all of this onto the collapsed card.
+
+==================================================
+TARGET COLLAPSED CARD
+==================================================
+
+Conceptually the card should look approximately like this:
+
+------------------------------------------------
+
+NFL • 8:00 PM EDT
+
+[BENGALS LOGO] BENGALS
+@
+[EAGLES LOGO] EAGLES
+
+THE PICK
+
+BENGALS ML                         +120
+
+STRONG BUY • 3.0U
+
+---------------------------------
+
+MODEL WIN PROBABILITY
+
+61.8%
+
+TBM            MARKET
+61.8%           45.5%
+
+MODEL EDGE
++16.3%
+
+---------------------------------
+
+VIEW ANALYSIS →
+
+------------------------------------------------
+
+This is a conceptual information hierarchy, not a requirement to literally reproduce this ASCII layout.
+
+Use the existing TBM design system.
+
+==================================================
+VISUAL DESIGN
+==================================================
+
+Keep the established TBM branding:
+
+- Black/dark background
+- White typography
+- Lime green accent
+- Professional sports analytics aesthetic
+- Bloomberg / TradingView / FanGraphs / Action Network feel
+- Clean borders
+- Subtle cards
+- Minimal unnecessary gradients
+- Minimal visual noise
+
+The design should feel like a professional analytics platform, NOT a sportsbook advertisement.
+
+Avoid excessive:
+
+- badges
+- pills
+- stars
+- icons
+- borders
+- glowing effects
+- giant labels
+- duplicate metrics
+
+Use whitespace intentionally.
+
+==================================================
+COLOR HIERARCHY
+==================================================
+
+WHITE:
+Primary information
+
+Examples:
+BENGALS ML
+61.8%
+team names
+
+LIME GREEN:
+Positive model/value information
+
+Examples:
++16.3% edge
+STRONG BUY
+recommended units
+
+GRAY:
+Secondary information
+
+Examples:
+NFL
+8:00 PM
+Market Implied
+labels
+
+RED:
+Only warnings or genuinely negative market signals.
+
+Do not overuse red.
+
+==================================================
+MOBILE-FIRST
+==================================================
+
+These cards will primarily be viewed on mobile.
+
+The card must work cleanly on narrow phone screens.
+
+Priorities:
+
+- No horizontal scrolling
+- No clipped text
+- Large enough touch targets
+- Odds remain readable
+- Team names do not overflow
+- Long market names gracefully truncate/wrap
+- Model probability remains prominent
+- Analysis button easy to tap
+- Cards should not become excessively tall
+
+Test the design at common mobile widths.
+
+==================================================
+CONSISTENCY ACROSS SPORTS
+==================================================
+
+Create ONE reusable base card architecture.
+
+It should support:
+
+MLB
+NFL
+NBA
+NHL
+WNBA
+NCAAF
+NCAAMB
+Soccer
+UFC
+
+The card should adapt to different market types:
+
+Moneyline
+Spread
+Run Line
+Totals
+F5
+NRFI/YRFI
+Props if added later
+
+Do NOT create completely separate UI architecture for every sport.
+
+Use reusable shared components with sport-specific data passed into them.
+
+==================================================
+POSSIBLE COMPONENT STRUCTURE
+==================================================
+
+Consider something similar to:
+
+<TBMPlayCard>
+
+  <GameHeader />
+
+  <Matchup />
+
+  <PrimaryPick />
+
+  <RecommendationBadge />
+
+  <ModelProbability />
+
+  <MarketComparison />
+
+  <ModelEdge />
+
+  <AnalysisToggle />
+
+</TBMPlayCard>
+
+Expanded:
+
+<TBMPlayAnalysis>
+
+  <ModelAnalysis />
+
+  <MarketAnalysis />
+
+  <ValueAnalysis />
+
+  <SportSpecificAnalysis />
+
+</TBMPlayAnalysis>
+
+Reuse existing TBM shared components wherever possible rather than unnecessarily rebuilding the entire frontend.
+
+==================================================
+IMPORTANT DATA RULE
+==================================================
+
+DO NOT change model outputs simply to make the UI cleaner.
+
+The frontend should represent backend data accurately.
+
+Before implementing the redesign, audit the available API fields and determine:
+
+1. Do we already have calibrated model win probability?
+2. Do we have current odds?
+3. Do we have opening odds?
+4. Do we have recommended units?
+5. Do we have recommendation tier?
+6. How is the existing "edge" field calculated?
+7. Do we have fair odds?
+8. Do we have expected value?
+9. Do we have sportsbook information?
+10. Which fields are universal across all sports?
+
+Do not assume an existing confidence score is equivalent to win probability.
+
+Do not assume an existing edge field equals probability edge.
+
+==================================================
+IMPORTANT: FAIR ODDS
+==================================================
+
+If model win probability is available, calculate/display model fair odds in the expanded analysis.
+
+Example:
+
+TBM Probability: 61.8%
+
+Corresponding fair American odds are approximately:
+
+-162
+
+If sportsbook odds are:
+
++120
+
+Then the expanded section could show:
+
+TBM FAIR PRICE     -162
+MARKET PRICE       +120
+
+This can be extremely valuable for advanced users, but it does NOT need to dominate the collapsed card.
+
+==================================================
+REMOVE DUPLICATION
+==================================================
+
+A metric should generally appear once.
+
+For example, do not display:
+
+STRONG BUY
+Strong Buy badge
+85/100
+★★★★★
+Confidence: High
+
+all simultaneously.
+
+Choose the clearest representation.
+
+Primary recommendation:
+
+STRONG BUY • 3.0U
+
+Primary analytical metric:
+
+MODEL WIN PROBABILITY: 61.8%
+
+Primary value metric:
+
+MODEL EDGE: +16.3%
+
+==================================================
+FINAL USER EXPERIENCE
+==================================================
+
+The user should be able to scroll through the model board and immediately see:
+
+GAME
+
+PICK
+
+ODDS
+
+MODEL WIN %
+
+MARKET WIN %
+
+EDGE
+
+UNITS / RECOMMENDATION
+
+Everything else is available by tapping:
+
+VIEW ANALYSIS
+
+This gives TBM two layers:
+
+LAYER 1 — DECISION
+
+"What does TBM recommend?"
+
+LAYER 2 — INTELLIGENCE
+
+"Why does TBM recommend it?"
+
+That should be the philosophy behind the redesign.
+
+==================================================
+IMPLEMENTATION PROCESS
+==================================================
+
+Before writing code:
+
+1. Inspect the current pick card component(s).
+2. Inspect the API response being passed into them.
+3. Identify the existing shared TBM components.
+4. Identify every page using the current card.
+5. Identify which requested fields already exist.
+6. Identify fields requiring calculation.
+7. Flag any missing backend data.
+8. Make sure changing the shared card will not break other model pages.
+
+Then provide me with:
+
+A. Current architecture findings
+B. Proposed component architecture
+C. Data-field mapping
+D. Fields that are missing
+E. Files that need modification
+F. Any backend changes that are actually necessary
+
+After that, implement the redesign.
+
+Do not rebuild unrelated pages.
+Do not modify model logic.
+Do not remove advanced data from the platform.
+Do not invent probabilities or analytics.
+
+The objective is:
+
+LESS INFORMATION AT FIRST GLANCE.
+BETTER INFORMATION HIERARCHY.
+FASTER DECISION MAKING.
+ADVANCED ANALYTICS ONE TAP AWAY.

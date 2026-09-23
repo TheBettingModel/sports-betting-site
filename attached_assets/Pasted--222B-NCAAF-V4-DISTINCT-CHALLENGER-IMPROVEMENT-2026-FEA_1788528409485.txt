@@ -1,0 +1,917 @@
+#222B — NCAAF V4 DISTINCT CHALLENGER IMPROVEMENT & 2026 FEATURE-BRIDGE
+
+AUTHORITATIVE STARTING STATE
+
+#221I is COMPLETE.
+
+#222 final decision:
+
+B. #222 ENGINE COMPLETE — ONE SPECIFIC MODEL QUALITY ISSUE MUST BE
+RESOLVED BEFORE #223
+
+Current model:
+
+tbm-ncaaf-v4-expected-score
+
+Dataset:
+
+ncaaf-v4-training-foundation-v2
+
+Chronological cohorts:
+
+TRAIN:
+2023–2024
+1,590 games
+
+VALIDATION:
+2025 Weeks 1–7
+398 games
+
+OOS:
+2025 Week 8+
+410 games
+
+Current #222 OOS metrics:
+
+Home score MAE: 9.2826
+Away score MAE: 8.4986
+Margin MAE: 12.5008
+Total MAE: 12.9390
+Moneyline Brier: 0.180023
+Moneyline log loss: 0.534792
+
+PIT violations: 0
+Market leakage violations: 0
+
+Current status:
+
+CHALLENGER / UNVALIDATED
+
+Champion changed: NO
+Publication changed: NO
+NFL changed: NO
+
+============================================================
+THE SPECIFIC #222 PROBLEM
+============================================================
+
+The selected #222 V4 model is effectively identical to:
+
+Baseline D — simple expected-score linear model.
+
+Therefore V4 has NOT yet demonstrated that the new challenger adds
+predictive value beyond the strongest declared sports baseline.
+
+Do not advance to #223 until we resolve this honestly.
+
+The purpose of #222B is:
+
+1. Preserve Baseline D as the benchmark.
+2. Build genuinely distinct NCAAF expected-score challengers.
+3. Select using VALIDATION ONLY.
+4. Freeze the winning challenger.
+5. Evaluate it ONCE against untouched OOS.
+6. Determine whether it meaningfully improves upon Baseline D.
+7. Build the exact historical-to-2026 core-feature bridge required for
+prospective challenger generation.
+8. Do not promote or publish anything.
+
+============================================================
+CRITICAL RULES
+============================================================
+
+DO NOT begin #223.
+
+DO NOT promote V4.
+
+DO NOT change the production champion.
+
+DO NOT publish picks.
+
+DO NOT create wagers.
+
+DO NOT create units.
+
+DO NOT use sportsbook information as sports features.
+
+DO NOT use ROI to select the sports model.
+
+DO NOT tune against OOS.
+
+DO NOT modify NFL.
+
+DO NOT modify MLB.
+
+DO NOT modify unrelated sports.
+
+DO NOT weaken PIT protections.
+
+DO NOT weaken the market firewall.
+
+DO NOT change the #221I historical target/result ordering.
+
+============================================================
+PART 1 — FREEZE BASELINE D
+============================================================
+
+Treat Baseline D as an immutable benchmark.
+
+Record its exact:
+
+model definition
+features
+coefficients
+training data
+configuration hash
+parameter hash
+validation metrics
+OOS metrics
+
+Baseline D OOS reference:
+
+Home MAE:
+9.2826256764
+
+Away MAE:
+8.4985635844
+
+Margin MAE:
+12.5008391763
+
+Total MAE:
+12.9390090779
+
+Brier:
+use the canonical frozen Baseline D metric from the immutable artifact
+
+Log loss:
+use the canonical frozen Baseline D metric from the immutable artifact
+
+IMPORTANT:
+
+The #222 report contains a small discrepancy between the displayed
+Baseline D Brier/log-loss values and the final V4 Brier/log-loss values.
+
+Baseline D table:
+Brier ≈ 0.178284
+Log loss ≈ 0.527958
+
+Final V4:
+Brier ≈ 0.180023
+Log loss ≈ 0.534792
+
+Before challenger work, identify exactly why these differ.
+
+Do NOT silently choose one.
+
+Determine whether the difference comes from:
+
+probability-generation version
+distribution calibration
+metric implementation
+artifact version
+rounding
+or another deterministic reason.
+
+Create ONE canonical Baseline D benchmark and document it.
+
+============================================================
+PART 2 — DO NOT MOVE THE OOS GOALPOSTS
+============================================================
+
+Preserve exactly:
+
+TRAIN = 2023–2024
+VALIDATION = 2025 Weeks 1–7
+OOS = 2025 Week 8+
+
+Do not change the split because another split produces better results.
+
+The 410 OOS games remain untouched during challenger selection.
+
+============================================================
+PART 3 — FEATURE ENGINEERING FROM APPROVED PIT DATA
+============================================================
+
+Create genuinely distinct features using ONLY #221I-approved A/B
+historical evidence.
+
+Candidates may include:
+
+OFFENSE
+
+shrunk season scoring
+last-3 scoring
+last-5 scoring
+season-vs-recent differential
+offensive trend
+sample count
+prior-season scoring
+
+DEFENSE
+
+shrunk points allowed
+last-3 points allowed
+last-5 points allowed
+season-vs-recent differential
+defensive trend
+sample count
+prior-season defense
+
+TEAM STRENGTH
+
+pregame Elo
+Elo differential
+chronological opponent-adjusted scoring
+chronological opponent-adjusted defense
+
+MATCHUP
+
+home offense × away defensive weakness
+away offense × home defensive weakness
+relative offensive strength
+relative defensive strength
+
+CONTEXT
+
+home
+neutral
+early-season sample state
+
+UNCERTAINTY
+
+sample count
+rolling variability where PIT-safe
+prior/current disagreement
+
+All features must be reconstructable prospectively.
+
+Do NOT use future evidence.
+
+============================================================
+PART 4 — IMPROVE EARLY-SEASON SHRINKAGE
+============================================================
+
+Current shrinkage:
+
+n / (n + 4)
+
+Treat this as a candidate, not a permanent truth.
+
+Using TRAIN + VALIDATION methodology only, test a small controlled set
+of shrinkage strengths.
+
+Examples conceptually:
+
+n/(n+k)
+
+with a small predetermined set of k values.
+
+Do NOT hyperparameter mine.
+
+Evaluate whether separate shrinkage is justified for:
+
+offense
+defense
+recent form
+prior-season state
+
+The chosen values must be frozen before OOS.
+
+============================================================
+PART 5 — HOME-FIELD EFFECT
+============================================================
+
+Re-estimate home-field effect using training evidence.
+
+Test whether a single constant home effect is sufficient.
+
+Potentially compare:
+
+global home effect
+
+vs
+
+home effect with limited early-season/sample interaction
+
+Do NOT create team-specific home effects unless sample support is
+clearly sufficient.
+
+Neutral-site behavior must remain explicit.
+
+============================================================
+PART 6 — DISTINCT MODEL FAMILIES
+============================================================
+
+Create a small controlled challenger set genuinely different from
+Baseline D.
+
+At minimum consider:
+
+CHALLENGER 1
+Regularized expected-score model with expanded PIT-safe engineered
+features.
+
+CHALLENGER 2
+Robust/Huber-style expected-score regression if supported.
+
+CHALLENGER 3
+Gradient-boosted expected-score model with conservative complexity if
+the project dependencies support it.
+
+OPTIONAL:
+Poisson / negative-binomial score model if diagnostics show it is
+appropriate for NCAAF scoring.
+
+Do not add algorithms merely to increase the number tested.
+
+Every candidate must independently predict:
+
+home points
+away points
+
+and derive:
+
+margin
+total
+win probability
+
+============================================================
+PART 7 — CONTROL COMPLEXITY
+============================================================
+
+Dataset size is only:
+
+1,590 training games.
+
+Do not build a giant feature space.
+
+Use:
+
+regularization
+limited tree depth
+minimum leaf sizes
+early stopping where appropriate
+small predetermined hyperparameter grids
+
+Do not create hundreds of candidate configurations.
+
+============================================================
+PART 8 — VALIDATION SELECTION SCORECARD
+============================================================
+
+Do NOT choose the challenger from one metric alone.
+
+Create a predeclared validation scorecard including:
+
+Home score MAE
+Away score MAE
+Margin MAE
+Total MAE
+Brier
+Log loss
+
+Primary emphasis:
+
+Margin accuracy
+Moneyline probability accuracy
+
+Secondary:
+
+Home/away score accuracy
+Total accuracy
+Stability
+
+Document selection criteria BEFORE reading OOS challenger performance.
+
+============================================================
+PART 9 — STABILITY TEST
+============================================================
+
+A challenger must not win only because of one tiny subset.
+
+Evaluate validation performance by:
+
+week
+early vs later validation
+home vs neutral
+data-quality state
+predicted probability band
+sample-count band
+
+Flag material instability.
+
+============================================================
+PART 10 — FREEZE WINNER
+============================================================
+
+After validation:
+
+choose ONE challenger.
+
+Freeze:
+
+feature list
+model family
+parameters
+shrinkage
+home-field treatment
+distribution assumptions
+configuration hash
+parameter hash
+code version
+
+Only then unlock the 410-game OOS cohort.
+
+============================================================
+PART 11 — ONE-TIME OOS EVALUATION
+============================================================
+
+Run the frozen challenger ONCE on the exact 410-game OOS cohort.
+
+Compare directly against canonical Baseline D.
+
+Report absolute and percentage differences for:
+
+Home MAE
+Away MAE
+Margin MAE
+Total MAE
+Brier
+Log loss
+
+Do not retune after seeing OOS.
+
+============================================================
+PART 12 — DEFINE "IMPROVEMENT" HONESTLY
+============================================================
+
+Do not require the challenger to win every metric.
+
+But it should demonstrate meaningful overall predictive improvement.
+
+Strong evidence would include:
+
+lower margin MAE/RMSE
+lower Brier
+lower log loss
+
+without materially degrading score/total accuracy.
+
+If the challenger only improves by trivial noise-sized amounts, report
+that honestly.
+
+If Baseline D remains superior, Baseline D may actually be the correct
+V4 architecture.
+
+Do NOT force complexity merely so V4 looks different.
+
+This is extremely important.
+
+A simple model that predicts better is preferable to a complicated
+model that predicts worse.
+
+============================================================
+PART 13 — BOOTSTRAP / UNCERTAINTY OF DIFFERENCES
+============================================================
+
+Where practical, estimate uncertainty around OOS metric differences.
+
+Use game-level paired bootstrap or another appropriate deterministic
+evaluation technique.
+
+Report whether observed improvement appears:
+
+ROBUST
+PROMISING
+INCONCLUSIVE
+NEGATIVE
+
+Do not claim statistical certainty that the sample cannot support.
+
+============================================================
+PART 14 — CALIBRATION
+============================================================
+
+The #222 calibration table shows notable errors in some probability
+bands.
+
+Examples include:
+
+50–55%:
+predicted ~52.4%
+observed ~75.8%
+
+65–70%:
+predicted ~67.7%
+observed ~81.0%
+
+Do NOT fit calibration against OOS.
+
+Using training/validation only, evaluate whether:
+
+no calibration
+Platt/logistic calibration
+isotonic calibration
+
+is justified.
+
+Avoid isotonic if sample size makes it unstable.
+
+Freeze calibration before OOS.
+
+Report raw AND calibrated OOS metrics.
+
+============================================================
+PART 15 — DISTRIBUTION IMPROVEMENT
+============================================================
+
+Current model uses:
+
+deterministic normal margin/total
+global uncertainty based on training RMSE.
+
+Evaluate whether residual variance changes meaningfully with:
+
+early-season state
+data quality
+predicted score level
+sample count
+
+If supported, build a simple heteroscedastic uncertainty model.
+
+Do not overcomplicate.
+
+This matters because ML/spread/total probabilities depend on the
+distribution, not only expected scores.
+
+============================================================
+PART 16 — 2026 FEATURE BRIDGE
+============================================================
+
+#222 reported:
+
+2026 FEATURE COMPATIBILITY = PARTIAL
+
+and:
+
+2026 INTERNAL CHALLENGER PREDICTIONS = 0
+
+This must be addressed before #223.
+
+Do NOT weaken the historical schema.
+
+Instead build a deterministic 2026 feature bridge that constructs the
+same V4 core feature schema from current prospective atomic evidence.
+
+Required prospective families:
+
+score-derived prior offense
+score-derived prior defense
+rolling last-3
+rolling last-5
+prior-season state
+TBM pregame Elo
+chronological opponent adjustment
+home/neutral
+sample counts
+missing/quality indicators
+
+============================================================
+PART 17 — REPLAY 2026 CHRONOLOGICALLY
+============================================================
+
+Use current 2026 atomic completed-game evidence to maintain the same
+chronological state machine used historically.
+
+For upcoming/frozen game at time T:
+
+only use completed games before T.
+
+Construct:
+
+pregame team state
+pregame Elo
+rolling state
+opponent-adjusted state
+prior-season fallback
+context
+
+Do not rely on the old intelligence snapshot containing all derived
+features.
+
+The feature bridge should derive them from authoritative atomic
+evidence.
+
+============================================================
+PART 18 — PRESERVE PROSPECTIVE INTEGRITY
+============================================================
+
+For frozen 2026 games:
+
+feature cutoff must be <= legitimate pregame cutoff.
+
+No completed target-game evidence may enter the feature state.
+
+Do not backfill a "prospective" prediction after knowing the result.
+
+Only generate internal challenger predictions for snapshots where the
+required feature state can legitimately be reconstructed as it existed
+before kickoff.
+
+============================================================
+PART 19 — 2026 INTERNAL CHALLENGER PREDICTIONS
+============================================================
+
+Once compatibility passes:
+
+generate INTERNAL challenger predictions where legitimate.
+
+These remain:
+
+NON-PUBLIC
+NO WAGER
+NO UNITS
+NO CHAMPION CHANGE
+
+Persist:
+
+game
+feature cutoff
+prediction timestamp
+model version
+expected home
+expected away
+margin
+total
+home probability
+away probability
+uncertainty
+data quality
+feature availability
+
+Report count.
+
+============================================================
+PART 20 — 2026 COMPATIBILITY MATRIX
+============================================================
+
+Report for every V4 feature:
+
+Historical schema
+2026 source
+Exact semantic match?
+Exact chronology?
+Coverage
+Fallback
+Status
+
+Allowed statuses:
+
+PASS
+PARTIAL
+FAIL
+UNSUPPORTED
+
+Overall 2026 compatibility should become PASS before #223 unless a
+specific optional feature is documented and excluded from the frozen
+challenger.
+
+============================================================
+PART 21 — PIT / MARKET FIREWALL
+============================================================
+
+Run full audits again.
+
+Required:
+
+same-game leakage = 0
+future-game leakage = 0
+future-season leakage = 0
+post-kickoff evidence = 0
+market leakage = 0
+
+Run against:
+
+historical training
+validation
+OOS
+2026 feature bridge
+2026 challenger predictions
+
+============================================================
+PART 22 — NFL / OTHER SPORT ISOLATION
+============================================================
+
+Explicitly verify:
+
+NFL unchanged
+MLB unchanged
+other sport engines unchanged
+
+No shared football forecasting logic.
+
+============================================================
+PART 23 — REGISTRY
+============================================================
+
+Keep challenger:
+
+UNVALIDATED
+
+champion = FALSE
+
+publication = FALSE
+
+If #222B succeeds, it becomes READY FOR #223.
+
+It does NOT become production approved here.
+
+============================================================
+PART 24 — TESTS
+============================================================
+
+Add tests for:
+
+canonical Baseline D metric reconciliation
+expanded feature construction
+shrinkage
+model family selection
+validation-only selection
+OOS isolation
+calibration isolation
+distribution probabilities
+2026 feature bridge
+2026 chronology
+same-game exclusion
+future-game exclusion
+market firewall
+prediction reproducibility
+NFL isolation
+no-publication behavior
+
+Run:
+
+full relevant tests
+typecheck
+build
+
+============================================================
+PART 25 — REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-v4-distinct-challenger-2026-09-04.md
+
+Include:
+
+1. Executive summary
+2. Canonical Baseline D reconciliation
+3. Dataset/split identity
+4. Expanded feature set
+5. Shrinkage experiments
+6. Home-field treatment
+7. Challenger families
+8. Complexity controls
+9. Validation scorecard
+10. Selected challenger
+11. Frozen configuration
+12. OOS comparison
+13. Paired uncertainty/bootstrap
+14. Calibration
+15. Distribution diagnostics
+16. 2026 feature bridge
+17. 2026 compatibility matrix
+18. 2026 internal challenger predictions
+19. PIT audit
+20. Market-firewall audit
+21. Registry state
+22. NFL/other-sport isolation
+23. Tests/build
+24. Known limitations
+25. Recommendation
+26. Final decision
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #222B COMPLETE — DISTINCT NCAAF V4 CHALLENGER READY FOR #223
+
+B. #222B COMPLETE — BASELINE D REMAINS BEST NCAAF V4 CORE; READY FOR
+#223 USING SIMPLE MODEL
+
+C. #222B PARTIAL — ONE SPECIFIC MODEL OR 2026 COMPATIBILITY BLOCKER
+REMAINS
+
+D. #222B FAILED — CURRENT FOUNDATION DOES NOT SUPPORT A VALIDATED V4
+CHALLENGER
+
+IMPORTANT:
+
+Decision B IS A SUCCESS.
+
+Do not force a more complicated model if Baseline D remains the best
+out-of-sample sports predictor.
+
+============================================================
+FINAL OUTPUT FIRST
+============================================================
+
+Start with:
+
+#222B FINAL
+
+CANONICAL BASELINE D:
+[value]
+
+SELECTED CHALLENGER:
+[value]
+
+MODEL FAMILY:
+[value]
+
+TRAINING ROWS:
+[number]
+
+VALIDATION ROWS:
+[number]
+
+OOS ROWS:
+[number]
+
+BASELINE D OOS MARGIN MAE:
+[value]
+
+CHALLENGER OOS MARGIN MAE:
+[value]
+
+BASELINE D OOS BRIER:
+[value]
+
+CHALLENGER RAW OOS BRIER:
+[value]
+
+CHALLENGER CALIBRATED OOS BRIER:
+[value]
+
+BASELINE D OOS LOG LOSS:
+[value]
+
+CHALLENGER RAW OOS LOG LOSS:
+[value]
+
+CHALLENGER CALIBRATED OOS LOG LOSS:
+[value]
+
+OVERALL OOS IMPROVEMENT:
+ROBUST / PROMISING / INCONCLUSIVE / NEGATIVE
+
+2026 FEATURE COMPATIBILITY:
+PASS / PARTIAL / FAIL
+
+2026 INTERNAL CHALLENGER PREDICTIONS:
+[number]
+
+PIT VIOLATIONS:
+[number]
+
+MARKET LEAKAGE VIOLATIONS:
+[number]
+
+MODEL REGISTRY:
+[value]
+
+CHAMPION CHANGED:
+YES / NO
+
+PUBLICATION CHANGED:
+YES / NO
+
+NFL CHANGED:
+YES / NO
+
+FINAL DECISION:
+[A/B/C/D + exact wording]
+
+NEXT TASK:
+[value]
+
+Then provide the complete report.
+
+============================================================
+STOP
+============================================================
+
+Do NOT begin #223.
+
+Do NOT promote anything.
+
+Do NOT publish anything.
+
+Complete #222B,
+return the report,
+and STOP.

@@ -1,0 +1,1151 @@
+#221G — NCAAF Canonical Identity Recovery, Prior-Domain Activation & V2 Snapshot Completion
+
+============================================================
+AUTHORITATIVE CURRENT STATE
+============================================================
+
+#221F-PROD has completed.
+
+FINAL DECISION:
+
+B. NOT READY FOR #222 — CFBD PIPELINE STILL BROKEN
+
+However, the CFBD transport/materialization layer is now substantially recovered.
+
+Production audit cutoff:
+2026-09-03 20:25:06 UTC
+
+RECOVERED:
+
+- Advanced CFBD endpoint execution works.
+- Advanced raw evidence persists.
+- Advanced normalized evidence persists.
+- Database-backed global NCAAF scheduler lock works.
+- Duplicate Autoscale execution is prevented.
+- Malformed-response handling works.
+- Transport telemetry is credible.
+- Large responses use bounded/batched normalization.
+- Player provider identities persist.
+- Advanced capture runs before bulk games and is no longer starved by games timeout.
+
+CURRENT PRODUCTION COUNTS:
+
+Advanced raw endpoint families with data: 10
+Raw response rows: 14
+Raw payload items: 98,843
+Normalized advanced domain rows: 59,241
+
+Core CFBD:
+- game evidence: 758
+- entity evidence: 1,516
+- completed-game performance: 250
+
+Advanced:
+- team stats: 892
+- advanced stats: 16
+- plays: 12,521
+- rosters: 30,109
+- player stats at audit cutoff: 6,000 of 30,886 raw
+- recruiting: 3,987
+- transfers: 4,470
+
+Player identities:
+- total: 30,062
+- PROVIDER_ONLY: 30,062
+
+CURRENT PRIMARY FAILURE:
+
+TEAM MAPPING:
+- encountered: 693
+- mapped: 0
+- unmapped: 693
+- mapping rate: 0.00%
+- reason: No exact canonical school identity candidate
+
+GAME MAPPING:
+- considered: 758
+- mapped: 0
+- invalid: 758
+- mapping rate: 0.00%
+- reason: CFBD game lacks mapped ordered teams or valid kickoff
+
+CANONICAL INTELLIGENCE:
+- total snapshots: 789
+- v1: 789
+- v2: 0
+- CFBD-enriched: 0
+- READY: 0
+- PARTIAL: 0
+- BLOCKED: 789
+- FINAL_PREGAME: 0
+- prospective cohort: 0
+
+MISSING PRIOR DOMAINS:
+- SP+: 0
+- SRS: 0
+- Elo: 0
+- FPI: 0
+- Talent: 0
+- Returning production: 0
+- Coaches: 0
+- Weather: 0
+
+READINESS:
+
+DATA_PIPELINE_READY = FALSE
+V4_BUILD_READY = FALSE
+
+============================================================
+CRITICAL INTERPRETATION
+============================================================
+
+Do NOT redesign CFBD transport again.
+
+Do NOT integrate another provider.
+
+Do NOT begin #222.
+
+The immediate objective is now:
+
+1. Fix canonical team identity.
+2. Recover canonical game identity.
+3. Activate the missing independent prior domains.
+4. Persist CFBD-enriched v2 intelligence snapshots.
+5. Prove FINAL_PREGAME prospectively when a legitimate window occurs.
+6. Recalculate V4_BUILD_READY.
+
+This should be a focused canonical-pipeline completion task.
+
+============================================================
+PERMANENT ARCHITECTURAL RULE
+============================================================
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+This task is NCAAF-only.
+
+Do not modify NFL forecasting intelligence.
+
+Do not create a shared football identity/model layer that couples NFL and NCAAF forecasting.
+
+Generic canonical infrastructure may remain shared only where it is genuinely sport-agnostic.
+
+============================================================
+PHASE 1 — DIAGNOSE 0% TEAM MAPPING
+============================================================
+
+Before changing code, determine EXACTLY why:
+
+693 encountered
+0 mapped
+
+The fact that every team fails strongly suggests a structural identity-contract mismatch rather than 693 genuine naming disagreements.
+
+Inspect actual production examples side by side:
+
+CFBD:
+- provider team ID
+- school
+- mascot
+- abbreviation
+- conference
+- classification
+
+TBM/ESPN canonical source:
+- canonical team ID
+- ESPN team ID
+- school/name
+- display name
+- short name
+- abbreviation
+- conference
+
+Take at least 25 representative teams including major FBS programs and show why the existing exact matcher fails.
+
+Examples should include programs such as:
+
+Alabama
+Georgia
+Ohio State
+Michigan
+Penn State
+Texas
+Texas A&M
+Oklahoma
+LSU
+Clemson
+Florida State
+Notre Dame
+USC
+UCLA
+Oregon
+Washington
+Boise State
+
+ONLY if those teams actually exist in production evidence.
+
+Do not fabricate sample rows.
+
+============================================================
+PHASE 2 — IDENTIFY THE CANONICAL SOURCE
+============================================================
+
+Determine what the existing matcher considers the authoritative NCAAF canonical team universe.
+
+Answer:
+
+- Which table/source contains canonical teams?
+- How many canonical NCAAF teams exist?
+- Are they season-specific?
+- Are they ESPN-derived?
+- Do they use full display name rather than school name?
+- Is the matcher querying the wrong field?
+- Is a sport/provider discriminator wrong?
+- Is there a season mismatch?
+- Is there an ID-type mismatch?
+- Is canonical data itself missing?
+
+Do not immediately solve 693 rows with aliases until this is understood.
+
+============================================================
+PHASE 3 — NORMALIZED SCHOOL IDENTITY
+============================================================
+
+Create a deterministic NCAAF school identity normalization contract.
+
+Normalization may safely handle mechanical differences such as:
+
+- Unicode normalization
+- whitespace
+- case
+- punctuation
+- periods
+- apostrophes
+- ampersand vs "and" ONLY where explicitly safe
+- common provider punctuation variants
+
+Do NOT use fuzzy edit-distance promotion.
+
+============================================================
+PHASE 4 — SCHOOL VS TEAM DISPLAY NAME
+============================================================
+
+Explicitly distinguish:
+
+SCHOOL:
+Alabama
+
+from:
+
+TEAM DISPLAY:
+Alabama Crimson Tide
+
+and:
+
+MASCOT:
+Crimson Tide
+
+The canonical matcher must compare equivalent semantic fields.
+
+Do not expect "Alabama" to exactly equal "Alabama Crimson Tide".
+
+If this is the structural cause, fix the identity contract instead of adding hundreds of unnecessary aliases.
+
+============================================================
+PHASE 5 — PROVIDER IDENTITY LEDGER
+============================================================
+
+Build/repair the NCAAF provider identity ledger.
+
+For each canonical school support:
+
+TBM canonical team ID
+ESPN team ID if available
+CFBD team ID
+canonical school
+ESPN school
+CFBD school
+abbreviation
+conference
+classification
+season/effective context
+mapping state
+mapping method
+mapping confidence category
+review status.
+
+============================================================
+PHASE 6 — MAPPING METHODS
+============================================================
+
+Allow only deterministic methods such as:
+
+EXACT_PROVIDER_ID
+EXACT_CANONICAL_SCHOOL
+EXACT_NORMALIZED_SCHOOL
+EXPLICIT_ALIAS
+MANUAL_VERIFIED
+
+Do not introduce:
+
+FUZZY_NAME
+EDIT_DISTANCE_AUTO
+LLM_GUESS
+MASCOT_ONLY
+ABBREVIATION_ONLY
+
+as automatic promotion methods.
+
+============================================================
+PHASE 7 — EXPLICIT ALIAS LEDGER
+============================================================
+
+After structural matching is fixed, add explicit aliases only for legitimate residual provider differences.
+
+Examples of the type of issue that may require aliases:
+
+Miami (FL)
+Miami
+Miami (OH)
+Ole Miss
+Mississippi
+USC
+Southern California
+UTSA
+Texas-San Antonio
+ULM
+Louisiana-Monroe
+
+These are examples only.
+
+Use actual production evidence.
+
+Ambiguous names must remain unresolved until explicitly disambiguated.
+
+============================================================
+PHASE 8 — CONFERENCE / CLASSIFICATION GUARDS
+============================================================
+
+Use conference and classification as validation/disambiguation evidence where appropriate.
+
+Do not allow conference alone to determine identity.
+
+Preserve:
+
+FBS
+FCS
+OTHER
+UNKNOWN
+
+============================================================
+PHASE 9 — TEAM MAPPING REBUILD
+============================================================
+
+After fixing the identity contract, rerun deterministic team mapping.
+
+Report:
+
+encountered
+mapped
+unmapped
+ambiguous
+invalid
+mapping percentage
+
+Also report separately:
+
+FBS encountered
+FBS mapped
+FBS mapping percentage
+
+============================================================
+PHASE 10 — TEAM MAPPING QUALITY TARGET
+============================================================
+
+Do not fake a target by forcing mappings.
+
+But before declaring the canonical foundation healthy, major FBS mapping should be effectively complete except explicitly unresolved edge cases.
+
+Every unresolved team must have a reason.
+
+============================================================
+PHASE 11 — GAME MAPPING REBUILD
+============================================================
+
+Once teams map, rerun game mapping.
+
+Do not automatically assume every current INVALID game is fixed.
+
+Separate failures into:
+
+HOME_TEAM_UNMAPPED
+AWAY_TEAM_UNMAPPED
+INVALID_KICKOFF
+NO_CANONICAL_GAME
+MULTIPLE_CANONICAL_GAMES
+HOME_AWAY_MISMATCH
+SEASON_WEEK_MISMATCH
+OTHER
+
+============================================================
+PHASE 12 — GAME MATCH CONTRACT
+============================================================
+
+Use:
+
+mapped canonical home team
+mapped canonical away team
+season
+week
+kickoff timestamp
+neutral-site context
+
+Use documented kickoff tolerance.
+
+Never map only because two team names appear in the same game.
+
+============================================================
+PHASE 13 — GAME MAPPING QUALITY
+============================================================
+
+Report:
+
+considered
+mapped
+unmatched
+ambiguous
+invalid
+mapping percentage
+
+For FBS-vs-FBS games report separate coverage.
+
+============================================================
+PHASE 14 — PLAYER PROVIDER IDENTITY
+============================================================
+
+Do NOT make cross-provider player mapping a prerequisite for #222 unless actually required.
+
+30,062 stable CFBD player identities already exist.
+
+`PROVIDER_ONLY` is a legitimate state.
+
+Determine whether CFBD player ID + mapped canonical team + season is sufficient for historical QB intelligence.
+
+Do not force ESPN player mapping unnecessarily.
+
+============================================================
+PHASE 15 — QB HISTORICAL FOUNDATION
+============================================================
+
+After team mapping succeeds, connect CFBD:
+
+roster
+player stats
+plays/PPA
+
+through:
+
+CFBD player ID
+CFBD team
+canonical team
+season
+
+Build a production-verifiable QB historical evidence layer.
+
+Potential evidence:
+
+attempts
+completions
+passing yards
+yards/attempt
+TD
+INT
+rushing attempts
+rushing yards
+games
+PPA where legitimately available
+team continuity
+prior-team history if safely supported.
+
+Do NOT identify a confirmed future starter.
+
+============================================================
+PHASE 16 — PRIOR-DOMAIN SCHEDULER DIAGNOSIS
+============================================================
+
+Determine why the following remain zero despite authenticated development verification:
+
+SP+
+SRS
+Elo
+FPI
+Talent
+Returning production
+Coaches
+
+Do not assume provider failure.
+
+Check:
+
+cadence due logic
+work budget
+domain priority
+cycle timeout
+endpoint registration
+season/week parameters
+first-run bootstrap
+last-capture state.
+
+============================================================
+PHASE 17 — PRIOR-DOMAIN PRIORITY
+============================================================
+
+The first production recovery cycle spent substantial time on large:
+
+plays
+rosters
+player stats
+
+while critical ratings remained zero.
+
+Change NCAAF work priority so early-season modeling priors are captured before large postgame learning datasets.
+
+Recommended priority:
+
+1. teams / canonical identity
+2. games
+3. SP+
+4. Elo
+5. SRS
+6. FPI
+7. talent
+8. returning production
+9. coaches
+10. team stats
+11. advanced stats
+12. roster/player context
+13. weather near kickoff
+14. recruiting/transfers
+15. large play/player backfill
+
+Adjust based on actual endpoint dependencies.
+
+============================================================
+PHASE 18 — SP+ ACTIVATION
+============================================================
+
+Capture and normalize production SP+.
+
+Preserve actual provider fields.
+
+Do not choose V4 weights.
+
+PIT classification remains conservative.
+
+============================================================
+PHASE 19 — ELO ACTIVATION
+============================================================
+
+Capture and normalize Elo.
+
+Preserve chronological/effective context.
+
+============================================================
+PHASE 20 — SRS ACTIVATION
+============================================================
+
+Capture and normalize SRS.
+
+Keep Class C if timing remains retrospective/unverified.
+
+============================================================
+PHASE 21 — FPI ACTIVATION
+============================================================
+
+Capture and normalize FPI.
+
+Keep Class C until timing semantics justify anything stronger.
+
+============================================================
+PHASE 22 — TALENT ACTIVATION
+============================================================
+
+Capture production talent.
+
+Preserve season.
+
+Keep conservative PIT classification.
+
+============================================================
+PHASE 23 — RETURNING PRODUCTION ACTIVATION
+============================================================
+
+Capture production returning production.
+
+Preserve supplied components and season.
+
+Do not assume historical PIT safety.
+
+============================================================
+PHASE 24 — COACH ACTIVATION
+============================================================
+
+Capture production coaches.
+
+Build season/team effective context where possible.
+
+============================================================
+PHASE 25 — WEATHER
+============================================================
+
+Weather is not required to run a historical bulk backfill.
+
+Ensure upcoming-game weather capture works inside the intended pregame horizon.
+
+Do not let weather availability block canonical historical team mapping.
+
+============================================================
+PHASE 26 — LARGE-DOMAIN WORK BUDGET
+============================================================
+
+The previous cycle lasted approximately 17 minutes and emitted a missed cron warning.
+
+Reduce critical-cycle duration.
+
+Do not normalize 30k+ roster/player rows ahead of missing rating/prior domains.
+
+============================================================
+PHASE 27 — SPLIT CRITICAL VS BACKFILL WORK
+============================================================
+
+If not already cleanly separated, establish two NCAAF-only paths:
+
+A. CRITICAL PREGAME / PRIOR CAPTURE
+
+Fast, bounded:
+- teams
+- mappings
+- schedule/game identity
+- ratings
+- prior domains
+- upcoming roster context
+- weather
+- snapshot
+- FINAL_PREGAME
+
+B. HISTORICAL / LEARNING BACKFILL
+
+Bounded/resumable:
+- large play payloads
+- bulk player stats
+- large roster history
+- recruiting history
+- transfer history
+
+Backfill must never starve critical capture.
+
+============================================================
+PHASE 28 — EVIDENCE-RUN FINALIZATION
+============================================================
+
+Repair the remaining evidence-run lifecycle problem.
+
+The scheduler log may say completed while database evidence runs remain RUNNING.
+
+Ensure every run deterministically reaches:
+
+COMPLETED
+PARTIAL
+FAILED
+
+with:
+
+started_at
+finished_at
+status
+reason
+counts.
+
+Use finally/failure-safe finalization.
+
+============================================================
+PHASE 29 — GLOBAL LOCK RELEASE
+============================================================
+
+Verify the database advisory/distributed lock is released correctly on:
+
+success
+partial
+exception
+timeout
+process termination where possible.
+
+Preserve stale recovery.
+
+============================================================
+PHASE 30 — V2 SNAPSHOT INSERT DIAGNOSIS
+============================================================
+
+This is critical.
+
+The scheduler reported:
+
+intelligenceSnapshots: 789
+
+but production persisted:
+
+v2 snapshots: 0
+
+Trace exactly what `intelligenceSnapshots: 789` means.
+
+Determine whether it means:
+
+attempted
+evaluated
+generated
+validated
+inserted
+dedupe-skipped
+failed
+
+Do not report "processed" as "persisted."
+
+============================================================
+PHASE 31 — V2 SNAPSHOT INSERTION
+============================================================
+
+Once canonical team/game mapping works, persist legitimate:
+
+ncaaf-football-intelligence-v2
+
+snapshots.
+
+Snapshot persistence must not require READY.
+
+Allow truthful:
+
+READY
+PARTIAL
+BLOCKED
+
+snapshots.
+
+============================================================
+PHASE 32 — SNAPSHOT DOMAIN PROVENANCE
+============================================================
+
+For every v2 snapshot retain per-domain source.
+
+Example:
+
+schedule/context -> ESPN
+team identity -> canonical ESPN/CFBD bridge
+team stats -> CFBD
+advanced stats -> CFBD
+ratings -> CFBD
+roster/player history -> CFBD
+weather -> configured provider
+
+No market evidence.
+
+============================================================
+PHASE 33 — SNAPSHOT CUT-OFF
+============================================================
+
+Preserve strict PIT cutoff.
+
+No evidence captured after the snapshot's as-of time may enter it.
+
+============================================================
+PHASE 34 — CFBD ENRICHMENT PROOF
+============================================================
+
+Production success requires actual v2 rows containing CFBD provenance.
+
+Report:
+
+v2 count
+CFBD-enriched count
+domains represented
+latest timestamp.
+
+============================================================
+PHASE 35 — READINESS STATES
+============================================================
+
+Recalculate:
+
+READY
+PARTIAL
+BLOCKED
+
+Do not require every supplemental availability domain for a snapshot to exist.
+
+Missing:
+
+pregame starter
+injuries
+depth
+
+may keep a game BLOCKED or uncertainty-limited later, but should not prevent storage of the final pregame evidence state.
+
+============================================================
+PHASE 36 — FINAL_PREGAME
+============================================================
+
+FINAL_PREGAME is a snapshot timing state, not a synonym for READY.
+
+When a legitimate upcoming game enters the 45-minute final window:
+
+persist the final strictly pre-kickoff evidence snapshot.
+
+It may be:
+
+READY
+PARTIAL
+BLOCKED.
+
+Do not fabricate a row outside the window.
+
+============================================================
+PHASE 37 — FINAL_PREGAME VERIFICATION
+============================================================
+
+If production verification occurs before a qualifying window:
+
+report next qualifying time.
+
+If verification occurs after a legitimate window:
+
+verify whether the scheduler created it.
+
+============================================================
+PHASE 38 — PROSPECTIVE COHORT
+============================================================
+
+After v2 prospective snapshots exist, verify cohort assignment.
+
+No backfill.
+
+============================================================
+PHASE 39 — PIT AUDIT
+============================================================
+
+Re-run:
+
+post-cutoff evidence
+post-kickoff snapshot
+future-week rating
+retrospective C/D evidence
+prospective anti-backfill
+
+checks.
+
+============================================================
+PHASE 40 — EARLY-SEASON PRIOR DATASET
+============================================================
+
+After prior domains materialize, create the actual evidence dataset needed for future #222.
+
+Potential components:
+
+prior-season game performance
+prior-season team stats
+advanced team stats
+SP+
+Elo
+SRS research-only
+FPI research-only
+talent research-only until PIT proven
+returning production research-only until PIT proven
+recruiting research-only
+historical QB continuity
+coach continuity
+subdivision.
+
+No weights.
+
+============================================================
+PHASE 41 — V4 BUILD-CRITICAL FEATURES
+============================================================
+
+Explicitly determine which production evidence is now safe enough for the first V4 implementation.
+
+Do not require every desired feature to exist before building.
+
+Separate:
+
+CORE REQUIRED
+USEFUL BUT OPTIONAL
+RESEARCH-ONLY
+LIVE-PUBLICATION REQUIRED.
+
+============================================================
+PHASE 42 — SUPPLEMENTAL PLAYER AVAILABILITY
+============================================================
+
+Still do NOT integrate another provider.
+
+Keep:
+
+PREGAME_QB_STARTER = MISSING
+INJURY_AVAILABILITY = MISSING
+DEPTH_CHART = MISSING/UNSUPPORTED
+
+Then determine whether those gaps block:
+
+V4 construction
+
+or:
+
+individual-game forecast/publication eligibility.
+
+============================================================
+PHASE 43 — DO NOT CHASE PERFECT DATA
+============================================================
+
+The goal is not to collect every possible NCAA football field before #222.
+
+The goal is enough legitimate independent football intelligence to construct and validate the first expected-score challenger.
+
+Once that threshold is met:
+
+V4_BUILD_READY should become TRUE even if full live-publication readiness remains FALSE.
+
+============================================================
+PHASE 44 — MARKET FIREWALL
+============================================================
+
+No odds or sportsbook information may enter these sports features.
+
+Reverify.
+
+============================================================
+PHASE 45 — LEGACY QUARANTINE
+============================================================
+
+Reverify the 99 invalid historical NCAAF predictions remain quarantined.
+
+============================================================
+PHASE 46 — NFL ISOLATION
+============================================================
+
+No NFL forecasting changes.
+
+No shared NCAAF/NFL intelligence state.
+
+============================================================
+PHASE 47 — TESTS
+============================================================
+
+Add tests for:
+
+canonical source discovery
+school vs display-name matching
+normalized exact school matching
+explicit aliases
+ambiguous aliases
+Miami FL / Miami OH-style collisions
+conference guard
+classification guard
+team mapping
+game mapping after team recovery
+kickoff normalization
+provider-only player identities
+QB historical linkage
+rating domain cadence
+priority scheduling
+critical vs backfill workload
+evidence-run finalization
+global lock release
+v2 snapshot actual INSERT
+processed-vs-persisted telemetry
+CFBD provenance
+FINAL_PREGAME with BLOCKED/PARTIAL state
+PIT cutoff
+anti-backfill
+market firewall
+legacy quarantine
+NFL isolation.
+
+============================================================
+PHASE 48 — VERIFICATION
+============================================================
+
+Run:
+
+full relevant API tests
+API typecheck
+API production build
+git diff --check
+
+and broader regression where feasible.
+
+============================================================
+PHASE 49 — PRODUCTION VERIFICATION
+============================================================
+
+This task is NOT complete from development results.
+
+After normal publish, verify actual production.
+
+============================================================
+PRODUCTION SUCCESS GATES
+============================================================
+
+Before #221G can be considered successful, require:
+
+1. Team mappings > 0.
+2. Major FBS mapping coverage is high and deterministic.
+3. Game mappings > 0.
+4. SP+ production rows > 0 if endpoint remains available.
+5. Elo production rows > 0 if endpoint remains available.
+6. At least the critical prior domains scheduled before large backfill.
+7. Evidence-run rows finalize correctly.
+8. v2 snapshots > 0.
+9. CFBD-enriched v2 snapshots > 0.
+10. PIT violations remain zero.
+11. Global lock remains healthy.
+12. Market firewall remains intact.
+13. NFL remains untouched.
+
+FINAL_PREGAME > 0 only if a legitimate game enters the final window during production verification.
+
+Do not fabricate it otherwise.
+
+============================================================
+READINESS
+============================================================
+
+After production verification calculate separately:
+
+DATA_PIPELINE_READY
+
+V4_BUILD_READY
+
+FULL_LIVE_PUBLICATION_DATA_READY
+
+These are not the same thing.
+
+V4_BUILD_READY may become TRUE before:
+
+pregame QB
+injuries
+depth chart
+
+are solved.
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly one:
+
+A. READY TO BEGIN #222
+
+B. NOT READY FOR #222 — CANONICAL FOUNDATION STILL BROKEN
+
+C. CORE DATA FOUNDATION READY FOR #222 — SUPPLEMENTAL AVAILABILITY DATA STILL REQUIRED BEFORE FULL LIVE PUBLICATION
+
+============================================================
+REQUIRED REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-canonical-recovery-2026-09-03.md
+
+Include:
+
+1. Executive summary
+2. Exact 0% mapping root cause
+3. Canonical team source
+4. Sample identity comparison
+5. Normalization contract
+6. Alias ledger
+7. Team mapping counts
+8. FBS mapping coverage
+9. Game mapping counts
+10. Game failure reasons
+11. Player identity decision
+12. QB historical foundation
+13. Scheduler prior-domain diagnosis
+14. SP+
+15. Elo
+16. SRS
+17. FPI
+18. Talent
+19. Returning production
+20. Coaches
+21. Critical/backfill separation
+22. Evidence-run finalization
+23. Global lock
+24. V2 insertion root cause
+25. V2 snapshot count
+26. CFBD-enriched count
+27. Domain provenance
+28. READY/PARTIAL/BLOCKED
+29. FINAL_PREGAME
+30. Prospective cohort
+31. PIT audit
+32. Early-season prior readiness
+33. Supplemental gaps
+34. DATA_PIPELINE_READY
+35. V4_BUILD_READY
+36. FULL_LIVE_PUBLICATION_DATA_READY
+37. Final A/B/C decision.
+
+============================================================
+FINAL QUESTIONS
+============================================================
+
+Answer explicitly:
+
+1. Why did all 693 team mappings fail?
+2. What canonical team source was being queried?
+3. Was the structural mapping defect fixed?
+4. How many teams now map?
+5. What percentage?
+6. What is FBS mapping percentage?
+7. Which teams remain unresolved?
+8. Why?
+9. How many games now map?
+10. Game mapping percentage?
+11. Are provider-only player identities sufficient for historical QB construction?
+12. Can historical QB evidence now be built?
+13. Why were SP+/Elo/SRS/FPI previously zero?
+14. Is SP+ now captured?
+15. Is Elo now captured?
+16. Is SRS now captured?
+17. Is FPI now captured?
+18. Is talent captured?
+19. Is returning production captured?
+20. Are coaches captured?
+21. Is the critical capture path now prioritized over large backfill?
+22. Do evidence runs finalize correctly?
+23. Is global scheduler locking still working?
+24. Why were 789 snapshots "processed" but 0 v2 persisted?
+25. Are v2 snapshots now persisted?
+26. How many?
+27. How many are CFBD-enriched?
+28. READY?
+29. PARTIAL?
+30. BLOCKED?
+31. FINAL_PREGAME?
+32. Prospective cohort?
+33. PIT violations?
+34. Is early-season prior evidence sufficient to begin V4 construction?
+35. Are missing QB/injury/depth domains blocking V4 construction or live publication?
+36. DATA_PIPELINE_READY?
+37. V4_BUILD_READY?
+38. FULL_LIVE_PUBLICATION_DATA_READY?
+39. Should #222 begin next?
+
+============================================================
+STOP
+============================================================
+
+Do not begin #222 automatically.
+
+Complete #221G, publish, production-verify, return the report, and stop.

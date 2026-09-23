@@ -1,0 +1,199 @@
+## Required Adjustments to #195 Approval Gate Architecture
+
+### 1. Add a SUSPENDED Lifecycle State
+
+Expand the approval lifecycle to:
+
+**UNVALIDATED → SHADOW → PROVISIONAL → PRODUCTION_APPROVED**
+
+with an additional safety state:
+
+**PRODUCTION_APPROVED → SUSPENDED**
+
+`SUSPENDED` is required so a previously approved sport-market-model version can immediately stop publishing new official plays if its production evidence or underlying data becomes unreliable.
+
+Possible suspension triggers include:
+
+* Material calibration deterioration
+* Sustained negative CLV
+* Significant predictive-performance degradation
+* Data-feed or data-quality failure
+* Point-in-time integrity failure
+* Material feature/data schema problem
+* Model defect
+* Insufficient current data coverage
+* Other production safety failures
+
+A suspended model must:
+
+* Stop generating subscriber-facing official picks
+* Have publication units forced to 0
+* Stop official-pick notifications
+* Stop entering new predictions into official performance history
+* Continue storing research predictions where appropriate
+* Preserve all previous historical predictions and official results
+
+Never delete or rewrite the previous production approval.
+
+Approval history must remain append-only.
+
+If a suspended model is later approved again, create a new approval/evaluation record documenting the evidence supporting reinstatement rather than modifying the historical approval record.
+
+---
+
+### 2. Separate Model Opinion From Publication Permission
+
+Do not overwrite the model's original prediction simply because its market is not production-approved.
+
+The system must preserve two separate concepts:
+
+**Model Opinion**
+
+and
+
+**Publication Permission**
+
+For example, a shadow spread model may internally produce:
+
+* Research recommendation: Strong Buy
+* Research units: 2.5
+* Model cover probability: 58.4%
+* Edge: +5.7%
+* Expected value: +11.5%
+
+Those original outputs must remain permanently stored for research, grading, calibration, and future validation.
+
+However, if the exact sport-market-model version is not `PRODUCTION_APPROVED`, its publication state must remain:
+
+* Public recommendation: Neutral / unavailable as an official play
+* Public units: 0
+* Official pick: false
+* Subscriber eligible: false
+* Notification eligible: false
+* Official record eligible: false
+
+Conceptually:
+
+**MODEL OPINION ≠ PUBLICATION PERMISSION**
+
+The approval gate determines whether TBM is allowed to act on and publish the model's prediction. It must not erase or modify what the model actually predicted.
+
+This distinction is required so shadow and provisional models can be evaluated honestly later.
+
+---
+
+### 3. Fail Closed When an Exact Approval Record Does Not Exist
+
+Publication eligibility must require an exact matching approval record.
+
+The approval lookup should require the appropriate versioned identity, including:
+
+* Sport
+* Market
+* Model version
+* Evaluation version
+* Dataset version
+* Feature schema version where applicable
+* Point-in-time/evidence cutoff
+
+Only an exact applicable approval state of:
+
+**PRODUCTION_APPROVED**
+
+may make a candidate eligible for official publication.
+
+If:
+
+* No approval record exists
+* The record cannot be loaded
+* The market does not match
+* The sport does not match
+* The model version does not match
+* Required version/evidence information is missing
+* Approval status is unknown
+* Approval status is UNVALIDATED
+* Approval status is SHADOW
+* Approval status is PROVISIONAL
+* Approval status is SUSPENDED
+
+then the system must **fail closed**.
+
+Fail-closed behavior means:
+
+* Official pick: false
+* Publication units: 0
+* Subscriber eligible: false
+* Notification eligible: false
+* Official performance record eligible: false
+
+Do not assume approval.
+
+Do not fall back to another market's approval.
+
+Do not allow a previous model version's approval to authorize a new model version.
+
+Do not allow an API, frontend, notification service, or individual sport route to bypass the centralized approval decision.
+
+The default state is:
+
+**Not approved unless explicitly proven otherwise.**
+
+---
+
+### 4. Bind Approval to the Exact Evaluation, Dataset, and Model Context
+
+Approval must not exist only at the broad sport-market level.
+
+Every approval must be tied to the exact model and evidence context that earned it.
+
+The approval contract should preserve, where applicable:
+
+* Sport
+* Market
+* Model version
+* Evaluation version
+* Dataset version
+* Feature schema version
+* Training window
+* Validation window
+* Out-of-sample evaluation window
+* Point-in-time evidence cutoff
+* Evaluation seasons
+* Sample size
+* Data coverage
+* Data-quality results
+* Predictive-quality results
+* Betting-quality results
+* Approval status
+* Approval timestamp
+* Approval reason
+* Previous status
+* Evaluation metadata
+
+Example:
+
+**NCAAF + Spread + v1.0 + Dataset v3 + Evaluation v2 → PRODUCTION_APPROVED**
+
+does **not** automatically mean:
+
+**NCAAF + Spread + v1.1 → PRODUCTION_APPROVED**
+
+The new model version must establish its own applicable approval evidence.
+
+Likewise, changing the underlying feature schema, evaluation methodology, or dataset in a materially meaningful way must not silently inherit an older approval.
+
+This protects TBM from situations where an approved model is materially changed while continuing to operate under evidence generated by the previous model.
+
+Historical approval records must remain immutable so TBM can always determine:
+
+* What model was approved
+* What data was used
+* What evaluation was performed
+* What evidence existed
+* When the evidence cutoff occurred
+* Why production approval was granted
+* Which predictions were generated under that approval
+
+The fundamental rule is:
+
+**Production approval belongs to the validated model-and-evidence context, not simply to the name of the sport or market.**

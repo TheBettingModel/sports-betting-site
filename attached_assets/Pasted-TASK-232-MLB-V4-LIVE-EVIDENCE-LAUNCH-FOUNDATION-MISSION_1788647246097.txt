@@ -1,0 +1,2592 @@
+TASK #232 — MLB V4 LIVE EVIDENCE & LAUNCH FOUNDATION
+
+MISSION
+
+Build the complete live-forward MLB V4 evidence, automation, audit, forecast-storage, evaluation, and launch-readiness foundation so that once sufficient legitimate prospective evidence exists, the remaining work is primarily:
+
+1. build/train the new starter-aware MLB V4 challenger,
+2. freeze it,
+3. run untouched prospective shadow validation,
+4. approve/promote if warranted,
+5. connect the validated V4 outputs to subscriber analytics,
+6. launch.
+
+This is intentionally a LARGE CONSOLIDATED BUILD.
+
+We are no longer going to create a long chain of tiny infrastructure tasks where the components can safely be built together.
+
+However:
+
+THIS TASK MUST NOT TRAIN A NEW MLB MODEL.
+
+THIS TASK MUST NOT RETUNE #224C.
+
+THIS TASK MUST NOT PROMOTE MLB V4.
+
+THIS TASK MUST NOT CHANGE THE CURRENT PRODUCTION MLB V1 FORECAST.
+
+THIS TASK MUST NOT USE ACTUAL STARTER HINDSIGHT AS PREGAME EVIDENCE.
+
+THIS TASK MUST NOT USE SPORTSBOOK DATA AS A SPORTS-FORECAST FEATURE.
+
+The objective is to finish as much of the MLB V4 LIVE FOUNDATION as can safely be finished before the next model-training experiment.
+
+==================================================
+PRIMARY OUTCOME
+==================================================
+
+At the end of #232, MLB should have a reliable automated evidence lifecycle:
+
+LIVE MLB GAME DISCOVERY
+        ↓
+IMMUTABLE COLLECTION-RUN LEDGER
+        ↓
+PREGAME STARTER DISCOVERY
+        ↓
+VERSIONED STARTER SNAPSHOTS
+        ↓
+STARTER PIT STATE
+        ↓
+OFFENSE PIT STATE
+        ↓
+OPPONENT BULLPEN PIT STATE
+        ↓
+LEAGUE / HOME / SAFE CONTEXT STATE
+        ↓
+IMMUTABLE PREGAME FEATURE SNAPSHOT
+        ↓
+GAME OCCURS
+        ↓
+FINAL RESULT
+        ↓
+ACTUAL STARTER OUTCOME
+        ↓
+STARTER PERFORMANCE
+        ↓
+BULLPEN OUTCOME
+        ↓
+IMMUTABLE FEATURE ↔ OUTCOME PAIR
+        ↓
+DATA QUALITY / COMPLETENESS AUDIT
+        ↓
+PROSPECTIVE MODEL-DEVELOPMENT EVIDENCE
+        ↓
+
+FUTURE #224C-2 MODEL
+        ↓
+IMMUTABLE V4 SHADOW FORECAST
+        ↓
+MARKET COMPARISON
+        ↓
+BET-SELECTION EVALUATION
+        ↓
+RESULT / CLV / CALIBRATION / ROI EVIDENCE
+        ↓
+PROMOTION GATE
+
+Build everything in that flow that can legitimately exist BEFORE #224C-2 training.
+
+==================================================
+AUTHORITATIVE CURRENT STATE
+==================================================
+
+#224B-1:
+
+Final classification:
+
+B — COMPLETION-TIME GATE MOSTLY RESOLVED
+
+Verified:
+
+- 9,393 canonical MLB games
+- 9,390 chronology-safe
+- 3 quarantined rain-shortened
+- deterministic replay
+- zero chronology violations
+
+==================================================
+#224B-2
+==================================================
+
+Final classification:
+
+B — MLB V4 BASELINE TRAINING FOUNDATION READY
+
+Artifact:
+
+mlb-historical-2023-2026-pitcher-bullpen-pit-v5
+
+Foundation hash:
+
+cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050
+
+Replay hash:
+
+a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42
+
+Source manifest:
+
+8da8c322a3ec1ac6723d267cc9aa4b922c185654f809f26246934bbefd8a6d98
+
+Verified:
+
+- 9,393 games archived
+- 9,390 chronology-safe
+- 80,298 pitcher appearances
+- 18,780 bullpen outcomes
+- 9,073 offense-plus-bullpen eligible
+- 0 historical pitcher/full/enhanced eligible
+- historical pregame starter identity unavailable at sufficient scale
+- deterministic rebuild
+- production audit PASS
+
+==================================================
+FAILED #224C CHALLENGER
+==================================================
+
+Model:
+
+224c-v3-cadb433dbbd7
+
+Family:
+
+NB2 expected runs
+
+Ridge lambda:
+
+10
+
+Dispersion alpha:
+
+0.5
+
+Outcome distribution:
+
+independent Poisson
+
+TRAIN:
+
+4,700 games
+
+VALIDATION:
+
+2,361 games
+
+Former locked OOS:
+
+2,012 games
+
+Locked OOS results:
+
+Total MAE:
+3.7581
+
+Total RMSE:
+4.9752
+
+Total bias:
+-2.0233
+
+Predicted average total:
+6.9514
+
+Actual average total:
+8.9747
+
+Margin MAE:
+3.5898
+
+Brier:
+0.2488
+
+Log loss:
+0.6909
+
+Accuracy:
+54.32%
+
+ECE:
+0.0165
+
+Classification:
+
+C — MLB V4 TRAINED BUT NOT COMPETITIVE
+
+This model remains:
+
+RESEARCH FAILED / NOT COMPETITIVE
+
+Do not overwrite it.
+
+Do not retune it.
+
+==================================================
+PERMANENT OLD-OOS RULE
+==================================================
+
+The 2,012-game 2026 cohort was opened during #224C.
+
+Permanent status:
+
+HISTORICAL_BENCHMARK_ONLY
+
+It may NEVER again be described as:
+
+untouched OOS
+locked OOS for a new challenger
+future validation
+promotion holdout
+
+Do not use its outcomes for:
+
+training
+feature selection
+architecture selection
+coefficient selection
+hyperparameter selection
+calibration selection
+distribution selection
+threshold selection
+starter adjustment selection
+run-environment correction
+model winner selection
+
+Preserve the old forecasts/results as immutable historical benchmark evidence.
+
+==================================================
+#224C-1
+==================================================
+
+Final classification:
+
+C — PROSPECTIVE STARTER FOUNDATION REQUIRED
+
+Verified:
+
+- no meaningful PIT-safe historical starter archive recoverable for 2023–2025
+- retrospective starters remain ACTUAL_ONLY
+- official MLB schedule supports authoritative prospective starter capture when observed strictly before first pitch
+- v3 collector captured 15 games / 30 starter slots
+- unchanged rerun inserted 0 rows
+- missing starter evidence is a proven structural omission
+- effect not yet quantified
+- low-run bias remains unresolved
+- zero leakage
+- full API suite passed
+
+Report hash:
+
+09c92fa7f8094a9bd89475b079c99cb0f13c60b9223ba88581ccc6effe961db6
+
+==================================================
+#224C-1B
+==================================================
+
+Final classification:
+
+C — PROSPECTIVE PIPELINE PARTIAL
+
+Evidence:
+
+- 15 prospective games
+- 30/30 starter slots PIT-safe
+- stable official IDs
+- 15/15 games have both starters
+- all 30 MLB teams represented
+- 30 unique pitchers
+- no repeat-pitcher diversity yet
+- 0 materialized starter PIT-state slots
+- 0 completed paired games at audit time
+- 0 PIT leakage
+- 0 market leakage
+- 0 target leakage
+- 0 actual-starter leakage
+- 30/30 v3 checksums independently verified
+
+Missing infrastructure:
+
+- immutable collection-run/discovery ledger
+- safe daily scheduling
+- separate prospective outcome pairing
+- frozen offense/bullpen feature states
+- materialized starter PIT states
+- starter role evidence
+- durable observation-period coverage accounting
+
+Artifact hash:
+
+2c48c7d97365a98ab5f900fb7711a72d720af61ef0d5ba445a2d19a402deabba
+
+==================================================
+CORE MODEL PRINCIPLE
+==================================================
+
+There are TWO distinct systems:
+
+1. SPORTS PREDICTION MODEL
+
+What does MLB V4 believe will happen?
+
+2. BET-SELECTION MODEL
+
+Is the sportsbook offering a profitable price relative to that frozen opinion?
+
+These systems must remain separate.
+
+The sports prediction model must produce its opinion BEFORE sportsbook information influences bet selection.
+
+==================================================
+HARD ARCHITECTURE PRINCIPLE
+==================================================
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+MLB may share:
+
+database
+API
+scheduler framework
+deployment infrastructure
+audit utilities
+UI components
+generic model registry
+generic evidence concepts
+
+MLB must NOT share forecasting intelligence with:
+
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+Do not import:
+
+features
+weights
+coefficients
+calibration
+priors
+thresholds
+residual corrections
+sports-specific formulas
+
+from another sport.
+
+==================================================
+PART I — LIVE COLLECTION FOUNDATION
+==================================================
+
+SECTION 1 — IMMUTABLE COLLECTION-RUN LEDGER
+
+Build an append-only MLB prospective collection-run ledger.
+
+Every collector execution must record at minimum:
+
+run_id
+collector_name
+collector_version
+started_at
+completed_at
+execution_date
+timezone
+source
+request_count
+scheduled_games_discovered
+games_processed
+starter_slots_expected
+starter_slots_observed
+starter_slots_inserted
+starter_slots_unchanged
+starter_slots_rejected
+source_errors
+timeouts
+rate_limit_events
+status
+error_summary
+artifact_hash
+
+This ledger must allow us to answer:
+
+Did the collector run?
+
+When?
+
+What slate did it see?
+
+How many games existed?
+
+How many were captured?
+
+What was missed?
+
+Why?
+
+Do not mutate historical run records.
+
+==================================================
+SECTION 2 — GAME DISCOVERY LEDGER
+
+For every MLB game observed during each collection run, persist a run/game discovery record.
+
+At minimum:
+
+run_id
+game_id
+game_date
+scheduled_first_pitch
+home_team_id
+away_team_id
+game_status
+discovered_at
+source
+source_record_id
+raw_payload_hash
+eligible_for_pregame_capture
+reason_not_eligible
+
+This gives a durable denominator for coverage calculations.
+
+==================================================
+SECTION 3 — STARTER SNAPSHOT LEDGER
+
+Preserve/extend the existing v3 prospective starter collector.
+
+Do not replace working code unnecessarily.
+
+Every snapshot should include:
+
+snapshot_id
+run_id
+game_id
+team_id
+opponent_id
+home_away
+pitcher_id
+pitcher_name
+starter_evidence_state
+source
+source_record_id
+observed_at
+scheduled_first_pitch
+seconds_before_first_pitch
+feature_cutoff
+identity_confidence
+PIT_safe
+raw_payload_hash
+collector_version
+
+Evidence states at minimum:
+
+CONFIRMED_PREGAME
+PROBABLE_PREGAME
+PROJECTED_PREGAME
+UNKNOWN
+AMBIGUOUS
+MISSED_PREGAME_CAPTURE
+ACTUAL_ONLY
+
+ACTUAL_ONLY must never qualify as pregame.
+
+==================================================
+SECTION 4 — STARTER CHANGES
+
+Multiple legitimate pregame observations must remain versioned.
+
+Example:
+
+Pitcher A probable at 10 AM
+Pitcher A probable at 2 PM
+Pitcher B probable at 5 PM
+
+Do NOT overwrite A with B.
+
+Preserve history.
+
+Define:
+
+LATEST_SAFE_PREGAME_STARTER
+
+deterministically from snapshots available before the feature cutoff.
+
+==================================================
+SECTION 5 — POST-FIRST-PITCH SAFETY
+
+If a game has already started:
+
+new starter information must NOT become PIT-safe pregame evidence.
+
+If no prior snapshot exists, classify appropriately:
+
+MISSED_PREGAME_CAPTURE
+
+or:
+
+ACTUAL_ONLY
+
+Never fake backfill.
+
+==================================================
+PART II — SAFE DAILY AUTOMATION
+==================================================
+
+SECTION 6 — DAILY MLB COLLECTION ORCHESTRATOR
+
+Build a safe MLB-specific orchestration layer around the prospective evidence pipeline.
+
+It must be:
+
+idempotent
+restart-safe
+rate-limit aware
+failure-aware
+observable
+append-only
+
+Use existing safe scheduler infrastructure where possible.
+
+Do not create uncontrolled loops.
+
+Do not poll excessively.
+
+==================================================
+SECTION 7 — GAME-DAY COLLECTION WINDOWS
+
+Determine safe MLB-specific collection windows based on scheduled first pitch.
+
+We need enough observations to detect:
+
+initial probable starter
+normal starter confirmation
+late starter changes
+
+Use the current scheduler/provider capabilities.
+
+Do not invent unnecessarily high-frequency polling.
+
+Document the actual chosen cadence.
+
+The cadence should be operationally sustainable.
+
+==================================================
+SECTION 8 — MISSED-RUN RECOVERY
+
+If a scheduled collector execution fails:
+
+allow safe retry.
+
+Retries must:
+
+reuse logical execution semantics where appropriate
+not duplicate unchanged snapshots
+not rewrite old evidence
+not convert post-first-pitch evidence into pregame evidence
+
+Record retry relationships.
+
+==================================================
+SECTION 9 — COLLECTION HEALTH
+
+Create machine-readable MLB collection health output.
+
+At minimum:
+
+last_successful_run
+last_attempt
+games_today
+games_discovered
+pregame_eligible
+both_starters_captured
+missing_starters
+source_failures
+stale_collection_warning
+latest_artifact_hash
+
+This is internal/admin infrastructure.
+
+Do not redesign subscriber UI.
+
+==================================================
+PART III — STARTER PIT STATE
+==================================================
+
+SECTION 10 — MATERIALIZE STARTER PIT STATE
+
+For every PIT-safe prospective starter snapshot, construct the pitcher's state using ONLY appearances completed before the snapshot/feature cutoff.
+
+Use the existing historical pitcher appearance foundation.
+
+Potential legitimate features include where supported:
+
+season appearances
+season starts
+season innings
+career appearances
+career starts
+career innings
+days since last appearance
+days since last start
+last-start innings
+last-start pitch count if safely available
+rolling 3-start innings
+rolling 5-start innings
+rolling 3-start ERA
+rolling 5-start ERA
+season ERA
+season WHIP
+season K%
+season BB%
+season K-BB%
+season HR rate
+prior-season state
+career prior
+rookie flag
+sample sizes
+missingness indicators
+
+Do not use target-game performance.
+
+==================================================
+SECTION 11 — STARTER STATE VERSIONING
+
+Persist starter PIT state immutably.
+
+Tie state to:
+
+starter_snapshot_id
+game_id
+pitcher_id
+feature_cutoff
+state_schema_version
+source foundation
+source cutoff
+feature hash
+
+If a later starter snapshot exists, it may receive a new state.
+
+Do not modify old states.
+
+==================================================
+SECTION 12 — ROOKIE / LOW-SAMPLE HANDLING
+
+Handle honestly:
+
+MLB debut
+first MLB start
+rookies
+recent call-ups
+converted relievers
+returning injured pitchers
+low-sample starters
+
+Do not invent performance.
+
+Persist:
+
+sample sizes
+missingness
+prior availability
+rookie/unknown indicators
+
+Do not train prior weights.
+
+==================================================
+SECTION 13 — STARTER ROLE STATE
+
+Where PIT-safe evidence supports it, classify:
+
+TRADITIONAL_STARTER
+OPENER
+BULK
+BULLPEN_GAME
+EMERGENCY_STARTER
+UNKNOWN
+
+Do not infer with hindsight from target-game workload.
+
+If role cannot be known pregame:
+
+UNKNOWN.
+
+==================================================
+SECTION 14 — EXPECTED WORKLOAD INPUT STATE
+
+Prepare features needed by a future expected-starter-workload component.
+
+Potential inputs:
+
+recent innings/start
+recent pitches/start
+recent BF/start
+season innings/start
+season BF/start
+days rest
+career workload
+role
+recent workload
+
+Do NOT train the workload model.
+
+==================================================
+PART IV — OFFENSE / BULLPEN / RUN ENVIRONMENT
+==================================================
+
+SECTION 15 — FREEZE PREGAME OFFENSE STATE
+
+For every prospective game, materialize an immutable pregame offense state for:
+
+home offense
+away offense
+
+using only information available before cutoff.
+
+Use existing legitimate historical feature logic where possible.
+
+Do not rebuild historical MLB unnecessarily.
+
+==================================================
+SECTION 16 — FREEZE OPPONENT BULLPEN STATE
+
+Materialize:
+
+HOME expected-runs feature snapshot uses AWAY bullpen state.
+
+AWAY expected-runs feature snapshot uses HOME bullpen state.
+
+Audit this explicitly.
+
+Persist:
+
+bullpen feature version
+cutoff
+sample sizes
+fatigue state if legitimately PIT-safe
+missingness
+feature hash
+
+==================================================
+SECTION 17 — LEAGUE RUN ENVIRONMENT STATE
+
+Materialize a PIT-safe MLB run-environment state.
+
+Potential fields:
+
+league runs/team/game prior
+season-to-date environment
+previous-season prior
+month/context where legitimate
+sample sizes
+
+No future data.
+
+Do not tune blend weights.
+
+This is feature evidence only.
+
+==================================================
+SECTION 18 — HOME CONTEXT
+
+Materialize safe home/away context.
+
+Do not estimate a new home-field coefficient.
+
+Store the evidence required for future modeling.
+
+==================================================
+SECTION 19 — PARK CONTEXT
+
+If #224C-1 established legitimate PIT-safe park information:
+
+materialize it.
+
+If not:
+
+leave explicitly unavailable.
+
+Do not create a hindsight park factor.
+
+==================================================
+SECTION 20 — WEATHER / LINEUP ENHANCEMENTS
+
+Only include these if #224C-1 proved historical/live PIT semantics are legitimate and implementation is straightforward.
+
+Otherwise:
+
+DEFER.
+
+Do not allow optional enhanced data to block the core launch foundation.
+
+Priority:
+
+STARTER
+OFFENSE
+BULLPEN
+RUN ENVIRONMENT
+HOME CONTEXT
+
+==================================================
+PART V — IMMUTABLE PREGAME GAME SNAPSHOT
+==================================================
+
+SECTION 21 — MLB V4 PREGAME FEATURE SNAPSHOT
+
+Create a single immutable game-level feature snapshot tying together:
+
+game identity
+scheduled first pitch
+feature cutoff
+
+home offense state
+away offense state
+
+home starter snapshot
+away starter snapshot
+
+home starter PIT state
+away starter PIT state
+
+home bullpen state
+away bullpen state
+
+league run environment
+home/away context
+
+optional legitimate park context
+
+missingness
+sample sizes
+schema version
+component hashes
+overall feature hash
+
+This is the future MLB V4 model input contract.
+
+==================================================
+SECTION 22 — ELIGIBILITY TIERS
+
+Define deterministic evidence tiers.
+
+Suggested conceptual structure:
+
+BASELINE_CORE
+
+offense
+bullpen
+league environment
+home context
+
+STARTER_CORE
+
+BASELINE_CORE
++
+both PIT-safe starter identities
++
+starter PIT states
+
+ENHANCED
+
+STARTER_CORE
++
+other legitimately supported context
+
+Do not require ENHANCED for future V4.
+
+==================================================
+SECTION 23 — SNAPSHOT IMMUTABILITY
+
+Once a feature snapshot is frozen:
+
+do not mutate it after first pitch.
+
+If corrected pregame evidence legitimately arrives before cutoff:
+
+create/version a new snapshot according to deterministic rules.
+
+Postgame outcomes must never rewrite features.
+
+==================================================
+PART VI — POSTGAME OUTCOME PIPELINE
+==================================================
+
+SECTION 24 — MLB GAME OUTCOME RECORD
+
+After a game is legitimately final, append a separate outcome record.
+
+At minimum:
+
+game_id
+final_status
+home_runs
+away_runs
+total_runs
+margin
+winner
+completed_at
+outcome_source
+raw_payload_hash
+outcome_schema_version
+
+Keep outcome physically/logically separate from pregame feature state.
+
+==================================================
+SECTION 25 — ACTUAL STARTER OUTCOME
+
+Append separately:
+
+game_id
+team_id
+actual_starter_id
+actual_starter_name
+innings
+batters_faced
+pitch_count if available
+runs
+earned_runs
+hits
+walks
+strikeouts
+home_runs_allowed
+outcome_source
+raw_payload_hash
+
+Actual starter is OUTCOME evidence.
+
+Never mutate probable starter snapshot.
+
+==================================================
+SECTION 26 — BULLPEN OUTCOME
+
+Append bullpen outcome separately where supported.
+
+At minimum where reconstructable:
+
+bullpen innings
+runs allowed
+earned runs
+hits
+walks
+strikeouts
+home runs
+
+This becomes future evaluation/learning evidence.
+
+==================================================
+SECTION 27 — STARTER AGREEMENT
+
+Automatically calculate:
+
+latest safe probable starter
+versus
+actual starter
+
+Classify:
+
+MATCHED
+CHANGED
+LATE_SCRATCH
+UNKNOWN
+AMBIGUOUS
+
+This is evaluation evidence.
+
+==================================================
+PART VII — FEATURE ↔ OUTCOME PAIRING
+==================================================
+
+SECTION 28 — PROSPECTIVE EVIDENCE PAIR
+
+Create a deterministic immutable pairing layer:
+
+pregame_feature_snapshot_id
++
+game_outcome_id
+
+with references to:
+
+starter outcomes
+bullpen outcomes
+starter agreement
+evidence tier
+data-quality status
+
+Do not copy future information into the feature object.
+
+==================================================
+SECTION 29 — PAIR ELIGIBILITY
+
+A prospective pair should clearly report:
+
+PIT_SAFE
+STARTER_SAFE
+OUTCOME_COMPLETE
+BASELINE_CORE_ELIGIBLE
+STARTER_CORE_ELIGIBLE
+ENHANCED_ELIGIBLE
+
+and reasons for ineligibility.
+
+==================================================
+SECTION 30 — AUTOMATIC POSTGAME PAIRING
+
+Once a game becomes final:
+
+outcome collection
+starter outcome
+bullpen outcome
+feature/outcome pairing
+
+should be able to occur automatically through safe orchestration.
+
+No manual daily intervention should be required under normal operation.
+
+==================================================
+PART VIII — COMPLETENESS / QUALITY FOUNDATION
+==================================================
+
+SECTION 31 — DAILY EVIDENCE QUALITY REPORT
+
+Create machine-readable daily MLB V4 evidence report.
+
+At minimum:
+
+scheduled games
+discovered games
+pregame eligible games
+both starters captured
+starter states materialized
+baseline feature snapshots
+starter-core snapshots
+completed outcomes
+paired games
+starter-core paired games
+missed captures
+identity failures
+source failures
+PIT violations
+market leakage
+target leakage
+
+==================================================
+SECTION 32 — CUMULATIVE EVIDENCE REPORT
+
+Maintain cumulative prospective evidence metrics:
+
+observation start
+observation end
+collection runs
+scheduled games
+captured games
+both-starter games
+completed paired games
+starter-core pairs
+teams represented
+unique starters
+repeat starters
+starter changes
+rookies
+openers
+role unknowns
+capture timing distribution
+starter agreement
+missingness
+operational failures
+
+==================================================
+SECTION 33 — TEAM REPRESENTATION
+
+Report all 30 MLB teams.
+
+For each:
+
+games observed
+pregame captures
+starter slots
+starter states
+completed pairs
+starter-core pairs
+
+==================================================
+SECTION 34 — PITCHER REPRESENTATION
+
+Report:
+
+unique pitchers
+repeat pitchers
+number with 1 observation
+2 observations
+3+ observations
+rookies
+veterans
+role classifications
+
+This will become important for future starter-effect learning.
+
+==================================================
+SECTION 35 — CAPTURE TIMING
+
+Report descriptive timing:
+
+>12h
+6–12h
+3–6h
+1–3h
+30–60m
+<30m
+
+Also report median and relevant percentiles.
+
+Do not turn these into model coefficients.
+
+==================================================
+PART IX — FUTURE MODEL CONTRACT
+==================================================
+
+SECTION 36 — MLB V4 MODEL INPUT CONTRACT
+
+Define the exact versioned input contract the future #224C-2 model will consume.
+
+The contract should support conceptually:
+
+HOME EXPECTED RUNS
+
+AWAY EXPECTED RUNS
+
+from MLB-specific evidence.
+
+Do NOT train.
+
+==================================================
+SECTION 37 — FUTURE MODEL OUTPUT CONTRACT
+
+Prepare, but do not populate with fabricated predictions, a versioned output schema supporting:
+
+model_id
+model_version
+game_id
+forecast_generated_at
+feature_snapshot_id
+
+home_expected_runs_exact
+away_expected_runs_exact
+projected_total_exact
+projected_margin_exact
+
+home_win_probability
+away_win_probability
+
+fair_home_moneyline
+fair_away_moneyline
+
+distribution_version
+calibration_version
+model_hash
+feature_hash
+forecast_hash
+
+approval_status
+maturity_status
+publication_status
+
+==================================================
+SECTION 38 — PROJECTED SCORE CONTRACT
+
+Store expected runs unrounded.
+
+Future UI may display rounded projected scores.
+
+Example only:
+
+ATH 5 — SEA 3
+
+Do NOT generate fake projected scores now.
+
+Do NOT modify subscriber UI.
+
+==================================================
+PART X — SHADOW FORECAST FOUNDATION
+==================================================
+
+SECTION 39 — IMMUTABLE SHADOW FORECAST LEDGER
+
+Prepare a generic MLB V4 shadow forecast ledger.
+
+Once a future challenger is frozen, each forecast must be immutable.
+
+Store:
+
+forecast ID
+model/version/hash
+feature snapshot
+timestamp
+expected scores
+probabilities
+fair prices
+approval state
+publication state
+
+No sportsbook data inside sports forecast.
+
+==================================================
+SECTION 40 — FORECAST VERSION PROTECTION
+
+A future forecast must never silently change because:
+
+model code changed
+features changed
+market moved
+game completed
+starter changed after cutoff
+
+A new legitimate model/snapshot requires a new forecast record.
+
+==================================================
+PART XI — MARKET / BET-SELECTION FIREWALL
+==================================================
+
+SECTION 41 — MARKET DATA REMAINS DOWNSTREAM
+
+Architecture must enforce:
+
+SPORTS FORECAST
+        ↓
+FROZEN
+        ↓
+MARKET SNAPSHOT
+        ↓
+IMPLIED PROBABILITY
+        ↓
+EDGE / EV
+        ↓
+BET-SELECTION LOGIC
+
+Never:
+
+MARKET
+→ SPORTS FORECAST
+
+==================================================
+SECTION 42 — MARKET SNAPSHOT CONTRACT
+
+Prepare/use a separate downstream market snapshot contract supporting:
+
+sportsbook
+market
+side
+price
+line if applicable
+observed_at
+market_implied_probability
+raw payload hash
+
+Do not inject into V4 feature snapshot.
+
+==================================================
+SECTION 43 — EDGE CONTRACT
+
+Future edge should be derived after forecast freeze.
+
+For moneyline:
+
+MODEL WIN PROBABILITY
+minus
+MARKET IMPLIED PROBABILITY
+
+Represent clearly as percentage-point probability edge where appropriate.
+
+Do not confuse it with spread points.
+
+==================================================
+SECTION 44 — CLV CONTRACT
+
+Prepare downstream CLV evaluation infrastructure where existing market history supports it.
+
+CLV is evaluation evidence.
+
+It must not become a sports forecast input.
+
+==================================================
+PART XII — PROSPECTIVE MODEL EVALUATION FOUNDATION
+==================================================
+
+SECTION 45 — MODEL EVALUATION LEDGER
+
+Prepare evaluation records for future frozen forecasts.
+
+Support:
+
+home score error
+away score error
+total error
+margin error
+winner correctness
+Brier
+log loss
+calibration bucket
+market comparison
+CLV where available
+bet result if published
+units if published
+
+Do not evaluate nonexistent #224C-2 forecasts.
+
+==================================================
+SECTION 46 — MODEL METRICS
+
+Future MLB V4 validation must support at minimum:
+
+HOME RUN MAE
+AWAY RUN MAE
+TOTAL MAE
+TOTAL RMSE
+TOTAL BIAS
+MARGIN MAE
+MARGIN RMSE
+WINNER ACCURACY
+BRIER
+LOG LOSS
+ECE
+CALIBRATION
+PREDICTED TOTAL DISTRIBUTION
+ACTUAL TOTAL DISTRIBUTION
+
+==================================================
+SECTION 47 — RUN-BIAS MONITOR
+
+Create evaluation support specifically for aggregate scoring bias.
+
+Old #224C failure:
+
+predicted average total:
+6.9514
+
+actual:
+8.9747
+
+bias:
+-2.0233
+
+The next model must be monitored for:
+
+overall bias
+home bias
+away bias
+monthly bias
+starter-quality bucket bias
+early/late season bias
+
+Do not correct the bias in this task.
+
+==================================================
+PART XIII — CHAMPION / CHALLENGER FOUNDATION
+==================================================
+
+SECTION 48 — MLB MODEL REGISTRY
+
+Verify/extend a versioned MLB model registry supporting:
+
+model_id
+version
+family
+created_at
+training artifact
+feature schema
+parameter hash
+model hash
+approval status
+maturity
+champion/challenger state
+promotion timestamp
+retirement timestamp
+reason
+
+Do not change current champion.
+
+==================================================
+SECTION 49 — APPROVAL STATES
+
+Preserve the project's controlled approval concept:
+
+UNVALIDATED
+SHADOW
+PROVISIONAL
+PRODUCTION_APPROVED
+SUSPENDED
+
+and maturity concept:
+
+EXPERIMENTAL
+DEVELOPING
+VALIDATED
+MATURE
+
+Do not promote anything.
+
+==================================================
+SECTION 50 — MODEL OPINION VS PUBLICATION PERMISSION
+
+Maintain explicit separation:
+
+MODEL OPINION
+
+versus
+
+PUBLICATION PERMISSION
+
+A future V4 model can produce forecasts while still being:
+
+SHADOW
++
+NOT PUBLISHABLE
+
+==================================================
+SECTION 51 — FUTURE PROMOTION GATE
+
+Prepare a deterministic promotion-gate contract.
+
+Do not define success solely by betting ROI.
+
+Future promotion evidence should consider:
+
+run accuracy
+run bias
+margin accuracy
+Brier
+log loss
+calibration
+prospective sample size
+stability
+market comparison
+CLV
+betting performance where sample supports it
+drawdown/risk
+
+Do not promote based on a short hot streak.
+
+==================================================
+PART XIV — NEW PROSPECTIVE VALIDATION DISCIPLINE
+==================================================
+
+SECTION 52 — DEVELOPMENT EVIDENCE
+
+The evidence accumulated BEFORE #224C-2 freezes may be used according to the future #224C-2 experiment design.
+
+It must be clearly labeled:
+
+PROSPECTIVE_DEVELOPMENT_EVIDENCE
+
+if consumed during model development.
+
+==================================================
+SECTION 53 — FUTURE UNTOUCHED SHADOW HOLDOUT
+
+Once #224C-2 is frozen:
+
+future games must form a new chronological prospective shadow cohort.
+
+Those outcomes must NOT be used to alter the frozen model during the validation period.
+
+This becomes the legitimate promotion evidence.
+
+==================================================
+SECTION 54 — NO GAME-BY-GAME AUTO-RETRAINING
+
+Every completed game should add EVIDENCE.
+
+Production model weights must NOT automatically change after every game.
+
+Learning process:
+
+GAME
+→ EVIDENCE
+→ EVALUATION
+→ CONTROLLED RESEARCH
+→ NEW VERSION
+→ VALIDATION
+→ PROMOTION
+
+not:
+
+GAME
+→ AUTOMATIC PRODUCTION WEIGHT CHANGE
+
+==================================================
+PART XV — LAUNCH-READINESS INTERNAL API
+==================================================
+
+SECTION 55 — MLB V4 READINESS STATUS
+
+Create an internal/API-readable MLB V4 readiness object.
+
+Support fields conceptually like:
+
+foundation_status
+collector_status
+starter_capture_status
+starter_state_status
+feature_snapshot_status
+outcome_pairing_status
+prospective_evidence_status
+model_training_status
+shadow_validation_status
+promotion_status
+production_status
+
+Also:
+
+critical_blockers
+high_blockers
+warnings
+last_updated
+
+Do not expose unnecessarily to subscribers.
+
+==================================================
+SECTION 56 — EVIDENCE READINESS VS PIPELINE READINESS
+
+Explicitly distinguish:
+
+PIPELINE_READY
+
+from:
+
+MODEL_EVIDENCE_READY
+
+from:
+
+MODEL_READY
+
+from:
+
+PRODUCTION_READY
+
+These are not equivalent.
+
+==================================================
+SECTION 57 — AUTOMATIC REASSESSMENT
+
+Once the live pipeline is operating, it should be possible to compute evidence completeness automatically.
+
+Do not require a developer to manually count games every day.
+
+The system should know:
+
+completed pairs
+starter-core pairs
+team representation
+repeat starters
+missingness
+capture failures
+integrity status
+
+==================================================
+PART XVI — ADMIN / OBSERVABILITY
+==================================================
+
+SECTION 58 — INTERNAL HEALTH OUTPUT
+
+Provide a compact internal/admin health view or API response for MLB V4 evidence infrastructure.
+
+Do not build a giant dashboard.
+
+Useful fields only:
+
+last collection
+games today
+both starters
+missing starters
+feature snapshots
+completed pairs
+collector health
+leakage status
+evidence status
+blockers
+
+Preserve existing UI unless an existing internal/admin surface can safely display this without redesign.
+
+==================================================
+SECTION 59 — LOGGING
+
+Add structured logging for:
+
+collection run
+game discovery
+starter snapshot
+starter change
+starter-state materialization
+feature freeze
+outcome ingestion
+pairing
+rejection
+retry
+audit failure
+
+Do not log secrets.
+
+==================================================
+PART XVII — FAILURE HANDLING
+==================================================
+
+SECTION 60 — SOURCE FAILURE
+
+If MLB source is unavailable:
+
+do not fabricate evidence.
+
+Record failure.
+
+Retry safely.
+
+==================================================
+SECTION 61 — MISSING STARTER
+
+If one/both starters are missing:
+
+allow BASELINE_CORE if otherwise eligible.
+
+Do not classify STARTER_CORE.
+
+==================================================
+SECTION 62 — STARTER CHANGE
+
+If starter changes before feature cutoff:
+
+use deterministic latest-safe snapshot.
+
+Preserve earlier snapshots.
+
+==================================================
+SECTION 63 — STARTER CHANGE AFTER CUTOFF
+
+Do not rewrite frozen model input.
+
+Record change as evaluation/context evidence.
+
+==================================================
+SECTION 64 — POSTPONED / CANCELLED / SUSPENDED
+
+Handle explicitly.
+
+Do not create invalid completed pairs.
+
+Rescheduled games must preserve correct game identity and chronology.
+
+==================================================
+SECTION 65 — DOUBLEHEADERS
+
+Ensure game identity distinguishes doubleheader games.
+
+Do not mix starter or outcome records.
+
+==================================================
+PART XVIII — DATA QUALITY / SECURITY
+==================================================
+
+SECTION 66 — PIT AUDIT
+
+Audit every prospective feature class.
+
+Target:
+
+future information violations = 0
+target leakage = 0
+actual-starter hindsight = 0
+
+==================================================
+SECTION 67 — MARKET LEAKAGE AUDIT
+
+Target:
+
+market fields in sports forecast feature snapshot = 0
+
+==================================================
+SECTION 68 — CROSS-SPORT AUDIT
+
+Target:
+
+cross-sport forecasting feature dependencies = 0
+
+==================================================
+SECTION 69 — APPEND-ONLY AUDIT
+
+Attempt prohibited mutations.
+
+Historical evidence mutation must be rejected.
+
+==================================================
+SECTION 70 — HASH / REPLAY AUDIT
+
+Create deterministic hashes for:
+
+collection runs
+starter snapshots
+starter states
+feature snapshots
+outcomes
+paired evidence
+
+Where replay is applicable, require deterministic reconstruction.
+
+==================================================
+PART XIX — AUTOMATION SAFETY
+==================================================
+
+SECTION 71 — SAFE SCHEDULER INTEGRATION
+
+This task IS allowed to build/configure the MLB prospective evidence scheduling logic in development if it can be done safely.
+
+However:
+
+DO NOT DEPLOY.
+
+DO NOT PUSH.
+
+Do not change unrelated sports schedules.
+
+Do not alter NCAAF TODAY-ONLY behavior.
+
+Document exactly what will activate after deployment.
+
+==================================================
+SECTION 72 — IDEMPOTENCY
+
+Every automated stage must safely tolerate reruns.
+
+Expected:
+
+same source evidence
+→ no duplicate semantic record
+
+new legitimate evidence
+→ append new version
+
+post-first-pitch evidence
+→ not converted to pregame
+
+already-paired final
+→ no duplicate pair
+
+==================================================
+SECTION 73 — RATE LIMITS
+
+Respect provider rate limits.
+
+Use batching/caching where legitimate.
+
+Do not create excessive polling.
+
+Report estimated daily request volume.
+
+==================================================
+PART XX — TEST SUITE
+==================================================
+
+SECTION 74 — REQUIRED FOCUSED TESTS
+
+Add/run tests for at minimum:
+
+collection-run ledger
+game discovery ledger
+starter snapshot insertion
+starter duplicate no-op
+starter change append
+post-first-pitch rejection
+latest-safe starter
+starter identity
+starter PIT chronology
+rookie state
+role unknown
+offense PIT snapshot
+bullpen opponent mapping
+run-environment chronology
+feature freeze
+feature immutability
+game outcome
+actual starter separation
+starter agreement
+bullpen outcome
+feature/outcome pairing
+pair idempotency
+postponement
+doubleheader
+market firewall
+target leakage
+old OOS protection
+shadow forecast immutability contract
+model registry
+cross-sport isolation
+scheduler idempotency
+
+==================================================
+SECTION 75 — FULL REGRESSION
+
+Run:
+
+focused MLB tests
+PIT tests
+chronology tests
+DB tests
+API tests
+scheduler tests
+typechecks
+API production build
+admin build/typecheck if touched
+mobile typecheck if shared contracts touched
+signing credential scan
+diff validation
+
+If unrelated failures exist:
+
+identify them
+prove isolation
+rerun appropriately
+report honestly
+
+Do not hide failures.
+
+==================================================
+PART XXI — PRODUCTION PROTECTION
+==================================================
+
+SECTION 76 — MLB V1
+
+Do not modify current production champion:
+
+tbm-mlb-moneyline-v1
+
+Do not alter its forecast behavior.
+
+==================================================
+SECTION 77 — FAILED #224C MODEL
+
+Do not promote:
+
+224c-v3-cadb433dbbd7
+
+Preserve as failed research artifact.
+
+==================================================
+SECTION 78 — PUBLICATION
+
+Do not modify:
+
+current picks
+recommendations
+edge thresholds
+unit sizing
+publication thresholds
+Play of the Day
+six-pick cap
+subscriber access
+
+==================================================
+SECTION 79 — UI
+
+Do not redesign subscriber MLB pages yet.
+
+Do not publish projected scores yet.
+
+Prepare backend contracts only.
+
+The final subscriber analytics update should occur AFTER the actual validated MLB V4 model is known.
+
+==================================================
+PART XXII — OTHER SPORTS PROTECTION
+==================================================
+
+SECTION 80 — NCAAF
+
+Do not modify NCAAF model.
+
+Do not modify Baseline D.
+
+Do not modify hashes.
+
+Do not modify approval status.
+
+Do not modify thresholds.
+
+NCAAF normal game-day behavior remains:
+
+TODAY ONLY
+America/New_York
+
+No tomorrow prefetch.
+
+==================================================
+SECTION 81 — NFL / OTHER SPORTS
+
+Do not start NFL V4.
+
+Do not modify:
+
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+forecasting intelligence.
+
+==================================================
+PART XXIII — REPOSITORY SECURITY GATE
+==================================================
+
+SECTION 82 — REPLIT PROTECTED REF
+
+Unless owner explicitly provides confirmation that Replit Support removed the contaminated protected Git ref, treat repository production deployment as BLOCKED.
+
+Known protected ref:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Do not:
+
+force push
+rewrite history
+delete unrelated refs
+modify main history
+rotate Apple credentials again
+
+==================================================
+SECTION 83 — APPLE / EAS
+
+Apple credential rotation is already complete.
+
+Do not modify:
+
+App Store Connect API key
+distribution certificate
+provisioning profile
+EAS signing credentials
+
+Read-only signing scans are allowed.
+
+==================================================
+SECTION 84 — NO DEPLOYMENT
+
+Even if #232 succeeds:
+
+DO NOT DEPLOY.
+
+DO NOT PUSH.
+
+Return the completed development build/report for owner review first.
+
+==================================================
+PART XXIV — COMPLETENESS GATE
+==================================================
+
+SECTION 85 — PIPELINE READINESS
+
+At completion determine whether the entire prospective pipeline is technically ready.
+
+Evaluate:
+
+collection
+starter identity
+starter state
+feature snapshots
+outcomes
+pairing
+automation
+auditing
+idempotency
+PIT safety
+market firewall
+
+==================================================
+SECTION 86 — MODEL-EVIDENCE READINESS
+
+Separately determine whether enough prospective evidence currently exists to begin #224C-2.
+
+Do not use an arbitrary raw game count.
+
+Evaluate:
+
+completed paired games
+starter-core paired games
+all-team representation
+repeat-pitcher diversity
+starter-state coverage
+starter changes
+role diversity
+capture timing
+missingness
+operational stability
+
+==================================================
+SECTION 87 — DO NOT FORCE READINESS
+
+It is completely acceptable for:
+
+PIPELINE READY = TRUE
+
+while:
+
+MODEL EVIDENCE READY = FALSE
+
+If evidence needs time to accumulate, say so.
+
+The purpose of #232 is to ensure that accumulation happens automatically and correctly.
+
+==================================================
+PART XXV — FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — MLB V4 LIVE FOUNDATION COMPLETE, MODEL EVIDENCE READY
+
+Meaning:
+
+Infrastructure is complete and current prospective evidence is sufficient to begin #224C-2.
+
+B — MLB V4 LIVE FOUNDATION COMPLETE, EVIDENCE ACCUMULATING
+
+Meaning:
+
+Infrastructure is complete and safe, but more prospective completed evidence should accumulate before #224C-2.
+
+C — MLB V4 LIVE FOUNDATION PARTIAL
+
+Meaning:
+
+One or more material infrastructure components remain incomplete.
+
+D — MLB V4 LIVE FOUNDATION UNSAFE
+
+Meaning:
+
+PIT leakage, market contamination, mutation, chronology, security, or another integrity problem makes the foundation unsafe.
+
+==================================================
+PART XXVI — NEXT STEP
+==================================================
+
+If A:
+
+Recommend:
+
+#224C-2 — MLB V4 STARTER-AWARE EXPECTED-RUNS CHALLENGER
+
+Do not execute.
+
+If B:
+
+Do NOT create another giant infrastructure project.
+
+Specify exactly:
+
+what evidence is accumulating
+whether it is automatic
+what objective completeness conditions should trigger #224C-2 reassessment
+
+If C:
+
+Identify only the remaining blockers and propose the shortest completion build.
+
+If D:
+
+Stop and identify integrity remediation.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+#232 should answer YES/NO to all of these:
+
+1. Do we know every time the MLB collector runs?
+
+2. Do we know every game the collector discovered?
+
+3. Can we calculate true collection coverage?
+
+4. Are starter snapshots PIT-safe?
+
+5. Are starter changes versioned?
+
+6. Are post-first-pitch observations prevented from becoming pregame evidence?
+
+7. Are starter PIT states materialized?
+
+8. Are rookies/low-sample starters handled honestly?
+
+9. Is starter role represented safely?
+
+10. Are offense states frozen pregame?
+
+11. Are opposing bullpen states frozen correctly?
+
+12. Is run environment PIT-safe?
+
+13. Is there one immutable game-level feature snapshot?
+
+14. Are outcomes stored separately?
+
+15. Are actual starters stored separately?
+
+16. Are starter performances captured?
+
+17. Are bullpen outcomes captured?
+
+18. Are feature/outcome pairs automatic?
+
+19. Is daily collection automated safely?
+
+20. Are retries/idempotency safe?
+
+21. Can evidence completeness be calculated automatically?
+
+22. Can team representation be measured?
+
+23. Can repeat-starter diversity be measured?
+
+24. Is old OOS permanently protected?
+
+25. Is market leakage zero?
+
+26. Is actual-starter hindsight leakage zero?
+
+27. Is target leakage zero?
+
+28. Is cross-sport forecasting contamination zero?
+
+29. Is the future MLB V4 model input contract ready?
+
+30. Is the future V4 forecast contract ready?
+
+31. Is immutable shadow forecast storage ready?
+
+32. Is downstream market comparison separated from forecast?
+
+33. Is future model evaluation storage ready?
+
+34. Is run-bias monitoring ready?
+
+35. Is champion/challenger registry ready?
+
+36. Is promotion-gate infrastructure ready?
+
+37. Is future prospective holdout methodology defined?
+
+38. Is internal readiness/health reporting ready?
+
+39. Can this pipeline run without daily manual intervention after deployment?
+
+40. Is the only remaining major modeling work #224C-2 + prospective validation, assuming evidence becomes sufficient?
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #232 — MLB V4 LIVE EVIDENCE & LAUNCH FOUNDATION REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Final classification:
+Pipeline ready:
+Model evidence ready:
+Deployment ready:
+Current MLB champion:
+Prospective observation period:
+Scheduled games:
+Captured games:
+Completed paired games:
+Starter-core paired games:
+Teams represented:
+Unique starters:
+Repeat starters:
+PIT violations:
+Market leakage:
+Actual-starter leakage:
+Target leakage:
+Cross-sport contamination:
+Recommended next step:
+
+## 2. ARCHITECTURE BUILT
+
+List components implemented.
+
+## 3. DATABASE / SCHEMA
+
+Tables:
+Migrations:
+Indexes:
+Constraints:
+Append-only protections:
+
+## 4. COLLECTION-RUN LEDGER
+
+Runs:
+Successes:
+Failures:
+Coverage:
+
+## 5. GAME DISCOVERY
+
+Scheduled:
+Discovered:
+Eligible:
+Missed:
+Reasons:
+
+## 6. STARTER SNAPSHOTS
+
+Slots:
+PIT-safe:
+Both-starter games:
+Changes:
+Late scratches:
+Unknown:
+Ambiguous:
+
+## 7. STARTER PIT STATES
+
+Materialized:
+Basic:
+Strong:
+Insufficient:
+Rookies:
+Role coverage:
+
+## 8. OFFENSE STATE
+
+Coverage:
+Schema:
+PIT audit:
+
+## 9. BULLPEN STATE
+
+Coverage:
+Opponent mapping:
+PIT audit:
+
+## 10. RUN ENVIRONMENT
+
+Coverage:
+Method:
+PIT audit:
+
+## 11. PREGAME FEATURE SNAPSHOTS
+
+Baseline-core:
+Starter-core:
+Enhanced:
+Immutable:
+Hash:
+
+## 12. AUTOMATION
+
+Schedule:
+Retries:
+Idempotency:
+Daily request estimate:
+Failure handling:
+
+## 13. POSTGAME OUTCOMES
+
+Completed:
+Final scores:
+Actual starters:
+Starter performance:
+Bullpen outcomes:
+
+## 14. FEATURE / OUTCOME PAIRS
+
+Total:
+Baseline-core:
+Starter-core:
+Invalid:
+Pending:
+
+## 15. STARTER AGREEMENT
+
+Matched:
+Changed:
+Late scratch:
+Unknown:
+Agreement rate:
+
+## 16. TEAM REPRESENTATION
+
+All 30 teams.
+
+## 17. PITCHER REPRESENTATION
+
+Unique:
+Repeat:
+1 appearance:
+2 appearances:
+3+ appearances:
+Rookies:
+Openers:
+
+## 18. CAPTURE TIMING
+
+Buckets and percentiles.
+
+## 19. DATA COMPLETENESS
+
+Numerator / denominator / percentage for all major fields.
+
+## 20. OPERATIONAL HEALTH
+
+Last run:
+Failures:
+Warnings:
+Rate limits:
+Storage:
+Performance:
+
+## 21. MARKET FIREWALL
+
+Forecast market fields:
+Must equal 0.
+
+PASS / FAIL
+
+## 22. PIT / LEAKAGE AUDIT
+
+Future info:
+Actual-starter hindsight:
+Target leakage:
+Market leakage:
+
+Target all 0.
+
+## 23. OLD OOS PROTECTION
+
+2,012 cohort:
+HISTORICAL_BENCHMARK_ONLY
+
+Membership unchanged:
+Development use:
+Mutation:
+
+## 24. MODEL INPUT CONTRACT
+
+Exact schema/version.
+
+## 25. MODEL OUTPUT CONTRACT
+
+Exact schema/version.
+
+## 26. PROJECTED SCORE SUPPORT
+
+Exact expected-run fields:
+Storage precision:
+UI status:
+
+## 27. SHADOW FORECAST LEDGER
+
+Schema:
+Immutability:
+Versioning:
+
+## 28. MARKET / EDGE LAYER
+
+Separation:
+Snapshot:
+Probability edge:
+CLV:
+
+## 29. EVALUATION LEDGER
+
+Run metrics:
+Probability metrics:
+Calibration:
+Market metrics:
+Betting metrics:
+
+## 30. RUN-BIAS MONITORING
+
+Old benchmark:
+-2.0233
+
+Future monitoring ready:
+YES / NO
+
+Bias remains unresolved:
+YES unless proven otherwise.
+
+## 31. MODEL REGISTRY
+
+Champion:
+Challengers:
+Approval states:
+Maturity states:
+Promotion protections:
+
+## 32. PROSPECTIVE VALIDATION PLAN
+
+Development evidence:
+Freeze:
+Future holdout:
+Promotion:
+
+## 33. READINESS API / HEALTH
+
+Fields:
+Current values:
+Blockers:
+
+## 34. TEST RESULTS
+
+Focused:
+Full API:
+Scheduler:
+DB:
+Typechecks:
+Builds:
+Security:
+Diff:
+
+## 35. CROSS-SPORT REGRESSION
+
+NCAAF:
+NFL:
+NBA:
+WNBA:
+NHL:
+Soccer:
+UFC:
+
+All forecasting behavior must remain unchanged.
+
+## 36. PRODUCTION STATE
+
+MLB V1:
+unchanged
+
+#224C failed model:
+unchanged
+
+Picks:
+unchanged
+
+Publication:
+unchanged
+
+Thresholds:
+unchanged
+
+Units:
+unchanged
+
+Six-pick cap:
+unchanged
+
+Subscriber UI:
+unchanged
+
+Deployment:
+NOT RUN
+
+Push:
+NOT RUN
+
+## 37. SECURITY GATE
+
+Protected Replit ref:
+status
+
+Apple/EAS:
+unchanged
+
+Production release:
+blocked/clear
+
+## 38. PIPELINE READINESS
+
+READY / NOT READY
+
+Explain.
+
+## 39. MODEL-EVIDENCE READINESS
+
+READY / NOT READY
+
+Explain separately.
+
+## 40. REMAINING MLB V4 WORK
+
+List only genuinely remaining major work.
+
+## 41. RISKS / LIMITATIONS
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+## 42. FINAL CLASSIFICATION
+
+Exactly one:
+
+A — MLB V4 LIVE FOUNDATION COMPLETE, MODEL EVIDENCE READY
+
+B — MLB V4 LIVE FOUNDATION COMPLETE, EVIDENCE ACCUMULATING
+
+C — MLB V4 LIVE FOUNDATION PARTIAL
+
+D — MLB V4 LIVE FOUNDATION UNSAFE
+
+## 43. NEXT RECOMMENDED TASK
+
+Exactly one next task.
+
+Do not execute it.
+
+==================================================
+HARD STOP
+==================================================
+
+After completing #232:
+
+STOP.
+
+DO NOT TRAIN #224C-2.
+
+DO NOT RETUNE #224C.
+
+DO NOT USE THE 2,012 HISTORICAL BENCHMARK GAMES FOR NEW MODEL DEVELOPMENT.
+
+DO NOT PROMOTE ANY MLB V4 MODEL.
+
+DO NOT MODIFY MLB V1.
+
+DO NOT MODIFY PICKS.
+
+DO NOT MODIFY THRESHOLDS.
+
+DO NOT MODIFY UNIT SIZING.
+
+DO NOT MODIFY PUBLICATION.
+
+DO NOT MODIFY THE SIX-PICK CAP.
+
+DO NOT REDESIGN SUBSCRIBER MLB UI.
+
+DO NOT PUBLISH PROJECTED SCORES YET.
+
+DO NOT MODIFY NCAAF.
+
+DO NOT START NFL V4.
+
+DO NOT DEPLOY.
+
+DO NOT PUSH.
+
+DO NOT FORCE-PUSH.
+
+DO NOT REWRITE GIT HISTORY.
+
+DO NOT TOUCH APPLE/EAS CREDENTIALS.
+
+RETURN THE COMPLETE #232 REPORT AND WAIT FOR OWNER REVIEW.

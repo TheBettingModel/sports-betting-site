@@ -1,0 +1,215 @@
+{
+  "task": 235,
+  "classification": {
+    "code": "C",
+    "label": "AUTHENTIC CANDIDATE EXECUTION BLOCKED",
+    "reason": "No authentic MLB model-input-v4 executor/artifact exists and connecting one requires material model remediation."
+  },
+  "readyForTask236": false,
+  "config": {
+    "MLB_MODEL_MODE": "v1",
+    "NCAAF_MODEL_MODE": "legacy",
+    "changed": false,
+    "noApprovalRetrainingRecalibrationParameterChangePromotionOrPublicCutover": true
+  },
+  "mlb": {
+    "incumbent": "tbm-mlb-moneyline-v1",
+    "candidate": "tbm-mlb-moneyline-v4",
+    "targetMarket": "moneyline",
+    "authoritativeInputContract": "model-input-v4",
+    "exactExecutorRegistered": false,
+    "executorHealth": "UNAVAILABLE",
+    "exactArtifactVersionHash": null,
+    "freshMaterialization": "BLOCKED_NO_ELIGIBLE_UPCOMING_MLB_SLATE",
+    "authenticInference": false,
+    "reproducibility": "NOT_EXECUTABLE",
+    "supportedMarkets": "CANNOT_BE_CLAIMED",
+    "guardedRuntime": "BLOCKED",
+    "publicationAdapter": "NOT_TRAVERSED",
+    "universalPipeline": "NOT_TRAVERSED",
+    "oldShadowOutputUsed": false,
+    "dryRun": {
+      "auditId": "31c467ed-3bcd-4b37-a4b2-f715f57ae558",
+      "gameId": null,
+      "disposition": "WOULD_PASS",
+      "reason": "NO_ELIGIBLE_UPCOMING_MLB_SLATE",
+      "publicCandidatePredictionsCreated": 0
+    },
+    "startup": {
+      "v1": "PASS",
+      "v4_guarded": "BLOCKED_MISSING_REGISTRY_EXECUTOR"
+    },
+    "killSwitch": "PASS"
+  },
+  "ncaaf": {
+    "incumbent": "tbm-ncaaf-moneyline-v1",
+    "candidate": {
+      "modelId": "tbm-ncaaf-v4-expected-score",
+      "modelVersion": "D-simple-expected-score-linear",
+      "artifactId": "tbm-ncaaf-v4-expected-score",
+      "artifactHash": "59c00f4d5bb1219cf3ddab746311bdb96e6a19d4cc868fc33bd8176871be3226",
+      "inputContract": "ncaaf-chronological-team-game-v2",
+      "configurationHash": "212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86",
+      "parameterHash": "792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81"
+    },
+    "exactExecutorRegistered": true,
+    "executorHealth": {
+      "status": "HEALTHY",
+      "reason": "EXACT_FROZEN_ARTIFACT_READY",
+      "reproducibilityReady": true,
+      "runtime": "predictFrozenNcaafV4"
+    },
+    "supportedMarkets": {
+      "moneyline": "EXECUTOR_SUPPORTED",
+      "spread": "DERIVABLE_BUT_NOT_APPROVED",
+      "total": "DERIVABLE_BUT_NOT_APPROVED"
+    },
+    "dryRun": {
+      "auditId": "3a03b1dc-3aec-4fe3-8523-a3d68cd5ad82",
+      "gameId": "espn:NCAAF-401858210",
+      "snapshotId": "45017",
+      "inputHash": "206ac2302af4cfe31bff10c6fa4f0a60a866c2a10f30d2d83aa855023dc45422",
+      "outputHash": "c1e9fc84feebf87d91ace996d0061fb3518ab5b02cd222501cdc2c7dc51f6b25",
+      "secondOutputHash": "c1e9fc84feebf87d91ace996d0061fb3518ab5b02cd222501cdc2c7dc51f6b25",
+      "reproducible": true,
+      "freshAuthenticExecution": "predictFrozenNcaafV4",
+      "disposition": "WOULD_FALLBACK",
+      "resolution": "LEGACY_FALLBACK",
+      "reason": "NEXTGEN_NOT_APPROVED",
+      "selectedEngine": "tbm-ncaaf-moneyline-v1",
+      "publicCandidatePredictionsCreated": 0,
+      "boardOutputUsed": false
+    },
+    "bridge": {
+      "persisted": false,
+      "persistenceReady": false,
+      "status": "BLOCKED",
+      "fixtureStructuralReadiness": "ONLY_WITH_LEGITIMATE_VALUES_AND_EXACT_FK",
+      "blockers": [
+        "EXACT_MODEL_VERSION_FOREIGN_KEY_UNRESOLVED",
+        "MARKET_ODDS_IMPLIED_EDGE_UNAVAILABLE",
+        "RISK_CONFIDENCE_RECOMMENDATION_UNAVAILABLE",
+        "UNIVERSAL_RATING_AND_POD_UNAVAILABLE"
+      ]
+    },
+    "publicationAdapter": "COMPLETED_NONPUBLISHING",
+    "universalPipeline": "BLOCKED_AUTHENTIC_MARKET_AND_RISK_INPUT_UNAVAILABLE",
+    "killSwitch": {
+      "legacy": "PASS",
+      "nextgen_guarded": "GUARDED_EVALUATION_ONLY"
+    }
+  },
+  "approvalsAndPersistence": {
+    "approvalLedgerCount": 0,
+    "officialIdentityCount": 0,
+    "officialCandidateModelPredictionsCount": 0,
+    "mlbApproval": "UNVALIDATED",
+    "ncaafApproval": "UNVALIDATED",
+    "approvedMarkets": [],
+    "dryRunCandidateAuditsSeparate": true,
+    "noUnapprovedPublication": true
+  },
+  "schema": {
+    "development": {
+      "managedSchemaApplied": true,
+      "guardedTables": 6,
+      "mutationAndTruncateTriggers": 12,
+      "candidateExecutionAuditUpdateRejected": true,
+      "candidateExecutionAuditDeleteRejected": true
+    },
+    "production": {
+      "productionMigrationScript": false,
+      "publishedSchemaVerified": false,
+      "queryFoundGuardedTables": 0,
+      "queryFoundGuardedTriggers": 0
+    }
+  },
+  "boundary": {
+    "centralBoundary": true,
+    "schedulerPaths": "CENTRAL_BOUNDARY_SAFE_DEFAULTS",
+    "refresh": "CENTRAL_BOUNDARY_TRUTHFUL_RESOLUTION",
+    "api": "ADDITIVE_IDENTITY_AND_NONPUBLIC_DRY_RUN",
+    "pit": "NCAAF_PASSED; MLB_NOT_ASSESSABLE_WITHOUT_FRESH_INPUT",
+    "leakage": "NCAAF_MARKET_SHAPED_KEYS_REJECTED"
+  },
+  "verification": {
+    "tests": {
+      "api": { "files": 86, "tests": 549, "status": "PASSED" },
+      "focusedGuarded": { "files": 3, "tests": 22, "status": "PASSED" }
+    },
+    "typechecks": { "API": "PASSED", "DB": "PASSED", "admin": "PASSED", "mobile": "PASSED" },
+    "productionBuilds": { "API": "PASSED", "admin": "PASSED", "adminNote": "PREEXISTING_CHUNK_SIZE_WARNING" },
+    "signingCredentialScan": "PASSED",
+    "gitDiffCheck": "PASSED",
+    "security": {
+      "dependencyScan": { "critical": 0, "high": 32, "moderate": 23, "low": 3 },
+      "sast": { "critical": 0, "high": 2, "medium": 8, "note": "PREEXISTING_ARTIFACTS_MOBILE_SERVER_SERVE_JS_STATIC_FILE_WARNINGS" },
+      "houndDog": 0,
+      "task235SpecificCriticalOrHighEstablished": false
+    }
+  },
+  "production": {
+    "deploymentExists": true,
+    "previousBuild": "HEALTHY_PUBLIC_AUTOSCALE",
+    "task235InfrastructureDeployed": false,
+    "newPathProductionRuntimeVerified": false
+  },
+  "evaluation": {
+    "mlb": "BLOCK",
+    "ncaaf": "BLOCK",
+    "automaticApproval": false,
+    "architectConclusion": "Independently confirmed MLB executor absence, NCAAF authentic expected-score execution, no board/shadow substitution, no unapproved publication, truthful fallback, kill switches, dry-run separation, and development immutability. Final acceptance evidence corrects the stale no-real-slate NCAAF note; production schema and official bridge/universal inputs remain blocked."
+  },
+  "blockersBeforeTask236": [
+    "Material authentic MLB executable consuming model-input-v4 plus central registry",
+    "Eligible MLB real-slate replay",
+    "NCAAF exact model_versions, market, risk, and universal official bridge completion",
+    "Managed publish and production schema/trigger verification",
+    "Evaluator and approval remain separate and are not to be performed here"
+  ],
+  "files": {
+    "modified": [
+      ".agents/memory/guarded-serving-cutover-gates.md",
+      "artifacts/admin/src/lib/api.ts",
+      "artifacts/admin/src/pages/Overview.tsx",
+      "artifacts/api-server/src/services/guardedServing/appendOnlyGuards.ts",
+      "artifacts/api-server/src/services/guardedServing/candidateRegistry.ts",
+      "artifacts/api-server/src/services/guardedServing/dryRun.ts",
+      "artifacts/api-server/src/services/guardedServing/productionBoundary.test.ts",
+      "artifacts/api-server/src/services/guardedServing/productionBoundary.ts",
+      "artifacts/api-server/src/services/guardedServing/runtimeStatus.ts",
+      "artifacts/api-server/src/services/guardedServing/startupValidation.ts",
+      "artifacts/api-server/src/services/ncaafV42026FeatureBridge.ts",
+      "lib/api-client-react/src/generated/api.schemas.ts",
+      "lib/api-spec/openapi.yaml",
+      "lib/api-zod/src/generated/api.ts",
+      "lib/api-zod/src/generated/types/index.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeDryRunResult.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeSportStatus.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeSportStatusPublicationStatus.ts",
+      "lib/db/src/schema/guarded-serving.ts"
+    ],
+    "added": [
+      "artifacts/api-server/src/services/guardedServing/executorRegistry.ts",
+      "artifacts/api-server/src/services/guardedServing/ncaafArtifactDescriptor.ts",
+      "artifacts/api-server/src/services/guardedServing/ncaafCandidateExecutor.ts",
+      "artifacts/api-server/src/services/guardedServing/nonPublishingCandidateAdapter.ts",
+      "artifacts/api-server/src/services/guardedServing/task235.test.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeDryRunResultExecution.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeDryRunResultExecutionBridge.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeDryRunResultExecutorHealth.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeSportStatusExecutorHealth.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeSportStatusOfficialBridgeStatus.ts",
+      "lib/api-zod/src/generated/types/modelRuntimeSportStatusSupportedMarkets.ts",
+      "reports/task-235-authentic-candidate-execution.md",
+      "reports/task-235-verification.json",
+      "screenshots/task-235-admin-status.jpg"
+    ],
+    "sourceInputNotImplementationChange": "attached_assets/Pasted--TASK-235-TBM-AUTHENTIC-CANDIDATE-EXECUTION-PRODUCTION-_1788659498448.txt"
+  },
+  "report": {
+    "path": "reports/task-235-authentic-candidate-execution.md",
+    "sha256": "f1b4c6830d4e71bf43cda3618d1015778593464b1bce993bce961f06ab0ee351",
+    "numberedH2SectionCount": 66
+  }
+}

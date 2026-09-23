@@ -1,0 +1,342 @@
+Core Analytics & Predictive Metrics
+==========================================
+
+###############################
+TEAM STRENGTH ENGINE
+###############################
+
+Overall Team Rating
+Attack Rating
+Defense Rating
+Overall Power Rating
+Home Rating
+Away Rating
+Recent Form Rating
+League Position
+Strength of Schedule
+ELO Rating
+SPI Rating (if available)
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+OFFENSIVE ANALYTICS
+###############################
+
+Goals Per Match
+Expected Goals (xG)
+Expected Goals on Target (xGOT)
+Shots Per Match
+Shots on Target
+Big Chances Created
+Shot Conversion %
+Goals Inside Box
+Goals Outside Box
+Touches in Opponent Box
+Progressive Passes
+Progressive Carries
+Possession %
+Final Third Entries
+Cross Accuracy
+Corners Earned
+Set Piece Goals
+Penalty Conversion %
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+DEFENSIVE ANALYTICS
+###############################
+
+Goals Allowed
+Expected Goals Against (xGA)
+Shots Allowed
+Shots on Target Allowed
+Big Chances Allowed
+Clean Sheet %
+Opponent Conversion %
+Defensive Errors Leading to Goals
+Blocks
+Interceptions
+Tackles Won
+Clearances
+Defensive Duels Won
+Aerial Duel %
+Set Piece Goals Allowed
+Corner Defense Rating
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+MATCHUP ENGINE
+###############################
+
+Attack vs Defense Rating
+xG Differential
+xGA Differential
+Possession Advantage
+Transition Advantage
+Counterattack Rating
+Press Resistance
+Passing Advantage
+Set Piece Advantage
+Aerial Advantage
+Corner Differential
+Crossing Matchup
+Finishing Edge
+Keeper Advantage
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+ADVANCED TEAM METRICS
+###############################
+
+Expected Goal Differential (xGD)
+Goal Differential
+Net Rating
+Field Tilt %
+Territorial Advantage
+PPDA (Pressing Intensity)
+High Turnovers Forced
+Build-up Efficiency
+Final Third Pass %
+Open Play Goals
+Set Piece Goals
+Fast Break Goals
+Transition Defense Rating
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+PLAYER IMPACT ENGINE
+###############################
+
+Projected Starting XI
+Confirmed Starting XI
+Player Availability
+Injury Impact Rating
+Suspension Impact
+Star Player Rating
+Player xG
+Player xA
+Goals
+Assists
+Key Passes
+Shot Creating Actions
+Goal Creating Actions
+Touches in Box
+Defensive Contribution
+Minutes Projection
+Recent Minutes
+Rotation Risk
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+GOALKEEPER ENGINE
+###############################
+
+Save Percentage
+Post Shot xG Saved
+Goals Prevented
+Clean Sheet %
+High Claim %
+Penalty Save %
+Distribution Rating
+Cross Claim %
+Long Ball Accuracy
+Keeper Errors
+
+Weight: ★★★★☆
+
+------------------------------------------------
+
+###############################
+RECENT FORM ENGINE
+###############################
+
+Last 5 Matches
+Last 10 Matches
+Goals Scored
+Goals Allowed
+xG
+xGA
+Shots
+Possession
+Corners
+PPDA
+Home Form
+Away Form
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+HOME / AWAY ENGINE
+###############################
+
+Home Win %
+Away Win %
+Home xG
+Away xG
+Home xGA
+Away xGA
+Travel Distance
+Altitude
+Rest Days
+Crowd Strength
+
+Weight: ★★★★☆
+
+------------------------------------------------
+
+###############################
+SCHEDULE ENGINE
+###############################
+
+Days Rest
+Fixture Congestion
+Games in Last 7 Days
+Games in Last 14 Days
+Travel Fatigue
+International Break Effect
+Cup Rotation Risk
+European Competition Fatigue
+
+Weight: ★★★★☆
+
+------------------------------------------------
+
+###############################
+HEAD TO HEAD ENGINE
+###############################
+
+Previous Meetings
+Recent H2H
+Goals
+BTTS %
+Over 2.5 %
+Home H2H
+Away H2H
+
+Weight: ★★★☆☆
+
+------------------------------------------------
+
+###############################
+DISCIPLINE ENGINE
+###############################
+
+Yellow Cards
+Red Cards
+Fouls
+Fouls Drawn
+Discipline Rating
+Suspension Risk
+
+Weight: ★★★☆☆
+
+------------------------------------------------
+
+###############################
+REFEREE ENGINE
+###############################
+
+Average Fouls
+Average Yellow Cards
+Average Red Cards
+Average Penalties Awarded
+Average Corners
+Over %
+Under %
+Home Win %
+Away Win %
+
+Weight: ★★★☆☆
+
+------------------------------------------------
+
+###############################
+WEATHER ENGINE
+###############################
+
+Temperature
+Rain
+Wind
+Humidity
+Field Condition
+Extreme Weather Adjustment
+
+Weight: ★★☆☆☆
+
+------------------------------------------------
+
+###############################
+COACHING ENGINE
+###############################
+
+Manager Rating
+Tactical Style
+Formation Consistency
+Substitution Efficiency
+Home Performance
+Away Performance
+Rotation Frequency
+Big Match Performance
+
+Weight: ★★★☆☆
+
+------------------------------------------------
+
+###############################
+MARKET INTELLIGENCE ENGINE
+###############################
+
+Opening Line
+Current Line
+Line Movement
+Steam Moves
+Reverse Line Movement
+Sharp Money %
+Public Betting %
+Closing Line Value Projection
+Market Timing
+Best Sportsbook
+Worst Sportsbook
+Sharp Confidence
+Sportsbook Consensus
+Market Intelligence Grade
+
+Weight: ★★★★★
+
+------------------------------------------------
+
+###############################
+BETTING MARKET MODULES
+###############################
+
+Moneyline Probability
+Draw Probability
+Asian Handicap Probability
+Over/Under Probability
+BTTS Probability
+First Half Winner
+First Half Over/Under
+Team Total Goals
+Correct Score Probability
+Double Chance Probability
+Draw No Bet Probability

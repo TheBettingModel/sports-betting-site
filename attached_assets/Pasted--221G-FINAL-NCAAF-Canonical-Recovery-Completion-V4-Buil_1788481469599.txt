@@ -1,0 +1,909 @@
+#221G-FINAL — NCAAF Canonical Recovery Completion & V4 Build Readiness
+
+============================================================
+AUTHORITATIVE CURRENT STATE
+============================================================
+
+The latest audit is:
+
+NCAAF V4 — CURRENT STATE & RELEASE ROADMAP
+
+Audit cutoff:
+September 3, 2026 approximately 8:15 PM EDT /
+September 4, 2026 00:15 UTC
+
+#221G STATUS:
+PUBLISHED, BUT NOT PRODUCTION VERIFIED / NOT COMPLETE
+
+Do NOT restart #221G from scratch.
+
+Do NOT redesign the CFBD transport layer.
+
+Do NOT begin #222 yet.
+
+Do NOT modify NFL or any other sport.
+
+============================================================
+CURRENT PRODUCTION STATE
+============================================================
+
+TEAM MAPPING:
+
+- 693 encountered
+- 138 mapped
+- 555 unmapped
+- 0 ambiguous
+- 0 invalid
+- overall mapping: 19.91%
+
+CURRENT FBS:
+
+- 138 encountered
+- 138 mapped
+- 100% FBS mapping
+
+GAME MAPPING:
+
+- 760 considered
+- 100 mapped
+- 1 unmatched
+- 659 invalid
+- 13.16% overall
+
+PLAYER IDENTITIES:
+
+- 30,062 total
+- 30,062 PROVIDER_ONLY
+- 0 mapped
+- 0 ambiguous
+- 0 invalid
+
+CFBD / PRIOR DATA:
+
+- SP+: 139
+- FPI: 138
+- Talent: 138
+- Returning production: 136
+- Coaches: 138
+- Elo: 16
+- SRS: 16
+- Team stats: 892 / 16 teams represented
+- Advanced stats: 16 teams
+- Plays: 12,521 / 71 games
+- Rosters: 30,109
+- Player stats: 30,886 raw
+- Recruiting: 3,987
+- Transfers: 4,470
+- Weather: 9 observations
+
+CANONICAL INTELLIGENCE:
+
+- total snapshots: 1,450
+- v1: 789
+- v2: 661
+- CFBD-enriched v2: 649
+
+READINESS:
+
+- READY: 0
+- PARTIAL: 0
+- BLOCKED: 1,450
+
+V2 PRIMARY BLOCKERS:
+
+- home.teamPerformance:MISSING = 661
+- away.teamPerformance:MISSING = 661
+- home.quarterback:UNSUPPORTED = 661
+- away.quarterback:UNSUPPORTED = 661
+- away.earlySeasonPrior:MISSING = 127
+- home.earlySeasonPrior:MISSING = 12
+
+KNOWN RUNTIME DEFECT:
+
+Legitimate advanced football evidence is being rejected with:
+
+NCAAF intelligence rejects market-shaped key:
+...advanced.payload.defense.pointsPerOpportunity
+
+This appears to be a false-positive market-firewall classification.
+
+FINAL_PREGAME:
+
+- total: 1
+- prospective: 1
+- CFBD-enriched: 1
+
+PROSPECTIVE:
+
+- total assignments: 651
+- LIVE_SHADOW: 650
+- FINAL_PREGAME: 1
+
+PIT:
+
+- 0 detected violations
+
+SCHEDULER:
+
+- DB-backed global lock working
+- duplicate Autoscale prevention working
+- evidence-run finalization still not reliable enough
+- latest useful cycle was partial and approximately 43 minutes
+
+READINESS:
+
+DATA_PIPELINE_READY = FALSE
+V4_BUILD_READY = FALSE
+V4_VALIDATION_READY = FALSE
+FULL_LIVE_PUBLICATION_DATA_READY = FALSE
+
+============================================================
+PRIMARY OBJECTIVE
+============================================================
+
+Finish #221G so that the DATA FOUNDATION is legitimately sufficient to begin #222.
+
+This task has FIVE primary goals:
+
+1. Fix the false-positive market-firewall rejection.
+2. Materialize canonical teamPerformance into V2 snapshots.
+3. Expand historical mapping/training evidence enough for V4 construction.
+4. Make evidence-run finalization reliable.
+5. Produce the final #221G production report and readiness decision.
+
+Do NOT attempt to solve injury/depth/confirmed future QB provider gaps in this task.
+
+============================================================
+PHASE 1 — FIX pointsPerOpportunity FIREWALL FALSE POSITIVE
+============================================================
+
+Investigate the rejection:
+
+...advanced.payload.defense.pointsPerOpportunity
+
+Do NOT weaken the sportsbook/market firewall broadly.
+
+Determine why this football metric is being classified as market-shaped.
+
+The firewall must continue rejecting actual sportsbook/market fields such as:
+
+odds
+price
+line
+spread
+total
+moneyline
+impliedProbability
+book
+sportsbook
+marketPrice
+openingLine
+closingLine
+
+But legitimate football-performance fields must be allowed.
+
+Examples:
+
+pointsPerOpportunity
+pointsPerDrive
+yardsPerPlay
+successRate
+explosiveness
+havoc
+lineYards
+ppa
+
+Only allow fields after confirming their football semantics.
+
+Add regression tests proving:
+
+- pointsPerOpportunity passes
+- legitimate football metrics pass
+- actual sportsbook fields still fail
+- nested market-shaped fields still fail
+
+============================================================
+PHASE 2 — TEAM PERFORMANCE ROOT CAUSE
+============================================================
+
+All V2 snapshots currently report:
+
+home.teamPerformance:MISSING
+away.teamPerformance:MISSING
+
+Trace exactly why.
+
+Do not assume absence of raw data.
+
+Production already has:
+
+- 1,904 team-game performance rows
+- 892 team-stat rows
+- 16 advanced-stat teams
+- game evidence
+- mapped FBS team identities
+
+Determine whether the failure is:
+
+- team ID mismatch
+- game ID mismatch
+- season/week mismatch
+- canonical mapping mismatch
+- timestamp/PIT cutoff mismatch
+- missing join key
+- provider-vs-canonical identity mismatch
+- schema/query mismatch
+- snapshot builder defect
+- evidence not linked to mapped games
+
+Return exact root cause.
+
+============================================================
+PHASE 3 — CANONICAL TEAM PERFORMANCE
+============================================================
+
+Create/repair the canonical NCAAF team-performance layer.
+
+It must support per-team pregame evidence such as legitimate:
+
+previous game performance
+season-to-date offense
+season-to-date defense
+yards/play
+success metrics
+PPA where available
+scoring
+opponent context
+turnovers
+rushing/passing production
+defensive production
+
+Do NOT use market information.
+
+Do NOT use post-kickoff evidence for a pregame snapshot.
+
+============================================================
+PHASE 4 — HISTORICAL GAME MAPPING
+============================================================
+
+Current game mapping:
+
+100 mapped / 760 considered
+
+Most failures come from teams outside the current 138-team comparison universe.
+
+Do NOT try to map every historical FCS/obsolete identity if it is not necessary for initial V4.
+
+Instead, define the minimum historical training universe required.
+
+Preferred priority:
+
+1. current FBS
+2. prior-season FBS
+3. FBS vs FBS
+4. FBS vs FCS only where reliable
+5. exclude unusable historical identities explicitly
+
+Build deterministic historical FBS identity coverage.
+
+============================================================
+PHASE 5 — MULTI-SEASON DATA
+============================================================
+
+Current CFBD normalized data is effectively 2026-only.
+
+That is not enough for V4 training.
+
+Build a bounded PIT-safe multi-season dataset.
+
+Minimum target:
+
+2023
+2024
+2025
+2026 current season
+
+If provider/data coverage supports earlier clean seasons safely, include them.
+
+Do not blindly backfill everything.
+
+Prioritize:
+
+games
+team performance
+team stats
+advanced team stats
+SP+
+Elo/SRS/FPI where legitimate
+talent
+returning production
+recruiting
+coaches
+rosters/player stats
+QB historical state
+
+============================================================
+PHASE 6 — PIT-SAFE HISTORICAL CAPTURE
+============================================================
+
+For every historical feature determine:
+
+what was known before kickoff?
+
+Do not treat retrospective endpoint values as pregame truth.
+
+Classify each feature:
+
+A = verified effective timestamp
+B = defensible chronological
+C = research-only
+D = unsafe
+
+Only A/B may enter walk-forward training unless explicitly approved later.
+
+============================================================
+PHASE 7 — HISTORICAL TEAM PERFORMANCE DATASET
+============================================================
+
+Create a canonical historical team-game training table/view.
+
+For each game/team include:
+
+canonical game ID
+canonical team ID
+opponent
+season
+week
+kickoff
+home/away
+neutral
+pregame cutoff
+
+Only PIT-safe prior evidence.
+
+Do NOT include result-derived features from the game being predicted.
+
+============================================================
+PHASE 8 — QB HISTORICAL FOUNDATION
+============================================================
+
+Current player stats contain legitimate historical-style QB statistics but only current-season coverage.
+
+Build historical QB evidence where possible using:
+
+CFBD player ID
+team
+season
+game
+player stats
+plays/PPA
+rosters
+
+Potential derived evidence:
+
+attempts
+completions
+yards
+YPA
+TD
+INT
+rush attempts
+rush yards
+games played
+prior-game form
+season-to-date form
+continuity
+
+Do NOT infer confirmed upcoming starter.
+
+============================================================
+PHASE 9 — QB OPTIONALITY
+============================================================
+
+Do not make unavailable confirmed starter data an absolute blocker to constructing V4.
+
+Design V4 data readiness so QB features can be:
+
+AVAILABLE
+PARTIAL
+UNKNOWN
+
+The model may later abstain or reduce confidence for games without adequate QB state.
+
+============================================================
+PHASE 10 — EARLY-SEASON PRIOR
+============================================================
+
+Build a canonical early-season prior evidence object.
+
+Potential legitimate components:
+
+SP+
+FPI
+Elo
+prior-year team performance
+talent
+returning production
+recruiting
+coach continuity
+QB continuity
+conference/subdivision
+recent historical strength
+
+Do NOT assign model weights yet.
+
+============================================================
+PHASE 11 — BROADEN ELO/SRS/TEAM STATS COVERAGE
+============================================================
+
+Investigate why Elo, SRS, team stats, and advanced stats currently cover only approximately 16 teams.
+
+Determine whether:
+
+- endpoint parameters are too narrow
+- only current week captured
+- only one conference/team subset is being normalized
+- team IDs are not resolving
+- work budget is truncating
+- filtering is incorrect
+
+Fix legitimate coverage.
+
+============================================================
+PHASE 12 — RETURNING PRODUCTION
+============================================================
+
+Current count:
+
+136 / 138
+
+Identify missing teams.
+
+Do not fabricate values.
+
+Allow explicit MISSING if legitimately unavailable.
+
+============================================================
+PHASE 13 — RECRUITING TEAM LINKAGE
+============================================================
+
+Recruiting exists but only 13 team IDs are normalized.
+
+Fix deterministic team linkage.
+
+Do not name-match players across providers.
+
+============================================================
+PHASE 14 — TRANSFER TEAM LINKAGE
+============================================================
+
+Transfers exist:
+
+4,470 rows
+
+But team linkage is incomplete.
+
+Build safe team-level transfer summaries using explicit provider team identity where available.
+
+Keep transfer evidence research-only if PIT chronology is not sufficiently trustworthy.
+
+============================================================
+PHASE 15 — SNAPSHOT READINESS SEMANTICS
+============================================================
+
+Current system has:
+
+0 READY
+0 PARTIAL
+all BLOCKED
+
+This may be too coarse.
+
+Do not force READY.
+
+But distinguish:
+
+BLOCKED
+PARTIAL
+READY
+
+meaningfully.
+
+Example:
+
+BLOCKED:
+critical required evidence unavailable
+
+PARTIAL:
+core forecast foundation available but optional/supplemental evidence missing
+
+READY:
+all required forecast inputs satisfied
+
+Missing confirmed QB/injuries/depth should not automatically make every historical or research snapshot BLOCKED unless explicitly required by that snapshot contract.
+
+============================================================
+PHASE 16 — SNAPSHOT TEAM PERFORMANCE
+============================================================
+
+Once canonical team performance works, rebuild/continue V2 snapshot creation.
+
+Verify snapshots actually contain:
+
+team performance
+early-season prior
+ratings
+context
+player/QB historical evidence where available
+
+Retain per-domain provenance.
+
+============================================================
+PHASE 17 — EVIDENCE-RUN FINALIZATION
+============================================================
+
+Fix remaining run lifecycle reliability.
+
+Every execution must finalize exactly once as:
+
+COMPLETED
+PARTIAL
+FAILED
+
+No indefinite RUNNING rows.
+
+Implement finalization through failure-safe cleanup.
+
+Verify across multiple consecutive production cycles.
+
+============================================================
+PHASE 18 — CYCLE DURATION
+============================================================
+
+The latest useful cycle took approximately 43 minutes.
+
+That is too long for reliable pregame operation.
+
+Separate:
+
+CRITICAL CAPTURE
+
+from:
+
+HISTORICAL BACKFILL
+
+Critical capture should include:
+
+schedule
+identity
+mappings
+ratings
+team-performance refresh
+upcoming context
+weather
+snapshot generation
+FINAL_PREGAME
+
+Historical backfill should include:
+
+large player-stat loads
+large play-by-play
+roster history
+older seasons
+recruiting history
+transfer history
+
+============================================================
+PHASE 19 — FINAL_PREGAME
+============================================================
+
+FINAL_PREGAME timing is proven.
+
+Do not redesign it.
+
+Preserve:
+
+45-minute window
+strict pre-kickoff cutoff
+no historical backfill
+
+Verify additional prospective assignments as games enter the window.
+
+============================================================
+PHASE 20 — PROSPECTIVE COHORT
+============================================================
+
+Prospective evidence is operating.
+
+Preserve it.
+
+Do not clear or rewrite existing assignments.
+
+============================================================
+PHASE 21 — PIT LINEAGE
+============================================================
+
+Strengthen snapshot-to-domain lineage enough to audit:
+
+future-week rating leakage
+C/D research-only leakage
+provider effective timestamp
+snapshot cutoff
+
+Do not declare production approval ready until these can be verified.
+
+============================================================
+PHASE 22 — DEFINE V4 TRAINING DATASET
+============================================================
+
+Build a formal PIT-safe NCAAF V4 training dataset artifact/table.
+
+One row per historical game.
+
+Potential features grouped by:
+
+TEAM TRUE TALENT
+OFFENSE
+DEFENSE
+QB HISTORICAL
+TALENT
+RETURNING PRODUCTION
+RECRUITING
+COACHING
+MATCHUP
+HOME
+TRAVEL
+WEATHER
+
+Targets:
+
+home points
+away points
+margin
+total
+home win
+
+Do not train the V4 model yet.
+
+============================================================
+PHASE 23 — TRAINING DATASET QUALITY REPORT
+============================================================
+
+Report:
+
+games
+seasons
+weeks
+FBS coverage
+FBS-vs-FBS coverage
+missingness per feature
+team coverage
+QB coverage
+rating coverage
+team-performance coverage
+PIT class coverage
+
+============================================================
+PHASE 24 — MINIMUM V4 BUILD READINESS
+============================================================
+
+V4_BUILD_READY should become TRUE when we have enough legitimate data to construct the independent expected-score challenger.
+
+It does NOT require:
+
+confirmed future starter for every game
+injury feed
+depth charts
+perfect FCS coverage
+perfect transfer history
+
+It DOES require:
+
+canonical teams
+canonical games
+multi-season team performance
+usable offense/defense evidence
+reasonable early-season prior
+PIT-safe training rows
+feature lineage
+historical targets
+enough sample for training/backtesting
+
+============================================================
+PHASE 25 — CURRENT LEGACY MODEL
+============================================================
+
+Do not modify:
+
+tbm-ncaaf-moneyline-v1
+
+Do not activate its publication.
+
+Legacy publication remains disabled.
+
+============================================================
+PHASE 26 — MARKET FIREWALL
+============================================================
+
+Re-test market firewall after the pointsPerOpportunity fix.
+
+The SPORTS forecast feature set must remain market-free.
+
+============================================================
+PHASE 27 — NFL ISOLATION
+============================================================
+
+No NFL changes.
+
+No shared football forecasting state.
+
+============================================================
+PHASE 28 — TESTS
+============================================================
+
+Add regression tests for:
+
+pointsPerOpportunity false positive
+legitimate football metrics
+actual sportsbook field rejection
+team performance canonical joins
+historical FBS identity
+multi-season capture
+PIT cutoffs
+QB historical joins
+early-season prior
+Elo/SRS/team-stat coverage
+recruiting linkage
+transfer linkage
+snapshot PARTIAL semantics
+run finalization
+critical-vs-backfill scheduling
+training dataset generation
+market firewall
+NFL isolation
+
+============================================================
+PHASE 29 — PRODUCTION VERIFICATION
+============================================================
+
+Do not stop at local tests.
+
+Publish the repaired build.
+
+Then audit live production.
+
+============================================================
+REQUIRED PRODUCTION SUCCESS GATES
+============================================================
+
+Before #221G can be closed:
+
+1. pointsPerOpportunity no longer falsely rejected.
+2. Market firewall still rejects sportsbook fields.
+3. Canonical teamPerformance exists in V2.
+4. V2 snapshots persist successfully.
+5. CFBD-enriched snapshots continue.
+6. Historical FBS mapping materially improves.
+7. Multi-season training rows exist.
+8. PIT-safe team-performance evidence exists.
+9. Early-season prior evidence materially improves.
+10. Historical QB evidence exists OR is explicitly optional for initial V4.
+11. Evidence runs finalize reliably across consecutive cycles.
+12. Critical scheduler path no longer waits on large historical normalization.
+13. PIT violations remain zero.
+14. Legacy publication remains disabled.
+15. NFL remains untouched.
+
+============================================================
+REQUIRED READINESS OUTPUT
+============================================================
+
+Return:
+
+DATA_PIPELINE_READY = TRUE / FALSE
+
+V4_BUILD_READY = TRUE / FALSE
+
+V4_VALIDATION_READY = TRUE / FALSE
+
+FULL_LIVE_PUBLICATION_DATA_READY = TRUE / FALSE
+
+These are separate.
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly one:
+
+A. #221G COMPLETE — READY TO BEGIN #222
+
+B. #221G STILL INCOMPLETE — SPECIFIC DATA BLOCKER REMAINS
+
+C. CORE V4 FOUNDATION READY — BEGIN #222 WHILE SUPPLEMENTAL LIVE AVAILABILITY REMAINS OUTSTANDING
+
+============================================================
+REPORT
+============================================================
+
+Create:
+
+reports/ncaaf-canonical-recovery-2026-09-04.md
+
+Include:
+
+1. Executive summary
+2. pointsPerOpportunity root cause
+3. Market-firewall fix
+4. Team-performance root cause
+5. Canonical team-performance implementation
+6. Historical mapping
+7. Multi-season coverage
+8. PIT classification
+9. Historical QB foundation
+10. Early-season prior
+11. Elo/SRS/team-stat coverage
+12. Recruiting linkage
+13. Transfer linkage
+14. V2 snapshot status
+15. READY/PARTIAL/BLOCKED
+16. Evidence-run finalization
+17. Scheduler duration
+18. Critical/backfill split
+19. FINAL_PREGAME
+20. Prospective evidence
+21. PIT audit
+22. V4 training dataset
+23. Training dataset quality
+24. DATA_PIPELINE_READY
+25. V4_BUILD_READY
+26. V4_VALIDATION_READY
+27. FULL_LIVE_PUBLICATION_DATA_READY
+28. Final A/B/C decision
+
+============================================================
+FINAL QUESTIONS
+============================================================
+
+Answer explicitly:
+
+1. Why was pointsPerOpportunity rejected?
+2. Is the false positive fixed?
+3. Is the market firewall still intact?
+4. Why was teamPerformance missing in all V2 snapshots?
+5. Is canonical teamPerformance now present?
+6. How many V2 snapshots now contain teamPerformance?
+7. How many historical FBS teams map?
+8. How many historical FBS games map?
+9. How many seasons are in the training foundation?
+10. How many PIT-safe training games exist?
+11. Is historical QB evidence usable?
+12. Is confirmed pregame starter still unsupported?
+13. Is early-season prior evidence sufficient?
+14. Is SP+ usable?
+15. Is Elo coverage improved?
+16. Is SRS coverage improved?
+17. Is FPI usable?
+18. Is talent usable?
+19. Is returning production usable?
+20. Is recruiting team linkage improved?
+21. Is transfer linkage improved?
+22. Are any snapshots PARTIAL now?
+23. Are any snapshots READY now?
+24. Do evidence runs finalize reliably?
+25. Is critical scheduling separated from historical backfill?
+26. Are FINAL_PREGAME assignments still working?
+27. PIT violations?
+28. DATA_PIPELINE_READY?
+29. V4_BUILD_READY?
+30. V4_VALIDATION_READY?
+31. FULL_LIVE_PUBLICATION_DATA_READY?
+32. Should #222 begin next?
+
+============================================================
+STOP
+============================================================
+
+Do not begin #222 automatically.
+
+Complete this final #221G recovery task, publish it, verify production, return the report, and stop.

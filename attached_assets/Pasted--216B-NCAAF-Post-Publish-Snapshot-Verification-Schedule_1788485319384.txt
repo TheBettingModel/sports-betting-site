@@ -1,0 +1,286 @@
+#216B — NCAAF Post-Publish Snapshot Verification & Scheduler Unblock
+
+AUTHORITATIVE CURRENT STATE:
+
+HAVOC_FIREWALL_FIX = PASS
+MARKET_FIREWALL_INTACT = TRUE
+NCAAF_SNAPSHOT_PATH_HEALTHY = NOT YET PROVEN
+
+Published commit:
+1807d1f3815a55caefe7fa38c359e4c1240edeb1
+
+Current production v2 snapshot count:
+661
+
+Post-publish v2 snapshots:
+0
+
+Reason:
+The startup NCAAF cycle was skipped because another global invocation was considered active.
+
+Do NOT modify:
+- NCAAF model logic
+- NCAAF V4 logic
+- PIT rules
+- market firewall semantics
+- publication rules
+- NFL
+- MLB
+- any other sport
+
+Do NOT begin #222.
+
+============================================================
+OBJECTIVE
+============================================================
+
+Prove the NCAAF snapshot path end-to-end in production after the havoc firewall fix.
+
+This is a narrow operational verification task.
+
+We need to determine whether the blocker is:
+
+1. a genuinely active global NCAAF cycle,
+2. a stale global lease / scheduler lock,
+3. an orphaned evidence run,
+4. overlapping Autoscale worker state,
+5. a scheduler registration/cadence issue,
+6. another runtime-finalization defect.
+
+============================================================
+STEP 1 — INSPECT GLOBAL INVOCATION STATE
+============================================================
+
+Inspect the production global/distributed NCAAF invocation lock.
+
+Report:
+
+- lock/lease identifier
+- current owner if available
+- acquired_at
+- heartbeat_at if applicable
+- expires_at
+- whether owner process is still alive/valid
+- whether the lock is legitimately active
+- whether the lock is stale/orphaned
+
+Do NOT delete a legitimately active lock.
+
+============================================================
+STEP 2 — INSPECT EVIDENCE RUNS
+============================================================
+
+Report current NCAAF evidence-run state:
+
+COMPLETED:
+PARTIAL:
+FAILED:
+RUNNING:
+STALE_RUNNING:
+
+For every RUNNING row report:
+
+- run ID
+- started_at
+- latest heartbeat/update
+- age
+- owning invocation/process if available
+- whether it is active or orphaned
+
+============================================================
+STEP 3 — RECONCILE ONLY STALE STATE
+============================================================
+
+If a lock or run is provably stale:
+
+reconcile it using the existing safe stale-run mechanism.
+
+Do not manually rewrite historical evidence.
+Do not delete legitimate evidence.
+
+If no stale state exists, leave it untouched.
+
+============================================================
+STEP 4 — VERIFY SCHEDULER REGISTRATION
+============================================================
+
+Confirm the dedicated NCAAF scheduler is registered and active.
+
+Report:
+
+- configured cadence
+- last attempted cycle
+- last started cycle
+- last finalized cycle
+- next expected cycle if determinable
+
+============================================================
+STEP 5 — RUN / WAIT FOR ONE LEGITIMATE PRODUCTION CYCLE
+============================================================
+
+Once global state is healthy, allow ONE legitimate production NCAAF cycle to execute.
+
+Prefer the normal production scheduler.
+
+If the repository contains an existing safe admin/internal trigger specifically intended for the NCAAF evidence cycle, it may be used.
+
+Do NOT invent a new bypass.
+Do NOT bypass distributed locking.
+Do NOT run parallel cycles.
+
+============================================================
+STEP 6 — VERIFY POST-PUBLISH SNAPSHOT
+============================================================
+
+After the cycle completes, verify production database counts.
+
+Report:
+
+V2 SNAPSHOTS BEFORE:
+661
+
+V2 SNAPSHOTS AFTER:
+
+NEW V2 SNAPSHOTS:
+
+CFBD-ENRICHED V2 BEFORE:
+[current]
+
+CFBD-ENRICHED V2 AFTER:
+
+NEW CFBD-ENRICHED V2:
+
+READY:
+PARTIAL:
+BLOCKED:
+
+============================================================
+STEP 7 — VERIFY HAVOC FIELD
+============================================================
+
+Inspect at least one newly created snapshot containing:
+
+earlySeasonPrior.payload.defense.havoc.total
+
+Confirm:
+
+- snapshot persisted
+- field is present
+- no market-firewall rejection occurred
+- no sportsbook total field entered the snapshot
+
+============================================================
+STEP 8 — VERIFY MARKET FIREWALL
+============================================================
+
+Reconfirm generic market fields are still rejected:
+
+moneyline
+spread
+sportsbook total
+odds
+price
+book
+sportsbook
+implied probability
+opening line
+closing line
+
+Return:
+
+MARKET_FIREWALL_INTACT = TRUE / FALSE
+
+============================================================
+STEP 9 — RUN FINALIZATION
+============================================================
+
+Verify the new production cycle finalizes as exactly one of:
+
+COMPLETED
+PARTIAL
+FAILED
+
+It must not remain indefinitely RUNNING.
+
+Report cycle:
+
+run ID
+start
+finish
+duration
+status
+snapshot attempted
+snapshot inserted
+snapshot failed
+cohort assignments
+error summary
+
+============================================================
+STEP 10 — DISTRIBUTED LOCK
+============================================================
+
+Confirm:
+
+- only one production instance owned the NCAAF job
+- duplicate Autoscale invocations were safely skipped if present
+- lease was released/finalized correctly
+- no orphaned global lock remained
+
+============================================================
+STEP 11 — FINAL STATUS
+============================================================
+
+Return exactly:
+
+HAVOC_FIREWALL_FIX =
+PASS / FAIL
+
+MARKET_FIREWALL_INTACT =
+TRUE / FALSE
+
+POST_PUBLISH_NCAAF_CYCLE =
+PASS / FAIL
+
+NEW_PRODUCTION_V2_SNAPSHOT =
+TRUE / FALSE
+
+NEW_CFBD_ENRICHED_SNAPSHOT =
+TRUE / FALSE
+
+RUN_FINALIZATION_HEALTHY =
+TRUE / FALSE
+
+GLOBAL_LOCK_HEALTHY =
+TRUE / FALSE
+
+NCAAF_SNAPSHOT_PATH_HEALTHY =
+TRUE / FALSE
+
+============================================================
+FINAL DECISION
+============================================================
+
+Return exactly ONE:
+
+A. #216 FULLY VERIFIED — SNAPSHOT PATH HEALTHY
+
+B. #216 FIX VALID, BUT SCHEDULER/LOCK BLOCKER REMAINS
+
+C. #216 FIX REGRESSED — SNAPSHOT OR FIREWALL FAILURE
+
+If B:
+identify the ONE exact operational blocker.
+
+Do not start another broad NCAAF data task.
+
+============================================================
+STOP
+============================================================
+
+Do not begin #222.
+Do not build V4.
+Do not modify model formulas.
+Do not change publication.
+Do not modify NFL or MLB.
+
+Verify one clean production cycle and stop.

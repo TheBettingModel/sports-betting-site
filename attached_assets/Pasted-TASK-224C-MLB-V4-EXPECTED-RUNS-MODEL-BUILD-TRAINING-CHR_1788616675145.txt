@@ -1,0 +1,1877 @@
+TASK #224C — MLB V4 EXPECTED-RUNS MODEL BUILD, TRAINING & CHRONOLOGICAL VALIDATION
+
+MISSION
+
+Build, train, compare, and chronologically validate the first legitimate MLB V4 expected-runs forecasting model using the point-in-time-safe historical foundation completed in #224B, #224B-1, and #224B-2.
+
+This is the MLB equivalent of the NCAAF V4 model-build/training phase, but MLB must use completely independent baseball-specific intelligence.
+
+DO NOT copy NCAAF model logic, coefficients, priors, calibration, feature weights, thresholds, or scoring assumptions.
+
+Hard principle:
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+==================================================
+AUTHORITATIVE FOUNDATION
+==================================================
+
+#224B-1 final classification:
+
+B — COMPLETION-TIME GATE MOSTLY RESOLVED
+
+Verified chronology:
+
+- 9,393 canonical MLB games
+- 9,390 chronology-safe games
+- 3 quarantined rain-shortened games
+- 9,073 original chronology-safe candidates
+- 2,012 locked 2026 OOS games
+- zero integrity violations
+- deterministic replay
+
+#224B-2 final classification:
+
+B — MLB V4 BASELINE TRAINING FOUNDATION READY
+
+Authoritative artifact:
+
+mlb-historical-2023-2026-pitcher-bullpen-pit-v5
+
+Foundation hash:
+
+cec426281151791d8018ada96990c76c0ba07a585b57333382bc5fbe9489a050
+
+Replay hash:
+
+a1fb96b3ec8abff49a69c56ceefdecef038ccc46aef150779abf19a286e2fe42
+
+Source manifest:
+
+8da8c322a3ec1ac6723d267cc9aa4b922c185654f809f26246934bbefd8a6d98
+
+Foundation results:
+
+- 9,393 games archived
+- 9,390 chronology-safe
+- 3 quarantined
+- 80,298 pitcher appearances
+- 18,780 bullpen outcomes
+- 9,073 offense-plus-bullpen eligible games
+- 0 pitcher/full/enhanced eligible games
+- locked OOS 2,012 safe games
+- 0 OOS expansion
+- production audit PASS
+- independent persisted audit PASS
+- deterministic second build exact checksum match
+- architecture follow-up PASS
+- 479/479 regression tests
+- API build/typechecks PASS
+
+CRITICAL LIMITATION:
+
+Historical actual starting-pitcher identity exists extensively, but legitimate PRE-GAME starter identity is not available at sufficient scale.
+
+Therefore:
+
+ACTUAL STARTER MUST NOT BE USED AS A HISTORICAL PREGAME FEATURE.
+
+The first legitimate MLB V4 baseline must be trained primarily from the PIT-safe offense + bullpen foundation.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Train a baseball-specific model that independently predicts:
+
+home_expected_runs
+
+and
+
+away_expected_runs
+
+BEFORE sportsbook information is introduced.
+
+Those expected-run predictions become the core sports forecast.
+
+From them derive:
+
+projected_total
+projected_margin
+home_win_probability
+away_win_probability
+fair_home_moneyline
+fair_away_moneyline
+
+Only AFTER the sports forecast is frozen may market prices be compared to the forecast.
+
+The architecture must preserve:
+
+SPORTS MODEL
+→
+FAIR PRICE
+→
+MARKET COMPARISON
+→
+BET SELECTION
+
+not:
+
+MARKET
+→
+SPORTS PREDICTION
+
+==================================================
+SECTION 1 — FREEZE FOUNDATION
+==================================================
+
+Before training:
+
+Verify the exact #224B-2 artifact and hashes.
+
+Do not silently rebuild eligibility rules.
+
+Do not expand the training population by weakening PIT standards.
+
+Confirm:
+
+foundation artifact
+foundation hash
+replay hash
+source manifest
+game counts
+quarantines
+locked OOS definition
+
+Create a frozen training-manifest artifact containing exact game IDs used for:
+
+TRAIN
+VALIDATION
+OOS
+
+Persist its hash.
+
+==================================================
+SECTION 2 — PROTECT LOCKED 2026 OOS
+==================================================
+
+The 2,012 locked 2026 OOS games are sacred evaluation evidence.
+
+DO NOT use their outcomes for:
+
+training
+feature selection
+hyperparameter selection
+architecture selection
+coefficient selection
+regularization selection
+calibration fitting
+run-distribution selection
+clamp selection
+prior tuning
+threshold tuning
+
+Do not repeatedly inspect OOS performance while developing challengers.
+
+Model development must use TRAIN + VALIDATION.
+
+The locked OOS cohort should be opened only after the candidate architecture/model selection procedure is frozen.
+
+If some of the 2,012 games cannot support the required baseline feature schema, exclude them deterministically for missing/ineligible evidence and report exactly why.
+
+Do NOT replace excluded OOS games with newer games.
+
+Report:
+
+locked OOS original = 2,012
+OOS model-eligible
+OOS excluded
+exclusion reasons
+new OOS members = 0
+
+==================================================
+SECTION 3 — CHRONOLOGICAL SPLIT
+==================================================
+
+Build a strictly chronological development split.
+
+Do not random-shuffle games.
+
+Preferred conceptual structure:
+
+TRAIN
+→
+VALIDATION
+→
+LOCKED OOS
+
+Determine exact boundaries from the existing foundation and data distribution.
+
+Training must precede validation chronologically.
+
+Validation must precede locked OOS chronologically.
+
+If the pre-existing 2,012 locked OOS definition overlaps a proposed validation period, preserve the existing OOS definition and adjust development splits around it.
+
+Report exact:
+
+start date
+end date
+game count
+
+for every cohort.
+
+==================================================
+SECTION 4 — WALK-FORWARD VALIDATION
+==================================================
+
+In addition to the primary chronological holdout, implement walk-forward validation inside the development population where feasible.
+
+Example concept:
+
+Train early history
+→ validate later window
+
+expand training
+→ validate next window
+
+expand again
+→ validate next window
+
+Do NOT allow later outcomes into earlier folds.
+
+Report stability across:
+
+seasons
+months
+early season
+midseason
+late season
+
+The objective is not merely best aggregate score.
+
+We need a model that behaves consistently through time.
+
+==================================================
+SECTION 5 — TARGETS
+==================================================
+
+Primary regression targets:
+
+HOME_RUNS
+AWAY_RUNS
+
+Derived targets:
+
+TOTAL_RUNS = HOME_RUNS + AWAY_RUNS
+
+RUN_MARGIN = HOME_RUNS - AWAY_RUNS
+
+Winner is derived from actual score.
+
+Do not train directly against sportsbook moneylines.
+
+Do not use closing totals as target labels.
+
+==================================================
+SECTION 6 — BASELINE FEATURE UNIVERSE
+==================================================
+
+Use only features proven PIT-safe in the authoritative foundation.
+
+Primary categories should include legitimate evidence such as:
+
+TEAM OFFENSE
+
+season-to-date offensive state
+rolling offensive performance
+recent scoring
+home/away splits if PIT-safe and adequately sampled
+opponent-independent team offensive indicators already reconstructed safely
+sample sizes
+early-season prior states
+missingness indicators
+
+BULLPEN
+
+season-to-date bullpen quality
+rolling bullpen quality
+bullpen workload
+recent innings
+recent pitches if available
+recent reliever usage
+fatigue state
+availability proxies
+sample sizes
+missingness indicators
+
+CONTEXT
+
+home/away
+season date
+days/rest context if safe
+league run environment
+park context only if already PIT-safe
+other #224B-approved contextual variables
+
+Do not introduce unverified features simply because they seem useful.
+
+==================================================
+SECTION 7 — STARTING PITCHER RESTRICTION
+==================================================
+
+Historical actual starter identity is NOT a valid target-game pregame feature.
+
+Therefore the baseline expected-runs model must not include:
+
+actual starter identity
+actual starter ERA for the target game
+actual target starter pitch count
+actual target starter innings
+actual target starter performance
+any feature that requires hindsight knowledge of who started
+
+Historical pitcher appearance records may be retained for future/prospective enhancement but must not contaminate baseline training.
+
+Explicitly run leakage tests proving this.
+
+==================================================
+SECTION 8 — MODEL FAMILY DISCOVERY
+==================================================
+
+Do not assume the existing shadow V4 formula is the correct architecture.
+
+Evaluate a SMALL, disciplined set of transparent baseline model families suitable for baseball run prediction.
+
+At minimum investigate:
+
+A. Regularized linear expected-runs regression
+
+B. Poisson regression / log-link count model
+
+C. Negative-binomial-style count model if supported and justified by overdispersion
+
+D. A conservative nonlinear challenger only if it can be trained reproducibly and interpreted/audited safely
+
+Examples of acceptable nonlinear candidates might include constrained tree boosting if dependencies already exist and implementation remains deterministic.
+
+Do NOT launch a giant hyperparameter search.
+
+Do NOT optimize hundreds of configurations.
+
+We want robust generalization, not leaderboard overfitting.
+
+==================================================
+SECTION 9 — SIMPLE BASELINES
+==================================================
+
+Every candidate must beat or meaningfully improve on simple baselines.
+
+At minimum compare against:
+
+BASELINE 0:
+league-average expected runs
+
+BASELINE 1:
+home/away league-average expected runs
+
+BASELINE 2:
+simple team offensive rolling/season expectation
+
+CURRENT SHADOW:
+existing tbm-mlb-moneyline-v4 / V4.1 where valid for diagnostic comparison
+
+PRODUCTION V1:
+moneyline probability comparator where outcome mapping is valid
+
+Do not compare incompatible metrics dishonestly.
+
+For expected-run models use run metrics.
+
+For win probabilities use probability metrics.
+
+==================================================
+SECTION 10 — LEAGUE RUN ENVIRONMENT
+==================================================
+
+One known failure of the current shadow V4 is severe low-run compression.
+
+#224A diagnostic replay:
+
+79 games
+
+home run MAE:
+2.840
+
+away run MAE:
+2.412
+
+total MAE:
+4.211
+
+total RMSE:
+5.349
+
+total bias:
+-2.327 runs/game
+
+margin MAE:
+3.451
+
+Brier:
+0.2379
+
+log loss:
+0.6689
+
+accuracy:
+51.9%
+
+ECE:
+0.1863
+
+Brier skill vs market:
+-0.0206
+
+76 / 79 projected totals below 8 runs.
+
+This must remain a frozen comparator.
+
+DO NOT manually patch the old model.
+
+Instead determine whether properly trained expected-run models learn a realistic run environment.
+
+Track:
+
+mean actual home runs
+mean predicted home runs
+
+mean actual away runs
+mean predicted away runs
+
+mean actual total
+mean predicted total
+
+total-run bias
+
+by:
+
+overall
+season
+month
+home/away
+run environment
+
+==================================================
+SECTION 11 — TRAINING ONLY ON SAFE DATA
+==================================================
+
+Every training row must pass the historical PIT audit.
+
+Training pipeline must reject:
+
+quarantined games
+future-information violations
+target-outcome contamination
+market-derived sports features
+invalid chronology
+invalid feature cutoff
+unapproved actual-starter features
+
+Persist rejected-row counts/reasons.
+
+==================================================
+SECTION 12 — FEATURE STANDARDIZATION
+==================================================
+
+For model families requiring scaling:
+
+fit scaling parameters on TRAIN only.
+
+Apply frozen transforms to:
+
+VALIDATION
+OOS
+
+Do not calculate normalization statistics using validation or OOS.
+
+Persist transformation parameters.
+
+==================================================
+SECTION 13 — MISSING DATA
+==================================================
+
+Handle missingness deterministically.
+
+Do not use future information to fill historical gaps.
+
+Possible safe strategies:
+
+training-derived median
+league prior
+explicit missing indicator
+feature exclusion
+
+Any imputation statistic must be fit on training history only.
+
+Do not silently drop large populations without reporting them.
+
+==================================================
+SECTION 14 — EARLY-SEASON BEHAVIOR
+==================================================
+
+Explicitly evaluate early-season games.
+
+MLB data is sparse in April.
+
+The model should use safe prior/shrinkage behavior rather than treating five games as equivalent to 100 games.
+
+Possible legitimate inputs:
+
+prior-season history if PIT-safe
+league-average priors
+sample-size shrinkage
+current-season evidence as it accumulates
+
+Any shrinkage coefficient must be learned/tuned only within development data.
+
+Report early-season performance separately.
+
+==================================================
+SECTION 15 — TEAM IDENTITY / SEASON TRANSITION
+==================================================
+
+Verify team identity across seasons.
+
+Do not allow prior-season information to become current-season information unless explicitly represented as a prior.
+
+Do not accidentally carry current-season final statistics backward.
+
+Handle franchise/team IDs deterministically.
+
+==================================================
+SECTION 16 — HOME-FIELD EFFECT
+==================================================
+
+Allow MLB-specific home-field effects to be learned from training data.
+
+Do not copy home-field values from another sport.
+
+Do not hard-code an arbitrary advantage if the data can estimate it.
+
+Report learned home/away run environment.
+
+==================================================
+SECTION 17 — OFFENSE VS OPPONENT BULLPEN STRUCTURE
+==================================================
+
+The expected-runs architecture should conceptually allow:
+
+Home offense
+vs
+Away bullpen/context
+
+to influence:
+
+home_expected_runs
+
+and:
+
+Away offense
+vs
+Home bullpen/context
+
+to influence:
+
+away_expected_runs
+
+Do not accidentally use a team's own bullpen as a direct measure of its own offense unless the architecture explicitly has a justified interaction.
+
+Document feature directionality.
+
+==================================================
+SECTION 18 — MODEL TRANSPARENCY
+==================================================
+
+For each candidate report:
+
+model family
+features
+parameters
+regularization
+objective
+training rows
+validation rows
+random seed if applicable
+software/dependency version
+artifact hash
+
+For linear/count models report coefficients.
+
+For nonlinear models provide:
+
+feature importance
+configuration
+reproducibility information
+
+No black-box model may be promoted without auditability.
+
+==================================================
+SECTION 19 — EXPECTED-RUN SANITY CHECKS
+==================================================
+
+For every model verify:
+
+expected runs finite
+expected runs nonnegative
+no NaN
+no infinity
+no absurd numerical explosion
+
+Do not arbitrarily clamp predictions merely to make metrics look better.
+
+If a safety bound is operationally required, establish it from baseball/domain logic and validation only, and report unclamped vs bounded performance.
+
+==================================================
+SECTION 20 — EXPECTED-RUN METRICS
+==================================================
+
+For both TRAIN and VALIDATION report:
+
+HOME RUNS:
+MAE
+RMSE
+bias
+
+AWAY RUNS:
+MAE
+RMSE
+bias
+
+TOTAL RUNS:
+MAE
+RMSE
+bias
+
+RUN MARGIN:
+MAE
+RMSE
+bias
+
+Also report:
+
+predicted average home runs
+actual average home runs
+
+predicted average away runs
+actual average away runs
+
+predicted average total
+actual average total
+
+==================================================
+SECTION 21 — RESIDUAL ANALYSIS
+==================================================
+
+Analyze residuals by:
+
+season
+month
+home/away
+favorite/underdog only after market firewall if used diagnostically
+team
+predicted run bucket
+actual run bucket
+high-scoring games
+low-scoring games
+early season
+late season
+
+Market-based residual analysis may be diagnostic AFTER forecast creation only.
+
+It must not affect model training in this task unless explicitly authorized as a later calibration study.
+
+Look for systematic:
+
+underprediction
+overprediction
+run compression
+team bias
+season drift
+
+==================================================
+SECTION 22 — RUN DISTRIBUTION
+==================================================
+
+The model produces expected runs.
+
+We then need a defensible mapping from:
+
+lambda_home
+lambda_away
+
+to game outcome probabilities.
+
+Evaluate appropriate baseball scoring distributions using development data only.
+
+Potential candidates:
+
+independent Poisson
+overdispersed count model
+empirical residual simulation
+other transparent validated approach
+
+Do not assume independent Poisson is correct merely because it is convenient.
+
+Compare probability calibration on validation.
+
+==================================================
+SECTION 23 — MONEYLINE PROBABILITY
+==================================================
+
+Derive:
+
+home_win_probability
+away_win_probability
+
+from the frozen expected-run forecast/distribution.
+
+Account correctly for MLB games requiring a winner.
+
+No draw probability should remain in full-game MLB moneyline output.
+
+Require:
+
+P(home win) + P(away win) = 1
+
+within numerical tolerance.
+
+Do not use sportsbook implied probability to construct model probability.
+
+==================================================
+SECTION 24 — PROBABILITY METRICS
+==================================================
+
+On validation evaluate:
+
+Brier score
+log loss
+accuracy
+calibration
+ECE
+reliability by probability bucket
+
+Suggested buckets:
+
+50–55
+55–60
+60–65
+65–70
+70–75
+75+
+
+Use sufficient sample-size warnings.
+
+Do not celebrate accuracy alone.
+
+==================================================
+SECTION 25 — CALIBRATION
+==================================================
+
+If raw model-derived win probabilities require calibration, fit calibration ONLY on appropriate development data.
+
+Potential transparent methods:
+
+identity / no calibration
+Platt-style logistic calibration
+isotonic only if sample size and stability justify it
+
+Do not use OOS.
+
+Do not calibrate to sportsbook probability.
+
+Calibration target is actual game outcome.
+
+Compare calibrated and uncalibrated validation performance.
+
+Prefer simpler calibration if improvement is marginal.
+
+==================================================
+SECTION 26 — FAIR MONEYLINE
+==================================================
+
+Convert frozen model probability to fair American odds.
+
+For p > 0.5:
+
+fair_price = -100 * p / (1-p)
+
+For p < 0.5:
+
+fair_price = 100 * (1-p) / p
+
+Handle p = 0.5 as +100.
+
+Persist sufficient precision internally.
+
+Do not round before downstream calculations.
+
+==================================================
+SECTION 27 — MARKET FIREWALL
+==================================================
+
+The sports model must be completely independent of sportsbook inputs.
+
+Forbidden forecast features include:
+
+moneyline
+spread/run line
+total
+opening odds
+closing odds
+implied probability
+consensus
+sharp book
+Pinnacle
+line movement
+reverse line movement
+CLV
+market edge
+market timing
+
+After the forecast is frozen, market information may be used for diagnostic comparison.
+
+Architecture must explicitly demonstrate:
+
+FEATURES
+→
+EXPECTED RUNS
+→
+WIN PROBABILITY
+→
+FAIR PRICE
+
+then separately:
+
+FAIR PRICE
++
+SPORTSBOOK PRICE
+→
+EDGE / EV / BET DECISION
+
+==================================================
+SECTION 28 — MARKET DIAGNOSTIC COMPARISON
+==================================================
+
+After candidate forecasts are frozen, validation market data may be used diagnostically where PIT-safe.
+
+Compare model probability to no-vig market probability.
+
+Possible diagnostics:
+
+Brier vs market
+log loss vs market
+calibration vs market
+model disagreement
+eventual CLV where available
+
+Do NOT tune the sports forecast to maximize sportsbook disagreement.
+
+Market is comparator, not teacher.
+
+==================================================
+SECTION 29 — CURRENT V1 COMPARISON
+==================================================
+
+Production champion remains:
+
+tbm-mlb-moneyline-v1
+
+Do not modify it.
+
+Where matched historical evidence permits, compare V4 candidate moneyline probabilities against V1.
+
+Report:
+
+matched games
+Brier
+log loss
+accuracy
+calibration
+
+If historical V1 forecasts were not immutably captured PIT, do not recreate them with current code and pretend they are historical predictions.
+
+Use only legitimate comparator evidence.
+
+==================================================
+SECTION 30 — CURRENT V4/V4.1 COMPARISON
+==================================================
+
+Keep existing shadow:
+
+tbm-mlb-moneyline-v4
+tbm-mlb-moneyline-v4-1
+
+unchanged.
+
+Use their existing diagnostic evidence as a frozen comparator where appropriate.
+
+The new trained candidate should receive a NEW model/version identity.
+
+Do not overwrite old V4 artifacts.
+
+==================================================
+SECTION 31 — CANDIDATE NAMING
+==================================================
+
+Create explicit candidate IDs.
+
+Example structure:
+
+tbm-mlb-v4-expected-runs-baseline-linear
+tbm-mlb-v4-expected-runs-poisson
+tbm-mlb-v4-expected-runs-nb
+
+Final selected candidate receives an immutable version identifier.
+
+Persist:
+
+model_id
+version
+training_manifest_hash
+feature_schema_hash
+parameter_hash
+calibration_hash
+distribution_hash
+
+==================================================
+SECTION 32 — MODEL SELECTION RULE
+==================================================
+
+Freeze model-selection criteria BEFORE opening locked OOS.
+
+Selection should prioritize:
+
+1. PIT integrity
+2. validation expected-run accuracy
+3. low systematic run bias
+4. probability Brier
+5. probability log loss
+6. calibration
+7. temporal stability
+8. simplicity
+9. interpretability
+
+Do NOT select purely on ROI.
+
+Do NOT select purely on accuracy.
+
+Do NOT select because it produces more bets.
+
+Document the selection rule.
+
+==================================================
+SECTION 33 — CHALLENGER ROBUSTNESS
+==================================================
+
+A challenger should not win because of one narrow validation window.
+
+Require reasonable behavior across:
+
+multiple chronological folds
+multiple seasons
+early/late season
+different run environments
+
+If two models are close, prefer the simpler/more stable model.
+
+==================================================
+SECTION 34 — LOCK MODEL BEFORE OOS
+==================================================
+
+Before evaluating locked OOS:
+
+Freeze:
+
+model family
+feature set
+coefficients/parameters
+transforms
+imputation
+calibration
+distribution mapping
+model version
+all hashes
+
+Create a pre-OOS lock artifact.
+
+After this point:
+
+NO tuning based on OOS.
+
+==================================================
+SECTION 35 — OPEN LOCKED OOS ONCE
+==================================================
+
+After candidate selection is completely frozen, evaluate the selected model on the locked 2026 OOS cohort exactly once for this task.
+
+Report all metrics honestly.
+
+Do not change the model afterward.
+
+If OOS reveals failure:
+
+the model FAILS promotion.
+
+Do not repair it using the same OOS outcomes.
+
+Any future challenger must be a new version with a new untouched prospective/OOS evaluation plan.
+
+==================================================
+SECTION 36 — LOCKED OOS EXPECTED-RUN METRICS
+==================================================
+
+Report:
+
+eligible OOS games
+
+home run:
+MAE
+RMSE
+bias
+
+away run:
+MAE
+RMSE
+bias
+
+total:
+MAE
+RMSE
+bias
+
+margin:
+MAE
+RMSE
+bias
+
+predicted average total
+actual average total
+
+Also report by month where sample sizes permit.
+
+==================================================
+SECTION 37 — LOCKED OOS PROBABILITY METRICS
+==================================================
+
+Report:
+
+Brier
+log loss
+accuracy
+ECE
+calibration buckets
+
+Also compare against:
+
+naive baseline
+available legitimate V1 comparator
+available market no-vig probability
+
+Do not require beating market on every metric to be useful.
+
+But major negative skill must be treated seriously.
+
+==================================================
+SECTION 38 — OOS FAILURE CONDITIONS
+==================================================
+
+Flag failure if evidence shows issues such as:
+
+severe run bias
+probability miscalibration
+negative skill vs simple baselines
+unstable temporal behavior
+numerical pathologies
+feature leakage
+unexpected dependence on missingness
+material train/validation/OOS collapse
+
+Do not invent arbitrary pass thresholds after seeing results.
+
+Use predeclared criteria.
+
+==================================================
+SECTION 39 — NO ROI-DRIVEN TRAINING
+==================================================
+
+This is crucial.
+
+Do not train/select V4 by historical betting ROI.
+
+ROI is noisy and highly dependent on market price/selection thresholds.
+
+Sports forecast selection must prioritize predictive quality and calibration.
+
+Bet-selection optimization happens downstream later.
+
+You may report diagnostic ROI only if based on legitimate PIT market snapshots and only after model selection is frozen.
+
+It cannot determine the sports model winner.
+
+==================================================
+SECTION 40 — PROJECTED SCORE CONTRACT
+==================================================
+
+The selected model must expose internally:
+
+home_expected_runs_exact
+away_expected_runs_exact
+projected_total_exact
+projected_margin_exact
+
+Example:
+
+home_expected_runs_exact = 4.38
+away_expected_runs_exact = 2.21
+
+Future subscriber UI may display:
+
+ATL 4 — PHI 2
+
+Do not round stored forecasts.
+
+Do not modify UI during #224C.
+
+==================================================
+SECTION 41 — FORECAST IMMUTABILITY
+==================================================
+
+Historical model predictions used for evaluation must be immutable/versioned.
+
+Persist at minimum:
+
+game_id
+model_id
+model_version
+feature_snapshot_hash
+forecast_generated_at
+forecast_cutoff
+home_expected_runs
+away_expected_runs
+home_win_probability
+away_win_probability
+fair_home_price
+fair_away_price
+calibration_version
+distribution_version
+training_manifest_hash
+parameter_hash
+
+No silent forecast rewriting.
+
+==================================================
+SECTION 42 — FUTURE LIVE STARTER ENHANCEMENT
+==================================================
+
+The baseline model currently lacks legitimate historical pregame starter identity.
+
+Do NOT hide this limitation.
+
+Design the model architecture so a future prospective starter module can be layered in cleanly.
+
+Potential future structure:
+
+BASE TEAM EXPECTED RUNS
+
+adjusted by
+
+CONFIRMED STARTER MODULE
+
+once validated prospective evidence exists.
+
+But #224C must NOT invent a starter adjustment from hindsight.
+
+Do not block baseline training merely because the future starter module is not yet ready.
+
+==================================================
+SECTION 43 — LIVE-FORWARD EVIDENCE DESIGN
+==================================================
+
+Prepare, but do not deploy, a prospective evidence contract for future starter enhancement.
+
+For each future MLB game we eventually want to capture before first pitch:
+
+projected starter
+confirmed starter
+starter confirmation timestamp
+starter rolling PIT state
+starter rest
+starter workload
+lineup status
+feature cutoff
+
+This prospective dataset can later support V4.1/V4.2 starter enhancement.
+
+Do not train that enhancement in this task.
+
+==================================================
+SECTION 44 — BET-SELECTION MODEL REMAINS SEPARATE
+==================================================
+
+Do NOT redesign:
+
+edge thresholds
+unit sizing
+recommendation tiers
+CLV filters
+sharp-market logic
+line shopping
+publication thresholds
+six-pick cap
+Play of the Day ranking
+
+Those belong downstream.
+
+#224C builds the SPORTS FORECAST.
+
+==================================================
+SECTION 45 — GLOBAL SIX-PICK CAP
+==================================================
+
+Do not modify it.
+
+Known architectural concern remains:
+
+One sport can potentially consume shared publication capacity.
+
+Future desired architecture:
+
+each sport independently determines qualifying plays
+
+then
+
+cross-sport ranking may select products such as Play of the Day.
+
+Not part of #224C.
+
+==================================================
+SECTION 46 — PRODUCTION PROTECTION
+==================================================
+
+Do NOT modify:
+
+tbm-mlb-moneyline-v1 production behavior
+current MLB publication
+current MLB recommendations
+current MLB card
+current analytics UI
+NCAAF V4
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+New MLB V4 must remain:
+
+SHADOW / RESEARCH
+
+unless a later task explicitly promotes it.
+
+==================================================
+SECTION 47 — CROSS-SPORT REGRESSION
+==================================================
+
+Confirm zero forecasting changes in:
+
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+MLB model code must remain sport-specific.
+
+Shared utilities may be used only where they do not transfer sports intelligence.
+
+==================================================
+SECTION 48 — SECURITY / REPLIT BLOCKER
+==================================================
+
+The protected contaminated Replit Git ref remains a separate repository-level deployment blocker unless owner provides confirmation that Replit Support removed it.
+
+Do NOT:
+
+delete refs
+force push
+rewrite Git history
+modify Apple credentials
+modify EAS credentials
+deploy
+push
+
+#224C is development/research only.
+
+==================================================
+SECTION 49 — REPRODUCIBILITY
+==================================================
+
+Training must be deterministic where technically possible.
+
+Freeze:
+
+random seeds
+data manifests
+feature schema
+software versions
+training config
+model parameters
+calibration
+distribution mapping
+
+Train/rebuild selected model at least twice.
+
+Require identical or numerically deterministic outputs within documented tolerance.
+
+Report:
+
+training artifact hash
+parameter hash
+feature schema hash
+forecast hash
+rerun hash
+mismatch count
+
+==================================================
+SECTION 50 — TEST REQUIREMENTS
+==================================================
+
+Add focused tests for:
+
+training-manifest integrity
+chronological split
+OOS exclusion
+feature leakage
+market firewall
+actual-starter exclusion
+target isolation
+imputation fit only on training
+scaler fit only on training
+expected-run validity
+probability sum
+fair-odds conversion
+forecast immutability
+model serialization
+deterministic inference
+cross-sport isolation
+
+Run relevant existing regressions.
+
+Any PIT or market leakage failure is a HARD FAILURE.
+
+==================================================
+SECTION 51 — BUILD / REGRESSION
+==================================================
+
+Run:
+
+focused MLB model tests
+historical PIT tests
+chronology tests
+database tests
+API tests
+typechecks
+API production build
+signing credential scan
+diff validation
+
+Report exact commands and results.
+
+Do not deploy.
+
+Do not push.
+
+==================================================
+SECTION 52 — MODEL APPROVAL STATE
+==================================================
+
+Even if #224C performs well, do NOT automatically mark the model PRODUCTION_APPROVED.
+
+Allowed post-#224C states:
+
+UNVALIDATED
+SHADOW
+PROVISIONAL
+
+Production approval requires later promotion/live verification.
+
+Model maturity should remain appropriately conservative.
+
+Do not conflate:
+
+good historical OOS performance
+
+with:
+
+production readiness.
+
+==================================================
+SECTION 53 — FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — MLB V4 TRAINED CHALLENGER READY FOR PROMOTION VALIDATION
+
+A frozen expected-runs challenger has strong enough chronological validation and locked OOS evidence to proceed to #224D.
+
+B — MLB V4 TRAINED CHALLENGER PROVISIONAL
+
+A legitimate challenger exists and shows useful predictive performance, but important weaknesses require controlled shadow/prospective validation before promotion consideration.
+
+C — MLB V4 TRAINED BUT NOT COMPETITIVE
+
+Training is legitimate, but predictive evidence does not justify moving toward production.
+
+D — MLB V4 TRAINING INVALID
+
+Leakage, split, data, reproducibility, or other integrity problems invalidate the training experiment.
+
+Do NOT choose A merely because training completed.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+#224C must answer:
+
+1. Can the 9,073-game offense + bullpen foundation support a legitimate expected-runs model?
+
+2. Which transparent model family performs best chronologically?
+
+3. What is the true expected-run accuracy?
+
+4. Has the old -2.327 runs/game compression failure been materially resolved without manual patching?
+
+5. Are home and away run predictions approximately unbiased?
+
+6. Can expected runs produce useful moneyline probabilities?
+
+7. Are probabilities calibrated?
+
+8. Does performance remain stable across chronological folds?
+
+9. Does the selected model survive the untouched locked 2026 OOS evaluation?
+
+10. Does it improve on simple baselines?
+
+11. How does it compare with legitimate V1/shadow/market evidence?
+
+12. Is sportsbook leakage exactly zero?
+
+13. Is actual-starter hindsight leakage exactly zero?
+
+14. Is the model reproducible?
+
+15. Is it ready for #224D promotion validation?
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #224C — MLB V4 EXPECTED-RUNS MODEL BUILD, TRAINING & CHRONOLOGICAL VALIDATION REPORT
+
+## 1. EXECUTIVE SUMMARY
+
+Classification:
+Selected model:
+Model version:
+Training games:
+Validation games:
+Locked OOS eligible:
+Feature count:
+PIT violations:
+Market leakage:
+Actual-starter leakage:
+
+## 2. FOUNDATION VERIFICATION
+
+Artifact:
+Foundation hash:
+Replay hash:
+Source manifest:
+Training manifest hash:
+
+## 3. CHRONOLOGICAL SPLITS
+
+TRAIN:
+dates
+games
+
+VALIDATION:
+dates
+games
+
+LOCKED OOS:
+dates
+original games
+eligible games
+excluded games
+
+## 4. FEATURE SCHEMA
+
+List exact features used.
+
+Identify:
+
+offense
+bullpen
+context
+priors
+missingness
+
+Confirm actual starter excluded.
+
+## 5. MODEL CANDIDATES
+
+For each:
+
+model ID
+family
+parameters
+training rows
+validation metrics
+artifact hash
+
+## 6. SIMPLE BASELINES
+
+League average:
+Home/away average:
+Offense baseline:
+Current shadow comparator:
+
+## 7. WALK-FORWARD RESULTS
+
+Fold 1:
+Fold 2:
+Fold 3:
+etc.
+
+Report run + probability metrics.
+
+## 8. SELECTED MODEL
+
+Why selected:
+Model family:
+Parameters:
+Feature count:
+Training configuration:
+Parameter hash:
+
+## 9. VALIDATION EXPECTED-RUN PERFORMANCE
+
+Home:
+MAE
+RMSE
+bias
+
+Away:
+MAE
+RMSE
+bias
+
+Total:
+MAE
+RMSE
+bias
+
+Margin:
+MAE
+RMSE
+bias
+
+Predicted average total:
+Actual average total:
+
+## 10. OLD V4 LOW-RUN FAILURE COMPARISON
+
+Old diagnostic total bias:
+-2.327
+
+New validation total bias:
+
+Old 76/79 totals below 8:
+New equivalent diagnostic behavior:
+
+Explain whether run compression was materially resolved.
+
+## 11. PROBABILITY / DISTRIBUTION MODEL
+
+Distribution:
+Calibration:
+Home/away probability sum validation:
+
+## 12. VALIDATION PROBABILITY PERFORMANCE
+
+Brier:
+Log loss:
+Accuracy:
+ECE:
+
+Calibration buckets:
+
+## 13. MARKET DIAGNOSTIC
+
+Matched games:
+Model Brier:
+Market Brier:
+Model log loss:
+Market log loss:
+
+Diagnostic only.
+
+Confirm no market training.
+
+## 14. V1 / OLD V4 COMPARISON
+
+Use only legitimate immutable comparator evidence.
+
+## 15. PRE-OOS MODEL LOCK
+
+Model ID:
+Version:
+Feature schema hash:
+Parameter hash:
+Calibration hash:
+Distribution hash:
+Forecast hash:
+Lock timestamp/artifact:
+
+Confirm frozen before OOS.
+
+## 16. LOCKED OOS EXPECTED-RUN RESULTS
+
+Games:
+
+Home MAE:
+Home RMSE:
+Home bias:
+
+Away MAE:
+Away RMSE:
+Away bias:
+
+Total MAE:
+Total RMSE:
+Total bias:
+
+Margin MAE:
+Margin RMSE:
+Margin bias:
+
+Predicted avg total:
+Actual avg total:
+
+## 17. LOCKED OOS PROBABILITY RESULTS
+
+Brier:
+Log loss:
+Accuracy:
+ECE:
+
+Calibration buckets:
+
+## 18. OOS BASELINE COMPARISON
+
+Naive:
+V1 if valid:
+Market if valid:
+Selected V4:
+
+## 19. TEMPORAL STABILITY
+
+By season/month/fold.
+
+Identify drift.
+
+## 20. RESIDUAL ANALYSIS
+
+Major biases:
+High-score behavior:
+Low-score behavior:
+Early-season behavior:
+Team-level anomalies:
+
+## 21. STARTER LIMITATION
+
+Confirmed historical pregame starter feature count:
+
+0 unless new legitimate provenance was discovered independently.
+
+Explain baseline limitation.
+
+Describe future prospective starter enhancement contract.
+
+## 22. PROJECTED SCORE CONTRACT
+
+Exact stored fields:
+
+home_expected_runs_exact
+away_expected_runs_exact
+projected_total_exact
+projected_margin_exact
+
+Example serialization using REAL model output from a non-sensitive eligible evaluation game.
+
+Do not modify UI.
+
+## 23. MARKET FIREWALL
+
+PASS / FAIL
+
+Market-derived forecast features:
+Must be 0.
+
+## 24. PIT / LEAKAGE AUDIT
+
+Future information:
+Target outcome:
+Actual starter:
+OOS contamination:
+Market leakage:
+
+Target all 0.
+
+## 25. REPRODUCIBILITY
+
+Training artifact hash:
+Feature schema hash:
+Parameter hash:
+Calibration hash:
+Distribution hash:
+Forecast hash:
+Second-run hash:
+Mismatch count:
+
+## 26. TEST / BUILD RESULTS
+
+Exact commands and results.
+
+## 27. CROSS-SPORT REGRESSION
+
+NCAAF unchanged:
+NFL unchanged:
+NBA unchanged:
+WNBA unchanged:
+NHL unchanged:
+Soccer unchanged:
+UFC unchanged:
+
+## 28. PRODUCTION STATE
+
+MLB V1 unchanged:
+Old V4/V4.1 unchanged:
+New V4 challenger state:
+Publication unchanged:
+UI unchanged:
+Six-pick cap unchanged:
+Deployment: NOT RUN
+Push: NOT RUN
+
+## 29. RISKS / LIMITATIONS
+
+CRITICAL
+HIGH
+MEDIUM
+LOW
+
+## 30. FINAL CLASSIFICATION
+
+Return exactly one:
+
+A — MLB V4 TRAINED CHALLENGER READY FOR PROMOTION VALIDATION
+
+B — MLB V4 TRAINED CHALLENGER PROVISIONAL
+
+C — MLB V4 TRAINED BUT NOT COMPETITIVE
+
+D — MLB V4 TRAINING INVALID
+
+Explain the evidence.
+
+## 31. NEXT RECOMMENDED TASK
+
+If A:
+
+Recommend:
+
+#224D — MLB V4 PROMOTION VALIDATION & LIVE SHADOW INTEGRATION
+
+Do NOT execute it.
+
+If B:
+
+Recommend the shortest controlled prospective/shadow validation necessary.
+
+Do NOT retune against locked OOS.
+
+If C:
+
+Explain what new evidence or architecture would be required for a NEW challenger.
+
+Do NOT repair the same model against OOS.
+
+If D:
+
+Stop and identify the integrity failure.
+
+==================================================
+HARD STOP
+==================================================
+
+After the report:
+
+STOP.
+
+DO NOT begin #224D.
+
+DO NOT retune the selected model after locked OOS.
+
+DO NOT create another challenger based on OOS results.
+
+DO NOT modify production MLB V1.
+
+DO NOT promote MLB V4.
+
+DO NOT change MLB publication.
+
+DO NOT change betting thresholds.
+
+DO NOT change unit sizing.
+
+DO NOT change the six-pick cap.
+
+DO NOT update MLB subscriber analytics/UI yet.
+
+DO NOT publish projected scores yet.
+
+DO NOT modify NCAAF.
+
+DO NOT start NFL V4.
+
+DO NOT deploy.
+
+DO NOT push.
+
+DO NOT manipulate Git history.
+
+DO NOT touch Apple/EAS credentials.
+
+Return the complete #224C report and wait for owner review.

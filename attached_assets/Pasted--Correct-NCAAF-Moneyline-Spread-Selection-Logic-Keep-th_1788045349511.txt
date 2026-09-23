@@ -1,0 +1,110 @@
+# Correct NCAAF Moneyline + Spread Selection Logic
+
+Keep the existing NCAAF moneyline model as the production baseline while the NCAAF spread model remains in shadow validation.
+
+However, do not design the permanent system as “moneyline first and spread only if moneyline fails.”
+
+For every eligible NCAAF game, always independently generate:
+
+1. Moneyline Candidate
+2. Spread Candidate
+
+The moneyline candidate must retain its existing probability, fair price, no-vig probability, edge, expected value, confidence, recommendation, units, safeguards, and historical behavior.
+
+The spread candidate must independently contain:
+
+* Selected team
+* Exact sportsbook spread
+* Exact sportsbook price
+* Opposing line and price
+* Model fair spread
+* Model cover probability at the exact line
+* No-vig market cover probability
+* Model edge
+* Expected value
+* Push probability where applicable
+* Prediction uncertainty
+* Data-quality score
+* Confidence
+* Recommendation
+* Units
+* Sportsbook
+* Timestamp
+* Opening line
+* Current line
+* Closing line once available
+* Spread CLV
+* Model version
+* Shadow/production status
+
+During shadow mode:
+
+* Generate the spread candidate for every supported game.
+* Permanently store the prediction.
+* Grade it after the game.
+* Track Brier score, Brier Skill Score, log loss, calibration, ROI, units, CLV, drawdown, ATS performance, and segmented performance.
+* Do not allow the spread to replace the official moneyline selection.
+* Do not include shadow spread results in official published records.
+* Do not alter existing moneyline recommendations or historical predictions.
+* Preserve all existing NCAAF Neutral/zero-unit protections.
+
+The internal analytics/admin system must show the spread candidate even while it is in shadow mode so we can determine what the spread model predicted and how it performed.
+
+Do not hide whether the spread was evaluated.
+
+Display internally:
+
+Moneyline Candidate
+vs.
+Spread Candidate
+vs.
+Official Selected Market
+
+If the spread model has not been production-approved, the official selection remains the existing qualified moneyline candidate.
+
+Once the NCAAF spread model passes its independent validation gates, remove automatic moneyline priority.
+
+At that point the workflow becomes:
+
+Moneyline Candidate
++
+Spread Candidate
+→ Independently validate both
+→ Compare calibrated expected value, probability quality, uncertainty, price quality, CLV history, market quality, data quality, and risk
+→ Select the strongest risk-adjusted market
+→ Publish one primary official market per game
+
+Therefore, once both markets are validated, a qualifying moneyline must NOT automatically prevent a superior spread from becoming the official selection.
+
+Example:
+
+Moneyline:
+Model probability 58%
+EV +3.2%
+Confidence 72
+
+Spread:
+Team -2.5 -110
+Cover probability 56.8%
+EV +8.4%
+Confidence 77
+
+If both models are production-approved and the spread has the stronger validated risk-adjusted value, the spread should become the official selection.
+
+The system should not favor moneyline simply because it was evaluated first.
+
+The permanent objective is:
+
+**Choose the best validated betting market for the game, not the first qualifying betting market.**
+
+Until spread validation is complete:
+
+**Moneyline = Production**
+
+**Spread = Shadow Challenger**
+
+After spread validation:
+
+**Moneyline vs Spread = Market Competition**
+
+and the strongest validated risk-adjusted candidate becomes the official play.

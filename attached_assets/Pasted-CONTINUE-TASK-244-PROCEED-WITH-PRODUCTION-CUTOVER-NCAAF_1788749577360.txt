@@ -1,0 +1,146 @@
+CONTINUE TASK #244 — PROCEED WITH PRODUCTION CUTOVER; NCAAF LIVE PROOF BECOMES A SPORT-SPECIFIC PENDING VALIDATION GATE
+
+Continue Task #244 immediately.
+
+IMPORTANT CHANGE TO THE PREVIOUS HARD-GATE INTERPRETATION:
+
+The NCAAF adapter implementation has now been successfully completed and verified.
+
+The only remaining NCAAF issue is that no legitimate current-day PRE-KICKOFF event was available at verification time with sufficient pregame evidence.
+
+This is a timing/evidence-availability condition, NOT a platform implementation failure.
+
+DO NOT fabricate retrospective NCAAF forecasts.
+DO NOT weaken PIT rules.
+DO NOT process tomorrow's slate.
+DO NOT use legacy NCAAF fallback.
+
+However:
+
+DO NOT HOLD THE ENTIRE TBM V4 PRODUCTION CUTOVER FOR THIS SPORT-SPECIFIC PROSPECTIVE PROOF.
+
+Proceed with the remaining Task #244 production integration and deployment now.
+
+NCAAF should remain fail-closed whenever legitimate pregame evidence is unavailable:
+
+V4_VALIDATING
+NOT_PUBLICATION_ELIGIBLE
+NO_FORECAST when evidence is insufficient
+NO LEGACY FALLBACK
+
+The completed NCAAF adapter should remain deployed so that the next legitimate current-day pregame evidence cycle can naturally generate and persist forecasts.
+
+When a future NCAAF current-day pregame event becomes available, the production pipeline should:
+
+1. discover the event;
+2. capture PIT-safe pregame evidence;
+3. execute the existing frozen NCAAF V4;
+4. persist the immutable forecast;
+5. verify exact artifact/config/parameter identity;
+6. verify evidence_time <= cutoff <= prediction_time < event_start;
+7. expose the legitimate projection as V4_VALIDATING;
+8. keep it NOT_PUBLICATION_ELIGIBLE;
+9. grade it after completion without mutating the forecast.
+
+That future verification is a SPORT-SPECIFIC prospective validation item and does not block the rest of the platform from going live.
+
+NOW CONTINUE THE REMAINDER OF TASK #244.
+
+Proceed through:
+
+- final shared V4 registry verification;
+- MLB V4 production integration;
+- exact NFL #243B V4 production integration;
+- NBA V4 production integration;
+- WNBA V4 production integration;
+- NHL V4 production integration;
+- NCAAMB V4 production integration;
+- Soccer V4 production integration;
+- deploy the completed NCAAF adapter in its fail-closed validating state;
+- UFC remains V4 IN DEVELOPMENT / NO_FORECAST;
+- retire replaced legacy current forecasting;
+- verify NO V1/V2/V3 fallback;
+- finish public full-slate Model Boards;
+- finish Model Analytics;
+- preserve separate Betting Analytics;
+- preserve Top Picks;
+- preserve Play of the Day;
+- preserve Units / Record / ROI;
+- preserve #238A;
+- preserve immutable forecast architecture;
+- refresh/verify clean source;
+- establish/push clean GitHub source if authorized;
+- verify production database recovery;
+- apply safe production migrations;
+- deploy cloud API/model server;
+- establish ONE authoritative external scheduler;
+- eliminate duplicate Replit/in-process scheduler ownership;
+- deploy/cut over Vercel frontend;
+- verify frontend uses the new cloud API;
+- preserve mobile API compatibility and startup fix;
+- verify the currently released app against the new API;
+- remove Replit as active production runtime dependency when safe;
+- run complete production smoke tests;
+- verify production URLs;
+- complete Task #244 report.
+
+CRITICAL PRODUCT RULE:
+
+One sport returning NO_FORECAST must NEVER prevent other healthy sports from operating.
+
+NCAAF insufficient evidence must not blank or block:
+
+MLB
+NFL
+NBA
+WNBA
+NHL
+NCAAMB
+Soccer
+
+The website/app must gracefully show NCAAF as unavailable for projection when its PIT-safe evidence requirement is not satisfied.
+
+For example:
+
+NCAAF V4
+VALIDATING
+
+Model projection unavailable
+Insufficient pregame evidence
+
+Do not expose unnecessary internal technical details to ordinary users.
+
+NFL must use the exact #243B artifact:
+
+0da3f4e62a88da4c8d486b6433ca83c907e2cbd2fc072834817cbdb919233c5e
+
+unless a separately legitimate explicitly documented successor exists.
+
+SHADOW/V4_VALIDATING forecasts remain visible on the Model Board but NEVER become:
+
+Official Picks
+Top Picks
+POTD
+official units
+official record
+official ROI
+
+unless separately publication-approved and passed through #238A.
+
+DO NOT automatically enable wagering publication during this deployment.
+
+The immediate goal is:
+
+GET THE LEGITIMATE TBM V4 FORECASTING PLATFORM LIVE.
+
+NCAAF prospective proof can complete naturally when the next legitimate pregame opportunity occurs.
+
+If deployment authorization is available, continue through actual deployment rather than stopping at another readiness report.
+
+Only stop for a genuine external authorization/provider blocker or material production safety defect.
+
+Update the Task #244 final classification honestly:
+
+A/B may be appropriate if the production platform is successfully deployed and verified while NCAAF's live prospective proof remains explicitly pending as a non-critical sport-specific validation item.
+
+Do not classify the entire platform as failed solely because no legitimate NCAAF pregame verification opportunity existed on September 6.

@@ -1,0 +1,358 @@
+I want a complete forensic audit of how TheBettingModel currently predicts games and chooses picks.
+
+DO NOT CHANGE ANY CODE.
+
+DO NOT MAKE MODEL IMPROVEMENTS YET.
+
+DO NOT GIVE ME ONLY A HIGH-LEVEL DESCRIPTION.
+
+I want you to trace the ACTUAL CURRENT PRODUCTION CODE, database inputs, provider data, formulas, feature construction, probability calculations, market calculations, recommendation logic, publication rules, and unit-sizing logic so I can understand exactly why TBM picks one team over another.
+
+My primary concern is whether TBM is truly functioning as a SPORTS PREDICTION MODEL first, or whether sportsbook/ROI/edge/market mathematics are carrying too much influence over which team it predicts will win.
+
+I want to clearly separate:
+
+A. SPORTS FORECASTING
+Who does TBM think will win based on actual team/player/game information?
+
+B. PROBABILITY ESTIMATION
+How does TBM turn that sports evidence into a probability?
+
+C. MARKET EVALUATION
+How does TBM compare its probability with sportsbook prices?
+
+D. BET SELECTION
+Why does TBM decide to bet or pass?
+
+E. POSITION SIZING
+Why does TBM assign the number of units it does?
+
+Those five stages must be analyzed independently.
+
+==================================================
+PART 1 — TRACE THE ENTIRE PIPELINE
+==================================================
+
+Trace an actual game through production from beginning to end:
+
+External data
+→ raw database records
+→ normalized sport data
+→ feature construction
+→ sport model
+→ raw probability
+→ calibration
+→ final probability
+→ sportsbook market
+→ no-vig probability
+→ edge
+→ EV
+→ market intelligence
+→ TBM Score
+→ recommendation
+→ publication gates
+→ selected market
+→ units
+→ published pick
+
+For EVERY stage identify:
+
+- exact source file/function
+- database table
+- external provider
+- input fields
+- formulas
+- constants
+- weights
+- thresholds
+- transformations
+- caps/floors
+- fallbacks
+- missing-data behavior
+- output fields
+
+Do not describe intended architecture when actual production code differs.
+
+Explicitly identify those differences.
+
+==================================================
+PART 2 — WHAT ACTUALLY DETERMINES WHO TBM THINKS WILL WIN?
+==================================================
+
+This is the most important section.
+
+For every supported sport, identify every factor that can change the model's predicted winner or probability.
+
+Create a table for:
+
+MLB
+NFL
+NBA
+WNBA
+NCAAF
+NCAAB
+NHL
+Soccer
+UFC
+
+For each factor show:
+
+- factor name
+- source/provider
+- actual statistic/data used
+- formula/transformation
+- weight or maximum probability contribution
+- whether it is team-level or player-level
+- whether it is season-long or recent
+- whether it is opponent-adjusted
+- whether it is matchup-specific
+- whether it is point-in-time
+- what happens when missing
+- whether it directly changes win probability
+- maximum possible impact on probability
+
+I want to know exactly what sports intelligence exists behind each prediction.
+
+==================================================
+PART 3 — SPORTS DATA DEPTH AUDIT
+==================================================
+
+For each sport tell me exactly which REAL SPORTS STATISTICS AND ANALYTICS TBM currently uses.
+
+Do not list fields merely because they exist in the database.
+
+Only count a statistic if it actually reaches the production prediction calculation.
+
+For MLB specifically verify actual production use of:
+
+- starting pitcher
+- ERA
+- FIP
+- xFIP if available
+- WHIP
+- K-BB%
+- strikeout rate
+- walk rate
+- Statcast metrics
+- expected ERA / xERA if available
+- pitch repertoire/matchups if available
+- handedness
+- batter platoon splits
+- confirmed batting lineup
+- individual hitter quality
+- wRC+ or equivalent
+- OPS / OBP / SLG
+- expected hitting metrics
+- recent hitting performance
+- bullpen quality
+- bullpen availability
+- bullpen fatigue
+- reliever usage
+- park factors
+- weather
+- wind
+- umpire if used
+- team offense
+- team defense
+- baserunning if used
+- injuries
+- rest/travel
+- BvP if used
+
+For NFL verify:
+
+- EPA/play
+- success rate
+- offensive/defensive efficiency
+- QB performance
+- CPOE
+- pressure/sack performance
+- offensive line
+- defensive line
+- rushing efficiency
+- passing efficiency
+- explosive plays
+- red-zone performance
+- turnovers and turnover regression
+- injuries
+- player availability
+- rest
+- travel
+- weather
+- coaching/scheme
+- opponent-adjusted strength
+
+For NBA/WNBA verify:
+
+- ORtg
+- DRtg
+- Net Rating
+- pace
+- eFG%
+- TS%
+- turnover rate
+- rebounding
+- shot profile
+- player availability
+- expected minutes
+- starting lineup
+- rotations
+- player impact/on-off
+- rest
+- back-to-back
+- travel
+- matchup-specific offense/defense
+
+For NCAAF/NCAAB verify the equivalent advanced efficiency, player availability, opponent-adjusted, roster/talent and matchup data.
+
+For NHL verify goalie, xG, shot quality, special teams, team efficiency, player availability and rest.
+
+For Soccer verify xG, xGA, lineup, injuries/suspensions, goalkeeper, shot quality, home/away attack/defense, rest, competition strength and matchup data.
+
+For UFC verify fighter-level striking, grappling, takedown, defense, opponent quality, reach/size, age, recent performance and stylistic matchup information.
+
+For EVERY requested statistic classify it:
+
+ACTIVE IN PRODUCTION
+AVAILABLE BUT NOT USED
+PARTIALLY USED
+NOT AVAILABLE
+UNKNOWN / COULD NOT VERIFY
+
+Do not infer usage.
+
+Trace it.
+
+==================================================
+PART 4 — TEAM VS PLAYER VS MARKET INFLUENCE
+==================================================
+
+Quantify how much influence can come from:
+
+1. Team historical performance
+2. Recent team performance
+3. Individual players/starters
+4. Matchup-specific analytics
+5. Injuries/availability
+6. Rest/travel/weather/context
+7. Sportsbook market information
+8. Calibration
+9. Market intelligence
+10. Betting-policy rules
+
+I want to know whether a model can effectively say:
+
+"Team A is better overall"
+
+and overpower evidence that:
+
+"Team B has a major starting-player/matchup advantage today."
+
+Identify where that can happen.
+
+Show maximum contribution ranges wherever the code makes this calculable.
+
+==================================================
+PART 5 — MARKET CONTAMINATION AUDIT
+==================================================
+
+Determine whether sportsbook information influences TBM's SPORTS FORECAST or only evaluates the forecast afterward.
+
+Trace every use of:
+
+- moneyline odds
+- spread
+- totals
+- implied probability
+- no-vig probability
+- line movement
+- sharp books
+- consensus
+- CLV
+- sportsbook disagreement
+- opening line
+- current line
+- market probability
+
+Classify each use as:
+
+SPORTS FORECAST INPUT
+
+CALIBRATION INPUT
+
+MARKET EVALUATION
+
+BET SELECTION
+
+POSITION SIZING
+
+DISPLAY ONLY
+
+Flag any case where sportsbook information materially determines the model probability without that being an intentional documented design decision.
+
+==================================================
+PART 6 — ROI AND WIN-RATE AUDIT
+==================================================
+
+Trace every place ROI, historical win rate, units, previous bet results, Brier performance, CLV, or historical profitability can influence FUTURE predictions.
+
+I specifically want to know:
+
+Can poor ROI make TBM change which team it thinks will win?
+
+Can previous wins/losses change production probability?
+
+Can historical win rate change confidence?
+
+Can ROI change model weights?
+
+Can CLV change the sports forecast?
+
+Can betting results alter recommendation thresholds?
+
+Can any of these happen automatically?
+
+Task #201 was intended to freeze direct production learning.
+
+Verify from current code that:
+
+Completed game
+→ research evidence
+→ production probability/weights unchanged
+
+Identify any remaining path that violates this rule.
+
+==================================================
+PART 7 — PROBABILITY CONSTRUCTION
+==================================================
+
+For every sport reconstruct the actual probability formula.
+
+Show a representative calculation numerically.
+
+Example format:
+
+Base probability                     50.0%
+
+Team offensive efficiency           +X.X
+Team defensive efficiency           +X.X
+Starting player                      +X.X
+Matchup                              -X.X
+Recent performance                   +X.X
+Availability                         -X.X
+Home advantage                       +X.X
+Rest                                 +X.X
+
+Raw sports probability               XX.X%
+
+Calibration                          -X.X
+Evidence/uncertainty adjustment      -X.X
+
+FINAL TBM WIN PROBABILITY             XX.X%
+
+Sportsbook no-vig probability        XX.X%
+Selected-side edge                   +X.X%
+Expected value                       +X.X%
+
+Recommendation                       BUY
+Units                                X.X

@@ -1,0 +1,1567 @@
+TASK #238A — TBM FAIL-CLOSED BET-SELECTION, PUBLICATION & STAKING SAFETY REMEDIATION
+
+PROJECT: The Betting Model
+DATE: September 6, 2026
+
+MISSION
+
+Implement a consolidated, development-only safety remediation of The Betting Model's downstream betting-decision system.
+
+Task #237P established:
+
+D — BOTH FORECAST AND BET-SELECTION LAYERS DEGRADED
+
+The current production problem is not merely short-run variance.
+
+The production autopsy found:
+
+14-day Results-API-style:
+37-58-0
+-36.17 units
+-17.91% ROI
+
+14-day subscriber-public:
+26-39-0
+-25.91 units
+-18.91% ROI
+
+MLB V1:
+16-30
+-31.25 units
+-31.89% ROI
+
+High-confidence bets:
+15-25
+-28.32 units
+-30.45% ROI
+
+10%+ selected-edge bets:
+31-49
+-30.27 units
+-17.70% ROI
+
+2.5-unit bets:
+7-17
+-23.54 units
+-39.23% ROI
+
+Actual variable staking:
+-36.17 units
+
+Flat 1-unit counterfactual:
+-14.45 units
+
+Variable staking therefore amplified the observed loss by:
+-21.72 units
+
+The audit also established:
+
+1. The Results API counts some non-public actionable rows.
+2. performance_eligible is not consistently honored by Results routes.
+3. A global six-public-pick daily cap exists.
+4. Sports/games are processed in provider order.
+5. There is no global cross-sport ranking before the six-pick cap.
+6. Stronger later opportunities can therefore be excluded.
+7. Higher reported edge did not correspond to better outcomes.
+8. Higher confidence did not correspond to better outcomes.
+9. Larger stakes did not correspond to better outcomes.
+10. MLB V1 forecast quality is severely degraded.
+11. Soccer selection is severely degraded.
+12. Current production CLV lineage is insufficient for reliable automated decision-making.
+
+THIS TASK DOES NOT FIX THE SPORTS FORECAST MODELS.
+
+Its purpose is to prevent the downstream selection/publication/staking system from magnifying unvalidated forecast claims while the replacement V4 engines are being completed.
+
+==================================================
+CRITICAL SECURITY / RELEASE BLOCKER
+==================================================
+
+A contaminated protected Git ref remains under remediation by Replit Support:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+UNTIL OWNER CONFIRMS THAT REF HAS BEEN REMOVED AND SECURITY RE-VERIFICATION HAS PASSED:
+
+DO NOT:
+
+- push
+- deploy
+- publish
+- production schema push
+- production migration
+- EAS production build
+- EAS update
+- App Store submission
+- TestFlight submission
+- production model promotion
+- production release
+- modify Git history
+- force push
+- delete refs
+- touch Apple credentials
+- touch EAS credentials
+- touch the contaminated ref
+
+Development work is allowed.
+
+Local commits are also NOT required for this task.
+
+At completion, STOP and return the report.
+
+==================================================
+NON-NEGOTIABLE MODEL SAFETY
+==================================================
+
+DO NOT:
+
+- retrain any sports model
+- retune any sports model
+- recalibrate any sports model
+- change sports-model coefficients
+- change sports-model features
+- modify MLB V1
+- modify MLB V4
+- modify NCAAF V1
+- modify NCAAF V4
+- modify NFL forecasting
+- modify WNBA forecasting
+- modify Soccer forecasting
+- modify NBA forecasting
+- modify NHL forecasting
+- modify UFC forecasting
+- promote any challenger
+- create a new forecast model
+- use sportsbook market data as a substitute sports forecast
+- retrospectively optimize thresholds
+- optimize against the recent losing streak
+- cherry-pick profitable historical filters
+- change historical grades
+- change historical predictions
+- change historical publication decisions
+
+Forecast outputs must remain unchanged.
+
+This task modifies ONLY downstream:
+
+ELIGIBILITY
+→ RANKING
+→ PUBLICATION
+→ STAKING SAFETY
+→ OFFICIAL RECORD POLICY
+→ AUDITABILITY
+
+==================================================
+GUIDING PRINCIPLE
+==================================================
+
+MODEL OPINION != PUBLICATION PERMISSION
+
+and
+
+MODEL CONFIDENCE != VALIDATED STAKE SIZE
+
+and
+
+MODEL EDGE != AUTOMATIC PROOF OF BET QUALITY
+
+The sports engine may produce an opinion.
+
+The downstream system independently decides whether that opinion may be published.
+
+Until confidence/edge/staking monotonicity has been prospectively validated, the publication system must fail closed.
+
+==================================================
+WORKSTREAM 1 — MAP CURRENT DOWNSTREAM PIPELINE
+==================================================
+
+Before modifying anything, inspect the actual implementation.
+
+Identify exact source files/functions for:
+
+- model prediction creation
+- recommendation generation
+- publication eligibility
+- performance eligibility
+- public/private status
+- daily pick cap
+- sport processing order
+- cross-sport aggregation
+- edge calculation
+- confidence calculation
+- final rating
+- POD score
+- unit sizing
+- Play of the Day selection
+- Results API
+- Results summary
+- subscriber pick endpoints
+- homepage picks
+- mobile picks
+- analytics
+- admin model views
+
+Document the current flow:
+
+FORECAST
+→ CANDIDATE
+→ ELIGIBILITY
+→ RANKING
+→ PUBLICATION
+→ STAKE
+→ POTD
+→ RESULTS
+
+Do not guess.
+
+Use actual source.
+
+==================================================
+WORKSTREAM 2 — CANONICAL PUBLICATION DECISION CONTRACT
+==================================================
+
+Create or consolidate a canonical downstream publication decision contract.
+
+It must clearly distinguish at minimum:
+
+prediction_id
+game_id
+sport
+model_id
+model_version
+
+selection
+market
+odds
+
+model_probability
+market_probability
+selected_side_edge
+
+confidence
+final_rating
+pod_score
+
+model_recommendation
+
+performance_eligible
+publication_eligible
+
+publication_status
+
+is_public
+
+publication_reason_code
+
+exclusion_reason_code
+
+rank_score
+global_rank
+
+requested_units
+approved_units
+
+stake_policy_version
+
+decision_timestamp
+data_cutoff
+game_start
+
+The exact schema may adapt to existing architecture.
+
+DO NOT create duplicate lifecycle systems if equivalent structures already exist.
+
+Reuse/consolidate existing contracts where appropriate.
+
+==================================================
+WORKSTREAM 3 — EXPLICIT PUBLICATION STATES
+==================================================
+
+Publication decisions must no longer depend on ambiguous booleans alone.
+
+Implement explicit semantic states consistent with existing architecture.
+
+For example:
+
+MODEL_OPINION_ONLY
+ELIGIBLE_CANDIDATE
+RANKED_PUBLIC
+CAP_EXCLUDED
+PERFORMANCE_INELIGIBLE
+SAFETY_BLOCKED
+PUBLICATION_BLOCKED
+PUBLISHED
+
+Names may adapt to project conventions.
+
+Every actionable model opinion must have an auditable reason for why it:
+
+WAS PUBLISHED
+
+or
+
+WAS NOT PUBLISHED.
+
+Do not leave the 31-vs-67 distinction unexplained as it was in #237P.
+
+==================================================
+WORKSTREAM 4 — OFFICIAL RECORD POLICY FIX
+==================================================
+
+Task #237P proved the current Results routes can count non-public actionable rows.
+
+Fix the canonical official-record policy.
+
+The official subscriber-facing record must require:
+
+effective publication revision
+AND
+is_public = true
+AND
+performance_eligible != false
+AND
+valid settled result
+AND
+existing official market/recommendation requirements
+
+Preserve legitimate exclusions such as NFL preseason where currently required.
+
+DO NOT silently change historical rows.
+
+DO NOT rewrite past results.
+
+DO NOT regrade history.
+
+This is a QUERY/POLICY correction.
+
+Create one canonical helper/policy so:
+
+Results API
+Results summary
+analytics
+homepage record
+mobile record
+admin official record
+
+do not independently reinvent official-record eligibility.
+
+All official-record consumers should use the same policy where architecture permits.
+
+==================================================
+WORKSTREAM 5 — HISTORICAL INTEGRITY SEPARATION
+==================================================
+
+Do NOT repair historical rows during this task.
+
+But ensure the official-record layer can correctly distinguish:
+
+PUBLIC PRODUCTION RECORD
+
+from:
+
+NON-PUBLIC DECISIONS
+RETIRED TEST MODELS
+PERFORMANCE-INELIGIBLE ROWS
+SHADOW FORECASTS
+DEVELOPMENT MODELS
+PREVIEW MODELS
+RESEARCH MODELS
+
+The retired model:
+
+test-mlb-moneyline-v99-1784573270185
+
+must not contaminate current production-model performance attribution.
+
+Do not delete it.
+
+Do not modify it.
+
+Correctly classify/filter it.
+
+==================================================
+WORKSTREAM 6 — GLOBAL CROSS-SPORT CANDIDATE POOL
+==================================================
+
+Task #237P proved the six-pick cap is applied before a true global comparison.
+
+Fix the architecture.
+
+The correct conceptual pipeline is:
+
+ALL ACTIVE SPORTS PRODUCE MODEL OPINIONS
+↓
+SPORT-SPECIFIC SAFETY / ELIGIBILITY
+↓
+ALL ELIGIBLE BET CANDIDATES ENTER ONE DAILY POOL
+↓
+NORMALIZE COMPARABLE DOWNSTREAM RANKING INPUTS
+↓
+DETERMINISTIC GLOBAL RANK
+↓
+APPLY PUBLICATION CAP
+↓
+PUBLISH TOP ELIGIBLE PLAYS
+
+The six-pick cap must NOT be consumed merely because one sport/provider was processed first.
+
+==================================================
+WORKSTREAM 7 — PRESERVE SPORTS INDEPENDENCE
+==================================================
+
+Shared publication infrastructure is allowed.
+
+Sports intelligence remains independent.
+
+DO NOT normalize or alter the sports forecasts themselves.
+
+Do not make:
+
+MLB depend on NFL
+NFL depend on NCAAF
+NCAAF depend on Soccer
+etc.
+
+The global layer compares already-produced betting candidates.
+
+It does not create cross-sport forecasting intelligence.
+
+Principle:
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+==================================================
+WORKSTREAM 8 — DETERMINISTIC GLOBAL RANKING
+==================================================
+
+Implement deterministic ranking of publication-eligible candidates BEFORE applying the cap.
+
+IMPORTANT:
+
+DO NOT invent a new profitable ranking formula by optimizing the last 14/30/60 days.
+
+Use existing approved downstream signals only.
+
+Inspect the project's existing:
+
+final_rating
+POD score
+recommendation
+confidence
+edge
+market-quality/risk fields
+
+Determine which existing canonical score is intended to represent downstream quality.
+
+Prefer the existing canonical final ranking score if one exists.
+
+If multiple existing ranking signals exist, document precedence from current product/model architecture.
+
+DO NOT fit new weights against historical profit.
+
+DO NOT search weight combinations.
+
+DO NOT optimize ROI.
+
+The purpose is to make processing order irrelevant, not to create a backtested strategy.
+
+Tie-breaking must be deterministic.
+
+Suggested deterministic tie-break hierarchy ONLY if consistent with existing semantics:
+
+1. canonical final ranking score descending
+2. existing POD score descending
+3. selected-side edge descending
+4. model probability quality field if semantically valid
+5. stable game/prediction identifier
+
+Do not blindly implement this hierarchy if source semantics indicate another canonical ranking.
+
+Document the final choice.
+
+==================================================
+WORKSTREAM 9 — APPLY SIX-PICK CAP AFTER RANKING
+==================================================
+
+Preserve the existing daily public-pick cap unless source/product requirements prove another canonical value.
+
+Do NOT change six to another number merely because performance was poor.
+
+Apply the cap only AFTER the complete eligible daily candidate pool has been globally ranked.
+
+All candidates below the cap receive explicit:
+
+CAP_EXCLUDED
+
+or equivalent status/reason.
+
+Persist their global rank.
+
+Example:
+
+rank 1 → public
+rank 2 → public
+...
+rank 6 → public
+rank 7 → cap excluded
+rank 8 → cap excluded
+
+This must be deterministic and auditable.
+
+==================================================
+WORKSTREAM 10 — EASTERN CALENDAR DAY
+==================================================
+
+Daily publication boundaries must use:
+
+America/New_York
+
+not UTC day boundaries.
+
+Use the existing project canonical time helper if one exists.
+
+Do not create competing timezone logic.
+
+This task does NOT modify NCAAF's separate TODAY ONLY model-data rule.
+
+==================================================
+WORKSTREAM 11 — FAIL-CLOSED STAKING POLICY
+==================================================
+
+This is critical.
+
+#237P proved:
+
+Actual variable staking:
+-36.17u
+
+Flat 1-unit same picks:
+-14.45u
+
+Observed amplification:
+-21.72u
+
+It also found:
+
+1.5u:
++3.35u
+
+2.0u:
+-11.60u
+
+2.5u:
+-23.54u
+
+3.0u:
+-4.38u
+
+Higher units are not supported by better observed performance.
+
+Therefore implement a FAIL-CLOSED staking safety layer.
+
+Do NOT retrospectively optimize stake sizes.
+
+Do NOT choose a new stake schedule from historical ROI.
+
+Until the model/staking relationship has been prospectively validated:
+
+PUBLIC BETS MUST NOT AUTOMATICALLY RECEIVE INCREASED UNITS MERELY BECAUSE OF:
+
+high edge
+high confidence
+Strong Buy
+POD score
+final rating
+
+Implement a conservative bounded policy.
+
+Preferred safety policy:
+
+DEFAULT APPROVED STAKE = 1.0 UNIT
+
+for newly generated public production betting decisions while the staking policy remains unvalidated.
+
+Preserve:
+
+requested_units
+
+separately from:
+
+approved_units
+
+so research can later evaluate whether the old sizing recommendation had signal.
+
+Example:
+
+requested_units = 2.5
+approved_units = 1.0
+stake_policy_version = "fail-closed-flat-v1"
+
+Do not rewrite historical stakes.
+
+Do not alter historical performance.
+
+Do not pretend old bets were 1U.
+
+This applies prospectively after eventual deployment only.
+
+==================================================
+WORKSTREAM 12 — STAKING POLICY VERSIONING
+==================================================
+
+Staking must become explicitly versioned.
+
+At minimum persist/expose:
+
+stake_policy_version
+requested_units
+approved_units
+stake_reason
+
+Future variable staking may only return after separate prospective validation.
+
+The architecture must allow:
+
+FLAT / FAIL-CLOSED
+VALIDATED VARIABLE STAKING
+
+without changing sports model identity.
+
+Do not build the future staking model now.
+
+==================================================
+WORKSTREAM 13 — EDGE SEMANTICS
+==================================================
+
+#237P discovered stored edge is home-perspective:
+
+calibrated home probability
+minus
+no-vig fair home probability
+
+For away selections, selected-side edge reverses sign.
+
+This is dangerous for generic downstream ranking.
+
+Create one canonical selected-side edge representation.
+
+For a published candidate:
+
+selected_side_edge
+
+must always represent:
+
+MODEL PROBABILITY OF THE SELECTED OUTCOME
+MINUS
+MARKET FAIR PROBABILITY OF THE SELECTED OUTCOME
+
+with explicit units.
+
+Prefer percentage points if consistent with existing API.
+
+Example:
+
+model selected probability = 0.61
+market selected probability = 0.56
+
+selected_side_edge = +5.0 percentage points
+
+Do NOT use abs(edge) blindly in production ranking.
+
+Do NOT change the underlying model probability.
+
+This is semantic normalization at the bet-selection layer.
+
+==================================================
+WORKSTREAM 14 — CONFIDENCE SEMANTICS
+==================================================
+
+#237P established confidence is NOT a calibrated probability.
+
+It currently reflects distance from 50%.
+
+Prevent APIs/UI/downstream logic from treating confidence as equivalent to win probability.
+
+Preserve the existing confidence field where required for compatibility.
+
+But add/clarify semantics so:
+
+model_probability
+
+and
+
+confidence
+
+cannot be confused.
+
+Do not recalibrate confidence in this task.
+
+Do not create new confidence thresholds based on recent ROI.
+
+==================================================
+WORKSTREAM 15 — RECOMMENDATION SAFETY
+==================================================
+
+Preserve sports-model recommendation output.
+
+But publication permission must be independently determined.
+
+A model saying:
+
+Strong Buy
+
+must not automatically mean:
+
+PUBLIC
+3 UNITS
+POTD
+
+The publication layer must be able to say:
+
+MODEL RECOMMENDATION: STRONG BUY
+PUBLICATION STATUS: SAFETY_BLOCKED
+
+if required by eligibility rules.
+
+This separation is mandatory.
+
+==================================================
+WORKSTREAM 16 — PERFORMANCE ELIGIBILITY
+==================================================
+
+Audit and consolidate the meaning of:
+
+performance_eligible
+
+The field must be honored consistently.
+
+Rows explicitly marked:
+
+performance_eligible = false
+
+must not enter official performance.
+
+Do not convert NULL/unknown semantics without inspecting existing contract.
+
+Implement one canonical interpretation and document it.
+
+==================================================
+WORKSTREAM 17 — PUBLIC VS NON-PUBLIC
+==================================================
+
+Make this distinction explicit throughout downstream APIs.
+
+At minimum support semantic separation between:
+
+model opinion
+candidate
+public pick
+non-public candidate
+shadow
+preview
+research
+
+A non-public candidate must never accidentally appear in:
+
+subscriber official record
+public Results record
+public win rate
+public units
+public ROI
+
+unless an explicitly named diagnostic endpoint requests it.
+
+==================================================
+WORKSTREAM 18 — PLAY OF THE DAY SAFETY
+==================================================
+
+Do not optimize POTD against recent results.
+
+But ensure POTD is selected only from:
+
+PUBLICATION_ELIGIBLE
+AND
+PUBLIC / within publication cap
+AND
+PERFORMANCE_ELIGIBLE
+
+candidates.
+
+POTD must not come from:
+
+CAP_EXCLUDED
+NON-PUBLIC
+SHADOW
+PREVIEW
+RESEARCH
+PERFORMANCE-INELIGIBLE
+
+rows.
+
+Use existing POD ranking semantics.
+
+Do not invent new weights.
+
+Only one canonical POTD per intended scope/day unless current product contract explicitly supports otherwise.
+
+==================================================
+WORKSTREAM 19 — IDEMPOTENCY
+==================================================
+
+Repeated processing of the same immutable candidate set must produce the same:
+
+eligibility
+rank
+cap result
+approved stake
+POTD result
+
+unless legitimate upstream evidence/version changes.
+
+No duplicate public decisions.
+
+No unstable rank ordering.
+
+No rerun-dependent six-pick selection.
+
+==================================================
+WORKSTREAM 20 — PUBLICATION REVISION SAFETY
+==================================================
+
+Preserve the existing revision/effectiveness model.
+
+If an upstream forecast legitimately changes before publication cutoff:
+
+new revision may supersede old revision
+
+but:
+
+official record must use the effective published decision.
+
+Do not rewrite old revisions.
+
+Do not create duplicate effective picks.
+
+==================================================
+WORKSTREAM 21 — REASON CODES
+==================================================
+
+Introduce deterministic reason codes where architecture supports them.
+
+Examples:
+
+PUBLIC_TOP_RANKED
+CAP_EXCLUDED
+MODEL_NOT_PRODUCTION_APPROVED
+PERFORMANCE_INELIGIBLE
+INVALID_ODDS
+INVALID_PROBABILITY
+GAME_STARTED
+MISSING_MARKET
+MISSING_MODEL_IDENTITY
+SHADOW_ONLY
+PREVIEW_ONLY
+RESEARCH_ONLY
+STAKE_CAPPED_FAIL_CLOSED
+
+Use project naming conventions.
+
+Avoid arbitrary free-text-only logic.
+
+Reason codes must make future audits reconstructable.
+
+==================================================
+WORKSTREAM 22 — MODEL APPROVAL GATE
+==================================================
+
+Publication eligibility must respect model registry/approval state.
+
+A model in:
+
+UNVALIDATED
+SHADOW
+PREVIEW
+RESEARCH
+SUSPENDED
+
+must not become a subscriber public pick unless an explicit existing policy legitimately permits it.
+
+Production-public candidates should originate only from appropriately approved production models.
+
+This is especially important for:
+
+MLB V4
+NCAAF V4
+retired MLB test models
+
+Do not change their current approval states.
+
+==================================================
+WORKSTREAM 23 — MARKET VALIDITY GATE
+==================================================
+
+Before publication, fail closed if required betting-price fields are invalid.
+
+Validate:
+
+finite odds
+valid American odds semantics
+valid model probability
+valid market probability
+valid selected-side edge
+game not started
+required market identity
+required selection identity
+
+Do not manufacture missing odds/probabilities.
+
+==================================================
+WORKSTREAM 24 — NO CLV-BASED PUBLICATION RULE
+==================================================
+
+Do NOT use historical CLV to gate picks in this task.
+
+#237P established:
+
+current CLV cannot be independently reproduced
+
+and
+
+historical CLV contains invalid values.
+
+Therefore CLV may remain diagnostic but must not become a new publication/staking feature during #238A.
+
+==================================================
+WORKSTREAM 25 — API CONTRACT
+==================================================
+
+Update downstream API contracts as needed to expose the corrected semantics.
+
+Where appropriate expose:
+
+model_recommendation
+publication_status
+publication_reason
+is_public
+performance_eligible
+global_rank
+selected_side_edge
+requested_units
+approved_units
+stake_policy_version
+
+Preserve backward compatibility where practical.
+
+Do not expose internal research information unnecessarily to subscribers.
+
+==================================================
+WORKSTREAM 26 — RESULTS API
+==================================================
+
+Fix Results endpoints so subscriber-facing official results are based on the canonical official-record policy.
+
+Required:
+
+public only
+performance eligible
+effective revision
+official production model
+valid settled result
+existing sport/market exclusions
+
+Ensure:
+
+record
+units
+ROI
+win rate
+sport breakdown
+homepage analytics
+mobile analytics
+
+agree when querying the same cohort.
+
+No more separate definitions of "official record."
+
+==================================================
+WORKSTREAM 27 — ANALYTICS COHORTS
+==================================================
+
+Analytics should be able to distinguish:
+
+OFFICIAL_PUBLIC
+ALL_MODEL_OPINIONS
+NON_PUBLIC_CANDIDATES
+SHADOW
+PREVIEW
+RESEARCH
+
+Do not mix them by default.
+
+Official subscriber analytics default to:
+
+OFFICIAL_PUBLIC.
+
+Research/admin analytics may explicitly request other cohorts.
+
+==================================================
+WORKSTREAM 28 — SOCCER HISTORICAL INTEGRITY
+==================================================
+
+#237P found 22 Soccer draws stored as pushes where current three-way team-selection semantics require losses.
+
+DO NOT regrade those rows in this task.
+
+DO NOT mutate historical results.
+
+Instead:
+
+ensure the integrity issue is explicitly excluded/corrected only in diagnostic analytics where an established correction mechanism exists.
+
+Do not allow this task to silently rewrite official history.
+
+Create a separate future remediation recommendation if required.
+
+==================================================
+WORKSTREAM 29 — CLV INTEGRITY
+==================================================
+
+#237P found 35 historical effective rows with abs(CLV)>50 and incomplete closing-price lineage.
+
+DO NOT repair CLV history here.
+
+Ensure invalid CLV is not used for:
+
+publication
+staking
+POTD
+model promotion
+subscriber claims
+
+unless it passes existing validity checks.
+
+Flag invalid/unverifiable CLV in analytics.
+
+==================================================
+WORKSTREAM 30 — RETIRED TEST MODEL ISOLATION
+==================================================
+
+The retired model:
+
+test-mlb-moneyline-v99-1784573270185
+
+has substantial historical volume.
+
+Ensure it cannot be mistaken for:
+
+MLB V1
+current production
+official champion performance
+
+Do not delete its history.
+
+Preserve it for research/audit.
+
+==================================================
+WORKSTREAM 31 — SIMULATION / REPLAY
+==================================================
+
+Build a deterministic replay of the corrected downstream publication policy using historical immutable decisions.
+
+IMPORTANT:
+
+This replay is NOT for optimization.
+
+Its purpose is to verify:
+
+processing-order independence
+official-record filtering
+cap application
+selected-side edge semantics
+flat approved staking
+POTD eligibility
+idempotency
+
+Replay the current 14-day period.
+
+Report:
+
+old public selections
+corrected-policy selections
+
+overlap
+differences
+cap exclusions
+rank changes
+
+Old actual stakes
+new hypothetical approved stakes
+
+Do NOT report hypothetical profitability as evidence that the new system is "better."
+
+You may report it as:
+
+RETROSPECTIVE DIAGNOSTIC ONLY
+
+but the primary success criteria are architectural correctness and risk containment.
+
+==================================================
+WORKSTREAM 32 — PROCESSING ORDER INVARIANCE TEST
+==================================================
+
+This is mandatory.
+
+Take an identical daily candidate set.
+
+Process it in multiple sport/provider orders.
+
+Examples:
+
+MLB → NFL → Soccer → WNBA
+
+reverse order
+
+random deterministic shuffle
+
+The final public top-six IDs must be identical every time.
+
+If not, task fails.
+
+==================================================
+WORKSTREAM 33 — STAKING SAFETY TEST
+==================================================
+
+For newly generated publication decisions under fail-closed policy:
+
+requested_units may vary
+
+but
+
+approved_units must equal 1.0
+
+unless a non-betting/zero-stake state is required.
+
+Test:
+
+1.5 requested → 1.0 approved
+2.0 requested → 1.0 approved
+2.5 requested → 1.0 approved
+3.0 requested → 1.0 approved
+
+Do not modify historical rows.
+
+==================================================
+WORKSTREAM 34 — OFFICIAL RECORD REGRESSION TEST
+==================================================
+
+Construct test fixtures containing:
+
+public production pick
+non-public candidate
+performance-ineligible public row
+retired test model
+shadow model
+preview model
+research model
+superseded publication
+pending result
+valid settled result
+
+Only legitimate effective public production settled rows should enter official record.
+
+==================================================
+WORKSTREAM 35 — POTD REGRESSION TEST
+==================================================
+
+Construct candidates including:
+
+public rank 1
+public rank 2
+cap-excluded high POD
+shadow high POD
+preview high POD
+research high POD
+
+POTD must come only from eligible public candidates.
+
+==================================================
+WORKSTREAM 36 — SPORTS FORECAST IMMUTABILITY TEST
+==================================================
+
+Prove this task did not alter sports-model outputs.
+
+For representative frozen fixtures across available sports:
+
+run forecast before/after downstream remediation.
+
+Assert identical:
+
+model probability
+expected score where applicable
+model recommendation where generated by sports model
+model identity
+feature hash where available
+
+Downstream publication/stake may differ.
+
+Forecast must not.
+
+==================================================
+WORKSTREAM 37 — MLB V4 / NCAAF V4 NON-PROMOTION TEST
+==================================================
+
+Explicitly prove:
+
+MLB V4 remains non-production.
+
+NCAAF V4 remains non-production.
+
+No #232/#237 research artifact becomes public.
+
+No V4 output becomes subscriber-facing because of #238A.
+
+==================================================
+WORKSTREAM 38 — DATABASE CHANGES
+==================================================
+
+Prefer existing schema.
+
+If development schema must be extended for:
+
+publication status
+reason code
+rank
+requested/approved units
+stake policy version
+
+make the smallest additive development-only change.
+
+DO NOT:
+
+drop columns
+rewrite production history
+rename destructive production fields
+production schema push
+production migration
+
+If a future production migration will be required, generate/document the exact migration plan for later owner approval.
+
+Do not execute it against production.
+
+==================================================
+WORKSTREAM 39 — ADMIN OBSERVABILITY
+==================================================
+
+If existing admin tooling already displays publication decisions, minimally expose:
+
+model opinion
+publication status
+global rank
+reason
+requested units
+approved units
+stake policy
+
+Do not redesign the admin UI.
+
+Do not create a giant dashboard.
+
+This is operational observability only.
+
+==================================================
+WORKSTREAM 40 — MOBILE / PUBLIC UI
+==================================================
+
+DO NOT redesign mobile or public cards.
+
+Preserve current visual presentation.
+
+If API compatibility requires a frontend adjustment, make the smallest development-only compatibility change.
+
+Do not alter:
+
+TBM card design
+logos
+navigation
+membership
+pricing
+subscriber lock design
+projected-score presentation
+
+This is backend/downstream safety work.
+
+==================================================
+WORKSTREAM 41 — TESTS
+==================================================
+
+Add comprehensive focused tests for:
+
+official record public-only behavior
+performance eligibility
+production model eligibility
+retired model exclusion
+shadow exclusion
+preview exclusion
+research exclusion
+effective revision handling
+global ranking
+six-pick cap
+processing-order invariance
+selected-side edge
+away edge sign
+stake fail-closed behavior
+requested vs approved units
+stake policy version
+POTD eligibility
+reason codes
+idempotent reruns
+Eastern day boundary
+invalid odds
+invalid probability
+game-start cutoff
+forecast immutability
+MLB V4 non-promotion
+NCAAF V4 non-promotion
+
+==================================================
+WORKSTREAM 42 — FULL REGRESSION
+==================================================
+
+Run appropriate project validations.
+
+At minimum where available:
+
+API typecheck
+DB typecheck
+API build
+admin typecheck/build if touched
+mobile typecheck if touched
+existing Results tests
+publication tests
+model registry tests
+scheduler tests
+MLB tests
+NCAAF tests
+forecast regression tests
+security/signing guard tests
+
+Do not fix unrelated failures without reporting them first.
+
+==================================================
+WORKSTREAM 43 — PRODUCTION DRY-RUN
+==================================================
+
+WITHOUT MUTATING PRODUCTION:
+
+run the corrected policy against a read-only snapshot/current candidate data if architecture safely permits.
+
+Report what WOULD happen.
+
+For current day report:
+
+candidate count
+eligible count
+public top-six IDs/selections
+cap-excluded count
+requested stakes
+approved stakes
+POTD
+
+Label:
+
+DRY RUN — NOT PUBLISHED
+
+Do not actually publish anything.
+
+==================================================
+WORKSTREAM 44 — ACCEPTANCE CRITERIA
+==================================================
+
+Task #238A passes only if ALL are true:
+
+1. Sports forecast outputs unchanged.
+2. Official record excludes non-public decisions.
+3. Official record honors performance eligibility.
+4. Retired/research/shadow/preview models cannot contaminate official record.
+5. All eligible sports are pooled before the daily cap.
+6. Provider/sport processing order cannot change final top six.
+7. Cap is applied after deterministic global ranking.
+8. Cap exclusions have explicit reason codes.
+9. Selected-side edge has unambiguous semantics.
+10. Confidence is not represented as calibrated probability.
+11. Newly approved stakes fail closed to 1.0u.
+12. Requested units remain preserved separately.
+13. Stake policy is versioned.
+14. POTD can only come from eligible public candidates.
+15. Historical predictions/results/stakes remain immutable.
+16. CLV is not introduced into publication/staking.
+17. MLB V4 remains non-production.
+18. NCAAF V4 remains non-production.
+19. Tests pass.
+20. No production mutation occurred.
+21. No deployment occurred.
+22. No push occurred.
+23. Contaminated Git ref was not touched.
+
+==================================================
+WORKSTREAM 45 — FINAL CLASSIFICATION
+==================================================
+
+Return exactly one:
+
+A — DOWNSTREAM SAFETY REMEDIATION COMPLETE; READY FOR CONTROLLED RELEASE AFTER SECURITY GATE
+
+B — REMEDIATION SUBSTANTIALLY COMPLETE; NARROW BLOCKERS REMAIN
+
+C — REMEDIATION INCOMPLETE; DO NOT RELEASE
+
+D — UNSAFE / REGRESSION DETECTED
+
+"READY FOR CONTROLLED RELEASE" does NOT mean deploy now.
+
+The contaminated Git ref security gate still overrides this classification.
+
+==================================================
+WORKSTREAM 46 — REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #238A — TBM FAIL-CLOSED BET-SELECTION, PUBLICATION & STAKING SAFETY REMEDIATION
+
+## 1. Executive Summary
+
+Classification:
+Forecasts changed: YES/NO
+Production mutated: YES/NO
+Deployment performed: YES/NO
+Push performed: YES/NO
+Official-record policy fixed: YES/NO
+Global ranking fixed: YES/NO
+Processing-order invariant: YES/NO
+Fail-closed staking implemented: YES/NO
+POTD eligibility fixed: YES/NO
+V4 promotion occurred: YES/NO
+
+## 2. Files Inspected
+
+## 3. Files Changed
+
+For every changed file:
+path
+purpose
+
+## 4. Existing Pipeline
+
+## 5. New Canonical Pipeline
+
+## 6. Publication Decision Contract
+
+## 7. Official Record Policy
+
+## 8. Global Candidate Pool
+
+## 9. Ranking Policy
+
+Explain exactly which EXISTING canonical ranking signal is used and why.
+
+Confirm no historical ROI optimization was performed.
+
+## 10. Six-Pick Cap
+
+## 11. Processing-Order Invariance
+
+## 12. Selected-Side Edge Semantics
+
+## 13. Confidence Semantics
+
+## 14. Staking Safety
+
+Report:
+
+requested_units behavior
+approved_units behavior
+stake_policy_version
+
+## 15. POTD Safety
+
+## 16. Model Approval Safety
+
+## 17. Results / Analytics Cohorts
+
+## 18. Historical Integrity Handling
+
+## 19. CLV Handling
+
+## 20. Retired Test Model Handling
+
+## 21. 14-Day Deterministic Replay
+
+Clearly label retrospective numbers diagnostic-only.
+
+## 22. Current-Day Dry Run
+
+DRY RUN — NOT PUBLISHED
+
+## 23. Forecast Immutability Proof
+
+## 24. MLB V4 Status
+
+## 25. NCAAF V4 Status
+
+## 26. Schema Changes
+
+## 27. Future Production Migration Required
+
+YES/NO
+
+If yes, describe exactly.
+
+DO NOT EXECUTE.
+
+## 28. Tests
+
+List exact commands and results.
+
+## 29. Security / Release Gate
+
+Confirm status of:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+DO NOT ATTEMPT TO REMOVE IT.
+
+State that production release remains blocked until owner confirms Replit remediation and independent verification passes.
+
+## 30. Remaining Blockers
+
+## 31. Final Classification
+
+## 32. Exactly One Recommended Next Task
+
+==================================================
+HARD STOP
+==================================================
+
+After implementation, testing, deterministic replay, dry run, and report:
+
+STOP.
+
+DO NOT:
+
+PUSH
+DEPLOY
+PUBLISH
+PROMOTE
+PRODUCTION MIGRATE
+CREATE EAS BUILD
+SUBMIT TO APP STORE
+CHANGE SPORTS FORECASTS
+RETRAIN MODELS
+RETUNE MODELS
+REMOVE THE PROTECTED REF
+
+Return the complete report for owner review.
+
+The intended next modeling work remains MLB V4 historical/live feature parity, but do not begin that task automatically.

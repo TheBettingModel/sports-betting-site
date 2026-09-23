@@ -1,0 +1,459 @@
+Team Offensive Rating
+Points per 100 possessions
+eFG%
+True Shooting %
+Offensive Efficiency
+Pace
+Turnover %
+Assist %
+Offensive Rebounding %
+
+Weight: ★★★★★
+
+Team Defensive Rating
+Defensive Rating
+Opponent eFG%
+Opponent TS%
+Blocks
+Steals
+Defensive Rebounding %
+Rim Protection
+
+Weight:
+★★★★★
+
+Net Rating
+
+One of the strongest predictors.
+
+Net Rating
+
+Off Rating
+-
+Def Rating
+
+Last 5
+
+Last 10
+
+Season
+
+Home
+
+Away
+
+Weight:
+★★★★★
+
+Pace
+
+Very important for:
+
+Totals
+
+1H Totals
+
+Player props
+
+Fast vs Slow matchups
+
+Weight:
+★★★★☆
+
+Shooting
+
+FG%
+
+3PT%
+
+Corner 3%
+
+Paint %
+
+Mid Range %
+
+Free Throw %
+
+Shot quality
+
+Open shot %
+
+Catch & Shoot %
+
+Transition %
+
+Weight:
+★★★★☆
+
+Tier 2 (Player Impact)
+
+This is where many public models fail.
+
+Injuries
+
+Not simply:
+
+Player OUT
+
+Instead calculate:
+
+Expected Points Lost
+
+Expected Assists Lost
+
+Expected Rebounds Lost
+
+Expected Usage Lost
+
+Defensive Value Lost
+
+Then calculate
+
+Replacement Player Rating
+
+Weight:
+★★★★★
+
+Usage Rate
+
+For every player
+
+Usage %
+
+Touches
+
+Minutes
+
+Starter
+
+Bench
+
+High usage players missing dramatically change outcomes.
+
+Minutes Projection
+
+Projected Minutes
+
+Back-to-back?
+
+Foul risk
+
+Recent coach rotations
+
+Average last 5
+
+On/Off Differential
+
+Huge edge.
+
+When Player X sits
+
+Team Offensive Rating
+
+Team Defensive Rating
+
+Net Rating
+
+Pace
+
+3PT%
+
+Rebounding
+
+Bench Rating
+
+Bench Points
+
+Bench Net Rating
+
+Bench Efficiency
+
+Depth Rating
+
+WNBA benches matter more than many bettors realize.
+
+Tier 3 (Situational)
+
+Home Court
+
+Home
+
+Away
+
+Travel
+
+Rest
+
+Altitude
+
+Arena
+
+Crowd
+
+Rest Advantage
+
+0 Days
+
+1 Day
+
+2 Days
+
+3+
+
+Back-to-back
+
+Opponent back-to-back
+
+Travel Engine
+
+Miles traveled
+
+Time zones crossed
+
+Road trip game #
+
+Homestand game #
+
+Long trip fatigue
+
+Schedule Strength
+
+Opponent Win %
+
+Opponent Net Rating
+
+Last 10 SOS
+
+Season SOS
+
+Recent Form
+
+Last 3
+
+Last 5
+
+Last 10
+
+Offensive Rating
+
+Defensive Rating
+
+Net Rating
+
+Tier 4 (Matchup Engine)
+
+This creates much stronger game-specific predictions.
+
+Paint Advantage
+
+Paint Points
+
+Opponent Paint Defense
+
+Rim FG%
+
+Post Defense
+
+Three Point Matchup
+
+Attempt Rate
+
+Opponent Allowed %
+
+Closeout %
+
+Catch/Shoot %
+
+Rebounding Edge
+
+Offensive Boards
+
+Defensive Boards
+
+Second Chance Points
+
+Box Out %
+
+Turnover Battle
+
+Forced TO%
+
+Live Ball TO
+
+Transition Points
+
+Fast Break Defense
+
+Free Throw Edge
+
+FTA Rate
+
+Opponent Fouls
+
+Free Throws Allowed
+
+Position Matchups
+
+PG vs PG
+
+Wing vs Wing
+
+Forward vs Forward
+
+Center vs Center
+
+Bench vs Bench
+
+Tier 5 (Market Intelligence)
+
+This is what separates TBM.
+
+Already implemented in MLB.
+
+Should also apply to WNBA.
+
+Sharp Money
+
+Steam
+
+Reverse Line Movement
+
+Consensus %
+
+Public %
+
+Sharp %
+
+Closing Line Value
+
+Best Book
+
+Worst Book
+
+Line Shopping
+
+Opening Line
+
+Current Line
+
+Market Timing
+
+Sharp Confidence
+
+Market Intelligence Grade
+
+Advanced Player Metrics
+
+Instead of just PPG.
+
+Include
+
+PER
+
+Win Shares
+
+BPM
+
+VORP
+
+RAPTOR (or equivalent)
+
+EPM if available
+
+TS%
+
+eFG%
+
+Usage
+
+Assist %
+
+Rebound %
+
+Defensive Rating
+
+Offensive Rating
+
+Net Rating
+
+Referee Engine
+
+Very underrated.
+
+Crew
+
+Average Fouls
+
+Home Bias
+
+Road Bias
+
+Over %
+
+Under %
+
+Technicals
+
+Free Throw Rate
+
+Coaching Engine
+
+Coach ATS
+
+Coach Totals
+
+Timeout efficiency
+
+After timeout scoring
+
+Challenge success
+
+Rotation stability
+
+Rookie coach penalty
+
+Team Chemistry
+
+Recent lineup consistency
+
+Starting lineup changes
+
+Player continuity
+
+Games together
+
+Clutch Metrics
+
+Games within 5 points
+
+Final 5 minutes
+
+Clutch Offensive Rating
+
+Clutch Defensive Rating
+
+Turnovers
+
+Free Throws
+
+Late Game Net Rating
+
+Market Timing Engine
+
+Already on your roadmap.
+
+Track
+
+Opening Line
+
+Current Line
+
+Peak Line
+
+Steam Time
+
+Best Entry
+
+Worst Entry
+
+Expected CLV

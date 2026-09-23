@@ -1,0 +1,96 @@
+{
+  "sport": "SOCCER",
+  "modelId": "tbm-soccer-v4-core-score",
+  "modelVersion": "4.0.0-core",
+  "modelFamily": "independent-ridge-score",
+  "featureContractId": "rolling-score-v4-core-1",
+  "featureContractHash": "4171705ce64dbf2cb32b006bd9ec7d1483972500dcede7c8d3858ec9d48618cf",
+  "featureNames": [
+    "home_scored_avg",
+    "home_allowed_avg",
+    "away_scored_avg",
+    "away_allowed_avg",
+    "home_games_log1p",
+    "away_games_log1p",
+    "home_rest_days",
+    "away_rest_days",
+    "home_indicator"
+  ],
+  "trainingCohortHash": "54062d82e3b36a8b170fa4e0a0dc268dc1843fe364ad065672ebe293974b7f55",
+  "validationCohortHash": "a2b2da91d4413ad868295f6ea775d93151d2864990bb1196753c5b2d17e68824",
+  "trainedAt": "2026-09-07T00:00:00.000Z",
+  "trainingRows": 82,
+  "validationRows": 21,
+  "dateRange": {
+    "start": "2026-07-31T12:00:00.000Z",
+    "end": "2026-09-06T19:00:00.000Z"
+  },
+  "ridgeLambda": 100,
+  "normalization": {
+    "means": [
+      0.19735772357723577,
+      0.2004065040650406,
+      0.1902439024390244,
+      0.18719512195121954,
+      1.5264694966860821,
+      1.5264694966860821,
+      6.993648373983741,
+      6.970528455284553,
+      1
+    ],
+    "scales": [
+      0.3807216574282664,
+      0.3198807324502798,
+      0.3950999943713625,
+      0.45227742568748974,
+      0.314681221693116,
+      0.314681221693116,
+      3.9189440612086015,
+      3.842263468167023,
+      1
+    ]
+  },
+  "homeModel": {
+    "intercept": 0.5243902439024394,
+    "coefficients": [
+      0.010307389569207183,
+      0.20329215385088145,
+      0.041209742262178474,
+      0.12666846734604584,
+      -0.037282275630994254,
+      -0.03728227563099426,
+      0.04649927971145934,
+      0.05754360842729704,
+      0
+    ]
+  },
+  "awayModel": {
+    "intercept": 0.40243902439024365,
+    "coefficients": [
+      0.052388080675402154,
+      0.15115276626079477,
+      0.06588279549788559,
+      0.04052746321064977,
+      0.046967262461837404,
+      0.04696726246183741,
+      0.04292192361395119,
+      0.03709920557033152,
+      0
+    ]
+  },
+  "metrics": {
+    "validationHomeMae": 1.2715042683798234,
+    "validationAwayMae": 1.2222016965018336,
+    "validationMarginMae": 1.530375449066349,
+    "validationTotalMae": 2.1412425771890415,
+    "validationBrier": 0.2448519989926005,
+    "baselineBrier": 0.29583203497540206,
+    "actualAverageTotal": 3.142857142857143,
+    "predictedAverageTotal": 2.8982719933319223,
+    "totalBias": -0.24458514952522087
+  },
+  "approvalState": "SHADOW",
+  "maturity": "DEVELOPING",
+  "parameterHash": "6fe382b3ea6afc89b4fa91faba3b4451a51067643aebe57bc8f96d6fa5a387c8",
+  "artifactHash": "26e1a46ee7feee17b6d7e258a6f3574a90b2fdcdc4f4c06be8abffe5927264b6"
+}

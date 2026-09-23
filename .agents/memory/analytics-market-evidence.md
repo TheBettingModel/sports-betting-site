@@ -1,0 +1,34 @@
+---
+name: Analytics market evidence
+description: Evidence requirements for TBM Analytics sharp-money and CLV labels.
+---
+
+The subscriber Analytics surface compares public market movement with verified sharp-book movement. CLV remains an internal model/evaluation signal and is not presented as a user-facing card metric.
+
+**Why:** Users benefit more from seeing where ordinary sportsbook movement agrees or disagrees with sharp books, while CLV is already part of V4 forecasting and evaluation.
+
+**How to apply:** Label non-sharp sportsbook movement as public market movement, not ticket or handle percentage. Show verified sharp movement separately and highlight opposing directions as split signals.
+
+Sharp-money direction may be shown only when at least two comparable moneyline observations exist for the projected side from the same sportsbook explicitly classified as sharp. Ordinary market movement and model-edge heuristics are not sharp-money evidence.
+
+**Why:** The legacy sharp signal can fall back to model edge when Pinnacle evidence is absent, so presenting it as verified sharp action would misstate the source.
+
+**How to apply:** Group observations by sportsbook and selection before comparing them. Show unavailable when the comparison is incomplete.
+
+Odds API snapshots for Analytics must be persisted for every active sport from named bookmaker quotes, not only sports with a registered V4 publication engine. Use the provider's `last_update` as the observation timestamp when present; server polling time would turn cached repeats into fake movement.
+
+**Why:** The V4 evidence path was NCAAF-specific, while Analytics reads the shared odds snapshot ledger. Reusing polling timestamps made repeated cached responses look like independent sharp observations.
+
+**How to apply:** Capture complete same-book moneyline outcomes, classify Pinnacle/Circa from the canonical slug, and deduplicate by provider event, book, selection, and provider observation time. Provider availability can still legitimately leave a sport unavailable.
+
+CLV direction requires a same-book market price captured at or before the forecast timestamp and a later comparable price. Label it projected before market closure and final only after the event/market has closed.
+
+**Why:** Opening-to-current movement without a forecast-time entry price is market movement, not CLV.
+
+**How to apply:** Never substitute unrelated books, inferred opening prices, or mutable post-start data. Missing comparison evidence must fail closed.
+
+Analytics response limits must preserve the day's first observation plus the newest comparable pair per sportsbook and selection rather than taking a global tail.
+
+**Why:** On broad markets, a global tail can discard every prior same-book quote. Keeping only the newest pair can also hide a real daily move when both latest prices match.
+
+**How to apply:** Compact each sportsbook/selection group independently to first + latest two, then merge and sort the retained observations for the client.

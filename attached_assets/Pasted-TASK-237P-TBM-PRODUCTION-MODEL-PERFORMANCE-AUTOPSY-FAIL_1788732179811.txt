@@ -1,0 +1,1252 @@
+TASK #237P — TBM PRODUCTION MODEL PERFORMANCE AUTOPSY & FAILURE ATTRIBUTION
+
+PROJECT: The Betting Model
+DATE: September 6, 2026
+
+MISSION
+
+The Betting Model's live production picks have performed poorly for approximately the last two weeks.
+
+Before changing, retraining, replacing, disabling, promoting, or deploying any model, perform a rigorous read-only forensic evaluation of the ACTUAL production models and ACTUAL published betting decisions.
+
+I need to know exactly what is failing.
+
+The primary question is:
+
+ARE THE SPORTS FORECASTS FAILING,
+OR IS THE BET-SELECTION / PUBLICATION LAYER FAILING,
+OR ARE BOTH FAILING?
+
+This task must establish that from real evidence.
+
+This is a DIAGNOSTIC task.
+
+DO NOT attempt to improve the results during this task.
+
+==================================================
+CURRENT PRODUCTION CONTEXT
+==================================================
+
+The September 6 authoritative project audit established:
+
+- Current production models remain established V1 models.
+- MLB production champion:
+  tbm-mlb-moneyline-v1
+- NCAAF production champion:
+  tbm-ncaaf-moneyline-v1
+- NFL production champion:
+  tbm-nfl-moneyline-v1
+- NBA production champion:
+  tbm-nba-moneyline-v1
+- WNBA production champion:
+  tbm-wnba-moneyline-v1
+- NHL production champion:
+  tbm-nhl-moneyline-v1
+- Soccer production champion:
+  tbm-soccer-moneyline-v1
+- UFC production champion:
+  tbm-ufc-moneyline-v1
+
+MLB V4 is NOT production-active.
+
+NCAAF V4 is NOT production-active.
+
+MLB #232 is development-only.
+
+MLB #237 is research-only and failed/blockaded.
+
+DO NOT attribute current production betting performance to MLB V4 or NCAAF V4 unless current runtime evidence contradicts the audit.
+
+If runtime evidence contradicts any of these assumptions, report the contradiction immediately.
+
+==================================================
+HARD SAFETY RULES
+==================================================
+
+DO NOT:
+
+- edit code
+- modify database records
+- grade or regrade picks
+- change historical results
+- trigger collection
+- trigger refresh
+- trigger automation
+- retrain any model
+- retune any model
+- recalibrate any model
+- modify thresholds
+- modify units
+- modify bet sizing
+- disable a sport
+- enable a sport
+- change publication rules
+- change Play of the Day
+- change the six-pick cap
+- promote V4
+- modify V1
+- create a challenger
+- modify MLB
+- modify NCAAF
+- modify NFL
+- modify any other sport
+- deploy
+- push
+- commit
+- publish an EAS update
+- create an EAS build
+- modify production schema
+- modify Git history
+- touch Apple/EAS credentials
+- touch the contaminated protected Git ref
+
+READ ONLY.
+
+We are diagnosing before treating.
+
+==================================================
+1. ESTABLISH THE AUTHORITATIVE BETTING LEDGER
+==================================================
+
+First identify the exact authoritative source of production betting history.
+
+Determine:
+
+- table(s)
+- API(s)
+- model prediction tables
+- published-pick tables
+- result tables
+- odds/market snapshot tables
+- closing-line tables
+- CLV tables
+- unit-sizing fields
+- model/version identifiers
+- publication timestamps
+- result timestamps
+
+Determine which source is authoritative for:
+
+A. what the model predicted
+B. what TBM actually published
+C. what odds TBM published at
+D. bet size
+E. final result
+F. closing line
+G. CLV
+H. model probability
+I. market implied probability
+J. edge
+K. confidence
+L. model identity/version
+
+Do not assume similarly named tables represent the same lifecycle stage.
+
+Document the lineage:
+
+SPORTS FORECAST
+→ MARKET SNAPSHOT
+→ BET-SELECTION DECISION
+→ PUBLICATION
+→ FINAL RESULT
+→ CLOSING LINE
+→ EVALUATION
+
+Identify missing links explicitly.
+
+==================================================
+2. DATA-INTEGRITY AUDIT
+==================================================
+
+Before calculating performance, prove that the underlying ledger is trustworthy.
+
+Check for:
+
+- duplicate picks
+- duplicate game IDs
+- duplicate publication events
+- conflicting results
+- missing results
+- incorrect win/loss grading
+- pushes treated as losses
+- void/cancelled games treated incorrectly
+- missing odds
+- impossible odds
+- malformed American odds
+- missing units
+- impossible unit values
+- stale odds
+- publication after game start
+- market snapshot after game start
+- result leakage
+- mismatched teams
+- mismatched games
+- mismatched markets
+- model/version ambiguity
+- picks without model identity
+- picks without publication timestamp
+- picks without final outcome
+- suspicious manual overrides
+- retroactive mutations
+
+Do not repair anything.
+
+Report every issue and quantify its impact.
+
+Create:
+
+RAW SAMPLE COUNT
+VALID SAMPLE COUNT
+EXCLUDED SAMPLE COUNT
+EXCLUSION REASONS
+
+Performance metrics must use a clearly defined valid cohort.
+
+==================================================
+3. ANALYSIS WINDOWS
+==================================================
+
+Evaluate rolling production performance over:
+
+LAST 7 DAYS
+LAST 14 DAYS
+LAST 30 DAYS
+LAST 60 DAYS
+
+Also provide:
+
+SEASON-TO-DATE where meaningful.
+
+Use exact timestamps/dates.
+
+The primary concern is the last 14 days.
+
+Compare the 14-day period against:
+
+- prior 14 days
+- prior 30-day baseline
+- longer production baseline where legitimate
+
+Determine whether recent performance is statistically/operationally unusual or within plausible short-run variance.
+
+Do NOT dismiss poor performance as variance without evidence.
+
+==================================================
+4. PLATFORM-WIDE BETTING PERFORMANCE
+==================================================
+
+For every time window calculate:
+
+Published picks
+Graded picks
+Wins
+Losses
+Pushes
+Win rate
+
+Units risked
+Units won/lost
+Net units
+ROI
+
+Average odds
+Median odds
+
+Average implied probability
+
+Average model probability
+
+Average model edge
+
+Average confidence
+
+Average bet size
+
+Maximum drawdown where reconstructable
+
+Longest losing streak
+
+Longest winning streak
+
+Do not calculate fake metrics where required fields are unavailable.
+
+==================================================
+5. PERFORMANCE BY SPORT
+==================================================
+
+Break everything out separately for:
+
+MLB
+NCAAF
+NFL
+NBA
+WNBA
+NHL
+Soccer
+UFC
+
+For each sport report:
+
+model/version
+published picks
+record
+units
+ROI
+average odds
+average edge
+average confidence
+CLV if available
+Brier if legitimate
+log loss if legitimate
+calibration if legitimate
+
+for:
+
+7 days
+14 days
+30 days
+60 days
+
+Identify which sports contributed the most:
+
+LOSSES
+PROFIT
+VOLUME
+DRAWDOWN
+
+Calculate contribution to total platform losses.
+
+Example concept:
+
+MLB: -X units / Y% of drawdown
+NCAAF: -X units / Y% of drawdown
+
+Use actual numbers.
+
+==================================================
+6. PERFORMANCE BY MARKET
+==================================================
+
+Break out by actual published market type.
+
+Examples only if actually present:
+
+Moneyline
+Spread
+Total
+Run Line
+First Half
+First Five
+NRFI/YRFI
+Prop
+Three-way
+Other
+
+Do not invent market support.
+
+For each market report:
+
+sample
+record
+units
+ROI
+average odds
+average edge
+CLV if available
+
+Identify clearly unprofitable market segments.
+
+==================================================
+7. FAVORITES VS UNDERDOGS
+==================================================
+
+Analyze:
+
+Favorites
+Underdogs
+Near pick'em
+
+Use defensible odds buckets.
+
+At minimum consider:
+
+-300 or shorter
+-299 to -200
+-199 to -150
+-149 to -110
+-109 to +109
++110 to +149
++150 to +199
++200 or longer
+
+Adjust buckets only if data structure justifies it.
+
+Report:
+
+sample
+win rate
+units
+ROI
+average model edge
+CLV
+
+Determine whether TBM is systematically:
+
+overbetting favorites
+overbetting longshots
+mispricing underdogs
+losing primarily in one price range
+
+==================================================
+8. EDGE-BUCKET PERFORMANCE
+==================================================
+
+Evaluate published picks by MODEL EDGE.
+
+Use the actual production edge definition.
+
+Verify first whether edge means:
+
+model probability minus market implied probability
+
+and whether it is stored as:
+
+percentage points
+decimal probability
+percentage
+
+Do not assume.
+
+Create sensible buckets such as:
+
+< 1%
+1–2%
+2–3%
+3–4%
+4–5%
+5–7.5%
+7.5–10%
+10%+
+
+Adjust based on actual distribution if necessary.
+
+For each bucket:
+
+sample
+record
+units
+ROI
+CLV
+average predicted probability
+actual win rate
+
+Critical question:
+
+DOES HIGHER REPORTED EDGE ACTUALLY CORRESPOND TO BETTER OUTCOMES?
+
+If not, quantify the failure.
+
+==================================================
+9. CONFIDENCE-BUCKET PERFORMANCE
+==================================================
+
+Determine the exact production confidence definition.
+
+Then analyze confidence buckets.
+
+Do not assume confidence is a calibrated probability.
+
+For each bucket report:
+
+sample
+record
+units
+ROI
+CLV
+average model probability
+actual win rate
+
+Critical question:
+
+DOES HIGHER CONFIDENCE ACTUALLY MEAN BETTER PERFORMANCE?
+
+If not, identify where monotonicity breaks.
+
+==================================================
+10. MODEL-PROBABILITY CALIBRATION
+==================================================
+
+Where legitimate immutable forecast probabilities exist, evaluate:
+
+predicted win probability
+actual win frequency
+
+Use calibration buckets such as:
+
+50–55%
+55–60%
+60–65%
+65–70%
+70–75%
+75–80%
+80%+
+
+Only include probabilities actually generated before the event.
+
+Calculate where possible:
+
+Brier score
+log loss
+ECE
+calibration slope/intercept if defensible
+
+Report predicted versus actual win rates.
+
+Critical question:
+
+ARE PRODUCTION MODELS OVERCONFIDENT?
+
+Also test whether they are systematically underconfident.
+
+==================================================
+11. FORECAST DISCRIMINATION
+==================================================
+
+Where legitimate probabilities exist, evaluate whether models actually separate winners from losers.
+
+Calculate where defensible:
+
+AUC
+mean predicted probability on winners
+mean predicted probability on losers
+probability distribution
+ranking quality
+
+If probabilities cluster tightly and provide weak discrimination, say so.
+
+Do not equate calibration with discrimination.
+
+==================================================
+12. MARKET COMPARISON
+==================================================
+
+Compare the sports model against the sportsbook market.
+
+For each valid prediction determine where possible:
+
+model probability
+market implied probability
+closing implied probability
+model edge at publication
+closing edge
+
+Evaluate whether:
+
+A. model probabilities beat naive market probabilities
+B. model probabilities improve on market Brier/log loss
+C. published bets beat closing price
+D. reported edge survives to close
+
+Calculate:
+
+Brier skill vs market
+log-loss improvement vs market
+
+where legitimate.
+
+Critical question:
+
+IS THE SPORTS FORECAST ADDING INFORMATION BEYOND THE MARKET?
+
+==================================================
+13. CLV ANALYSIS
+==================================================
+
+Where closing lines are legitimately captured:
+
+calculate CLV using the project's authoritative CLV definition.
+
+Report:
+
+sample with CLV
+average CLV
+median CLV
+positive CLV %
+negative CLV %
+
+Break down by:
+
+sport
+market
+edge bucket
+confidence bucket
+odds bucket
+
+Critical questions:
+
+ARE WE LOSING MONEY WHILE BEATING THE CLOSE?
+
+or
+
+ARE WE LOSING MONEY AND ALSO LOSING TO THE CLOSE?
+
+Those imply very different problems.
+
+Do not extrapolate CLV from tiny samples without warning.
+
+==================================================
+14. FORECAST VS BET-SELECTION ATTRIBUTION
+==================================================
+
+This is one of the most important sections.
+
+Separate:
+
+MODEL QUALITY
+
+from
+
+BET-SELECTION QUALITY.
+
+Determine whether bad results arise primarily because:
+
+A. model probabilities are poor
+B. model probabilities are acceptable but edge calculation is wrong
+C. implied probability conversion is wrong
+D. sportsbook pricing is stale
+E. publication occurs too late
+F. thresholds select weak segments
+G. high-edge picks are actually miscalibrated
+H. confidence score is misleading
+I. unit sizing amplifies weak picks
+J. sport-specific engines are failing
+K. cross-sport publication logic creates bad selection
+L. small-sample variance dominates
+M. multiple causes
+
+Support every attribution with evidence.
+
+==================================================
+15. MODEL OPINION VS PUBLICATION PERMISSION
+==================================================
+
+Audit whether the system properly separates:
+
+MODEL OPINION
+
+from
+
+PUBLICATION PERMISSION.
+
+Determine:
+
+How many predictions existed?
+
+How many became candidate bets?
+
+How many qualified?
+
+How many were published?
+
+How many were blocked?
+
+Why?
+
+Break down rejection/publication reasons.
+
+Determine whether publication logic is selecting the strongest model opinions or merely the largest calculated edges.
+
+==================================================
+16. SIX-PICK / GLOBAL CAP EFFECT
+==================================================
+
+The project previously identified a possible architectural concern:
+
+a global daily six-pick cap / processing order may allow one sport to consume publication capacity before another sport is evaluated.
+
+Audit whether this is currently happening.
+
+READ ONLY.
+
+Determine:
+
+- Is there a global cap?
+- Exact current logic.
+- Does processing order matter?
+- Can an earlier sport consume capacity?
+- Are stronger later-sport opportunities excluded?
+- How often did this occur during 14/30/60-day windows?
+- What was the performance of included vs excluded opportunities where legitimately reconstructable?
+
+Do NOT change the cap in this task.
+
+==================================================
+17. UNIT-SIZING ATTRIBUTION
+==================================================
+
+Determine whether losses are caused primarily by:
+
+pick quality
+
+or
+
+staking.
+
+Compare:
+
+flat 1-unit hypothetical result
+
+versus
+
+actual production sizing
+
+using the exact same published picks.
+
+This is diagnostic only.
+
+Do not change historical units.
+
+Report:
+
+actual units result
+flat-unit result
+difference attributable to sizing
+
+Also analyze performance by unit tier.
+
+Critical question:
+
+IS TBM PUTTING MORE UNITS ON BETS THAT ACTUALLY PERFORM BETTER?
+
+==================================================
+18. PLAY OF THE DAY ANALYSIS
+==================================================
+
+Evaluate actual Play of the Day selections separately.
+
+For:
+
+7
+14
+30
+60 days
+
+Report:
+
+sample
+record
+units
+ROI
+average odds
+average edge
+confidence
+CLV where available
+
+Determine whether POTD ranking is adding value.
+
+Audit whether POTD selection is driven by:
+
+edge
+confidence
+POD score
+market
+sport
+publication order
+other logic
+
+Do not change POTD.
+
+==================================================
+19. TIME-OF-PUBLICATION ANALYSIS
+==================================================
+
+Where timestamps permit, analyze performance by time between:
+
+publication
+and
+game start.
+
+Examples:
+
+<30 minutes
+30–60 minutes
+1–3 hours
+3–6 hours
+6–12 hours
+12+ hours
+
+Also compare line movement after publication.
+
+Determine whether TBM is systematically:
+
+publishing too early
+publishing too late
+missing best prices
+publishing into stale markets
+
+==================================================
+20. DATA-FRESHNESS ANALYSIS
+==================================================
+
+Audit whether predictions were based on fresh enough information.
+
+Check where relevant:
+
+odds timestamp
+sportsbook timestamp
+starter timestamp
+lineup timestamp
+injury timestamp
+weather timestamp
+team-data timestamp
+model snapshot timestamp
+
+Do not require unavailable fields.
+
+Identify stale-input incidents.
+
+Quantify how many published bets may have used stale information.
+
+==================================================
+21. MODEL VERSION STABILITY
+==================================================
+
+Determine whether any production model/version/configuration changed during the analysis windows.
+
+For every change identify:
+
+date/time
+sport
+old version
+new version
+reason if stored
+performance before
+performance after
+
+Do not attribute all 14-day performance to one version if multiple versions actually ran.
+
+==================================================
+22. DAILY PERFORMANCE SERIES
+==================================================
+
+Produce a day-by-day table for the last 30 days:
+
+DATE
+PICKS
+W-L-P
+UNITS
+ROI
+CUMULATIVE UNITS
+AVERAGE ODDS
+AVERAGE EDGE
+CLV where available
+
+Identify the start of the current drawdown.
+
+Determine whether there was an obvious structural break.
+
+==================================================
+23. WORST SEGMENTS
+==================================================
+
+Rank the worst evidence-supported segments.
+
+Examples:
+
+sport
+market
+odds bucket
+edge bucket
+confidence bucket
+unit tier
+time-to-game
+model/version
+
+Rank primarily by:
+
+net units lost
+ROI
+sample size
+statistical reliability
+
+Do not rank a 2-bet segment above a 100-bet segment solely because its ROI is worse.
+
+==================================================
+24. BEST SEGMENTS
+==================================================
+
+Also identify the strongest segments using the same discipline.
+
+We need to know whether the entire platform is weak or whether losses are concentrated.
+
+Do not recommend scaling a segment merely because it had a short winning streak.
+
+==================================================
+25. EXPECTED PERFORMANCE / VARIANCE
+==================================================
+
+Where model probabilities and prices allow it, estimate expected outcomes versus realized outcomes.
+
+Determine whether the recent drawdown is:
+
+consistent with modeled variance
+somewhat unusual
+highly inconsistent with stated probabilities
+
+Use appropriate uncertainty intervals or simulation if defensible.
+
+If the models claim high expected win probabilities but realized outcomes are implausibly poor, flag possible miscalibration.
+
+Do not use this analysis to excuse bad forecasts.
+
+==================================================
+26. FORECAST FAILURE FLAGS
+==================================================
+
+For each sport classify the forecast engine:
+
+HEALTHY
+WATCH
+DEGRADED
+SEVERELY DEGRADED
+INSUFFICIENT EVIDENCE
+
+Base this on:
+
+calibration
+discrimination
+market comparison
+CLV
+recent performance
+longer baseline
+sample size
+
+Do not classify solely on ROI.
+
+==================================================
+27. BET-SELECTION FAILURE FLAGS
+==================================================
+
+For each sport separately classify the downstream selection/publication system:
+
+HEALTHY
+WATCH
+DEGRADED
+SEVERELY DEGRADED
+INSUFFICIENT EVIDENCE
+
+Base this on:
+
+edge monotonicity
+confidence monotonicity
+CLV
+odds buckets
+threshold behavior
+staking
+publication timing
+selection logic
+
+==================================================
+28. PLATFORM FAILURE ATTRIBUTION
+==================================================
+
+Provide a final evidence-based attribution.
+
+Allocate the recent problem qualitatively and, where defensible, quantitatively among:
+
+SPORTS FORECAST QUALITY
+CALIBRATION
+MARKET/EDGE CALCULATION
+BET SELECTION
+PUBLICATION LOGIC
+UNIT SIZING
+DATA FRESHNESS
+MARKET TIMING
+SPORT MIX
+VARIANCE
+DATA/GRADING ERRORS
+OTHER
+
+Do not force percentages if they cannot be supported.
+
+==================================================
+29. IMMEDIATE RISK ASSESSMENT
+==================================================
+
+Without changing anything, identify whether continuing to publish current production picks appears:
+
+LOW RISK
+MODERATE RISK
+HIGH RISK
+CRITICAL RISK
+
+This is not based merely on losing two weeks.
+
+Use actual evidence.
+
+If a specific sport/market is clearly dangerous, identify it.
+
+DO NOT disable it.
+
+==================================================
+30. RELATIONSHIP TO V4 WORK
+==================================================
+
+Explicitly state whether findings strengthen or weaken the case for replacing V1 with V4 for:
+
+MLB
+NCAAF
+
+But remember:
+
+MLB V4 is not yet validated.
+
+NCAAF V4 is not yet production-approved.
+
+Do not recommend promoting an unvalidated V4 solely because V1 is losing.
+
+Determine whether the failure patterns should influence what #238 and future MLB challenger work emphasize.
+
+==================================================
+31. NO RETROSPECTIVE OPTIMIZATION
+==================================================
+
+You may identify hypothetical filters for diagnostic purposes.
+
+Example:
+
+"If bets above +200 were excluded, historical ROI would have been X."
+
+But clearly label these:
+
+RETROSPECTIVE DIAGNOSTIC ONLY
+
+Do not turn them into production rules.
+
+Do not search dozens of arbitrary thresholds to find a profitable backtest.
+
+No p-hacking.
+
+No retroactive strategy optimization.
+
+==================================================
+32. REQUIRED OUTPUT ARTIFACT
+==================================================
+
+Create a permanent diagnostic report in the repository's normal report/artifact location.
+
+Include machine-readable JSON where the project convention supports it.
+
+The report must record:
+
+audit timestamp
+data cutoff
+source tables
+cohort definitions
+exclusion rules
+model versions
+sample sizes
+metrics
+limitations
+hash/checksum where appropriate
+
+The report itself may be created only if the project's existing read-only audit/report convention treats reports as generated artifacts.
+
+If creating the report would modify tracked repository state, DO NOT COMMIT IT.
+
+Clearly report its path and Git status.
+
+==================================================
+33. VALIDATION
+==================================================
+
+After analysis, run appropriate non-mutating validation:
+
+API tests
+database tests/typecheck
+model-registry checks
+relevant analytics tests
+grading integrity tests
+PIT/leakage checks where applicable
+
+Do not repair unrelated failures.
+
+Report exact:
+
+command
+PASS / FAIL
+counts
+errors
+
+==================================================
+34. REQUIRED FINAL CLASSIFICATION
+==================================================
+
+Return exactly ONE primary classification:
+
+A — PRODUCTION MODELS HEALTHY; RECENT DRAWDOWN CONSISTENT WITH VARIANCE
+
+B — SPORTS FORECASTS ACCEPTABLE; BET-SELECTION/PUBLICATION LAYER DEGRADED
+
+C — SPORTS FORECAST QUALITY DEGRADED
+
+D — BOTH FORECAST AND BET-SELECTION LAYERS DEGRADED
+
+E — DATA INTEGRITY PREVENTS RELIABLE ATTRIBUTION
+
+F — INSUFFICIENT EVIDENCE FOR RELIABLE ATTRIBUTION
+
+Do not choose based on intuition.
+
+==================================================
+35. REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #237P — TBM PRODUCTION MODEL PERFORMANCE AUTOPSY
+
+## 1. Executive Summary
+
+Primary classification:
+Current 14-day record:
+Current 14-day units:
+Current 14-day ROI:
+Primary source of losses:
+Worst sport:
+Worst market:
+Worst odds segment:
+Worst edge segment:
+Worst confidence segment:
+CLV status:
+Forecast health:
+Bet-selection health:
+Data-integrity status:
+Risk of continuing unchanged:
+
+## 2. Authoritative Data Sources
+
+## 3. Data Integrity
+
+## 4. Cohort Definitions
+
+## 5. 7 / 14 / 30 / 60-Day Platform Performance
+
+## 6. Performance by Sport
+
+## 7. Performance by Market
+
+## 8. Favorites vs Underdogs
+
+## 9. Odds-Bucket Performance
+
+## 10. Edge-Bucket Performance
+
+## 11. Confidence-Bucket Performance
+
+## 12. Probability Calibration
+
+## 13. Forecast Discrimination
+
+## 14. Model vs Market
+
+## 15. CLV Analysis
+
+## 16. Forecast vs Bet-Selection Attribution
+
+## 17. Model Opinion vs Publication Permission
+
+## 18. Global Six-Pick Cap Analysis
+
+## 19. Unit-Sizing Analysis
+
+## 20. Play of the Day Analysis
+
+## 21. Publication-Timing Analysis
+
+## 22. Data-Freshness Analysis
+
+## 23. Model-Version Stability
+
+## 24. 30-Day Daily Performance
+
+## 25. Worst Segments
+
+## 26. Best Segments
+
+## 27. Variance / Expected Performance
+
+## 28. Forecast Health by Sport
+
+## 29. Bet-Selection Health by Sport
+
+## 30. Failure Attribution
+
+## 31. Immediate Risk Assessment
+
+## 32. Relationship to MLB/NCAAF V4
+
+## 33. Limitations
+
+## 34. Tests / Validation
+
+## 35. Final Classification
+
+## 36. Next Recommended Action
+
+==================================================
+36. NEXT RECOMMENDED ACTION RULE
+==================================================
+
+Recommend exactly ONE next action based on the evidence.
+
+Examples:
+
+If A:
+Do not panic-adjust production. Continue V4 validation.
+
+If B:
+Recommend a focused bet-selection remediation task.
+
+If C:
+Recommend the highest-priority sport forecast remediation/replacement task.
+
+If D:
+Identify which layer must be fixed first based on risk and dependency.
+
+If E:
+Recommend data-integrity remediation first.
+
+If F:
+Recommend the minimum evidence/telemetry required.
+
+DO NOT EXECUTE THE NEXT ACTION.
+
+==================================================
+HARD STOP
+==================================================
+
+This task ends with diagnosis.
+
+DO NOT:
+
+FIX
+RETRAIN
+RETUNE
+RECALIBRATE
+FILTER
+DISABLE
+PROMOTE
+DEPLOY
+PUSH
+COMMIT
+MIGRATE
+PUBLISH
+CHANGE UNITS
+CHANGE THRESHOLDS
+CHANGE MODELS
+CHANGE SPORTS
+CHANGE POTD
+CHANGE THE SIX-PICK CAP
+
+Return the complete report and wait for owner review.

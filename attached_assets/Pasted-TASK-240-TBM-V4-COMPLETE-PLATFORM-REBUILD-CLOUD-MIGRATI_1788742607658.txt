@@ -1,0 +1,2511 @@
+TASK #240 — TBM V4 COMPLETE PLATFORM REBUILD, CLOUD MIGRATION & PRODUCTION CUTOVER
+
+PROJECT: The Betting Model (TBM)
+DATE: September 6, 2026
+
+EXECUTION MODE:
+MAJOR CONSOLIDATED PRO-AGENT BUILD
+
+MISSION:
+
+Rebuild The Betting Model into a clean, production-grade, V4-only sports forecasting platform, remove Replit as a required production runtime/development bottleneck, consolidate the accumulated V1/V2/V3/V4 architecture into one canonical V4 engine boundary per sport, preserve the legitimate safety/evidence/model-lifecycle work already completed, migrate the platform onto independently deployable cloud infrastructure, validate the entire system end-to-end, and perform production cutover ONLY if every required release gate passes.
+
+THIS IS NOT AN AUDIT-ONLY TASK.
+
+THIS IS NOT A SMALL INCREMENTAL TASK.
+
+THIS IS NOT A REQUEST TO STOP AFTER IDENTIFYING THE FIRST BLOCKER.
+
+IMPLEMENT EVERYTHING THAT CAN LEGITIMATELY AND SAFELY BE IMPLEMENTED.
+
+When a problem is resolvable through code, schema, configuration, tests, adapters, refactoring, deployment configuration, or legitimate existing data:
+
+FIX IT.
+
+Do not stop and ask for approval between ordinary implementation steps.
+
+Do not create a chain of tiny follow-up tasks.
+
+Only stop an individual workstream when proceeding would require:
+
+- fabricated data
+- future information
+- postgame hindsight
+- market leakage into sports forecasting
+- unavailable external credentials
+- unavailable infrastructure access
+- destructive production action without a verified rollback
+- invalid statistical claims
+- bypassing a hard security gate
+
+Continue all other independent workstreams even if one workstream is blocked.
+
+==================================================
+0. FIRST ACTION — INGEST CURRENT PROJECT STATE
+==================================================
+
+Task #239 is finishing immediately before this task.
+
+DO NOT assume its outcome.
+
+Before changing architecture:
+
+1. locate and read the complete Task #239 report
+2. inspect every file changed by #239
+3. inspect the current repository state
+4. inspect current development DB state
+5. identify any new MLB V4 contract/model/artifact/executor/shadow infrastructure created by #239
+6. record #239's final classification
+7. preserve every legitimate completed #239 artifact
+8. do not redo working #239 implementation unnecessarily
+
+If #239 produced:
+
+A:
+preserve the legitimate MLB V4 challenger and integrate it into the new architecture.
+
+B:
+preserve the completed foundation and continue resolving legitimate training/evidence blockers where possible.
+
+C:
+continue the consolidated repair/build rather than merely repeating the audit.
+
+D:
+quarantine unsafe MLB components and rebuild only from PIT-safe foundations.
+
+The #239 report is authoritative for the newest MLB state unless source/code/database inspection proves an inconsistency.
+
+==================================================
+1. TARGET END STATE
+==================================================
+
+TBM must become:
+
+                 TBM PLATFORM
+                      |
+        +-------------+-------------+
+        |                           |
+   SPORT V4 ENGINES          SHARED PLATFORM
+        |                           |
+        |                    market ingestion
+        |                    fair-price comparison
+        |                    bet selection
+        |                    global ranking
+        |                    staking
+        |                    publication
+        |                    POTD
+        |                    results
+        |                    CLV
+        |                    analytics
+        |                    authentication
+        |                    admin
+        |                    scheduling
+        |                    monitoring
+        |
+        +----------> FORECASTS
+                         |
+                         v
+                 #238A SAFETY LAYER
+                         |
+                         v
+                   PUBLIC OUTPUT
+
+Each sport has exactly ONE canonical active forecasting-engine family:
+
+MLB      → TBM MLB V4
+NCAAF    → TBM NCAAF V4
+NFL      → TBM NFL V4
+NBA      → TBM NBA V4
+WNBA     → TBM WNBA V4
+NHL      → TBM NHL V4
+Soccer   → TBM Soccer V4
+UFC      → TBM UFC V4
+NCAAMB   → TBM NCAAMB V4
+
+Legacy models remain historical/audit artifacts only after replacement.
+
+==================================================
+2. FUNDAMENTAL ARCHITECTURAL RULE
+==================================================
+
+SHARED INFRASTRUCTURE.
+INDEPENDENT SPORTS INTELLIGENCE.
+
+Shared infrastructure may include:
+
+- model registry
+- artifact storage
+- prediction persistence
+- evidence lifecycle
+- approval lifecycle
+- scheduler
+- market ingestion
+- no-vig pricing
+- edge calculation
+- publication
+- staking
+- POTD
+- results
+- CLV
+- analytics
+- authentication
+- admin
+- monitoring
+
+Forecast features/models MUST remain sport-specific.
+
+MLB intelligence must not feed NFL forecasts.
+NFL intelligence must not feed NCAAF forecasts.
+NCAAF intelligence must not feed NBA forecasts.
+Etc.
+
+==================================================
+3. V4-ONLY RUNTIME RULE
+==================================================
+
+The final production routing architecture must NOT use:
+
+V4 → V3 → V2 → V1 fallback.
+
+The canonical behavior is:
+
+SPORT
+  ↓
+eligible approved/provisional V4 artifact
+  ↓
+valid V4 input
+  ↓
+V4 forecast
+  ↓
+shared downstream system
+
+If no eligible V4 artifact/input exists:
+
+NO FORECAST
+
+not:
+
+fallback to legacy.
+
+Legacy engines may remain accessible only through explicit historical/research tooling if needed.
+
+They must not silently generate current subscriber selections after a sport completes V4 cutover.
+
+==================================================
+4. MODEL OPINION VS PUBLICATION PERMISSION
+==================================================
+
+Preserve strict separation.
+
+A model can technically produce a forecast without being allowed to publish a bet.
+
+Use explicit lifecycle states compatible with existing architecture:
+
+UNVALIDATED
+SHADOW
+PROVISIONAL
+PRODUCTION_APPROVED
+SUSPENDED
+
+And maturity states such as:
+
+EXPERIMENTAL
+DEVELOPING
+VALIDATED
+MATURE
+
+Technical execution permission is not the same as subscriber publication permission.
+
+==================================================
+5. REPLIT EXIT STRATEGY
+==================================================
+
+Replit must no longer be required to operate production TBM.
+
+Treat current Replit environment as:
+
+SOURCE / LEGACY HOST / MIGRATION INPUT
+
+not permanent production dependency.
+
+Target independent infrastructure should use the project's established cloud components where practical:
+
+SOURCE CONTROL:
+GitHub clean repository
+
+FRONTEND:
+Vercel
+
+API / MODEL SERVER:
+Render or another already-authorized equivalent if current project configuration proves a better existing destination
+
+DATABASE:
+Neon PostgreSQL
+
+SCHEDULED JOBS:
+Render Cron, GitHub Actions, or another reliable independently hosted scheduler
+
+MOBILE:
+Expo / EAS
+
+Do not unnecessarily replace working external providers.
+
+==================================================
+6. CRITICAL GIT SECURITY STRATEGY
+==================================================
+
+Known Replit repository history contains a contaminated commit:
+
+e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Previously reachable through:
+
+refs/remotes/gitsafe-backup/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+DO NOT copy contaminated Git history into the new source-of-truth repository.
+
+DO NOT attempt to rewrite Replit's protected refs.
+
+DO NOT force-push Replit main.
+
+DO NOT modify Replit internal gitsafe refs.
+
+Instead create the clean migration boundary:
+
+CURRENT VERIFIED SOURCE TREE
+        ↓
+SECRET / CREDENTIAL SCAN
+        ↓
+SOURCE SANITIZATION
+        ↓
+NEW GIT HISTORY
+        ↓
+NEW CLEAN REPOSITORY
+
+The new repository must start from a clean source snapshot.
+
+No legacy `.git` objects or refs may be copied.
+
+==================================================
+7. CLEAN SOURCE SNAPSHOT
+==================================================
+
+Before creating the new repository:
+
+inventory the complete current source tree.
+
+Exclude:
+
+.git
+node_modules
+build output
+temporary files
+cache
+local secrets
+credential files
+private keys
+.p8 files
+certificates
+unnecessary Replit internals
+development dumps containing secrets
+obsolete generated artifacts not required for reproducibility
+
+Preserve:
+
+application source
+schema definitions
+tests
+model contracts
+model metadata
+safe reproducibility manifests
+deployment configuration
+documentation
+required static assets
+
+==================================================
+8. SECRET / CREDENTIAL SCAN
+==================================================
+
+Run a comprehensive scan of the CLEAN SOURCE CONTENT.
+
+Search for:
+
+API keys
+database URLs
+passwords
+tokens
+JWT secrets
+private keys
+Apple credentials
+EAS credentials
+OAuth secrets
+webhook secrets
+provider keys
+historically compromised credentials
+
+No real secret may be committed to the new repository.
+
+Use environment-variable references.
+
+Produce a required-secret manifest containing NAMES ONLY.
+
+Example:
+
+DATABASE_URL
+ODDS_API_KEY
+...
+
+Never print secret values into reports.
+
+==================================================
+9. NEW SOURCE-OF-TRUTH REPOSITORY
+==================================================
+
+If credentials/access permit automated creation:
+
+create the clean GitHub repository.
+
+If repository creation cannot be automated due missing authorization:
+
+prepare the complete clean repository locally, including:
+
+.gitignore
+README
+environment templates
+deployment configs
+CI
+tests
+migration manifests
+
+and return exactly the one external action required.
+
+Do not block the rest of the build merely because remote repository creation requires owner authentication.
+
+==================================================
+10. MONOREPO / PROJECT STRUCTURE
+==================================================
+
+Inspect existing architecture before reorganizing.
+
+Prefer minimal-disruption consolidation.
+
+Existing relevant areas include:
+
+artifacts/api-server
+artifacts/admin
+artifacts/mobile
+lib/db
+lib/api-spec
+
+Preserve working package-management conventions.
+
+Do not rewrite the entire project solely for aesthetic reasons.
+
+Refactor where it materially improves:
+
+model boundaries
+deployment
+testing
+security
+maintainability
+V4 routing
+
+==================================================
+11. CANONICAL SPORT ENGINE INTERFACE
+==================================================
+
+Create one shared engine interface.
+
+Conceptually:
+
+SportEngineV4 {
+  sport
+  modelId
+  modelVersion
+  contractId
+  contractHash
+
+  collectEvidence(...)
+  materializeInput(...)
+  validateInput(...)
+  predict(...)
+  validateOutput(...)
+}
+
+Exact implementation should follow repository language/style.
+
+Each sport implementation must satisfy the interface without sharing forecasting logic.
+
+==================================================
+12. CANONICAL FORECAST OUTPUT
+==================================================
+
+Define a shared forecast envelope capable of representing sport-specific outputs.
+
+Common fields where meaningful:
+
+prediction_id
+sport
+game_id
+model_id
+model_version
+artifact_hash
+contract_id
+contract_hash
+feature_snapshot_id
+feature_hash
+data_cutoff
+prediction_timestamp
+approval_state
+maturity
+home_win_probability
+away_win_probability
+draw_probability where sport requires it
+expected_home_score
+expected_away_score
+expected_margin
+expected_total
+evidence_tier
+quality flags
+
+Not every sport must fabricate score outputs.
+
+Only populate outputs genuinely supported by that sport's model.
+
+==================================================
+13. FORECAST IMMUTABILITY
+==================================================
+
+Forecasts are append-only/versioned.
+
+Never overwrite a prior forecast merely because:
+
+line changed
+model changed
+new evidence arrived
+game completed
+
+New model/evidence → new prediction identity.
+
+Preserve historical reproducibility.
+
+==================================================
+14. EVIDENCE IMMUTABILITY
+==================================================
+
+Evidence snapshots used by models must be reproducible.
+
+Preserve:
+
+source identity
+source version
+provider timestamp when available
+capture timestamp
+data cutoff
+materialization timestamp
+contract version
+hash
+
+==================================================
+15. POINT-IN-TIME FIREWALL
+==================================================
+
+For all sports:
+
+evidence_time <= data_cutoff <= prediction_time < event_start
+
+where semantically applicable.
+
+Reject:
+
+post-start evidence
+final outcomes
+postgame statistics
+actual-starter hindsight
+actual-lineup hindsight
+future rolling data
+
+==================================================
+16. MARKET LEAKAGE FIREWALL
+==================================================
+
+Sports forecasts may NOT use:
+
+moneyline
+spread
+total
+sportsbook odds
+implied probability
+opening line
+closing line
+CLV
+line movement
+sharp indicators
+market consensus
+
+unless a future explicitly separate market-aware model is designed and validated.
+
+Current V4 sports engines must remain sports-performance forecasts.
+
+Market enters only AFTER forecast.
+
+==================================================
+17. SHARED MARKET ENGINE
+==================================================
+
+Build/preserve one shared downstream market comparison layer.
+
+Forecast:
+model probability / expected score
+
+Market:
+sportsbook price
+
+Derived:
+
+no-vig implied probability
+fair price
+edge
+line-shopping opportunity
+market metadata
+
+Keep units explicit.
+
+Probability edge:
+
+MODEL PROBABILITY - MARKET IMPLIED PROBABILITY
+
+reported in percentage points.
+
+Do not confuse it with score/spread difference.
+
+==================================================
+18. PRESERVE TASK #238A
+==================================================
+
+Task #238A is foundational and must survive migration.
+
+Preserve:
+
+fail-closed publication eligibility
+exact model approval enforcement
+global cross-sport ranking
+six-pick cap AFTER global ranking
+flat 1.0u approved staking
+requested-unit audit field if present
+POTD safeguards
+official-record filtering
+performance eligibility
+append-only publication audit
+process-order invariance
+
+Do not revert to variable staking during this migration.
+
+==================================================
+19. OFFICIAL RECORD DEFINITION
+==================================================
+
+Fix/preserve the official record semantics permanently.
+
+Official subscriber performance must include only selections satisfying required publication/performance eligibility.
+
+Non-public model opinions must not contaminate public record.
+
+Research forecasts must not contaminate public record.
+
+Shadow forecasts must not contaminate public record.
+
+Retired test artifacts must not contaminate public record.
+
+==================================================
+20. SOCCER THREE-WAY SEMANTICS
+==================================================
+
+Resolve the previously discovered Soccer result semantic defect.
+
+A team-selection moneyline in a three-way market must treat a DRAW according to the actual wager contract.
+
+Do not automatically classify a draw as push when the sportsbook selection would lose.
+
+Repair historical analytics only if lineage and wager semantics are sufficiently trustworthy.
+
+Do not silently rewrite immutable raw records.
+
+Use corrected derived grading/audit records where appropriate.
+
+==================================================
+21. CLV DATA QUALITY
+==================================================
+
+Do not rely on historically corrupted CLV values.
+
+Build trustworthy CLV lineage:
+
+bet/published price
+closing price
+book/source
+market identity
+capture timestamp
+event identity
+
+If exact close is unavailable:
+
+CLV = UNKNOWN
+
+not zero.
+
+Do not fabricate closing price.
+
+==================================================
+22. MODEL PERFORMANCE MONITORING
+==================================================
+
+Create shared monitoring for each active V4:
+
+sample count
+wins/losses/pushes where wager relevant
+units
+ROI
+Brier
+log loss
+AUC where meaningful
+ECE/calibration
+model vs market Brier
+probability-bucket realization
+expected-score error where applicable
+CLV where trustworthy
+drawdown
+losing streak
+
+Model performance monitoring must distinguish:
+
+forecast quality
+bet-selection quality
+staking impact
+
+==================================================
+23. AUTOMATIC DEGRADATION FLAGS
+==================================================
+
+Build fail-safe monitoring capable of flagging:
+
+CALIBRATION_DEGRADED
+FORECAST_DEGRADED
+MARKET_UNDERPERFORMANCE
+RUN_BIAS
+SCORE_BIAS
+DATA_INCOMPLETE
+INPUT_CONTRACT_FAILURE
+PROVIDER_FAILURE
+
+Do not automatically retrain or promote based on these flags.
+
+They may suspend publication when severe conditions are legitimately defined.
+
+==================================================
+24. MLB V4
+==================================================
+
+Consume Task #239.
+
+The final MLB V4 architecture must use the largest legitimate parity-proven PIT-safe feature set.
+
+Do NOT require all old #237 features.
+
+If #239 trained a legitimate challenger:
+
+preserve it.
+
+If #239 did not train because of a resolvable implementation problem:
+
+continue resolving it.
+
+If evidence genuinely prevents historical starter/lineup/weather parity:
+
+use a valid baseline-core V4 and classify enhanced features prospective-only.
+
+MLB V4 should support where legitimately modeled:
+
+expected_home_runs
+expected_away_runs
+expected_margin
+expected_total
+home_win_probability
+away_win_probability
+
+Store unrounded expected runs internally.
+
+==================================================
+25. NCAAF V4
+==================================================
+
+Existing frozen development engine:
+
+tbm-ncaaf-v4-expected-score
+
+version:
+D-simple-expected-score-linear
+
+known config hash:
+212a6c78431a181821106721877155745724d3619ec63cf5424f098b07f9ae86
+
+known parameter hash:
+792ba805aaa666cfc23b4d304dfca3f6fab4194535c7909eab2cfb1041288d81
+
+Known historical metrics:
+
+OOS margin MAE 12.5008391763
+total MAE 12.9390090779
+Brier 0.1800233716
+log loss 0.5347917462
+
+Inspect actual current source/DB state before relying on these values.
+
+Preserve the frozen model if hashes/source match.
+
+Do NOT retrain merely to rename it.
+
+==================================================
+26. NCAAF TODAY-ONLY RULE
+==================================================
+
+Normal NCAAF production behavior must process only:
+
+CURRENT EASTERN CALENDAR DATE
+America/New_York
+
+No normal scheduler:
+
+tomorrow prefetch
+future public forecast
+future persistence
+future subscriber request
+
+Explicit date overrides may exist for:
+
+tests
+diagnostics
+research
+
+but must not be used by normal production scheduler/public UI.
+
+Audit and correct any underlying evidence-fetch layer that currently prefetches future NCAAF dates in violation of this rule.
+
+==================================================
+27. NCAAF PROJECTED SCORE
+==================================================
+
+Where the frozen model legitimately emits expected scores, persist:
+
+expected_home_score_unrounded
+expected_away_score_unrounded
+
+UI may round later.
+
+Do not fabricate ATS cover probability unless separately modeled and validated.
+
+==================================================
+28. NFL V4
+==================================================
+
+Build a dedicated NFL V4 engine foundation.
+
+Inspect all existing NFL historical/live evidence and current V1 implementation.
+
+Do not merely rename NFL V1 to V4.
+
+Create the largest legitimate PIT-safe contract from available data.
+
+Potential football concepts may include only where supported:
+
+team offensive efficiency
+defensive efficiency
+QB state
+passing/rushing efficiency
+explosiveness
+turnover tendency
+sack/pressure state
+pace
+rest
+home field
+injury availability
+weather
+
+Do not fabricate unavailable historical injury/QB evidence.
+
+If necessary create a simpler legitimate baseline V4.
+
+==================================================
+29. NBA V4
+==================================================
+
+Build dedicated NBA V4.
+
+Inspect existing NBA v2 market engine and historical data.
+
+Do not carry market inputs into sports forecast.
+
+Potential legitimate performance inputs where supported:
+
+offensive efficiency
+defensive efficiency
+pace
+shooting
+turnovers
+rebounding
+rest
+home court
+rotation/starter availability
+playoff context
+
+Historical/live parity required for active features.
+
+==================================================
+30. WNBA V4
+==================================================
+
+Build dedicated WNBA V4 using WNBA-specific evidence.
+
+Do not assume NBA coefficients or distributions transfer.
+
+Shared basketball utilities are allowed.
+
+Forecast intelligence and parameters remain independent.
+
+==================================================
+31. NHL V4
+==================================================
+
+Build dedicated NHL V4.
+
+Potential legitimate evidence where supported:
+
+team scoring
+defense
+shot quality
+goaltender state
+special teams
+rest
+home ice
+
+Do not use actual starting goalie hindsight where pregame identity was not known.
+
+==================================================
+32. SOCCER V4
+==================================================
+
+Build dedicated Soccer V4 with correct three-way semantics.
+
+Output may include:
+
+P(HOME)
+P(DRAW)
+P(AWAY)
+
+Probabilities must sum to 1 within strict tolerance.
+
+Potential legitimate model form may include score/rate modeling if supported.
+
+Do not force binary-moneyline semantics onto three-way markets.
+
+==================================================
+33. UFC V4
+==================================================
+
+Build dedicated UFC V4.
+
+Fight model semantics differ from team sports.
+
+Use only legitimate fighter evidence available before bout.
+
+No fabricated expected score requirement.
+
+Output:
+
+fighter A win probability
+fighter B win probability
+
+with explicit fighter identity mapping.
+
+==================================================
+34. NCAAMB V4
+==================================================
+
+Build dedicated NCAAMB V4 from available basketball evidence.
+
+Do not assume NBA parameters.
+
+College basketball must retain its own training/evaluation identity.
+
+==================================================
+35. SPORT BUILD RULE
+==================================================
+
+For EVERY sport:
+
+Do not rename V1 and call it V4.
+
+A V4 engine requires:
+
+versioned input contract
+PIT semantics
+deterministic materialization
+model identity
+artifact identity
+output contract
+evaluation
+approval state
+live executor
+forecast persistence
+tests
+
+If legitimate training data is insufficient:
+
+build the complete V4 infrastructure and a defensible baseline only if statistically legitimate.
+
+Otherwise mark:
+
+NO APPROVED V4 FORECAST
+
+Do not fallback silently.
+
+==================================================
+36. TRAINING DISCIPLINE
+==================================================
+
+Where a new V4 must be trained:
+
+use chronological splits.
+
+Never random train/test splitting for temporal sports data where chronology is available.
+
+Freeze:
+
+training cohort
+validation cohort
+feature contract
+normalization
+hyperparameters
+code identity
+artifact identity
+
+==================================================
+37. CHALLENGER DISCIPLINE
+==================================================
+
+Use small defensible candidate families.
+
+Avoid massive hyperparameter mining.
+
+Predeclare candidate configurations before comparing validation performance where practical.
+
+Do not optimize historical ROI directly.
+
+Primary model evaluation should emphasize forecast quality:
+
+log loss
+Brier
+calibration
+score error where applicable
+
+Bet profitability is downstream evidence.
+
+==================================================
+38. CONSUMED MLB BENCHMARK
+==================================================
+
+The historical MLB 2,012-game cohort remains:
+
+HISTORICAL_BENCHMARK_ONLY
+
+Never restore untouched status.
+
+Never use it for:
+
+feature selection
+model selection
+tuning
+calibration
+promotion thresholds
+
+==================================================
+39. PROSPECTIVE SHADOW SYSTEM
+==================================================
+
+Every new V4 must support shadow operation.
+
+Shadow forecasts:
+
+- use real pregame evidence
+- are immutable
+- are timestamped
+- are paired with outcomes after completion
+- do not become subscriber picks unless publication approval permits
+
+==================================================
+40. V4 APPROVAL POLICY
+==================================================
+
+Each sport gets independent approval.
+
+One sport failing must not block another sport.
+
+Possible state:
+
+MLB      PROVISIONAL
+NCAAF    PRODUCTION_APPROVED
+NFL      SHADOW
+NBA      SHADOW
+WNBA     UNVALIDATED
+NHL      UNVALIDATED
+Soccer   PROVISIONAL
+UFC      UNVALIDATED
+NCAAMB   SHADOW
+
+The router respects each state.
+
+==================================================
+41. PROVISIONAL PRODUCTION
+==================================================
+
+PROVISIONAL may be used only if project policy explicitly permits subscriber publication for that state.
+
+If current policy does not define that safely:
+
+do not invent permission.
+
+Keep publication fail-closed.
+
+Technical deployment of a V4 engine does not require subscriber publication.
+
+==================================================
+42. LEGACY MODEL ARCHIVAL
+==================================================
+
+After a sport's V4 cutover:
+
+classify old production engines as:
+
+ARCHIVED_LEGACY
+
+or existing equivalent.
+
+Preserve:
+
+model metadata
+historical predictions
+results
+auditability
+
+Disable:
+
+normal scheduler execution
+automatic fallback
+subscriber publication
+POTD eligibility
+new current forecasts
+
+Do not delete historical evidence.
+
+==================================================
+43. MODEL REGISTRY REBUILD
+==================================================
+
+Create/normalize a canonical registry supporting:
+
+sport
+model family
+model version
+artifact hash
+input contract
+input hash
+approval
+maturity
+active runtime status
+publication permission
+created_at
+retired_at
+replacement model
+
+Exact artifact approval must be enforceable.
+
+==================================================
+44. ARTIFACT LOADING
+==================================================
+
+Production runtime must load only exact known artifacts.
+
+No:
+
+"latest file in folder"
+"latest model row"
+implicit version guessing
+
+Require exact:
+
+model ID
+version
+artifact hash
+contract hash
+
+==================================================
+45. DATABASE ARCHITECTURE
+==================================================
+
+Audit development and production schema requirements.
+
+Known historical state showed significant development/production drift.
+
+Do NOT execute a broad uncontrolled schema push.
+
+Create an explicit migration set containing ONLY tables/columns/indexes required for the new production architecture.
+
+==================================================
+46. DATABASE MIGRATION PLAN
+==================================================
+
+Build versioned migrations.
+
+Do not rely solely on unversioned broad schema push for production.
+
+Migration must be:
+
+reviewable
+idempotent where possible
+backward-compatible during parallel deployment
+rollback-aware
+
+==================================================
+47. DATA MIGRATION
+==================================================
+
+Preserve legitimate production history.
+
+Migrate/normalize only where required.
+
+Do not erase:
+
+predictions
+picks
+results
+model history
+publication audit
+performance history
+
+When historical data is known corrupted:
+
+preserve raw record
+add corrected/derived interpretation where appropriate
+
+==================================================
+48. NEW DATABASE SAFETY
+==================================================
+
+Prefer using existing Neon PostgreSQL if appropriate rather than unnecessarily moving databases.
+
+If a new DB/schema is required:
+
+build and verify it in parallel.
+
+Do not cut production until migration verification passes.
+
+==================================================
+49. API REBUILD
+==================================================
+
+Preserve public functionality while simplifying internal architecture.
+
+Create canonical V4 endpoints where useful.
+
+Existing subscriber/client routes should remain backward-compatible where practical.
+
+Avoid forcing simultaneous frontend/mobile rewrite solely because internal engine changed.
+
+==================================================
+50. HEALTH ENDPOINTS
+==================================================
+
+Production must expose useful health/readiness checks.
+
+At minimum:
+
+API health
+DB connectivity
+scheduler state
+provider state
+model registry state
+sport engine readiness
+
+Do not expose secrets.
+
+==================================================
+51. SCHEDULER REBUILD
+==================================================
+
+Move scheduling away from dependency on Replit uptime.
+
+Build independently hosted scheduled execution.
+
+Required properties:
+
+timezone explicit
+idempotent
+retry-aware
+observable
+no duplicate publication
+no duplicate predictions
+provider failure isolation
+
+==================================================
+52. DAILY PIPELINE
+==================================================
+
+Canonical daily pipeline:
+
+DISCOVER EVENTS
+      ↓
+COLLECT PIT EVIDENCE
+      ↓
+MATERIALIZE SPORT INPUTS
+      ↓
+RUN ELIGIBLE V4 ENGINES
+      ↓
+PERSIST FORECASTS
+      ↓
+FETCH MARKET
+      ↓
+COMPARE FAIR PRICE
+      ↓
+#238A GLOBAL SELECTION
+      ↓
+PUBLISH ELIGIBLE PICKS
+      ↓
+AFTER FINAL: GRADE
+      ↓
+PAIR OUTCOMES
+      ↓
+UPDATE ANALYTICS
+
+==================================================
+53. FAILURE ISOLATION
+==================================================
+
+One sport/provider failure must not crash all sports.
+
+Example:
+
+Soccer provider failure
+
+must not prevent:
+
+MLB
+NFL
+NCAAF
+
+from processing if their dependencies are healthy.
+
+==================================================
+54. FRONTEND
+==================================================
+
+Preserve current TBM visual direction.
+
+Do not perform a giant cosmetic redesign during infrastructure migration.
+
+Primary objective:
+
+make existing pages consume clean new API outputs.
+
+Preserve:
+
+dark premium UI
+compact cards
+team logos
+simple pick display
+expanded analysis
+mobile responsiveness
+membership locks
+owner/admin behavior
+
+==================================================
+55. PROJECTED SCORE UI
+==================================================
+
+Once a sport has legitimate expected-score output and publication permission, support simple display:
+
+MODEL PROJECTED SCORE
+TEAM A 5 — TEAM B 3
+
+or sport-equivalent.
+
+Use actual model output only.
+
+Never fabricate.
+
+==================================================
+56. FRONTEND EDGE LANGUAGE
+==================================================
+
+Clarify semantics.
+
+Example:
+
+MODEL WIN PROBABILITY: 61.4%
+MARKET IMPLIED: 55.2%
+MODEL EDGE: +6.2 percentage points
+
+Do not label this as:
+
+"6.2 points off the spread"
+
+unless it is genuinely a spread-model difference.
+
+==================================================
+57. ANALYTICS
+==================================================
+
+Keep subscriber analytics simple.
+
+Do not build an enormous public dashboard.
+
+Provide useful high-level:
+
+record
+units
+ROI
+model performance
+sport breakdown
+recent performance
+
+Deep diagnostics belong in admin/internal tooling.
+
+==================================================
+58. ADMIN
+==================================================
+
+Preserve owner/admin controls.
+
+Admin should expose operationally useful:
+
+sport engine
+model version
+approval
+maturity
+contract
+last forecast
+scheduler health
+evidence completeness
+shadow sample
+graded sample
+degradation status
+
+Do not expose secrets.
+
+==================================================
+59. AUTH / MEMBERSHIP
+==================================================
+
+Preserve existing authentication/membership behavior.
+
+Do not accidentally unlock premium content during migration.
+
+Verify:
+
+free
+subscriber
+owner/admin
+
+permissions.
+
+==================================================
+60. MOBILE API COMPATIBILITY
+==================================================
+
+Audit mobile API dependencies.
+
+Preserve compatible response shapes where practical.
+
+If breaking API changes are unavoidable:
+
+version the endpoint.
+
+Do not break the current mobile app unnecessarily.
+
+==================================================
+61. MOBILE STARTUP FIX
+==================================================
+
+Preserve the previously implemented startup/black-screen remediation.
+
+Known fix included:
+
+fail-open timeout
+splash dismissal fallback
+system-font fallback
+visible Clerk loading
+reachable retry
+
+Do not regress it.
+
+==================================================
+62. MOBILE RELEASE
+==================================================
+
+A new native iOS build is a separate release artifact.
+
+If the new backend remains API-compatible, backend migration should not require an immediate mobile binary solely for V4 engine changes.
+
+If mobile source has required production fixes not present in the current App Store/TestFlight binary:
+
+prepare a new EAS production build only if credentials/security/release gates are valid and owner-authorized infrastructure access exists.
+
+Do not expose signing credentials.
+
+==================================================
+63. CLOUD DEPLOYMENT CONFIGURATION
+==================================================
+
+Prepare production configs for:
+
+frontend
+API
+scheduler
+database
+environment variables
+health checks
+build commands
+start commands
+domains
+CORS
+
+No Replit-specific runtime assumption may remain required.
+
+==================================================
+64. CORS
+==================================================
+
+Production CORS should allow only required trusted origins.
+
+Do not retain wildcard `*` unless a specific endpoint legitimately requires it and security review accepts it.
+
+==================================================
+65. ENVIRONMENT MANAGEMENT
+==================================================
+
+Create:
+
+.env.example
+
+with names/placeholders only.
+
+Document environments:
+
+development
+staging/parallel candidate
+production
+
+No secrets in Git.
+
+==================================================
+66. CI
+==================================================
+
+Create CI for the clean repository.
+
+At minimum:
+
+install
+typecheck
+tests
+build
+secret scan
+critical security guard
+
+A failing required check should block production deployment.
+
+==================================================
+67. DEPENDENCY SECURITY
+==================================================
+
+Re-run dependency audit.
+
+Previously observed:
+
+0 critical
+multiple high/moderate findings.
+
+Upgrade vulnerable dependencies where safe and compatible.
+
+Do not perform reckless framework-major upgrades solely to eliminate every advisory during the migration.
+
+Document remaining accepted risks.
+
+==================================================
+68. PATH TRAVERSAL REVIEW
+==================================================
+
+Review previously flagged mobile server paths around:
+
+artifacts/mobile/server/serve.js
+
+or current equivalent.
+
+Determine whether findings are exploitable.
+
+Fix unsafe path handling if confirmed or reasonably preventable.
+
+Add tests.
+
+==================================================
+69. SECURITY HEADERS
+==================================================
+
+Configure appropriate production HTTP security headers where supported.
+
+Do not break mobile/API functionality.
+
+==================================================
+70. LOGGING
+==================================================
+
+Production logging must include:
+
+request errors
+provider failures
+scheduler failures
+model execution failures
+publication rejection reasons
+DB failures
+
+Never log secrets.
+
+==================================================
+71. OBSERVABILITY
+==================================================
+
+Build lightweight operational visibility.
+
+At minimum be able to determine:
+
+is API alive?
+did scheduler run?
+which sports succeeded?
+which sports failed?
+which model version ran?
+how many forecasts?
+how many picks published?
+were results graded?
+
+==================================================
+72. BACKUPS / RECOVERY
+==================================================
+
+Verify Neon backup/recovery capability or existing production DB backup strategy.
+
+Before destructive migration:
+
+take/verify recoverable backup if available.
+
+No destructive schema migration without rollback/recovery.
+
+==================================================
+73. PARALLEL ENVIRONMENT
+==================================================
+
+Deploy the new TBM V4 backend as a PARALLEL candidate first.
+
+Do not immediately replace production.
+
+Candidate environment must run:
+
+health
+DB
+scheduler dry run
+model execution
+API
+frontend compatibility
+
+without subscriber publication side effects.
+
+==================================================
+74. SHADOW PRODUCTION DRY RUN
+==================================================
+
+Run the full pipeline in dry-run/shadow mode.
+
+Verify:
+
+event discovery
+evidence
+model execution
+forecast persistence
+market comparison
+global ranking
+publication eligibility
+POTD
+grading architecture
+
+Do not duplicate actual public picks during parallel verification.
+
+==================================================
+75. MODEL RELEASE GATE
+==================================================
+
+For EACH sport separately determine:
+
+TECHNICALLY_READY
+MODEL_VALIDATED
+PUBLICATION_APPROVED
+
+Do not use one global Boolean.
+
+A technically ready sport may remain shadow-only.
+
+==================================================
+76. PLATFORM RELEASE GATE
+==================================================
+
+Platform cutover requires:
+
+clean Git source
+secret scan pass
+required CI pass
+API build pass
+DB migration verified
+health checks pass
+scheduler verified
+frontend verified
+mobile compatibility assessed
+#238A safety verified
+rollback available
+no contaminated Git history in new repository
+
+==================================================
+77. IMPORTANT SECURITY DISTINCTION
+==================================================
+
+The old Replit repository's contaminated packed ref does NOT have to be deleted in order to use a completely new clean Git repository, PROVIDED:
+
+- contaminated Git history is not copied
+- source snapshot itself passes secret scan
+- compromised credentials are revoked/replaced as already required
+- new repository has new clean history
+- production deployment is sourced only from clean repository
+
+Document this trust boundary explicitly.
+
+Do not claim the old Replit repository itself became clean.
+
+It remains legacy/untrusted history.
+
+==================================================
+78. PRODUCTION MIGRATION MANIFEST
+==================================================
+
+Before cutover create exact manifest:
+
+source commit
+frontend artifact
+backend artifact
+DB migration versions
+scheduler version
+active model IDs
+model hashes
+contract hashes
+environment variable names
+domain config
+rollback target
+
+==================================================
+79. CUTOVER PROCEDURE
+==================================================
+
+If all PLATFORM gates pass:
+
+perform controlled cutover.
+
+Preferred sequence:
+
+1. verify DB backup/recovery
+2. apply reviewed backward-compatible migrations
+3. deploy new API
+4. verify API
+5. enable scheduler in controlled mode
+6. verify model registry
+7. verify V4 routing
+8. verify #238A
+9. deploy/update frontend config
+10. verify frontend
+11. verify auth/membership
+12. verify analytics/results
+13. verify admin
+14. verify mobile compatibility
+15. enable approved publication
+16. monitor
+
+==================================================
+80. DO NOT FORCE ALL SPORTS LIVE
+==================================================
+
+Platform migration and sport-model approval are separate.
+
+It is acceptable for the new production platform to show:
+
+MLB V4 — SHADOW
+NCAAF V4 — APPROVED
+NFL V4 — SHADOW
+NBA V4 — SHADOW
+...
+
+The platform itself may still cut over.
+
+But:
+
+NO SPORT MAY FALL BACK TO V1.
+
+If V4 is not publication-approved:
+
+NO V4 PUBLIC PICK FOR THAT SPORT.
+
+==================================================
+81. LEGACY V1 TRANSITION
+==================================================
+
+During parallel testing only, legacy production may continue serving from the OLD platform.
+
+At final sport cutover:
+
+either:
+
+approved V4 serves
+
+or:
+
+sport publishes no model pick.
+
+Do not preserve bad legacy forecasts solely to avoid an empty slate.
+
+==================================================
+82. ROLLBACK
+==================================================
+
+Create tested rollback plan.
+
+Rollback should be capable of restoring:
+
+prior frontend/API routing
+prior scheduler state
+prior DB-compatible application version
+
+Do not require reversing irreversible data destruction.
+
+Use additive/backward-compatible migration strategy wherever possible.
+
+==================================================
+83. POST-CUTOVER VERIFICATION
+==================================================
+
+Immediately verify:
+
+homepage
+today games
+each sport endpoint
+POD
+results
+analytics
+admin
+membership locks
+scheduler
+DB writes
+forecast persistence
+publication audit
+grading
+model registry
+health endpoints
+
+==================================================
+84. POST-CUTOVER MODEL VERIFICATION
+==================================================
+
+For every active V4:
+
+verify exact:
+
+model ID
+version
+artifact hash
+contract hash
+approval
+maturity
+
+No unknown artifact may execute.
+
+==================================================
+85. POST-CUTOVER PUBLICATION VERIFICATION
+==================================================
+
+Verify:
+
+only eligible picks public
+global six-pick cap after ranking
+1.0u staking
+POTD eligibility
+non-public opinions excluded from official record
+shadow models excluded
+
+==================================================
+86. POST-CUTOVER PERFORMANCE BASELINE
+==================================================
+
+Start a clean V4-era performance cohort.
+
+Do not erase legacy history.
+
+Tag predictions/results with model identity so analytics can distinguish:
+
+LEGACY ERA
+V4 ERA
+
+==================================================
+87. REPLIT RETIREMENT
+==================================================
+
+After successful cutover:
+
+Replit must no longer be required for:
+
+API uptime
+scheduler
+database
+frontend
+model execution
+
+Do not delete the Replit project automatically.
+
+Classify it as:
+
+LEGACY / ARCHIVE / DEVELOPMENT REFERENCE
+
+until owner chooses final disposition.
+
+==================================================
+88. DOCUMENTATION
+==================================================
+
+Create production documentation covering:
+
+architecture
+local development
+environment variables
+deployment
+scheduler
+database migrations
+sport engine interface
+model lifecycle
+approval lifecycle
+incident recovery
+rollback
+adding future V4 versions
+
+==================================================
+89. DEVELOPER WORKFLOW
+==================================================
+
+The new normal workflow should be:
+
+branch
+→ code
+→ test
+→ PR/merge
+→ CI
+→ staging
+→ production
+
+not:
+
+manual edits directly in production host.
+
+==================================================
+90. FUTURE MODEL ITERATION
+==================================================
+
+After migration, V4 improvements should version within each sport family.
+
+Example:
+
+MLB V4.0
+MLB V4.1
+MLB V4.2
+
+not return to parallel unrelated V1/V2/V3 routing.
+
+A new version must have:
+
+new contract/hash if semantics change
+new artifact/hash
+new validation
+new approval
+
+==================================================
+91. NO ONLINE SELF-MUTATING MODEL
+==================================================
+
+Do not implement uncontrolled automatic coefficient updates after each game.
+
+The learning loop is:
+
+forecast
+→ result
+→ evaluation
+→ evidence accumulation
+→ controlled retraining
+→ challenger
+→ validation
+→ promotion
+
+Production artifacts remain frozen between approved releases.
+
+==================================================
+92. TEST REQUIREMENTS — PLATFORM
+==================================================
+
+Add/run tests for:
+
+sport-engine registry
+V4-only routing
+no legacy fallback
+exact artifact loading
+approval enforcement
+input validation
+forecast immutability
+evidence immutability
+PIT enforcement
+market leakage firewall
+outcome leakage firewall
+cross-sport isolation
+publication eligibility
+global ranking
+six-pick cap
+flat staking
+POTD
+official record
+Soccer draw grading
+CLV unknown handling
+scheduler idempotency
+provider failure isolation
+auth
+membership
+admin permissions
+health endpoints
+migration compatibility
+
+==================================================
+93. TEST REQUIREMENTS — EACH SPORT
+==================================================
+
+Each sport V4 requires focused tests for:
+
+input contract
+PIT semantics
+identity mapping
+determinism
+probability validity
+artifact identity
+live executor
+output schema
+missingness
+invalid-input fail-close
+shadow forecast
+outcome pairing
+
+Plus sport-specific tests.
+
+==================================================
+94. FULL REGRESSION
+==================================================
+
+Run all available:
+
+API typecheck
+DB typecheck
+admin typecheck
+mobile typecheck
+frontend/admin builds
+API build
+full API tests
+DB tests
+model tests
+scheduler tests
+publication tests
+security tests
+signing guard
+secret scan
+dependency audit
+git diff check
+
+Report exact commands and results.
+
+==================================================
+95. DATA VALIDATION
+==================================================
+
+Before production cutover verify:
+
+no duplicate effective predictions
+no duplicate public selections
+valid odds
+valid units
+valid probabilities
+probabilities sum correctly
+no post-start publication
+correct payout math
+final-result evidence before grading
+correct model attribution
+correct publication attribution
+
+==================================================
+96. PERFORMANCE ACCEPTANCE
+==================================================
+
+Do NOT require guaranteed profitability.
+
+No model can honestly guarantee it.
+
+Require:
+
+methodological validity
+calibration sanity
+deterministic execution
+no leakage
+reasonable validation
+correct live semantics
+operational reliability
+
+For a newly trained model with insufficient prospective evidence:
+
+keep SHADOW or PROVISIONAL according to policy.
+
+==================================================
+97. AUTOMATIC CONTINUATION RULE
+==================================================
+
+Do not stop after completing one phase.
+
+Continue:
+
+clean extraction
+→ architecture
+→ sport engines
+→ database
+→ API
+→ scheduler
+→ frontend compatibility
+→ tests
+→ security
+→ parallel deployment
+→ verification
+→ cutover gates
+
+without asking for routine approval.
+
+If one sport is blocked:
+
+continue others.
+
+If GitHub auth is blocked:
+
+continue local clean repo preparation.
+
+If deployment auth is blocked:
+
+continue deploy manifests/configs/tests.
+
+If a model lacks evidence:
+
+leave it fail-closed and continue platform work.
+
+==================================================
+98. EXTERNAL-ACTION RULE
+==================================================
+
+If a step genuinely requires the owner to perform an external action that the agent cannot perform:
+
+DO NOT scatter requests throughout execution.
+
+Accumulate them.
+
+At the end return:
+
+OWNER ACTIONS REQUIRED
+
+with the smallest possible list.
+
+For each:
+
+exact service
+exact action
+why required
+what value/name is needed
+where it goes
+
+Never request the owner paste private-key material into chat.
+
+==================================================
+99. DEFINITION OF "BUILT"
+==================================================
+
+A component is not "built" merely because code exists.
+
+For each component classify:
+
+CODE_COMPLETE
+TESTED
+DEPLOYED_CANDIDATE
+PRODUCTION_ACTIVE
+BLOCKED
+
+Use evidence.
+
+==================================================
+100. FINAL PLATFORM CLASSIFICATION
+==================================================
+
+Return exactly one overall classification:
+
+A — TBM V4 PLATFORM REBUILT, MIGRATED, VERIFIED & PRODUCTION CUTOVER COMPLETE
+
+B — TBM V4 PLATFORM REBUILT & PRODUCTION-READY; OWNER/EXTERNAL CUTOVER ACTION REMAINS
+
+C — TBM V4 PLATFORM SUBSTANTIALLY BUILT; SPECIFIC HARD RELEASE BLOCKERS REMAIN
+
+D — TBM V4 MIGRATION UNSAFE; PRODUCTION REMAINS ON LEGACY PLATFORM
+
+This is PLATFORM classification.
+
+Then independently classify each sport.
+
+==================================================
+101. SPORT CLASSIFICATION
+==================================================
+
+For every sport return exactly one:
+
+A — V4 PRODUCTION ACTIVE
+B — V4 BUILT / SHADOW OR PROVISIONAL
+C — V4 FOUNDATION BUILT / MODEL NOT YET VALIDATED
+D — V4 BLOCKED / NO LEGITIMATE MODEL
+
+Never upgrade classification just to make the project appear complete.
+
+==================================================
+102. REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #240 — TBM V4 COMPLETE PLATFORM REBUILD, CLOUD MIGRATION & PRODUCTION CUTOVER
+
+## 1. Executive Summary
+
+Overall classification:
+New clean repository:
+Replit runtime dependency removed:
+New API:
+New scheduler:
+Database migration:
+Frontend migrated:
+Mobile compatibility:
+#238A preserved:
+V4-only routing:
+Production cutover:
+Rollback available:
+
+## 2. Task #239 Reconciliation
+
+Report actual #239 outcome and what was consumed.
+
+## 3. Original Architecture
+
+## 4. New Architecture
+
+## 5. Files / Packages Changed
+
+## 6. Clean Repository Creation
+
+## 7. Git Security Boundary
+
+Confirm contaminated history was NOT copied.
+
+## 8. Secret Scan
+
+Never print secrets.
+
+## 9. Environment Variable Manifest
+
+Names only.
+
+## 10. CI/CD
+
+## 11. Cloud Infrastructure
+
+### Frontend
+### API
+### Database
+### Scheduler
+### Mobile
+
+## 12. V4 Engine Interface
+
+## 13. V4 Router
+
+## 14. Legacy Fallback Removal
+
+## 15. Model Registry
+
+## 16. Artifact Registry
+
+## 17. Evidence Architecture
+
+## 18. Prediction Architecture
+
+## 19. Outcome / Grading Architecture
+
+## 20. Market Comparison
+
+## 21. #238A Safety Layer
+
+## 22. Official Record
+
+## 23. POTD
+
+## 24. Staking
+
+## 25. CLV
+
+## 26. Performance Monitoring
+
+## 27. Degradation Monitoring
+
+## 28. MLB V4
+
+Report:
+classification
+model ID
+version
+contract
+artifact
+training status
+validation
+shadow sample
+approval
+publication
+
+## 29. NCAAF V4
+
+Same.
+
+## 30. NFL V4
+
+Same.
+
+## 31. NBA V4
+
+Same.
+
+## 32. WNBA V4
+
+Same.
+
+## 33. NHL V4
+
+Same.
+
+## 34. Soccer V4
+
+Same.
+
+## 35. UFC V4
+
+Same.
+
+## 36. NCAAMB V4
+
+Same.
+
+## 37. Historical Model Archival
+
+## 38. Database Schema
+
+## 39. Versioned Migrations
+
+## 40. Data Migration
+
+## 41. API Compatibility
+
+## 42. Scheduler
+
+## 43. Daily Pipeline
+
+## 44. Frontend Compatibility
+
+## 45. Analytics
+
+## 46. Admin
+
+## 47. Authentication / Membership
+
+## 48. Mobile
+
+## 49. Security
+
+## 50. Dependency Audit
+
+## 51. Path Traversal Review
+
+## 52. CORS
+
+## 53. Observability
+
+## 54. Backup / Recovery
+
+## 55. Parallel Deployment
+
+## 56. Shadow Dry Run
+
+## 57. Platform Release Gate
+
+For every gate:
+
+PASS
+FAIL
+BLOCKED
+NOT_APPLICABLE
+
+with evidence.
+
+## 58. Per-Sport Release Gates
+
+## 59. Production Migration Manifest
+
+## 60. Cutover Execution
+
+## 61. Post-Cutover Verification
+
+## 62. Rollback Verification
+
+## 63. Replit Retirement Status
+
+## 64. Tests
+
+Exact commands/results.
+
+## 65. Full Regression
+
+## 66. Data Integrity Validation
+
+## 67. Forecast Leakage Validation
+
+## 68. Production Publication Validation
+
+## 69. V4-Era Analytics Baseline
+
+## 70. Remaining Technical Debt
+
+## 71. Owner Actions Required
+
+Return NONE if none.
+
+Otherwise smallest exact list.
+
+## 72. Final Platform Classification
+
+Return exactly one A/B/C/D classification defined above.
+
+## 73. Final Sport Classifications
+
+MLB:
+NCAAF:
+NFL:
+NBA:
+WNBA:
+NHL:
+Soccer:
+UFC:
+NCAAMB:
+
+## 74. What Is Live Right Now
+
+Plain English.
+
+State exactly:
+
+what infrastructure is live
+which V4 engines are active
+which sports can publish
+which sports are shadow-only
+whether Replit is still required
+whether old V1/V2/V3 engines can execute current forecasts
+
+## 75. Exactly One Recommended Next Task
+
+Do NOT recommend another giant infrastructure rebuild if this one succeeded.
+
+If production cutover completed:
+recommend the highest-value V4 validation/model-improvement task.
+
+If owner action alone blocks cutover:
+recommend only completion of that exact cutover action.
+
+If specific model evidence remains:
+recommend the largest coherent evidence/validation task.
+
+==================================================
+103. CUTOVER AUTHORIZATION BOUNDARY
+==================================================
+
+This task authorizes implementation, testing, clean-repository preparation, migration preparation, staging/parallel deployment, and production cutover ONLY when:
+
+- the agent has legitimate access to the required infrastructure
+- secret/security gates pass
+- rollback exists
+- DB migration is reviewed by automated checks
+- CI/tests pass
+- production candidate health passes
+- #238A behavior passes
+- no contaminated Git history enters the new repository
+
+If any hard gate fails:
+
+DO NOT FORCE CUTOVER.
+
+Complete everything else and return classification B or C with the smallest remaining owner action/blocker.
+
+==================================================
+104. FINAL INSTRUCTION
+==================================================
+
+BUILD THE SYSTEM.
+
+Do not merely describe how it could be built.
+
+Do not stop after an audit.
+
+Do not create unnecessary follow-up microtasks.
+
+Use the existing working implementation wherever legitimate.
+
+Refactor/rebuild where necessary.
+
+Keep forecast methodology honest.
+
+Keep market data downstream.
+
+Keep each sport independent.
+
+Keep publication fail-closed.
+
+Keep legacy history for auditability but remove legacy models from future active routing after V4 cutover.
+
+Get TBM as close to a fully independent, V4-only, production operating system as the available source, data, credentials, and statistically legitimate evidence permit in this single execution.
+
+Then return the complete 75-section report.

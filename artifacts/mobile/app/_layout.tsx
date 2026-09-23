@@ -1,0 +1,212 @@
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { ClerkProvider, ClerkLoaded, ClerkLoading, useAuth } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { SportsProvider } from '@/context/SportsContext';
+import { setBaseUrl } from '@workspace/api-client-react';
+import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DISCLAIMER_KEY } from '@/app/disclaimer';
+import { reloadAppAsync } from 'expo';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from '@expo-google-fonts/inter';
+import { Stack, router } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Point the API client at this repl's dev domain
+const domain = process.env.EXPO_PUBLIC_DOMAIN;
+if (domain) setBaseUrl(`https://${domain}`);
+
+// Initialize RevenueCat (safe to call before auth — SDK auto-detects Expo Go and uses test mode)
+try {
+  initializeRevenueCat();
+} catch (err: any) {
+  // Non-fatal: paywall will be unavailable but rest of app works
+  console.warn('[RevenueCat] init failed:', err?.message);
+}
+
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
+
+function ApiAuthBridge({ children }: { children: React.ReactNode }) {
+  const { getToken } = useAuth();
+
+  // Install the token getter before descendant query effects can issue their
+  // first request. A passive effect here lets Picks race ahead unauthenticated.
+  useLayoutEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => setAuthTokenGetter(null);
+  }, [getToken]);
+
+  return children;
+}
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
+function RootLayoutNav({ showDisclaimer }: { showDisclaimer: boolean }) {
+  // If the user hasn't accepted the disclaimer, replace the initial route.
+  // Runs after the splash screen is dismissed so there is no visible flash.
+  useEffect(() => {
+    if (showDisclaimer) {
+      router.replace('/disclaimer');
+    }
+  }, [showDisclaimer]);
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="disclaimer" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="membership"
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_bottom',
+        }}
+      />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  // If Clerk hasn't initialised within 10 s, show a retry prompt instead of
+  // staying black forever. The timer is cleared as soon as ClerkLoaded fires
+  // (via the ClerkLoaded branch rendering), so it only triggers on genuine hangs.
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setClerkTimedOut(true), 10_000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Never leave the native splash screen up forever if a bundled font or
+  // AsyncStorage read stalls on a device. Those are visual enhancements, not
+  // prerequisites for rendering the auth screen; React Native can fall back
+  // to system fonts and the disclaimer check can safely default to complete.
+  const [startupTimedOut, setStartupTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setStartupTimedOut(true), 8_000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Expo web waits on FontFaceObserver and throws after six seconds when a
+  // preview connection is slow. Native builds load these bundled assets
+  // directly, while web safely falls back to the system sans-serif font.
+  const [fontsLoaded, fontError] = useFonts(
+    Platform.OS === 'web'
+      ? {}
+      : {
+          Inter_400Regular,
+          Inter_500Medium,
+          Inter_600SemiBold,
+          Inter_700Bold,
+        },
+  );
+
+  // Check whether the user has previously accepted the disclaimer.
+  // We hold the splash screen until both fonts AND this check complete so
+  // the user never sees a partial-render flash before the disclaimer.
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(DISCLAIMER_KEY)
+      .then(val => {
+        setShowDisclaimer(!val);
+        setDisclaimerChecked(true);
+      })
+      .catch(() => {
+        // Non-fatal — default to not showing if storage is unavailable
+        setDisclaimerChecked(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError || startupTimedOut)
+      && (disclaimerChecked || startupTimedOut)) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError, disclaimerChecked, startupTimedOut]);
+
+  // Hold rendering until both fonts and the disclaimer check are ready.
+  // If either optional startup task stalls, fail open after the timeout so the
+  // user gets the auth screen instead of an infinite black screen.
+  if ((!fontsLoaded && !fontError && !startupTimedOut)
+    || (!disclaimerChecked && !startupTimedOut)) return null;
+
+  // publishableKey is provided by the @clerk/expo native plugin from Info.plist
+  // at runtime. The env var remains a JavaScript-bundle fallback for development.
+  const resolvedKey =
+    publishableKey ||
+    'pk_test_cmVuZXdpbmctZmlsbHktNDkuY2xlcmsuYWNjb3VudHMuZGV2JA';
+
+  return (
+    // Outer boundary catches ClerkProvider/ClerkLoaded init failures
+    <ErrorBoundary>
+      <ClerkProvider
+        publishableKey={resolvedKey}
+        tokenCache={tokenCache}
+        proxyUrl={proxyUrl}
+      >
+        {/* ClerkLoading renders while Clerk initialises. After 10 s we show a
+            retry prompt so the app never stays black forever on a stalled init. */}
+        <ClerkLoading>
+          <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
+            {clerkTimedOut ? (
+              <>
+                <Text style={{ color: '#6B7280', fontSize: 14, marginBottom: 20, fontFamily: 'Inter_400Regular' }}>
+                  Taking longer than expected…
+                </Text>
+                <Pressable
+                  onPress={() => reloadAppAsync()}
+                  style={{ backgroundColor: '#84CC16', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 }}
+                >
+                  <Text style={{ color: '#000', fontFamily: 'Inter_700Bold', fontSize: 14 }}>Tap to Retry</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <ActivityIndicator color="#84CC16" size="small" />
+                <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 16 }}>
+                  Loading your account…
+                </Text>
+              </>
+            )}
+          </View>
+        </ClerkLoading>
+        <ClerkLoaded>
+          <SafeAreaProvider>
+            <ErrorBoundary>
+              <QueryClientProvider client={queryClient}>
+                <ApiAuthBridge>
+                  <SubscriptionProvider>
+                    <SportsProvider>
+                      <GestureHandlerRootView>
+                        <KeyboardProvider>
+                          <RootLayoutNav showDisclaimer={showDisclaimer} />
+                        </KeyboardProvider>
+                      </GestureHandlerRootView>
+                    </SportsProvider>
+                  </SubscriptionProvider>
+                </ApiAuthBridge>
+              </QueryClientProvider>
+            </ErrorBoundary>
+          </SafeAreaProvider>
+        </ClerkLoaded>
+      </ClerkProvider>
+    </ErrorBoundary>
+  );
+}

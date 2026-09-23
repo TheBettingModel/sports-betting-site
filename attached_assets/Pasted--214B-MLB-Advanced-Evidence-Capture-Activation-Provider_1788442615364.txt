@@ -1,0 +1,2534 @@
+#214B — MLB Advanced Evidence Capture Activation, Provider Expansion & Live OOS Collection
+
+We have completed:
+
+#210 — MLB V4 Sports Forecasting Challenger
+#211 — MLB V4 Historical Replay & Challenger Validation
+#212 — MLB V4.1 Run-Model Diagnosis
+#213 — MLB Point-in-Time Baseball Intelligence & Learning Dataset
+#214 — MLB Advanced Data Intelligence Layer
+
+==================================================
+CURRENT MLB STATE
+==================================================
+
+MLB V3 remains the official production champion.
+
+MLB V4 remains a shadow-only run-first research challenger.
+
+MLB V4.1 remains an output-equivalent diagnostic wrapper around V4.
+
+#213 built the permanent MLB point-in-time evidence architecture.
+
+#214 built the advanced-data audit, canonical research architecture, feature registry, immutable advanced snapshots, provider-health/completeness observability, and advanced feature boundaries.
+
+#214 did NOT activate advanced evidence collection because the available provider fields had not yet been consistently mapped/captured as immutable advanced evidence.
+
+The #214 database state at completion was:
+
+Advanced evidence records: 0
+Advanced snapshots: 0
+PIT violations: 0
+LIVE_SHADOW games with advanced evidence: 0
+
+#214 readiness decision:
+
+C — ADVANCED DATA COVERAGE INSUFFICIENT — CONTINUE COLLECTION BEFORE #215.
+
+The exact #214 feature classification was:
+
+READY_FOR_215:
+- league_run_environment
+
+LIVE_FORWARD_CANDIDATE_NEEDS_OOS:
+- starter_conventional
+- probable_starter_identity
+- lineup_identity_order
+- bullpen_workload_availability
+- park_run_factor
+- weather_context
+
+NOT CURRENTLY AVAILABLE / SUPPORTED:
+- hitter_advanced_metrics
+- statcast_expected_metrics
+- pitch_repertoire_and_matchup
+- defense_oaa_drs
+- baserunning_runs
+- umpire_effects
+
+#214 also found:
+
+- MLB Stats API can provide schedules, probable pitchers, people, season/game-log pitching, boxscores, and objective workload.
+- ESPN provides event/team/venue identity and optional odds.
+- The Odds API provides market data only.
+- Open-Meteo provides weather forecasts.
+- Internal TBM tables provide PIT results, chronological league environment, and static park factors.
+- Conventional starter statistics are conservatively capturable.
+- Lineup player identity/order is capturable.
+- Reliever workload/availability is capturable.
+- Park factors are capturable.
+- Weather is capturable.
+- No reliable advanced hitter/Statcast/pitch-repertoire/defense/baserunning/umpire provider was active.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Turn the MLB PIT and advanced-data architecture built in #213/#214 into a REAL, AUTOMATED, LIVE-FORWARD RESEARCH EVIDENCE COLLECTION SYSTEM.
+
+At the same time, investigate and implement any reliable, lawful, PIT-auditable provider integrations that can materially expand TBM's baseball intelligence without fabricating data or compromising production safety.
+
+The objective is NOT to build another prediction model.
+
+The objective is to create enough trustworthy baseball evidence that #215 can eventually build a genuinely better player/matchup-driven MLB challenger.
+
+The desired transition is:
+
+CURRENT:
+
+Advanced architecture
+        ↓
+0 evidence
+        ↓
+0 advanced snapshots
+        ↓
+0 LIVE_SHADOW advanced games
+
+AFTER #214B:
+
+Scheduled provider collection
+        ↓
+Validated canonical evidence
+        ↓
+Immutable PIT snapshots
+        ↓
+FINAL_PREGAME freezes
+        ↓
+Postgame outcome linkage
+        ↓
+LIVE_SHADOW evidence
+        ↓
+Feature coverage measurements
+        ↓
+Feature graduation
+        ↓
+READY_FOR_215 feature set
+
+==================================================
+NON-NEGOTIABLE PRODUCTION SAFETY
+==================================================
+
+DO NOT modify MLB V3.
+
+DO NOT modify MLB V4.
+
+DO NOT modify MLB V4.1.
+
+DO NOT build #215.
+
+DO NOT create V4.2.
+
+DO NOT create V5.
+
+DO NOT tune expected runs.
+
+DO NOT tune probabilities.
+
+DO NOT fit new model coefficients.
+
+DO NOT modify Poisson logic.
+
+DO NOT change calibration.
+
+DO NOT change recommendation thresholds.
+
+DO NOT change units.
+
+DO NOT change publication rules.
+
+DO NOT change grading.
+
+DO NOT change Results.
+
+DO NOT change ROI.
+
+DO NOT change Free Pick.
+
+DO NOT change Top Pick.
+
+DO NOT change Play of the Day.
+
+DO NOT change notifications.
+
+DO NOT change subscriber/mobile behavior.
+
+DO NOT change official pick generation.
+
+DO NOT promote any model.
+
+DO NOT automatically learn production weights.
+
+DO NOT allow sportsbook data into sports features.
+
+DO NOT backfill fake PIT data.
+
+DO NOT use future data.
+
+DO NOT silently convert missing data to zero.
+
+DO NOT invent advanced metrics.
+
+DO NOT use player names as durable identity.
+
+DO NOT enable uncontrolled scraping.
+
+Everything introduced here is:
+
+RESEARCH ONLY
+
+unless it was already legitimately part of production before this task.
+
+==================================================
+PHASE 1 — AUDIT #214 IMPLEMENTATION
+==================================================
+
+Before adding code, inspect the exact #214 implementation.
+
+Identify:
+
+advanced evidence tables
+
+advanced snapshot tables
+
+feature registry
+
+canonical player mapping
+
+provider adapters
+
+collection functions
+
+collectAdvancedFromCanonicalSnapshot(id)
+
+admin completeness endpoint
+
+provider-health reporting
+
+research report command
+
+scheduler architecture
+
+FINAL_PREGAME architecture
+
+LIVE_SHADOW cohort architecture
+
+PIT guards
+
+hash deduplication
+
+immutability constraints
+
+Determine exactly why:
+
+advanced evidence = 0
+
+advanced snapshots = 0
+
+LIVE_SHADOW advanced games = 0
+
+Confirm whether this is simply because collection was intentionally not scheduled or whether any additional implementation gaps exist.
+
+Document the answer.
+
+==================================================
+PHASE 2 — ACTIVATE THE SIX LIVE-FORWARD CANDIDATES
+==================================================
+
+Implement real live-forward collection for:
+
+1. starter_conventional
+
+2. probable_starter_identity
+
+3. lineup_identity_order
+
+4. bullpen_workload_availability
+
+5. park_run_factor
+
+6. weather_context
+
+Do not merely create schemas.
+
+Actually connect legitimate provider data to the #214 evidence pipeline.
+
+Each successfully collected feature must create:
+
+validated provider evidence
+→ canonical research evidence
+→ appropriate PIT snapshot linkage
+
+Preserve provider provenance.
+
+==================================================
+PHASE 3 — PROBABLE STARTER IDENTITY
+==================================================
+
+Use the official MLB Stats API or the most authoritative currently supported source for probable starter identity.
+
+Capture:
+
+game ID
+
+canonical player ID
+
+MLB player ID
+
+provider ID
+
+player name for display only
+
+team
+
+throws
+
+probable/confirmed state
+
+retrieved_at
+
+effective_at
+
+game start
+
+PIT cutoff
+
+provider
+
+raw payload hash/reference
+
+quality state
+
+If starter changes:
+
+DO NOT overwrite the previous starter.
+
+Create a new revision.
+
+Example:
+
+10:00 AM
+Starter A — PROBABLE
+
+3:15 PM
+Starter B — PROBABLE
+
+6:10 PM
+Starter B — CONFIRMED
+
+All three states should remain reconstructable.
+
+==================================================
+PHASE 4 — STARTER CONVENTIONAL DATA
+==================================================
+
+Activate immutable pregame collection of supported starter metrics.
+
+At minimum, where valid:
+
+ERA
+
+WHIP
+
+FIP if legitimately computed from supported component statistics
+
+K%
+
+BB%
+
+K-BB%
+
+IP
+
+BF
+
+starts
+
+pitch count history
+
+innings/start
+
+days rest
+
+recent workload
+
+recent starts
+
+recent ERA if PIT-safe
+
+recent innings/start if PIT-safe
+
+Do not calculate unsupported advanced metrics.
+
+Do not label conventional metrics as expected metrics.
+
+Every aggregate must prove:
+
+stat_through_date
+
+and/or
+
+games_through
+
+and/or
+
+last_game_id
+
+or equivalent PIT evidence.
+
+The target game must not be included.
+
+==================================================
+PHASE 5 — STARTER DATA PIT SAFETY
+==================================================
+
+Explicitly test that:
+
+a September 3 pregame snapshot cannot contain September 3 pitching results.
+
+A historical snapshot cannot accidentally query current season totals that include future games.
+
+Rolling stats must terminate strictly before the game cutoff.
+
+If reliable historical PIT reconstruction cannot be proven for a metric:
+
+classify it:
+
+LIVE_FORWARD_ONLY
+
+rather than backfilling it.
+
+==================================================
+PHASE 6 — LINEUP IDENTITY AND ORDER
+==================================================
+
+Activate lineup capture.
+
+Capture lineup states:
+
+UNAVAILABLE
+
+PROJECTED
+
+PARTIAL
+
+CONFIRMED
+
+For each lineup revision preserve:
+
+game
+
+team
+
+player canonical ID
+
+provider player ID
+
+batting order
+
+bats
+
+position if available
+
+retrieved_at
+
+effective_at
+
+confirmation state
+
+source
+
+quality
+
+Do not overwrite earlier lineups.
+
+==================================================
+PHASE 7 — LINEUP CAPTURE CADENCE
+==================================================
+
+Build a sensible bounded capture cadence.
+
+Do not poll aggressively.
+
+The system should attempt lineup capture at useful pregame windows.
+
+For example, adapt around:
+
+T-180
+
+T-120
+
+T-90
+
+T-60
+
+T-30
+
+T-15
+
+FINAL_PREGAME
+
+Do not blindly call every interval if a confirmed lineup already exists and nothing has changed.
+
+Use caching/dedupe.
+
+Adapt timing to MLB lineup release behavior and existing scheduler constraints.
+
+==================================================
+PHASE 8 — FINAL LINEUP FREEZE
+==================================================
+
+Immediately before the safe FINAL_PREGAME cutoff:
+
+capture the latest legitimate lineup state.
+
+Store:
+
+latest lineup state
+
+confirmation state
+
+retrieval time
+
+age of evidence
+
+number of players
+
+batting-order completeness
+
+identity completeness
+
+If lineup is still not confirmed:
+
+DO NOT fabricate confirmation.
+
+Freeze it as PROJECTED/PARTIAL/UNAVAILABLE.
+
+==================================================
+PHASE 9 — BULLPEN WORKLOAD
+==================================================
+
+Activate objective reliever workload evidence.
+
+For every bullpen pitcher where supported capture:
+
+canonical player ID
+
+team
+
+appearances yesterday
+
+appearances last 2 days
+
+appearances last 3 days
+
+pitches yesterday
+
+pitches 2 days ago
+
+pitches 3 days ago
+
+total recent pitches
+
+back-to-back usage
+
+three-in-four usage
+
+innings recently
+
+retrieved_at
+
+games included
+
+stat-through cutoff
+
+Do not include the target game.
+
+==================================================
+PHASE 10 — BULLPEN AVAILABILITY
+==================================================
+
+Keep availability distinct from quality.
+
+Create conservative research states such as:
+
+LIKELY_AVAILABLE
+
+WORKLOAD_CONCERN
+
+LIKELY_LIMITED
+
+UNKNOWN
+
+or equivalent existing canonical states.
+
+Do not claim a pitcher is definitely unavailable unless supported by explicit evidence.
+
+Store the reason.
+
+Example:
+
+WORKLOAD_CONCERN
+- 31 pitches yesterday
+- appearance on consecutive days
+
+This remains research-only.
+
+==================================================
+PHASE 11 — PARK RUN FACTOR
+==================================================
+
+Activate the existing internal park factor as immutable PIT research evidence.
+
+Capture:
+
+venue
+
+park factor
+
+factor type
+
+source
+
+version
+
+effective season/date
+
+sample basis if available
+
+fallback state
+
+Do not invent new park factors.
+
+Do not change V4's park adjustment.
+
+==================================================
+PHASE 12 — WEATHER CONTEXT
+==================================================
+
+Activate Open-Meteo pregame weather evidence.
+
+Capture where available:
+
+temperature
+
+wind speed
+
+wind direction
+
+precipitation probability
+
+precipitation amount if available
+
+humidity if supported
+
+pressure if supported
+
+weather code/context
+
+forecast valid time
+
+retrieval time
+
+game start
+
+provider
+
+quality
+
+For dome/roof contexts:
+
+preserve stadium context separately.
+
+Do not assume roof open/closed unless supported.
+
+==================================================
+PHASE 13 — WEATHER REVISIONS
+==================================================
+
+Weather changes.
+
+Preserve revisions.
+
+Example:
+
+T-6h forecast
+T-3h forecast
+T-1h forecast
+FINAL_PREGAME forecast
+
+Do not overwrite.
+
+This will later let TBM study whether late weather information materially changes scoring.
+
+==================================================
+PHASE 14 — FINAL_PREGAME ADVANCED SNAPSHOT
+==================================================
+
+At the final safe pregame cutoff, create an immutable advanced research snapshot containing the latest valid evidence for:
+
+league_run_environment
+
+probable starter identity
+
+starter conventional metrics
+
+lineup identity/order
+
+bullpen workload/availability
+
+park factor
+
+weather
+
+Each domain must explicitly state:
+
+PRESENT
+
+PARTIAL
+
+STALE
+
+MISSING
+
+UNAVAILABLE
+
+or appropriate existing canonical quality state.
+
+Missing cannot become zero.
+
+==================================================
+PHASE 15 — LIVE_SHADOW COHORT
+==================================================
+
+Automatically associate eligible newly captured games with the appropriate:
+
+LIVE_SHADOW
+
+research cohort.
+
+Do not reclassify the 79 development games from #211/#212.
+
+Do not pretend newly backfilled games are untouched OOS.
+
+A game counts toward LIVE_SHADOW advanced evidence only if:
+
+the evidence was genuinely captured before the game
+
+the snapshot was frozen before first pitch
+
+the outcome was unknown at freeze time
+
+and the feature version was already defined.
+
+==================================================
+PHASE 16 — POSTGAME LINKAGE
+==================================================
+
+After games complete, link the frozen advanced snapshot to the #213 postgame evidence.
+
+Preserve:
+
+final score
+
+home runs
+
+away runs
+
+starter actual identity
+
+starter innings
+
+starter runs/ER
+
+starter pitches
+
+starter strikeouts
+
+starter walks
+
+bullpen innings
+
+bullpen runs
+
+team offense outcome
+
+prediction residuals where applicable
+
+Do not alter the frozen pregame snapshot.
+
+==================================================
+PHASE 17 — EVIDENCE COMPLETENESS
+==================================================
+
+For each LIVE_SHADOW game compute research completeness by domain.
+
+Example:
+
+starter identity: COMPLETE
+starter conventional: COMPLETE
+lineup: CONFIRMED
+bullpen workload: COMPLETE
+park: COMPLETE
+weather: COMPLETE
+league environment: COMPLETE
+
+Keep completeness separate from prediction uncertainty.
+
+==================================================
+PHASE 18 — FEATURE COVERAGE METRICS
+==================================================
+
+Measure actual coverage.
+
+Report:
+
+eligible games
+
+games captured
+
+starter identity %
+
+starter conventional %
+
+confirmed starter %
+
+lineup any-state %
+
+confirmed lineup %
+
+9-player lineup completeness %
+
+bullpen workload %
+
+park %
+
+weather %
+
+FINAL_PREGAME snapshot %
+
+postgame linkage %
+
+PIT violations
+
+stale evidence %
+
+provider failures
+
+Do not call an empty collection 100% successful.
+
+==================================================
+PHASE 19 — FEATURE GRADUATION SYSTEM
+==================================================
+
+Implement a research-only feature graduation state.
+
+Allowed states:
+
+READY_FOR_215
+
+LIVE_FORWARD_CANDIDATE_NEEDS_OOS
+
+UNRELIABLE
+
+NOT_SUPPORTED
+
+PLANNED
+
+Graduation must not happen merely because records exist.
+
+A feature can become READY_FOR_215 only when it demonstrates:
+
+stable identity
+
+acceptable live coverage
+
+PIT safety
+
+immutable capture
+
+known missingness behavior
+
+known sample reliability
+
+consistent semantics
+
+no target leakage
+
+enough LIVE_SHADOW evidence to evaluate operational reliability
+
+Document exact graduation rules.
+
+==================================================
+PHASE 20 — DO NOT FORCE SAMPLE THRESHOLDS
+==================================================
+
+Do not arbitrarily mark a feature READY after 5 or 10 games.
+
+Create reasonable minimum evidence requirements.
+
+Separate:
+
+ENGINEERING READY
+
+from
+
+STATISTICALLY VALIDATED.
+
+For example:
+
+starter identity may become engineering-ready relatively quickly if coverage is near-perfect and PIT integrity is proven.
+
+A predictive feature should require substantially more evidence before being considered validated for model use.
+
+Do not confuse provider reliability with predictive value.
+
+==================================================
+PHASE 21 — LIVE OOS COUNTER
+==================================================
+
+Add an authoritative count for:
+
+LIVE_SHADOW games with valid FINAL_PREGAME advanced snapshots.
+
+Also report counts by:
+
+date
+
+feature version
+
+data completeness tier
+
+lineup confirmation state
+
+starter confirmation state
+
+This becomes one of the key MLB development metrics.
+
+==================================================
+PHASE 22 — PROVIDER EXPANSION AUDIT
+==================================================
+
+In parallel with activating existing feeds, investigate whether TBM can legitimately obtain deeper MLB data through a reliable, maintainable, PIT-auditable source.
+
+Priority domains:
+
+Statcast expected metrics
+
+hitter true-talent metrics
+
+pitch repertoire
+
+pitch characteristics
+
+pitcher × hitter matchup inputs
+
+reliever quality
+
+defense
+
+baserunning
+
+Do not assume these must all come from one provider.
+
+==================================================
+PHASE 23 — OFFICIAL MLB / STATCAST INVESTIGATION
+==================================================
+
+Investigate current supported access to official MLB / Baseball Savant / Statcast-compatible data.
+
+Determine whether the current environment can reliably obtain:
+
+xERA
+
+xwOBA
+
+xBA
+
+xSLG
+
+HardHit%
+
+Barrel%
+
+exit velocity
+
+Whiff%
+
+pitch velocity
+
+pitch type
+
+pitch usage
+
+movement
+
+batted-ball metrics
+
+player-level hitting metrics
+
+Do not use uncontrolled HTML scraping.
+
+Do not build around an undocumented fragile endpoint without documenting the risk.
+
+If official machine-readable access is reliable enough:
+
+build a provider adapter.
+
+If not:
+
+document exactly why.
+
+==================================================
+PHASE 24 — ALTERNATIVE PROVIDER EVALUATION
+==================================================
+
+If the existing providers cannot provide the required advanced data, identify reasonable provider options compatible with the project.
+
+Evaluate potential providers on:
+
+MLB coverage
+
+historical depth
+
+PIT reconstructability
+
+player IDs
+
+pitcher metrics
+
+hitter metrics
+
+Statcast/expected metrics
+
+pitch repertoire
+
+bullpen data
+
+defense
+
+baserunning
+
+injury/availability
+
+rate limits
+
+cost considerations
+
+API stability
+
+licensing/usage suitability
+
+Do not purchase or subscribe to anything automatically.
+
+Do not expose credentials.
+
+Produce a provider recommendation if an additional service is required.
+
+==================================================
+PHASE 25 — PROVIDER ABSTRACTION
+==================================================
+
+Any newly supported provider must enter through:
+
+Provider Adapter
+    ↓
+Raw Snapshot
+    ↓
+Validation
+    ↓
+Canonical TBM Feature
+    ↓
+Research Evidence
+    ↓
+PIT Snapshot
+
+The future #215 model must not directly call external provider APIs.
+
+==================================================
+PHASE 26 — HITTER CONVENTIONAL DATA INVESTIGATION
+==================================================
+
+#214 marked hitter true-talent PLANNED because no verified player-stat capture adapter was active.
+
+Determine whether official MLB Stats API data can reliably provide PIT-safe hitter statistics such as:
+
+PA
+
+AVG
+
+OBP
+
+SLG
+
+OPS
+
+HR
+
+BB
+
+K
+
+H
+
+2B
+
+3B
+
+AB
+
+and other conventional components.
+
+If yes:
+
+build a RESEARCH-ONLY canonical hitter conventional adapter and begin live-forward capture.
+
+If historical PIT reconstruction is not reliable:
+
+classify it LIVE_FORWARD_ONLY.
+
+Do not block #214B solely because advanced Statcast metrics are unavailable.
+
+==================================================
+PHASE 27 — HITTER CONVENTIONAL TRUE-TALENT FOUNDATION
+==================================================
+
+If Phase 26 succeeds, capture:
+
+season-to-date statistics
+
+recent rolling statistics where PIT-safe
+
+career/multi-year context only if genuinely reconstructable
+
+sample size
+
+PA
+
+games
+
+stat-through date
+
+last included game
+
+Do not calculate production true-talent coefficients.
+
+This is evidence collection only.
+
+==================================================
+PHASE 28 — HITTER HANDEDNESS / PLATOON FOUNDATION
+==================================================
+
+Determine whether supported provider data can supply:
+
+bats
+
+pitcher throws
+
+hitter split statistics vs LHP/RHP
+
+with sample size.
+
+If valid:
+
+capture research-only.
+
+If not:
+
+leave PLANNED/NOT_SUPPORTED.
+
+Do not fabricate platoon estimates from overall OPS.
+
+==================================================
+PHASE 29 — RELIEVER QUALITY INVESTIGATION
+==================================================
+
+Determine whether existing MLB Stats API pitching statistics can provide conventional reliever talent features.
+
+Potential:
+
+ERA
+
+WHIP
+
+FIP components
+
+K%
+
+BB%
+
+K-BB%
+
+IP
+
+BF
+
+HR
+
+recent usage
+
+handedness
+
+If valid:
+
+begin research-only live-forward capture.
+
+Keep:
+
+RELIEVER QUALITY
+
+separate from:
+
+RELIEVER AVAILABILITY.
+
+==================================================
+PHASE 30 — BULLPEN AGGREGATION FOUNDATION
+==================================================
+
+If individual reliever quality becomes available, create research-only bullpen aggregate evidence.
+
+Do not create production coefficients.
+
+Potential aggregate views:
+
+all bullpen relievers
+
+available relievers
+
+likely high-leverage subset if objectively identifiable
+
+weighted quality candidate
+
+But keep raw individual evidence available.
+
+==================================================
+PHASE 31 — DEFENSE / BASERUNNING PROVIDER DECISION
+==================================================
+
+Determine whether reliable sources exist for:
+
+OAA
+
+DRS
+
+defensive runs
+
+BsR
+
+baserunning runs
+
+If not available through an approved source:
+
+leave them NOT_SUPPORTED.
+
+Do not use arbitrary substitutes just to fill the schema.
+
+==================================================
+PHASE 32 — UMPIRE REMAINS OPTIONAL
+==================================================
+
+Do not spend disproportionate engineering effort on umpire data.
+
+If no reliable PIT feed exists:
+
+keep:
+
+umpire_effects = NOT_SUPPORTED.
+
+The absence of umpire data must not block the broader MLB intelligence program.
+
+==================================================
+PHASE 33 — LATE-PREGAME MARKET CAPTURE
+==================================================
+
+#214 deferred additional market cadence.
+
+Activate bounded late-pregame market capture using the existing Odds API infrastructure.
+
+This is for:
+
+CLV
+
+market evaluation
+
+research benchmarking
+
+NOT sports forecasting.
+
+Capture useful states such as:
+
+MODEL_DECISION
+
+T_MINUS_120
+
+T_MINUS_60
+
+T_MINUS_30
+
+T_MINUS_15
+
+LATEST_PRE_FIRST_PITCH
+
+CLOSING
+
+The exact implementation should avoid unnecessary API usage.
+
+==================================================
+PHASE 34 — CLOSING LINE QUALITY
+==================================================
+
+For each game determine:
+
+best available credible closing observation
+
+timestamp relative to first pitch
+
+book/source
+
+home odds
+
+away odds
+
+no-vig probabilities
+
+freshness
+
+quality state
+
+Possible quality:
+
+HIGH
+
+MEDIUM
+
+LOW
+
+UNAVAILABLE
+
+Do not label a snapshot captured hours before first pitch a high-quality close.
+
+==================================================
+PHASE 35 — CLV EVALUATION FOUNDATION
+==================================================
+
+Link:
+
+prediction-time market
+
+to:
+
+closing market
+
+without feeding closing information into sports probability.
+
+Store:
+
+selected side
+
+bet price
+
+closing price
+
+probability-based CLV if appropriate
+
+price-based CLV if existing conventions support it
+
+close quality
+
+Do not use low-quality close observations as equivalent to true closes.
+
+==================================================
+PHASE 36 — MARKET API COST SAFETY
+==================================================
+
+The Odds API may have quota/cost constraints.
+
+Before adding capture frequency:
+
+inspect current API usage architecture.
+
+Use:
+
+event batching
+
+market batching
+
+cache
+
+dedupe
+
+bounded refreshes
+
+avoid repeated unchanged calls
+
+Do not create:
+
+games × books × intervals
+
+unbounded request explosion.
+
+Document expected request behavior.
+
+==================================================
+PHASE 37 — SCHEDULER DESIGN
+==================================================
+
+Implement a bounded MLB evidence scheduler.
+
+Conceptually:
+
+MORNING / EARLY
+    ↓
+schedule
+game identity
+park
+league environment
+probable starters
+
+PREGAME
+    ↓
+starter metrics
+bullpen workload
+weather
+lineup state
+
+LATE PREGAME
+    ↓
+starter confirmation
+lineup refresh
+weather refresh
+late market
+
+FINAL_PREGAME
+    ↓
+freeze advanced snapshot
+
+POSTGAME
+    ↓
+outcome capture
+starter outcome
+bullpen outcome
+team offense
+market close evaluation
+research linkage
+
+==================================================
+PHASE 38 — SCHEDULER MEMORY SAFETY
+==================================================
+
+Preserve #205 protections.
+
+Requirements:
+
+single-flight per heavy job
+
+bounded concurrency
+
+bounded catch-up
+
+pagination
+
+no loading entire season into memory
+
+no unlimited Promise.all fan-out
+
+idempotent jobs
+
+restart-safe jobs
+
+per-game error isolation
+
+provider retry/backoff
+
+failure must not crash API
+
+==================================================
+PHASE 39 — EXACTLY-ONCE SEMANTICS
+==================================================
+
+Where logically possible, ensure:
+
+same provider payload
++
+same game
++
+same cutoff/revision
++
+same feature version
+
+does not create duplicate evidence.
+
+Use deterministic identity/hash constraints.
+
+But legitimate changed evidence must create a new revision.
+
+==================================================
+PHASE 40 — RESTART SAFETY
+==================================================
+
+Test:
+
+API restart before games
+
+restart during pregame collection
+
+restart after FINAL_PREGAME
+
+restart after game completion
+
+The system must reconcile without:
+
+duplicate freezes
+
+post-start pregame mutation
+
+lost postgame linkage
+
+duplicate evidence
+
+duplicate market observations
+
+==================================================
+PHASE 41 — PROVIDER FAILURE SAFETY
+==================================================
+
+Simulate:
+
+MLB Stats unavailable
+
+Open-Meteo unavailable
+
+Odds API unavailable
+
+partial lineup response
+
+starter missing
+
+invalid player mapping
+
+stale weather
+
+ambiguous doubleheader
+
+The system must fail safely.
+
+One provider failure must not fabricate evidence from another unrelated source.
+
+==================================================
+PHASE 42 — DOUBLEHEADER SAFETY
+==================================================
+
+Preserve #213's fail-closed doubleheader identity logic.
+
+Explicitly test:
+
+same teams
+same date
+Game 1
+Game 2
+
+No evidence may cross between games.
+
+This includes:
+
+starter
+
+lineup
+
+bullpen
+
+weather
+
+market
+
+postgame outcomes.
+
+==================================================
+PHASE 43 — PLAYER IDENTITY COMPLETENESS
+==================================================
+
+Measure canonical mapping success.
+
+Report:
+
+players encountered
+
+players mapped
+
+unmapped players
+
+ambiguous mappings
+
+mapping failures by provider
+
+Do not allow name-only fallback to silently pass as canonical identity.
+
+==================================================
+PHASE 44 — LIVE DATA QUALITY DASHBOARD
+==================================================
+
+Extend:
+
+GET /api/admin/mlb-pit-completeness
+
+or add a focused endpoint.
+
+Admin should be able to see for today's MLB slate:
+
+games scheduled
+
+games under collection
+
+FINAL_PREGAME freezes
+
+starter identity completeness
+
+starter metric completeness
+
+lineup completeness
+
+confirmed lineups
+
+bullpen workload completeness
+
+park completeness
+
+weather completeness
+
+late market completeness
+
+closing market completeness where applicable
+
+provider health
+
+PIT violations
+
+LIVE_SHADOW count
+
+==================================================
+PHASE 45 — GAME-LEVEL ADMIN DETAIL
+==================================================
+
+Provide admin/research drill-down data for a game.
+
+It should be possible to inspect:
+
+Game
+
+Cutoff
+
+Starter:
+status / identity / metrics / freshness
+
+Lineup:
+status / players / order / freshness
+
+Bullpen:
+workload / availability / freshness
+
+Park
+
+Weather
+
+League environment
+
+Market observations
+
+FINAL_PREGAME status
+
+Postgame linkage
+
+Data quality
+
+Feature statuses
+
+Do not expose sensitive raw provider payloads publicly.
+
+==================================================
+PHASE 46 — FEATURE GRADUATION DASHBOARD
+==================================================
+
+Admin/research output should show something like:
+
+FEATURE
+STATUS
+LIVE GAMES
+COVERAGE
+PIT VIOLATIONS
+FRESHNESS
+HISTORICAL SUPPORT
+READY FOR #215?
+
+Example:
+
+starter_identity
+LIVE_FORWARD_CANDIDATE
+32
+100%
+0
+PASS
+PARTIAL
+NOT YET
+
+This must be data-driven, not manually hardcoded to look successful.
+
+==================================================
+PHASE 47 — AUTOMATIC OOS ACCUMULATION
+==================================================
+
+Once #214B is deployed, ordinary MLB operation should automatically accumulate evidence without requiring manual commands every day.
+
+That means future MLB games should naturally produce:
+
+pregame evidence
+
+FINAL_PREGAME snapshot
+
+LIVE_SHADOW classification
+
+postgame outcomes
+
+market close evaluation
+
+The system should continue collecting until we intentionally build #215.
+
+==================================================
+PHASE 48 — DO NOT RETROACTIVELY CALL BACKFILLS OOS
+==================================================
+
+Historical backfills can be useful for:
+
+engineering validation
+
+provider testing
+
+development
+
+But they are not untouched LIVE_SHADOW evidence.
+
+Use separate cohort classifications such as:
+
+DEVELOPMENT
+
+HISTORICAL_RECONSTRUCTION
+
+LIVE_SHADOW
+
+UNTOUCHED_OOS
+
+as appropriate.
+
+Never inflate the live sample count with backfills.
+
+==================================================
+PHASE 49 — HISTORICAL RECONSTRUCTION
+==================================================
+
+Where a feature has legitimate historical PIT reconstruction, historical evidence may be created for research.
+
+However:
+
+the exact games included must be known
+
+the data must prove it excludes the target game/future games
+
+historical reconstruction must have a distinct cohort/source state
+
+it must not become LIVE_SHADOW
+
+If reconstruction cannot prove PIT safety:
+
+do not do it.
+
+==================================================
+PHASE 50 — FEATURE COVERAGE TARGETS
+==================================================
+
+Use these as operational targets, NOT as permission to fabricate data:
+
+probable starter identity:
+target >= 95%
+
+starter conventional:
+target >= 90%
+
+park:
+target >= 95%
+
+weather:
+target >= 90%
+
+bullpen workload:
+target >= 90%
+
+lineup any-state:
+target >= 95%
+
+confirmed lineup:
+target >= 80% when captured sufficiently close to first pitch
+
+FINAL_PREGAME advanced snapshot:
+target >= 95%
+
+PIT violations:
+must remain 0
+
+post-start contamination:
+must remain 0
+
+These targets do not automatically mean READY_FOR_215.
+
+==================================================
+PHASE 51 — FEATURE RELIABILITY REPORTING
+==================================================
+
+For each candidate feature report:
+
+coverage
+
+freshness
+
+provider failure rate
+
+identity completeness
+
+missingness
+
+revision behavior
+
+sample reliability
+
+PIT safety
+
+historical reconstructability
+
+live-forward availability
+
+Do not yet report predictive superiority unless there is genuinely sufficient untouched evidence.
+
+==================================================
+PHASE 52 — ADVANCED PROVIDER STATUS
+==================================================
+
+At completion classify each desired advanced domain:
+
+ACTIVE_LIVE_CAPTURE
+
+IMPLEMENTED_AWAITING_DATA
+
+PROVIDER_AVAILABLE_NOT_INTEGRATED
+
+PROVIDER_REQUIRED
+
+NOT_SUPPORTED
+
+Examples:
+
+starter_conventional
+lineup_identity_order
+hitter_conventional
+statcast_expected_metrics
+pitch_repertoire
+reliever_quality
+defense
+baserunning
+
+==================================================
+PHASE 53 — RESEARCH-ONLY DESCRIPTIVE ANALYSIS
+==================================================
+
+Once evidence exists, it is acceptable to report descriptive properties:
+
+coverage
+
+missingness
+
+ranges
+
+distributions
+
+revision frequency
+
+provider latency
+
+Do not use the initial few games to tune a new forecast formula.
+
+==================================================
+PHASE 54 — IMMUTABILITY
+==================================================
+
+Pregame evidence is append-only.
+
+FINAL_PREGAME snapshots are immutable.
+
+Postgame outcomes are linked separately.
+
+Closing market is linked separately.
+
+Never mutate the pregame evidence after knowing the result.
+
+==================================================
+PHASE 55 — SPORTS-FIRST FIREWALL
+==================================================
+
+Maintain the strict firewall:
+
+BASEBALL DATA
+→ SPORTS FORECAST
+
+MARKET DATA
+→ VALUE EVALUATION
+
+Closing market, CLV, sharp score, consensus movement, and sportsbook prices may NEVER become:
+
+pitcher quality
+
+hitter quality
+
+lineup quality
+
+bullpen quality
+
+park quality
+
+weather quality
+
+or any future sports probability input.
+
+==================================================
+PHASE 56 — FEATURE REGISTRY UPDATE
+==================================================
+
+Update:
+
+mlbAdvancedFeatureRegistry.ts
+
+and machine-readable reports.
+
+Every feature must accurately reflect current state after #214B.
+
+Do not mark a feature ACTIVE simply because the schema exists.
+
+Distinguish:
+
+CAPTURE ACTIVE
+
+MODEL ACTIVE
+
+These are not the same.
+
+A feature can be:
+
+CAPTURE ACTIVE
+MODEL INACTIVE
+
+which is expected for #214B.
+
+==================================================
+PHASE 57 — DATABASE / MIGRATIONS
+==================================================
+
+Use managed migrations for required schema changes.
+
+Review indexes for:
+
+game ID
+
+player ID
+
+feature domain
+
+cutoff
+
+retrieved_at
+
+cohort
+
+snapshot ID
+
+provider
+
+hash identity
+
+Do not add unsafe startup DDL.
+
+==================================================
+PHASE 58 — TEST COVERAGE
+==================================================
+
+Add comprehensive tests covering at least:
+
+probable starter capture
+
+starter revisions
+
+starter PIT statistics
+
+target-game exclusion
+
+starter change
+
+canonical player identity
+
+unmapped player behavior
+
+lineup revisions
+
+confirmed lineup capture
+
+partial lineup
+
+lineup FINAL_PREGAME freeze
+
+bullpen workload
+
+future workload rejection
+
+park evidence
+
+weather evidence
+
+weather revisions
+
+FINAL_PREGAME advanced snapshot
+
+post-start rejection
+
+LIVE_SHADOW classification
+
+historical reconstruction classification
+
+postgame linkage
+
+late market observations
+
+closing line selection
+
+CLV quality
+
+provider failure
+
+doubleheaders
+
+scheduler idempotency
+
+scheduler restart
+
+hash dedupe
+
+legitimate changed revision
+
+provider health
+
+coverage calculations
+
+feature graduation
+
+production isolation.
+
+==================================================
+PHASE 59 — PRODUCTION ISOLATION TEST
+==================================================
+
+Explicitly compare before and after:
+
+V3 source/config/hash
+
+V3 weights
+
+V3 thresholds
+
+V3 official behavior
+
+V4 source/config/hash
+
+V4 run model
+
+V4 calibration
+
+V4 shadow status
+
+V4.1 source/config/hash
+
+V4.1 output behavior
+
+All must remain unchanged.
+
+==================================================
+PHASE 60 — LIVE APP ISOLATION
+==================================================
+
+Confirm no change to:
+
+mobile picks
+
+subscriber picks
+
+public picks
+
+official picks
+
+units
+
+Results
+
+ROI
+
+Free Pick
+
+Top Pick
+
+Play of the Day
+
+notifications
+
+grading
+
+subscription behavior
+
+==================================================
+PHASE 61 — ADMIN UI TYPE ERRORS
+==================================================
+
+Previous tasks reported pre-existing Admin typing errors in:
+
+button-group.tsx
+
+calendar.tsx
+
+If these prevent the #214B Admin observability work or workspace validation:
+
+fix them minimally and safely.
+
+Do not redesign unrelated UI.
+
+Document exactly what changed.
+
+==================================================
+PHASE 62 — REPORT COMMAND
+==================================================
+
+Create or extend a command such as:
+
+pnpm --filter @workspace/api-server run report:mlb-advanced-capture
+
+It should support appropriate date/cohort filters.
+
+Report:
+
+eligible games
+
+captured games
+
+advanced evidence count
+
+advanced snapshot count
+
+FINAL_PREGAME count
+
+LIVE_SHADOW count
+
+starter identity coverage
+
+starter conventional coverage
+
+lineup coverage
+
+confirmed lineup coverage
+
+bullpen workload coverage
+
+park coverage
+
+weather coverage
+
+late market coverage
+
+closing market coverage
+
+player mapping coverage
+
+provider health
+
+PIT violations
+
+post-start violations
+
+feature graduation states
+
+==================================================
+PHASE 63 — REQUIRED COMPLETION REPORT
+==================================================
+
+Create:
+
+reports/mlb-advanced-evidence-capture-2026-09-03.md
+
+The report must include:
+
+1. Executive summary
+
+2. Root cause of #214's zero evidence
+
+3. #214 architecture audit
+
+4. Scheduler architecture
+
+5. Probable starter collection
+
+6. Starter conventional collection
+
+7. Starter PIT integrity
+
+8. Starter revision behavior
+
+9. Player identity mapping
+
+10. Lineup collection
+
+11. Lineup cadence
+
+12. Lineup revision behavior
+
+13. Confirmed lineup capture
+
+14. Bullpen workload collection
+
+15. Reliever availability evidence
+
+16. Park collection
+
+17. Weather collection
+
+18. Weather revisions
+
+19. League environment linkage
+
+20. FINAL_PREGAME advanced snapshot
+
+21. LIVE_SHADOW cohort behavior
+
+22. Postgame linkage
+
+23. Feature completeness
+
+24. Feature coverage percentages
+
+25. Feature graduation rules
+
+26. Current READY_FOR_215 features
+
+27. Current LIVE_FORWARD_CANDIDATE features
+
+28. Current unreliable features
+
+29. Current unsupported features
+
+30. Hitter conventional provider investigation
+
+31. Hitter advanced provider investigation
+
+32. Statcast investigation
+
+33. Pitch repertoire investigation
+
+34. Reliever-quality investigation
+
+35. Defense investigation
+
+36. Baserunning investigation
+
+37. Umpire status
+
+38. Recommended provider expansion
+
+39. Provider costs/limits considerations if applicable
+
+40. Late market collection
+
+41. Closing line quality
+
+42. CLV architecture
+
+43. Odds API request/cost safety
+
+44. Provider health
+
+45. Admin completeness
+
+46. Game-level research observability
+
+47. OOS accumulation architecture
+
+48. Historical reconstruction rules
+
+49. Current LIVE_SHADOW game count
+
+50. Current advanced evidence count
+
+51. Current advanced snapshot count
+
+52. PIT violation count
+
+53. Post-start contamination count
+
+54. Player mapping completeness
+
+55. Scheduler memory safety
+
+56. Scheduler restart/idempotency
+
+57. Database/migrations
+
+58. Tests
+
+59. API typecheck
+
+60. API production build
+
+61. Workspace typecheck
+
+62. Admin typing issue status
+
+63. Exact V3 before/after comparison
+
+64. Exact V4 before/after comparison
+
+65. Exact V4.1 before/after comparison
+
+66. Confirmation current models do not consume #214B features
+
+67. Exact feature list now eligible for future #215
+
+68. Exact feature list still blocked
+
+69. Evidence still required before #215
+
+70. Recommended next MLB action
+
+==================================================
+PHASE 64 — READINESS DECISION
+==================================================
+
+At completion choose exactly ONE:
+
+A — READY TO BUILD #215
+
+Only if a meaningful set of baseball features is now reliably captured, PIT-safe, immutable, and sufficiently evidenced for challenger development.
+
+B — ENGINEERING READY; CONTINUE LIVE OOS COLLECTION BEFORE #215
+
+Use when capture works correctly but the untouched sample is still too small.
+
+C — PARTIAL CAPTURE SUCCESS; ADDITIONAL PROVIDER/DATA WORK REQUIRED
+
+Use when important live-forward features still cannot be reliably captured.
+
+D — CRITICAL DATA INTEGRITY ISSUE; STOP MLB MODEL DEVELOPMENT
+
+Use if PIT integrity, identity, leakage, or evidence corruption is discovered.
+
+Do not choose A merely because the implementation is complete.
+
+==================================================
+PHASE 65 — IMPORTANT DISTINCTION
+==================================================
+
+The following are different:
+
+DATA EXISTS
+
+DATA IS CAPTURED
+
+DATA IS PIT SAFE
+
+DATA IS OPERATIONALLY RELIABLE
+
+DATA IS PREDICTIVELY USEFUL
+
+DATA IS READY FOR A CHALLENGER
+
+DATA IS READY FOR PRODUCTION
+
+Do not collapse these into one status.
+
+#214B primarily establishes:
+
+DATA IS CAPTURED
++
+DATA IS PIT SAFE
++
+DATA IS OPERATIONALLY RELIABLE
+
+Predictive usefulness belongs to later challenger validation.
+
+==================================================
+FINAL VERIFICATION
+==================================================
+
+Run all appropriate:
+
+managed migrations
+
+DB integrity checks
+
+API TypeScript typecheck
+
+API production build
+
+full API test suite
+
+workspace typecheck if possible
+
+provider adapter tests
+
+PIT tests
+
+future leakage tests
+
+player identity tests
+
+scheduler tests
+
+scheduler startup
+
+startup reconciliation
+
+safe live/development MLB collection cycle if games/data are available
+
+idempotency replay
+
+advanced capture report
+
+Confirm explicitly:
+
+V3 champion unchanged
+
+V3 formula unchanged
+
+V3 configuration unchanged
+
+V3 weights unchanged
+
+V3 thresholds unchanged
+
+V3 picks unchanged by #214B
+
+V3 publication unchanged
+
+V3 units unchanged
+
+V3 grading unchanged
+
+V3 learning unchanged
+
+V4 formula unchanged
+
+V4 run model unchanged
+
+V4 calibration unchanged
+
+V4 remains shadow-only
+
+V4.1 behavior unchanged
+
+V4.1 remains shadow-only
+
+No #214B feature is consumed by V3/V4/V4.1
+
+No official model was promoted
+
+No new model was created
+
+No public pick behavior changed
+
+No unit behavior changed
+
+No Results behavior changed
+
+No ROI behavior changed
+
+No Free Pick behavior changed
+
+No Top Pick behavior changed
+
+No POD behavior changed
+
+No notification behavior changed
+
+No automatic production learning occurred
+
+No historical prediction was mutated
+
+No pregame evidence was mutated after game start
+
+No closing market entered sports features
+
+No future-data leakage occurred
+
+==================================================
+STOP CONDITION
+==================================================
+
+STOP after:
+
+activating legitimate live-forward advanced evidence collection
+
+activating bounded scheduler collection
+
+creating immutable FINAL_PREGAME advanced snapshots
+
+creating automatic LIVE_SHADOW evidence accumulation
+
+linking postgame outcomes
+
+activating late-pregame / closing-market research collection
+
+investigating and integrating additional legitimate provider data where safely possible
+
+measuring actual feature coverage
+
+updating feature graduation states
+
+running verification
+
+writing the #214B report
+
+DO NOT BUILD #215.
+
+DO NOT BUILD V4.2.
+
+DO NOT BUILD V5.
+
+DO NOT CHANGE V3.
+
+DO NOT CHANGE V4.
+
+DO NOT CHANGE V4.1.
+
+DO NOT TUNE THE RUN MODEL.
+
+DO NOT TUNE PROBABILITIES.
+
+DO NOT PROMOTE ANY MODEL.
+
+DO NOT BEGIN ANOTHER SPORT.
+
+If live games are not available at the exact time this task is run, complete the engineering, test the capture system using safe fixtures/development data, and report the real live evidence count honestly.
+
+Do not fabricate LIVE_SHADOW evidence.
+
+Once deployed, the system must automatically begin accumulating legitimate untouched MLB evidence from future games without requiring manual daily intervention.
+
+The purpose of #214B is to make TBM ready to LEARN from real baseball evidence.
+
+The purpose is NOT yet to teach a new model from insufficient evidence.

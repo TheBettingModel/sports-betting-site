@@ -1,0 +1,2123 @@
+{
+  "artifact": "ncaaf-v4-2026-feature-bridge-2026-09-04",
+  "version": "ncaaf-v4-2026-feature-bridge-v1",
+  "assessedAt": "2026-09-04T00:00:00.000Z",
+  "fbsUniverseProof": {
+    "season": 2026,
+    "cfbdFbsCount": 138,
+    "mappedFbsCount": 138,
+    "mappedNonFbsCount": 0,
+    "capturedAt": "2026-09-03T20:42:22.413Z",
+    "evidenceRef": "cfbd-teams-2026:138:2026-09-03T20:42:22.413Z"
+  },
+  "status": "PASS",
+  "passGate": {
+    "passed": true,
+    "pitViolations": 0
+  },
+  "compatibilityMatrix": [
+    {
+      "feature": "seasonToDate score-derived offense/defense",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "last3",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "last5",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "priorSeason",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "pregame Elo",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "opponentAdjusted",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "home/neutral",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "sample counts",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "missing/quality indicators",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    }
+  ],
+  "eligibleInputCount": 531,
+  "internalPredictionCount": 531,
+  "exclusions": [
+    {
+      "snapshotId": 11133,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11143,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11206,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11235,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11244,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11247,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11253,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11259,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11262,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11275,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11284,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11287,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11302,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11311,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11329,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11335,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11340,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11342,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11344,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11349,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11351,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11355,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11357,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11358,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11364,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11365,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11367,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11368,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11370,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11372,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11373,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11374,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11376,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11378,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11379,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11382,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11384,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11389,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11391,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11394,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11396,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11397,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11398,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11400,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11402,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11405,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11407,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11410,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11411,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11412,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11415,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11416,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11419,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11424,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11427,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11428,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11443,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11447,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11452,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11463,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11466,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11473,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11481,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11488,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11501,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11510,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11518,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11532,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11541,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11548,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11550,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11555,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11604,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11613,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11618,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11630,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11639,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11649,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11665,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11669,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11680,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11682,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11684,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11686,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11688,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11691,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11694,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11696,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11697,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11699,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11702,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11703,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11704,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11706,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11707,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11708,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11709,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11710,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11711,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11712,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11713,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11714,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11715,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11716,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11718,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11719,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11720,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11722,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11724,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11725,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11727,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11728,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11729,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11732,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11736,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11737,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11741,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11748,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11757,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11759,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11763,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11765,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11766,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11774,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11775,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11777,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11779,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11798,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11831,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11850,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11854,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11855,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11856,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11861,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11865,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11869,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11871,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11873,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11877,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 16442,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16445,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16446,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16453,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16456,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16459,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16466,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16489,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16508,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16529,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16530,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16532,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16533,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16549,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16550,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16551,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16552,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16554,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16555,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16556,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16560,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16565,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16566,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16567,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16568,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16571,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16580,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16654,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16657,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16659,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16664,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16666,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16667,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16670,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16671,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16676,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16682,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16696,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16715,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16719,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16723,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16726,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16732,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16733,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16737,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16742,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16750,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16814,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16815,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16816,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16818,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16819,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16822,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16824,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16856,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16857,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16858,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16859,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16860,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16868,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16869,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16870,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16871,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16873,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16874,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16883,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16885,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16887,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16889,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16893,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16896,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16937,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16939,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16940,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16941,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16942,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16959,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16961,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16962,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16963,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16965,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16966,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16967,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16968,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16969,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16970,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16973,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16975,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16976,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16999,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17000,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17003,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17004,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17005,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17006,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17007,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17008,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17009,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17010,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17011,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17012,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17013,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17014,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17015,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17016,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17017,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17057,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17059,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17063,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17089,
+      "reason": "out_of_domain_other"
+    }
+  ],
+  "pitAudit": {
+    "snapshotsSeen": 34418,
+    "targetsAssessed": 780,
+    "eligibleSnapshots": 531,
+    "modelEligibleFbsVsFbsTargets": 531,
+    "outOfDomainTargets": 249,
+    "identityResolvedTargets": 531,
+    "identityUnresolvedTargets": 0,
+    "targetUniverse": {
+      "IDENTITY_UNRESOLVED": 139,
+      "MODEL_ELIGIBLE_FBS_VS_FBS": 531,
+      "OUT_OF_DOMAIN_FBS_VS_FCS": 109,
+      "OUT_OF_DOMAIN_OTHER": 1
+    },
+    "ambiguousIdentitiesAccepted": 0,
+    "fuzzyIdentitiesAccepted": 0,
+    "postCutoffIdentityViolations": 0,
+    "sameGameLeakage": 0,
+    "futureGameLeakage": 0,
+    "futureSeasonLeakage": 0,
+    "postKickoffEvidence": 0,
+    "marketLeakage": 0,
+    "marketShapedSnapshotsRejected": 0,
+    "excludedCompletedEvidence": {
+      "not_completed_fbs_atomic": 1715130,
+      "outside_cutoff_or_season": 5039535,
+      "post_cutoff_evidence": 429579
+    }
+  },
+  "marketAudit": {
+    "violations": 0
+  },
+  "blockers": [
+    {
+      "snapshotId": 11133,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11143,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11206,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11235,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11244,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11247,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11253,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11259,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11262,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11275,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11284,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11287,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11302,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11311,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11329,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11335,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11340,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11342,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11344,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11349,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11351,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11355,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11357,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11358,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11364,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11365,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11367,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11368,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11370,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11372,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11373,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11374,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11376,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11378,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11379,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11382,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11384,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11389,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11391,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11394,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11396,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11397,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11398,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11400,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11402,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11405,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11407,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11410,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11411,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11412,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11415,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11416,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11419,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11424,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11427,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11428,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11443,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11447,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11452,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11463,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11466,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11473,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11481,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11488,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11501,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11510,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11518,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11532,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11541,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11548,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11550,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11555,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11604,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11613,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11618,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11630,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11639,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11649,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11665,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11669,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11680,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11682,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11684,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11686,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11688,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11691,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11694,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11696,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11697,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11699,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11702,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11703,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11704,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11706,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11707,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11708,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11709,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11710,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11711,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11712,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11713,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11714,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11715,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11716,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11718,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11719,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11720,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11722,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11724,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11725,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11727,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11728,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11729,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11732,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11736,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11737,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11741,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11748,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11757,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11759,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11763,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11765,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11766,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11774,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11775,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11777,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11779,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11798,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11831,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11850,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11854,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11855,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11856,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11861,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11865,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11869,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11871,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11873,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 11877,
+      "reason": "identity_unresolved"
+    },
+    {
+      "snapshotId": 16442,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16445,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16446,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16453,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16456,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16459,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16466,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16489,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16508,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16529,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16530,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16532,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16533,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16549,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16550,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16551,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16552,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16554,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16555,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16556,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16560,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16565,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16566,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16567,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16568,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16571,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16580,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16654,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16657,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16659,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16664,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16666,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16667,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16670,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16671,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16676,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16682,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16696,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16715,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16719,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16723,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16726,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16732,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16733,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16737,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16742,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16750,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16814,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16815,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16816,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16818,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16819,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16822,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16824,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16856,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16857,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16858,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16859,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16860,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16868,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16869,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16870,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16871,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16873,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16874,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16883,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16885,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16887,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16889,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16893,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16896,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16937,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16939,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16940,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16941,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16942,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16959,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16961,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16962,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16963,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16965,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16966,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16967,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16968,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16969,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16970,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16973,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16975,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16976,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 16999,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17000,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17003,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17004,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17005,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17006,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17007,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17008,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17009,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17010,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17011,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17012,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17013,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17014,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17015,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17016,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17017,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17057,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17059,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17063,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 17089,
+      "reason": "out_of_domain_other"
+    }
+  ],
+  "persistence": "none; nonpublic in-memory challenger inputs only"
+}

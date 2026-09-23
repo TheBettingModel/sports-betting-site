@@ -1,0 +1,658 @@
+TASK #238B — INDEPENDENT RELEASE SECURITY-GATE VERIFICATION & OWNER GO/NO-GO
+
+PROJECT: The Betting Model
+DATE: September 6, 2026
+
+MISSION
+
+Perform an independent, strictly READ-ONLY verification of the repository and release-security state after Replit Support's remediation of the previously contaminated protected Git ref.
+
+This task determines whether The Betting Model may proceed to a CONTROLLED PRODUCTION RELEASE of the already-completed Task #238A downstream safety remediation.
+
+Task #238A completed with:
+
+A — DOWNSTREAM SAFETY REMEDIATION COMPLETE; READY FOR CONTROLLED RELEASE AFTER SECURITY GATE
+
+#238A implemented in development:
+
+- fail-closed publication eligibility
+- global cross-sport candidate ranking
+- six-pick cap after global ranking
+- processing-order-independent publication selection
+- flat 1.0u approved staking
+- requested_units preserved separately
+- POTD publication safety
+- official-record public/performance eligibility filtering
+- subscriber/API protections
+- append-only audit history
+
+Validation passed:
+
+- API typecheck
+- database typecheck
+- API build
+- git diff --check
+- 93 test files
+- 597 tests
+
+#238A performed:
+
+NO production mutation
+NO production deployment
+NO push
+NO model promotion
+NO protected-ref modification
+
+Current production model state remains:
+
+MLB → V1
+NCAAF → legacy/current production model
+
+MLB V4 is NOT production approved.
+NCAAF V4 is NOT production approved.
+
+==================================================
+PRIMARY SECURITY QUESTION
+==================================================
+
+The previously identified contaminated protected Git ref was:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+It previously resolved to:
+
+e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Replit Support was responsible for deleting this ref because normal deletion was blocked by Replit's internal gitsafe policy.
+
+Determine independently whether that exact ref is now gone and whether its contaminated history remains reachable through any normal repository ref.
+
+DO NOT TRUST A SUPPORT MESSAGE ALONE.
+
+VERIFY THE REPOSITORY.
+
+==================================================
+ABSOLUTE READ-ONLY RULE
+==================================================
+
+THIS TASK MUST NOT CHANGE ANYTHING.
+
+DO NOT:
+
+- edit files
+- create implementation code
+- delete files
+- modify refs
+- delete refs
+- force push
+- push
+- commit
+- checkout destructive states
+- reset
+- rebase
+- merge
+- cherry-pick
+- amend
+- modify Git history
+- deploy
+- publish
+- production migrate
+- production schema push
+- restart production
+- modify production data
+- grade picks
+- refresh models
+- retrain models
+- retune models
+- promote models
+- create EAS build
+- publish EAS update
+- submit App Store build
+- touch Apple credentials
+- touch EAS credentials
+- rotate secrets
+- revoke credentials
+- create branches
+- modify environment variables
+
+READ ONLY.
+
+==================================================
+1. RECORD CURRENT GIT STATE
+==================================================
+
+Report:
+
+current branch
+local HEAD SHA
+remote main SHA
+ahead/behind status
+tracked changes
+staged changes
+untracked files
+
+Use non-mutating commands only.
+
+Confirm whether local main and remote main agree.
+
+Do not modify working tree.
+
+==================================================
+2. VERIFY EXACT CONTAMINATED REF
+==================================================
+
+Check specifically for:
+
+refs/heads/main-old-20260904-e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Check:
+
+local refs
+remote refs
+packed refs where legitimately inspectable
+show-ref output
+ls-remote output where supported
+
+The expected PASS condition is:
+
+THE EXACT REF DOES NOT EXIST.
+
+If the ref still exists anywhere reachable as an active local/remote ref:
+
+STOP.
+
+CLASSIFICATION = NO-GO.
+
+Do not attempt to delete it.
+
+==================================================
+3. VERIFY CONTAMINATED COMMIT REACHABILITY
+==================================================
+
+Known contaminated commit:
+
+e3388ae3d3ccfd9cbf7835b7693252ce0dcdacc8
+
+Determine whether it is reachable from:
+
+main
+remote main
+any branch ref
+any tag ref
+any active remote ref
+any other normal repository ref
+
+Use read-only Git reachability inspection.
+
+Distinguish:
+
+OBJECT EXISTS LOCALLY
+
+from:
+
+OBJECT IS REACHABLE FROM AN ACTIVE REF.
+
+The important release question is active reachability.
+
+If contaminated commit remains reachable from an active repository ref:
+
+NO-GO.
+
+Do not rewrite history.
+
+==================================================
+4. ENUMERATE ACTIVE REFS
+==================================================
+
+Read-only enumerate:
+
+local branches
+remote branches
+tags
+other normal active refs
+
+Look for:
+
+backup refs
+old-main refs
+safety refs
+temporary refs
+unexpected refs
+
+Do not assume only the previously known ref could expose contaminated history.
+
+Do not delete anything.
+
+Report suspicious refs.
+
+==================================================
+5. VERIFY MAIN SANITIZATION
+==================================================
+
+Verify current main does not contain the previously exposed Apple signing credential material.
+
+Use the project's existing credential/security scanners.
+
+Do NOT print secret values.
+
+Do NOT print private key material.
+
+Do NOT print credential contents.
+
+Report only:
+
+PASS
+FAIL
+finding type
+file/path/commit where safely reportable
+
+Never reproduce secrets in the report.
+
+==================================================
+6. APPLE SIGNING CREDENTIAL GUARD
+==================================================
+
+Run existing signing credential/security guard tests.
+
+Known historical remediation context:
+
+Old compromised App Store Connect key ending 49S was revoked.
+
+Old compromised distribution certificate:
+serial F9AD932C61F62847A0A127D1B69E35
+was revoked and removed from EAS.
+
+Current replacement production certificate previously recorded:
+
+serial:
+62AF1CE19BD72FC46755D48433D57034
+
+Team:
+FYF2J895MA
+
+Provisioning profile:
+2AC3HY98U2
+
+Do NOT modify or rotate any credentials.
+
+This task only checks repository/release safety.
+
+==================================================
+7. VERIFY #238A WORKING STATE
+==================================================
+
+Confirm Task #238A implementation still exists in the current working tree/repository state.
+
+Identify relevant changed files.
+
+Confirm there was no accidental rollback of:
+
+official-record policy
+global ranking
+six-pick cap-after-ranking
+processing-order invariance
+1.0u approved staking
+requested_units preservation
+POTD safety
+publication eligibility
+performance eligibility
+model approval safety
+subscriber/API protections
+
+Do not modify anything.
+
+==================================================
+8. VERIFY FORECAST MODEL STATES
+==================================================
+
+Confirm current registry/source state still indicates:
+
+MLB V1 = production/current champion
+
+MLB V4 = NOT production promoted
+
+NCAAF current legacy/V1 production path remains active
+
+NCAAF V4 = NOT production promoted
+
+No research/shadow/preview model became subscriber-public.
+
+Do not change model states.
+
+==================================================
+9. VERIFY #238A TEST STATE
+==================================================
+
+Run the relevant non-mutating validation suite.
+
+At minimum where available:
+
+API typecheck
+DB typecheck
+API build
+git diff --check
+
+Focused #238A tests for:
+
+official record
+publication eligibility
+performance eligibility
+model approval
+global ranking
+six-pick cap
+processing-order invariance
+selected-side edge
+staking policy
+POTD
+subscriber protection
+idempotency
+
+Then run the full applicable API test suite if practical.
+
+Expected baseline from #238A:
+
+93 test files
+597 tests
+
+If counts legitimately change because generated discovery differs, explain.
+
+No test failure may be silently ignored.
+
+==================================================
+10. VERIFY WORKING TREE AFTER TESTS
+==================================================
+
+After all validation:
+
+run read-only Git status/diff checks again.
+
+Confirm testing did not unexpectedly modify tracked repository files.
+
+Report:
+
+tracked changes
+staged changes
+untracked changes
+
+Do not clean them automatically.
+
+==================================================
+11. PRODUCTION STATE — READ ONLY
+==================================================
+
+Inspect production health without changing it.
+
+Verify where safely available:
+
+root endpoint
+health endpoint
+games endpoint
+results endpoint
+model/status endpoint
+admin surface
+
+Do not trigger:
+
+refresh
+collection
+grading
+publication
+scheduler
+model execution that mutates state
+
+Report HTTP status and high-level health only.
+
+==================================================
+12. VERIFY NO ACCIDENTAL #238A DEPLOYMENT
+==================================================
+
+Task #238A was supposed to remain undeployed.
+
+Determine whether production appears to still be on the pre-#238A behavior/version.
+
+Use:
+
+deployment metadata
+Git SHA where available
+API behavior
+schema state
+
+Do not mutate production.
+
+If #238A somehow already reached production:
+
+report immediately.
+
+Do not attempt rollback in this task.
+
+==================================================
+13. PRODUCTION SCHEMA GAP
+==================================================
+
+Determine whether #238A requires a production schema change.
+
+Read the #238A report and inspect actual schema differences.
+
+Return:
+
+PRODUCTION MIGRATION REQUIRED: YES/NO
+
+If YES:
+
+list only the exact additive schema changes required.
+
+Do not execute them.
+
+Classify each:
+
+required for release
+optional observability
+development-only
+
+No broad schema push.
+
+No unrelated development tables.
+
+Especially do NOT push the entire development schema to production.
+
+==================================================
+14. RELEASE DIFF
+==================================================
+
+Identify exactly what code/schema would be included in a controlled #238A production release.
+
+Produce a bounded release manifest.
+
+Include:
+
+files
+services
+API routes
+database additions if required
+admin changes if required
+mobile changes if required
+
+Exclude unrelated development work.
+
+We must not accidentally ship:
+
+unfinished MLB V4
+unfinished NCAAF V4
+research models
+development-only tables
+unrelated experimental changes
+
+==================================================
+15. MOBILE RELEASE QUESTION
+==================================================
+
+The prior authoritative audit found the latest distributed iOS build predates the mobile cold-launch startup fix.
+
+Determine whether #238A itself requires a new mobile binary.
+
+Separately determine whether the next controlled release SHOULD include the already-validated mobile startup fix.
+
+Do not build anything.
+
+Return:
+
+#238A MOBILE BINARY REQUIRED: YES/NO
+
+MOBILE STARTUP FIX NEW BUILD STILL REQUIRED: YES/NO
+
+Do not conflate the two.
+
+==================================================
+16. RELEASE BLOCKERS
+==================================================
+
+Explicitly list every remaining release blocker.
+
+Potential examples:
+
+contaminated ref still reachable
+credential scan failure
+test failure
+working-tree inconsistency
+unknown production SHA
+unsafe schema migration
+unrelated changes mixed into release
+V4 accidental promotion
+mobile regression
+production health issue
+
+Do not invent blockers.
+
+==================================================
+17. GO / NO-GO RULE
+==================================================
+
+Return:
+
+GO — CONTROLLED RELEASE MAY PROCEED
+
+only if ALL are true:
+
+1. exact contaminated protected ref is gone
+2. contaminated commit is not reachable from active refs
+3. current main passes credential/security scanning
+4. current main/remote state is understood
+5. #238A implementation is intact
+6. #238A tests pass
+7. sports forecasts remain unchanged
+8. MLB V4 remains non-production
+9. NCAAF V4 remains non-production
+10. production has not accidentally received #238A already
+11. exact production migration requirements are known
+12. release diff is bounded
+13. no unresolved critical release-security blocker remains
+
+Otherwise:
+
+NO-GO — CONTROLLED RELEASE REMAINS BLOCKED
+
+==================================================
+18. REQUIRED FINAL REPORT
+==================================================
+
+Return:
+
+# TASK #238B — RELEASE SECURITY-GATE VERIFICATION
+
+## 1. Executive Summary
+
+Classification:
+Security gate:
+Controlled release:
+Exact contaminated ref:
+Contaminated commit active-ref reachability:
+Main credential scan:
+#238A intact:
+Tests:
+Production health:
+#238A already deployed:
+Production migration required:
+MLB production model:
+NCAAF production model:
+MLB V4 promoted:
+NCAAF V4 promoted:
+Mobile binary required for #238A:
+Mobile startup-fix build still required:
+
+## 2. Git State
+
+## 3. Exact Protected Ref Verification
+
+## 4. Contaminated Commit Reachability
+
+## 5. Active Ref Inventory
+
+## 6. Credential / Secret Scan
+
+## 7. Apple Signing Guard
+
+## 8. #238A Implementation Verification
+
+## 9. Model-State Verification
+
+## 10. Test Results
+
+## 11. Post-Test Git State
+
+## 12. Production Health
+
+## 13. Accidental Deployment Check
+
+## 14. Production Schema Requirements
+
+## 15. Controlled Release Manifest
+
+## 16. Mobile Release Assessment
+
+## 17. Remaining Blockers
+
+## 18. Final GO / NO-GO
+
+## 19. Exactly One Recommended Next Task
+
+==================================================
+FINAL CLASSIFICATION
+==================================================
+
+Return exactly ONE:
+
+A — GO: SECURITY GATE CLEARED; CONTROLLED #238A RELEASE MAY PROCEED
+
+B — NO-GO: CONTAMINATED REF / HISTORY REMAINS REACHABLE
+
+C — NO-GO: SECURITY OR CREDENTIAL VALIDATION FAILED
+
+D — NO-GO: RELEASE CONTENT / SCHEMA NOT SAFELY BOUNDED
+
+E — NO-GO: VALIDATION / REGRESSION FAILURE
+
+F — NO-GO: INSUFFICIENT EVIDENCE TO CLEAR RELEASE
+
+==================================================
+HARD STOP
+==================================================
+
+DO NOT DEPLOY EVEN IF CLASSIFICATION A.
+
+DO NOT PUSH.
+
+DO NOT MIGRATE.
+
+DO NOT BUILD EAS.
+
+DO NOT PUBLISH.
+
+DO NOT PROMOTE MODELS.
+
+DO NOT MODIFY REFS.
+
+Return the report to the owner.
+
+The next task, only after owner review of an A classification, should be:
+
+CONTROLLED #238A PRODUCTION RELEASE & POST-DEPLOY VERIFICATION.

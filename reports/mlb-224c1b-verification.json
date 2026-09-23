@@ -1,0 +1,78 @@
+{
+  "task": "224C-1B",
+  "ledgerVersion": "mlb-224c1b-verification-v1",
+  "checks": [
+    {
+      "name": "Focused prospective evidence tests",
+      "command": "pnpm --filter @workspace/api-server exec vitest run src/services/mlbStarterEvidence224C1B.test.ts src/services/mlbStarterEvidence224C.test.ts",
+      "status": "PASS",
+      "result": "2 files; 16 tests passed"
+    },
+    {
+      "name": "API TypeScript",
+      "command": "pnpm --filter @workspace/api-server run typecheck",
+      "status": "PASS",
+      "result": "tsc -p tsconfig.json --noEmit completed without errors"
+    },
+    {
+      "name": "Append-only DB mutation guard",
+      "command": "UPDATE mlb_pregame_starter_evidence_snapshots SET reason=reason WHERE id=(SELECT MIN(id) FROM mlb_pregame_starter_evidence_snapshots)",
+      "status": "PASS",
+      "result": "Development database rejected the attempted UPDATE: MLB historical foundation is append-only"
+    },
+    {
+      "name": "Full API test suite",
+      "command": "pnpm --filter @workspace/api-server test",
+      "status": "PASS",
+      "result": "82 files; 507 tests passed"
+    },
+    {
+      "name": "API production build",
+      "command": "pnpm --filter @workspace/api-server run build",
+      "status": "PASS",
+      "result": "Production bundle completed successfully"
+    },
+    {
+      "name": "Signing credential scan",
+      "command": "pnpm run security:signing-credentials",
+      "status": "PASS",
+      "result": "No Apple signing credential artifacts or local key configuration found"
+    },
+    {
+      "name": "Diff validation",
+      "command": "git diff --check",
+      "status": "PASS",
+      "result": "No whitespace errors"
+    },
+    {
+      "name": "Independent review",
+      "command": "Independent read-only architect review of implementation and generated report",
+      "status": "PASS",
+      "result": "All PIT, leakage, completeness, classification, and scope blockers resolved"
+    },
+    {
+      "name": "Database TypeScript",
+      "command": "pnpm --filter @workspace/db exec tsc -p tsconfig.json --noEmit",
+      "status": "PASS",
+      "result": "Completed without errors"
+    },
+    {
+      "name": "Frozen MLB expected-runs audit",
+      "command": "pnpm --filter @workspace/api-server run audit:mlb-v4-expected-runs",
+      "status": "PASS",
+      "result": "All violation categories zero; determinism hash 969a5fded14392137a439121a7021fe1978fc489dd80fcb9330838d912a96be2"
+    },
+    {
+      "name": "Protected Replit Git ref",
+      "command": "git for-each-ref --format='%(refname)' | grep '^refs/replit/agent$'",
+      "status": "PASS",
+      "result": "Protected refs/replit/agent is absent; no Git history was modified"
+    },
+    {
+      "name": "Current live collection",
+      "command": "pnpm --filter @workspace/api-server run capture:mlb-224c1-starters -- 2026-09-05",
+      "status": "PASS",
+      "result": "Latest measured rerun inserted 0, skipped 12 unchanged pregame games, rejected 3 already-started games, and completed in 11,655 ms"
+    }
+  ]
+}

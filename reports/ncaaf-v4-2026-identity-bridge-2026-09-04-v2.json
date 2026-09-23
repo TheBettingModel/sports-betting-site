@@ -1,0 +1,1113 @@
+{
+  "artifact": "ncaaf-v4-2026-feature-bridge-2026-09-04",
+  "version": "ncaaf-v4-2026-feature-bridge-v1",
+  "assessedAt": "2026-09-04T13:40:00.000Z",
+  "fbsUniverseProof": {
+    "season": 2026,
+    "cfbdFbsCount": 138,
+    "mappedFbsCount": 138,
+    "mappedNonFbsCount": 0,
+    "capturedAt": "2026-09-03T20:42:22.413Z",
+    "evidenceRef": "cfbd-teams-2026:138:2026-09-03T20:42:22.413Z"
+  },
+  "status": "PASS",
+  "passGate": {
+    "passed": true,
+    "pitViolations": 0
+  },
+  "compatibilityMatrix": [
+    {
+      "feature": "seasonToDate score-derived offense/defense",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "last3",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "last5",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "priorSeason",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "pregame Elo",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "opponentAdjusted",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "home/neutral",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "sample counts",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    },
+    {
+      "feature": "missing/quality indicators",
+      "historicalSchema": "ncaaf-chronological-team-game-v2",
+      "source": "completed ncaaf_game_evidence + strict snapshot cutoff",
+      "exactSemanticMatch": true,
+      "exactChronology": true,
+      "status": "PASS"
+    }
+  ],
+  "eligibleInputCount": 656,
+  "internalPredictionCount": 656,
+  "exclusions": [
+    {
+      "snapshotId": 32884,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32885,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32887,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32895,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32897,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32898,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32899,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32904,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32905,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32906,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32907,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32908,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32912,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32916,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32917,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32918,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32919,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32920,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32923,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32924,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32926,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32928,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32929,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32930,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32931,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32933,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32935,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32936,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32937,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32938,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32943,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32944,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32946,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32947,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32948,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32949,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32950,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32951,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32952,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32953,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32956,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32963,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32964,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32965,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32968,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32969,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32971,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32976,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32981,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32983,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32984,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32985,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32986,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32992,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33000,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33001,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33002,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33003,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33005,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33006,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33007,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33009,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33013,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33014,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33016,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33017,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33018,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33020,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33022,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33024,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33027,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33029,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33036,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33039,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33040,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33041,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33045,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33055,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33063,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33064,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33073,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33074,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33075,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33077,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33082,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33089,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33091,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33093,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33097,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33098,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33099,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33110,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33112,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33117,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33185,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33209,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33214,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33253,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33294,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33295,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33296,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33297,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33342,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33363,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33365,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33367,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33369,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33370,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33371,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33372,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33373,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33374,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33377,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33381,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33430,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33433,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33435,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33626,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33629,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33631,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33636,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33659,
+      "reason": "out_of_domain_other"
+    },
+    {
+      "snapshotId": 33661,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    }
+  ],
+  "pitAudit": {
+    "snapshotsSeen": 34418,
+    "targetsAssessed": 779,
+    "eligibleSnapshots": 656,
+    "modelEligibleFbsVsFbsTargets": 656,
+    "outOfDomainTargets": 123,
+    "identityResolvedTargets": 656,
+    "identityUnresolvedTargets": 0,
+    "targetUniverse": {
+      "MODEL_ELIGIBLE_FBS_VS_FBS": 656,
+      "OUT_OF_DOMAIN_FBS_VS_FCS": 122,
+      "OUT_OF_DOMAIN_OTHER": 1
+    },
+    "ambiguousIdentitiesAccepted": 0,
+    "fuzzyIdentitiesAccepted": 0,
+    "postCutoffIdentityViolations": 0,
+    "sameGameLeakage": 0,
+    "futureGameLeakage": 0,
+    "futureSeasonLeakage": 0,
+    "postKickoffEvidence": 0,
+    "marketLeakage": 0,
+    "marketShapedSnapshotsRejected": 0,
+    "excludedCompletedEvidence": {
+      "not_completed_fbs_atomic": 2250080,
+      "outside_cutoff_or_season": 6092007
+    }
+  },
+  "marketAudit": {
+    "violations": 0
+  },
+  "blockers": [
+    {
+      "snapshotId": 32884,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32885,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32887,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32895,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32897,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32898,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32899,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32904,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32905,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32906,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32907,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32908,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32912,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32916,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32917,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32918,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32919,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32920,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32923,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32924,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32926,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32928,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32929,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32930,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32931,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32933,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32935,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32936,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32937,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32938,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32943,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32944,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32946,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32947,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32948,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32949,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32950,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32951,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32952,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32953,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32956,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32963,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32964,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32965,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32968,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32969,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32971,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32976,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32981,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32983,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32984,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32985,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32986,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 32992,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33000,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33001,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33002,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33003,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33005,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33006,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33007,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33009,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33013,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33014,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33016,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33017,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33018,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33020,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33022,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33024,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33027,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33029,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33036,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33039,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33040,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33041,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33045,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33055,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33063,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33064,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33073,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33074,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33075,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33077,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33082,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33089,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33091,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33093,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33097,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33098,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33099,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33110,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33112,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33117,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33185,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33209,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33214,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33253,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33294,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33295,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33296,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33297,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33342,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33363,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33365,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33367,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33369,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33370,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33371,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33372,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33373,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33374,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33377,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33381,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33430,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33433,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33435,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33626,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33629,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33631,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33636,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    },
+    {
+      "snapshotId": 33659,
+      "reason": "out_of_domain_other"
+    },
+    {
+      "snapshotId": 33661,
+      "reason": "out_of_domain_fbs_vs_fcs"
+    }
+  ],
+  "persistence": "none; nonpublic in-memory challenger inputs only"
+}

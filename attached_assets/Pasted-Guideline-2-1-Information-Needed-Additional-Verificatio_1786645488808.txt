@@ -1,0 +1,30 @@
+Guideline 2.1 - Information Needed - Additional Verification Required
+
+This is an automated message. The review of this submission cannot proceed. See below for more information.
+
+During review, we identified items in this submission that require additional verification before the review can continue. Review of this app is on hold pending your response.
+
+What We Need From You
+
+Reply in App Store Connect with all of the following:
+
+1. A screen recording, captured live on a physical device, that begins by showing the current date and time on the device, then launches the app. The recording must be one continuous take and must include:
+
+- A demonstration of the core functionality described in the app’s name, description, and screenshots
+- A demonstration of all the features, mechanisms, systems, or behaviors referenced in every “yes” answer provided below
+
+2. Confirm or deny each of the following. For every “yes,” provide the requested details and demonstrate it in the screen recording.
+
+- Are there features in the app that are not represented in the screenshots, description, or category in App Store Connect? If yes, list them and demonstrate each in the recording.
+
+- Does the app contact any domains, URLs, or external services that are not visible in the binary, disclosed in the App Privacy questions, or included in the App Review Information? If yes, identify them, explain their purpose, and demonstrate the app contacting them in the recording.
+
+- Can functionality or features be changed or introduced to the app after App Review approval without submitting a new binary? If yes, describe how, and demonstrate the mechanism by making a live change to the app’s behavior in the recording.
+
+- Does the app process, transmit, or store payment, financial, health, medical, biometric, or other sensitive data that is not declared in the App Privacy questions? If yes, describe what data is collected, how it is used, and demonstrate the data collection and use in the recording.
+
+- Does the app reference, integrate with, or share branding, naming, or visuals with any third-party brand, hardware product, financial institution, or other protected service? If yes, name the third party, provide documentation demonstrating you are authorized to do so, and demonstrate the integration in the recording.
+
+What Happens Next
+
+We will resume review once we receive a response with all the requested information. If your responses are consistent with the app’s behavior, the review will continue. If we identify a discrepancy between your responses and the app’s observed behavior, additional review steps may be required, which could include further requests for information, rejection, removal of the app, or termination of your developer account.
