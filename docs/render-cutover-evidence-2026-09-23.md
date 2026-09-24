@@ -59,3 +59,34 @@ change the installed app's API target, or publish a V4 sport model.
   status reports UFC as not technically ready; other listed sport engines are
   shadow or unvalidated. Do not treat technical execution or this schema
   repair as model/market approval.
+
+## Direct-to-Render iOS build preparation (2026-09-24 UTC)
+
+- Mobile release configuration and this evidence were exported through PR #3,
+  merged as `d269db85d31ac6725bec783b9dbdb3a97991518e` with passing PR and
+  merged-main CI. Its signed EAS iOS build `33e603c7-7f5e-40f3-86df-9e17ae1d15b5`
+  was version 1.0.1 (34). IPA inspection confirmed the Render API and Clerk
+  proxy, but found six Privacy/Terms links still pointing at Replit. That
+  build was **not submitted**.
+- The legal links were moved to the configured API host in PR #4, merged as
+  `f83df7db037fba5aae003c45f074a5bd6d959575` with passing PR and
+  merged-main CI. Both legal routes returned HTTP 200 directly from Render.
+  Signed EAS build `a5dcfc3f-f9a2-4fb3-a602-54d69cdd6699` from that exact
+  commit is version 1.0.1 (35). Inspection of its IPA confirmed the app
+  identifier, version, build number, embedded Render API and Clerk proxy,
+  and zero occurrences of the Replit bridge host in its JavaScript bundle.
+  Neither mobile commit was deployed to the Render API or cron; their running
+  release identity remains the earlier reviewed backend commit.
+- Direct Render Clerk proxy `/api/__clerk/v1/client` and
+  `/api/__clerk/v1/environment` returned HTTP 200. A real password sign-in
+  using the configured reviewer account verified the password factor but
+  returned `needs_second_factor` with `email_code`; no session was issued.
+  The account's primary email is verified and its user record reports no
+  enrolled MFA, consistent with Clerk Device Trust challenging new devices.
+  The app's reviewer password path cannot complete that email-code step.
+  **Do not submit build 35 for App Review** until the owner resolves this
+  authentication gate and a real signed-in protected API request succeeds.
+  Do not disable Device Trust for all users without explicit approval.
+- Installed iOS clients still call the published Replit compatibility bridge.
+  No OTA code update, App Store submission, scheduler ownership change, or
+  V4 publication was made by this build preparation.
