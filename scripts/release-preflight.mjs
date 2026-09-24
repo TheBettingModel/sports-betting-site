@@ -1,6 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 
+const mobileInputPaths = [
+  "artifacts/mobile",
+  "lib/api-client-react",
+  "lib/api-spec",
+  "lib/api-zod",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "patches",
+];
+
 const fail = (message) => {
   console.error(`RELEASE PREFLIGHT FAILED: ${message}`);
   process.exitCode = 1;
@@ -16,6 +27,36 @@ const exactHead = execFileSync("git", ["rev-parse", "HEAD"], {
   encoding: "utf8",
 }).trim();
 const expectedSha = process.env.TBM_RELEASE_SHA?.trim();
+const args = process.argv.slice(2);
+const mobileInputCommit = args.length === 2 && args[0] === "--mobile-input-commit"
+  ? args[1]
+  : null;
+
+if (args.length && !mobileInputCommit) {
+  fail("Usage: release:preflight [--mobile-input-commit <40-character Git SHA>]");
+}
+if (mobileInputCommit && !/^[a-f0-9]{40}$/.test(mobileInputCommit)) {
+  fail("--mobile-input-commit must be a full Git commit SHA");
+}
+
+const mobileSourceTree = execFileSync("git", ["rev-parse", "HEAD:artifacts/mobile"], {
+  encoding: "utf8",
+}).trim();
+const dirtyInputs = execFileSync("git", [
+  "status", "--porcelain", "--untracked-files=all", "--", ...mobileInputPaths,
+], { encoding: "utf8" }).trim();
+if (dirtyInputs) {
+  fail("Mobile release inputs have uncommitted changes; commit and review them before building");
+}
+if (mobileInputCommit && /^[a-f0-9]{40}$/.test(mobileInputCommit)) {
+  try {
+    execFileSync("git", [
+      "diff", "--quiet", mobileInputCommit, "HEAD", "--", ...mobileInputPaths,
+    ], { stdio: "ignore" });
+  } catch {
+    fail(`Mobile release inputs differ from reviewed commit ${mobileInputCommit}, or it is unavailable locally`);
+  }
+}
 
 if (expectedSha && expectedSha !== exactHead) {
   fail(`TBM_RELEASE_SHA ${expectedSha} does not match HEAD ${exactHead}`);
@@ -41,8 +82,14 @@ if ((render.match(/key:\s*TBM_ENFORCE_RELEASE_ID/g) ?? []).length !== 2) {
 if (app.expo?.updates || app.expo?.runtimeVersion) {
   fail("Expo OTA code delivery is prohibited; use a reviewed store build");
 }
+if (!/^[1-9]\d*$/.test(String(app.expo?.ios?.buildNumber ?? ""))) {
+  fail("iOS build number must be a positive integer in app.json");
+}
 if (eas.build?.production?.channel) {
   fail("The production EAS profile must not declare an OTA channel");
+}
+if (eas.build?.production?.autoSubmit === true) {
+  fail("Do not automatically submit a build before reviewer access is verified");
 }
 const productionDomain = eas.build?.production?.env?.EXPO_PUBLIC_DOMAIN;
 const productionClerkProxy = eas.build?.production?.env?.EXPO_PUBLIC_CLERK_PROXY_URL;
@@ -85,6 +132,8 @@ if (!process.exitCode) {
       appVersion: app.expo.version,
       iosBuildNumber: app.expo.ios?.buildNumber,
       easProjectId: app.expo.extra?.eas?.projectId,
+      sourceTree: mobileSourceTree,
+      comparedWithCommit: mobileInputCommit,
     },
   }, null, 2));
 }

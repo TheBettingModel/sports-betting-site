@@ -90,3 +90,42 @@ change the installed app's API target, or publish a V4 sport model.
 - Installed iOS clients still call the published Replit compatibility bridge.
   No OTA code update, App Store submission, scheduler ownership change, or
   V4 publication was made by this build preparation.
+
+## Reviewer email-code release preparation (2026-09-24 UTC)
+
+- The owner chose to retain Clerk's new-device security and use an
+  Apple-accessible dedicated review inbox. The existing mobile review-password
+  flow now handles Clerk's `needs_second_factor` and `needs_client_trust`
+  email-code challenges separately from ordinary email OTP. It does not
+  finalize a session until the second factor completes.
+- The change was merged through PR #6 at
+  `470ee0d7863b8b8f5eac5861b769c37e66b7d215`, with passing PR and
+  merged-main CI. The iOS build number in source is now 36. Mobile typecheck,
+  six focused authentication tests, and release preflight passed. The Expo web
+  preview rendered the sign-in screen without browser errors; it did not
+  verify the reviewer inbox, a signed-in session, or a protected API response.
+- A managed Expo GitHub build request against verified `main` failed before
+  queueing because Expo reported it could not read
+  `artifacts/mobile/package.json`. GitHub served that path successfully at
+  the merged commit. **No build 36 exists from this request.** Do not treat
+  build 35 as containing the email-code step or submit it for review.
+- Expo Launch can upload an iOS build to App Store Connect without
+  automatically adding it for Apple review, but the owner initiates that
+  publishing flow. Do not use OTA executable updates or bypass Clerk Device
+  Trust. Apple review remains blocked on an accessible dedicated inbox and
+  proof of a real Clerk session plus protected API response.
+
+## Read-only bridge and direct-target recheck (2026-09-24 12:46 UTC)
+
+- The published Replit `/api/readyz` path returned HTTP 200 with the
+  `replit-to-render` bridge header. Direct Render `/api/readyz` also returned
+  HTTP 200. Both reported API release
+  `b52051a18a8275cdee3bb3d2e145d47f425b3577`, API role, and database
+  fingerprint `eac01aba6aced7a3`. This confirms the sampled serving path,
+  not a complete old-client journey or a later deployment.
+- Read-only protected projection requests without a token, and with a
+  deliberately malformed token, returned HTTP 403 from both paths. Neither
+  returned subscriber data. A malformed token returning 403 rather than 401
+  is consistent with the current JWT verifier's anonymous fallback; it is
+  **not** proof of a valid reviewer session or entitlement. Keep the bridge
+  while installed builds still use it.
