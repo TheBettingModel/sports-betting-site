@@ -12,7 +12,11 @@
       "distribution": "internal"
     },
     "production": {
-      "credentialsSource": "remote"
+      "credentialsSource": "remote",
+      "env": {
+        "EXPO_PUBLIC_DOMAIN": "tbm-api-v4-candidate.onrender.com",
+        "EXPO_PUBLIC_CLERK_PROXY_URL": "https://tbm-api-v4-candidate.onrender.com/api/__clerk"
+      }
     }
   },
   "submit": {
