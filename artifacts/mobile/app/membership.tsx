@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useSubscription } from '@/lib/revenuecat';
+import { legalDocumentUrl } from '@/lib/legal-url';
 
 const C = {
   bg: '#000000',
@@ -328,7 +329,7 @@ export default function MembershipScreen() {
         <View style={s.legalRow}>
           <Pressable
             onPress={() =>
-              Linking.openURL('https://thebettingmodel.replit.app/api/privacy')
+              Linking.openURL(legalDocumentUrl('privacy'))
             }
             style={s.legalLink}
           >
@@ -339,7 +340,7 @@ export default function MembershipScreen() {
           <Text style={[s.legalDivider, { color: C.muted }]}>·</Text>
           <Pressable
             onPress={() =>
-              Linking.openURL('https://thebettingmodel.replit.app/api/terms')
+              Linking.openURL(legalDocumentUrl('terms'))
             }
             style={s.legalLink}
           >
