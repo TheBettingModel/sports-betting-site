@@ -3,7 +3,7 @@
  *
  * Supported strategies (from Clerk environment):
  *   • Email OTP  — sendCode → verifyCode → finalize
- *   • Password   — password → finalize
+ *   • Password   — password → email second factor when required → finalize
  *   • Google SSO — startSSOFlow → setActive
  */
 import React, { useCallback, useEffect, useState } from 'react';
@@ -25,6 +25,11 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth, useSignIn, useSSO } from '@clerk/expo';
 import { Link, useRouter } from 'expo-router';
 import { AntDesign, Feather } from '@expo/vector-icons';
+import {
+  sendReviewEmailCode,
+  startReviewPasswordSignIn,
+  verifyReviewEmailCode,
+} from '@/lib/review-password-auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -42,7 +47,7 @@ const C = {
   muted: '#6B7280', error: '#EF4444', inputBg: '#1A1A1A',
 };
 
-type Stage = 'email' | 'code' | 'password';
+type Stage = 'email' | 'code' | 'password' | 'review-code';
 
 export default function SignInScreen() {
   useWarmUpBrowser();
@@ -119,27 +124,63 @@ export default function SignInScreen() {
     setErrorMsg(null);
     setLoading(true);
     try {
-      const { error } = await signIn.password({
-        emailAddress: email.trim(),
-        password,
-      });
-      if (error) {
-        setErrorMsg(error.longMessage ?? error.message ?? 'Invalid email or password.');
-        return;
-      }
-      const { error: finalizeError } = await signIn.finalize();
-      if (finalizeError) {
-        setErrorMsg(finalizeError.longMessage ?? finalizeError.message ?? 'Could not complete sign-in.');
-        return;
-      }
+      const result = await startReviewPasswordSignIn(signIn, email.trim(), password);
       setPassword('');
+      if (result === 'email_code_sent') {
+        setCode('');
+        setCooldown(60);
+        setStage('review-code');
+        return;
+      }
       router.replace('/(tabs)');
     } catch (err: any) {
       setErrorMsg(
         err?.errors?.[0]?.longMessage
         ?? err?.errors?.[0]?.message
+        ?? err?.longMessage
         ?? err?.message
         ?? 'Password sign-in failed. Please try again.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyReviewCode = async () => {
+    if (!signIn || !code.trim()) return;
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      await verifyReviewEmailCode(signIn, code.trim());
+      setCode('');
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      setErrorMsg(
+        err?.errors?.[0]?.longMessage
+        ?? err?.errors?.[0]?.message
+        ?? err?.longMessage
+        ?? err?.message
+        ?? 'Email verification failed. Please try again.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendReviewCode = async () => {
+    if (!signIn || loading || cooldown > 0) return;
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      await sendReviewEmailCode(signIn);
+      setCooldown(60);
+    } catch (err: any) {
+      setErrorMsg(
+        err?.errors?.[0]?.longMessage
+        ?? err?.errors?.[0]?.message
+        ?? err?.longMessage
+        ?? err?.message
+        ?? 'Could not resend code. Please try again.',
       );
     } finally {
       setLoading(false);
@@ -254,18 +295,20 @@ export default function SignInScreen() {
   }, [startSSOFlow, router, isSignedIn]);
 
   // ── Verify code screen ────────────────────────────────────────────────────
-  if (stage === 'code') {
+  if (stage === 'code' || stage === 'review-code') {
+    const isReviewCode = stage === 'review-code';
     return (
       <View style={s.root}>
         <View style={s.verifyWrap}>
           <Image source={require('@/assets/images/icon.png')} style={s.logo} resizeMode="contain" />
-          <Text style={s.title}>Check your email</Text>
+          <Text style={s.title}>{isReviewCode ? 'Verify your sign-in' : 'Check your email'}</Text>
           <Text style={s.sub}>We sent a 6-digit code to {email}.</Text>
 
           {errorMsg && <ErrBanner msg={errorMsg} />}
 
           <Text style={s.label}>Verification code</Text>
           <TextInput
+            testID={isReviewCode ? 'review-email-code' : 'email-code'}
             style={s.input}
             value={code}
             onChangeText={setCode}
@@ -275,12 +318,13 @@ export default function SignInScreen() {
             autoFocus
             maxLength={6}
             returnKeyType="done"
-            onSubmitEditing={handleVerifyCode}
+            onSubmitEditing={isReviewCode ? handleVerifyReviewCode : handleVerifyCode}
           />
 
           <Pressable
+            testID={isReviewCode ? 'review-verify-code' : 'email-verify-code'}
             style={[s.btn, (!code.trim() || loading) && s.off]}
-            onPress={handleVerifyCode}
+            onPress={isReviewCode ? handleVerifyReviewCode : handleVerifyCode}
             disabled={!code.trim() || loading}
           >
             {loading
@@ -289,7 +333,7 @@ export default function SignInScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => { handleSendCode(); }}
+            onPress={isReviewCode ? handleResendReviewCode : handleSendCode}
             style={s.link}
             disabled={loading || cooldown > 0}
           >
@@ -297,8 +341,15 @@ export default function SignInScreen() {
               {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
             </Text>
           </Pressable>
-          <Pressable onPress={() => { setStage('email'); setCode(''); setErrorMsg(null); }} style={s.link}>
-            <Text style={s.linkTxt}>← Change email</Text>
+          <Pressable
+            onPress={() => {
+              setStage(isReviewCode ? 'password' : 'email');
+              setCode('');
+              setErrorMsg(null);
+            }}
+            style={s.link}
+          >
+            <Text style={s.linkTxt}>{isReviewCode ? '← Back to review sign in' : '← Change email'}</Text>
           </Pressable>
         </View>
       </View>
