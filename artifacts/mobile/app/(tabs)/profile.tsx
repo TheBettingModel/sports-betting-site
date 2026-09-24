@@ -7,6 +7,7 @@ import { useClerk, useUser } from '@clerk/expo';
 import { useColors } from '@/hooks/useColors';
 import { useRouter } from 'expo-router';
 import { useSubscription } from '@/lib/revenuecat';
+import { legalDocumentUrl } from '@/lib/legal-url';
 import PaywallModal from '@/app/paywall';
 import Purchases from 'react-native-purchases';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -294,7 +295,7 @@ export default function ProfileScreen() {
 
         {/* Legal links */}
         <Pressable
-          onPress={() => Linking.openURL('https://thebettingmodel.replit.app/api/privacy')}
+          onPress={() => Linking.openURL(legalDocumentUrl('privacy'))}
           style={styles.settingsRow}
         >
           <View style={styles.settingsLeft}>
@@ -307,7 +308,7 @@ export default function ProfileScreen() {
         <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
 
         <Pressable
-          onPress={() => Linking.openURL('https://thebettingmodel.replit.app/api/terms')}
+          onPress={() => Linking.openURL(legalDocumentUrl('terms'))}
           style={styles.settingsRow}
         >
           <View style={styles.settingsLeft}>
