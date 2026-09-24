@@ -44,6 +44,25 @@ if (app.expo?.updates || app.expo?.runtimeVersion) {
 if (eas.build?.production?.channel) {
   fail("The production EAS profile must not declare an OTA channel");
 }
+const productionDomain = eas.build?.production?.env?.EXPO_PUBLIC_DOMAIN;
+const productionClerkProxy = eas.build?.production?.env?.EXPO_PUBLIC_CLERK_PROXY_URL;
+if (!productionDomain || !/^[a-z0-9.-]+\.onrender\.com$/.test(productionDomain)) {
+  fail("The production iOS build must explicitly target the verified Render host");
+}
+try {
+  const proxy = new URL(productionClerkProxy);
+  if (
+    proxy.protocol !== "https:" ||
+    proxy.hostname !== productionDomain ||
+    proxy.pathname !== "/api/__clerk" ||
+    proxy.search ||
+    proxy.hash
+  ) {
+    fail("The production Clerk proxy must use /api/__clerk on the same Render host");
+  }
+} catch {
+  fail("The production Clerk proxy URL is missing or invalid");
+}
 if (eas.cli?.appVersionSource !== "local") {
   fail("iOS version/build ownership must remain explicit and local");
 }

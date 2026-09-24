@@ -8,16 +8,19 @@ change the installed app's API target, or publish a V4 sport model.
 - The published Replit API forwards `/api` to the Render candidate. A Render API
   deploy already affects installed-app users, even though their build still
   names the Replit URL.
-- The live Render API deploy is `dep-daq604flot8c73ffqmp0`, commit
-  `a347a96ba9c8b10170d00728e66083d2a9fcf9e9`. Both direct Render and
-  bridged readiness returned HTTP 200, API role, and database fingerprint
-  `eac01aba6aced7a3`.
-- Render's current health-check path is `/api/healthz`. The source has been
-  changed to require `/api/readyz` on the **next reviewed deployment**; that
-  configuration is not live yet.
-- Render's request-log filter returned no entries for the checked interval.
-  Its application-error filter returned no entries, but absence of request
-  logs is not proof that subscribers saw no errors.
+- The live Render API deploy is `dep-daq6hegjo6nc73d9sdm0`, exact GitHub
+  commit `b52051a18a8275cdee3bb3d2e145d47f425b3577` (PR #2, passing PR
+  and merged-main CI). The previous live deploy was `dep-daq604flot8c73ffqmp0`
+  at `a347a96ba9c8b10170d00728e66083d2a9fcf9e9`.
+- The live Render health-check path is now `/api/readyz`, which runs the
+  read-only required-schema gate. Direct Render and bridged readiness returned
+  HTTP 200, the new API release SHA, API role, and the unchanged database
+  fingerprint `eac01aba6aced7a3`. The API scheduler and publication flags
+  remained disabled.
+- In the sampled app logs since the deploy began, 38 completed requests
+  returned HTTP 200 and two requests for `/` returned HTTP 404. The
+  application-error filter returned no entries. This is not an authenticated
+  subscriber-journey test or proof of a zero-error rate.
 
 ## Database repair
 
@@ -37,15 +40,21 @@ change the installed app's API target, or publish a V4 sport model.
 
 ## Remaining release gates
 
-- The Render cron still runs commit
-  `c0adb156341ec8a4eab18b02726b7dbe557976ca`; it must match the API's
-  reviewed source and database identity before a coordinated handoff.
-- The new readiness/schema gate is only in the Replit workspace. It needs an
-  exact clean GitHub commit, passing CI, an explicitly approved API deploy,
-  and the actual Render health-check path change before it protects production.
-- Neither scheduler ownership nor mobile traffic has been switched. The
-  installed iOS build still needs a new reviewed EAS/App Store build for a
-  direct Render API target; OTA executable updates remain prohibited.
+- The existing Render cron was separately approved for shadow-only alignment.
+  Deploy `dep-daq6lh5g1s2s73fb4ad0` is live at the same exact commit as the
+  API, with `PUBLICATION_ENABLED=false` and auto-deploy off. Its first
+  post-deploy scheduled run succeeded at `2026-09-24T00:18:33Z`. The run logs
+  reported `SHADOW`, the matching release SHA and database fingerprint, and
+  suppressed odds ingestion.
+- On the actual Render-connected Neon branch, the `00:14`–`00:19` UTC run
+  window contained seven NCAAF shadow-slate rows, zero production-slate rows,
+  zero new official predictions, and zero new public/effective published
+  picks. This is window-scoped evidence, not a blanket publication guarantee.
+- The readiness/schema gate is live on the API; the cron is aligned only in
+  shadow mode. Scheduler publication or ownership must not be changed based
+  on this evidence alone. The installed iOS build still uses the Replit
+  bridge and needs a new reviewed EAS/App Store build for a direct Render API
+  target; OTA executable updates remain prohibited.
 - No V4 sport currently has public publication permission. The live readiness
   status reports UFC as not technically ready; other listed sport engines are
   shadow or unvalidated. Do not treat technical execution or this schema
