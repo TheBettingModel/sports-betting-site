@@ -64,7 +64,9 @@ services with the same Neon connection.
 10. Enable publication only for explicitly approved model/market artifacts.
 11. Verify the installed mobile build can call the deployed API.
 12. Record the commit, API deployment, scheduler run, database migration, and
-    mobile build number in the release evidence.
+    mobile build number in the release evidence. For iOS, also record the Expo
+    build ID, App Store Connect upload, TestFlight availability, Apple review,
+    and public release as separate states in `docs/ios-release-ledger.md`.
 
 ## How changes reach users
 
@@ -76,6 +78,16 @@ services with the same Neon connection.
   Replit publish does not update installed iPhones.
 - Every App Store submission must use a new iOS build number and must identify
   the exact clean GitHub source commit.
+- Before requesting an iOS build, run
+  `node scripts/release-preflight.mjs --mobile-input-commit <reviewed GitHub SHA>`.
+  This checks clean mobile release inputs and compares them to that commit;
+  the resulting mobile source tree identifies the checked-out app source.
+  After the build, verify its actual source SHA, build number, and embedded
+  API/Clerk target against the ledger. Passing preflight is not proof that
+  Expo built or Apple received the binary.
+- Do not remove the Replit `/api` compatibility bridge while installed clients
+  still call it. A new direct-Render build being available in TestFlight does
+  not prove the existing installed population has migrated.
 
 ## Stop conditions
 
