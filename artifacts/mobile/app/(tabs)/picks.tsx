@@ -16,6 +16,7 @@ import {
 import { useColors } from '@/hooks/useColors';
 import { useSports } from '@/context/SportsContext';
 import { useSubscription } from '@/lib/revenuecat';
+import { RecoverableErrorState } from '@/components/RecoverableErrorState';
 import { LockedPickCard } from '@/components/LockedPickCard';
 import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
@@ -67,6 +68,9 @@ export default function PicksScreen() {
     hasServerEntitlement,
     isLoading: isSubscriptionLoading,
     serverEntitlementError,
+    serverEntitlementFetching,
+    retryServerEntitlement,
+    serverEntitlementFailure,
   } = useSubscription();
   const { selectedSport } = useSports();
   const [slateDate, setSlateDate] = useState(() => easternDate());
@@ -146,17 +150,26 @@ export default function PicksScreen() {
   const dateLabel = new Date(`${slateDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
   const isToday = slateDate === easternDate();
   
-  if (!hasServerEntitlement && (isSubscriptionLoading || serverEntitlementError)) {
+  if (!hasServerEntitlement && serverEntitlementError) {
+    return (
+      <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
+        <RecoverableErrorState
+          title="Unable to verify Pro access"
+          message="Your access has not changed. Check your connection and try again."
+          error={serverEntitlementFailure}
+          isRetrying={serverEntitlementFetching}
+          onRetry={retryServerEntitlement}
+        />
+      </View>
+    );
+  }
+  if (!hasServerEntitlement && isSubscriptionLoading) {
     return (
       <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
         <ActivityIndicator color={colors.primary} />
-        <Text style={[styles.gateTitle, { color: colors.foreground }]}>
-          {serverEntitlementError ? 'Unable to verify Pro access' : 'Loading your account…'}
-        </Text>
+        <Text style={[styles.gateTitle, { color: colors.foreground }]}>Loading your account…</Text>
         <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
-          {serverEntitlementError
-            ? 'Your access has not changed. Please wait a moment and reopen Games.'
-            : 'Checking your subscription securely.'}
+          Checking your subscription securely.
         </Text>
       </View>
     );
@@ -171,9 +184,21 @@ export default function PicksScreen() {
           restrictIndividualSports
           onRestrictedPress={() => router.push('/membership')}
         />
-        {freeGamesQuery.isLoading ? <ActivityIndicator color={colors.primary} /> : freeGames.map((game) => (
-          <FreeGameProjectionCard key={game.id} game={game} slateDate={slateDate} />
-        ))}
+        {freeGamesQuery.isLoading
+          ? <ActivityIndicator color={colors.primary} />
+          : freeGamesQuery.isError
+            ? (
+              <RecoverableErrorState
+                title="Games unavailable"
+                message="We couldn't load today's free games. Try again."
+                error={freeGamesQuery.error}
+                isRetrying={freeGamesQuery.isFetching}
+                onRetry={freeGamesQuery.refetch}
+              />
+            )
+            : freeGames.map((game) => (
+              <FreeGameProjectionCard key={game.id} game={game} slateDate={slateDate} />
+            ))}
         <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
         <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>Free members can open up to two games each day. Upgrade to Pro for every V4 projection.</Text>
       </View>
