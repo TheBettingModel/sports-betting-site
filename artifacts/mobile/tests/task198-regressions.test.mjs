@@ -289,13 +289,24 @@ assert.match(tabLayoutSource, /name="live"/);
 assert.match(tabLayoutSource, /title: 'Analytics'/);
 assert.match(tabLayoutSource, /name="trending-up"/);
 assert.match(tabLayoutSource, /href: null/);
+const resultsTabSource = tabLayoutSource.slice(
+  tabLayoutSource.indexOf('name="results"'),
+  tabLayoutSource.indexOf('name="profile"'),
+);
+assert.match(resultsTabSource, /name="results"/);
+assert.match(resultsTabSource, /title: 'Record'/);
+assert.doesNotMatch(resultsTabSource, /href: null/);
 
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
-assert.equal(appConfig.expo.ios.buildNumber, '33');
+assert.equal(appConfig.expo.ios.buildNumber, '36');
 
 const signInSource = fs.readFileSync(new URL('../app/(auth)/sign-in.tsx', import.meta.url), 'utf8');
+const reviewPasswordAuthSource = fs.readFileSync(new URL('../lib/review-password-auth.ts', import.meta.url), 'utf8');
 assert.match(signInSource, /App Review access/);
-assert.match(signInSource, /signIn\.password/);
+assert.match(signInSource, /startReviewPasswordSignIn\(signIn, email\.trim\(\), password\)/);
+assert.match(reviewPasswordAuthSource, /signIn\.password\(/);
+assert.match(reviewPasswordAuthSource, /needs_second_factor/);
+assert.match(reviewPasswordAuthSource, /verifyReviewEmailCode/);
 assert.match(signInSource, /emailAddress: email\.trim\(\)/);
 assert.match(signInSource, /secureTextEntry/);
 assert.match(signInSource, /testID="review-sign-in"/);
@@ -316,8 +327,9 @@ assert.doesNotMatch(freeGameCardSource, /Strong Buy|Buy|units|record/i);
 
 const gameDetailSource = fs.readFileSync(new URL('../app/game/[gameId].tsx', import.meta.url), 'utf8');
 assert.match(gameDetailSource, /value == null/);
-assert.match(gameDetailSource, /expectedAwayScore\.toFixed\(1\)/);
-assert.match(gameDetailSource, /expectedHomeScore\.toFixed\(1\)/);
+assert.match(gameDetailSource, /score={expectedAwayScore}/);
+assert.match(gameDetailSource, /score={expectedHomeScore}/);
+assert.match(gameDetailSource, /score == null \? '—' : score\.toFixed\(1\)/);
 assert.match(gameDetailSource, /PROJECTED OUTCOME/);
 assert.match(gameDetailSource, /Projected winner/);
 assert.match(gameDetailSource, /Projected score and win probability point in different directions/);

@@ -271,6 +271,9 @@ function useSubscriptionContext() {
     isSubscribed,
     hasServerEntitlement,
     serverEntitlementError: serverStatusQuery.isError,
+    serverEntitlementFailure: serverStatusQuery.error,
+    serverEntitlementFetching: serverStatusQuery.isFetching,
+    retryServerEntitlement: serverStatusQuery.refetch,
     isLoading:
       customerInfoQuery.isLoading ||
       offeringsQuery.isLoading ||

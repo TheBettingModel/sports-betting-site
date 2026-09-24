@@ -16,6 +16,7 @@ import { useSubscription } from '@/lib/revenuecat';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
+import { RecoverableErrorState } from '@/components/RecoverableErrorState';
 
 const TWO_WORD_NICKNAMES = [
   'Red Sox', 'White Sox', 'Blue Jays', 'Maple Leafs', 'Golden Knights',
@@ -115,9 +116,12 @@ export default function GameDetailScreen() {
     hasServerEntitlement,
     isLoading: isSubscriptionLoading,
     serverEntitlementError,
+    serverEntitlementFetching,
+    retryServerEntitlement,
+    serverEntitlementFailure,
   } = useSubscription();
 
-  const { data: board, isLoading, isError } = useQuery({
+  const { data: board, isLoading, isError, error, isFetching, refetch } = useQuery({
     queryKey: ['/api/model/v4/projections', { sport, date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
     queryFn: () => getV4FullSlateProjections({ sport: querySport!, date: slateDate! }),
     enabled: Boolean(userId) && hasServerEntitlement && Boolean(querySport) && Boolean(slateDate),
@@ -143,15 +147,27 @@ export default function GameDetailScreen() {
   if (!hasServerEntitlement && (isSubscriptionLoading || serverEntitlementError)) {
     return (
       <View style={[styles.root, styles.gateState, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={[styles.gateTitle, { color: colors.foreground }]}>
-          {serverEntitlementError ? 'Unable to verify Pro access' : 'Loading your account…'}
-        </Text>
-        <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
-          {serverEntitlementError
-            ? 'Your access has not changed. Please wait a moment and reopen this matchup.'
-            : 'Checking your subscription securely.'}
-        </Text>
+        {serverEntitlementError
+          ? (
+            <RecoverableErrorState
+              title="Unable to verify Pro access"
+              message="Your access has not changed. Check your connection and try again."
+              error={serverEntitlementFailure}
+              isRetrying={serverEntitlementFetching}
+              onRetry={retryServerEntitlement}
+            />
+          )
+          : (
+            <>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={[styles.gateTitle, { color: colors.foreground }]}>
+                Loading your account…
+              </Text>
+              <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
+                Checking your subscription securely.
+              </Text>
+            </>
+          )}
       </View>
     );
   }
@@ -159,6 +175,26 @@ export default function GameDetailScreen() {
   if (!hasServerEntitlement) {
     if (freeGamesQuery.isLoading) {
       return <View style={[styles.root, styles.gateState, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
+    }
+    if (freeGamesQuery.isError) {
+      return (
+        <View style={[styles.root, { backgroundColor: colors.background }]}>
+          <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomWidth: 0 }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}>
+              <Feather name="chevron-left" size={24} color={colors.foreground} />
+            </Pressable>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>Matchup Analysis</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <RecoverableErrorState
+            title="Games unavailable"
+            message="We couldn't load this free matchup. Try again."
+            error={freeGamesQuery.error}
+            isRetrying={freeGamesQuery.isFetching}
+            onRetry={freeGamesQuery.refetch}
+          />
+        </View>
+      );
     }
     if (freeGame) {
       return <FreeGameDetail game={freeGame} onBack={() => router.back()} colors={colors} topInset={insets.top} bottomInset={insets.bottom} />;
@@ -188,7 +224,26 @@ export default function GameDetailScreen() {
     );
   }
 
-  if (isError || !board || !fixture) {
+  if (isError) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}>
+            <Feather name="chevron-left" size={24} color={colors.foreground} />
+          </Pressable>
+        </View>
+        <RecoverableErrorState
+          title="Matchup unavailable"
+          message="We couldn't load this matchup. Try again."
+          error={error}
+          isRetrying={isFetching}
+          onRetry={refetch}
+        />
+      </View>
+    );
+  }
+
+  if (!board || !fixture) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -196,7 +251,7 @@ export default function GameDetailScreen() {
             <Feather name="chevron-left" size={24} color={colors.foreground} />
           </Pressable>
         </View>
-        <EmptyState message="Failed to load game details or game not found." />
+        <EmptyState message="Game not found." />
       </View>
     );
   }

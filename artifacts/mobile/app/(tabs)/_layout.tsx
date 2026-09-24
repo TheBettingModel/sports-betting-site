@@ -88,7 +88,6 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="results"
         options={{
-          href: null,
           title: 'Record',
           tabBarIcon: ({ color }) =>
             isIOS ? (
