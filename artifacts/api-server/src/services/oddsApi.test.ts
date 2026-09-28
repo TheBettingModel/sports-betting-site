@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ACTIONABLE_ODDS_CACHE_MAX_AGE_MS,
   canonicalTeamName,
@@ -6,6 +6,7 @@ import {
   firstValidMoneylineMarketForSport,
   hasValidMoneylineMarket,
   firstValidAmericanOdds,
+  getOddsForGameWithStatus,
   getBestLine,
   isActionableOddsCache,
   isPregameCommenceTime,
@@ -30,6 +31,30 @@ describe("provider team identity normalization", () => {
 });
 
 describe("American odds validation", () => {
+  it("memoizes a failed provider fetch and reports the provider unavailable", async () => {
+    vi.stubEnv("ODDS_API_KEY", "test-key");
+    const fetchMock = vi.fn().mockRejectedValue(new Error("temporary provider outage"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const lookups = [];
+      for (let game = 0; game < 5; game++) {
+        lookups.push(await getOddsForGameWithStatus("NCAAB", null, `Home ${game}`, `Away ${game}`));
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(lookups).toHaveLength(5);
+      expect(lookups.every((lookup) => lookup.providerUnavailable)).toBe(true);
+      expect(lookups[0]).toMatchObject({
+        odds: null,
+        marketBlockedByProviderStart: false,
+        providerUnavailable: true,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("rejects an absent zero value from an upstream feed", () => {
     expect(isValidAmericanOdds(0)).toBe(false);
     expect(isValidAmericanOdds(null)).toBe(false);

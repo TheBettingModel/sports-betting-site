@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Platform,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useGetResultsSummary } from '@workspace/api-client-react';
 import { EmptyState } from '@/components/EmptyState';
 import { SPORTS } from '@/context/SportsContext';
+import { RecoverableErrorState } from '@/components/RecoverableErrorState';
+import { useSubscription } from '@/lib/revenuecat';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -112,9 +117,32 @@ function RecordCard({
 export default function ResultsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [period, setPeriod] = useState<Period>('season');
-
-  const { data, isLoading, refetch, isRefetching } = useGetResultsSummary({ period });
+  const {
+    hasServerEntitlement,
+    isLoading: isSubscriptionLoading,
+    serverEntitlementError,
+    serverEntitlementFailure,
+    serverEntitlementFetching,
+    retryServerEntitlement,
+  } = useSubscription();
+  const {
+    data,
+    isLoading: isResultsLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useGetResultsSummary(
+    { period },
+    {
+      query: {
+        enabled: hasServerEntitlement && !serverEntitlementError,
+        queryKey: ['/api/results/summary', { period }],
+      },
+    },
+  );
 
   const overall = data?.overall;
   // The mobile release scope is authoritative even if historical records
@@ -242,7 +270,51 @@ export default function ResultsScreen() {
     </View>
   );
 
-  if (isLoading) {
+  if (serverEntitlementError) {
+    return (
+      <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
+        <RecoverableErrorState
+          title="Unable to verify Pro access"
+          message="Your access has not changed. Check your connection and try again."
+          error={serverEntitlementFailure}
+          isRetrying={serverEntitlementFetching}
+          onRetry={retryServerEntitlement}
+        />
+      </View>
+    );
+  }
+
+  if (isSubscriptionLoading) {
+    return (
+      <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={[styles.gateTitle, { color: colors.foreground }]}>Loading your account…</Text>
+        <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
+          Checking your subscription securely.
+        </Text>
+      </View>
+    );
+  }
+
+  if (!hasServerEntitlement) {
+    return (
+      <View style={[styles.root, styles.gateState, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
+        <Text style={[styles.gateTitle, { color: colors.foreground }]}>Pro required</Text>
+        <Text style={[styles.gateCopy, { color: colors.mutedForeground }]}>
+          Results and performance history are available to Pro members.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/membership')}
+          style={[styles.membershipButton, { backgroundColor: colors.primary }]}
+        >
+          <Text style={[styles.membershipButtonText, { color: colors.background }]}>Explore Pro</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (isResultsLoading) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16) }]}>
@@ -261,7 +333,7 @@ export default function ResultsScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <FlatList
-        data={listItems}
+        data={isError ? [] : listItems}
         keyExtractor={(item, i) => {
           if (item.type === 'sport-row') return `sport-${item.stat.sport}`;
           return `${item.type}-${i}`;
@@ -280,8 +352,17 @@ export default function ResultsScreen() {
         }
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
-        ListEmptyComponent={
-          <EmptyState message="No graded picks yet. Check back after tonight's games." />
+        ListEmptyComponent={isError
+          ? (
+            <RecoverableErrorState
+              title="Results unavailable"
+              message="We couldn't load your record. Your history has not changed. Try again."
+              error={error}
+              isRetrying={isRefetching}
+              onRetry={refetch}
+            />
+          )
+          : <EmptyState message="No graded picks yet. Check back after tonight's games." />
         }
       />
     </View>
@@ -305,6 +386,11 @@ function formatDate(dateStr: string): string {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  gateState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  gateTitle: { marginTop: 16, fontSize: 17, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  gateCopy: { marginTop: 8, fontSize: 13, lineHeight: 19, fontFamily: 'Inter_400Regular', textAlign: 'center' },
+  membershipButton: { minHeight: 44, marginTop: 20, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  membershipButtonText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
   header: { paddingHorizontal: 16, paddingBottom: 12 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   brandName: { fontSize: 30, fontFamily: 'Inter_700Bold', letterSpacing: -1, lineHeight: 32 },

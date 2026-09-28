@@ -114,6 +114,8 @@ export interface OddsLookupResult {
   odds: GameOdds | null;
   /** A matching provider event is already live, so no secondary feed may revive it as pregame. */
   marketBlockedByProviderStart: boolean;
+  /** The most recent refresh for this provider key failed and is negatively cached. */
+  providerUnavailable?: boolean;
 }
 
 export interface OddsApiOutcome {
@@ -201,6 +203,7 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+const failedFetchAt = new Map<string, number>();
 // Match the 30-minute game-refresh cadence while avoiding duplicate requests
 // from the scheduler, mobile refetches, or manual refreshes in that interval.
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -579,16 +582,26 @@ export async function fetchOddsForSport(
   if (!oddsApiKey) return new Map(); // sport not supported (UFC, etc.)
 
   const cached = cache.get(oddsApiKey);
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+  const now = Date.now();
+  if (cached && now - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.games;
   }
+  const failedAt = failedFetchAt.get(oddsApiKey);
+  if (failedAt != null && now - failedAt < CACHE_TTL_MS) {
+    const cachedIsActionable = cached != null && isActionableOddsCache(cached.fetchedAt, now);
+    return cachedIsActionable ? cached!.games : new Map();
+  }
+  if (failedAt != null) failedFetchAt.delete(oddsApiKey);
 
   try {
     const normalised = await fetchAndNormalise(oddsApiKey);
     cache.set(oddsApiKey, { ...normalised, fetchedAt: Date.now() });
+    failedFetchAt.delete(oddsApiKey);
     return normalised.games;
   } catch (err) {
-    const cachedIsActionable = cached != null && isActionableOddsCache(cached.fetchedAt);
+    const failedAt = Date.now();
+    failedFetchAt.set(oddsApiKey, failedAt);
+    const cachedIsActionable = cached != null && isActionableOddsCache(cached.fetchedAt, failedAt);
     logger.error(
       { err, oddsApiKey, cachedIsActionable },
       "OddsAPI: fetch failed — using fresh cached or empty data",
@@ -711,7 +724,11 @@ export async function getOddsForGameWithStatus(
   const providerCommenceTimes = cached && isActionableOddsCache(cached.fetchedAt)
     ? cached.providerCommenceTimes.get(key)
     : undefined;
-  return resolveOddsLookup(gamesMap.get(key), commenceTimeISO, Date.now(), providerCommenceTimes);
+  const lookup = resolveOddsLookup(gamesMap.get(key), commenceTimeISO, Date.now(), providerCommenceTimes);
+  const failedAt = oddsApiKey ? failedFetchAt.get(oddsApiKey) : undefined;
+  return failedAt != null && Date.now() - failedAt < CACHE_TTL_MS
+    ? { ...lookup, providerUnavailable: true }
+    : lookup;
 }
 
 /** Resolve a provider event's actionable status for one scheduled game. */
