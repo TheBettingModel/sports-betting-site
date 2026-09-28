@@ -10,7 +10,7 @@ name = "API Server"
 paths = ["/api"]
 
 [services.development]
-run = "NODE_OPTIONS=--max-old-space-size=3072 pnpm --filter @workspace/api-server run dev"
+run = "SCHEDULER_ENABLED=false NODE_OPTIONS=--max-old-space-size=3072 pnpm --filter @workspace/api-server run dev"
 
 [services.production]
 

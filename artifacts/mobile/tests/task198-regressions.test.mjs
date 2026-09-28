@@ -294,8 +294,9 @@ const resultsTabSource = tabLayoutSource.slice(
   tabLayoutSource.indexOf('name="profile"'),
 );
 assert.match(resultsTabSource, /name="results"/);
-assert.match(resultsTabSource, /title: 'Record'/);
-assert.doesNotMatch(resultsTabSource, /href: null/);
+assert.match(resultsTabSource, /href: null/);
+assert.doesNotMatch(resultsTabSource, /title: 'Record'/);
+assert.match(tabLayoutSource, /name="chat"[\s\S]*name="results"[\s\S]*name="profile"/);
 
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
 assert.equal(appConfig.expo.ios.buildNumber, '36');

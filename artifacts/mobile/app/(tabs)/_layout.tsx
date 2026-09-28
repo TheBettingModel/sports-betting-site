@@ -87,15 +87,7 @@ function ClassicTabLayout() {
       />
       <Tabs.Screen
         name="results"
-        options={{
-          title: 'Record',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="chart.bar.fill" tintColor={color} size={22} />
-            ) : (
-              <Feather name="bar-chart-2" size={22} color={color} />
-            ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="profile"
