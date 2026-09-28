@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and, asc, desc, inArray, notInArray, sql } from "drizzle-orm";
+import {
+  eq, and, asc, desc, inArray, notInArray, sql, isNotNull, gte, lte, lt, or,
+} from "drizzle-orm";
 import {
   db, gamesTable, modelPredictionsTable, modelVersionsTable, modelWeightsTable,
   officialPredictionIdentityTable, publishedPicksTable, oddsSnapshotsTable,
@@ -39,10 +41,7 @@ import { runGrading, syncGameResults, recoverStaleGames } from "../services/grad
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
-import {
-  retainComparableHistory,
-  type MarketAnalyticsHistoryPoint,
-} from "../services/marketAnalyticsHistory";
+import { buildMarketAnalyticsHistories } from "../services/marketAnalyticsHistory";
 import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
 import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
 import {
@@ -278,7 +277,10 @@ router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToke
     return;
   }
 
-  const games = await db.select({ id: gamesTable.id })
+  const games = await db.select({
+    id: gamesTable.id,
+    startsAt: gamesTable.startsAt,
+  })
     .from(gamesTable)
     .where(eq(gamesTable.gameDate, date));
   const gameIds = games.map((game) => game.id);
@@ -287,49 +289,56 @@ router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToke
     return;
   }
 
+  const now = new Date();
   const rows = await db.select({
     gameId: oddsSnapshotsTable.gameId,
     selection: oddsSnapshotsTable.selection,
     price: oddsSnapshotsTable.price,
     capturedAt: oddsSnapshotsTable.capturedAt,
     sportsbook: sportsbooksTable.name,
+    sportsbookKey: sportsbooksTable.slug,
     isSharp: sportsbooksTable.isSharp,
+    source: oddsSnapshotsTable.source,
+    providerEventId: oddsSnapshotsTable.providerEventId,
+    marketStatus: oddsSnapshotsTable.marketStatus,
+    isAvailable: oddsSnapshotsTable.isAvailable,
+    isStale: oddsSnapshotsTable.isStale,
+    isActive: sportsbooksTable.isActive,
+    startsAt: gamesTable.startsAt,
   })
     .from(oddsSnapshotsTable)
     .innerJoin(marketsTable, eq(oddsSnapshotsTable.marketId, marketsTable.id))
-    .leftJoin(sportsbooksTable, eq(oddsSnapshotsTable.sportsbookId, sportsbooksTable.id))
+    .innerJoin(gamesTable, eq(oddsSnapshotsTable.gameId, gamesTable.id))
+    .innerJoin(sportsbooksTable, eq(oddsSnapshotsTable.sportsbookId, sportsbooksTable.id))
     .where(and(
       inArray(oddsSnapshotsTable.gameId, gameIds),
       eq(marketsTable.slug, "moneyline"),
+      eq(oddsSnapshotsTable.source, "odds-api"),
+      isNotNull(oddsSnapshotsTable.providerEventId),
       eq(oddsSnapshotsTable.isAvailable, true),
       eq(oddsSnapshotsTable.isStale, false),
+      eq(oddsSnapshotsTable.marketStatus, "open"),
+      eq(sportsbooksTable.isActive, true),
+      isNotNull(gamesTable.startsAt),
+      lte(oddsSnapshotsTable.capturedAt, now),
+      lt(oddsSnapshotsTable.capturedAt, gamesTable.startsAt),
+      or(
+        and(gte(oddsSnapshotsTable.price, 100), lte(oddsSnapshotsTable.price, 2000)),
+        and(lte(oddsSnapshotsTable.price, -100), gte(oddsSnapshotsTable.price, -2000)),
+      ),
     ))
     .orderBy(asc(oddsSnapshotsTable.capturedAt));
 
-  const byGame = new Map<string, {
-    marketHistory: MarketAnalyticsHistoryPoint[];
-    sharpMoneyHistory: MarketAnalyticsHistoryPoint[];
-  }>();
-  for (const row of rows) {
-    const entry = byGame.get(row.gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
-    const point: MarketAnalyticsHistoryPoint = {
-      selection: row.selection,
-      price: row.price,
-      capturedAt: row.capturedAt.toISOString(),
-      sportsbook: row.sportsbook,
-    };
-    (row.isSharp === true ? entry.sharpMoneyHistory : entry.marketHistory).push(point);
-    byGame.set(row.gameId, entry);
-  }
+  const histories = buildMarketAnalyticsHistories(rows, now);
 
   res.json({
     date,
     games: gameIds.map((gameId) => {
-      const history = byGame.get(gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
+      const history = histories.get(gameId) ?? { marketHistory: [], sharpMoneyHistory: [] };
       return {
         gameId,
-        marketHistory: retainComparableHistory(history.marketHistory),
-        sharpMoneyHistory: retainComparableHistory(history.sharpMoneyHistory),
+        marketHistory: history.marketHistory,
+        sharpMoneyHistory: history.sharpMoneyHistory,
       };
     }),
   });

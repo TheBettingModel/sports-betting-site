@@ -385,6 +385,7 @@ export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const { userId } = useAuth();
   const router = useRouter();
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const {
     hasServerEntitlement,
     isLoading: isSubscriptionLoading,
@@ -436,8 +437,8 @@ export default function AnalyticsScreen() {
   const visibleItems = activeSport === 'All'
     ? items
     : items.filter((item) => displaySport(item.fixture.sport) === activeSport);
-  const verifiedSharp = items.filter((item) => item.sharpDirection !== 'UNAVAILABLE').length;
-  const splitSignals = items.filter((item) => (
+  const verifiedSharp = visibleItems.filter((item) => item.sharpDirection !== 'UNAVAILABLE').length;
+  const splitSignals = visibleItems.filter((item) => (
     (item.publicDirection === 'POSITIVE' && item.sharpDirection === 'NEGATIVE')
     || (item.publicDirection === 'NEGATIVE' && item.sharpDirection === 'POSITIVE')
   )).length;
@@ -448,11 +449,33 @@ export default function AnalyticsScreen() {
   const isRefetching = analyticsQuery.isRefetching || projectionQueries.some((query) => query.isRefetching);
   const allFailed = projectionQueries.length > 0 && projectionQueries.every((query) => query.isError);
   const refetch = useCallback(async () => {
-    await Promise.all([
-      analyticsQuery.refetch(),
-      ...projectionQueries.map((query) => query.refetch()),
-    ]);
+    setRefreshMessage(null);
+    try {
+      const [marketResult, ...projectionResults] = await Promise.all([
+        analyticsQuery.refetch(),
+        ...projectionQueries.map((query) => query.refetch()),
+      ]);
+      const marketFailed = marketResult.isError;
+      const projectionsFailed = projectionResults.some((result) => result.isError);
+
+      if (marketFailed && projectionsFailed) {
+        setRefreshMessage('Market history and game projections could not be refreshed. Showing previously loaded results.');
+      } else if (marketFailed) {
+        setRefreshMessage('Market history could not be refreshed. Showing previously loaded results.');
+      } else if (projectionsFailed) {
+        setRefreshMessage('Some game projections could not be refreshed. Showing available results.');
+      } else {
+        setRefreshMessage('Analytics data refreshed.');
+      }
+    } catch {
+      setRefreshMessage('Analytics data could not be refreshed. Showing previously loaded results where available.');
+    }
   }, [analyticsQuery.refetch, projectionQueries]);
+  const refreshNotice = isRefetching
+    ? 'Refreshing market history and game projections…'
+    : analyticsQuery.isError
+      ? 'Market history could not be loaded. Pull down to try again.'
+      : refreshMessage;
 
   if (!hasServerEntitlement && (isSubscriptionLoading || serverEntitlementError)) {
     return (
@@ -504,7 +527,14 @@ export default function AnalyticsScreen() {
                 <Text style={[styles.brand, { color: colors.foreground }]}>TBM / ANALYTICS</Text>
                 <Text style={[styles.micro, { color: colors.mutedForeground }]}>MARKET DESK · {slateDate}</Text>
               </View>
-              <Pressable accessibilityLabel="Refresh analytics" onPress={() => void refetch()} style={[styles.iconButton, { borderColor: colors.border }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={isRefetching ? 'Refreshing analytics' : 'Refresh analytics'}
+                accessibilityState={{ disabled: isRefetching }}
+                disabled={isRefetching}
+                onPress={() => void refetch()}
+                style={[styles.iconButton, { borderColor: colors.border, opacity: isRefetching ? 0.6 : 1 }]}
+              >
                 <Feather name="refresh-cw" size={15} color={colors.mutedForeground} />
               </Pressable>
             </View>
@@ -517,7 +547,7 @@ export default function AnalyticsScreen() {
             </View>
             <View style={[styles.pulse, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.pulseCell}>
-                <Text style={[styles.pulseValue, { color: colors.foreground }]}>{items.length}</Text>
+                <Text style={[styles.pulseValue, { color: colors.foreground }]}>{visibleItems.length}</Text>
                 <Text style={[styles.micro, { color: colors.mutedForeground }]}>TRACKED</Text>
               </View>
               <View style={[styles.pulseCell, styles.pulseDivider, { borderColor: colors.border }]}>
@@ -554,12 +584,20 @@ export default function AnalyticsScreen() {
               <Text style={[styles.micro, { color: colors.mutedForeground }]}>TODAY’S MOVEMENT</Text>
               <Text style={[styles.micro, { color: colors.mutedForeground }]}>PULL TO REFRESH</Text>
             </View>
+            {refreshNotice ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[styles.refreshNotice, { color: colors.mutedForeground }]}
+              >
+                {refreshNotice}
+              </Text>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
           isLoading
             ? <ActivityIndicator style={styles.loader} color={colors.primary} />
-            : <EmptyState message={allFailed ? 'Analytics are unavailable right now. Pull down to try again.' : 'No model projections are available for this filter.'} />
+            : <EmptyState message={allFailed || analyticsQuery.isError ? 'Analytics data is unavailable right now. Pull down to try again.' : 'No model projections are available for this filter.'} />
         }
       />
       <AnalyticsDrawer item={selected} onClose={() => setSelected(null)} />
@@ -591,6 +629,7 @@ const styles = StyleSheet.create({
   filter: { borderWidth: 1, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 8 },
   filterText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 10 },
+  refreshNotice: { marginBottom: 8, fontSize: 10, lineHeight: 15, fontFamily: 'Inter_400Regular' },
   loader: { marginTop: 50 },
   card: { marginHorizontal: 16, marginBottom: 8, padding: 12, borderWidth: 1, borderRadius: 5 },
   cardMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
