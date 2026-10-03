@@ -56,7 +56,10 @@ vi.mock("drizzle-orm", () => ({
   gte: (column: unknown, value: unknown) => ({ gte: [column, value] }),
   inArray: (column: unknown, values: unknown[]) => ({ inArray: [column, values] }),
   lt: (column: unknown, value: unknown) => ({ lt: [column, value] }),
-  sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values }),
+  sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+    strings, values,
+    mapWith: (decoder: unknown) => ({ strings, values, decoder }),
+  }),
 }));
 vi.mock("../services/marketSnapshotCapture", () => ({
   captureOddsApiMoneylineSnapshots: mocks.capture,
@@ -81,7 +84,7 @@ vi.mock("../lib/releaseIdentity", () => ({
 
 // @ts-ignore The executable CLI entrypoint is intentionally outside tsconfig rootDir.
 import { captureMarketAnalyticsEvidence, runCloudPipelineOnce, type MarketAnalyticsCaptureSummary } from "../../scripts/run-cloud-pipeline-once";
-import { gamesTable, ncaafMarketObservationsTable } from "@workspace/db";
+import { gamesTable, ncaafMarketObservationsTable, oddsSnapshotsTable } from "@workspace/db";
 import { ACTIVE_PRODUCT_SPORTS } from "./sportScope";
 
 const releaseIdentity = {
@@ -466,6 +469,9 @@ describe("cloud pipeline shadow analytics snapshot capture", () => {
     });
 
     expect(summary).toMatchObject({ status: "SUCCEEDED", gamesAttempted: 1 });
+    expect(mocks.dbSelect.mock.calls.some(([fields]) =>
+      fields?.latestSnapshotAt?.decoder === oddsSnapshotsTable.capturedAt,
+    )).toBe(true);
     expect(gameQueries.get("NCAAF")!.from).toHaveBeenCalledWith(gamesTable);
     expect(gameQueries.get("NCAAF")!.limit).toHaveBeenCalledWith(200);
     expect(mocks.dbSelectDistinctOn).toHaveBeenCalledWith(

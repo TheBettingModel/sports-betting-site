@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { and, eq, gt, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import {
-  db, gamesTable, ncaafCfbdTeamMappingsTable, ncaafFootballIntelligenceSnapshotsTable,
+  db, gamesTable, ncaafCfbdTeamMappingsTable,
   ncaafGameEvidenceTable, ncaafMarketObservationsTable, ncaafV4GameDayMarketEvidenceTable, ncaafV4GameDayPredictionsTable,
 } from "@workspace/db";
 import type { NcaafReplayFeatures } from "./ncaafChronologicalReplay";
@@ -14,6 +14,7 @@ import {
   fairAmericanOdds, type V4Prediction,
 } from "./ncaafV4ExpectedScore";
 import { NCAAF_V4_CANONICAL_BASELINE_D } from "./ncaafV4DistinctChallenger";
+import { latestNcaafPregameSnapshotsQuery } from "./ncaafLiveSnapshots";
 
 export const NCAAF_V4_GAME_DAY_STATUS = Object.freeze({
   modelStatus: "V4_PROJECTION", approvalStatus: "ACTIVE", publicationStatus: "PROJECTION_ONLY",
@@ -141,6 +142,12 @@ const sportsOutputCache = new Map<string, CacheEntry<{
 /** Test/admin support only; cache lifetime and all metadata are observable in board profiling. */
 export function clearNcaafV4GameDayCaches() { forecastCache.clear(); marketCache.clear(); sportsOutputCache.clear(); }
 function cached<T>(cache: Map<string, CacheEntry<T>>, key: string, now: Date): CacheEntry<T> | null {
+  // Feature cutoffs create new keys. Expire old keys even when nobody requests
+  // them again, or every refresh retains another complete history population.
+  for (const [oldKey, entry] of cache) {
+    if (entry.expiresAt <= now) cache.delete(oldKey);
+  }
+  while (cache.size > 4) cache.delete(cache.keys().next().value!);
   const entry = cache.get(key);
   if (!entry || entry.expiresAt <= now) { if (entry) cache.delete(key); return null; }
   return entry;
@@ -224,10 +231,7 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
   const phase = { scheduleRetrievalMs: 0, historicalFeatureReconstructionMs: 0, featureBridgeMs: 0, v4InferenceMs: 0, marketRetrievalMs: 0, marketMatchingMs: 0, persistenceMs: 0, responseSerializationMs: 0 };
   const date = validRequestedDate(dateValue, now);
   const { start, end } = easternDayBounds(date);
-  const snapshotRows = await db.select().from(ncaafFootballIntelligenceSnapshotsTable).where(and(
-    eq(ncaafFootballIntelligenceSnapshotsTable.season, 2026), gt(ncaafFootballIntelligenceSnapshotsTable.kickoffAt, now),
-    gte(ncaafFootballIntelligenceSnapshotsTable.kickoffAt, start), lt(ncaafFootballIntelligenceSnapshotsTable.kickoffAt, end),
-  ));
+  const snapshotRows = await latestNcaafPregameSnapshotsQuery(now, { start, end });
   // The newest valid pre-kickoff feature cutoff is authoritative per event.
   const snapshotByEvent = new Map<string, typeof snapshotRows[number]>();
   for (const row of snapshotRows) {
