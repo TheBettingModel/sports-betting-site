@@ -1,6 +1,6 @@
-import { and, desc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import {
-  db, ncaafCfbdTeamMappingsTable, ncaafFootballIntelligenceSnapshotsTable,
+  db, ncaafCfbdTeamMappingsTable,
   ncaafGameEvidenceTable,
 } from "@workspace/db";
 import { assertNoNcaafMarketShapedKeys } from "../ncaafFootballIntelligenceSnapshots";
@@ -9,6 +9,7 @@ import {
   ncaafV42026InputChecksum, type NcaafSafeTeamMapping, type NcaafV42026ChallengerInput,
 } from "../ncaafV42026FeatureBridge";
 import { predictFrozenNcaafV4 } from "../ncaafV4GameDay";
+import { latestNcaafPregameSnapshotsQuery } from "../ncaafLiveSnapshots";
 import type { V4Prediction } from "../ncaafV4ExpectedScore";
 import { NCAAF_V4_DATASET_VERSION, NCAAF_V4_FEATURE_SCHEMA_VERSION } from "../ncaafV4ExpectedScore";
 import {
@@ -193,22 +194,7 @@ export function registerNcaafCandidateExecutor(registry: CandidateExecutorRegist
 export async function materializeCurrentNcaafCandidateInput(
   now = new Date(), requestedGameId?: string,
 ): Promise<MaterializedNcaafCandidateInput | null> {
-  const snapshotFilters = [
-    eq(ncaafFootballIntelligenceSnapshotsTable.season, 2026),
-    gt(ncaafFootballIntelligenceSnapshotsTable.kickoffAt, now),
-    lte(ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt, now),
-    lt(ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt, ncaafFootballIntelligenceSnapshotsTable.kickoffAt),
-  ];
-  if (requestedGameId) {
-    snapshotFilters.push(
-      eq(ncaafFootballIntelligenceSnapshotsTable.targetProvider, "espn"),
-      eq(ncaafFootballIntelligenceSnapshotsTable.targetEventId, requestedGameId),
-    );
-  }
-  const queriedSnapshots = await db.select().from(ncaafFootballIntelligenceSnapshotsTable)
-    .where(and(...snapshotFilters))
-    .orderBy(desc(ncaafFootballIntelligenceSnapshotsTable.dataCutoffAt), desc(ncaafFootballIntelligenceSnapshotsTable.id));
-  const snapshots = requestedGameId ? queriedSnapshots.slice(0, 1) : queriedSnapshots;
+  const snapshots = await latestNcaafPregameSnapshotsQuery(now, { eventId: requestedGameId });
   if (!snapshots.length) return null;
   const latestCutoff = snapshots.reduce(
     (latest, row) => row.dataCutoffAt > latest ? row.dataCutoffAt : latest,

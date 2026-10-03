@@ -150,7 +150,8 @@ async function loadPersistedAnalyticsEvidence(
       homeTeamName: gamesTable.homeTeamName,
       awayTeamName: gamesTable.awayTeamName,
       eventStart: gamesTable.startsAt,
-      latestSnapshotAt: sql<Date | null>`MAX(${oddsSnapshotsTable.capturedAt}) FILTER (WHERE ${marketsTable.id} IS NOT NULL)`,
+      latestSnapshotAt: sql<Date | null>`MAX(${oddsSnapshotsTable.capturedAt}) FILTER (WHERE ${marketsTable.id} IS NOT NULL)`
+        .mapWith(oddsSnapshotsTable.capturedAt),
     })
       .from(gamesTable)
       .leftJoin(oddsSnapshotsTable, and(
@@ -180,7 +181,7 @@ async function loadPersistedAnalyticsEvidence(
       .limit(candidateLimitPerSport)
       .offset(candidateOffset);
     return rows.filter(
-      (game): game is PersistedUpcomingGame => game.eventStart instanceof Date,
+      (game): game is typeof game & { eventStart: Date } => game.eventStart instanceof Date,
     );
   }));
   const games = gamesBySport.flat();
