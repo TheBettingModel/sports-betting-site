@@ -32,6 +32,9 @@ const SPORT_KEY: Record<string, string> = {
 
 /** Soccer sub-league label → The Odds API sport key */
 const SOCCER_LEAGUE_KEY: Record<string, string> = {
+  "MLS":         "soccer_usa_mls",
+  "Eredivisie":  "soccer_netherlands_eredivisie",
+  "Süper Lig":   "soccer_turkey_super_league",
   "EPL":         "soccer_epl",
   "La Liga":     "soccer_spain_la_liga",
   "Bundesliga":  "soccer_germany_bundesliga",

@@ -11,6 +11,8 @@ import { pathToFileURL } from "node:url";
 import { captureOddsApiMoneylineSnapshots } from "../src/services/marketSnapshotCapture";
 import { getOddsForGameWithStatus, resolveOddsApiKey, type GameOdds } from "../src/services/oddsApi";
 import { ACTIVE_PRODUCT_SPORTS } from "../src/services/sportScope";
+import { synchronizeSharedAnalyticsFixtures, type FixtureSyncReport } from "../src/services/sharedAnalyticsFixtures";
+import { logger } from "../src/lib/logger";
 import { schedulerJobs } from "../src/services/scheduler";
 import { bootstrapTask241V4Engines } from "../src/services/v4EngineBootstrap241";
 import { getTbmReleaseIdentity, type TbmReleaseIdentity } from "../src/lib/releaseIdentity";
@@ -45,6 +47,7 @@ interface PersistedNcaafOddsEvidence {
 }
 
 interface PersistedAnalyticsInput {
+  fixtureSynchronization?: FixtureSyncReport[];
   totalGamesBySport: Record<string, number>;
   games: PersistedUpcomingGame[];
   evidence: PersistedNcaafOddsEvidence[];
@@ -63,6 +66,7 @@ interface SportAnalyticsCaptureSummary {
 }
 
 export interface MarketAnalyticsCaptureSummary {
+  fixtureSynchronization?: FixtureSyncReport[];
   status: "SUCCEEDED" | "NO_UPCOMING_GAMES" | "PARTIAL" | "UNAVAILABLE" | "FAILED";
   hasOperationalFailures: boolean;
   horizonDays: number;
@@ -108,6 +112,10 @@ async function loadPersistedAnalyticsEvidence(
   horizonDays: number,
   candidateLimitPerSport: number,
 ): Promise<PersistedAnalyticsInput> {
+  // The projection UI discovers schedules on demand. Analytics must associate
+  // those same future fixtures even when no client visits and publication is off.
+  const fixtureSynchronization = await synchronizeSharedAnalyticsFixtures(now, horizonDays);
+  logger.info({ fixtureSynchronization }, "Shared Analytics fixture synchronization complete");
   const horizonEnd = new Date(now.getTime() + horizonDays * 24 * 60 * 60 * 1000);
   // Evidence insertion is append-only and deduplicates unchanged payloads, so
   // the current cycle may reuse a still-fresh row captured by an earlier tick.
@@ -133,7 +141,7 @@ async function loadPersistedAnalyticsEvidence(
   ]));
 
   if (Object.values(totalGamesBySport).every((count) => count === 0)) {
-    return { totalGamesBySport, games: [], evidence: [] };
+    return { totalGamesBySport, games: [], evidence: [], fixtureSynchronization };
   }
 
   // Query each active sport independently so a large NCAAF slate cannot fill
@@ -187,7 +195,7 @@ async function loadPersistedAnalyticsEvidence(
   const games = gamesBySport.flat();
   const ncaafGames = games.filter((game) => game.sport === "NCAAF");
   const gameIds = ncaafGames.map((game) => game.gameId);
-  if (gameIds.length === 0) return { totalGamesBySport, games, evidence: [] };
+  if (gameIds.length === 0) return { totalGamesBySport, games, evidence: [], fixtureSynchronization };
 
   // The NCAAF evidence cycle has already fetched and persisted the current
   // Odds API event payloads. Reuse one matched raw event per existing game
@@ -224,7 +232,7 @@ async function loadPersistedAnalyticsEvidence(
       desc(ncaafMarketObservationsTable.id),
     );
 
-  return { totalGamesBySport, games, evidence };
+  return { totalGamesBySport, games, evidence, fixtureSynchronization };
 }
 
 interface OddsApiOutcomeEvidence {
@@ -367,7 +375,6 @@ export async function captureMarketAnalyticsEvidence(
   overrides: Partial<MarketAnalyticsCaptureDependencies> = {},
 ): Promise<MarketAnalyticsCaptureSummary> {
   const dependencies = { ...defaultCaptureDependencies, ...overrides };
-  const startedAt = dependencies.monotonicNow();
   const now = dependencies.now();
   const failures: MarketAnalyticsCaptureSummary["failures"] = [];
   let input: PersistedAnalyticsInput;
@@ -408,7 +415,16 @@ export async function captureMarketAnalyticsEvidence(
   }
 
   const totalGames = Object.values(input.totalGamesBySport).reduce((sum, count) => sum + count, 0);
-  let hasOperationalFailures = false;
+  // The quote-capture budget excludes bounded fixture synchronization; otherwise
+  // a slow schedule fetch could consume the entire budget before the first quote.
+  const startedAt = dependencies.monotonicNow();
+  let hasOperationalFailures = (input.fixtureSynchronization ?? []).some(row => row.providerFailures.length > 0);
+  for (const row of input.fixtureSynchronization ?? []) {
+    for (const reason of row.providerFailures) failures.push({ reason: `FIXTURE_SOURCE_FAILED: ${reason}` });
+    for (const conflict of row.conflicts) failures.push({
+      gameId: conflict.gameId, reason: `FIXTURE_QUARANTINED: ${conflict.reason}`,
+    });
+  }
   const sportSummaryByName = new Map<string, SportAnalyticsCaptureSummary>(
     ACTIVE_PRODUCT_SPORTS.map((sport) => [
       sport,
@@ -745,6 +761,7 @@ export async function captureMarketAnalyticsEvidence(
   return {
     status,
     hasOperationalFailures,
+    fixtureSynchronization: input.fixtureSynchronization,
     horizonDays: ANALYTICS_HORIZON_DAYS,
     gameLimitPerSport: MAX_ANALYTICS_GAMES_PER_SPORT,
     ncaafGameLimit: MAX_NCAAF_ANALYTICS_GAMES_PER_RUN,

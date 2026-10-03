@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("./sharedAnalyticsFixtures", () => ({ synchronizeSharedAnalyticsFixtures: vi.fn(async () => []) }));
 
 const { mocks } = vi.hoisted(() => ({
   mocks: {
