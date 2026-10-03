@@ -6,6 +6,7 @@
 import { and, eq, gt, gte, lt } from "drizzle-orm";
 import { db, pool, ncaafCfbdProviderHealthTable, ncaafGameEvidenceTable, ncaafTeamGamePerformanceTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { resolveNcaafEventIdentity } from "./ncaafEventIdentity";
 import {
   captureNcaafEvidenceDate,
   ncaafSeasonForDate,
@@ -181,9 +182,7 @@ export function isNcaafRollingProjectionKickoff(kickoffAt: Date, now: Date): boo
  * constructing provider-bound snapshot/cohort identities.
  */
 export function normalizeNcaafProviderEventId(provider: string, eventId: string): string {
-  if (provider !== "espn") return eventId;
-  const match = /^NCAAF-(\d+)$/.exec(eventId);
-  return match?.[1] ?? eventId;
+  return resolveNcaafEventIdentity(provider, eventId)?.providerEventId ?? eventId;
 }
 /** Scheduler-only initializer for the bounded rolling projection horizon. */
 export async function initializeCurrentNcaafV4Forecasts(cycleNow: Date): Promise<unknown[]> {

@@ -10,6 +10,7 @@ import {
 } from "../ncaafV42026FeatureBridge";
 import { predictFrozenNcaafV4 } from "../ncaafV4GameDay";
 import { latestNcaafPregameSnapshotsQuery } from "../ncaafLiveSnapshots";
+import { resolveNcaafEventIdentity } from "../ncaafEventIdentity";
 import type { V4Prediction } from "../ncaafV4ExpectedScore";
 import { NCAAF_V4_DATASET_VERSION, NCAAF_V4_FEATURE_SCHEMA_VERSION } from "../ncaafV4ExpectedScore";
 import {
@@ -250,7 +251,10 @@ export async function materializeCurrentNcaafCandidateInput(
   const selected = bridge.inputs
     .filter(input => !requestedGameId
       || input.stableGameId === requestedGameId
-      || input.stableGameId.endsWith(`:${requestedGameId}`))
+      || input.stableGameId.endsWith(`:${requestedGameId}`)
+      || resolveNcaafEventIdentity("espn", input.stableGameId.replace(/^espn:/, ""))?.key
+        === resolveNcaafEventIdentity("espn", requestedGameId)?.key
+        && resolveNcaafEventIdentity("espn", requestedGameId) != null)
     .sort((a, b) => a.kickoffAt.localeCompare(b.kickoffAt))[0];
   if (!selected) return null;
   const snapshot = snapshots.find(row =>
