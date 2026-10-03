@@ -39,7 +39,7 @@ export type DiscoveredV4Event = Readonly<{
   failureReason: ForecastFailureReason | null;
 }>;
 
-const V4_PROVIDER_KEYS: Readonly<Record<TbmV4Sport, readonly string[]>> = {
+export const V4_PROVIDER_KEYS: Readonly<Record<TbmV4Sport, readonly string[]>> = {
   NFL: ["NFL"],
   NCAAF: ["NCAAF"],
   NBA: ["NBA"],

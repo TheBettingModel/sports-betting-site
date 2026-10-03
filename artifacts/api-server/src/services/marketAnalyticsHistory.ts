@@ -45,7 +45,17 @@ function retainHistoryByIdentity(
   }
 
   return [...byBookAndSelection.values()]
-    .flatMap((group) => {
+    .flatMap((observations) => {
+      // Repeated captures of one provider update are one observation, not
+      // movement. Conflicting prices at one timestamp are not a valid pair.
+      const byTime = new Map<string, IdentifiedHistoryPoint | null>();
+      for (const entry of observations) {
+        const previous = byTime.get(entry.point.capturedAt);
+        if (previous === null) continue;
+        byTime.set(entry.point.capturedAt, previous && previous.point.price !== entry.point.price ? null : entry);
+      }
+      const group = [...byTime.values()].filter((entry): entry is IdentifiedHistoryPoint => entry !== null)
+        .sort((a, b) => a.point.capturedAt.localeCompare(b.point.capturedAt));
       const retained = group.length <= 3
         ? group
         : [group[0]!, ...group.slice(-2)];
@@ -104,6 +114,13 @@ export function buildMarketAnalyticsHistories(
   rows: readonly MarketAnalyticsSnapshotRow[],
   now = new Date(),
 ): Map<string, MarketAnalyticsGameHistory> {
+  const bookKeysByName = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!isEligiblePregameSnapshot(row, now)) continue;
+    const keys = bookKeysByName.get(row.sportsbook!) ?? new Set<string>();
+    keys.add(row.sportsbookKey!);
+    bookKeysByName.set(row.sportsbook!, keys);
+  }
   const pendingByGame = new Map<string, {
     marketHistory: IdentifiedHistoryPoint[];
     sharpMoneyHistory: IdentifiedHistoryPoint[];
@@ -121,7 +138,10 @@ export function buildMarketAnalyticsHistories(
         selection: row.selection,
         price: row.price,
         capturedAt: row.capturedAt.toISOString(),
-        sportsbook: row.sportsbook,
+        // The existing mobile contract groups by display name. Disambiguate
+        // only collisions so two canonical books cannot masquerade as a pair.
+        sportsbook: bookKeysByName.get(row.sportsbook!)!.size > 1
+          ? `${row.sportsbook} (${row.sportsbookKey})` : row.sportsbook,
       },
     };
     (row.isSharp ? entry.sharpMoneyHistory : entry.marketHistory).push(identifiedPoint);

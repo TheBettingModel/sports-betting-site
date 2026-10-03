@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import {
   db, gamesTable, ncaafCfbdTeamMappingsTable,
   ncaafGameEvidenceTable, ncaafMarketObservationsTable, ncaafV4GameDayMarketEvidenceTable, ncaafV4GameDayPredictionsTable,
@@ -15,6 +15,7 @@ import {
 } from "./ncaafV4ExpectedScore";
 import { NCAAF_V4_CANONICAL_BASELINE_D } from "./ncaafV4DistinctChallenger";
 import { latestNcaafPregameSnapshotsQuery } from "./ncaafLiveSnapshots";
+import { latestNcaafEventSnapshots, resolveNcaafEventIdentity, verifyNcaafEventAssociation } from "./ncaafEventIdentity";
 
 export const NCAAF_V4_GAME_DAY_STATUS = Object.freeze({
   modelStatus: "V4_PROJECTION", approvalStatus: "ACTIVE", publicationStatus: "PROJECTION_ONLY",
@@ -166,6 +167,7 @@ export function ncaafV4MarketHealth(rows: readonly NcaafV4MarketRow[], boards: r
 export async function persistTodayPredictions(
   date: string, now: Date, bridge: ReturnType<typeof buildNcaafV42026FeatureBridge>,
   marketAttachments: readonly { predictionId: string; identity: string; rows: readonly NcaafV4MarketRow[] }[],
+  verifiedPublicGames: ReadonlyMap<string, string>,
   writeClock: () => Date = () => new Date(),
 ) {
   // Diagnostic and future requests are strictly read-only. The caller only
@@ -173,12 +175,14 @@ export async function persistTodayPredictions(
   const writeNow = writeClock();
   if (!mayPersistNcaafV4GameDayDate(date, writeNow) || !bridge.predictions.length) return 0;
   const rows = bridge.predictions.flatMap((prediction) => {
+    const canonicalGameId = verifiedPublicGames.get(prediction.gameId);
+    if (!canonicalGameId) return [];
     const input = bridge.inputs.find(x => x.stableGameId === prediction.gameId)!;
     // This is intentionally a fresh write-time check, not the request start.
     if (!isNcaafV4PredictionWriteEligible(date, input.kickoffAt, writeNow)) return [];
     const frozen = predictFrozenNcaafV4(input);
     return [{
-      predictionId: frozen.predictionId, gameId: prediction.gameId, canonicalGameId: prediction.espnGameId ?? prediction.gameId,
+      predictionId: frozen.predictionId, gameId: prediction.gameId, canonicalGameId,
       sport: "NCAAF", gameDate: date, kickoffAt: new Date(prediction.predictionTimestamp === "" ? input.kickoffAt : input.kickoffAt),
       featureCutoff: new Date(input.featureCutoff), modelName: NCAAF_V4_EXPECTED_SCORE_ID, modelVersion: frozen.modelVersion,
       configurationHash: String(frozen.diagnostics.configurationHash), parameterHash: String(frozen.diagnostics.parameterHash),
@@ -233,13 +237,9 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
   const { start, end } = easternDayBounds(date);
   const snapshotRows = await latestNcaafPregameSnapshotsQuery(now, { start, end });
   // The newest valid pre-kickoff feature cutoff is authoritative per event.
-  const snapshotByEvent = new Map<string, typeof snapshotRows[number]>();
-  for (const row of snapshotRows) {
-    const prior = snapshotByEvent.get(row.targetEventId);
-    if (!prior || row.dataCutoffAt > prior.dataCutoffAt || (row.dataCutoffAt.getTime() === prior.dataCutoffAt.getTime() && row.id > prior.id)) snapshotByEvent.set(row.targetEventId, row);
-  }
-  const snapshots = [...snapshotByEvent.values()];
-  const eventIds = [...new Set(snapshots.map(x => x.targetEventId))];
+  const snapshots = latestNcaafEventSnapshots(snapshotRows);
+  const eventIds = [...new Set(snapshots.flatMap(x =>
+    resolveNcaafEventIdentity(x.targetProvider, x.targetEventId)?.aliases ?? [x.targetEventId]))];
   // The forecast cache is keyed by the actual newest usable feature cutoff,
   // not wall-clock request time. A newer cutoff naturally invalidates it.
   const usableCutoffs = snapshots.map(x => x.dataCutoffAt.getTime()).filter(value => value <= now.getTime());
@@ -264,18 +264,19 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
       lt(ncaafGameEvidenceTable.kickoffAt, latestCutoff),
     )),
     db.select().from(ncaafCfbdTeamMappingsTable).where(eq(ncaafCfbdTeamMappingsTable.season, 2026)),
-    eventIds.length ? db.select().from(ncaafGameEvidenceTable).where(and(eq(ncaafGameEvidenceTable.provider, "espn"), inArray(ncaafGameEvidenceTable.providerEventId, eventIds))) : [],
+    eventIds.length ? db.select({
+      id: ncaafGameEvidenceTable.id, provider: ncaafGameEvidenceTable.provider, providerEventId: ncaafGameEvidenceTable.providerEventId,
+      capturedAt: ncaafGameEvidenceTable.capturedAt, kickoffAt: ncaafGameEvidenceTable.kickoffAt,
+      homeProviderTeamId: ncaafGameEvidenceTable.homeProviderTeamId, awayProviderTeamId: ncaafGameEvidenceTable.awayProviderTeamId,
+      homeTeamName: ncaafGameEvidenceTable.homeTeamName, awayTeamName: ncaafGameEvidenceTable.awayTeamName, neutralSite: ncaafGameEvidenceTable.neutralSite,
+    }).from(ncaafGameEvidenceTable).where(and(eq(ncaafGameEvidenceTable.provider, "espn"),
+      inArray(ncaafGameEvidenceTable.providerEventId, eventIds), lte(ncaafGameEvidenceTable.capturedAt, now))) : [],
     eventIds.length ? db.select().from(gamesTable).where(inArray(gamesTable.id, eventIds)) : [],
   ]);
   if (!savedHistory) forecastCache.set(historyCacheKey, { key: historyCacheKey, createdAt: now, expiresAt: new Date(now.getTime() + FORECAST_CACHE_TTL_MS), value: historyResult });
   phase.historicalFeatureReconstructionMs = performance.now() - historyStartedAt;
   phase.scheduleRetrievalMs = historyStartedAt - startedAt;
   const evidence = historyResult as any[];
-  const scheduleByEvent = new Map<string, typeof scheduleRows[number]>();
-  for (const row of scheduleRows) {
-    const prior = scheduleByEvent.get(row.providerEventId);
-    if (!prior || row.capturedAt > prior.capturedAt || (row.capturedAt.getTime() === prior.capturedAt.getTime() && row.id > prior.id)) scheduleByEvent.set(row.providerEventId, row);
-  }
   const marketKey = `ncaaf-v4:market:${date}:${scheduleRows.map(x => x.id).sort((a, b) => a - b).join(",")}`;
   const savedMarkets = cached(marketCache, marketKey, now);
   const marketStartedAt = performance.now();
@@ -289,7 +290,15 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
     price: ncaafMarketObservationsTable.price, line: ncaafMarketObservationsTable.line,
     bookmakerProviderId: ncaafMarketObservationsTable.bookmakerProviderId, bookmakerName: ncaafMarketObservationsTable.bookmakerName,
     capturedAt: ncaafMarketObservationsTable.capturedAt, isMatchedToGame: ncaafMarketObservationsTable.isMatchedToGame,
-    marketIdentityStatus: ncaafMarketObservationsTable.marketIdentityStatus, payload: ncaafMarketObservationsTable.payload,
+    marketIdentityStatus: ncaafMarketObservationsTable.marketIdentityStatus,
+    // Recovering alias matches must not hydrate full provider response bodies
+    // once per price row. These are the only payload fields the identity gate reads.
+    payload: sql<unknown>`jsonb_build_object('event', jsonb_build_object(
+      'sport_key', ${ncaafMarketObservationsTable.payload}->'event'->'sport_key',
+      'home_team', ${ncaafMarketObservationsTable.payload}->'event'->'home_team',
+      'away_team', ${ncaafMarketObservationsTable.payload}->'event'->'away_team',
+      'commence_time', ${ncaafMarketObservationsTable.payload}->'event'->'commence_time',
+      'neutral_site', ${ncaafMarketObservationsTable.payload}->'event'->'neutral_site'))`,
   }).from(ncaafMarketObservationsTable)
     .where(and(inArray(ncaafMarketObservationsTable.gameEvidenceId, scheduleRows.map(x => x.id)),
       gte(ncaafMarketObservationsTable.capturedAt, marketDiagnosticFloor), lte(ncaafMarketObservationsTable.capturedAt, now))) : []);
@@ -305,17 +314,17 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
     value: { bridge, frozenByGameId },
   });
   phase.featureBridgeMs = performance.now() - bridgeStartedAt;
-  const evidenceByEvent = new Map<string, typeof evidence[number]>();
-  for (const row of evidence.filter(x => x.provider === "espn")) {
-    const prior = evidenceByEvent.get(row.providerEventId);
-    if (!prior || row.capturedAt > prior.capturedAt || (row.capturedAt.getTime() === prior.capturedAt.getTime() && row.id > prior.id)) evidenceByEvent.set(row.providerEventId, row);
-  }
   const incumbentById = new Map(incumbents.map(x => [x.id, x]));
   const marketAttachments: { predictionId: string; identity: string; rows: readonly NcaafV4MarketRow[] }[] = [];
+  const verifiedPublicGames = new Map<string, string>();
+  const identityConflicts: { gameId: string; reason: string }[] = [];
   const inferenceStartedAt = performance.now();
   const boards = bridge.predictions.map(prediction => {
     const snapshot = snapshots.find(x => x.id === prediction.snapshotId)!;
-    const game = scheduleByEvent.get(snapshot.targetEventId) ?? evidenceByEvent.get(snapshot.targetEventId);
+    const association = verifyNcaafEventAssociation(snapshot, scheduleRows, incumbents);
+    const game = association.game;
+    if (association.verified) verifiedPublicGames.set(prediction.gameId, association.publicGameId);
+    else identityConflicts.push({ gameId: prediction.gameId, reason: association.reason });
     const selectedMarket = game ? safeCurrentMarketSnapshot(marketRows, game, now) : { classification: "UNMATCHED" as const, rootCause: "REJECTED_UNSAFE_IDENTITY" as const, rows: [] };
     const identity = selectedMarket.classification;
     const usable = identity !== "AMBIGUOUS" && identity !== "UNMATCHED";
@@ -332,7 +341,7 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
     const total = market.find(x => x.marketKey === "totals" && x.selection.toLowerCase() === "over" && x.line != null)
       ?? market.find(x => x.marketKey === "totals" && x.line != null);
     const opinion = edge == null || frozen.dataQuality === "INSUFFICIENT" ? "NEUTRAL" : edge >= .05 ? "BUY" : edge >= .02 ? "LEAN" : edge <= -.05 ? "FADE" : "NEUTRAL";
-    const incumbent = incumbentById.get(snapshot.targetEventId);
+    const incumbent = association.publicGameId ? incumbentById.get(association.publicGameId) : null;
     const incumbentAgreement = !incumbent ? "NO_INCUMBENT_FORECAST" : ((Number(incumbent.edge) >= 0) === (frozen.homeWinProbability >= .5) ? "AGREE" : "DISAGREE");
     return { gameId: prediction.gameId, predictionId: frozen.predictionId, predictionHash: frozen.predictionId, kickoffAt: snapshot.kickoffAt.toISOString(), awayTeam: game?.awayTeamName ?? null, homeTeam: game?.homeTeamName ?? null, neutralSite: game?.neutralSite ?? null,
       ...NCAAF_V4_GAME_DAY_STATUS, model: { id: NCAAF_V4_EXPECTED_SCORE_ID, version: frozen.modelVersion, configurationHash: frozen.diagnostics.configurationHash, parameterHash: frozen.diagnostics.parameterHash, featureSchema: frozen.featureSchemaVersion, featureCutoff: frozen.featureCutoff, dataQuality: frozen.dataQuality, expectedHomePoints: frozen.expectedHomePoints, expectedAwayPoints: frozen.expectedAwayPoints, expectedMargin: frozen.expectedMargin, expectedTotal: frozen.expectedTotal, homeWinProbability: frozen.homeWinProbability, awayWinProbability: frozen.awayWinProbability, fairHomeMoneyline: fairAmericanOdds(frozen.homeWinProbability), fairAwayMoneyline: fairAmericanOdds(frozen.awayWinProbability), marginUncertainty: frozen.marginUncertainty, totalUncertainty: frozen.totalUncertainty },
@@ -344,11 +353,11 @@ export async function getNcaafV4ProjectionBoard(dateValue: unknown, now = new Da
     .map((row, index) => ({ rank: index + 1, ...row }));
   phase.v4InferenceMs = performance.now() - inferenceStartedAt;
   const persistStartedAt = performance.now();
-  const persisted = await persistTodayPredictions(date, now, bridge, marketAttachments);
+  const persisted = await persistTodayPredictions(date, now, bridge, marketAttachments, verifiedPublicGames);
   phase.persistenceMs = performance.now() - persistStartedAt;
   const matchingStartedAt = performance.now();
   const marketHealth = ncaafV4MarketHealth(marketRows, boards, now);
   phase.marketMatchingMs = performance.now() - matchingStartedAt;
   phase.responseSerializationMs = performance.now() - startedAt - Object.values(phase).reduce((sum, value) => sum + value, 0);
-  return { date, generatedAt: now.toISOString(), model: { id: NCAAF_V4_EXPECTED_SCORE_ID, ...NCAAF_V4_GAME_DAY_STATUS, configurationHash: NCAAF_V4_CANONICAL_BASELINE_D.configurationHash, parameterHash: NCAAF_V4_CANONICAL_BASELINE_D.parameterHash }, evidencePersistence: `append-only prospective prediction ledger; attempted ${persisted} deterministic inserts`, board: boards, exclusions: bridge.exclusions, audit: { ...bridge.audit, marketHealth, profiling: { phasesMs: phase, totalMs: performance.now() - startedAt, caches: { sportsForecast: { key: historyCacheKey, hit: Boolean(savedSports), createdAt: (cached(sportsOutputCache, historyCacheKey, now)?.createdAt ?? now).toISOString(), expiresAt: (cached(sportsOutputCache, historyCacheKey, now)?.expiresAt ?? now).toISOString(), featureCutoff: latestCutoff.toISOString(), invalidation: "feature cutoff/configuration/parameter/schema change or 2 minute TTL" }, market: { key: marketKey, hit: Boolean(savedMarkets), createdAt: (cached(marketCache, marketKey, now)?.createdAt ?? now).toISOString(), expiresAt: (cached(marketCache, marketKey, now)?.expiresAt ?? now).toISOString(), invalidation: "schedule identity change or 60 second TTL" } } } } };
+  return { date, generatedAt: now.toISOString(), model: { id: NCAAF_V4_EXPECTED_SCORE_ID, ...NCAAF_V4_GAME_DAY_STATUS, configurationHash: NCAAF_V4_CANONICAL_BASELINE_D.configurationHash, parameterHash: NCAAF_V4_CANONICAL_BASELINE_D.parameterHash }, evidencePersistence: `append-only prospective prediction ledger; attempted ${persisted} deterministic inserts`, board: boards, exclusions: bridge.exclusions, audit: { ...bridge.audit, identityConflicts, marketHealth, profiling: { phasesMs: phase, totalMs: performance.now() - startedAt, caches: { sportsForecast: { key: historyCacheKey, hit: Boolean(savedSports), createdAt: (cached(sportsOutputCache, historyCacheKey, now)?.createdAt ?? now).toISOString(), expiresAt: (cached(sportsOutputCache, historyCacheKey, now)?.expiresAt ?? now).toISOString(), featureCutoff: latestCutoff.toISOString(), invalidation: "feature cutoff/configuration/parameter/schema change or 2 minute TTL" }, market: { key: marketKey, hit: Boolean(savedMarkets), createdAt: (cached(marketCache, marketKey, now)?.createdAt ?? now).toISOString(), expiresAt: (cached(marketCache, marketKey, now)?.expiresAt ?? now).toISOString(), invalidation: "schedule identity change or 60 second TTL" } } } } };
 }

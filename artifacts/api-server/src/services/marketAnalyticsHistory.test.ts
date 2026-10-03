@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ACTIVE_PRODUCT_SPORTS } from "./sportScope";
 import {
   buildMarketAnalyticsHistories,
   retainComparableHistory,
@@ -100,6 +101,35 @@ describe("retainComparableHistory", () => {
 });
 
 describe("buildMarketAnalyticsHistories", () => {
+  it.each([...ACTIVE_PRODUCT_SPORTS])("preserves real, chronological public/sharp pairs for %s", sport => {
+    const rows = [false, true].flatMap(isSharp => [30, 0].map(minute => snapshot({
+      gameId: `${sport}-1`, isSharp, sportsbook: isSharp ? "Pinnacle" : "DraftKings",
+      sportsbookKey: isSharp ? "pinnacle" : "draftkings", price: -110 - minute,
+      capturedAt: new Date(`2026-09-16T11:${String(minute).padStart(2, "0")}:00.000Z`),
+    })));
+    const history = buildMarketAnalyticsHistories(rows, now).get(`${sport}-1`)!;
+    for (const points of [history.marketHistory, history.sharpMoneyHistory]) {
+      expect(points).toHaveLength(2);
+      expect(points[0]!.capturedAt < points[1]!.capturedAt).toBe(true);
+      expect(new Set(points.map(point => point.sportsbook)).size).toBe(1);
+      expect(points[1]!.price).toBe(-140);
+    }
+  });
+  it("does not count repeated captures of one provider update as two observations", () => {
+    expect(buildMarketAnalyticsHistories([snapshot(), snapshot()], now).get("game-1")?.sharpMoneyHistory).toHaveLength(1);
+  });
+  it("rejects contradictory prices at the same book/selection/timestamp", () => {
+    expect(buildMarketAnalyticsHistories([snapshot(), snapshot({ price: -125 })], now)
+      .get("game-1")?.sharpMoneyHistory).toHaveLength(0);
+  });
+  it("never exposes two different canonical books as a same-display-name movement pair", () => {
+    const history = buildMarketAnalyticsHistories([
+      snapshot({ sportsbook: "Same", sportsbookKey: "book-a" }),
+      snapshot({ sportsbook: "Same", sportsbookKey: "book-b" }),
+    ], now).get("game-1")!.sharpMoneyHistory;
+    expect(new Set(history.map(point => point.sportsbook)).size).toBe(2);
+    expect(history.map(point => point.sportsbook)).toEqual(["Same (book-a)", "Same (book-b)"]);
+  });
   it("excludes ESPN consensus and keeps named Odds API public and sharp books separate", () => {
     const histories = buildMarketAnalyticsHistories([
       snapshot({
