@@ -54,6 +54,31 @@ vi.mock("./espn", () => ({
 
 vi.mock("./snapshot", () => ({ processGameSnapshot: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("./model", () => ({ computeProjection: vi.fn().mockReturnValue({}) }));
+// Freshness/automation tests must not depend on real historical MLB, weather
+// or sportsbook requests. A slow request otherwise retains the heavy-job lock
+// after a test timeout and causes subsequent runs to skip without finishRun.
+vi.mock("./mlbPitchers", async (original) => ({
+  ...await original<typeof import("./mlbPitchers")>(),
+  getProbablePitchers: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("./mlbBullpen", async (original) => ({
+  ...await original<typeof import("./mlbBullpen")>(),
+  getBullpenMatchup: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("./mlbLineups", async (original) => ({
+  ...await original<typeof import("./mlbLineups")>(),
+  getLineupMatchup: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("./weatherService", async (original) => ({
+  ...await original<typeof import("./weatherService")>(),
+  getVenueWeather: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("./oddsApi", async (original) => ({
+  ...await original<typeof import("./oddsApi")>(),
+  getOddsForGameWithStatus: vi.fn().mockResolvedValue({
+    odds: null, providerUnavailable: false, marketBlockedByProviderStart: false,
+  }),
+}));
 vi.mock("node-cron", () => ({ default: { schedule: vi.fn() } }));
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
