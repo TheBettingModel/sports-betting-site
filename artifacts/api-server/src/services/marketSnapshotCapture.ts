@@ -77,7 +77,7 @@ export function buildMoneylineSnapshotRows(
 
   for (const book of bookmakerOdds) {
     const providerUpdatedAt = book.lastUpdate ? new Date(book.lastUpdate) : null;
-    if (providerUpdatedAt && (
+    if (!providerUpdatedAt || (
       !Number.isFinite(providerUpdatedAt.getTime())
       || providerUpdatedAt.getTime() > now.getTime()
       || now.getTime() - providerUpdatedAt.getTime() > PROVIDER_OBSERVATION_MAX_AGE_MS
@@ -88,7 +88,7 @@ export function buildMoneylineSnapshotRows(
     if (soccer && !isValidAmericanOdds(book.drawOdds)) continue;
 
     const isSharp = isSharpBookSlug(book.book);
-    const observationAt = providerUpdatedAt ?? now;
+    const observationAt = providerUpdatedAt;
     rows.push(
       { sportsbook: book.book, isSharp, selection: "home", price: book.homeOdds, capturedAt: observationAt },
       ...(soccer && book.drawOdds != null

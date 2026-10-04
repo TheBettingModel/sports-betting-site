@@ -13,11 +13,151 @@ import {
   isValidAmericanOdds,
   isValidMarketPoint,
   resolveOddsLookup,
+  resolveOddsApiKey,
   selectActionableMoneylineMarket,
   selectPregameGameOdds,
 } from "./oddsApi";
 
+describe("preseason provider routing", () => {
+  const now = new Date("2026-10-03T23:00:00Z");
+  const start = "2026-10-04T23:00:00Z";
+  const event = (id: string, commenceTime = start) => ({
+    id, home_team: "Denver Nuggets", away_team: "Utah Jazz",
+    commence_time: commenceTime,
+    bookmakers: [{
+      key: "pinnacle", title: "Pinnacle", last_update: now.toISOString(),
+      markets: [{ key: "h2h", outcomes: [
+        { name: "Denver Nuggets", price: -120 }, { name: "Utah Jazz", price: 110 },
+      ] }],
+    }],
+  });
+
+  async function runLookup(responses: unknown[]) {
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    vi.stubEnv("ODDS_API_KEY", "test-key");
+    const fetchMock = vi.fn();
+    for (const body of responses) {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body)));
+    }
+    vi.stubGlobal("fetch", fetchMock);
+    const module = await import("./oddsApi");
+    const lookup = await module.getOddsForGameWithStatus("NBA", null, "Denver Nuggets", "Utah Jazz", start);
+    return { lookup, fetchMock, module };
+  }
+
+  it("uses the active NBA preseason feed only after the regular feed has no matching fixture", async () => {
+    try {
+      const { lookup, fetchMock } = await runLookup([
+        [], [{ key: "basketball_nba_preseason", active: true }], [event("preseason-real-event")],
+      ]);
+      expect(lookup.odds?.providerEventId).toBe("preseason-real-event");
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock.mock.calls[2]![0]).toContain("/basketball_nba_preseason/odds/");
+    } finally {
+      vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
+    }
+  });
+
+  it("does not query a preseason feed when a regular-season fixture already matches", async () => {
+    try {
+      const { lookup, fetchMock } = await runLookup([[event("regular-real-event")]]);
+      expect(lookup.odds?.providerEventId).toBe("regular-real-event");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
+    }
+  });
+
+  it("does not borrow a different date's preseason event for the same teams", async () => {
+    try {
+      const { lookup } = await runLookup([
+        [], [{ key: "basketball_nba_preseason", active: true }],
+        [event("wrong-fixture", "2026-10-10T23:00:00Z")],
+      ]);
+      expect(lookup.odds).toBeNull();
+    } finally {
+      vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
+    }
+  });
+
+  it("does not request inactive preseason markets and caches the catalog across games", async () => {
+    try {
+      const { lookup, fetchMock, module } = await runLookup([
+        [], [{ key: "basketball_nba_preseason", active: false }],
+      ]);
+      expect(lookup.odds).toBeNull();
+      await module.getOddsForGameWithStatus("NBA", null, "Other Home", "Other Away", start);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
+    }
+  });
+
+  it("reports a catalog failure instead of silently treating it as absent odds", async () => {
+    try {
+      vi.resetModules(); vi.useFakeTimers(); vi.setSystemTime(now);
+      vi.stubEnv("ODDS_API_KEY", "test-key");
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response("[]"))
+        .mockResolvedValueOnce(new Response("unavailable", { status: 503 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const module = await import("./oddsApi");
+      for (let index = 0; index < 3; index++) {
+        expect(await module.getOddsForGameWithStatus("NBA", null, "Denver Nuggets", "Utah Jazz", start))
+          .toMatchObject({ odds: null, providerUnavailable: true });
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
+    }
+  });
+
+  it("keeps the regular NFL key during the preseason/regular-season overlap", () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-05T12:00:00Z"));
+    try {
+      expect(resolveOddsApiKey("NFL")).toBe("americanfootball_nfl");
+    } finally { vi.useRealTimers(); }
+  });
+});
+
 describe("provider team identity normalization", () => {
+  it.each([
+    ["LA Clippers", "Los Angeles Clippers"],
+    ["AFC Bournemouth", "Bournemouth"],
+    ["Brighton & Hove Albion", "Brighton and Hove Albion"],
+    ["Internazionale", "Inter Milan"],
+    ["1. FC Union Berlin", "Union Berlin"],
+    ["SV Elversberg", "Elversberg"],
+    ["SC Paderborn 07", "SC Paderborn"],
+    ["Mainz", "FSV Mainz 05"],
+    ["FC Augsburg", "Augsburg"],
+    ["Hamburg SV", "Hamburger SV"],
+    ["Lens", "RC Lens"],
+    ["Le Havre AC", "Le Havre"],
+    ["Le Mans", "Le Mans FC"],
+    ["Paris Saint-Germain", "Paris Saint Germain"],
+    ["Kasimpasa", "Kasimpasa SK"],
+    ["Genclerbirligi", "Genclerbirligi SK"],
+    ["Amed SFK", "Amed SK"],
+    ["Feyenoord Rotterdam", "Feyenoord"],
+    ["FC Twente", "FC Twente Enschede"],
+    ["Ajax Amsterdam", "Ajax"],
+    ["Chicago Fire FC", "Chicago Fire"],
+    ["Vancouver Whitecaps", "Vancouver Whitecaps FC"],
+    ["Red Bull New York", "New York Red Bulls"],
+    ["Columbus Crew", "Columbus Crew SC"],
+  ])("matches the corroborated alias %s to %s", (espn, provider) => {
+    expect(canonicalTeamName(espn)).toBe(canonicalTeamName(provider));
+  });
+
+  it("does not merge similarly named clubs or remove arbitrary club prefixes", () => {
+    expect(canonicalTeamName("Inter Miami CF")).not.toBe(canonicalTeamName("Inter Milan"));
+    expect(canonicalTeamName("Manchester United")).not.toBe(canonicalTeamName("Manchester City"));
+    expect(canonicalTeamName("FC Unknown")).not.toBe(canonicalTeamName("Unknown"));
+  });
+
   it("matches the current La Liga aliases used by ESPN and The Odds API", () => {
     expect(canonicalTeamName("Athletic Club")).toBe(canonicalTeamName("Athletic Bilbao"));
     expect(canonicalTeamName("Deportivo")).toBe(canonicalTeamName("Deportivo La Coruña"));

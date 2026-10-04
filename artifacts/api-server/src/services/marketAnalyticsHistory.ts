@@ -114,6 +114,31 @@ export function buildMarketAnalyticsHistories(
   rows: readonly MarketAnalyticsSnapshotRow[],
   now = new Date(),
 ): Map<string, MarketAnalyticsGameHistory> {
+  // A provider can replace an event ID. Keep its histories separate and use
+  // only the newest identity for a given game/book/selection; never turn a
+  // quote from each identity into a fabricated comparable pair.
+  const byProviderIdentity = new Map<string, MarketAnalyticsSnapshotRow[]>();
+  for (const row of rows) {
+    if (!isEligiblePregameSnapshot(row, now)) continue;
+    const key = JSON.stringify([row.gameId, row.sportsbookKey, row.selection, row.providerEventId]);
+    const group = byProviderIdentity.get(key) ?? [];
+    group.push(row);
+    byProviderIdentity.set(key, group);
+  }
+  const newestIdentity = new Map<string, { rows: MarketAnalyticsSnapshotRow[]; latest: number }>();
+  for (const group of byProviderIdentity.values()) {
+    group.sort((a, b) => a.capturedAt.getTime() - b.capturedAt.getTime());
+    const latestRow = group[group.length - 1]!;
+    const key = JSON.stringify([latestRow.gameId, latestRow.sportsbookKey, latestRow.selection]);
+    const current = newestIdentity.get(key);
+    if (!current || latestRow.capturedAt.getTime() > current.latest) {
+      newestIdentity.set(key, { rows: group, latest: latestRow.capturedAt.getTime() });
+    } else if (latestRow.capturedAt.getTime() === current.latest) {
+      // Conflicting provider identities at exactly the same latest instant
+      // have no defensible current identity. Expose no comparison.
+      current.rows = [];
+    }
+  }
   const bookKeysByName = new Map<string, Set<string>>();
   for (const row of rows) {
     if (!isEligiblePregameSnapshot(row, now)) continue;
@@ -126,8 +151,7 @@ export function buildMarketAnalyticsHistories(
     sharpMoneyHistory: IdentifiedHistoryPoint[];
   }>();
 
-  for (const row of rows) {
-    if (!isEligiblePregameSnapshot(row, now)) continue;
+  for (const row of [...newestIdentity.values()].flatMap((group) => group.rows)) {
     const entry = pendingByGame.get(row.gameId) ?? {
       marketHistory: [],
       sharpMoneyHistory: [],

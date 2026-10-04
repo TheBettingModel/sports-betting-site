@@ -46,21 +46,12 @@ const SOCCER_LEAGUE_KEY: Record<string, string> = {
 /**
  * Resolve TBM sport/league → The Odds API sport key, or null if unsupported.
  *
- * NFL special-case: the preseason uses a separate Odds API key
- * ("americanfootball_nfl_preseason"). We switch to it automatically
- * from August 1 through September 10 each year, which covers every
- * preseason week without hard-coding specific dates.
+ * Always resolve the regular-season key first. Preseason lookup is based on
+ * the provider's active catalog and an exact fixture match, not calendar dates.
  */
 export function resolveOddsApiKey(sport: string, league?: string | null): string | null {
   if (sport === "Soccer") {
     return league ? (SOCCER_LEAGUE_KEY[league] ?? null) : "soccer_usa_mls";
-  }
-  if (sport === "NFL") {
-    const now = new Date();
-    const month = now.getMonth() + 1; // 1-indexed
-    const day = now.getDate();
-    const isPreseason = month === 8 || (month === 9 && day <= 10);
-    return isPreseason ? "americanfootball_nfl_preseason" : "americanfootball_nfl";
   }
   return SPORT_KEY[sport] ?? null;
 }
@@ -175,6 +166,32 @@ const TEAM_NAME_ALIASES: Record<string, string> = {
   "ca osasuna": "osasuna",
   "elche cf": "elche",
   "malaga cf": "malaga",
+  // Exact ESPN/provider aliases, corroborated by opponent and kickoff.
+  // Do not strip generic FC/SC words or use substring/fuzzy matching.
+  "la clippers": "los angeles clippers",
+  "afc bournemouth": "bournemouth",
+  "brighton hove albion": "brighton and hove albion",
+  "internazionale": "inter milan",
+  "1 fc union berlin": "union berlin",
+  "sv elversberg": "elversberg",
+  "sc paderborn 07": "sc paderborn",
+  "mainz": "fsv mainz 05",
+  "fc augsburg": "augsburg",
+  "hamburg sv": "hamburger sv",
+  "lens": "rc lens",
+  "le havre ac": "le havre",
+  "le mans": "le mans fc",
+  "paris saintgermain": "paris saint germain",
+  "kasimpasa": "kasimpasa sk",
+  "genclerbirligi": "genclerbirligi sk",
+  "amed sfk": "amed sk",
+  "feyenoord rotterdam": "feyenoord",
+  "fc twente": "fc twente enschede",
+  "ajax amsterdam": "ajax",
+  "chicago fire fc": "chicago fire",
+  "vancouver whitecaps": "vancouver whitecaps fc",
+  "red bull new york": "new york red bulls",
+  "columbus crew": "columbus crew sc",
 };
 
 export function canonicalTeamName(name: string): string {
@@ -583,7 +600,10 @@ export async function fetchOddsForSport(
 ): Promise<Map<string, GameOdds[]>> {
   const oddsApiKey = resolveOddsApiKey(sport, league);
   if (!oddsApiKey) return new Map(); // sport not supported (UFC, etc.)
+  return fetchOddsForProviderKey(oddsApiKey);
+}
 
+async function fetchOddsForProviderKey(oddsApiKey: string): Promise<Map<string, GameOdds[]>> {
   const cached = cache.get(oddsApiKey);
   const now = Date.now();
   if (cached && now - cached.fetchedAt < CACHE_TTL_MS) {
@@ -720,15 +740,78 @@ export async function getOddsForGameWithStatus(
   awayTeamName: string,
   commenceTimeISO?: string,
 ): Promise<OddsLookupResult> {
-  const gamesMap = await fetchOddsForSport(sport, league);
-  const key = matchKey(homeTeamName, awayTeamName);
   const oddsApiKey = resolveOddsApiKey(sport, league);
-  const cached = oddsApiKey ? cache.get(oddsApiKey) : undefined;
+  if (!oddsApiKey) return { odds: null, marketBlockedByProviderStart: false };
+  const lookup = await lookupProviderGame(oddsApiKey, homeTeamName, awayTeamName, commenceTimeISO);
+  if (lookup.odds || lookup.marketBlockedByProviderStart || lookup.providerUnavailable) return lookup;
+
+  const preseasonKey = PRESEASON_PROVIDER_KEYS[sport];
+  // No alternative feed may turn a started or unidentified fixture into a
+  // pregame market. The same team and kickoff checks apply to both feeds.
+  if (!preseasonKey || !commenceTimeISO || !isPregameCommenceTime(commenceTimeISO)) return lookup;
+  const activeKeys = await getActiveProviderKeys();
+  if (activeKeys == null) return { ...lookup, providerUnavailable: true };
+  if (!activeKeys.has(preseasonKey)) return lookup;
+  return lookupProviderGame(preseasonKey, homeTeamName, awayTeamName, commenceTimeISO);
+}
+
+const PRESEASON_PROVIDER_KEYS: Record<string, string> = {
+  NBA: "basketball_nba_preseason",
+  NFL: "americanfootball_nfl_preseason",
+  MLB: "baseball_mlb_preseason",
+  NHL: "icehockey_nhl_preseason",
+};
+let activeProviderCatalog: { keys: Set<string> | null; fetchedAt: number } | undefined;
+let activeProviderCatalogRequest: Promise<Set<string> | null> | undefined;
+
+async function getActiveProviderKeys(): Promise<Set<string> | null> {
+  const now = Date.now();
+  if (activeProviderCatalog && now - activeProviderCatalog.fetchedAt < CACHE_TTL_MS) {
+    return activeProviderCatalog.keys;
+  }
+  if (activeProviderCatalogRequest) return activeProviderCatalogRequest;
+  activeProviderCatalogRequest = (async () => {
+    try {
+      const apiKey = process.env.ODDS_API_KEY;
+      if (!apiKey) throw new Error("ODDS_API_KEY secret is not set");
+      // The sports catalog is a zero-credit provider request.
+      const response = await fetch(`https://api.the-odds-api.com/v4/sports/?apiKey=${apiKey}`, {
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (!response.ok) throw new Error(`Odds API sports catalog ${response.status}`);
+      const rows: unknown = await response.json();
+      if (!Array.isArray(rows)) throw new Error("Odds API sports catalog is not an array");
+      const keys = new Set<string>(rows.flatMap((row) =>
+        row && typeof row.key === "string" && row.active === true ? [row.key] : []));
+      activeProviderCatalog = { keys, fetchedAt: Date.now() };
+      return keys;
+    } catch {
+      // Cache catalog failures too: a missing feed must not trigger one
+      // catalog request per unmatched game in a large slate.
+      activeProviderCatalog = { keys: null, fetchedAt: Date.now() };
+      logger.warn("OddsAPI: active sports catalog unavailable");
+      return null;
+    } finally {
+      activeProviderCatalogRequest = undefined;
+    }
+  })();
+  return activeProviderCatalogRequest;
+}
+
+async function lookupProviderGame(
+  oddsApiKey: string,
+  homeTeamName: string,
+  awayTeamName: string,
+  commenceTimeISO?: string,
+): Promise<OddsLookupResult> {
+  const gamesMap = await fetchOddsForProviderKey(oddsApiKey);
+  const key = matchKey(homeTeamName, awayTeamName);
+  const cached = cache.get(oddsApiKey);
   const providerCommenceTimes = cached && isActionableOddsCache(cached.fetchedAt)
     ? cached.providerCommenceTimes.get(key)
     : undefined;
   const lookup = resolveOddsLookup(gamesMap.get(key), commenceTimeISO, Date.now(), providerCommenceTimes);
-  const failedAt = oddsApiKey ? failedFetchAt.get(oddsApiKey) : undefined;
+  const failedAt = failedFetchAt.get(oddsApiKey);
   return failedAt != null && Date.now() - failedAt < CACHE_TTL_MS
     ? { ...lookup, providerUnavailable: true }
     : lookup;

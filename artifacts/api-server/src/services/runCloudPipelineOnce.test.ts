@@ -664,6 +664,30 @@ describe("cloud pipeline shadow analytics snapshot capture", () => {
     expect(report.results["marketAnalyticsEvidence"]).toMatchObject({ status: "FAILED" });
   });
 
+  it("visits all thirteen provider groups within four scheduled cycles without increasing the request budget", async () => {
+    const games = Array.from({ length: 13 }, (_, index) =>
+      persistedGame(`soccer-${index}`, "Soccer", `league-${index}`));
+    const input = providerOnlyInput(games);
+    const attempted = new Set<string>();
+    for (let cycle = 0; cycle < 4; cycle++) {
+      const getOdds = vi.fn().mockImplementation(async (_sport, league) => {
+        attempted.add(league);
+        return { odds: null, marketBlockedByProviderStart: false };
+      });
+      const summary = await captureMarketAnalyticsEvidence(cycleStartedAt, {
+        loadPersistedAnalyticsEvidence: vi.fn().mockResolvedValue(input),
+        capture: vi.fn(),
+        getOdds,
+        resolveProviderKey: (_sport, league) => league!,
+        now: () => new Date(now.getTime() + cycle * 15 * 60 * 1000),
+        monotonicNow: () => 0,
+      });
+      expect(summary.providerGroupsAttempted).toBe(4);
+      expect(summary.hasOperationalFailures).toBe(false);
+    }
+    expect(attempted.size).toBe(13);
+  });
+
   it("reports provider lookup exceptions and unsupported provider keys as failures", async () => {
     const input = providerOnlyInput([
       persistedGame("mlb-provider-error", "MLB"),

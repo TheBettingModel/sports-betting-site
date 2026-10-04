@@ -36,10 +36,17 @@ describe("market snapshot capture", () => {
   it("does not persist stale provider quotes as current market evidence", () => {
     const rows = buildMoneylineSnapshotRows("NBA", [
       { book: "pinnacle", homeOdds: -110, awayOdds: -110, lastUpdate: "2026-09-16T12:59:59.999Z" },
-      { book: "fanduel", homeOdds: -108, awayOdds: -112 },
+      { book: "fanduel", homeOdds: -108, awayOdds: -112, lastUpdate: now.toISOString() },
     ], now);
 
     expect(rows).toHaveLength(2);
     expect(rows.every((row) => row.sportsbook === "fanduel")).toBe(true);
+  });
+
+  it("never uses polling time to create observations when the provider timestamp is missing", () => {
+    expect(buildMoneylineSnapshotRows("WNBA", [
+      { book: "pinnacle", homeOdds: -110, awayOdds: -110 },
+      { book: "draftkings", homeOdds: -110, awayOdds: -110, lastUpdate: "invalid" },
+    ], now)).toEqual([]);
   });
 });

@@ -482,7 +482,8 @@ export async function captureMarketAnalyticsEvidence(
   const unsupportedProviderGroups = [...providerGroups.entries()]
     .filter(([, group]) => group.providerKey == null);
   const rotationOffset = supportedProviderGroups.length > 0
-    ? Math.floor(now.getTime() / PROVIDER_GROUP_ROTATION_MS) % supportedProviderGroups.length
+    ? (Math.floor(now.getTime() / PROVIDER_GROUP_ROTATION_MS) * MAX_ANALYTICS_PROVIDER_GROUPS_PER_RUN)
+      % supportedProviderGroups.length
     : 0;
   const rotatedProviderGroups = [
     ...supportedProviderGroups.slice(rotationOffset),

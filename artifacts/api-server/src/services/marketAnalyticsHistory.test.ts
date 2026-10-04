@@ -101,6 +101,23 @@ describe("retainComparableHistory", () => {
 });
 
 describe("buildMarketAnalyticsHistories", () => {
+  it.each([true, false])("never combines different provider events into an isSharp=%s history", (isSharp) => {
+    const history = buildMarketAnalyticsHistories([
+      snapshot({ isSharp, providerEventId: "old-event", capturedAt: new Date("2026-09-16T10:00:00Z") }),
+      snapshot({ isSharp, providerEventId: "new-event", capturedAt: new Date("2026-09-16T11:00:00Z"), price: -150 }),
+    ], now).get("game-1")!;
+    const points = isSharp ? history.sharpMoneyHistory : history.marketHistory;
+    expect(points).toHaveLength(1);
+    expect(points[0]!.price).toBe(-150);
+  });
+
+  it("rejects ambiguous provider identities with the same latest observation time", () => {
+    expect(buildMarketAnalyticsHistories([
+      snapshot({ providerEventId: "first-event" }),
+      snapshot({ providerEventId: "conflicting-event", price: -150 }),
+    ], now).size).toBe(0);
+  });
+
   it.each([...ACTIVE_PRODUCT_SPORTS])("preserves real, chronological public/sharp pairs for %s", sport => {
     const rows = [false, true].flatMap(isSharp => [30, 0].map(minute => snapshot({
       gameId: `${sport}-1`, isSharp, sportsbook: isSharp ? "Pinnacle" : "DraftKings",
