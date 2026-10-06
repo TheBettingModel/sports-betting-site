@@ -222,6 +222,7 @@ function normalizedTeamIdentity(value: string): string {
 
 /** These are explicit, one-to-one provider naming aliases, not fuzzy matching. */
 const TEAM_IDENTITY_ALIASES: Readonly<Record<string, string>> = {
+  southernmissgoldeneagles: "southernmississippigoldeneagles",
   olemiss: "mississippirebels",
   uconn: "connecticuthuskies",
   smu: "southernmethodistmustangs",

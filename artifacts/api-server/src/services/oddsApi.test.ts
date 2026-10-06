@@ -18,6 +18,17 @@ import {
   selectPregameGameOdds,
 } from "./oddsApi";
 
+describe("NCAAF school aliases", () => {
+  it("equates Southern Miss and Southern Mississippi without conflating other Mississippi teams", () => {
+    expect(canonicalTeamName("Southern Miss Golden Eagles"))
+      .toBe(canonicalTeamName("Southern Mississippi Golden Eagles"));
+    expect(canonicalTeamName("Southern Miss Golden Eagles"))
+      .not.toBe(canonicalTeamName("Mississippi Rebels"));
+    expect(canonicalTeamName("Southern Miss Golden Eagles"))
+      .not.toBe(canonicalTeamName("Mississippi State Bulldogs"));
+  });
+});
+
 describe("preseason provider routing", () => {
   const now = new Date("2026-10-03T23:00:00Z");
   const start = "2026-10-04T23:00:00Z";

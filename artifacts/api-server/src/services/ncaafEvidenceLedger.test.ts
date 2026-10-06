@@ -265,6 +265,27 @@ describe("NCAAF evidence ledger helpers", () => {
     })).resolves.toMatchObject({ runId: 77, games: 0, providerErrors: {} });
   });
 
+  it("matches Southern Miss to the provider's full school name without weakening identity guards", () => {
+    const game = {
+      espnId: "NCAAF-401871090", homeTeamName: "Troy Trojans",
+      awayTeamName: "Southern Miss Golden Eagles", commenceTimeISO: "2026-10-07T00:00:00Z",
+    } as FetchedGame;
+    const market = {
+      home_team: "Troy Trojans", away_team: "Southern Mississippi Golden Eagles",
+      commence_time: "2026-10-07T00:00:00Z",
+    };
+    expect(matchNcaafMarketIdentity(market, [game])).toMatchObject({ game, status: "matched_alias" });
+    expect(matchNcaafMarketIdentity(market, [{ ...game, homeTeamName: "Alabama Crimson Tide" }]))
+      .toMatchObject({ game: null, status: "unmatched_identity" });
+    expect(matchNcaafMarketIdentity(market, [{
+      ...game, homeTeamName: game.awayTeamName, awayTeamName: game.homeTeamName,
+    }])).toMatchObject({ game: null, status: "unmatched_identity" });
+    expect(matchNcaafMarketIdentity({ ...market, commence_time: "2026-10-08T00:00:00Z" }, [game]))
+      .toMatchObject({ game: null, status: "unmatched_kickoff" });
+    expect(matchNcaafMarketIdentity(market, [game, { ...game, espnId: "another-game" }]))
+      .toMatchObject({ game: null, status: "unmatched_ambiguous" });
+  });
+
   it("only links exact or known unambiguous market identities", () => {
     const game = {
       espnId: "1", homeTeamName: "Mississippi Rebels", awayTeamName: "Alabama Crimson Tide",

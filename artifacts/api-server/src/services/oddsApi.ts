@@ -160,6 +160,7 @@ function probToAmerican(prob: number): number {
  * Lowercases, strips accents/punctuation, and resolves known provider aliases.
  */
 const TEAM_NAME_ALIASES: Record<string, string> = {
+  "southern miss golden eagles": "southern mississippi golden eagles",
   "athletic club": "athletic bilbao",
   "deportivo": "deportivo la coruna",
   "racing santander": "real racing club de santander",

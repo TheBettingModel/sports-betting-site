@@ -380,6 +380,49 @@ describe("cloud pipeline shadow analytics snapshot capture", () => {
     expect(summary.persistedUpcomingGames).toBe(0);
   });
 
+  it("preserves genuine book timestamps when capturing the matched Southern Miss–Troy event", async () => {
+    const input = upcomingInput(["NCAAF-401871090"]);
+    const captureNow = new Date("2026-10-06T19:40:00Z");
+    const providerTime = "2026-10-06T19:37:46Z";
+    const kickoff = "2026-10-07T00:00:00Z";
+    Object.assign(input.games[0]!, {
+      homeTeamName: "Troy Trojans", awayTeamName: "Southern Miss Golden Eagles",
+      eventStart: new Date(kickoff),
+    });
+    input.evidence[0]!.providerEventId = "57ad14afc7db1843fd56f5971dadb058";
+    input.evidence[0]!.payload = {
+      event: {
+        id: "57ad14afc7db1843fd56f5971dadb058",
+        home_team: "Troy Trojans", away_team: "Southern Mississippi Golden Eagles",
+        commence_time: kickoff,
+        bookmakers: ["pinnacle", "betonlineag"].map((key) => ({
+          key, last_update: providerTime, markets: [{
+            key: "h2h", outcomes: [
+              { name: "Troy Trojans", price: -397 },
+              { name: "Southern Mississippi Golden Eagles", price: 320 },
+            ],
+          }],
+        })),
+      },
+    };
+    mocks.capture.mockResolvedValue(4);
+    const summary = await captureMarketAnalyticsEvidence(captureNow, {
+      ...captureDependencies(input), now: () => captureNow,
+    });
+    expect(summary.providerEventsMatched).toBe(1);
+    expect(summary.snapshotsWritten).toBe(4);
+    expect(mocks.capture).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: "NCAAF-401871090", eventStart: new Date(kickoff).toISOString(),
+      odds: expect.objectContaining({
+        providerEventId: "57ad14afc7db1843fd56f5971dadb058",
+        bookmakerOdds: ["pinnacle", "betonlineag"].map((book) => ({
+          book, lastUpdate: providerTime, homeOdds: -397, awayOdds: 320,
+        })),
+      }),
+    }));
+    expect(mocks.getOdds).not.toHaveBeenCalled();
+  });
+
   it("reuses the current NCAAF evidence event for a persisted game snapshot", async () => {
     const dependencies = captureDependencies(upcomingInput());
     mocks.capture.mockResolvedValue(2);
