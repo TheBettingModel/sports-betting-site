@@ -161,6 +161,8 @@ function probToAmerican(prob: number): number {
  */
 const TEAM_NAME_ALIASES: Record<string, string> = {
   "southern miss golden eagles": "southern mississippi golden eagles",
+  // ESPN dropped "State"; provider opponent and kickoff checks still apply.
+  "sam houston state bearkats": "sam houston bearkats",
   "athletic club": "athletic bilbao",
   "deportivo": "deportivo la coruna",
   "racing santander": "real racing club de santander",
