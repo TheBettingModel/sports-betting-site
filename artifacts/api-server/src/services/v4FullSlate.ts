@@ -216,7 +216,9 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
   const dbSport = sport === "SOCCER" ? "Soccer" : sport === "NCAAMB" ? "NCAAB" : sport;
   const yyyymmdd = sportDate.replaceAll("-", "");
   const providerGames = (await Promise.all(
-    V4_PROVIDER_KEYS[sport].map((providerKey) => fetchSportGamesByDate(providerKey, yyyymmdd)),
+    V4_PROVIDER_KEYS[sport].map((providerKey) => sport === "MLB"
+      ? fetchSportGamesByDate(providerKey, yyyymmdd, { throwOnError: true })
+      : fetchSportGamesByDate(providerKey, yyyymmdd)),
   )).flat().filter((game) => game.gameDate === sportDate);
   const uniqueProviderGames = [...new Map(providerGames.map((game) => [game.espnId, game])).values()];
   if (uniqueProviderGames.length) {
@@ -278,6 +280,9 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
   const providerById = new Map(uniqueProviderGames.map((game) => [game.espnId, game]));
   return rows.flatMap((row) => {
     const provider = providerById.get(row.gameId);
+    // MLB's current date-specific schedule owns slate membership, not retained
+    // historical rows. Never delete those rows or their immutable forecasts.
+    if (sport === "MLB" && !provider) return [];
     const event = classifyDiscoveredEvent({
       ...row,
       eventStart: row.eventStart ?? (provider ? new Date(provider.commenceTimeISO) : null),
