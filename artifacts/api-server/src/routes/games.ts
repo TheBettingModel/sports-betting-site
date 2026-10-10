@@ -41,7 +41,7 @@ import { runGrading, syncGameResults, recoverStaleGames } from "../services/grad
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
-import { buildMarketAnalyticsHistories } from "../services/marketAnalyticsHistory";
+import { loadMarketAnalyticsHistories, MarketAnalyticsBusyError } from "../services/marketAnalyticsQuery";
 import { createNcaafFeatureSnapshot } from "../services/ncaafFeatures";
 import { ncaafSeasonForDate } from "../services/ncaafEvidenceLedger";
 import {
@@ -290,46 +290,15 @@ router.get("/games/market-analytics", resolveSubscriberStatus, rejectInvalidToke
   }
 
   const now = new Date();
-  const rows = await db.select({
-    gameId: oddsSnapshotsTable.gameId,
-    selection: oddsSnapshotsTable.selection,
-    price: oddsSnapshotsTable.price,
-    capturedAt: oddsSnapshotsTable.capturedAt,
-    sportsbook: sportsbooksTable.name,
-    sportsbookKey: sportsbooksTable.slug,
-    isSharp: sportsbooksTable.isSharp,
-    source: oddsSnapshotsTable.source,
-    providerEventId: oddsSnapshotsTable.providerEventId,
-    marketStatus: oddsSnapshotsTable.marketStatus,
-    isAvailable: oddsSnapshotsTable.isAvailable,
-    isStale: oddsSnapshotsTable.isStale,
-    isActive: sportsbooksTable.isActive,
-    startsAt: gamesTable.startsAt,
-  })
-    .from(oddsSnapshotsTable)
-    .innerJoin(marketsTable, eq(oddsSnapshotsTable.marketId, marketsTable.id))
-    .innerJoin(gamesTable, eq(oddsSnapshotsTable.gameId, gamesTable.id))
-    .innerJoin(sportsbooksTable, eq(oddsSnapshotsTable.sportsbookId, sportsbooksTable.id))
-    .where(and(
-      inArray(oddsSnapshotsTable.gameId, gameIds),
-      eq(marketsTable.slug, "moneyline"),
-      eq(oddsSnapshotsTable.source, "odds-api"),
-      isNotNull(oddsSnapshotsTable.providerEventId),
-      eq(oddsSnapshotsTable.isAvailable, true),
-      eq(oddsSnapshotsTable.isStale, false),
-      eq(oddsSnapshotsTable.marketStatus, "open"),
-      eq(sportsbooksTable.isActive, true),
-      isNotNull(gamesTable.startsAt),
-      lte(oddsSnapshotsTable.capturedAt, now),
-      lt(oddsSnapshotsTable.capturedAt, gamesTable.startsAt),
-      or(
-        and(gte(oddsSnapshotsTable.price, 100), lte(oddsSnapshotsTable.price, 2000)),
-        and(lte(oddsSnapshotsTable.price, -100), gte(oddsSnapshotsTable.price, -2000)),
-      ),
-    ))
-    .orderBy(asc(oddsSnapshotsTable.capturedAt));
-
-  const histories = buildMarketAnalyticsHistories(rows, now);
+  let histories: Awaited<ReturnType<typeof loadMarketAnalyticsHistories>>;
+  try {
+    histories = await loadMarketAnalyticsHistories(date, now);
+  } catch (error) {
+    if (!(error instanceof MarketAnalyticsBusyError)) throw error;
+    res.set("Retry-After", "2");
+    res.status(503).json({ message: error.message });
+    return;
+  }
 
   res.json({
     date,
