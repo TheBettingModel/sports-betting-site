@@ -3,7 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { generalLimiter } from "./middleware/rateLimiter";
+import { apiLimiter } from "./middleware/rateLimiter";
 import { bootstrapTask241V4Engines } from "./services/v4EngineBootstrap241";
 
 const app: Express = express();
@@ -82,7 +82,7 @@ app.use("/api", (req, res, next) => {
 });
 
 // Rate limiting — applied before routing so all /api endpoints are covered
-app.use("/api", generalLimiter);
+app.use("/api", apiLimiter);
 app.use("/api", router);
 
 export default app;

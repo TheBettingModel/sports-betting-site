@@ -1,17 +1,38 @@
 import rateLimit from "express-rate-limit";
+import type { RequestHandler } from "express";
 
 /**
  * General API rate limit — applied to all /api routes.
- * Generous enough for normal use; stops runaway scrapers and retry storms.
+ * A board fans out across sports and refreshes on resume. A short window
+ * permits normal browsing without a fifteen-minute lockout after a burst.
  */
 export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  windowMs: 60 * 1000,
+  max: 120,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many requests — please slow down and try again later." },
   skip: (req) => req.method === "OPTIONS",
 });
+
+/**
+ * Access verification must not share the board's request budget. This only
+ * isolates transport throttling: the route still verifies identity and the
+ * server-owned subscription before granting access.
+ */
+export const subscriptionStatusLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many access checks — please wait a moment and try again." },
+});
+
+export const apiLimiter: RequestHandler = (req, res, next) => {
+  const isSubscriptionStatus = req.method === "GET"
+    && /^\/subscriptions\/status\/?$/i.test(req.path);
+  return (isSubscriptionStatus ? subscriptionStatusLimiter : generalLimiter)(req, res, next);
+};
 
 /**
  * Strict limit for admin routes — brute-forcing a master key should be
