@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { and, asc, eq, gt, isNotNull, lt } from "drizzle-orm";
-import { db, gamesTable } from "@workspace/db";
+import { db, gamesTable, gameResultsTable } from "@workspace/db";
 import {
   stableHash,
   validateCanonicalV4Forecast,
@@ -10,6 +10,8 @@ import {
   type V4EvidenceEnvelope,
 } from "./v4Platform";
 import { fetchSportGamesByDate } from "./espn";
+import { requireNflV4History } from "./nflV4HistorySafety";
+import { selectNflRegularSeasonHistory } from "./nflHistoricalSeasonPolicy";
 
 export const NFL_V4_CONTRACT_ID = "nfl-v4-core-elo-score-1";
 export const NFL_V4_FEATURES = Object.freeze([
@@ -547,27 +549,51 @@ export function createNflV4Engine(artifact: NflV4Artifact): SportEngineV4<Record
       const history = await db.select({
         id: gamesTable.id, homeTeamId: gamesTable.homeTeamId, awayTeamId: gamesTable.awayTeamId,
         startsAt: gamesTable.startsAt, homeScore: gamesTable.homeScore, awayScore: gamesTable.awayScore,
-      }).from(gamesTable).where(and(
+        resultEvidence: gameResultsTable.rawResultJson,
+      }).from(gamesTable).leftJoin(gameResultsTable, eq(gameResultsTable.gameId, gamesTable.id)).where(and(
         eq(gamesTable.sport, "NFL"), eq(gamesTable.status, "final"),
-        isNotNull(gamesTable.startsAt), isNotNull(gamesTable.homeScore), isNotNull(gamesTable.awayScore),
+        isNotNull(gamesTable.startsAt),
         gt(gamesTable.startsAt, new Date(artifact.historySeed.asOf)), lt(gamesTable.startsAt, startsAt),
       )).orderBy(asc(gamesTable.startsAt));
-      return { event: { ...event, startsAt, homeTeamId, awayTeamId }, history };
+      const classified = selectNflRegularSeasonHistory(history, new Date().toISOString());
+      return { event: { ...event, startsAt, homeTeamId, awayTeamId }, history: classified.history,
+        seasonDecisions: classified.decisions };
     },
     async materializeInput(raw, now) {
       const { event, history } = raw as {
         event: { id: string; homeTeamId: string; awayTeamId: string; startsAt: Date };
         history: Array<{ id: string; homeTeamId: string | null; awayTeamId: string | null;
-          startsAt: Date | null; homeScore: number | null; awayScore: number | null }>;
+          startsAt: Date | null; homeScore: number | null; awayScore: number | null;
+          verifiedEvidenceAvailableAt?: string }>;
       };
+      if (!Number.isFinite(now.getTime()) || !Number.isFinite(event.startsAt.getTime())) {
+        throw new Error("NFL_HISTORY_CONTEXT_INVALID");
+      }
       if (now >= event.startsAt) throw new Error("EVENT_ALREADY_STARTED");
+      // This legacy availability estimate is NOT independently verified completion.
+      // Use the same availability rule for selection and replay, before score checks.
+      const historyAvailableAt = (game: typeof history[number]) => {
+        const legacyBound = game.startsAt!.getTime() + 12 * 60 * 60 * 1000;
+        const verifiedBound = game.verifiedEvidenceAvailableAt === undefined ? legacyBound
+          : Date.parse(game.verifiedEvidenceAvailableAt);
+        if (!Number.isFinite(verifiedBound)) throw new Error("NFL_HISTORY_AVAILABILITY_INVALID");
+        return new Date(Math.max(legacyBound, verifiedBound));
+      };
+      const eligibleHistory = history.filter(game => {
+        // Unknown kickoff cannot establish irrelevance: retain it for rejection.
+        if (!game || !(game.startsAt instanceof Date) || !Number.isFinite(game.startsAt.getTime())) return true;
+        if (game.startsAt.getTime() <= Date.parse(artifact.historySeed.asOf)) return false;
+        const availableAt = historyAvailableAt(game);
+        return availableAt < event.startsAt && availableAt <= now;
+      });
+      const replayHistory = requireNflV4History(eligibleHistory, artifact.historySeed.asOf, event.startsAt);
       const states = new Map<string, TeamState>(Object.entries(artifact.historySeed.teams)
         .map(([team, state]) => [team, { ...state, evidenceTimes: [...state.evidenceTimes] }]));
       let season = artifact.historySeed.season;
-      for (const game of history) {
+      for (const game of replayHistory) {
         if (!game.homeTeamId || !game.awayTeamId || !game.startsAt
           || game.homeScore == null || game.awayScore == null) continue;
-        const completedAt = new Date(game.startsAt.getTime() + 12 * 60 * 60 * 1000);
+        const completedAt = historyAvailableAt(game);
         if (completedAt >= event.startsAt) continue;
         season = applySeasonTransitions(states, season, nflSeason(game.startsAt), artifact);
         applyGame(states, {

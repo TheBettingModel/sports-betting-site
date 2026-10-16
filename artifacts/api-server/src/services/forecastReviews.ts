@@ -10,6 +10,7 @@ import {
   db,
   forecastReviewsTable,
   gameResultsTable,
+  gamesTable,
   modelPredictionsTable,
   publishedPicksTable,
 } from "@workspace/db";
@@ -337,11 +338,13 @@ export async function runForecastReviews(): Promise<{
       featureSnapshot: modelPredictionsTable.featureSnapshot,
       predictionTimestamp: modelPredictionsTable.predictionTimestamp,
       isChallenger: modelPredictionsTable.isChallenger,
+      gameStartsAt: gamesTable.startsAt,
       homeScore: gameResultsTable.homeScore,
       awayScore: gameResultsTable.awayScore,
     })
     .from(modelPredictionsTable)
     .innerJoin(gameResultsTable, eq(gameResultsTable.gameId, modelPredictionsTable.gameId))
+    .leftJoin(gamesTable, eq(gamesTable.id, modelPredictionsTable.gameId))
     .leftJoin(forecastReviewsTable, eq(forecastReviewsTable.predictionId, modelPredictionsTable.id))
     .where(and(
       isNull(forecastReviewsTable.id),

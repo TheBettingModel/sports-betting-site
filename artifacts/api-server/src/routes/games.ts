@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import {
-  eq, and, asc, desc, inArray, notInArray, sql, isNotNull, gte, lte, lt, or,
+  eq, ne, and, asc, desc, inArray, notInArray, sql, isNotNull, gte, lte, lt, or,
 } from "drizzle-orm";
 import {
   db, gamesTable, modelPredictionsTable, modelVersionsTable, modelWeightsTable,
@@ -38,6 +38,8 @@ import { resolveProductionPredictionBoundary, shouldRunIncumbentSnapshot } from 
 import { assessMlbDecisionEvidence } from "../services/mlbDecisionEvidence";
 import { createMlbQualificationAudit } from "../services/mlbQualificationAudit";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
+import { persistNflFetchedFinal } from "../services/nflFinalPersistence";
+import { conflictingNflFinalIds } from "../services/nflFinalIngestion";
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
@@ -424,6 +426,7 @@ export async function refreshAll(): Promise<{
   ]);
 
   let upserted = 0;
+  const nflFinalConflicts = conflictingNflFinalIds(fetchedGames);
   const sports = new Set<string>();
 
   for (const game of fetchedGames) {
@@ -689,7 +692,8 @@ export async function refreshAll(): Promise<{
     const pickIsHome = proj.edge >= 0;
     const bestLine = getBestLine(gameOdds ?? null, pickIsHome);
 
-    await db
+    const writeFixture = async (writer: Pick<typeof db, "insert">, pendingNflFinal = false) => {
+      await writer
       .insert(gamesTable)
       .values({
         id: game.espnId,
@@ -709,8 +713,8 @@ export async function refreshAll(): Promise<{
         gameDate: game.gameDate,
         startsAt: new Date(game.commenceTimeISO),
         status: game.status,
-        homeScore: game.homeScore ?? null,
-        awayScore: game.awayScore ?? null,
+        homeScore: pendingNflFinal ? null : game.homeScore ?? null,
+        awayScore: pendingNflFinal ? null : game.awayScore ?? null,
         ...proj,
         mlbDecisionAudit: persistedMlbDecisionAudit,
         // Phase 2: set once — opening odds preserved on conflict (not in set block)
@@ -766,6 +770,9 @@ export async function refreshAll(): Promise<{
       })
       .onConflictDoUpdate({
         target: gamesTable.id,
+        // Only the locked NFL final reconciler may change a stored NFL final.
+        // Prevent a racing stale "live" refresh from reverting a committed final.
+        setWhere: game.sport === "NFL" ? ne(gamesTable.status, "final") : undefined,
         set: {
           league: game.league ?? null,
           homeTeamId: game.homeTeamId ?? null,
@@ -778,8 +785,10 @@ export async function refreshAll(): Promise<{
           status: game.status,
           // Preserve a valid score once captured — ESPN sometimes returns 0 on
           // subsequent refreshes even after a game has finished.
-          homeScore: sql`COALESCE(NULLIF(EXCLUDED.home_score, 0), ${gamesTable.homeScore})`,
-          awayScore: sql`COALESCE(NULLIF(EXCLUDED.away_score, 0), ${gamesTable.awayScore})`,
+          homeScore: pendingNflFinal ? null : game.sport === "NFL" && game.status === "final"
+            ? game.homeScore! : sql`COALESCE(NULLIF(EXCLUDED.home_score, 0), ${gamesTable.homeScore})`,
+          awayScore: pendingNflFinal ? null : game.sport === "NFL" && game.status === "final"
+            ? game.awayScore! : sql`COALESCE(NULLIF(EXCLUDED.away_score, 0), ${gamesTable.awayScore})`,
           homeTeamRecord: game.homeTeamRecord,
           awayTeamRecord: game.awayTeamRecord,
           homeWinPct: proj.homeWinPct,
@@ -859,6 +868,16 @@ export async function refreshAll(): Promise<{
           awayLineupConfirmed: game.sport === "MLB" ? lineupMatchup.away.confirmed : null,
         },
       });
+    };
+    if (game.sport === "NFL" && game.status === "final") {
+      const result = await persistNflFetchedFinal(game, writeFixture, nflFinalConflicts.has(game.espnId));
+      if (result.outcome === "QUARANTINED") {
+        logger.warn({ gameId: game.espnId, reasons: result.reasons }, "NFL final observation quarantined");
+        continue;
+      }
+    } else {
+      await writeFixture(db);
+    }
 
     // Legacy projections remain research/gradeable evidence only after the V4
     // cutover.  They must never be promoted into the official publication

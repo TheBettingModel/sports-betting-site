@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, lt, ne, not } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt, ne, not, sql } from "drizzle-orm";
 import {
   db,
   closingLinesTable,
@@ -19,6 +19,9 @@ import {
   type GradeResult,
 } from "./grading";
 import { fetchSportGamesByDate, SOCCER_SPORT_KEYS } from "./espn";
+import { persistNflFetchedFinal } from "./nflFinalPersistence";
+import { conflictingNflFinalIds } from "./nflFinalIngestion";
+import { classifyNflStoredHistory } from "./nflHistoricalSeasonPolicy";
 import { runAnalytics } from "./analytics";
 import { logger } from "../lib/logger";
 import {
@@ -91,6 +94,14 @@ export async function runGrading(): Promise<number> {
 
   const resultMap = new Map(gameResults.map((r) => [r.gameId, r]));
   if (resultMap.size === 0) return 0; // No completed games yet
+  const nflPickIds = [...new Set(picks.filter(p => p.sport === "NFL").map(p => p.gameId))];
+  const nflGames = nflPickIds.length ? await db.select({
+    id: gamesTable.id, homeTeamId: gamesTable.homeTeamId, awayTeamId: gamesTable.awayTeamId,
+    startsAt: gamesTable.startsAt, homeScore: gamesTable.homeScore, awayScore: gamesTable.awayScore,
+  }).from(gamesTable).where(and(inArray(gamesTable.id, nflPickIds),
+    eq(gamesTable.sport, "NFL"), eq(gamesTable.status, "final"))) : [];
+  const nflGameMap = new Map(nflGames.map(g => [g.id, g]));
+  const nflGradeAsOf = new Date().toISOString();
 
   // 4. Load moneyline market ID for CLV lookups
   const [moneylineMarket] = await db
@@ -107,6 +118,14 @@ export async function runGrading(): Promise<number> {
 
     const gameResult = resultMap.get(pick.gameId);
     if (!gameResult) continue; // Game not final yet
+    if (pick.sport === "NFL") {
+      const game = nflGameMap.get(pick.gameId);
+      if (!game || classifyNflStoredHistory({ ...game, resultEvidence: gameResult.rawResultJson }, nflGradeAsOf)
+        .decision === "QUARANTINED") {
+        logger.warn({ gameId: pick.gameId }, "NFL grading waits for valid final evidence");
+        continue;
+      }
+    }
 
     // ── Grade the pick ────────────────────────────────────────────────────
     let grade: GradeResult = "pending";
@@ -252,13 +271,17 @@ export async function syncGameResults(): Promise<number> {
       sport:     gamesTable.sport,
       homeScore: gamesTable.homeScore,
       awayScore: gamesTable.awayScore,
+      homeTeamId: gamesTable.homeTeamId,
+      awayTeamId: gamesTable.awayTeamId,
+      startsAt: gamesTable.startsAt,
+      gameDate: gamesTable.gameDate,
     })
     .from(gamesTable)
     .where(
       and(
         eq(gamesTable.status, "final"),
-        isNotNull(gamesTable.homeScore),
-        isNotNull(gamesTable.awayScore),
+        // Pending NFL finals deliberately have NULL scores, not invented 0–0s.
+        sql`(${gamesTable.sport} = 'NFL' OR (${gamesTable.homeScore} IS NOT NULL AND ${gamesTable.awayScore} IS NOT NULL))`,
       ),
     );
 
@@ -272,11 +295,42 @@ export async function syncGameResults(): Promise<number> {
     .where(inArray(gameResultsTable.gameId, finalIds));
 
   const existingIds = new Set(existing.map((r) => r.gameId));
+  const now = new Date();
+  const recentNflGames = finalGames.filter(g => g.sport === "NFL" && g.startsAt
+    && g.startsAt.getTime() >= now.getTime() - 14 * 86_400_000);
+  const nflIds = recentNflGames.map(g => g.id);
+  const nflEvidence = nflIds.length ? await db.select({
+    gameId: gameResultsTable.gameId, rawResultJson: gameResultsTable.rawResultJson,
+  }).from(gameResultsTable).where(inArray(gameResultsTable.gameId, nflIds)) : [];
+  const existingEvidence = new Map(nflEvidence.map(r => [r.gameId, r.rawResultJson]));
+  // Retry only recent, known NFL fixtures. No discovery, bulk backfill or new job.
+  // At most 64 fixtures/eight date requests in one existing sync invocation.
+  const nflCandidates = recentNflGames.filter(g =>
+    classifyNflStoredHistory({ ...g, resultEvidence: existingEvidence.get(g.id) }, now.toISOString()).decision === "QUARANTINED")
+    .sort((a, b) => a.gameDate.localeCompare(b.gameDate) || a.id.localeCompare(b.id)).slice(0, 64);
+  let syncedNfl = 0;
+  const allowedIds = new Set(nflCandidates.map(g => g.id));
+  const dates = [...new Set(nflCandidates.map(g => g.gameDate))].slice(0, 8);
+  for (const date of dates) {
+    try {
+      const observations = await fetchSportGamesByDate("NFL", date.replaceAll("-", ""), { throwOnError: true });
+      const conflicts = conflictingNflFinalIds(observations);
+      for (const observation of observations) {
+        if (!allowedIds.has(observation.espnId) || observation.status !== "final") continue;
+        const result = await persistNflFetchedFinal(observation, undefined, conflicts.has(observation.espnId));
+        if (result.outcome === "INSERTED") syncedNfl++;
+        if (result.outcome === "QUARANTINED") logger.warn(
+          { gameId: observation.espnId, reasons: result.reasons }, "NFL sync observation quarantined");
+      }
+    } catch (err) {
+      logger.error({ err, date }, "NFL source evidence unavailable; no games-table fallback used");
+    }
+  }
   const missing = finalGames.filter(
-    (g) => isActiveProductSport(g.sport) && !existingIds.has(g.id),
+    (g) => g.sport !== "NFL" && isActiveProductSport(g.sport) && !existingIds.has(g.id),
   );
 
-  if (missing.length === 0) return 0;
+  if (missing.length === 0) return syncedNfl;
 
   let synced = 0;
   for (const game of missing) {
@@ -299,7 +353,7 @@ export async function syncGameResults(): Promise<number> {
   if (synced > 0) {
     logger.info({ synced }, "syncGameResults: back-filled game_results from games table");
   }
-  return synced;
+  return synced + syncedNfl;
 }
 
 /**
@@ -319,6 +373,7 @@ export async function recoverStaleGames(): Promise<number> {
       sport:   gamesTable.sport,
       gameDate: gamesTable.gameDate,
       status:  gamesTable.status,
+      startsAt: gamesTable.startsAt,
     })
     .from(gamesTable)
     .where(
@@ -326,7 +381,9 @@ export async function recoverStaleGames(): Promise<number> {
         ne(gamesTable.status, "final"),
         lt(gamesTable.gameDate, todayStr),
       ),
-    )).filter((game) => isActiveProductSport(game.sport));
+    )).filter((game) => isActiveProductSport(game.sport)
+      && (game.sport !== "NFL" || (game.startsAt
+        && game.startsAt.getTime() >= Date.now() - 14 * 86_400_000)));
 
   if (staleGames.length === 0) return 0;
 
@@ -343,8 +400,10 @@ export async function recoverStaleGames(): Promise<number> {
 
   const staleIds = new Set(staleGames.map((g) => g.id));
   let recovered = 0;
+  let nflDateRequests = 0;
 
   for (const { sport, gameDate } of pairs.values()) {
+    if (sport === "NFL" && nflDateRequests++ >= 8) continue;
     const yyyymmdd = gameDate.replace(/-/g, "");
 
     // Soccer uses several sport-keys — try all of them and deduplicate
@@ -356,12 +415,19 @@ export async function recoverStaleGames(): Promise<number> {
     const seen = new Set<string>();
     for (const key of sportKeys) {
       const espnGames = await fetchSportGamesByDate(key, yyyymmdd);
+      const nflConflicts = conflictingNflFinalIds(espnGames);
       for (const eg of espnGames) {
         if (seen.has(eg.espnId) || !staleIds.has(eg.espnId)) continue;
         if (eg.status !== "final") continue;
-        if (eg.homeScore === undefined || eg.awayScore === undefined) continue;
-
         seen.add(eg.espnId);
+        if (eg.sport === "NFL") {
+          const result = await persistNflFetchedFinal(eg, undefined, nflConflicts.has(eg.espnId));
+          if (result.outcome === "INSERTED") recovered++;
+          if (result.outcome === "QUARANTINED") logger.warn(
+            { gameId: eg.espnId, reasons: result.reasons }, "NFL recovery observation quarantined");
+          continue;
+        }
+        if (eg.homeScore === undefined || eg.awayScore === undefined) continue;
 
         // Check whether a game_result already exists (idempotent)
         const [existing] = await db

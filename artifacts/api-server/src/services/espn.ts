@@ -8,6 +8,8 @@
 
 import { logger } from "../lib/logger";
 import { isActiveProductSport } from "./sportScope";
+import { captureNflFinalEvent } from "./nflFinalIngestion";
+import { classifyNflSeason } from "./nflHistoricalResultNormalization";
 
 // ── Sport paths ───────────────────────────────────────────────────────────────
 
@@ -148,6 +150,8 @@ interface EspnEvent {
   date: string;
   name: string;
   status: EspnStatus;
+  season?: { year?: number; type?: number; slug?: string };
+  week?: { number?: number };
   competitions: Array<{
     id?: string;         // present for UFC bouts; used as game ID
     date?: string;       // individual bout start time (UFC)
@@ -206,6 +210,8 @@ export interface FetchedGame {
   status: "upcoming" | "live" | "final" | "postponed";
   homeScore?: number;
   awayScore?: number;
+  /** Internal, parsed event capture. Never serialized as a public game field. */
+  nflFinalCapture?: import("./nflFinalIngestion").NflFinalCapture | null;
 
   // Real Vegas odds from ESPN/DraftKings — present only when ESPN returns them
   vegasHomeOdds?: number;   // home moneyline
@@ -401,17 +407,15 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 
     const data = (await resp.json()) as EspnScoreboard;
 
-    // Skip NFL preseason entirely — outcomes are near-random (starters barely
-    // play, coaches hide schemes). ESPN season.type === 1 means preseason.
-    if (sport === "NFL" && data.season?.type === 1) {
-      logger.info({ sportKey, seasonType: data.season.type }, "ESPN: skipping NFL preseason games");
-      return [];
-    }
-
+    const capturedAt = new Date().toISOString();
     const events = data.events ?? [];
     const games: FetchedGame[] = [];
 
     for (const event of events) {
+      // Only event-level metadata may classify an individual NFL fixture.
+      // Completed preseason facts remain recoverable through the dated reader.
+      if (sport === "NFL" && classifyNflSeason(event.season).phase === "PRESEASON"
+        && getStatus(event) !== "final") continue;
       // UFC returns one event (the card) with many competitions (one per bout).
       // All other sports return one event per game with a single competition.
       const competitionsToProcess = sport === "UFC"
@@ -469,6 +473,7 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
 
           homeScore: home.score !== undefined ? parseInt(home.score, 10) : undefined,
           awayScore: away.score !== undefined ? parseInt(away.score, 10) : undefined,
+          ...(sport === "NFL" ? { nflFinalCapture: captureNflFinalEvent(event, url, capturedAt) } : {}),
 
           // Real Vegas odds — undefined when ESPN doesn't provide them
           vegasHomeOdds: homeOdds ?? undefined,
@@ -527,6 +532,7 @@ export async function fetchSportGamesByDate(
     });
 
     const data = (await resp.json()) as EspnScoreboard;
+    const capturedAt = new Date().toISOString();
     const events = data.events ?? [];
     const games: FetchedGame[] = [];
 
@@ -580,6 +586,7 @@ export async function fetchSportGamesByDate(
           status:           getStatus(event),
           homeScore:        home.score !== undefined ? parseInt(home.score, 10) : undefined,
           awayScore:        away.score !== undefined ? parseInt(away.score, 10) : undefined,
+          ...(sport === "NFL" ? { nflFinalCapture: captureNflFinalEvent(event, url, capturedAt) } : {}),
           vegasHomeOdds:    homeOdds ?? undefined,
           vegasAwayOdds:    awayOdds ?? undefined,
           vegasDrawOdds:    drawOdds ?? undefined,

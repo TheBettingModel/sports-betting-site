@@ -31,7 +31,8 @@ async function getRevenueCatClient() {
 
   return createClient({
     baseUrl: "https://api.revenuecat.com/v2",
-    fetch: async (request: Request) => {
+    fetch: async (input, init) => {
+      const request = input instanceof Request && init === undefined ? input : new Request(input, init);
       const url = new URL(request.url);
       const path = url.pathname + url.search;
 
