@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, lt, ne, sql } from "drizzle-orm";
 import {
   db,
   gamesTable,
@@ -16,6 +16,8 @@ import {
 } from "./v4Platform";
 import { fetchSportGamesByDate } from "./espn";
 import { persistOfficialV4Forecasts, reconcileOfficialV4Day } from "./v4OfficialPersistence";
+import { persistNcaafFetchedFinal } from "./ncaafFinalPersistence";
+import { conflictingNcaafFinalIds } from "./ncaafFinalIngestion";
 
 export type FullSlateMode = "DRY_RUN" | "SHADOW" | "PRODUCTION";
 export type ForecastFailureReason =
@@ -221,8 +223,11 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
       : fetchSportGamesByDate(providerKey, yyyymmdd)),
   )).flat().filter((game) => game.gameDate === sportDate);
   const uniqueProviderGames = [...new Map(providerGames.map((game) => [game.espnId, game])).values()];
-  if (uniqueProviderGames.length) {
-    await db.insert(gamesTable).values(uniqueProviderGames.map((game) => ({
+  const writeFixtures = async (
+    writer: Pick<typeof db, "insert">, fixtures: typeof uniqueProviderGames, pending = false,
+  ) => {
+    if (!fixtures.length) return;
+    await writer.insert(gamesTable).values(fixtures.map((game) => ({
       id: game.espnId,
       sport: game.sport,
       league: game.league ?? null,
@@ -240,10 +245,12 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
       gameDate: game.gameDate,
       startsAt: new Date(game.commenceTimeISO),
       status: game.status,
-      homeScore: game.homeScore ?? null,
-      awayScore: game.awayScore ?? null,
+      homeScore: pending ? null : game.homeScore ?? null,
+      awayScore: pending ? null : game.awayScore ?? null,
     }))).onConflictDoUpdate({
       target: gamesTable.id,
+      // A stale fixture discovery must not undo an atomic NCAA final.
+      setWhere: sport === "NCAAF" ? ne(gamesTable.status, "final") : undefined,
       set: {
         sport: sql`excluded.sport`,
         league: sql`excluded.league`,
@@ -264,6 +271,15 @@ export async function discoverV4Slate(sport: TbmV4Sport, sportDate: string): Pro
         updatedAt: new Date(),
       },
     });
+  };
+  const ncaaFinals = providerGames.filter(game => game.sport === "NCAAF" && game.status === "final");
+  // Inspect the original observations before identity deduplication.
+  const ncaaConflicts = conflictingNcaafFinalIds(ncaaFinals);
+  await writeFixtures(db, uniqueProviderGames.filter(game => game.sport !== "NCAAF" || game.status !== "final"));
+  for (const game of uniqueProviderGames.filter(game => game.sport === "NCAAF" && game.status === "final")) {
+    await persistNcaafFetchedFinal(game, async (tx, pending) => {
+      await writeFixtures(tx, [game], pending);
+    }, ncaaConflicts.has(game.espnId));
   }
   const rows = await db.select({
     gameId: gamesTable.id,

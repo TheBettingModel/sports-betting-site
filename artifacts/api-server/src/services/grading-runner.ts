@@ -29,6 +29,8 @@ import {
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
 import { isPerformanceEligiblePublishedPickSql } from "./legacyNcaafIntegrity";
+import { persistNcaafFetchedFinal } from "./ncaafFinalPersistence";
+import { conflictingNcaafFinalIds } from "./ncaafFinalIngestion";
 import { ACTIVE_PRODUCT_SPORTS, isActiveProductSport } from "./sportScope";
 
 /**
@@ -281,7 +283,7 @@ export async function syncGameResults(): Promise<number> {
       and(
         eq(gamesTable.status, "final"),
         // Pending NFL finals deliberately have NULL scores, not invented 0–0s.
-        sql`(${gamesTable.sport} = 'NFL' OR (${gamesTable.homeScore} IS NOT NULL AND ${gamesTable.awayScore} IS NOT NULL))`,
+        sql`(${gamesTable.sport} IN ('NFL', 'NCAAF') OR (${gamesTable.homeScore} IS NOT NULL AND ${gamesTable.awayScore} IS NOT NULL))`,
       ),
     );
 
@@ -326,11 +328,44 @@ export async function syncGameResults(): Promise<number> {
       logger.error({ err, date }, "NFL source evidence unavailable; no games-table fallback used");
     }
   }
+  // NCAA has an independent writer and evidence policy. Never synthesize its
+  // game_results from possibly stale games scores. No new scheduler job.
+  let syncedNcaa = 0;
+  const recentNcaa = finalGames.filter(g => g.sport === "NCAAF" && g.startsAt
+    && g.startsAt.getTime() >= now.getTime() - 14 * 86_400_000 && g.startsAt <= now);
+  const recentNcaaIds = recentNcaa.map(g => g.id);
+  const ncaaResults = recentNcaaIds.length ? await db.select({
+    gameId: gameResultsTable.gameId, homeScore: gameResultsTable.homeScore, awayScore: gameResultsTable.awayScore,
+    proofVersion: sql<string | null>`${gameResultsTable.rawResultJson}->'tbmNcaafIntegrity'->>'schemaVersion'`,
+  }).from(gameResultsTable).where(inArray(gameResultsTable.gameId, recentNcaaIds)) : [];
+  const ncaaResultMap = new Map(ncaaResults.map(r => [r.gameId, r]));
+  const ncaaCandidates = recentNcaa.filter(g => {
+    const r = ncaaResultMap.get(g.id);
+    return !r || r.proofVersion !== "ncaaf-final-integrity-v1"
+      || g.homeScore !== r.homeScore || g.awayScore !== r.awayScore;
+  }).sort((a, b) => Number(ncaaResultMap.has(a.id)) - Number(ncaaResultMap.has(b.id))
+    || a.gameDate.localeCompare(b.gameDate) || a.id.localeCompare(b.id)).slice(0, 64);
+  const ncaaIds = new Set(ncaaCandidates.map(g => g.id));
+  for (const date of [...new Set(ncaaCandidates.map(g => g.gameDate))].slice(0, 8)) {
+    try {
+      const observations = await fetchSportGamesByDate("NCAAF", date.replaceAll("-", ""), { throwOnError: true });
+      const conflicts = conflictingNcaafFinalIds(observations.filter(g => g.status === "final"));
+      for (const observation of observations) {
+        if (!ncaaIds.has(observation.espnId) || observation.status !== "final") continue;
+        const result = await persistNcaafFetchedFinal(observation, undefined, conflicts.has(observation.espnId));
+        if (result.outcome === "INSERTED") syncedNcaa++;
+        if (result.outcome === "QUARANTINED") logger.warn(
+          { gameId: observation.espnId, reasons: result.reasons }, "NCAA sync evidence quarantined");
+      }
+    } catch (err) {
+      logger.error({ err, date }, "NCAA evidence unavailable; no games-table fallback used");
+    }
+  }
   const missing = finalGames.filter(
     (g) => g.sport !== "NFL" && isActiveProductSport(g.sport) && !existingIds.has(g.id),
-  );
+  ).filter(g => g.sport !== "NCAAF");
 
-  if (missing.length === 0) return syncedNfl;
+  if (missing.length === 0) return syncedNfl + syncedNcaa;
 
   let synced = 0;
   for (const game of missing) {
@@ -353,7 +388,7 @@ export async function syncGameResults(): Promise<number> {
   if (synced > 0) {
     logger.info({ synced }, "syncGameResults: back-filled game_results from games table");
   }
-  return synced + syncedNfl;
+  return synced + syncedNfl + syncedNcaa;
 }
 
 /**
@@ -401,9 +436,11 @@ export async function recoverStaleGames(): Promise<number> {
   const staleIds = new Set(staleGames.map((g) => g.id));
   let recovered = 0;
   let nflDateRequests = 0;
+  let ncaaDateRequests = 0;
 
   for (const { sport, gameDate } of pairs.values()) {
     if (sport === "NFL" && nflDateRequests++ >= 8) continue;
+    if (sport === "NCAAF" && ncaaDateRequests++ >= 8) continue;
     const yyyymmdd = gameDate.replace(/-/g, "");
 
     // Soccer uses several sport-keys — try all of them and deduplicate
@@ -415,6 +452,7 @@ export async function recoverStaleGames(): Promise<number> {
     const seen = new Set<string>();
     for (const key of sportKeys) {
       const espnGames = await fetchSportGamesByDate(key, yyyymmdd);
+      const ncaaConflicts = conflictingNcaafFinalIds(espnGames.filter(g => g.status === "final"));
       const nflConflicts = conflictingNflFinalIds(espnGames);
       for (const eg of espnGames) {
         if (seen.has(eg.espnId) || !staleIds.has(eg.espnId)) continue;
@@ -425,6 +463,13 @@ export async function recoverStaleGames(): Promise<number> {
           if (result.outcome === "INSERTED") recovered++;
           if (result.outcome === "QUARANTINED") logger.warn(
             { gameId: eg.espnId, reasons: result.reasons }, "NFL recovery observation quarantined");
+          continue;
+        }
+        if (eg.sport === "NCAAF") {
+          const result = await persistNcaafFetchedFinal(eg, undefined, ncaaConflicts.has(eg.espnId));
+          if (result.outcome === "INSERTED" || result.outcome === "UPDATED") recovered++;
+          if (result.outcome === "QUARANTINED") logger.warn(
+            { gameId: eg.espnId, reasons: result.reasons }, "NCAA recovery evidence quarantined");
           continue;
         }
         if (eg.homeScore === undefined || eg.awayScore === undefined) continue;

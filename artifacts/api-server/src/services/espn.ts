@@ -9,6 +9,7 @@
 import { logger } from "../lib/logger";
 import { isActiveProductSport } from "./sportScope";
 import { captureNflFinalEvent } from "./nflFinalIngestion";
+import { captureNcaafSource } from "./ncaafHistoricalIntegrity";
 import { classifyNflSeason } from "./nflHistoricalResultNormalization";
 
 // ── Sport paths ───────────────────────────────────────────────────────────────
@@ -212,6 +213,8 @@ export interface FetchedGame {
   awayScore?: number;
   /** Internal, parsed event capture. Never serialized as a public game field. */
   nflFinalCapture?: import("./nflFinalIngestion").NflFinalCapture | null;
+  /** Internal NCAA evidence only; not a public API field. */
+  ncaafFinalCapture?: import("./ncaafHistoricalIntegrity").NcaafSourceCapture | null;
 
   // Real Vegas odds from ESPN/DraftKings — present only when ESPN returns them
   vegasHomeOdds?: number;   // home moneyline
@@ -474,6 +477,8 @@ async function fetchSportGames(sportKey: string): Promise<FetchedGame[]> {
           homeScore: home.score !== undefined ? parseInt(home.score, 10) : undefined,
           awayScore: away.score !== undefined ? parseInt(away.score, 10) : undefined,
           ...(sport === "NFL" ? { nflFinalCapture: captureNflFinalEvent(event, url, capturedAt) } : {}),
+          ...(sport === "NCAAF" && getStatus(event) === "final"
+            ? { ncaafFinalCapture: captureNcaafSource("ESPN", event, url, capturedAt) } : {}),
 
           // Real Vegas odds — undefined when ESPN doesn't provide them
           vegasHomeOdds: homeOdds ?? undefined,
@@ -587,6 +592,8 @@ export async function fetchSportGamesByDate(
           homeScore:        home.score !== undefined ? parseInt(home.score, 10) : undefined,
           awayScore:        away.score !== undefined ? parseInt(away.score, 10) : undefined,
           ...(sport === "NFL" ? { nflFinalCapture: captureNflFinalEvent(event, url, capturedAt) } : {}),
+          ...(sport === "NCAAF" && getStatus(event) === "final"
+            ? { ncaafFinalCapture: captureNcaafSource("ESPN", event, url, capturedAt) } : {}),
           vegasHomeOdds:    homeOdds ?? undefined,
           vegasAwayOdds:    awayOdds ?? undefined,
           vegasDrawOdds:    drawOdds ?? undefined,

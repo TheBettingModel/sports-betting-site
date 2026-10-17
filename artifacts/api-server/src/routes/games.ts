@@ -40,6 +40,8 @@ import { createMlbQualificationAudit } from "../services/mlbQualificationAudit";
 import { runGrading, syncGameResults, recoverStaleGames } from "../services/grading-runner";
 import { persistNflFetchedFinal } from "../services/nflFinalPersistence";
 import { conflictingNflFinalIds } from "../services/nflFinalIngestion";
+import { persistNcaafFetchedFinal } from "../services/ncaafFinalPersistence";
+import { conflictingNcaafFinalIds } from "../services/ncaafFinalIngestion";
 import { runForecastReviews } from "../services/forecastReviews";
 import { logger } from "../lib/logger";
 import { resolveSubscriberStatus, rejectInvalidToken } from "../middleware/requireSubscriber";
@@ -427,6 +429,7 @@ export async function refreshAll(): Promise<{
 
   let upserted = 0;
   const nflFinalConflicts = conflictingNflFinalIds(fetchedGames);
+  const ncaafFinalConflicts = conflictingNcaafFinalIds(fetchedGames.filter(g => g.status === "final"));
   const sports = new Set<string>();
 
   for (const game of fetchedGames) {
@@ -772,7 +775,8 @@ export async function refreshAll(): Promise<{
         target: gamesTable.id,
         // Only the locked NFL final reconciler may change a stored NFL final.
         // Prevent a racing stale "live" refresh from reverting a committed final.
-        setWhere: game.sport === "NFL" ? ne(gamesTable.status, "final") : undefined,
+        setWhere: game.sport === "NFL" ? ne(gamesTable.status, "final")
+          : game.sport === "NCAAF" ? ne(gamesTable.status, "final") : undefined,
         set: {
           league: game.league ?? null,
           homeTeamId: game.homeTeamId ?? null,
@@ -873,6 +877,12 @@ export async function refreshAll(): Promise<{
       const result = await persistNflFetchedFinal(game, writeFixture, nflFinalConflicts.has(game.espnId));
       if (result.outcome === "QUARANTINED") {
         logger.warn({ gameId: game.espnId, reasons: result.reasons }, "NFL final observation quarantined");
+        continue;
+      }
+    } else if (game.sport === "NCAAF" && game.status === "final") {
+      const result = await persistNcaafFetchedFinal(game, writeFixture, ncaafFinalConflicts.has(game.espnId));
+      if (result.outcome === "QUARANTINED") {
+        logger.warn({ gameId: game.espnId, reasons: result.reasons }, "NCAA final observation quarantined");
         continue;
       }
     } else {

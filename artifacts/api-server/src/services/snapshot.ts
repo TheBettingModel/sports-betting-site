@@ -26,6 +26,7 @@ import {
 import type { FetchedGame } from "./espn";
 import { getBootstrapIds } from "./bootstrap";
 import { logger } from "../lib/logger";
+import { persistNcaafFetchedFinal } from "./ncaafFinalPersistence";
 import {
   publishedPickEffectivenessWriterLock,
 } from "./publishedPickReconciliation";
@@ -829,6 +830,12 @@ export function shouldPublishPrediction(_sport: string): boolean {
  */
 async function writeGameResult(game: FetchedGame): Promise<void> {
   if (game.status !== "final") return;
+  // NCAA results must use the same locked, evidence-validated writer as
+  // refresh, recovery and discovery. Never use this legacy score-only path.
+  if (game.sport === "NCAAF") {
+    await persistNcaafFetchedFinal(game);
+    return;
+  }
   if (game.homeScore == null || game.awayScore == null) return;
 
   const [existing] = await db
