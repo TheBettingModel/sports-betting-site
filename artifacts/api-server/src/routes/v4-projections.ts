@@ -11,6 +11,7 @@ import { db, gamesTable, modelPredictionsTable, publishedPicksTable, v4ForecastV
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { rejectInvalidToken, resolveSubscriberStatus } from "../middleware/requireSubscriber";
 import { buildProjectionCoverageFallback } from "../services/projectionCoverageFallback";
+import { readSavedNcaafSlate } from "../services/ncaafSavedSlateReader";
 
 const router: IRouter = Router();
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -28,6 +29,7 @@ function publicUnavailableReason(reason: string): string {
   if (reason === "INVALID_CUTOFF") return "The event start time could not be validated.";
   if (reason === "UNRESOLVED_IDENTITY") return "The event participants could not be resolved.";
   if (reason === "NO_ELIGIBLE_V4_ARTIFACT") return "No eligible V4 model is available for this event.";
+  if (reason === "NO_VALID_SAVED_PREGAME_PROJECTION") return "No validated pregame projection has been saved yet.";
   return "A legitimate pregame projection is unavailable.";
 }
 
@@ -71,10 +73,13 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   }
   const sport = sportValue as TbmV4Sport;
   const persistedSport = sport === "SOCCER" ? "Soccer" : sport;
-  const events = await discoverV4Slate(sport, date);
+  // Do not synchronously regenerate an entire NCAA Saturday on every read.
+  // Scheduled capture already saves immutable, exact-V4 pregame forecasts.
+  const savedNcaaf = sport === "NCAAF" ? await readSavedNcaafSlate(date, new Date()) : null;
+  const events = savedNcaaf?.events ?? await discoverV4Slate(sport, date);
   if (sport === "SOCCER") await ensureSoccerRollingHistory(date, events);
   const snapshotLedger = new DbV4ForecastLedger();
-  const coverage = await runFullSlateV4({
+  const coverage = savedNcaaf?.coverage ?? await runFullSlateV4({
     // Persist immutable validating/developing forecasts so a legitimate
     // pregame projection remains visible after kickoff. SHADOW cannot cross
     // the official publication boundary. Request refreshes intentionally do
@@ -115,7 +120,9 @@ router.get("/model/v4/projections", resolveSubscriberStatus, rejectInvalidToken,
   const gameMetadataById = new Map(gameMetadata.map((game) => [game.eventId, game]));
   // A completed event must never trigger live generation. It can only be
   // displayed when an exact immutable pregame forecast survives validation.
-  const startedEvents = events.filter((event) => event.eventStart !== null && new Date(event.eventStart) <= new Date());
+  // The NCAA reader already selects one valid snapshot per fixture in SQL,
+  // including started fixtures. Never hydrate its append-only history again.
+  const startedEvents = sport === "NCAAF" ? [] : events.filter((event) => event.eventStart !== null && new Date(event.eventStart) <= new Date());
   const snapshotRows = startedEvents.length ? await db.select({
     sport: v4ForecastVersionsTable.sport,
     gameId: v4ForecastVersionsTable.gameId,
