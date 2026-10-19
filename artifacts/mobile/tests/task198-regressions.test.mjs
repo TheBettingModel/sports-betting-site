@@ -223,7 +223,7 @@ assert.match(picksSource, /board\.fixtures\.length/);
 assert.doesNotMatch(picksSource, /V4OfficialPickCard/);
 assert.match(picksSource, /V4UnavailableProjectionCard/);
 assert.match(picksSource, /SLATE/);
-assert.match(picksSource, /getV4FullSlateProjections\(\{ sport, date: slateDate \}\)/);
+assert.match(picksSource, /getV4FullSlateProjections\(\{ sport, date: slateDate \}, \{ signal \}\)/);
 assert.match(picksSource, /timeZone: 'America\/New_York'/);
 assert.match(picksSource, /Previous day/);
 assert.match(picksSource, /Next day/);
@@ -299,7 +299,7 @@ assert.doesNotMatch(resultsTabSource, /title: 'Record'/);
 assert.match(tabLayoutSource, /name="chat"[\s\S]*name="results"[\s\S]*name="profile"/);
 
 const appConfig = JSON.parse(fs.readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
-assert.equal(appConfig.expo.ios.buildNumber, '36');
+assert.equal(appConfig.expo.ios.buildNumber, '37');
 
 const signInSource = fs.readFileSync(new URL('../app/(auth)/sign-in.tsx', import.meta.url), 'utf8');
 const reviewPasswordAuthSource = fs.readFileSync(new URL('../lib/review-password-auth.ts', import.meta.url), 'utf8');

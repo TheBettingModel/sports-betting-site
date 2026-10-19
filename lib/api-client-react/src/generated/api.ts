@@ -68,6 +68,8 @@ import type {
   NcaafV4SubscriberProjectionBoard,
   NotificationPreferences,
   OutcomeReviewsResponse,
+  ProjectionPassClaim,
+  ProjectionPassResponse,
   PromoteAdminSpreadModel200,
   RefreshAdminForecastReviews200,
   RefreshAdminSpreadValidation200,
@@ -429,6 +431,154 @@ export function useGetGamesToday<TData = Awaited<ReturnType<typeof getGamesToday
 
 
 
+
+export const getGetProjectionPassUrl = () => {
+
+
+
+
+  return `/api/projection-pass`
+}
+
+/**
+ * @summary Browse schedule-only games and read this account's 24-hour Projection Pass
+ */
+export const getProjectionPass = async ( options?: RequestInit): Promise<ProjectionPassResponse> => {
+
+  return customFetch<ProjectionPassResponse>(getGetProjectionPassUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectionPassQueryKey = () => {
+    return [
+    `/api/projection-pass`
+    ] as const;
+    }
+
+
+export const getGetProjectionPassQueryOptions = <TData = Awaited<ReturnType<typeof getProjectionPass>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectionPass>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectionPassQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectionPass>>> = ({ signal }) => getProjectionPass({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectionPass>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProjectionPassQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectionPass>>>
+export type GetProjectionPassQueryError = ErrorType<void>
+
+
+/**
+ * @summary Browse schedule-only games and read this account's 24-hour Projection Pass
+ */
+
+export function useGetProjectionPass<TData = Awaited<ReturnType<typeof getProjectionPass>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectionPass>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProjectionPassQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getClaimProjectionPassUrl = () => {
+
+
+
+
+  return `/api/projection-pass`
+}
+
+/**
+ * @summary Confirm one upcoming game for a rolling 24 hours
+ */
+export const claimProjectionPass = async (projectionPassClaim: ProjectionPassClaim, options?: RequestInit): Promise<ProjectionPassResponse> => {
+
+  return customFetch<ProjectionPassResponse>(getClaimProjectionPassUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(projectionPassClaim)
+  }
+);}
+
+
+
+
+
+export const getClaimProjectionPassMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimProjectionPass>>, TError,{data: BodyType<ProjectionPassClaim>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimProjectionPass>>, TError,{data: BodyType<ProjectionPassClaim>}, TContext> => {
+
+const mutationKey = ['claimProjectionPass'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimProjectionPass>>, {data: BodyType<ProjectionPassClaim>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  claimProjectionPass(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimProjectionPassMutationResult = NonNullable<Awaited<ReturnType<typeof claimProjectionPass>>>
+    export type ClaimProjectionPassMutationBody = BodyType<ProjectionPassClaim>
+    export type ClaimProjectionPassMutationError = ErrorType<void>
+
+    /**
+ * @summary Confirm one upcoming game for a rolling 24 hours
+ */
+export const useClaimProjectionPass = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimProjectionPass>>, TError,{data: BodyType<ProjectionPassClaim>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimProjectionPass>>,
+        TError,
+        {data: BodyType<ProjectionPassClaim>},
+        TContext
+      > => {
+      return useMutation(getClaimProjectionPassMutationOptions(options));
+    }
 
 export const getRefreshGamesUrl = () => {
 

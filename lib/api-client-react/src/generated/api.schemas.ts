@@ -1290,6 +1290,67 @@ export interface ModelRuntimeDryRunResult {
   execution?: ModelRuntimeDryRunResultExecution;
 }
 
+export interface ProjectionPassClaim {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  gameId: string;
+  confirm: true;
+}
+
+export interface ProjectionPassGame {
+  id: string;
+  sport: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeTeamAbbr: string;
+  awayTeamAbbr: string;
+  /** @nullable */
+  homeTeamLogo: string | null;
+  /** @nullable */
+  awayTeamLogo: string | null;
+  status: string;
+  gameDate: string;
+  gameTime: string;
+  /** @nullable */
+  startsAt: string | null;
+}
+
+export type ProjectionPassProjectionProjectedWinner = typeof ProjectionPassProjectionProjectedWinner[keyof typeof ProjectionPassProjectionProjectedWinner];
+
+
+export const ProjectionPassProjectionProjectedWinner = {
+  HOME: 'HOME',
+  AWAY: 'AWAY',
+  DRAW: 'DRAW',
+} as const;
+
+export interface ProjectionPassProjection {
+  expectedHomeScore: number;
+  expectedAwayScore: number;
+  homeWinProbability: number;
+  awayWinProbability: number;
+  /** @nullable */
+  drawProbability: number | null;
+  projectedWinner: ProjectionPassProjectionProjectedWinner;
+  forecastTimestamp: string;
+}
+
+export interface ProjectionPassResponse {
+  serverTime: string;
+  canClaim: boolean;
+  /** @nullable */
+  gameId: string | null;
+  /** @nullable */
+  claimedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  games: ProjectionPassGame[];
+  selectedGame: ProjectionPassGame | null;
+  projection: ProjectionPassProjection | null;
+}
+
 export type FreePickRecommendation = typeof FreePickRecommendation[keyof typeof FreePickRecommendation];
 
 

@@ -7,7 +7,6 @@ import {
   officialPredictionIdentityTable, publishedPicksTable, oddsSnapshotsTable,
   marketsTable, sportsbooksTable,
 } from "@workspace/db";
-import { getDailyFreePicks } from "../services/freePick";
 import { lockGame } from "../services/gameAccess";
 import { fetchAllSports } from "../services/espn";
 import { computeProjection, type ComputeOptions } from "../services/model";
@@ -1118,11 +1117,8 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     .orderBy(asc(gamesTable.startsAt), asc(gamesTable.id));
 
   const ratedGames = await attachMarketSelection(applyPublishedRatings(allTodayGames as AnyGame[]));
-  const freePicks = await getDailyFreePicks(today);
-  // Free members can inspect exactly two complete game cards when the slate has
-  // at least two upcoming games. The stable schedule ordering prevents sport
-  // filters or model-score refreshes from rotating additional games into view.
-  const freeGames = ratedGames.slice(0, 2).map((game) => ({ ...game, isLocked: false }));
+  // Legacy clients must not receive an independent second free disclosure.
+  // Only the account-scoped Projection Pass endpoint can reveal a projection.
 
   // Apply lock state across the full slate, then sport-filter for the response
   const gatedAll = ratedGames.map((game) => {
@@ -1140,13 +1136,13 @@ router.get("/games/today", resolveSubscriberStatus, rejectInvalidToken, async (r
     totalGames: filtered.length,
     liveGamesCount,
     isSubscribed: false,
-    freeGames: freeGames.map(stripInternalDiagnostics),
+    freeGames: [],
     // These separately allowlisted DTOs are the only non-Pro pick disclosures.
     // All game rows remain schedule-only locked cards.
-    freePicks,
+    freePicks: [],
     // Compatibility for already-installed clients.
-    freePick: freePicks[0] ?? null,
-    freePickPublishedPickId: freePicks[0]?.publishedPickId ?? null,
+    freePick: null,
+    freePickPublishedPickId: null,
   });
 });
 

@@ -1,5 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { getProductionApiUrl } = require("../artifacts/mobile/scripts/mobile-api-domain.cjs");
 
 const mobileInputPaths = [
   "artifacts/mobile",
@@ -20,7 +24,6 @@ const fail = (message) => {
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 const render = await readFile("render.yaml", "utf8");
 const app = await readJson("artifacts/mobile/app.json");
-const eas = await readJson("artifacts/mobile/eas.json");
 const packageJson = await readJson("package.json");
 
 const exactHead = execFileSync("git", ["rev-parse", "HEAD"], {
@@ -85,17 +88,25 @@ if (app.expo?.updates || app.expo?.runtimeVersion) {
 if (!/^[1-9]\d*$/.test(String(app.expo?.ios?.buildNumber ?? ""))) {
   fail("iOS build number must be a positive integer in app.json");
 }
-if (eas.build?.production?.channel) {
-  fail("The production EAS profile must not declare an OTA channel");
+try {
+  await readFile("artifacts/mobile/eas.json");
+  fail("Replit Support requires eas.json to be absent from the publishing source");
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
 }
-if (eas.build?.production?.autoSubmit === true) {
-  fail("Do not automatically submit a build before reviewer access is verified");
+let productionApiUrl;
+let productionDomain;
+try {
+  productionApiUrl = getProductionApiUrl();
+  productionDomain = new URL(productionApiUrl).hostname;
+  if (productionApiUrl !== "https://tbm-api-v4-candidate.onrender.com") {
+    fail("EXPO_PUBLIC_API_URL must target the verified Render production API");
+  }
+} catch (error) {
+  fail(error.message);
 }
-const productionDomain = eas.build?.production?.env?.EXPO_PUBLIC_DOMAIN;
-const productionClerkProxy = eas.build?.production?.env?.EXPO_PUBLIC_CLERK_PROXY_URL;
-if (!productionDomain || !/^[a-z0-9.-]+\.onrender\.com$/.test(productionDomain)) {
-  fail("The production iOS build must explicitly target the verified Render host");
-}
+const productionClerkProxy = process.env.EXPO_PUBLIC_CLERK_PROXY_URL ||
+  (productionApiUrl && `${productionApiUrl}/api/__clerk`);
 try {
   const proxy = new URL(productionClerkProxy);
   if (
@@ -109,9 +120,6 @@ try {
   }
 } catch {
   fail("The production Clerk proxy URL is missing or invalid");
-}
-if (eas.cli?.appVersionSource !== "local") {
-  fail("iOS version/build ownership must remain explicit and local");
 }
 if (!packageJson.scripts?.["release:preflight"]) {
   fail("package.json must expose release:preflight");
@@ -132,6 +140,10 @@ if (!process.exitCode) {
       appVersion: app.expo.version,
       iosBuildNumber: app.expo.ios?.buildNumber,
       easProjectId: app.expo.extra?.eas?.projectId,
+      apiUrl: productionApiUrl,
+      clerkProxyUrl: productionClerkProxy,
+      publishingPipeline: "REPLIT_EXPO_LAUNCH",
+      storeReviewSubmission: "REQUIRES_OWNER_APPROVAL",
       sourceTree: mobileSourceTree,
       comparedWithCommit: mobileInputCommit,
     },

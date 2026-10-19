@@ -358,6 +358,113 @@ export const GetGamesTodayResponse = zod.object({
 
 
 /**
+ * @summary Browse schedule-only games and read this account's 24-hour Projection Pass
+ */
+export const GetProjectionPassResponse = zod.object({
+  "serverTime": zod.coerce.date(),
+  "canClaim": zod.boolean(),
+  "gameId": zod.string().nullable(),
+  "claimedAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "games": zod.array(zod.object({
+  "id": zod.string(),
+  "sport": zod.string(),
+  "homeTeamName": zod.string(),
+  "awayTeamName": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "homeTeamLogo": zod.string().nullable(),
+  "awayTeamLogo": zod.string().nullable(),
+  "status": zod.string(),
+  "gameDate": zod.string(),
+  "gameTime": zod.string(),
+  "startsAt": zod.coerce.date().nullable()
+})),
+  "selectedGame": zod.union([zod.object({
+  "id": zod.string(),
+  "sport": zod.string(),
+  "homeTeamName": zod.string(),
+  "awayTeamName": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "homeTeamLogo": zod.string().nullable(),
+  "awayTeamLogo": zod.string().nullable(),
+  "status": zod.string(),
+  "gameDate": zod.string(),
+  "gameTime": zod.string(),
+  "startsAt": zod.coerce.date().nullable()
+}),zod.null()]),
+  "projection": zod.union([zod.object({
+  "expectedHomeScore": zod.number(),
+  "expectedAwayScore": zod.number(),
+  "homeWinProbability": zod.number(),
+  "awayWinProbability": zod.number(),
+  "drawProbability": zod.number().nullable(),
+  "projectedWinner": zod.enum(['HOME', 'AWAY', 'DRAW']),
+  "forecastTimestamp": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Confirm one upcoming game for a rolling 24 hours
+ */
+export const claimProjectionPassBodyGameIdMax = 100;
+
+
+
+export const ClaimProjectionPassBody = zod.object({
+  "gameId": zod.string().min(1).max(claimProjectionPassBodyGameIdMax),
+  "confirm": zod.literal(true)
+})
+
+export const ClaimProjectionPassResponse = zod.object({
+  "serverTime": zod.coerce.date(),
+  "canClaim": zod.boolean(),
+  "gameId": zod.string().nullable(),
+  "claimedAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "games": zod.array(zod.object({
+  "id": zod.string(),
+  "sport": zod.string(),
+  "homeTeamName": zod.string(),
+  "awayTeamName": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "homeTeamLogo": zod.string().nullable(),
+  "awayTeamLogo": zod.string().nullable(),
+  "status": zod.string(),
+  "gameDate": zod.string(),
+  "gameTime": zod.string(),
+  "startsAt": zod.coerce.date().nullable()
+})),
+  "selectedGame": zod.union([zod.object({
+  "id": zod.string(),
+  "sport": zod.string(),
+  "homeTeamName": zod.string(),
+  "awayTeamName": zod.string(),
+  "homeTeamAbbr": zod.string(),
+  "awayTeamAbbr": zod.string(),
+  "homeTeamLogo": zod.string().nullable(),
+  "awayTeamLogo": zod.string().nullable(),
+  "status": zod.string(),
+  "gameDate": zod.string(),
+  "gameTime": zod.string(),
+  "startsAt": zod.coerce.date().nullable()
+}),zod.null()]),
+  "projection": zod.union([zod.object({
+  "expectedHomeScore": zod.number(),
+  "expectedAwayScore": zod.number(),
+  "homeWinProbability": zod.number(),
+  "awayWinProbability": zod.number(),
+  "drawProbability": zod.number().nullable(),
+  "projectedWinner": zod.enum(['HOME', 'AWAY', 'DRAW']),
+  "forecastTimestamp": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
  * @summary Pull fresh game data from ESPN and run model update
  */
 export const RefreshGamesResponse = zod.object({

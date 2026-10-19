@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import {
-  useGetGamesToday,
   getV4FullSlateProjections,
   type GetV4FullSlateProjectionsSport,
   type V4FullSlateProjectionResponse,
@@ -17,13 +16,14 @@ import { useColors } from '@/hooks/useColors';
 import { useSports } from '@/context/SportsContext';
 import { useSubscription } from '@/lib/revenuecat';
 import { RecoverableErrorState } from '@/components/RecoverableErrorState';
-import { LockedPickCard } from '@/components/LockedPickCard';
 import { SportFilter } from '@/components/SportFilter';
 import { EmptyState } from '@/components/EmptyState';
 import { V4ModelProjectionCard } from '@/components/V4ModelProjectionCard';
 import { V4UnavailableProjectionCard } from '@/components/V4UnavailableProjectionCard';
-import { FreeGameProjectionCard } from '@/components/FreeGameProjectionCard';
+import { FreeProjectionPassGames } from '@/components/FreeProjectionPass';
 import { fixtureMatchesTeamSearch } from '@/utils/matchupSearch';
+import { nextSlateDate, projectionQueryKey, PROJECTION_REFRESH_MS, retryProjectionQuery } from '@/lib/projection-query-policy';
+import { API_BASE_URL } from '@/lib/api-config';
 
 const V4_SPORTS = ['NFL', 'NCAAF', 'NBA', 'NCAAMB', 'MLB', 'NHL', 'SOCCER', 'WNBA'] as const;
 
@@ -64,6 +64,7 @@ export default function PicksScreen() {
   const insets = useSafeAreaInsets();
   const { userId } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const {
     hasServerEntitlement,
     isLoading: isSubscriptionLoading,
@@ -76,34 +77,35 @@ export default function PicksScreen() {
   const [slateDate, setSlateDate] = useState(() => easternDate());
   const [searchQuery, setSearchQuery] = useState('');
   const currentEasternDate = useRef(easternDate());
+  const warmedDay = useRef({ key: '', completed: new Set<string>() });
+  const apiSource = API_BASE_URL;
   const requestedSports = selectedSport === 'All'
     ? [...V4_SPORTS]
     : [toV4Sport(selectedSport)].filter((sport): sport is GetV4FullSlateProjectionsSport => sport !== null);
 
   const queries = useQueries({
     queries: requestedSports.map((sport) => ({
-      queryKey: ['/api/model/v4/projections', { sport, date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
-      queryFn: () => getV4FullSlateProjections({ sport, date: slateDate }),
+      queryKey: projectionQueryKey(sport, slateDate, userId, hasServerEntitlement, apiSource),
+      queryFn: ({ signal }: { signal: AbortSignal }) => getV4FullSlateProjections({ sport, date: slateDate }, { signal }),
       enabled: Boolean(userId) && hasServerEntitlement,
-      staleTime: 2 * 60 * 1000,
+      staleTime: PROJECTION_REFRESH_MS,
+      refetchInterval: PROJECTION_REFRESH_MS,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: retryProjectionQuery,
+      retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 10_000),
     })),
   });
-  const freeGamesQuery = useGetGamesToday(
-    {},
-    {
-      query: {
-        enabled: Boolean(userId) && !hasServerEntitlement && !isSubscriptionLoading && !serverEntitlementError,
-        queryKey: ['/api/games/today', { viewerId: userId ?? 'signed-out', entitled: false }],
-        staleTime: 2 * 60 * 1000,
-      },
-    },
-  );
   
   const boards = queries.map((query) => query.data).filter((board): board is V4FullSlateProjectionResponse => Boolean(board));
   const isLoading = hasServerEntitlement && queries.some((query) => query.isLoading);
   const isRefetching = queries.some((query) => query.isRefetching);
-  const hasError = hasServerEntitlement && queries.length > 0 && queries.every((query) => query.isError);
-  const refetch = useCallback(() => Promise.all(queries.map((query) => query.refetch())), [queries]);
+  const hasError = hasServerEntitlement && queries.some((query) => query.isError);
+  const latestQueries = useRef(queries);
+  latestQueries.current = queries;
+  // Keep the rollover timer/resume subscription stable across query updates.
+  const refetch = useCallback(() => Promise.all(latestQueries.current.map((query) => query.refetch())), []);
 
   useEffect(() => {
     const refreshId = setInterval(() => {
@@ -112,10 +114,50 @@ export default function PicksScreen() {
         setSlateDate(currentDate);
       }
       currentEasternDate.current = currentDate;
-      void refetch();
-    }, 5 * 60 * 1000);
+    }, 60 * 1000);
     return () => clearInterval(refreshId);
   }, [refetch, slateDate]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && hasServerEntitlement) void refetch();
+    });
+    return () => subscription.remove();
+  }, [hasServerEntitlement, refetch]);
+
+  // Once per signed-in day, warm tomorrow's normal projection reads after the
+  // visible board settles. Two workers bound load; this is not a heavy refresh
+  // pipeline or a backfill. The live API only saves legitimate pregame output.
+  const visibleBoardBusy = queries.some((query) => query.isFetching);
+  useEffect(() => {
+    const today = easternDate();
+    const key = `${userId}:${today}:${apiSource}`;
+    if (!userId || !hasServerEntitlement || serverEntitlementFetching || serverEntitlementError
+      || slateDate !== today || visibleBoardBusy) return;
+    if (warmedDay.current.key !== key) warmedDay.current = { key, completed: new Set() };
+    const warming = warmedDay.current;
+    if (warming.completed.size === V4_SPORTS.length) return;
+    let cancelled = false;
+    let cursor = 0;
+    const tomorrow = nextSlateDate(today);
+    const worker = async () => {
+      while (!cancelled && cursor < V4_SPORTS.length) {
+        const sport = V4_SPORTS[cursor++]!;
+        if (warming.completed.has(sport)) continue;
+        const queryKey = projectionQueryKey(sport, tomorrow, userId, true, apiSource);
+        await queryClient.prefetchQuery({
+          queryKey,
+          queryFn: ({ signal }) => getV4FullSlateProjections({ sport, date: tomorrow }, { signal }),
+          staleTime: PROJECTION_REFRESH_MS,
+          retry: retryProjectionQuery,
+        });
+        if (queryClient.getQueryState(queryKey)?.status === 'success') warming.completed.add(sport);
+      }
+    };
+    void Promise.all([worker(), worker()]);
+    return () => { cancelled = true; };
+  }, [userId, hasServerEntitlement, serverEntitlementFetching, serverEntitlementError,
+    slateDate, visibleBoardBusy, apiSource, queryClient]);
 
   const sportGameCounts = useMemo(() => Object.fromEntries(
     boards.map((board) => [
@@ -175,32 +217,14 @@ export default function PicksScreen() {
     );
   }
   if (!hasServerEntitlement) {
-    const freeGames = freeGamesQuery.data?.freeGames ?? [];
     return (
-      <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
-        <View style={styles.header}><Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text><Text style={[styles.sub, { color: colors.mutedForeground }]}>RESEARCH DESK</Text></View>
-        <SportFilter
-          gameCounts={{}}
-          restrictIndividualSports
-          onRestrictedPress={() => router.push('/membership')}
-        />
-        {freeGamesQuery.isLoading
-          ? <ActivityIndicator color={colors.primary} />
-          : freeGamesQuery.isError
-            ? (
-              <RecoverableErrorState
-                title="Games unavailable"
-                message="We couldn't load today's free games. Try again."
-                error={freeGamesQuery.error}
-                isRetrying={freeGamesQuery.isFetching}
-                onRetry={freeGamesQuery.refetch}
-              />
-            )
-            : freeGames.map((game) => (
-              <FreeGameProjectionCard key={game.id} game={game} slateDate={slateDate} />
-            ))}
-        <LockedPickCard onUnlock={() => router.push('/membership')} hiddenCount={0} />
-        <Text style={[styles.entitlementCopy, { color: colors.mutedForeground }]}>Free members can open up to two games each day. Upgrade to Pro for every V4 projection.</Text>
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 16), paddingBottom: insets.bottom + 90 }}>
+          <View style={styles.header}><Text style={[styles.brand, { color: colors.foreground }]}>TBM</Text><Text style={[styles.sub, { color: colors.mutedForeground }]}>GAMES · TODAY'S SLATE</Text></View>
+          {userId
+            ? <FreeProjectionPassGames viewerId={userId} />
+            : <EmptyState message="Sign in to browse today's slate." />}
+        </ScrollView>
       </View>
     );
   }
@@ -274,7 +298,7 @@ export default function PicksScreen() {
                 </Pressable>
               )}
             </View>
-            {!isLoading && hasError && <EmptyState message="V4 data is unavailable right now. Pull to try again." />}
+            {!isLoading && hasError && <EmptyState message="Some projections could not refresh. Retrying automatically; saved results remain visible. Pull to retry now." />}
           </View>
         }
         renderItem={({ item }) => {

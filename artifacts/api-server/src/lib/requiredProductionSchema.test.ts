@@ -8,6 +8,12 @@ import { assertRequiredProductionSchema } from "./requiredProductionSchema";
 beforeEach(() => execute.mockReset());
 
 describe("required production schema", () => {
+  it("blocks the coordinated release if the Projection Pass migration is missing", async () => {
+    execute.mockResolvedValue({ rows: [{ item: "table:projection_passes" }] });
+    await expect(assertRequiredProductionSchema()).rejects.toThrow("table:projection_passes");
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("accepts the complete schema without writing to the database", async () => {
     execute.mockResolvedValue({ rows: [] });
     await expect(assertRequiredProductionSchema()).resolves.toBeUndefined();

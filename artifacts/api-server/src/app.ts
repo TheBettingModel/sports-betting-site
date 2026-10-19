@@ -5,6 +5,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { apiLimiter } from "./middleware/rateLimiter";
 import { bootstrapTask241V4Engines } from "./services/v4EngineBootstrap241";
+import { createPreviewProjectionProxy } from "./middleware/previewProjectionProxy";
 
 const app: Express = express();
 let startupReady = false;
@@ -83,6 +84,11 @@ app.use("/api", (req, res, next) => {
 
 // Rate limiting — applied before routing so all /api endpoints are covered
 app.use("/api", apiLimiter);
+// Never active on Render/production. Only preview projection/market-history GETs read the
+// configured live model API; Admin and all other workspace routes stay local.
+if (process.env.NODE_ENV === "development" && process.env.TBM_PREVIEW_LIVE_API_ORIGIN) {
+  app.use(createPreviewProjectionProxy(process.env.TBM_PREVIEW_LIVE_API_ORIGIN));
+}
 app.use("/api", router);
 
 export default app;

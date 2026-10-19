@@ -18,8 +18,10 @@ import chatRouter from "./chat";
 import ncaafV4Router from "./ncaaf-v4";
 import mlbV4ReadinessRouter from "./mlb-v4-readiness";
 import v4ProjectionsRouter from "./v4-projections";
+import projectionPassRouter from "./projection-pass";
 
 const router: IRouter = Router();
+router.use(projectionPassRouter);
 
 router.use(healthRouter);
 router.use(gamesRouter);

@@ -73,6 +73,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/GamesTodayResponse"
 
+  /projection-pass:
+    get:
+      operationId: getProjectionPass
+      tags: [games]
+      summary: Browse schedule-only games and read this account's 24-hour Projection Pass
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Account-scoped pass and today's schedule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectionPassResponse" }
+        "401": { description: Authentication required }
+        "503": { description: Access could not be verified }
+    post:
+      operationId: claimProjectionPass
+      tags: [games]
+      summary: Confirm one upcoming game for a rolling 24 hours
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectionPassClaim" }
+      responses:
+        "200":
+          description: Granted or idempotently reopened pass
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectionPassResponse" }
+        "400": { description: Explicit confirmation required }
+        "401": { description: Authentication required }
+        "409": { description: "Pass already used, Pro access active, game started, or no saved projection" }
+        "503": { description: Access could not be verified }
+
   /games/refresh:
     post:
       operationId: refreshGames
@@ -2044,6 +2079,57 @@ components:
             bridge:
               type: [object, "null"]
               additionalProperties: true
+
+    ProjectionPassClaim:
+      type: object
+      additionalProperties: false
+      required: [gameId, confirm]
+      properties:
+        gameId: { type: string, minLength: 1, maxLength: 100 }
+        confirm: { type: boolean, enum: [true] }
+    ProjectionPassGame:
+      type: object
+      required: [id, sport, homeTeamName, awayTeamName, homeTeamAbbr, awayTeamAbbr, status, gameDate, gameTime, startsAt, homeTeamLogo, awayTeamLogo]
+      properties:
+        id: { type: string }
+        sport: { type: string }
+        homeTeamName: { type: string }
+        awayTeamName: { type: string }
+        homeTeamAbbr: { type: string }
+        awayTeamAbbr: { type: string }
+        homeTeamLogo: { type: ["string", "null"] }
+        awayTeamLogo: { type: ["string", "null"] }
+        status: { type: string }
+        gameDate: { type: string }
+        gameTime: { type: string }
+        startsAt: { type: ["string", "null"], format: date-time }
+    ProjectionPassProjection:
+      type: object
+      required: [expectedHomeScore, expectedAwayScore, homeWinProbability, awayWinProbability, drawProbability, projectedWinner, forecastTimestamp]
+      properties:
+        expectedHomeScore: { type: number }
+        expectedAwayScore: { type: number }
+        homeWinProbability: { type: number }
+        awayWinProbability: { type: number }
+        drawProbability: { type: ["number", "null"] }
+        projectedWinner: { type: string, enum: [HOME, AWAY, DRAW] }
+        forecastTimestamp: { type: string, format: date-time }
+    ProjectionPassResponse:
+      type: object
+      required: [serverTime, canClaim, gameId, claimedAt, expiresAt, games, selectedGame, projection]
+      properties:
+        serverTime: { type: string, format: date-time }
+        canClaim: { type: boolean }
+        gameId: { type: ["string", "null"] }
+        claimedAt: { type: ["string", "null"], format: date-time }
+        expiresAt: { type: ["string", "null"], format: date-time }
+        games:
+          type: array
+          items: { $ref: "#/components/schemas/ProjectionPassGame" }
+        selectedGame:
+          oneOf: [{ $ref: "#/components/schemas/ProjectionPassGame" }, { type: "null" }]
+        projection:
+          oneOf: [{ $ref: "#/components/schemas/ProjectionPassProjection" }, { type: "null" }]
 
     GamesTodayResponse:
       type: object

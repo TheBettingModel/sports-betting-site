@@ -26,6 +26,7 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSubscription } from '@/lib/revenuecat';
+import { newestChatUpdates } from '@/utils/chatPresentation';
 
 const formatTime = (isoString: string) => {
   const d = new Date(isoString);
@@ -153,7 +154,7 @@ export default function ChatScreen() {
   }
 
   const canRead = hasServerEntitlement && access?.canRead === true;
-  const messages = canRead ? (messagesData?.messages ?? []) : [];
+  const messages = canRead ? newestChatUpdates(messagesData?.messages ?? []) : [];
   const tabBarHeight = Platform.OS === 'web' ? 84 : (insets.bottom + 60);
   const bottomPadding = isKeyboardVisible ? (Platform.OS === 'ios' ? 12 : 12) : tabBarHeight;
   

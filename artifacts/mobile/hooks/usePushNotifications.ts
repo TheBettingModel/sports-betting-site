@@ -16,6 +16,7 @@ import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '@/lib/api-config';
 
 const STORAGE_KEY = '@tbm/push_token';
 const STORAGE_ENABLED_KEY = '@tbm/push_enabled';
@@ -32,9 +33,7 @@ Notifications.setNotificationHandler({
 });
 
 async function getApiBaseUrl(): Promise<string> {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}`;
-  return 'http://localhost:3000';
+  return API_BASE_URL;
 }
 
 async function registerTokenWithServer(

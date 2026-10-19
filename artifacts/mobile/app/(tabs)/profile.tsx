@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Application from 'expo-application';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -11,8 +13,16 @@ import { legalDocumentUrl } from '@/lib/legal-url';
 import PaywallModal from '@/app/paywall';
 import Purchases from 'react-native-purchases';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useNotificationPreferences, ALL_SPORTS } from '@/hooks/useNotificationPreferences';
-import { useUserPreferences, TIER_LABELS, VALID_TIERS } from '@/hooks/useUserPreferences';
+import { formatAppVersionLabel } from '@/utils/appVersionLabel';
+
+// Expo Go reports its host application's native metadata, not TBM's.
+// Only standalone/development binaries display their installed native build.
+const isPreview = Platform.OS === 'web' || Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const appVersionLabel = formatAppVersionLabel(
+  isPreview ? Constants.expoConfig?.version : Application.nativeApplicationVersion,
+  isPreview ? null : Application.nativeBuildVersion,
+  isPreview,
+);
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -22,58 +32,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [paywallOpen, setPaywallOpen] = useState(false);
   const { isSubscribed, restore } = useSubscription();
-  const { enableNotifications, disableNotifications, getNotificationsEnabled } = usePushNotifications();
-  const { prefs: notifPrefs, saving: notifPrefsSaving, toggleSport } = useNotificationPreferences();
-  const { prefs: userPrefs, saving: userPrefsSaving, setMinTier } = useUserPreferences();
-
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const { disableNotifications } = usePushNotifications();
 
   // User display name / initials
   const displayName = user?.fullName ?? user?.firstName ?? user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] ?? 'User';
   const email = user?.emailAddresses?.[0]?.emailAddress ?? '';
   const initials = displayName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
-
-  // Load current notification state
-  useEffect(() => {
-    if (Platform.OS === 'web') return;
-    getNotificationsEnabled().then(setNotificationsEnabled);
-  }, [getNotificationsEnabled]);
-
-  // Auto-enable notifications after subscription (prompt on Pro upgrade)
-  useEffect(() => {
-    if (!isSubscribed || Platform.OS === 'web') return;
-    getNotificationsEnabled().then((enabled) => {
-      if (!enabled) {
-        // Silently attempt to enable; the system permission prompt will appear
-        enableNotifications()
-          .then((granted) => setNotificationsEnabled(granted))
-          .catch(() => {/* non-fatal */});
-      }
-    });
-  }, [isSubscribed]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleNotificationsToggle = useCallback(async (value: boolean) => {
-    if (!isSubscribed) {
-      setPaywallOpen(true);
-      return;
-    }
-    setNotificationsLoading(true);
-    await Haptics.selectionAsync();
-    try {
-      if (value) {
-        const granted = await enableNotifications();
-        setNotificationsEnabled(granted);
-      } else {
-        await disableNotifications();
-        setNotificationsEnabled(false);
-      }
-    } catch {
-      // Non-fatal — leave toggle state as-is
-    } finally {
-      setNotificationsLoading(false);
-    }
-  }, [isSubscribed, enableNotifications, disableNotifications]);
 
   const handleSignOut = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -180,101 +144,9 @@ export default function ProfileScreen() {
       {/* Settings */}
       <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>SETTINGS</Text>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-        {/* Notifications toggle — interactive */}
-        <View style={styles.settingsRow}>
-          <View style={styles.settingsLeft}>
-            <Feather name="bell" size={16} color={notificationsEnabled ? colors.primary : colors.mutedForeground} />
-            <View>
-              <Text style={[styles.settingsLabel, { color: colors.foreground }]}>Daily Pick Alerts</Text>
-              {Platform.OS !== 'web' && (
-                <Text style={[styles.settingsSubLabel, { color: colors.mutedForeground }]}>
-                  {isSubscribed
-                    ? 'Notify when Strong Buy picks drop'
-                    : 'Pro feature'}
-                </Text>
-              )}
-            </View>
-          </View>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={handleNotificationsToggle}
-            disabled={notificationsLoading || Platform.OS === 'web'}
-            trackColor={{ false: colors.border, true: colors.primary + 'AA' }}
-            thumbColor={notificationsEnabled ? colors.primary : colors.mutedForeground}
-            ios_backgroundColor={colors.border}
-          />
-        </View>
-
-        {/* Sport alert preferences — shown when notifications are enabled and user is Pro */}
-        {notificationsEnabled && isSubscribed && Platform.OS !== 'web' && (
-          <>
-            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-            <View style={[styles.sportPrefsSection]}>
-              <Text style={[styles.sportPrefsTitle, { color: colors.mutedForeground }]}>
-                ALERT ME FOR THESE SPORTS
-              </Text>
-              <View style={styles.sportChipsGrid}>
-                {ALL_SPORTS.map((sport) => {
-                  const enabled = notifPrefs.enabledSports === null || notifPrefs.enabledSports.includes(sport);
-                  return (
-                    <Pressable
-                      key={sport}
-                      disabled={notifPrefsSaving || userPrefsSaving}
-                      onPress={async () => { await Haptics.selectionAsync(); await toggleSport(sport); }}
-                      style={[
-                        styles.sportChip,
-                        {
-                          backgroundColor: enabled ? colors.primary + '22' : colors.card,
-                          borderColor: enabled ? colors.primary : colors.border,
-                          opacity: (notifPrefsSaving || userPrefsSaving) ? 0.6 : 1,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.sportChipText, { color: enabled ? colors.primary : colors.mutedForeground }]}>
-                        {sport}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {/* Minimum tier selector */}
-              <Text style={[styles.sportPrefsTitle, { color: colors.mutedForeground, marginTop: 14 }]}>
-                MINIMUM PICK TIER
-              </Text>
-              <View style={styles.tierRow}>
-                {VALID_TIERS.map((tier) => {
-                  const selected = (userPrefs.notifMinTier ?? 'Playable') === tier;
-                  return (
-                    <Pressable
-                      key={tier}
-                      disabled={userPrefsSaving}
-                      onPress={async () => { await Haptics.selectionAsync(); await setMinTier(tier); }}
-                      style={[
-                        styles.tierChip,
-                        {
-                          backgroundColor: selected ? colors.primary + '22' : colors.card,
-                          borderColor: selected ? colors.primary : colors.border,
-                          opacity: userPrefsSaving ? 0.6 : 1,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.tierChipText, { color: selected ? colors.primary : colors.mutedForeground }]}>
-                        {TIER_LABELS[tier] ?? tier}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </>
-        )}
-
-        <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
-
         {[
           { icon: 'dollar-sign' as const, label: 'Odds Format', value: 'American', onPress: () => Haptics.selectionAsync() },
-          { icon: 'info' as const, label: 'App Version', value: '1.0.0', onPress: () => Haptics.selectionAsync() },
+          { icon: 'info' as const, label: 'App Version', value: appVersionLabel, onPress: () => Haptics.selectionAsync() },
         ].map((row, i, arr) => (
           <View key={row.label}>
             <Pressable onPress={row.onPress} style={styles.settingsRow}>
@@ -380,22 +252,6 @@ const styles = StyleSheet.create({
   },
   settingsLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   settingsLabel: { fontSize: 15, fontFamily: 'Inter_400Regular' },
-  settingsSubLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
   settingsRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   settingsVal: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  sportPrefsSection: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
-  sportPrefsTitle: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 1 },
-  sportChipsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  sportChip: {
-    paddingHorizontal: 10, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1,
-  },
-  sportChipText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  tierRow: { flexDirection: 'column', gap: 8 },
-  tierChip: {
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 10, borderWidth: 1,
-    alignItems: 'center',
-  },
-  tierChipText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
 });

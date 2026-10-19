@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { Readable } = require('stream');
 const { pipeline } = require('stream/promises');
+const { getProductionApiUrl } = require('./mobile-api-domain.cjs');
 
 let metroProcess = null;
 
@@ -57,9 +58,8 @@ function stripProtocol(domain) {
 }
 
 function getDeploymentDomain() {
-  // EXPO_PUBLIC_DOMAIN takes highest priority — set explicitly in eas.json per build profile
-  // (e.g. "thebettingmodel.replit.app" for production). REPLIT_DEV_DOMAIN is a fallback
-  // for local dev builds only; it must not override an explicit production domain.
+  // This domain hosts Expo Go assets/manifests only. The backend is configured
+  // separately through EXPO_PUBLIC_API_URL, including during Replit Launch.
   if (process.env.EXPO_PUBLIC_DOMAIN) {
     return stripProtocol(process.env.EXPO_PUBLIC_DOMAIN);
   }
@@ -133,6 +133,7 @@ function getExpoPublicReplId() {
 }
 
 async function startMetro(expoPublicDomain, expoPublicReplId) {
+  const apiUrl = getProductionApiUrl();
   const isRunning = await checkMetroHealth();
   if (isRunning) {
     console.log('Metro already running');
@@ -159,11 +160,12 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
 
   const clerkProxyUrl =
     process.env.EXPO_PUBLIC_CLERK_PROXY_URL ||
-    `https://${expoPublicDomain}/api/__clerk`;
+    `${apiUrl}/api/__clerk`;
 
   const env = {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
+    EXPO_PUBLIC_API_URL: apiUrl,
     EXPO_PUBLIC_REPL_ID: expoPublicReplId,
     EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: clerkPublishableKey,
     EXPO_PUBLIC_CLERK_PROXY_URL: clerkProxyUrl,
@@ -174,6 +176,7 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
   }
   console.log(`Setting EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=${clerkPublishableKey ? '[set]' : '[MISSING]'}`);
   console.log(`Setting EXPO_PUBLIC_CLERK_PROXY_URL=${clerkProxyUrl}`);
+  console.log(`Setting EXPO_PUBLIC_API_URL=${apiUrl}`);
 
   metroProcess = spawn(
     'pnpm',

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
+    "dev": "export NODE_ENV=development && export TBM_PREVIEW_LIVE_API_ORIGIN=https://$(node ../mobile/scripts/mobile-api-domain.cjs) && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "pipeline:once": "node --enable-source-maps ./dist/run-cloud-pipeline-once.mjs",

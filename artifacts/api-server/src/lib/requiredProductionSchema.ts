@@ -11,7 +11,8 @@ export async function assertRequiredProductionSchema(): Promise<void> {
       VALUES
         ('v4_market_evidence'),
         ('v4_artifact_model_version_mappings'),
-        ('v4_official_decision_revisions')
+        ('v4_official_decision_revisions'),
+        ('projection_passes')
     ),
     required_columns(table_name, column_name) AS (
       VALUES
@@ -21,7 +22,12 @@ export async function assertRequiredProductionSchema(): Promise<void> {
         ('v4_forecast_versions', 'input_hash'),
         ('v4_forecast_versions', 'configuration_hash'),
         ('v4_forecast_versions', 'parameter_hash'),
-        ('model_predictions', 'market')
+        ('model_predictions', 'market'),
+        ('projection_passes', 'user_id'),
+        ('projection_passes', 'game_id'),
+        ('projection_passes', 'claimed_at'),
+        ('projection_passes', 'expires_at'),
+        ('projection_passes', 'snapshot')
     )
     SELECT 'table:' || name AS item
       FROM required_tables

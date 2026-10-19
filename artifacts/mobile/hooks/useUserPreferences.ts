@@ -10,11 +10,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import { useAuth } from '@clerk/expo';
+import { API_BASE_URL } from '@/lib/api-config';
 
 async function getApiBaseUrl(): Promise<string> {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}`;
-  return 'http://localhost:3000';
+  return API_BASE_URL;
 }
 
 export const VALID_SPORTS = ['MLB', 'NFL', 'NBA', 'WNBA', 'NHL', 'Soccer'];

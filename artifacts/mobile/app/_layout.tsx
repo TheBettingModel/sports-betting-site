@@ -23,10 +23,9 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { API_BASE_URL, CLERK_PROXY_URL } from '@/lib/api-config';
 
-// Point the API client at this repl's dev domain
-const domain = process.env.EXPO_PUBLIC_DOMAIN;
-if (domain) setBaseUrl(`https://${domain}`);
+setBaseUrl(API_BASE_URL);
 
 // Initialize RevenueCat (safe to call before auth — SDK auto-detects Expo Go and uses test mode)
 try {
@@ -54,7 +53,7 @@ function ApiAuthBridge({ children }: { children: React.ReactNode }) {
 }
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
-const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+const proxyUrl = CLERK_PROXY_URL;
 
 function RootLayoutNav({ showDisclaimer }: { showDisclaimer: boolean }) {
   // If the user hasn't accepted the disclaimer, replace the initial route.

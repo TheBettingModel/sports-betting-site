@@ -86,3 +86,4 @@ export * from "./push-receipts";
 
 // ── User preferences (sport filters, tier thresholds) ────────────────────────
 export * from "./user-preferences";
+export * from "./projection-passes";

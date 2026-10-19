@@ -4,8 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   getV4FullSlateProjections,
-  useGetGamesToday,
-  type GameProjection,
   type GetV4FullSlateProjectionsSport,
   type V4PublicProjection,
 } from '@workspace/api-client-react';
@@ -17,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { RecoverableErrorState } from '@/components/RecoverableErrorState';
+import { FreeProjectionPassDetail } from '@/components/FreeProjectionPass';
 
 const TWO_WORD_NICKNAMES = [
   'Red Sox', 'White Sox', 'Blue Jays', 'Maple Leafs', 'Golden Knights',
@@ -127,20 +126,6 @@ export default function GameDetailScreen() {
     enabled: Boolean(userId) && hasServerEntitlement && Boolean(querySport) && Boolean(slateDate),
     staleTime: 2 * 60 * 1000,
   });
-  const freeGamesQuery = useGetGamesToday(
-    {},
-    {
-      query: {
-        enabled: Boolean(userId) && !hasServerEntitlement && !isSubscriptionLoading && !serverEntitlementError,
-        queryKey: ['/api/games/today', { viewerId: userId ?? 'signed-out', entitled: false }],
-        staleTime: 2 * 60 * 1000,
-      },
-    },
-  );
-  const freeGame = useMemo(
-    () => freeGamesQuery.data?.freeGames?.find((game) => game.id === gameId),
-    [freeGamesQuery.data, gameId],
-  );
 
   const fixture = useMemo(() => board?.fixtures.find(f => f.gameId === gameId), [board, gameId]);
   const projection = useMemo(() => board?.projections.find(p => p.eventId === gameId), [board, gameId]);
@@ -173,40 +158,21 @@ export default function GameDetailScreen() {
   }
 
   if (!hasServerEntitlement) {
-    if (freeGamesQuery.isLoading) {
-      return <View style={[styles.root, styles.gateState, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
-    }
-    if (freeGamesQuery.isError) {
+    if (userId && gameId) {
       return (
-        <View style={[styles.root, { backgroundColor: colors.background }]}>
-          <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomWidth: 0 }]}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}>
-              <Feather name="chevron-left" size={24} color={colors.foreground} />
-            </Pressable>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>Matchup Analysis</Text>
-            <View style={{ width: 40 }} />
-          </View>
-          <RecoverableErrorState
-            title="Games unavailable"
-            message="We couldn't load this free matchup. Try again."
-            error={freeGamesQuery.error}
-            isRetrying={freeGamesQuery.isFetching}
-            onRetry={freeGamesQuery.refetch}
-          />
+        <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+          <FreeProjectionPassDetail viewerId={userId} gameId={gameId} onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         </View>
       );
-    }
-    if (freeGame) {
-      return <FreeGameDetail game={freeGame} onBack={() => router.back()} colors={colors} topInset={insets.top} bottomInset={insets.bottom} />;
     }
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomWidth: 0 }]}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}>
             <Feather name="chevron-left" size={24} color={colors.foreground} />
           </Pressable>
         </View>
-        <EmptyState message="An active subscription is required to view deep analytics." />
+        <EmptyState message="Sign in to view this matchup. Pro unlocks every projection." />
       </View>
     );
   }
@@ -431,60 +397,6 @@ export default function GameDetailScreen() {
             />
           </View>
         )}
-      </ScrollView>
-    </View>
-  );
-}
-
-function FreeGameDetail({ game, onBack, colors, topInset, bottomInset }: {
-  game: GameProjection;
-  onBack: () => void;
-  colors: ReturnType<typeof useColors>;
-  topInset: number;
-  bottomInset: number;
-}) {
-  const awayWinPct = 100 - game.homeWinPct;
-  const projectedHome = game.homeWinPct >= 50;
-  const winner = nickname(projectedHome ? game.homeTeamName : game.awayTeamName);
-  const margin = Math.abs(game.projectedSpread);
-  return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: topInset + 12, borderBottomColor: colors.border }]}>
-        <Pressable onPress={onBack} style={styles.backButton}><Feather name="chevron-left" size={24} color={colors.foreground} /></Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Matchup Analysis</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: bottomInset + 40 }}>
-        <View style={[styles.scoreboard, { borderBottomColor: colors.border }]}>
-          <View style={styles.teamCol}>
-            <TeamLogo sport={game.sport} abbr={game.awayTeamAbbr} logoUrl={game.awayTeamLogo ?? undefined} size={50} />
-            <Text style={[styles.teamName, { color: colors.foreground }]}>{nickname(game.awayTeamName)}</Text>
-          </View>
-          <View style={styles.centerCol}>
-            <Text style={[styles.statusText, { color: colors.mutedForeground }]}>{game.status.toUpperCase()}</Text>
-            <Text style={[styles.timeText, { color: colors.foreground }]}>{game.gameTime}</Text>
-            <Text style={[styles.sportLabel, { color: colors.mutedForeground }]}>{game.sport}</Text>
-          </View>
-          <View style={styles.teamCol}>
-            <TeamLogo sport={game.sport} abbr={game.homeTeamAbbr} logoUrl={game.homeTeamLogo ?? undefined} size={50} />
-            <Text style={[styles.teamName, { color: colors.foreground }]}>{nickname(game.homeTeamName)}</Text>
-          </View>
-        </View>
-        <View style={[styles.verdict, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.verdictHeader}><View style={[styles.dot, { backgroundColor: colors.primary }]} /><Text style={[styles.verdictTitle, { color: colors.primary }]}>PROJECTED OUTCOME</Text></View>
-          <Text style={[styles.verdictValue, { color: colors.foreground }]}>{winner.toUpperCase()}</Text>
-          <Text style={[styles.verdictSub, { color: colors.mutedForeground }]}>Model forecast for this matchup</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Matchup Analytics</Text>
-          <View style={styles.grid}>
-            <Detail label="Projected score" value={`${nickname(game.awayTeamName)} ${game.projectedTotal ? ((game.projectedTotal + game.projectedSpread) / 2).toFixed(1) : '—'} – ${nickname(game.homeTeamName)} ${game.projectedTotal ? ((game.projectedTotal - game.projectedSpread) / 2).toFixed(1) : '—'}`} colors={colors} fullWidth />
-            <Detail label="Win probability" value={`${nickname(game.awayTeamName)} ${awayWinPct.toFixed(1)}% · ${nickname(game.homeTeamName)} ${game.homeWinPct.toFixed(1)}%`} colors={colors} fullWidth />
-            <Detail label="Expected margin" value={margin ? `${winner} by ${margin.toFixed(1)}` : 'Even'} colors={colors} />
-            <Detail label="Expected total" value={game.projectedTotal ? game.projectedTotal.toFixed(1) : '—'} colors={colors} />
-            <Detail label="Projected winner" value={winner} colors={colors} fullWidth />
-          </View>
-        </View>
       </ScrollView>
     </View>
   );

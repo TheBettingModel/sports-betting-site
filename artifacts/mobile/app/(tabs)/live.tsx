@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Modal,
   Platform,
@@ -16,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { useQueries } from '@tanstack/react-query';
+import { comparableMarketHistory } from '@/lib/analytics-history-policy';
+import { projectionQueryKey, PROJECTION_REFRESH_MS, retryProjectionQuery } from '@/lib/projection-query-policy';
 import Svg, { Line, Polyline } from 'react-native-svg';
 import {
   getV4FullSlateProjections,
@@ -32,6 +35,7 @@ import { LockedPickCard } from '@/components/LockedPickCard';
 import { TeamLogo } from '@/components/TeamLogo';
 import { useColors } from '@/hooks/useColors';
 import { useSubscription } from '@/lib/revenuecat';
+import { API_BASE_URL } from '@/lib/api-config';
 
 const SPORTS: GetV4FullSlateProjectionsSport[] = [
   'MLB', 'NFL', 'NCAAF', 'NBA', 'NCAAMB', 'NHL', 'WNBA', 'SOCCER',
@@ -43,7 +47,7 @@ type BoardItem = {
   fixture: V4FullSlateProjectionResponseFixturesItem;
   projection: V4PublicProjection;
   evidence?: GamesMarketAnalyticsResponseGamesItem;
-  selectedSide: 'home' | 'away' | null;
+  selectedSide: 'home' | 'away' | 'draw' | null;
   selectedName: string;
   publicDirection: Direction;
   sharpDirection: Direction;
@@ -88,25 +92,9 @@ function movementDirection(first: number, last: number): Direction {
 
 function comparableHistory(
   points: MarketHistoryPoint[],
-  selection: 'home' | 'away' | null,
+  selection: 'home' | 'away' | 'draw' | null,
 ): MarketHistoryPoint[] {
-  if (!selection) return [];
-  const grouped = new Map<string, MarketHistoryPoint[]>();
-  for (const point of points) {
-    if (point.selection !== selection || !point.sportsbook) continue;
-    const rows = grouped.get(point.sportsbook) ?? [];
-    rows.push(point);
-    grouped.set(point.sportsbook, rows);
-  }
-  const groups = [...grouped.values()]
-    .map((rows) => rows.sort((a, b) => a.capturedAt.localeCompare(b.capturedAt)))
-    .sort((a, b) => {
-      const aLast = a[a.length - 1]?.capturedAt ?? '';
-      const bLast = b[b.length - 1]?.capturedAt ?? '';
-      return bLast.localeCompare(aLast);
-    });
-  const chosen = groups[0] ?? [];
-  return chosen;
+  return comparableMarketHistory(points, selection);
 }
 
 function buildBoardItem(
@@ -118,7 +106,7 @@ function buildBoardItem(
     ? 'home'
     : projection.projectedWinner === 'AWAY'
       ? 'away'
-      : null;
+      : projection.projectedWinner === 'DRAW' ? 'draw' : null;
   const selectedName = selectedSide === 'home'
     ? fixture.homeParticipant.name
     : selectedSide === 'away'
@@ -269,12 +257,12 @@ function MarketCard({ item, onPress }: { item: BoardItem; onPress: () => void })
           {item.publicHistory.length >= 2
             ? `Public: ${item.publicHistory[0]?.sportsbook ?? 'Market'} · ${formatPrice(item.publicHistory[0]?.price)} → ${formatPrice(item.publicHistory[item.publicHistory.length - 1]?.price)}`
             : item.publicHistory.length === 1
-              ? `Public: ${item.publicHistory[0]?.sportsbook ?? 'Market'} · Current ${formatPrice(item.publicHistory[0]?.price)} · movement pending`
+              ? `Public: ${item.publicHistory[0]?.sportsbook ?? 'Market'} · Observed ${formatPrice(item.publicHistory[0]?.price)} · awaiting another quote`
               : 'Public market history is unavailable.'}
           {item.sharpHistory.length >= 2
             ? `\nSharp: ${item.sharpHistory[0]?.sportsbook ?? 'Verified sharp book'} · ${formatPrice(item.sharpHistory[0]?.price)} → ${formatPrice(item.sharpHistory[item.sharpHistory.length - 1]?.price)}`
             : item.sharpHistory.length === 1
-              ? `\nSharp: ${item.sharpHistory[0]?.sportsbook ?? 'Verified sharp book'} · Current ${formatPrice(item.sharpHistory[0]?.price)} · movement pending`
+              ? `\nSharp: ${item.sharpHistory[0]?.sportsbook ?? 'Verified sharp book'} · Observed ${formatPrice(item.sharpHistory[0]?.price)} · awaiting another quote`
               : '\nSharp history is unavailable.'}
         </Text>
         <View style={styles.viewDetails}>
@@ -393,14 +381,18 @@ export default function AnalyticsScreen() {
   } = useSubscription();
   const [activeSport, setActiveSport] = useState<string>('All');
   const [selected, setSelected] = useState<BoardItem | null>(null);
-  const slateDate = easternDate();
+  const [slateDate, setSlateDate] = useState(() => easternDate());
 
   const projectionQueries = useQueries({
     queries: SPORTS.map((sport) => ({
-      queryKey: ['/api/model/v4/projections', { sport, date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
+      queryKey: projectionQueryKey(sport, slateDate, userId, hasServerEntitlement, API_BASE_URL),
       queryFn: () => getV4FullSlateProjections({ sport, date: slateDate }),
       enabled: Boolean(userId) && hasServerEntitlement,
       staleTime: 2 * 60 * 1000,
+      refetchInterval: PROJECTION_REFRESH_MS,
+      refetchIntervalInBackground: false,
+      refetchOnReconnect: true,
+      retry: retryProjectionQuery,
     })),
   });
   const analyticsQuery = useGetGamesMarketAnalytics(
@@ -408,8 +400,13 @@ export default function AnalyticsScreen() {
     {
       query: {
         enabled: Boolean(userId) && hasServerEntitlement,
-        queryKey: ['/api/games/market-analytics', { date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement }],
+        queryKey: ['/api/games/market-analytics', { date: slateDate, viewerId: userId ?? 'signed-out', entitled: hasServerEntitlement, source: API_BASE_URL }],
         staleTime: 2 * 60 * 1000,
+        refetchInterval: PROJECTION_REFRESH_MS,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        retry: retryProjectionQuery,
       },
     },
   );
@@ -448,12 +445,14 @@ export default function AnalyticsScreen() {
   );
   const isRefetching = analyticsQuery.isRefetching || projectionQueries.some((query) => query.isRefetching);
   const allFailed = projectionQueries.length > 0 && projectionQueries.every((query) => query.isError);
+  const latestQueries = useRef({ analyticsQuery, projectionQueries });
+  latestQueries.current = { analyticsQuery, projectionQueries };
   const refetch = useCallback(async () => {
     setRefreshMessage(null);
     try {
       const [marketResult, ...projectionResults] = await Promise.all([
-        analyticsQuery.refetch(),
-        ...projectionQueries.map((query) => query.refetch()),
+        latestQueries.current.analyticsQuery.refetch(),
+        ...latestQueries.current.projectionQueries.map((query) => query.refetch()),
       ]);
       const marketFailed = marketResult.isError;
       const projectionsFailed = projectionResults.some((result) => result.isError);
@@ -470,11 +469,21 @@ export default function AnalyticsScreen() {
     } catch {
       setRefreshMessage('Analytics data could not be refreshed. Showing previously loaded results where available.');
     }
-  }, [analyticsQuery.refetch, projectionQueries]);
+  }, []);
+  useEffect(() => {
+    const interval = setInterval(() => setSlateDate(easternDate()), 60_000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setSlateDate(easternDate());
+        if (hasServerEntitlement) void refetch();
+      }
+    });
+    return () => { clearInterval(interval); subscription.remove(); };
+  }, [hasServerEntitlement, refetch]);
   const refreshNotice = isRefetching
     ? 'Refreshing market history and game projections…'
     : analyticsQuery.isError
-      ? 'Market history could not be loaded. Pull down to try again.'
+      ? 'Market history could not be loaded. Retrying automatically; this does not mean history is missing.'
       : refreshMessage;
 
   if (!hasServerEntitlement && (isSubscriptionLoading || serverEntitlementError)) {
