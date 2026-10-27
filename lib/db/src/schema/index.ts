@@ -18,6 +18,7 @@ export * from "./game-results";
 // ── Odds history ──────────────────────────────────────────────────────────────
 export * from "./odds-snapshots";
 export * from "./closing-lines";
+export * from "./odds-credit-budget";
 
 // ── Model registry & predictions ─────────────────────────────────────────────
 export * from "./model-versions";

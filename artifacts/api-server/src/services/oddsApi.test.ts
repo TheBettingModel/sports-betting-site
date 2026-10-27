@@ -1,4 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
+// These legacy tests exercise normalization/routing; the shared transport has
+// its own offline and transactional tests. No DB or live provider is used here.
+vi.mock("./oddsBudgetedTransport", () => ({
+  fetchBudgetedOdds: async ({ apiKey, feed }: { apiKey: string; feed: string }) => {
+    const response = await fetch(
+      `https://api.the-odds-api.com/v4/sports/${feed}/odds/?apiKey=${apiKey}&regions=us,eu&markets=h2h,spreads,totals&oddsFormat=american`,
+    );
+    if (!response.ok) throw new Error(`Synthetic provider failure ${response.status}`);
+    return { events: await response.json(), fetchedAt: new Date() };
+  },
+}));
 import {
   ACTIONABLE_ODDS_CACHE_MAX_AGE_MS,
   canonicalTeamName,

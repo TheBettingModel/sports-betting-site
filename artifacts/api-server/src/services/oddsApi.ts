@@ -10,12 +10,13 @@
  *   • Spreads & totals — consistently available for every supported sport,
  *                        filling the gaps ESPN often leaves blank.
  *
- * Cache strategy: 30-minute in-memory TTL per sport key.
- * At ~10 active sports × 2 fetches/hour, this keeps daily usage under 500
- * requests/day even on the starter plan.
+ * Paid requests use a shared PostgreSQL credit budget and collection cadence.
+ * Credits, not HTTP request count, determine the provider allowance.
+ * In-memory caches never extend the age of a persisted provider receipt.
  */
 
 import { logger } from "../lib/logger";
+import { fetchBudgetedOdds } from "./oddsBudgetedTransport";
 
 // ── The Odds API sport key mapping ────────────────────────────────────────────
 
@@ -403,29 +404,12 @@ const USER_FACING_BEST_LINE_BOOKS = new Set([
 
 async function fetchAndNormalise(
   oddsApiKey: string,
-): Promise<Pick<CacheEntry, "games" | "providerCommenceTimes">> {
+): Promise<CacheEntry> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) throw new Error("ODDS_API_KEY secret is not set");
 
-  const url =
-    `https://api.the-odds-api.com/v4/sports/${oddsApiKey}/odds/` +
-    `?apiKey=${apiKey}&regions=us,eu&markets=h2h,spreads,totals&oddsFormat=american`;
-
-  const resp = await fetch(url, {
-    headers: { "User-Agent": "TheBettingModel/2.0" },
-    signal: AbortSignal.timeout(12_000),
-  });
-
-  if (!resp.ok) {
-    const body = await resp.text().catch(() => "");
-    throw new Error(`The Odds API ${resp.status}: ${body.slice(0, 200)}`);
-  }
-
-  const remaining = resp.headers.get("x-requests-remaining");
-  const used      = resp.headers.get("x-requests-used");
-  logger.debug({ oddsApiKey, remaining, used }, "OddsAPI: request consumed");
-
-  const games = (await resp.json()) as OddsApiGame[];
+  const receipt = await fetchBudgetedOdds({ apiKey, feed: oddsApiKey });
+  const games = receipt.events as OddsApiGame[];
   const result = new Map<string, GameOdds[]>();
   const providerCommenceTimes = new Map<string, string[]>();
 
@@ -585,7 +569,7 @@ async function fetchAndNormalise(
     { oddsApiKey, games: result.size, hasPinnacle: games.some(g => g.bookmakers.some(b => b.key === "pinnacle")) },
     "OddsAPI: normalised",
   );
-  return { games: result, providerCommenceTimes };
+  return { games: result, providerCommenceTimes, fetchedAt: receipt.fetchedAt.getTime() };
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -619,7 +603,7 @@ async function fetchOddsForProviderKey(oddsApiKey: string): Promise<Map<string, 
 
   try {
     const normalised = await fetchAndNormalise(oddsApiKey);
-    cache.set(oddsApiKey, { ...normalised, fetchedAt: Date.now() });
+    cache.set(oddsApiKey, normalised);
     failedFetchAt.delete(oddsApiKey);
     return normalised.games;
   } catch (err) {
@@ -642,18 +626,10 @@ async function fetchOddsForProviderKey(oddsApiKey: string): Promise<Map<string, 
 export async function fetchCurrentNcaafEvidenceOdds(): Promise<OddsApiGame[]> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) throw new Error("ODDS_API_KEY secret is not set");
-  const url =
-    "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds/" +
-    `?apiKey=${apiKey}&regions=us,eu&markets=h2h,spreads,totals&oddsFormat=american`;
-  const response = await fetch(url, {
-    headers: { "User-Agent": "TheBettingModel/2.0" },
-    signal: AbortSignal.timeout(12_000),
+  const receipt = await fetchBudgetedOdds({
+    apiKey, feed: "americanfootball_ncaaf", allowCached: false,
   });
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`The Odds API ${response.status}: ${body.slice(0, 200)}`);
-  }
-  return (await response.json()) as OddsApiGame[];
+  return receipt.events as OddsApiGame[];
 }
 
 // ── Best available line ───────────────────────────────────────────────────────
