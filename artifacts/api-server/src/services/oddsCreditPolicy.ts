@@ -1,13 +1,15 @@
 /** UTC, deterministic policy; no database, network, timers, or application startup. */
 export const ODDS_CREDIT_POLICY = Object.freeze({
-  monthlyCredits: 100_000,
-  monthlyReserve: 20_000,
-  dailyCredits: 2_500,
+  monthlyCredits: 20_000,
+  monthlyReserve: 4_000,
+  dailyCredits: 500,
   burstCredits: 120,
   requestCredits: 6, // three markets × two regions; keep transport parameters in sync
   nearKickoffMs: 3 * 60 * 60_000,
-  nearIntervalMs: 15 * 60_000,
-  farIntervalMs: 60 * 60_000,
+  // No near-kickoff acceleration on the 20K plan: at most two paid
+  // collections per feed in 24 hours, shared across API/worker processes.
+  nearIntervalMs: 12 * 60 * 60_000,
+  farIntervalMs: 12 * 60 * 60_000,
   actionableCacheMs: 30 * 60_000,
   leaseMs: 120_000,
 });

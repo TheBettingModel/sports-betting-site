@@ -97,8 +97,9 @@ export class OddsCreditStore {
           ]);
           // A crash after this COMMIT cannot erase the credit reservation.
           await client.query(`UPDATE odds_api_collection_state SET lease_id=$3,lease_until=$4,
-            next_allowed_at=$4 WHERE scope=$1 AND feed=$2`, [
+            next_allowed_at=$5 WHERE scope=$1 AND feed=$2`, [
             scope, feed, leaseId, new Date(now.getTime() + ODDS_CREDIT_POLICY.leaseMs),
+            new Date(now.getTime() + oddsCollectionInterval([], now)),
           ]);
           admission = { kind: "reserved", leaseId, month };
         }
@@ -123,7 +124,8 @@ export class OddsCreditStore {
       await client.query("SET LOCAL lock_timeout = '3s'");
       await client.query("SET LOCAL statement_timeout = '5s'");
       await client.query("SELECT scope FROM odds_api_credit_state WHERE scope=$1 FOR UPDATE", [input.scope]);
-      const nextAllowed = new Date(input.now.getTime() + (
+      // Failures and interrupted runs must not bypass the twice-daily cadence.
+      const nextAllowed = new Date(input.now.getTime() + Math.max(oddsCollectionInterval([], input.now),
         input.events ? oddsCollectionInterval(input.events, input.now)
           : input.failureBackoffMs ?? ODDS_CREDIT_POLICY.nearIntervalMs
       ));

@@ -12,7 +12,7 @@ describe.skipIf(!connectionString)("Odds credit transactions on disposable Postg
     CreditPool & { end: () => Promise<void> };
   const store = new OddsCreditStore(pool);
   const now = new Date("2026-11-01T12:00:00Z");
-  const usage = { used: 0, remaining: 100_000 };
+  const usage = { used: 0, remaining: 20_000 };
   const scope = "synthetic-test-key-fingerprint";
   const args = (feed = "basketball_nba", time = now) => ({
     scope, feed, now: time, usage, allowCached: true,
@@ -52,28 +52,30 @@ describe.skipIf(!connectionString)("Odds credit transactions on disposable Postg
   });
   it("enforces a shared cap across different feeds and independent pool instances", async () => {
     reserved(await store.acquire(args()));
-    await pool.query("UPDATE odds_api_credit_state SET used=79988,provider_used=79988");
+    await pool.query("UPDATE odds_api_credit_state SET used=15988,provider_used=15988");
     const other = new OddsCreditStore(pool);
     const results = await Promise.all(Array.from({ length: 20 }, (_, i) =>
-      (i % 2 ? other : store).acquire({ ...args(`feed_${i}`), usage: { used: 79988, remaining: 20012 } })));
+      (i % 2 ? other : store).acquire({ ...args(`feed_${i}`), usage: { used: 15988, remaining: 4012 } })));
     // Outstanding six credits from the first request are counted conservatively.
     expect(results.filter((r) => r.kind === "reserved")).toHaveLength(1);
-    expect(Number((await counters()).used)).toBe(80_000);
+    expect(Number((await counters()).used)).toBe(16_000);
   });
   it("cannot evade a daily ceiling by using another feed", async () => {
     reserved(await store.acquire(args()));
-    await pool.query("UPDATE odds_api_credit_state SET day_used=2496");
+    await pool.query("UPDATE odds_api_credit_state SET day_used=498");
     expect(await store.acquire(args("icehockey_nhl"))).toEqual({ kind: "denied", reason: "DAILY_LIMIT" });
-    expect((await counters()).day_used).toBe(2496);
+    expect((await counters()).day_used).toBe(498);
   });
   it("does not refund or immediately duplicate a request after a simulated crash", async () => {
     reserved(await store.acquire(args()));
     expect(await store.acquire(args())).toEqual({ kind: "denied", reason: "COLLECTION_IN_FLIGHT" });
     const later = new Date(now.getTime() + 121_000);
-    reserved(await new OddsCreditStore(pool).acquire(args("basketball_nba", later)));
-    expect(await counters()).toMatchObject({ used: 12, outstanding: 12, day_used: 12 });
+    expect(await new OddsCreditStore(pool).acquire(args("basketball_nba", later)))
+      .toEqual({ kind: "denied", reason: "COLLECTION_NOT_DUE" });
+    reserved(await store.acquire(args("basketball_nba", new Date(now.getTime() + 12 * 60 * 60_000))));
+    expect(await counters()).toMatchObject({ used: 12, outstanding: 12, day_used: 6 });
   });
-  it("shares fresh payloads and original receipts across processes, with near-start cadence", async () => {
+  it("shares fresh receipts across processes without near-start acceleration", async () => {
     const reservation = reserved(await store.acquire(args()));
     const events = [{ id: "synthetic-event", commence_time: "2026-11-01T14:00:00Z" }];
     await store.finish({ ...args(), ...reservation, events, usage: { used: 6, remaining: 99994 } });
@@ -82,7 +84,9 @@ describe.skipIf(!connectionString)("Odds credit transactions on disposable Postg
     expect(await new OddsCreditStore(pool).acquire(args("basketball_nba", later)))
       .toEqual({ kind: "cached", cache: { events, fetchedAt: now } });
     expect(await store.read(scope, "basketball_nba", later)).toEqual({ events, fetchedAt: now });
-    reserved(await store.acquire(args("basketball_nba", new Date(now.getTime() + 15 * 60_000))));
+    expect(await store.acquire(args("basketball_nba", new Date(now.getTime() + 31 * 60_000))))
+      .toEqual({ kind: "denied", reason: "COLLECTION_NOT_DUE" });
+    reserved(await store.acquire(args("basketball_nba", new Date(now.getTime() + 12 * 60 * 60_000))));
   });
   it("does not expose hour-old odds as actionable or retimestamp old raw evidence", async () => {
     const reservation = reserved(await store.acquire(args()));
@@ -94,7 +98,7 @@ describe.skipIf(!connectionString)("Odds credit transactions on disposable Postg
       .toEqual({ kind: "denied", reason: "COLLECTION_NOT_DUE" });
     expect(await store.acquire({ ...args("basketball_nba", new Date(now.getTime() + 60_000)), allowCached: false }))
       .toEqual({ kind: "denied", reason: "COLLECTION_NOT_DUE" });
-    reserved(await store.acquire(args("basketball_nba", new Date(now.getTime() + 60 * 60_000))));
+    reserved(await store.acquire(args("basketball_nba", new Date(now.getTime() + 12 * 60 * 60_000))));
   });
   it("preserves fresh cached data but never pays when the provider is depleted", async () => {
     expect(await store.acquire({ ...args(), usage: { used: 100000, remaining: 0 } }))

@@ -114,7 +114,7 @@ describe("shared budgeted Odds API transport (no real HTTP or DB)", () => {
     await expect(request(options)).rejects.toThrow(`PROVIDER_HTTP_${status}`);
     expect(store.finish).toHaveBeenCalledOnce();
     expect(JSON.stringify(store.finish.mock.calls)).not.toContain(options.apiKey);
-    expect(store.finish.mock.calls[0]![0].failureBackoffMs).toBe(status === 503 ? 900_000 : 3_600_000);
+    expect(store.finish.mock.calls[0]![0].failureBackoffMs).toBe(43_200_000);
   });
   it("accounts for an unexpected higher price and does not publish its payload", async () => {
     const { request, network, store } = setup();
